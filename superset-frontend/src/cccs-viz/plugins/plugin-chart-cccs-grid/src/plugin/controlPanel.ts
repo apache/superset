@@ -18,9 +18,11 @@
  */
 import {
   t,
-  validateNonEmpty, FeatureFlag, isFeatureEnabled,
+  FeatureFlag, isFeatureEnabled,
   QueryMode,
   QueryFormColumn,
+  ensureIsArray,
+  validateNonEmpty,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -29,12 +31,12 @@ import {
   ControlPanelsContainerProps,
   sections,
   QueryModeLabel,
+  sharedControls,
+  ControlPanelState,
+  ControlState,
 } from '@superset-ui/chart-controls';
 
-
 //import cidrRegex from 'cidr-regex';
-
-
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -46,11 +48,10 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
-
 /**
  * Visibility check
  */
- function isQueryMode(mode: QueryMode) {
+function isQueryMode(mode: QueryMode) {
   return ({ controls }: ControlPanelsContainerProps) => getQueryMode(controls) === mode;
 }
 
@@ -66,11 +67,16 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
+  rerender: ['columns', 'groupby', 'metrics'],
 };
 
-
-
-
+const validateAggControlValues = (controls: ControlStateMapping, values: any[]) => {
+  const areControlsEmpty = values.every(val => ensureIsArray(val).length === 0);
+  // @ts-ignore
+  return areControlsEmpty && isAggMode({ controls })
+    ? [t('Metrics or Group By must have a value')]
+    : [];
+};
 
 // function isIP(v: unknown) {
 //   if (typeof v === 'string' && v.trim().length > 0) {
@@ -163,35 +169,63 @@ const config: ControlPanelConfig = {
             config: queryMode,
           },
         ],
-
         [
           {
             name: 'groupby',
             override: {
               visibility: isAggMode,
+              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+                const { controls } = state;
+                const originalMapStateToProps = sharedControls?.groupby?.mapStateToProps;
+                const newState = originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(controls, [
+                  controls.metrics?.value,
+                  controlState.value,
+                ]);
+                return newState;
+              },
+              rerender: ['metrics'],
             },
           },
         ],
-
         [
           {
             name: 'metrics',
             override: {
-              validators: [],
               visibility: isAggMode,
+              validators: [],
+              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+                const { controls } = state;
+                const originalMapStateToProps = sharedControls?.metrics?.mapStateToProps;
+                const newState = originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(controls, [
+                  controls.groupby?.value,
+                  controlState.value,
+                ]);
+                return newState;
+              },
+              rerender: ['groupby'],
             },
           },
         ],
-
         [
           {
             name: 'columns',
             override: {
               visibility: isRawMode,
+              mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+                const { controls } = state;
+                const originalMapStateToProps = sharedControls?.columns?.mapStateToProps;
+                const newState = originalMapStateToProps?.(state, controlState) ?? {};
+                // @ts-ignore
+                newState.externalValidationErrors = isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+                  ? [t('must have a value')]
+                  : [];
+                return newState;
+              },
             },
-          },
+          }
         ],
-
         [
           {
             name: 'order_by_cols',

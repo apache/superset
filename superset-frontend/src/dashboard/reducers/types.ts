@@ -99,4 +99,5 @@ export type Filters = {
 export type NativeFiltersState = {
   filters: Filters;
   filterSets: FilterSets;
+  focusedFilterId?: string;
 };

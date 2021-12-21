@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { ColumnType } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 
 export const columns: ColumnMeta[] = [
   {
@@ -29,7 +29,8 @@ export const columns: ColumnMeta[] = [
     id: 516,
     is_dttm: false,
     python_date_format: null,
-    type: ColumnType.DOUBLE,
+    type: 'DOUBLE',
+    type_generic: GenericDataType.NUMERIC,
     verbose_name: null,
   },
   {
@@ -42,7 +43,8 @@ export const columns: ColumnMeta[] = [
     id: 477,
     is_dttm: false,
     python_date_format: null,
-    type: ColumnType.STRING,
+    type: 'VARCHAR',
+    type_generic: GenericDataType.STRING,
     verbose_name: null,
   },
   {
@@ -54,7 +56,8 @@ export const columns: ColumnMeta[] = [
     id: 516,
     is_dttm: false,
     python_date_format: null,
-    type: ColumnType.DOUBLE,
+    type: 'INT',
+    type_generic: GenericDataType.NUMERIC,
     verbose_name: null,
   },
 ];

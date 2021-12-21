@@ -84,6 +84,7 @@ def import_chart(
 def import_dashboard(
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     dashboard_to_import: Dashboard,
+    dataset_id_mapping: Optional[Dict[int, int]] = None,
     import_time: Optional[int] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
@@ -139,6 +140,20 @@ def import_dashboard(
                 if old_slice_id in old_to_new_slc_id_dict:
                     value["meta"]["chartId"] = old_to_new_slc_id_dict[old_slice_id]
         dashboard.position_json = json.dumps(position_data)
+
+    def alter_native_filters(dashboard: Dashboard) -> None:
+        json_metadata = json.loads(dashboard.json_metadata)
+        native_filter_configuration = json_metadata.get("native_filter_configuration")
+        if not native_filter_configuration:
+            return
+        for native_filter in native_filter_configuration:
+            for target in native_filter.get("targets", []):
+                old_dataset_id = target.get("datasetId")
+                if dataset_id_mapping and old_dataset_id is not None:
+                    target["datasetId"] = dataset_id_mapping.get(
+                        old_dataset_id, old_dataset_id,
+                    )
+        dashboard.json_metadata = json.dumps(json_metadata)
 
     logger.info("Started import of the dashboard: %s", dashboard_to_import.to_json())
     session = db.session
@@ -235,6 +250,8 @@ def import_dashboard(
             timed_refresh_immune_slices=new_timed_refresh_immune_slices
         )
 
+    alter_native_filters(dashboard_to_import)
+
     new_slices = (
         session.query(Slice).filter(Slice.id.in_(old_to_new_slc_id_dict.values())).all()
     )
@@ -301,11 +318,15 @@ def import_dashboards(
     data = json.loads(content, object_hook=decode_dashboards)
     if not data:
         raise DashboardImportException(_("No data in file"))
+    dataset_id_mapping: Dict[int, int] = {}
     for table in data["datasources"]:
-        import_dataset(table, database_id, import_time=import_time)
+        new_dataset_id = import_dataset(table, database_id, import_time=import_time)
+        params = json.loads(table.params)
+        dataset_id_mapping[params["remote_id"]] = new_dataset_id
+
     session.commit()
     for dashboard in data["dashboards"]:
-        import_dashboard(dashboard, import_time=import_time)
+        import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
     session.commit()
 
 

@@ -15,10 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime, timedelta
-from typing import Iterator
 
-import croniter
 from celery.exceptions import SoftTimeLimitExceeded
 from dateutil import parser
 
@@ -29,21 +26,10 @@ from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.reports.dao import ReportScheduleDAO
+from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
 
 logger = logging.getLogger(__name__)
-
-
-def cron_schedule_window(cron: str) -> Iterator[datetime]:
-    window_size = app.config["ALERT_REPORTS_CRON_WINDOW_SIZE"]
-    utc_now = datetime.utcnow()
-    start_at = utc_now - timedelta(seconds=1)
-    stop_at = utc_now + timedelta(seconds=window_size)
-    crons = croniter.croniter(cron, start_at)
-    for schedule in crons.all_next(datetime):
-        if schedule >= stop_at:
-            break
-        yield schedule
 
 
 @celery_app.task(name="reports.scheduler")
@@ -54,7 +40,9 @@ def scheduler() -> None:
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:
-            for schedule in cron_schedule_window(active_schedule.crontab):
+            for schedule in cron_schedule_window(
+                active_schedule.crontab, active_schedule.timezone
+            ):
                 logger.info(
                     "Scheduling alert %s eta: %s", active_schedule.name, schedule
                 )
@@ -83,7 +71,9 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
             task_id, report_schedule_id, scheduled_dttm_,
         ).run()
     except ReportScheduleUnexpectedError as ex:
-        logger.error("An unexpected occurred while executing the report: %s", ex)
+        logger.error(
+            "An unexpected occurred while executing the report: %s", ex, exc_info=True
+        )
     except CommandException as ex:
         logger.info("Report state: %s", ex)
 
@@ -95,4 +85,8 @@ def prune_log() -> None:
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
-        logger.error("An exception occurred while pruning report schedule logs: %s", ex)
+        logger.error(
+            "An exception occurred while pruning report schedule logs: %s",
+            ex,
+            exc_info=True,
+        )

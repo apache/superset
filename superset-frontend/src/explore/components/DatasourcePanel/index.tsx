@@ -16,23 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import {
-  ColumnOption,
-  MetricOption,
-  ControlConfig,
-  DatasourceMeta,
-} from '@superset-ui/chart-controls';
+import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragWrapper from './DatasourcePanelDragWrapper';
 import { DndItemType } from '../DndItemType';
+import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
@@ -45,6 +41,18 @@ export interface Props {
   };
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
 }
+
+const Button = styled.button`
+  background: none;
+  border: none;
+  text-decoration: underline;
+  color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
+const ButtonContainer = styled.div`
+  text-align: center;
+  padding-top: 2px;
+`;
 
 const DatasourceContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
@@ -112,12 +120,33 @@ export default function DataSourcePanel({
   controls: { datasource: datasourceControl },
   actions,
 }: Props) {
-  const { columns, metrics } = datasource;
+  const { columns: _columns, metrics } = datasource;
+
+  // display temporal column first
+  const columns = useMemo(
+    () =>
+      [..._columns].sort((col1, col2) => {
+        if (col1.is_dttm && !col2.is_dttm) {
+          return -1;
+        }
+        if (col2.is_dttm && !col1.is_dttm) {
+          return 1;
+        }
+        return 0;
+      }),
+    [_columns],
+  );
+
   const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,
     metrics,
   });
+  const [showAllMetrics, setShowAllMetrics] = useState(false);
+  const [showAllColumns, setShowAllColumns] = useState(false);
+
+  const DEFAULT_MAX_COLUMNS_LENGTH = 50;
+  const DEFAULT_MAX_METRICS_LENGTH = 50;
 
   const search = debounce((value: string) => {
     if (value === '') {
@@ -180,7 +209,7 @@ export default function DataSourcePanel({
     });
     setInputValue('');
   }, [columns, datasource, metrics]);
-
+  
   const mainBody = (
     <>
       <div className="field-selections">
@@ -214,13 +243,22 @@ export default function DataSourcePanel({
                     value={m}
                     type={DndItemType.Metric}
                   >
-                    <MetricOption metric={m} showType />
+                    <StyledMetricOption metric={m} showType />
                   </DatasourcePanelDragWrapper>
                 ) : (
-                  <MetricOption metric={m} showType />
+                  <StyledMetricOption metric={m} showType />
                 )}
               </LabelContainer>
             ))}
+            {lists.metrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
+              <ButtonContainer>
+                <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
+                  {showAllMetrics ? t('Show less...') : t('Show all...')}
+                </Button>
+              </ButtonContainer>
+            ) : (
+              <></>
+            )}
           </Collapse.Panel>
           <Collapse.Panel
             header={<span className="header">{t('Columns')}</span>}
@@ -236,13 +274,22 @@ export default function DataSourcePanel({
                     value={col}
                     type={DndItemType.Column}
                   >
-                    <ColumnOption column={col} showType />
+                    <StyledColumnOption column={col} showType />
                   </DatasourcePanelDragWrapper>
                 ) : (
-                  <ColumnOption column={col} showType />
+                  <StyledColumnOption column={col} showType />
                 )}
               </LabelContainer>
             ))}
+            {lists.columns.length > DEFAULT_MAX_COLUMNS_LENGTH ? (
+              <ButtonContainer>
+                <Button onClick={() => setShowAllColumns(!showAllColumns)}>
+                  {showAllColumns ? t('Show Less...') : t('Show all...')}
+                </Button>
+              </ButtonContainer>
+            ) : (
+              <></>
+            )}
           </Collapse.Panel>
         </Collapse>
       </div>

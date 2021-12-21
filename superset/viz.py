@@ -66,7 +66,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
-from superset.typing import QueryObjectDict, VizData, VizPayload
+from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -509,7 +509,8 @@ class BaseViz:
                 except Exception as ex:
                     logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(ex)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex),
+                        exc_info=True,
                     )
                 logger.info("Serving from cache")
 
@@ -525,10 +526,7 @@ class BaseViz:
                     for col in (query_obj.get("columns") or [])
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(
-                            List[Union[str, Dict[str, Any]]],
-                            query_obj.get("metrics") or [],
-                        )
+                        cast(List[Metric], query_obj.get("metrics") or [],)
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -935,7 +933,7 @@ class PivotTableViz(BaseViz):
 
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
-            df = df.stack(0).unstack()
+            df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
         return dict(
             columns=list(df.columns),
             html=df.to_html(
@@ -1227,6 +1225,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
     sort_series = False
     is_timeseries = True
     pivot_fill_value: Optional[int] = None
+
+    def query_obj(self) -> QueryObjectDict:
+        d = super().query_obj()
+        sort_by = self.form_data.get(
+            "timeseries_limit_metric"
+        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        is_asc = not self.form_data.get("order_desc")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d["metrics"]):
+                d["metrics"].append(sort_by)
+            d["orderby"] = [(sort_by, is_asc)]
+        return d
 
     def to_series(
         self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
@@ -1644,17 +1655,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     sort_series = True
     pivot_fill_value = 0
 
-    def query_obj(self) -> QueryObjectDict:
-        d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d["metrics"]):
-                d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
-        return d
-
 
 class HistogramViz(BaseViz):
 
@@ -1762,8 +1762,12 @@ class DistributionBarViz(BaseViz):
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
-        row = df.groupby(self.groupby).sum()[metrics[0]].copy()
-        row.sort_values(ascending=False, inplace=True)
+        sortby = utils.get_metric_name(
+            self.form_data.get("timeseries_limit_metric") or metrics[0]
+        )
+        row = df.groupby(self.groupby).sum()[sortby].copy()
+        is_asc = not self.form_data.get("order_desc")
+        row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T
@@ -2209,18 +2213,6 @@ class HorizonViz(NVD3TimeSeriesViz):
         '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
         "d3-horizon-chart</a>"
     )
-
-    def query_obj(self) -> QueryObjectDict:
-        d = super().query_obj()
-        metrics = self.form_data.get("metrics")
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d["metrics"]):
-                d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
-        return d
 
 
 class MapboxViz(BaseViz):
@@ -2913,17 +2905,6 @@ class RoseViz(NVD3TimeSeriesViz):
     sort_series = False
     is_timeseries = True
 
-    def query_obj(self) -> QueryObjectDict:
-        d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(d["metrics"]):
-                d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
-        return d
-
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
@@ -2962,14 +2943,6 @@ class PartitionViz(NVD3TimeSeriesViz):
         time_op = self.form_data.get("time_series_option", "not_time")
         # Return time series data if the user specifies so
         query_obj["is_timeseries"] = time_op != "not_time"
-        sort_by = self.form_data.get("timeseries_limit_metric")
-        if sort_by:
-            sort_by_label = utils.get_metric_name(sort_by)
-            if sort_by_label not in utils.get_metric_names(query_obj["metrics"]):
-                query_obj["metrics"].append(sort_by)
-            query_obj["orderby"] = [
-                (sort_by, not self.form_data.get("order_desc", True))
-            ]
         return query_obj
 
     def levels_for(

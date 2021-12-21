@@ -17,14 +17,15 @@
 """
 DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
 """
-
 from croniter import croniter
-from flask import abort, flash, Markup
+from flask import abort, current_app as app, flash, Markup
 from flask_appbuilder import CompactCRUDMixin, permission_name
 from flask_appbuilder.api import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
@@ -40,8 +41,19 @@ from .base import BaseSupersetView, SupersetModelView
 # TODO: access control rules for this module
 
 
+class EnsureEnabledMixin:
+    @staticmethod
+    def is_enabled() -> bool:
+        return bool(app.config["ENABLE_ALERTS"])
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
+
+
 class AlertLogModelView(
-    CompactCRUDMixin, SupersetModelView
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AlertLog)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -55,7 +67,7 @@ class AlertLogModelView(
 
 
 class AlertObservationModelView(
-    CompactCRUDMixin, SupersetModelView
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SQLObservation)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -110,7 +122,9 @@ class ReportView(BaseAlertReportView):
     class_permission_name = "ReportSchedule"
 
 
-class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
+class AlertModelView(
+    EnsureEnabledMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alerts"
     include_route_methods = RouteMethod.CRUD_SET | {"log"}

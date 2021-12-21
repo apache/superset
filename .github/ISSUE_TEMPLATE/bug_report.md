@@ -33,6 +33,7 @@ If applicable, add screenshots to help explain your problem.
 - superset version: `superset version`
 - python version: `python --version`
 - node.js version: `node -v`
+- any feature flags active:
 
 ### Checklist
 

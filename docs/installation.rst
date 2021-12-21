@@ -342,7 +342,7 @@ as well as the default values in place.
 
 Since ``superset_config.py`` acts as a Flask configuration module, it
 can be used to alter the settings Flask itself,
-as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+as well as Flask extensions like ``flask-wtf``, ``flask-caching``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
@@ -365,12 +365,12 @@ auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 Caching
 -------
 
-Superset uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
+Superset uses `Flask-Caching <https://flask-caching.readthedocs.io/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
 ``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`, constants in ``superset_config.py``
-that complies with `the Flask-Cache specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
+that complies with `the Flask-Caching specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
 
-Flask-Cache supports multiple caching backends (Redis, Memcached,
+Flask-Caching supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the `pylibmc` client library as `python-memcached` does
 not handle storing binary data correctly. If you use Redis, please install
@@ -393,7 +393,7 @@ defined in ``DATA_CACHE_CONFIG``.
 
 It is also possible to pass a custom cache initialization function in the
 config to handle additional caching use cases. The function must return an
-object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
+object that is compatible with the `Flask-Caching <https://flask-caching.readthedocs.io/>`_ API.
 
 .. code-block:: python
 
@@ -433,7 +433,7 @@ For other strategies, check the `superset/tasks/cache.py` file.
 Caching Thumbnails
 ------------------
 
-This is an optional feature that can be turned on by activating it's feature flag on config:
+This is an optional feature that can be turned on by activating its feature flag on config:
 
 .. code-block:: python
 
@@ -443,7 +443,7 @@ This is an optional feature that can be turned on by activating it's feature fla
     }
 
 
-For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+For this feature you will need a cache system and celery workers. All thumbnails are stored on cache and are processed
 asynchronously by the workers.
 
 An example config where images are stored on S3 could be:
@@ -972,7 +972,7 @@ environment variable: ::
 Event Logging
 -------------
 
-Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+Superset by default logs special action event on its database. These logs can be accessed on the UI navigating to
 "Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
 
 Example of a simple JSON to Stdout class::
@@ -1080,11 +1080,11 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
+    celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
-    celery beat --app=superset.tasks.celery_app:app
+    celery --app=superset.tasks.celery_app:app beat
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``from cachelib.base.BaseCache`` to the ``RESULTS_BACKEND``
@@ -1135,7 +1135,7 @@ The following configuration settings are available for async queries (see config
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE`` - JWT cookie secure option
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN`` - JWT cookie domain option (`see docs for set_cookie <https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie>`
 - ``GLOBAL_ASYNC_QUERIES_JWT_SECRET`` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
-- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
 - ``GLOBAL_ASYNC_QUERIES_POLLING_DELAY`` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in `SIP-39 <https://github.com/apache/superset/issues/9190>`_.
@@ -1256,6 +1256,38 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+Default values for jinja templates can be specified via ``Parameters`` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+.. code-block:: JSON
+    {
+        "my_table": "foo"
+    }
+
+The parameters become available in your SQL (example:SELECT * FROM {{ my_table }} ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as TEMPLATE PARAMETERS.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+.. code-block:: JSON
+    {
+        "_filters": [ {
+            "col": "action_type",
+            "op": "IN",
+            "val": ["sell", "buy"]
+            } ]
+    }
+
+.. code-block:: python
+    SELECT action, count(*) as times
+            FROM logs
+            WHERE
+                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+            GROUP BY action
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
+
 Besides default Jinja templating, SQL lab also supports self-defined template
 processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
 The values in this dictionary overwrite the default Jinja template processors of the
@@ -1326,7 +1358,7 @@ The available validators and names can be found in `sql_validators/`.
 **Scheduling queries**
 
 You can optionally allow your users to schedule queries directly in SQL Lab.
-This is done by addding extra metadata to saved queries, which are then picked
+This is done by adding extra metadata to saved queries, which are then picked
 up by an external scheduled (like [Apache Airflow](https://airflow.apache.org/)).
 
 To allow scheduled queries, add the following to your `config.py`:
@@ -1539,6 +1571,7 @@ Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityM
 
 .. code-block:: python
 
+    import logging
     from superset.security import SupersetSecurityManager
 
     class CustomSsoSecurityManager(SupersetSecurityManager):

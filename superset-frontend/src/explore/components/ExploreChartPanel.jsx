@@ -19,7 +19,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
@@ -29,6 +29,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
+import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -58,7 +59,8 @@ const propTypes = {
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const CHART_PANEL_PADDING = 30;
+const CHART_PANEL_PADDING_HORIZ = 30;
+const CHART_PANEL_PADDING_VERTICAL = 15;
 const HEADER_PADDING = 15;
 
 const STORAGE_KEYS = {
@@ -127,6 +129,34 @@ const ExploreChartPanel = props => {
     getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
 
+  const { slice } = props;
+  const updateQueryContext = useCallback(
+    async function fetchChartData() {
+      if (slice && slice.query_context === null) {
+        const queryContext = buildV1ChartDataPayload({
+          formData: slice.form_data,
+          force: false,
+          resultFormat: 'json',
+          resultType: 'full',
+          setDataMask: null,
+          ownState: null,
+        });
+
+        await SupersetClient.put({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query_context: JSON.stringify(queryContext),
+          }),
+        });
+      }
+    },
+    [slice],
+  );
+  useEffect(() => {
+    updateQueryContext();
+  }, [updateQueryContext]);
+
   const calcSectionHeight = useCallback(
     percent => {
       let headerHeight;
@@ -182,9 +212,12 @@ const ExploreChartPanel = props => {
   };
 
   const renderChart = useCallback(() => {
-    const { chart } = props;
-    const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
-    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
+    const { chart, vizType } = props;
+    const newHeight =
+      vizType === 'filter_box'
+        ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
+        : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
     return (
       chartWidth > 0 && (
         <ChartContainer
@@ -250,6 +283,8 @@ const ExploreChartPanel = props => {
       form_data={props.form_data}
       timeout={props.timeout}
       chart={props.chart}
+      user={props.user}
+      reports={props.reports}
     />
   );
 
@@ -280,6 +315,7 @@ const ExploreChartPanel = props => {
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
+            errorMessage={props.errorMessage}
           />
         </Split>
       )}

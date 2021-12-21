@@ -17,11 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import { styledMount as mount } from 'spec/helpers/theming';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 import TableView from 'src/components/TableView';
 import { TableCollection } from 'src/components/dataViewCommon';
-import { queries } from './fixtures';
+import { Provider } from 'react-redux';
+import { queries, user } from './fixtures';
 
 describe('QueryTable', () => {
   const mockedProps = {
@@ -35,12 +38,18 @@ describe('QueryTable', () => {
     expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
   });
   it('renders a proper table', () => {
-    const wrapper = shallow(<QueryTable {...mockedProps} />);
-    const tableWrapper = wrapper
-      .find(TableView)
-      .shallow()
-      .find(TableCollection)
-      .shallow();
+    const mockStore = configureStore([thunk]);
+    const store = mockStore({
+      sqlLab: user,
+    });
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <QueryTable {...mockedProps} />
+      </Provider>,
+    );
+    const tableWrapper = wrapper.find(TableView).find(TableCollection);
+
     expect(wrapper.find(TableView)).toExist();
     expect(tableWrapper.find('table')).toExist();
     expect(tableWrapper.find('table').find('thead').find('tr')).toHaveLength(1);

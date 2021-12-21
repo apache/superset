@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Iterator, Tuple
+from typing import Any, Dict, Iterator, Tuple
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -30,6 +30,23 @@ from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
+
+
+def parse_extra(extra_payload: str) -> Dict[str, Any]:
+    try:
+        extra = json.loads(extra_payload)
+    except json.decoder.JSONDecodeError:
+        logger.info("Unable to decode `extra` field: %s", extra_payload)
+        return {}
+
+    # Fix for DBs saved with an invalid ``schemas_allowed_for_csv_upload``
+    schemas_allowed_for_csv_upload = extra.get("schemas_allowed_for_csv_upload")
+    if isinstance(schemas_allowed_for_csv_upload, str):
+        extra["schemas_allowed_for_csv_upload"] = json.loads(
+            schemas_allowed_for_csv_upload
+        )
+
+    return extra
 
 
 class ExportDatabasesCommand(ExportModelsCommand):
@@ -51,10 +68,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
         if payload.get("extra"):
-            try:
-                payload["extra"] = json.loads(payload["extra"])
-            except json.decoder.JSONDecodeError:
-                logger.info("Unable to decode `extra` field: %s", payload["extra"])
+            payload["extra"] = parse_extra(payload["extra"])
 
         payload["version"] = EXPORT_VERSION
 

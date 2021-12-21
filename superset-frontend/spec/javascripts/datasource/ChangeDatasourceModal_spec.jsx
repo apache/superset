@@ -48,7 +48,7 @@ const datasourceData = {
 };
 
 const DATASOURCES_ENDPOINT =
-  'glob:*/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:asc,page:0,page_size:20)';
+  'glob:*/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 

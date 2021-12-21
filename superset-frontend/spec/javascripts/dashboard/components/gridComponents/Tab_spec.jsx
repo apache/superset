@@ -31,7 +31,8 @@ import Tab, {
   RENDER_TAB_CONTENT,
 } from 'src/dashboard/components/gridComponents/Tab';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
-import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 describe('Tabs', () => {
   const props = {
@@ -62,8 +63,13 @@ describe('Tabs', () => {
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
+    const mockStore = getMockStore({
+      ...initialState,
+      dashboardLayout: dashboardLayoutWithTabs,
+      dashboardFilters: {},
+    });
     const wrapper = mount(
-      <Provider store={mockStoreWithTabs}>
+      <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
           <Tab {...props} {...overrideProps} />
         </DndProvider>

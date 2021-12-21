@@ -18,6 +18,7 @@
  */
 import { combineReducers } from 'redux';
 
+import reports from 'src/reports/reducers/reports';
 import charts from '../../chart/chartReducer';
 import saveModal from './saveModalReducer';
 import explore from './exploreReducer';
@@ -33,4 +34,5 @@ export default combineReducers({
   explore,
   impressionId,
   messageToasts,
+  reports,
 });

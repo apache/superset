@@ -36,8 +36,25 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.groupby,
               label: 'Column',
-              description:
-                'The numeric column based on which to calculate the range',
+              required: true,
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'enableEmptyFilter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Required'),
+              default: false,
+              renderTrigger: true,
+              description: t('User must select a value for this filter.'),
             },
           },
         ],

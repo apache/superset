@@ -326,6 +326,7 @@ class Markdown extends React.PureComponent {
                 'dashboard-markdown',
                 isEditing && 'dashboard-markdown--editing',
               )}
+              id={component.id}
             >
               <ResizableContainer
                 id={component.id}

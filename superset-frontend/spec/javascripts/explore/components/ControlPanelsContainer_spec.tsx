@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { styledShallow as shallow } from 'spec/helpers/theming';
 import {
   DatasourceType,
   getChartControlPanelRegistry,
@@ -29,7 +29,6 @@ import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
-import Collapse from 'src/components/Collapse';
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
@@ -98,6 +97,8 @@ describe('ControlPanelsContainer', () => {
 
   it('renders ControlPanelSections', () => {
     wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
-    expect(wrapper.find(Collapse.Panel)).toHaveLength(5);
+    expect(
+      wrapper.find('[data-test="collapsible-control-panel"]'),
+    ).toHaveLength(5);
   });
 });

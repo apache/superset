@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 import SearchInput from 'src/components/SearchInput';
 
@@ -31,7 +32,11 @@ describe('SearchInput', () => {
 
   const factory = overrideProps => {
     const props = { ...defaultProps, ...(overrideProps || {}) };
-    return shallow(<SearchInput {...props} />);
+    return mount(
+      <ThemeProvider theme={supersetTheme}>
+        <SearchInput {...props} />
+      </ThemeProvider>,
+    );
   };
 
   let wrapper;
@@ -53,6 +58,7 @@ describe('SearchInput', () => {
   const typeSearchInput = value => {
     wrapper
       .find('[data-test="search-input"]')
+      .first()
       .props()
       .onChange({ currentTarget: { value } });
   };
@@ -62,6 +68,7 @@ describe('SearchInput', () => {
 
     wrapper
       .find('[data-test="search-input"]')
+      .first()
       .props()
       .onKeyDown({ key: 'Enter' });
 
@@ -72,14 +79,14 @@ describe('SearchInput', () => {
   it('submits on search icon click', () => {
     typeSearchInput('bar');
 
-    wrapper.find('[data-test="search-submit"]').props().onClick();
+    wrapper.find('[data-test="search-submit"]').first().props().onClick();
 
     expect(defaultProps.onSubmit).toHaveBeenCalled();
   });
 
   it('clears on clear icon click', () => {
     const wrapper2 = factory({ value: 'fizz' });
-    wrapper2.find('[data-test="search-clear"]').props().onClick();
+    wrapper2.find('[data-test="search-clear"]').first().props().onClick();
 
     expect(defaultProps.onClear).toHaveBeenCalled();
   });

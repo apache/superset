@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import { Select, CreatableSelect, OnPasteSelect } from 'src/components/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -105,7 +105,7 @@ export default class SelectControl extends React.PureComponent {
 
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(opt) {
+  onChange(opt, actionMeta) {
     let optionValue = this.props.multi ? [] : null;
     if (opt) {
       if (this.props.multi) {
@@ -126,7 +126,7 @@ export default class SelectControl extends React.PureComponent {
       }
     }
     // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    this.props.onChange(optionValue);
+    this.props.onChange(optionValue, [], actionMeta);
   }
 
   getSelectRef(instance) {
@@ -294,7 +294,13 @@ export default class SelectControl extends React.PureComponent {
     }
 
     return (
-      <div>
+      <div
+        css={theme => css`
+          .type-label {
+            margin-right: ${theme.gridUnit * 2}px;
+          }
+        `}
+      >
         {this.props.showHeader && <ControlHeader {...this.props} />}
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />

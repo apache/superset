@@ -117,6 +117,8 @@ export default function getInitialState({
           foreignKeys,
           indexes,
           dataPreviewQueryId,
+          partitions,
+          metadata,
         } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
@@ -133,6 +135,8 @@ export default function getInitialState({
           primaryKey,
           foreignKeys,
           indexes,
+          partitions,
+          metadata,
         };
         tables.push(table);
       });

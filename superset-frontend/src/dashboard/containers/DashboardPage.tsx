@@ -16,75 +16,84 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FC } from 'react';
+import React, { useEffect, FC } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
+import { useParams } from 'react-router-dom';
+import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
-import ErrorBoundary from 'src/components/ErrorBoundary';
 import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/common/hooks/apiResources';
-import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
-import { usePrevious } from 'src/common/hooks/usePrevious';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import { setDatasources } from 'src/dashboard/actions/datasources';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 
-interface DashboardRouteProps {
-  dashboardIdOrSlug: string;
-}
+const DashboardContainer = React.lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardContainer" */
+      /* webpackPreload: true */
+      'src/dashboard/containers/Dashboard'
+    ),
+);
 
-const DashboardPage: FC<DashboardRouteProps> = ({
-  dashboardIdOrSlug, // eventually get from react router
-}) => {
+const DashboardPage: FC = () => {
   const dispatch = useDispatch();
-  const [isLoaded, setLoaded] = useState(false);
-  const dashboardResource = useDashboard(dashboardIdOrSlug);
-  const chartsResource = useDashboardCharts(dashboardIdOrSlug);
-  const datasetsResource = useDashboardDatasets(dashboardIdOrSlug);
-  const isLoading = [dashboardResource, chartsResource, datasetsResource].some(
-    resource => resource.status === ResourceStatus.LOADING,
+  const { addDangerToast } = useToasts();
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  const { result: dashboard, error: dashboardApiError } = useDashboard(
+    idOrSlug,
   );
-  const wasLoading = usePrevious(isLoading);
-  const error = [dashboardResource, chartsResource, datasetsResource].find(
-    resource => resource.status === ResourceStatus.ERROR,
-  )?.error;
+  const { result: charts, error: chartsApiError } = useDashboardCharts(
+    idOrSlug,
+  );
+  const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
+    idOrSlug,
+  );
+
+  const error = dashboardApiError || chartsApiError;
+  const readyToRender = Boolean(dashboard && charts);
+  const { dashboard_title, css } = dashboard || {};
+
   useEffect(() => {
-    if (
-      wasLoading &&
-      dashboardResource.status === ResourceStatus.COMPLETE &&
-      chartsResource.status === ResourceStatus.COMPLETE &&
-      datasetsResource.status === ResourceStatus.COMPLETE
-    ) {
-      dispatch(
-        hydrateDashboard(
-          dashboardResource.result,
-          chartsResource.result,
-          datasetsResource.result,
-        ),
-      );
-      setLoaded(true);
+    if (readyToRender) {
+      dispatch(hydrateDashboard(dashboard, charts));
     }
-  }, [
-    dispatch,
-    wasLoading,
-    dashboardResource,
-    chartsResource,
-    datasetsResource,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyToRender]);
+
+  useEffect(() => {
+    if (dashboard_title) {
+      document.title = dashboard_title;
+    }
+  }, [dashboard_title]);
+
+  useEffect(() => {
+    if (css) {
+      // returning will clean up custom css
+      // when dashboard unmounts or changes
+      return injectCustomCss(css);
+    }
+    return () => {};
+  }, [css]);
+
+  useEffect(() => {
+    if (datasetsApiError) {
+      addDangerToast(
+        t('Error loading chart datasources. Filters may not work correctly.'),
+      );
+    } else {
+      dispatch(setDatasources(datasets));
+    }
+  }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
+  if (!readyToRender) return <Loading />;
 
-  if (!isLoaded) return <Loading />;
   return <DashboardContainer />;
 };
 
-const DashboardPageWithErrorBoundary = ({
-  dashboardIdOrSlug,
-}: DashboardRouteProps) => (
-  <ErrorBoundary>
-    <DashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
-  </ErrorBoundary>
-);
-
-export default DashboardPageWithErrorBoundary;
+export default DashboardPage;

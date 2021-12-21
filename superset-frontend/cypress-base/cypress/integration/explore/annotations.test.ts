@@ -32,18 +32,8 @@ describe('Annotations', () => {
     cy.get('[data-test=annotation_layers]').click();
 
     cy.get('[data-test="popover-content"]').within(() => {
-      cy.get('[data-test=annotation-layer-name-header]')
-        .siblings()
-        .first()
-        .within(() => {
-          cy.get('input').type(layerLabel);
-        });
-      cy.get('[data-test=annotation-layer-value-header]')
-        .siblings()
-        .first()
-        .within(() => {
-          cy.get('input').type('y=1400000');
-        });
+      cy.get('[aria-label=Name]').type(layerLabel);
+      cy.get('[aria-label=Formula]').type('y=1400000');
       cy.get('button').contains('OK').click();
     });
 

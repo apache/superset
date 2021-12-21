@@ -3,10 +3,6 @@ trigger:
   branches:
     include:
       - cccs-*
-      - feature/CLDN-*
-  paths:
-    include:
-      - cccs-build/superset
 
 variables:
   containerRegistry: uchimera
@@ -14,6 +10,9 @@ variables:
   dockerfile: $(Build.SourcesDirectory)/cccs-build/superset/Dockerfile
   buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
   DOCKER_BUILDKIT: 1
+
+pool:
+  vmImage: ubuntu-latest
 
 steps:
   - bash: |

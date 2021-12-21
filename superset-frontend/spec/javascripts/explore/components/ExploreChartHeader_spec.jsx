@@ -25,6 +25,7 @@ import EditableTitle from 'src/components/EditableTitle';
 
 const saveSliceStub = jest.fn();
 const updateChartTitleStub = jest.fn();
+const fetchUISpecificReportStub = jest.fn();
 const mockProps = {
   actions: {
     saveSlice: saveSliceStub,
@@ -42,11 +43,23 @@ const mockProps = {
   form_data: {
     viz_type: 'table',
   },
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
   timeout: 1000,
   chart: {
     id: 0,
     queryResponse: {},
   },
+  fetchUISpecificReport: fetchUISpecificReportStub,
   chartHeight: '30px',
 };
 

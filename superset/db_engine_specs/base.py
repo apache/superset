@@ -43,6 +43,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
+from marshmallow.validate import Range
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
@@ -63,6 +64,8 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.memoized import memoized
+from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -84,21 +87,24 @@ QueryStatus = utils.QueryStatus
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
     "PT1S": __("Second"),
+    "PT5S": __("5 second"),
+    "PT30S": __("30 second"),
     "PT1M": __("Minute"),
     "PT5M": __("5 minute"),
     "PT10M": __("10 minute"),
     "PT15M": __("15 minute"),
     "PT0.5H": __("Half hour"),
     "PT1H": __("Hour"),
+    "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
     "P0.25Y": __("Quarter"),
     "P1Y": __("Year"),
-    "1969-12-28T00:00:00Z/P1W": __("Week starting sunday"),
-    "1969-12-29T00:00:00Z/P1W": __("Week starting monday"),
-    "P1W/1970-01-03T00:00:00Z": __("Week ending saturday"),
-    "P1W/1970-01-04T00:00:00Z": __("Week_ending sunday"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
 }
 
 
@@ -193,6 +199,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Numeric(),
             GenericDataType.NUMERIC,
         ),
+        (re.compile(r"^float", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^double", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
         (re.compile(r"^real", re.IGNORECASE), types.REAL, GenericDataType.NUMERIC,),
         (
             re.compile(r"^smallserial", re.IGNORECASE),
@@ -210,6 +222,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r"^money", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+        (
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
             utils.GenericDataType.STRING,
@@ -224,6 +241,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             String(),
             utils.GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^((TINY|MEDIUM|LONG)?TEXT)", re.IGNORECASE),
+            String(),
+            utils.GenericDataType.STRING,
+        ),
+        (re.compile(r"^LONG", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
         (
             re.compile(r"^datetime", re.IGNORECASE),
             types.DateTime(),
@@ -269,7 +292,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType]] = {}
+    custom_errors: Dict[
+        Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
+    ] = {}
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -727,16 +752,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
-        for regex, (message, error_type) in cls.custom_errors.items():
+        for regex, (message, error_type, extra) in cls.custom_errors.items():
             match = regex.search(raw_message)
             if match:
                 params = {**context, **match.groupdict()}
+                extra["engine_name"] = cls.engine_name
                 return [
                     SupersetError(
                         error_type=error_type,
                         message=message % params,
                         level=ErrorLevel.ERROR,
-                        extra={"engine_name": cls.engine_name},
+                        extra=extra,
                     )
                 ]
 
@@ -838,7 +864,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # It's expected that some dialects don't implement the comment method
             pass
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error while fetching table comment")
+            logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
         return comment
 
@@ -1220,7 +1246,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             try:
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return extra
 
@@ -1234,6 +1260,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+        Determine if the statement should be considered as SELECT statement.
+        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
+        """
+        return parsed_query.is_select()
+
+    @classmethod
+    @memoized
     def get_column_spec(
         cls,
         native_type: Optional[str],
@@ -1270,30 +1305,78 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return False
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Select identifiers from the database engine that uniquely identifies the
+        queries to cancel. The identifier is typically a session id, process id
+        or similar.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Query identifier
+        """
+
+        return None
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
+        """
+
+        return False
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
-class BaseParametersSchema(Schema):
-    username = fields.String(allow_none=True, description=__("Username"))
+class BasicParametersSchema(Schema):
+    username = fields.String(required=True, allow_none=True, description=__("Username"))
     password = fields.String(allow_none=True, description=__("Password"))
     host = fields.String(required=True, description=__("Hostname or IP address"))
-    port = fields.Integer(required=True, description=__("Database port"))
+    port = fields.Integer(
+        required=True,
+        description=__("Database port"),
+        validate=Range(min=0, max=2 ** 16, max_inclusive=False),
+    )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), description=__("Additinal parameters")
+        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
+    )
+    encryption = fields.Boolean(
+        required=False, description=__("Use an encrypted connection to the database")
     )
 
 
-class BaseParametersType(TypedDict, total=False):
+class BasicParametersType(TypedDict, total=False):
     username: Optional[str]
     password: Optional[str]
     host: str
     port: int
     database: str
     query: Dict[str, Any]
+    encryption: bool
 
 
-class BaseParametersMixin:
+class BasicParametersMixin:
 
     """
     Mixin for configuring DB engine specs via a dictionary.
@@ -1302,38 +1385,57 @@ class BaseParametersMixin:
     individual parameters, instead of the full SQLAlchemy URI. This
     mixin is for the most common pattern of URI:
 
-        drivername://user:password@host:port/dbname[?key=value&key=value...]
+        engine+driver://user:password@host:port/dbname[?key=value&key=value...]
 
     """
 
     # schema describing the parameters used to configure the DB
-    parameters_schema = BaseParametersSchema()
+    parameters_schema = BasicParametersSchema()
 
     # recommended driver name for the DB engine spec
-    drivername = ""
+    default_driver = ""
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (
-        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
+    # query parameter to enable encryption in the database connection
+    # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
+    encryption_parameters: Dict[str, str] = {}
+
     @classmethod
-    def build_sqlalchemy_url(cls, parameters: BaseParametersType) -> str:
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encryted_extra: Optional[Dict[str, str]] = None,
+    ) -> str:
+        query = parameters.get("query", {})
+        if parameters.get("encryption"):
+            if not cls.encryption_parameters:
+                raise Exception("Unable to build a URL with encryption enabled")
+            query.update(cls.encryption_parameters)
+
         return str(
             URL(
-                cls.drivername,
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
                 port=parameters["port"],
                 database=parameters["database"],
-                query=parameters.get("query", {}),
+                query=query,
             )
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BaseParametersType:
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> BasicParametersType:
         url = make_url(uri)
+        encryption = all(
+            item in url.query.items() for item in cls.encryption_parameters.items()
+        )
         return {
             "username": url.username,
             "password": url.password,
@@ -1341,13 +1443,95 @@ class BaseParametersMixin:
             "port": url.port,
             "database": url.database,
             "query": url.query,
+            "encryption": encryption,
         }
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: BasicParametersType
+    ) -> List[SupersetError]:
+        """
+        Validates any number of parameters, for progressive validation.
+
+        If only the hostname is present it will check if the name is resolvable. As more
+        parameters are present in the request, more validation is done.
+        """
+        errors: List[SupersetError] = []
+
+        required = {"host", "port", "username", "database"}
+        present = {key for key in parameters if parameters.get(key, ())}
+        missing = sorted(required - present)
+
+        if missing:
+            errors.append(
+                SupersetError(
+                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": missing},
+                ),
+            )
+
+        host = parameters.get("host", None)
+        if not host:
+            return errors
+        if not is_hostname_valid(host):
+            errors.append(
+                SupersetError(
+                    message="The hostname provided can't be resolved.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["host"]},
+                ),
+            )
+            return errors
+
+        port = parameters.get("port", None)
+        if not port:
+            return errors
+        try:
+            port = int(port)
+        except (ValueError, TypeError):
+            errors.append(
+                SupersetError(
+                    message="Port must be a valid integer.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        if not (isinstance(port, int) and 0 <= port < 2 ** 16):
+            errors.append(
+                SupersetError(
+                    message=(
+                        "The port must be an integer between 0 and 65535 "
+                        "(inclusive)."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        elif not is_port_open(host, port):
+            errors.append(
+                SupersetError(
+                    message="The port is closed.",
+                    error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+
+        return errors
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
         """
         Return configuration parameters as OpenAPI.
         """
+        if not cls.parameters_schema:
+            return None
+
         spec = APISpec(
             title="Database Parameters",
             version="1.0.0",

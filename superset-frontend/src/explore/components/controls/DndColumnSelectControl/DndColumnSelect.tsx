@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { ColumnMeta, ColumnOption } from '@superset-ui/chart-controls';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { tn } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
@@ -25,50 +26,110 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 export const DndColumnSelect = (props: LabelProps) => {
-  const { value, options } = props;
-  const optionSelector = new OptionSelector(options, value);
-  const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
+  const {
+    value,
+    options,
+    multi = true,
+    onChange,
+    canDelete = true,
+    ghostButtonText,
+    name,
+    label,
+  } = props;
+  const optionSelector = useMemo(
+    () => new OptionSelector(options, multi, value),
+    [multi, options, value],
+  );
 
-  const onDrop = (item: DatasourcePanelDndItem) => {
-    const column = item.value as ColumnMeta;
-    if (!optionSelector.isArray && !isEmpty(optionSelector.values)) {
-      optionSelector.replace(0, column.column_name);
-    } else {
-      optionSelector.add(column.column_name);
+  // synchronize values in case of dataset changes
+  useEffect(() => {
+    const optionSelectorValues = optionSelector.getValues();
+    if (typeof value !== typeof optionSelectorValues) {
+      onChange(optionSelectorValues);
     }
-    setValues(optionSelector.values);
-    props.onChange(optionSelector.getValues());
-  };
+    if (
+      typeof value === 'string' &&
+      typeof optionSelectorValues === 'string' &&
+      value !== optionSelectorValues
+    ) {
+      onChange(optionSelectorValues);
+    }
+    if (
+      Array.isArray(optionSelectorValues) &&
+      Array.isArray(value) &&
+      (optionSelectorValues.length !== value.length ||
+        optionSelectorValues.every((val, index) => val === value[index]))
+    ) {
+      onChange(optionSelectorValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
 
-  const canDrop = (item: DatasourcePanelDndItem) =>
-    !optionSelector.has((item.value as ColumnMeta).column_name);
+  const onDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      const column = item.value as ColumnMeta;
+      if (!optionSelector.multi && !isEmpty(optionSelector.values)) {
+        optionSelector.replace(0, column.column_name);
+      } else {
+        optionSelector.add(column.column_name);
+      }
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
 
-  const onClickClose = (index: number) => {
-    optionSelector.del(index);
-    setValues(optionSelector.values);
-    props.onChange(optionSelector.getValues());
-  };
+  const canDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      const columnName = (item.value as ColumnMeta).column_name;
+      return (
+        columnName in optionSelector.options && !optionSelector.has(columnName)
+      );
+    },
+    [optionSelector],
+  );
 
-  const onShiftOptions = (dragIndex: number, hoverIndex: number) => {
-    optionSelector.swap(dragIndex, hoverIndex);
-    setValues(optionSelector.values);
-    props.onChange(optionSelector.getValues());
-  };
+  const onClickClose = useCallback(
+    (index: number) => {
+      optionSelector.del(index);
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
 
-  const valuesRenderer = () =>
-    values.map((column, idx) => (
-      <OptionWrapper
-        key={idx}
-        index={idx}
-        clickClose={onClickClose}
-        onShiftOptions={onShiftOptions}
-        type={DndItemType.ColumnOption}
-      >
-        <ColumnOption column={column} showType />
-      </OptionWrapper>
-    ));
+  const onShiftOptions = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      optionSelector.swap(dragIndex, hoverIndex);
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
+
+  const valuesRenderer = useCallback(
+    () =>
+      optionSelector.values.map((column, idx) => (
+        <OptionWrapper
+          key={idx}
+          index={idx}
+          clickClose={onClickClose}
+          onShiftOptions={onShiftOptions}
+          type={`${DndItemType.ColumnOption}_${name}_${label}`}
+          canDelete={canDelete}
+        >
+          <StyledColumnOption column={column} showType />
+        </OptionWrapper>
+      )),
+    [
+      canDelete,
+      label,
+      name,
+      onClickClose,
+      onShiftOptions,
+      optionSelector.values,
+    ],
+  );
 
   return (
     <DndSelectLabel<string | string[], ColumnMeta[]>
@@ -76,6 +137,10 @@ export const DndColumnSelect = (props: LabelProps) => {
       canDrop={canDrop}
       valuesRenderer={valuesRenderer}
       accept={DndItemType.Column}
+      displayGhostButton={multi || optionSelector.values.length === 0}
+      ghostButtonText={
+        ghostButtonText || tn('Drop column', 'Drop columns', multi ? 2 : 1)
+      }
       {...props}
     />
   );

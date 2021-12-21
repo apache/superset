@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import {
@@ -29,12 +29,15 @@ import {
   FrameComponentProps,
 } from '../types';
 
-export function CalendarFrame(props: FrameComponentProps) {
-  let calendarRange = PreviousCalendarWeek;
-  if (CALENDAR_RANGE_SET.has(props.value as CalendarRangeType)) {
-    calendarRange = props.value;
-  } else {
-    props.onChange(calendarRange);
+export function CalendarFrame({ onChange, value }: FrameComponentProps) {
+  useEffect(() => {
+    if (!CALENDAR_RANGE_SET.has(value as CalendarRangeType)) {
+      onChange(PreviousCalendarWeek);
+    }
+  }, [onChange, value]);
+
+  if (!CALENDAR_RANGE_SET.has(value as CalendarRangeType)) {
+    return null;
   }
 
   return (
@@ -43,8 +46,8 @@ export function CalendarFrame(props: FrameComponentProps) {
         {t('Configure Time Range: Previous...')}
       </div>
       <Radio.Group
-        value={calendarRange}
-        onChange={(e: any) => props.onChange(e.target.value)}
+        value={value}
+        onChange={(e: any) => onChange(e.target.value)}
       >
         {CALENDAR_RANGE_OPTIONS.map(({ value, label }) => (
           <Radio key={value} value={value} className="vertical-radio">

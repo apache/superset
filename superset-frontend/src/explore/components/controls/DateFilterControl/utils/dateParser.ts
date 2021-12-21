@@ -35,7 +35,7 @@ import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
  * @see: https://www.w3.org/TR/NOTE-datetime
  */
 const iso8601 = String.raw`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:(?:[+-]\d\d:\d\d)|Z)?`;
-const datetimeConstant = String.raw`TODAY|NOW`;
+const datetimeConstant = String.raw`TODAY|NOW|TOMORROW`;
 const grainValue = String.raw`[+-]?[1-9][0-9]*`;
 const grain = String.raw`YEAR|QUARTER|MONTH|WEEK|DAY|HOUR|MINUTE|SECOND`;
 const CUSTOM_RANGE_EXPRESSION = RegExp(
@@ -46,7 +46,7 @@ export const ISO8601_AND_CONSTANT = RegExp(
   String.raw`^${iso8601}$|^${datetimeConstant}$`,
   'i',
 );
-const DATETIME_CONSTANT = ['now', 'today'];
+const DATETIME_CONSTANT = ['now', 'today', 'tomorrow'];
 const defaultCustomRange: CustomRangeType = {
   sinceDatetime: SEVEN_DAYS_AGO,
   sinceMode: 'relative',
@@ -59,7 +59,7 @@ const defaultCustomRange: CustomRangeType = {
   anchorMode: 'now',
   anchorValue: 'now',
 };
-const SPECIFIC_MODE = ['specific', 'today', 'now'];
+const SPECIFIC_MODE = ['specific', 'today', 'now', 'tomorrow'];
 
 export const dttmToMoment = (dttm: string): Moment => {
   if (dttm === 'now') {
@@ -67,6 +67,9 @@ export const dttmToMoment = (dttm: string): Moment => {
   }
   if (dttm === 'today') {
     return moment().utc().startOf('day');
+  }
+  if (dttm === 'tomorrow') {
+    return moment().utc().add(1, 'days').startOf('day');
   }
   return moment(dttm);
 };

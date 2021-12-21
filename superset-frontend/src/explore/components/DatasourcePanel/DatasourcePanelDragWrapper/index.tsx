@@ -28,6 +28,10 @@ const DatasourceItemContainer = styled.div`
   height: ${({ theme }) => theme.gridUnit * 6}px;
   cursor: pointer;
 
+  > div {
+    width: 100%;
+  }
+
   :hover {
     background-color: ${({ theme }) => theme.colors.grayscale.light2};
   }

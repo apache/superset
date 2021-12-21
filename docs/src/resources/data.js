@@ -235,4 +235,9 @@ export const Databases = [
     href: 'https://www.alibabacloud.com/product/hologres',
     imgName: 'hologres.png',
   },
+  {
+    title: 'IBM Netezza Performance Server',
+    href: 'https://www.ibm.com/products/netezza',
+    imgName: 'netezza.png',
+  },
 ];

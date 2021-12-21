@@ -32,3 +32,4 @@ pylint
 pytest
 pytest-cov
 statsd
+pytest-mock

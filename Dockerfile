@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.2
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -58,9 +59,10 @@ RUN mkdir -p /app/superset-frontend
 RUN mkdir -p /app/superset/assets
 COPY ./docker/frontend-mem-nag.sh /
 COPY ./superset-frontend/package* /app/superset-frontend/
-RUN /frontend-mem-nag.sh \
+RUN --mount=type=secret,id=npmrc,target=/tmp/.npmrc,uid=1000 \
+        /frontend-mem-nag.sh \
         && cd /app/superset-frontend \
-        && npm ci
+        && npm install --legacy-peer-deps --userconfig=/tmp/.npmrc
 
 # Next, copy in the rest and let webpack do its thing
 COPY ./superset-frontend /app/superset-frontend
@@ -84,8 +86,8 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
-RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
-        && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
+RUN mkdir -p ${PYTHONPATH} \
+        && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \

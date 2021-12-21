@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import { styled, useTheme } from '@superset-ui/core';
 import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
@@ -93,18 +92,26 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: ${({ theme }) => theme.gridUnit * 8}px;
+    padding-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='img'] {
+      display: flex;
+      align-items: center;
+    }
   }
 `;
 
-const TitleLink = styled.a`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+const TitleLink = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
-
-  & + .title-right {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  & a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
   }
+`;
+
+const TitleRight = styled.span`
+  position: absolute;
+  right: -1px;
+  bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const CoverFooter = styled.div`
@@ -128,18 +135,20 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
-const SkeletonTitle = styled(Skeleton.Input)`
-  width: ${({ theme }) => Math.trunc(theme.gridUnit * 62.5)}px;
-`;
-
-const SkeletonActions = styled(Skeleton.Button)`
-  width: ${({ theme }) => theme.gridUnit * 10}px;
-`;
-
 const paragraphConfig = { rows: 1, width: 150 };
+
+interface LinkProps {
+  to: string;
+}
+
+const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
+  <a href={to}>{children}</a>
+);
+
 interface CardProps {
   title?: React.ReactNode;
   url?: string;
+  linkComponent?: React.ComponentType<LinkProps>;
   imgURL?: string;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
@@ -150,13 +159,14 @@ interface CardProps {
   coverRight?: React.ReactNode;
   actions?: React.ReactNode | null;
   rows?: number | string;
-  avatar?: string;
+  avatar?: React.ReactElement | null;
   cover?: React.ReactNode | null;
 }
 
 function ListViewCard({
   title,
   url,
+  linkComponent,
   titleRight,
   imgURL,
   imgFallbackURL,
@@ -169,13 +179,15 @@ function ListViewCard({
   imgPosition = 'top',
   cover,
 }: CardProps) {
+  const Link = url && linkComponent ? linkComponent : AnchorLink;
+  const theme = useTheme();
   return (
     <StyledCard
       data-test="styled-card"
       cover={
         cover || (
           <Cover>
-            <a href={url}>
+            <Link to={url!}>
               <div className="gradient-container">
                 <ImageLoader
                   src={imgURL || ''}
@@ -184,7 +196,7 @@ function ListViewCard({
                   position={imgPosition}
                 />
               </div>
-            </a>
+            </Link>
             <CoverFooter className="cover-footer">
               {!loading && coverLeft && (
                 <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
@@ -202,10 +214,21 @@ function ListViewCard({
           title={
             <>
               <TitleContainer>
-                <SkeletonTitle active size="small" />
+                <Skeleton.Input
+                  active
+                  size="small"
+                  css={{
+                    width: Math.trunc(theme.gridUnit * 62.5),
+                  }}
+                />
                 <div className="card-actions">
                   <Skeleton.Button active shape="circle" />{' '}
-                  <SkeletonActions active />
+                  <Skeleton.Button
+                    active
+                    css={{
+                      width: theme.gridUnit * 10,
+                    }}
+                  />
                 </div>
               </TitleContainer>
             </>
@@ -225,17 +248,18 @@ function ListViewCard({
           title={
             <TitleContainer>
               <Tooltip title={title}>
-                <TitleLink href={url}>{title}</TitleLink>
+                <TitleLink>
+                  <Link to={url!}>{title}</Link>
+                </TitleLink>
               </Tooltip>
-              {titleRight && <div className="title-right"> {titleRight}</div>}
+              {titleRight && <TitleRight>{titleRight}</TitleRight>}
               <div className="card-actions" data-test="card-actions">
                 {actions}
               </div>
             </TitleContainer>
           }
           description={description}
-          // @ts-ignore
-          avatar={avatar ? <Icon name={avatar} /> : null}
+          avatar={avatar || null}
         />
       )}
     </StyledCard>

@@ -499,7 +499,10 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_DATABASES]() {
       const databases = {};
       action.databases.forEach(db => {
-        databases[db.id] = db;
+        databases[db.id] = {
+          ...db,
+          extra_json: JSON.parse(db.extra || ''),
+        };
       });
       return { ...state, databases };
     },

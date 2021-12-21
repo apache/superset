@@ -8,15 +8,15 @@ version: 1
 
 ## Caching
 
-Superset uses [Flask-Cache](https://pythonhosted.org/Flask-Cache/) for caching purpose. For security reasons,
+Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purpose. For security reasons,
 there are two separate cache configs for Superset's own metadata (`CACHE_CONFIG`) and charting data queried from
 connected datasources (`DATA_CACHE_CONFIG`). However, Query results from SQL Lab are stored in another backend
 called `RESULTS_BACKEND`, See [Async Queries via Celery](/docs/installation/async-queries-celery) for details.
 
 Configuring caching is as easy as providing `CACHE_CONFIG` and `DATA_CACHE_CONFIG` in your
-`superset_config.py` that complies with [the Flask-Cache specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
+`superset_config.py` that complies with [the Flask-Caching specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
 
-Flask-Cache supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
+Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
 local filesystem.
 
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
@@ -71,7 +71,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-For this feature you will need a cache system and celery workers. All thumbnails are store on cache
+For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
 
 An example config where images are stored on S3 could be:

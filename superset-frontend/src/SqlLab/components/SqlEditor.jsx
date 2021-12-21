@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { t, styled, supersetTheme, withTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -38,7 +38,7 @@ import {
   Switch,
   Input,
 } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
@@ -194,6 +194,7 @@ class SqlEditor extends React.PureComponent {
       WINDOW_RESIZE_THROTTLE_MS,
     );
 
+    this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
   }
 
@@ -212,6 +213,7 @@ class SqlEditor extends React.PureComponent {
     this.setState({ height: this.getSqlEditorHeight() });
 
     window.addEventListener('resize', this.handleWindowResize);
+    window.addEventListener('beforeunload', this.onBeforeUnload);
 
     // setup hotkeys
     const hotkeys = this.getHotkeyConfig();
@@ -222,6 +224,7 @@ class SqlEditor extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
   }
 
   onResizeStart() {
@@ -239,6 +242,16 @@ class SqlEditor extends React.PureComponent {
         northPercent,
         southPercent,
       );
+    }
+  }
+
+  onBeforeUnload(event) {
+    if (
+      this.props.database?.extra_json?.cancel_query_on_windows_unload &&
+      this.props.latestQuery?.state === 'running'
+    ) {
+      event.preventDefault();
+      this.stopQuery();
     }
   }
 
@@ -483,6 +496,7 @@ class SqlEditor extends React.PureComponent {
           actions={this.props.actions}
           height={southPaneHeight}
           displayLimit={this.props.displayLimit}
+          defaultQueryLimit={this.props.defaultQueryLimit}
         />
       </Split>
     );
@@ -563,7 +577,7 @@ class SqlEditor extends React.PureComponent {
       this.props.database || {};
 
     const showMenu = allowCTAS || allowCVAS;
-
+    const { theme } = this.props;
     const runMenuBtn = (
       <Menu>
         {allowCTAS && (
@@ -638,7 +652,7 @@ class SqlEditor extends React.PureComponent {
                         this.props.defaultQueryLimit,
                     )}
                   </span>
-                  <Icon name="triangle-down" />
+                  <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
                 </a>
               </Dropdown>
             </LimitSelectStyled>
@@ -666,7 +680,7 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           <Dropdown overlay={this.renderDropdown()} trigger="click">
-            <Icon name="more-horiz" />
+            <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
           </Dropdown>
         </div>
       </StyledToolbar>
@@ -782,4 +796,5 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
+const themedSqlEditor = withTheme(SqlEditor);
+export default connect(mapStateToProps, mapDispatchToProps)(themedSqlEditor);

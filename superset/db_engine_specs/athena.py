@@ -14,11 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional, Pattern, Tuple
+
+from flask_babel import gettext as __
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
+
+SYNTAX_ERROR_REGEX = re.compile(
+    ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
+)
 
 
 class AthenaEngineSpec(BaseEngineSpec):
@@ -39,6 +47,17 @@ class AthenaEngineSpec(BaseEngineSpec):
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",
         "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', \
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+    }
+
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or "
+                'near "%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod

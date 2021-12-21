@@ -16,27 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
-import NavDropdown from 'src/components/NavDropdown';
-import { Menu as DropdownMenu } from 'src/common/components';
+import React, { useState, useEffect } from 'react';
+import { styled, css } from '@superset-ui/core';
+import { debounce } from 'lodash';
+import { Global } from '@emotion/react';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
-import MenuObject, {
-  MenuObjectProps,
-  MenuObjectChildProps,
-} from './MenuObject';
-import LanguagePicker, { Languages } from './LanguagePicker';
-import NewMenu from './NewMenu';
+import { Row, Col, Grid } from 'antd';
+import Icons from 'src/components/Icons';
+import { URL_PARAMS } from 'src/constants';
+import RightMenu from './MenuRight';
+import { Languages } from './LanguagePicker';
 
 interface BrandProps {
   path: string;
   icon: string;
   alt: string;
   width: string | number;
+  tooltip: string;
+  text: string;
 }
 
-interface NavBarProps {
+export interface NavBarProps {
+  show_watermark: boolean;
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
@@ -61,7 +65,23 @@ export interface MenuProps {
   isFrontendRoute?: (path?: string) => boolean;
 }
 
+interface MenuObjectChildProps {
+  label: string;
+  name?: string;
+  icon: string;
+  index: number;
+  url?: string;
+  isFrontendRoute?: boolean;
+}
+
+export interface MenuObjectProps extends MenuObjectChildProps {
+  childs?: (MenuObjectChildProps | string)[];
+  isHeader?: boolean;
+}
+
 const StyledHeader = styled.header`
+  background-color: white;
+  margin-bottom: 2px;
   &:nth-last-of-type(2) nav {
     margin-bottom: 2px;
   }
@@ -69,59 +89,70 @@ const StyledHeader = styled.header`
   .caret {
     display: none;
   }
-
-  .navbar-inverse {
-    border: none;
-  }
-
-  .version-info {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 7}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-
-    div {
-      white-space: nowrap;
-    }
-  }
-
   .navbar-brand {
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
+  .navbar-brand-text {
+    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    height: 100%;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 6}px;
+    font-size: ${({ theme }) => theme.gridUnit * 4}px;
+    float: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 
-  .nav > li > a {
+    span {
+      max-width: ${({ theme }) => theme.gridUnit * 58}px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @media (max-width: 1127px) {
+      display: none;
+    }
+  }
+  .main-nav .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
+  @media (max-width: 767px) {
+    .navbar-brand {
+      float: none;
+    }
+  }
+  .ant-menu-horizontal .ant-menu-item {
+    height: 100%;
+    line-height: inherit;
+  }
+  .ant-menu > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
-  .dropdown-header {
-    text-transform: uppercase;
-    padding-left: 12px;
+  @media (max-width: 767px) {
+    .ant-menu-item {
+      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
+        ${({ theme }) => theme.gridUnit * 3}px !important;
+    }
+    .ant-menu > .ant-menu-item > a {
+      padding: 0px;
+    }
+    .main-nav .ant-menu-submenu-title > svg:nth-child(1) {
+      display: none;
+    }
+    .ant-menu-item-active > a {
+      &:hover {
+        color: ${({ theme }) => theme.colors.primary.base} !important;
+        background-color: transparent !important;
+      }
+    }
   }
 
-  .navbar-inverse .navbar-nav li a {
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    border-bottom: none;
-    transition: background-color ${({ theme }) => theme.transitionTiming}s;
-    &:after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 50%;
-      width: 0;
-      height: 3px;
-      opacity: 0;
-      transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-    &:focus {
-      border-bottom: none;
-      background-color: transparent;
-      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
-    }
+  .ant-menu-item a {
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
       background-color: ${({ theme }) => theme.colors.primary.light5};
@@ -133,165 +164,146 @@ const StyledHeader = styled.header`
       }
     }
   }
-
-  .navbar-right {
-    display: flex;
-    align-items: center;
-  }
-
-  .ant-menu {
-    .ant-menu-item-group-title {
-      padding-bottom: ${({ theme }) => theme.gridUnit}px;
-    }
-    .ant-menu-item {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    }
-    .about-section {
-      margin: ${({ theme }) => theme.gridUnit}px 0
-        ${({ theme }) => theme.gridUnit * 2}px;
-    }
-  }
 `;
+
+const { SubMenu } = DropdownMenu;
+
+const { useBreakpoint } = Grid;
 
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
   isFrontendRoute = () => false,
 }: MenuProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showMenu, setMenu] = useState<MenuMode>('horizontal');
+  const screens = useBreakpoint();
 
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth <= 767) {
+        setMenu('inline');
+      } else setMenu('horizontal');
+    }
+    handleResize();
+    const windowResize = debounce(() => handleResize(), 10);
+    window.addEventListener('resize', windowResize);
+    return () => window.removeEventListener('resize', windowResize);
+  }, []);
+
+  const standalone = getUrlParam(URL_PARAMS.standalone);
+  if (standalone) return <></>;
+
+  const renderSubMenu = ({
+    label,
+    childs,
+    url,
+    index,
+    isFrontendRoute,
+  }: MenuObjectProps) => {
+    if (url && isFrontendRoute) {
+      return (
+        <DropdownMenu.Item key={label} role="presentation">
+          <Link role="button" to={url}>
+            {label}
+          </Link>
+        </DropdownMenu.Item>
+      );
+    }
+    if (url) {
+      return (
+        <DropdownMenu.Item key={label}>
+          <a href={url}>{label}</a>
+        </DropdownMenu.Item>
+      );
+    }
+    return (
+      <SubMenu
+        key={index}
+        title={label}
+        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+      >
+        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+          if (typeof child === 'string' && child === '-') {
+            return <DropdownMenu.Divider key={`$${index1}`} />;
+          }
+          if (typeof child !== 'string') {
+            return (
+              <DropdownMenu.Item key={`${child.label}`}>
+                {child.isFrontendRoute ? (
+                  <Link to={child.url || ''}>{child.label}</Link>
+                ) : (
+                  <a href={child.url}>{child.label}</a>
+                )}
+              </DropdownMenu.Item>
+            );
+          }
+          return null;
+        })}
+      </SubMenu>
+    );
+  };
   return (
-    <StyledHeader className="top" id="main-menu">
-      <Navbar inverse fluid staticTop role="navigation">
-        <Navbar.Header>
-          <Navbar.Brand>
+    <StyledHeader className="top" id="main-menu" role="navigation">
+      <Global
+        styles={css`
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+            border-radius: 0px;
+          }
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+            border-radius: 0px;
+          }
+        `}
+      />
+      <Row>
+        <Col md={16} xs={24}>
+          <Tooltip
+            id="brand-tooltip"
+            placement="bottomLeft"
+            title={brand.tooltip}
+            arrowPointAtCenter
+          >
             <a className="navbar-brand" href={brand.path}>
               <img width={brand.width} src={brand.icon} alt={brand.alt} />
             </a>
-          </Navbar.Brand>
-          <Navbar.Toggle />
-        </Navbar.Header>
-        <Nav data-test="navbar-top">
-          {menu.map((item, index) => {
-            const props = {
-              ...item,
-              isFrontendRoute: isFrontendRoute(item.url),
-              childs: item.childs?.map(c => {
-                if (typeof c === 'string') {
-                  return c;
-                }
-
-                return {
-                  ...c,
-                  isFrontendRoute: isFrontendRoute(c.url),
-                };
-              }),
-            };
-            return <MenuObject {...props} key={item.label} index={index + 1} />;
-          })}
-        </Nav>
-        <Nav className="navbar-right">
-          {!navbarRight.user_is_anonymous && <NewMenu />}
-          <NavDropdown
-            id="settings-dropdown"
-            title={t('Settings')}
-            onMouseEnter={() => setDropdownOpen(true)}
-            onMouseLeave={() => setDropdownOpen(false)}
-            onToggle={value => setDropdownOpen(value)}
-            open={dropdownOpen}
+          </Tooltip>
+          {brand.text && (
+            <div className="navbar-brand-text">
+              <span>{brand.text}</span>
+            </div>
+          )}
+          <DropdownMenu
+            mode={showMenu}
+            data-test="navbar-top"
+            className="main-nav"
           >
-            <DropdownMenu>
-              {settings.map((section, index) => [
-                <DropdownMenu.ItemGroup
-                  key={`${section.label}`}
-                  title={section.label}
-                >
-                  {section.childs?.map(child => {
-                    if (typeof child !== 'string') {
-                      return (
-                        <DropdownMenu.Item key={`${child.label}`}>
-                          {isFrontendRoute(child.url) ? (
-                            <Link to={child.url || ''}>{child.label}</Link>
-                          ) : (
-                            <a href={child.url}>{child.label}</a>
-                          )}
-                        </DropdownMenu.Item>
-                      );
-                    }
-                    return null;
-                  })}
-                </DropdownMenu.ItemGroup>,
-                index < settings.length - 1 && <DropdownMenu.Divider />,
-              ])}
+            {menu.map(item => {
+              const props = {
+                ...item,
+                isFrontendRoute: isFrontendRoute(item.url),
+                childs: item.childs?.map(c => {
+                  if (typeof c === 'string') {
+                    return c;
+                  }
 
-              {!navbarRight.user_is_anonymous && [
-                <DropdownMenu.Divider key="user-divider" />,
-                <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                  {navbarRight.user_profile_url && (
-                    <DropdownMenu.Item key="profile">
-                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
-                    </DropdownMenu.Item>
-                  )}
-                  <DropdownMenu.Item key="info">
-                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item key="logout">
-                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                  </DropdownMenu.Item>
-                </DropdownMenu.ItemGroup>,
-              ]}
-              {(navbarRight.version_string || navbarRight.version_sha) && [
-                <DropdownMenu.Divider key="version-info-divider" />,
-                <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
-                  <div className="about-section">
-                    {navbarRight.version_string && (
-                      <li className="version-info">
-                        <span>Version: {navbarRight.version_string}</span>
-                      </li>
-                    )}
-                    {navbarRight.version_sha && (
-                      <li className="version-info">
-                        <span>SHA: {navbarRight.version_sha}</span>
-                      </li>
-                    )}
-                  </div>
-                </DropdownMenu.ItemGroup>,
-              ]}
-            </DropdownMenu>
-          </NavDropdown>
-          {navbarRight.documentation_url && (
-            <NavItem
-              href={navbarRight.documentation_url}
-              target="_blank"
-              title="Documentation"
-            >
-              <i className="fa fa-question" />
-              &nbsp;
-            </NavItem>
-          )}
-          {navbarRight.bug_report_url && (
-            <NavItem
-              href={navbarRight.bug_report_url}
-              target="_blank"
-              title="Report a Bug"
-            >
-              <i className="fa fa-bug" />
-              &nbsp;
-            </NavItem>
-          )}
-          {navbarRight.show_language_picker && (
-            <LanguagePicker
-              locale={navbarRight.locale}
-              languages={navbarRight.languages}
-            />
-          )}
-          {navbarRight.user_is_anonymous && (
-            <NavItem href={navbarRight.user_login_url}>
-              <i className="fa fa-fw fa-sign-in" />
-              {t('Login')}
-            </NavItem>
-          )}
-        </Nav>
-      </Navbar>
+                  return {
+                    ...c,
+                    isFrontendRoute: isFrontendRoute(c.url),
+                  };
+                }),
+              };
+
+              return renderSubMenu(props);
+            })}
+          </DropdownMenu>
+        </Col>
+        <Col md={8} xs={24}>
+          <RightMenu
+            align={screens.md ? 'flex-end' : 'flex-start'}
+            settings={settings}
+            navbarRight={navbarRight}
+            isFrontendRoute={isFrontendRoute}
+          />
+        </Col>
+      </Row>
     </StyledHeader>
   );
 }

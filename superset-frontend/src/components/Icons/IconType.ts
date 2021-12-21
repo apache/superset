@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
 
-import AntdIcon from '@ant-design/icons';
-
-type AntdIconType = typeof AntdIcon.defaultProps;
+type AntdIconType = IconComponentProps;
 type IconType = AntdIconType & {
   iconColor?: string;
   twoToneColor?: string;

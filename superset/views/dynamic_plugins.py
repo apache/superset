@@ -14,10 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
+from flask import make_response, Response
 from flask_appbuilder import ModelView
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
+from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.models.dynamic_plugins import DynamicPlugin
 
@@ -54,3 +59,10 @@ class DynamicPluginsView(ModelView):
     show_title = _("Custom Plugin")
     add_title = _("Add a Plugin")
     edit_title = _("Edit Plugin")
+
+    @before_request
+    # pylint: disable=R0201
+    def ensure_dynamic_plugins_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("DYNAMIC_PLUGINS"):
+            return make_response("Not found", 404)
+        return None

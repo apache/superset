@@ -18,12 +18,13 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import ZipFile
 
 import simplejson
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from marshmallow import ValidationError
@@ -51,6 +52,7 @@ from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -62,11 +64,11 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -94,15 +96,25 @@ class ChartRestApi(BaseSupersetModelRestApi):
     resource_name = "chart"
     allow_browser_login = True
 
+    @before_request(only=["thumbnail", "screenshot", "cache_screenshot"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "data",
+        "post_data",
+        "get_data",
         "data_from_cache",
         "viz_types",
         "favorite_status",
+        "thumbnail",
+        "screenshot",
+        "cache_screenshot",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -118,6 +130,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "slice_name",
         "viz_type",
+        "query_context",
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
@@ -212,15 +225,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"owners", "created_by"}
 
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {
-                "thumbnail",
-                "screenshot",
-                "cache_screenshot",
-            }
-        super().__init__()
-
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -277,7 +281,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -332,7 +339,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -340,7 +346,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-
         try:
             changed_model = UpdateChartCommand(g.user, pk, item).run()
             response = self.response(200, id=changed_model.id, result=item)
@@ -352,7 +357,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
 
@@ -407,7 +415,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -470,18 +481,25 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def get_data_response(
-        self, command: ChartDataCommand, force_cached: bool = False
+    def send_chart_response(
+        self, result: Dict[Any, Any], form_data: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        try:
-            result = command.run(force_cached=force_cached)
-        except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
+        result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
+
+        # Post-process the data so it matches the data presented in the chart.
+        # This is needed for sending reports based on text charts that do the
+        # post-processing of data, eg, the pivot table.
+        if (
+            result_type == ChartDataResultType.POST_PROCESSED
+        ):
+            result = apply_post_process(result, form_data)
+
         if result_format == ChartDataResultFormat.CSV:
+            # Verify user has permission to export CSV file
+            if not security_manager.can_access("can_csv", "Superset"):
+                return self.response_403()
+
             # return the first result
             data = result["queries"][0]["data"]
             return CsvResponse(data, headers=generate_download_headers("csv"))
@@ -498,6 +516,123 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    def get_data_response(
+        self,
+        command: ChartDataCommand,
+        force_cached: bool = False,
+        form_data: Optional[Dict[str, Any]] = None,
+    ) -> Response:
+        try:
+            result = command.run(force_cached=force_cached)
+        except ChartDataCacheLoadError as exc:
+            return self.response_422(message=exc.message)
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        return self.send_chart_response(result, form_data)
+
+    @expose("/<int:pk>/data/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
+    def get_data(self, pk: int) -> Response:
+        """
+        Takes a chart ID and uses the query context stored when the chart was saved
+        to return payload data response.
+        ---
+        get:
+          description: >-
+            Takes a chart ID and uses the query context stored when the chart was saved
+            to return payload data response.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart ID
+          - in: query
+            name: format
+            description: The format in which the data should be returned
+            schema:
+              type: string
+          - in: query
+            name: type
+            description: The type in which the data should be returned
+            schema:
+              type: string
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartDataResponseSchema"
+            202:
+              description: Async job details
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartDataAsyncResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+
+        try:
+            json_body = json.loads(chart.query_context)
+        except (TypeError, json.decoder.JSONDecodeError):
+            json_body = None
+
+        if json_body is None:
+            return self.response_400(
+                message=_(
+                    "Chart has no query context saved. Please save the chart again."
+                )
+            )
+
+        # override saved query context
+        json_body["result_format"] = request.args.get(
+            "format", ChartDataResultFormat.JSON
+        )
+        json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+
+        try:
+            command = ChartDataCommand()
+            query_context = command.set_query_context(json_body)
+            command.validate()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
+        except ValidationError as error:
+            return self.response_400(
+                message=_(
+                    "Request is incorrect: %(error)s", error=error.normalized_messages()
+                )
+            )
+
+        # TODO: support CSV, SQL query and other non-JSON types
+        if (
+            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+            and query_context.result_format == ChartDataResultFormat.JSON
+            and query_context.result_type == ChartDataResultType.FULL
+        ):
+            return self._run_async(command)
+
+        try:
+            form_data = json.loads(chart.params)
+        except (TypeError, json.decoder.JSONDecodeError):
+            form_data = {}
+
+        return self.get_data_response(command, form_data=form_data)
+
     @expose("/data", methods=["POST"])
     @protect()
     @statsd_metrics
@@ -505,7 +640,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
-    def data(self) -> Response:
+    def post_data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -575,16 +710,37 @@ class ChartRestApi(BaseSupersetModelRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-
-            try:
-                command.validate_async_request(request)
-            except AsyncQueryTokenException:
-                return self.response_401()
-
-            result = command.run_async()
-            return self.response(202, **result)
+            return self._run_async(command)
 
         return self.get_data_response(command)
+
+    def _run_async(self, command: ChartDataCommand) -> Response:
+        """
+        Execute command as an async query.
+        """
+        # First, look for the chart query results in the cache.
+        try:
+            result = command.run(force_cached=True)
+        except ChartDataCacheLoadError:
+            result = None  # type: ignore
+
+        already_cached_result = result is not None
+
+        # If the chart query has already been cached, return it immediately.
+        if already_cached_result:
+            return self.send_chart_response(result)
+
+        # Otherwise, kick off a background job to run the chart query.
+        # Clients will either poll or be notified of query completion,
+        # at which point they will call the /data/<cache_key> endpoint
+        # to retrieve the results.
+        try:
+            command.validate_async_request(request)
+        except AsyncQueryTokenException:
+            return self.response_401()
+
+        result = command.run_async(g.user.get_id())
+        return self.response(202, **result)
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
@@ -650,7 +806,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         f".cache_screenshot",
         log_to_statsd=False,
     )
-    def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
+    def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """
         ---
         get:
@@ -782,9 +938,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
     )
-    def thumbnail(
-        self, pk: int, digest: str, **kwargs: Dict[str, bool]
-    ) -> WerkzeugResponse:
+    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
         """Get Chart thumbnail
         ---
         get:
@@ -889,6 +1043,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"chart_export_{timestamp}"
@@ -904,12 +1059,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
+        response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
             attachment_filename=filename,
         )
+        if token:
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/favorite_status/", methods=["GET"])
     @protect()
@@ -963,7 +1121,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -989,7 +1146,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Chart import result
@@ -1015,6 +1172,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -1025,12 +1185,5 @@ class ChartRestApi(BaseSupersetModelRestApi):
         command = ImportChartsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import chart failed")
-            return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception("Import chart failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

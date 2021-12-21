@@ -25,7 +25,7 @@ import React, {
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
@@ -65,6 +65,10 @@ const TableSelectorWrapper = styled.div`
     border-bottom: 1px solid ${({ theme }) => theme.colors.secondary.light5};
     margin: 15px 0;
   }
+
+  .table-length {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 const TableLabel = styled.span`
@@ -72,8 +76,8 @@ const TableLabel = styled.span`
   display: flex;
   white-space: nowrap;
 
-  > svg,
-  > small {
+  svg,
+  small {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
@@ -86,7 +90,7 @@ interface TableSelectorProps {
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
-  onChange?: ({
+  onUpdate?: ({
     dbId,
     schema,
   }: {
@@ -113,7 +117,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
-  onChange,
+  onUpdate,
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
@@ -194,8 +198,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }) {
     setCurrentTableName(tableName);
     setCurrentSchema(schema);
-    if (onChange) {
-      onChange({ dbId, schema, tableName });
+    if (onUpdate) {
+      onUpdate({ dbId, schema, tableName });
     }
   }
 
@@ -295,7 +299,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         getDbList={getDbList}
         getTableList={fetchTables}
         handleError={handleError}
-        onChange={onSelectionChange}
+        onUpdate={onSelectionChange}
         onDbChange={readOnly ? undefined : onDbChange}
         onSchemaChange={readOnly ? undefined : onSchemaChange}
         onSchemasLoad={onSchemasLoad}
@@ -382,9 +386,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         <FormLabel>
           {t('See table schema')}{' '}
           {schema && (
-            <small>
-              {tableOptions.length} in
-              <i>{schema}</i>
+            <small className="table-length">
+              {tableOptions.length} in {schema}
             </small>
           )}
         </FormLabel>

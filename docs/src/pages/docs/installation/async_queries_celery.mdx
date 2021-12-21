@@ -57,13 +57,13 @@ CELERY_CONFIG = CeleryConfig
 To start a Celery worker to leverage the configuration, run the following command:
 
 ```
-celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
+celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
 ```
 
 To start a job which schedules periodic background jobs, run the following command:
 
 ```
-celery beat --app=superset.tasks.celery_app:app
+celery --app=superset.tasks.celery_app:app beat
 ```
 
 To setup a result backend, you need to pass an instance of a derivative of from

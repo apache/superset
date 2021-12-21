@@ -56,18 +56,6 @@ export const validateForm = async (
         throw error;
       }
     }
-    const validateInstant = (filterId: string) => {
-      const isInstant = formValues.filters[filterId]
-        ? formValues.filters[filterId].isInstant
-        : filterConfigMap[filterId]?.isInstant;
-      if (!isInstant) {
-        addValidationError(
-          filterId,
-          'isInstant',
-          'For parent filters changes must be applied instantly',
-        );
-      }
-    };
 
     const validateCycles = (filterId: string, trace: string[] = []) => {
       if (trace.includes(filterId)) {
@@ -81,7 +69,6 @@ export const validateForm = async (
         ? formValues.filters[filterId].parentFilter?.value
         : filterConfigMap[filterId]?.cascadeParentIds?.[0];
       if (parentId) {
-        validateInstant(parentId);
         validateCycles(parentId, [...trace, filterId]);
       }
     };
@@ -114,25 +101,12 @@ export const validateForm = async (
 };
 
 export const createHandleSave = (
-  form: FormInstance<NativeFiltersForm>,
-  currentFilterId: string,
   filterConfigMap: Record<string, Filter>,
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
-  setCurrentFilterId: Function,
-  resetForm: Function,
   saveForm: Function,
+  values: NativeFiltersForm,
 ) => async () => {
-  const values: NativeFiltersForm | null = await validateForm(
-    form,
-    currentFilterId,
-    filterConfigMap,
-    filterIds,
-    removedFilters,
-    setCurrentFilterId,
-  );
-  if (values === null) return;
-
   const newFilterConfig: FilterConfiguration = filterIds
     .filter(id => !removedFilters[id])
     .map(id => {
@@ -152,6 +126,10 @@ export const createHandleSave = (
         adhoc_filters: formInputs.adhoc_filters,
         time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
+        granularity_sqla: formInputs.granularity_sqla,
+        requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
+          rf => rf,
+        ),
         name: formInputs.name,
         filterType: formInputs.filterType,
         // for now there will only ever be one target
@@ -161,13 +139,11 @@ export const createHandleSave = (
           ? [formInputs.parentFilter.value]
           : [],
         scope: formInputs.scope,
-        isInstant: formInputs.isInstant,
         sortMetric: formInputs.sortMetric,
       };
     });
 
   await saveForm(newFilterConfig);
-  resetForm();
 };
 
 export const createHandleTabEdit = (
