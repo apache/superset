@@ -51,46 +51,32 @@ const StyledScrollbarContent = styled.div`
   height: ${props => props.contentHeight}px;
 `;
 
-export default function SqlEditorLeftBar(props) {
-  const onSchemaChange = schema => {
-    props.actions.queryEditorSetSchema(props.queryEditor, schema);
-  };
-
-  const onSchemasLoad = schemas => {
-    props.actions.queryEditorSetSchemaOptions(props.queryEditor, schemas);
-  };
-
-  const onTablesLoad = tables => {
-    props.actions.queryEditorSetTableOptions(props.queryEditor, tables);
-  };
-
+export default function SqlEditorLeftBar({
+  actions,
+  database,
+  height,
+  queryEditor,
+  tables: tb,
+}) {
   const onDbChange = db => {
-    props.actions.queryEditorSetDb(props.queryEditor, db.id);
-    props.actions.queryEditorSetFunctionNames(props.queryEditor, db.id);
+    actions.queryEditorSetDb(queryEditor, db.id);
+    actions.queryEditorSetFunctionNames(queryEditor, db.id);
   };
 
   const onTableChange = (tableName, schemaName) => {
     if (tableName && schemaName) {
-      props.actions.addTable(props.queryEditor, tableName, schemaName);
+      actions.addTable(queryEditor, tableName, schemaName);
     }
   };
 
   const onToggleTable = tables => {
-    props.tables.forEach(table => {
+    tb.forEach(table => {
       if (!tables.includes(table.id.toString()) && table.expanded) {
-        props.actions.collapseTable(table);
+        actions.collapseTable(table);
       } else if (tables.includes(table.id.toString()) && !table.expanded) {
-        props.actions.expandTable(table);
+        actions.expandTable(table);
       }
     });
-  };
-
-  const getDbList = dbs => {
-    props.actions.setDatabases(dbs);
-  };
-
-  const resetState = () => {
-    props.actions.resetState();
   };
 
   const renderExpandIconWithTooltip = ({ isActive }) => (
@@ -113,29 +99,28 @@ export default function SqlEditorLeftBar(props) {
   );
 
   const shouldShowReset = window.location.search === '?reset=1';
-  const tableMetaDataHeight = props.height - 130; // 130 is the height of the selects above
-  const qe = props.queryEditor;
+  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
   return (
     <div className="SqlEditorLeftBar">
       <TableSelector
-        database={props.database}
-        dbId={qe.dbId}
-        getDbList={() => getDbList}
-        handleError={props.actions.addDangerToast}
+        database={database}
+        dbId={queryEditor.dbId}
+        getDbList={actions.setDatabases}
+        handleError={actions.addDangerToast}
         onDbChange={onDbChange}
-        onSchemaChange={onSchemaChange}
-        onSchemasLoad={() => onSchemasLoad}
+        onSchemaChange={actions.queryEditorSetSchema}
+        onSchemasLoad={actions.queryEditorSetSchemaOptions}
         onTableChange={onTableChange}
-        onTablesLoad={() => onTablesLoad}
-        schema={qe.schema}
+        onTablesLoad={actions.queryEditorSetTableOptions}
+        schema={queryEditor.schema}
         sqlLabMode
       />
       <div className="divider" />
       <StyledScrollbarContainer>
         <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
           <Collapse
-            activeKey={props.tables
+            activeKey={tb
               .filter(({ expanded }) => expanded)
               .map(({ id }) => id)}
             css={theme => css`
@@ -163,18 +148,18 @@ export default function SqlEditorLeftBar(props) {
             onChange={onToggleTable}
             expandIcon={renderExpandIconWithTooltip}
           >
-            {props.tables.map(table => (
-              <TableElement
-                table={table}
-                key={table.id}
-                actions={props.actions}
-              />
+            {tb.map(table => (
+              <TableElement table={table} key={table.id} actions={actions} />
             ))}
           </Collapse>
         </StyledScrollbarContent>
       </StyledScrollbarContainer>
       {shouldShowReset && (
-        <Button buttonSize="small" buttonStyle="danger" onClick={resetState}>
+        <Button
+          buttonSize="small"
+          buttonStyle="danger"
+          onClick={actions.resetState}
+        >
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
       )}
