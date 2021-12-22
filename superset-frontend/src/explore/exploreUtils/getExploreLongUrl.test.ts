@@ -45,12 +45,27 @@ test('Get url when endpointType:standalone', () => {
   expect(
     getExploreLongUrl(
       params.formData,
-      params.endpointType,
+      'standalone',
       params.allowOverflow,
       params.extraSearch,
     ),
   ).toBe(
-    '/superset/explore/?same=any-string&form_data=%7B%22datasource%22%3A%22datasource%22%2C%22viz_type%22%3A%22viz_type%22%7D',
+    '/superset/explore/?same=any-string&form_data=%7B%22datasource%22%3A%22datasource%22%2C%22viz_type%22%3A%22viz_type%22%7D&standalone=1',
+  );
+});
+
+test('Get url when endpointType:standalone and force:true', () => {
+  const params = createParams();
+  expect(
+    getExploreLongUrl(
+      params.formData,
+      'standalone',
+      params.allowOverflow,
+      params.extraSearch,
+      true,
+    ),
+  ).toBe(
+    '/superset/explore/?same=any-string&form_data=%7B%22datasource%22%3A%22datasource%22%2C%22viz_type%22%3A%22viz_type%22%7D&force=1&standalone=1',
   );
 });
 
