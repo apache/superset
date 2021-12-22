@@ -1071,8 +1071,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             is_dashboard_access_check_applicable = feature_flag_manager.is_feature_enabled(
                 "DASHBOARD_RBAC"
-            ) or feature_flag_manager.is_feature_enabled(
-                "EMBEDDED_SUPERSET"
+            ) or self.is_guest_user(
+                g.user
             )
 
             if not (
@@ -1315,10 +1315,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning("Invalid guest token", exc_info=True)
             return None
         else:
-            return self.guest_user_cls(
-                token=token,
-                roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
-            )
+            return self.get_guest_user_from_token(token)
+
+    def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
+        return self.guest_user_cls(
+            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+        )
 
     @staticmethod
     def parse_jwt_guest_token(raw_token: str) -> GuestToken:
