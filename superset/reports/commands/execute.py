@@ -146,8 +146,6 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
-        # For alerts we always want to send a fresh screenshot, bypassing
-        # the cache.
         force = "true" if self._report_schedule.force_screenshot else "false"
 
         if self._report_schedule.chart:
