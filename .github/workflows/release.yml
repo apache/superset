@@ -53,11 +53,14 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Install dependencies
+        working-directory: ./superset-frontend
         run: npm ci
-      - name: Build packages
-        run: npm run plugins:build
       - name: Run unit tests
+        working-directory: ./superset-frontend
         run: npm run test -- plugins packages
+      - name: Build packages
+        working-directory: ./superset-frontend
+        run: npm run plugins:build
 
       - name: Configure npm and git
         run: |
@@ -73,6 +76,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump version and publish package(s)
+        working-directory: ./superset-frontend
         run: |
           git tag -d `git tag | grep -E '^trigger-'`
           npm run plugins:release-from-tag
