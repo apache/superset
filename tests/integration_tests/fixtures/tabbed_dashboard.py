@@ -19,6 +19,7 @@ import json
 import pytest
 
 from superset import db
+from superset.models.dashboard import Dashboard
 from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
 
@@ -75,5 +76,5 @@ def tabbed_dashboard():
         )
     yield dash
     with app.app_context():
-        db.session.delete(dash)
+        db.session.query(Dashboard).filter(Dashboard.id == dash.id).delete()
         db.session.commit()
