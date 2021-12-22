@@ -16,7 +16,7 @@
 # under the License.
 """adding_business_type.py
 Revision ID: 6f139c533bea
-Revises: abe27eaf93db
+Revises: 31bb738bd1d2
 Create Date: 2021-05-27 16:10:59.567684
 """
 
@@ -25,7 +25,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "6f139c533bea"
-down_revision = "abe27eaf93db"
+down_revision = "31bb738bd1d2"
 
 
 def upgrade():
