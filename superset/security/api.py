@@ -16,13 +16,15 @@
 # under the License.
 import logging
 
-from flask import Response
+from flask import g, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import BaseApi, safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 
 from superset.extensions import event_logger
+from superset.views.base import common_bootstrap_payload
+from superset.views.utils import bootstrap_user_data
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +62,35 @@ class SecurityRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         return self.response(200, result=generate_csrf())
+
+    @expose("/bootstrap_data/", methods=["GET"])
+    @protect()
+    @safe
+    @permission_name("read")
+    def bootstrap_data(self) -> Response:
+        """
+        Return the bootstrap data for the Dodo IS frontend
+        ---
+        get:
+          description: >-
+            Fetch the bootstrap data
+          responses:
+            200:
+              description: Result contains bootstrap data
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        result:
+                          type: object
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        payload = {
+            "user": bootstrap_user_data(g.user, include_perms=True),
+            "common": common_bootstrap_payload(),
+        }
+        return self.response(200, result=payload)
