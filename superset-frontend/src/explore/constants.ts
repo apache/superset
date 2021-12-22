@@ -136,7 +136,7 @@ export const TIME_FILTER_MAP = {
 
 // TODO: make this configurable per Superset installation
 export const DEFAULT_TIME_RANGE = 'No filter';
-// Default time range endpoints [start, end)
+// Default time range endpoints [start, end), see SIP-15 #6360 for more info
 export const DEFAULT_TIME_RANGE_ENDPOINTS: TimeRangeEndpoints = [
   'inclusive',
   'exclusive',
