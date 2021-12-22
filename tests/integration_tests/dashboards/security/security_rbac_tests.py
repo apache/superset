@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.utils.core import backend
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.security.base_case import (
     BaseTestDashboardSecurity,
@@ -31,6 +32,7 @@ from tests.integration_tests.dashboards.superset_factory_util import (
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.query_context import get_query_context
@@ -91,7 +93,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
         # assert
         self.assert403(response)
@@ -118,6 +120,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
+        if backend() == "hive":
+            return
+
         # arrange
 
         username = random_str()

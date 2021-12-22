@@ -30,7 +30,7 @@ import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Label from 'src/components/Label';
@@ -156,7 +156,9 @@ CollectionTabTitle.propTypes = {
 
 function ColumnCollectionTable({
   columns,
-  onChange,
+  datasource,
+  onColumnsChange,
+  onDatasourceChange,
   editableColumnName,
   showExpression,
   allowAddItem,
@@ -173,6 +175,7 @@ function ColumnCollectionTable({
               'business_type',
               'type',
               'is_dttm',
+              'main_dttm_col',
               'filterable',
               'groupby',
             ]
@@ -185,6 +188,7 @@ function ColumnCollectionTable({
               'business_type',
               'type',
               'is_dttm',
+              'main_dttm_col',
               'filterable',
               'groupby',
             ]
@@ -323,6 +327,7 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
           : {
@@ -330,10 +335,11 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
       }
-      onChange={onChange}
+      onChange={onColumnsChange}
       itemRenderers={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? {
@@ -341,7 +347,7 @@ function ColumnCollectionTable({
                 editableColumnName ? (
                   <StyledLabelWrapper>
                     {record.is_certified && (
-                      <CertifiedIcon
+                      <CertifiedBadge
                         certifiedBy={record.certified_by}
                         details={record.certification_details}
                       />
@@ -355,7 +361,7 @@ function ColumnCollectionTable({
                 ) : (
                   <StyledLabelWrapper>
                     {record.is_certified && (
-                      <CertifiedIcon
+                      <CertifiedBadge
                         certifiedBy={record.certified_by}
                         details={record.certification_details}
                       />
@@ -363,6 +369,25 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
               type: d => (d ? <Label>{d}</Label> : null),
               business_type: d => <Label onChange={onChange}>{d}</Label>,
               is_dttm: checkboxGenerator,
@@ -374,7 +399,7 @@ function ColumnCollectionTable({
                 editableColumnName ? (
                   <StyledLabelWrapper>
                     {record.is_certified && (
-                      <CertifiedIcon
+                      <CertifiedBadge
                         certifiedBy={record.certified_by}
                         details={record.certification_details}
                       />
@@ -388,7 +413,7 @@ function ColumnCollectionTable({
                 ) : (
                   <StyledLabelWrapper>
                     {record.is_certified && (
-                      <CertifiedIcon
+                      <CertifiedBadge
                         certifiedBy={record.certified_by}
                         details={record.certification_details}
                       />
@@ -396,6 +421,25 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
               type: d => (d ? <Label>{d}</Label> : null),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
@@ -407,7 +451,9 @@ function ColumnCollectionTable({
 }
 ColumnCollectionTable.propTypes = {
   columns: PropTypes.array.isRequired,
-  onChange: PropTypes.func.isRequired,
+  datasource: PropTypes.object.isRequired,
+  onColumnsChange: PropTypes.func.isRequired,
+  onDatasourceChange: PropTypes.func.isRequired,
   editableColumnName: PropTypes.bool,
   showExpression: PropTypes.bool,
   allowAddItem: PropTypes.bool,
@@ -1200,7 +1246,7 @@ class DatasourceEditor extends React.PureComponent {
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />
@@ -1314,9 +1360,11 @@ class DatasourceEditor extends React.PureComponent {
               <ColumnCollectionTable
                 className="columns-table"
                 columns={this.state.databaseColumns}
-                onChange={databaseColumns =>
+                datasource={datasource}
+                onColumnsChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
                 }
+                onDatasourceChange={this.onDatasourceChange}
               />
               {this.state.metadataLoading && <Loading />}
             </div>
@@ -1332,9 +1380,11 @@ class DatasourceEditor extends React.PureComponent {
           >
             <ColumnCollectionTable
               columns={this.state.calculatedColumns}
-              onChange={calculatedColumns =>
+              onColumnsChange={calculatedColumns =>
                 this.setColumns({ calculatedColumns })
               }
+              onDatasourceChange={this.onDatasourceChange}
+              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem

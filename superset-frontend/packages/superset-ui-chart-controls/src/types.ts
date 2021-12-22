@@ -18,7 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import {
+import type {
   AdhocColumn,
   Column,
   DatasourceType,
@@ -29,9 +29,9 @@ import {
 import { sharedControls } from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
-export { Metric } from '@superset-ui/core';
-export { ControlFormItemSpec } from './components/ControlForm';
-export { ControlComponentProps } from './shared-controls/components/types';
+export type { Metric } from '@superset-ui/core';
+export type { ControlFormItemSpec } from './components/ControlForm';
+export type { ControlComponentProps } from './shared-controls/components/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;

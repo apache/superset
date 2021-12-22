@@ -88,7 +88,6 @@ export const useFilterUpdates = (
 ) => {
   const filters = useFilters();
   const dataMaskApplied = useNativeFiltersDataMask();
-
   useEffect(() => {
     // Remove deleted filters from local state
     Object.keys(dataMaskSelected).forEach(selectedId => {

@@ -116,6 +116,8 @@ const all_columns: typeof sharedControls.groupby = {
         ? [t('must have a value')]
         : [],
   }),
+  sortComparator: (a: { label: string }, b: { label: string }) =>
+    a.label.localeCompare(b.label),
   visibility: isRawMode,
 };
 
@@ -257,6 +259,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['adhoc_filters'],
         [
           {
             name: 'timeseries_limit_metric',
@@ -276,6 +279,8 @@ const config: ControlPanelConfig = {
                 choices: datasource?.order_by_choices || [],
               }),
               visibility: isRawMode,
+              sortComparator: (a: { label: string }, b: { label: string }) =>
+                a.label.localeCompare(b.label),
             },
           },
         ],
@@ -355,7 +360,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
         emitFilterControl,
       ],
     },

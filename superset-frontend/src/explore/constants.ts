@@ -151,8 +151,6 @@ export enum FILTER_BOX_MIGRATION_STATES {
   UNDECIDED = 'UNDECIDED',
 }
 
-export const FILTER_BOX_TRANSITION_SNOOZED_AT =
-  'filter_box_transition_snoozed_at';
 export const FILTER_BOX_TRANSITION_SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export const POPOVER_INITIAL_HEIGHT = 240;

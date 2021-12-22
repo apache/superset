@@ -40,6 +40,7 @@ import AdhocFilter, {
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
+import { propertyComparator } from 'src/components/Select/Select';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -486,12 +487,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevantWrapper(op, subject))
-          .map(option => ({
+          .map((option, index) => ({
             value: option,
             label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
             key: option,
+            order: index,
           }))}
         {...operatorSelectProps}
+        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <Tooltip title={businessTypesState.parsedBusniessType}>
@@ -502,6 +505,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
               label: String(suggestion),
             }))}
             {...comparatorSelectProps}
+            sortComparator={propertyComparator(
+              typeof suggestions[0] === 'number' ? 'value' : 'label',
+            )}
           />
         </Tooltip>
       ) : (
