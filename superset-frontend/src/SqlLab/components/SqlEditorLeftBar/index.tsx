@@ -24,6 +24,7 @@ import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import TableSelector from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
+import { QueryEditor } from 'src/SqlLab/types';
 import TableElement from '../TableElement';
 
 const propTypes = {
@@ -34,6 +35,13 @@ const propTypes = {
   database: PropTypes.object,
   offline: PropTypes.bool,
 };
+
+// interface propTypes {
+//   queryEditor: QueryEditor;
+//   height: number;
+//   tables: Array;
+
+// }
 
 const defaultProps = {
   actions: {},
