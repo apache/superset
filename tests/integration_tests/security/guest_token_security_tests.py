@@ -19,9 +19,10 @@ from unittest import mock
 
 import pytest
 from flask import g
-
 from integration_tests.base_tests import SupersetTestCase
+
 from superset import db, security_manager
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestUser
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -34,14 +35,42 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 @mock.patch.dict(
     "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
 )
-class TestDashboardGuestTokenSecurity(SupersetTestCase):
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+class TestGuestTokenSecurity(SupersetTestCase):
     def test_dashboard_access_filter_as_guest(self):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        g.user = security_manager.get_guest_user_from_token({
-            "user": {},
-            "resources": [{"type": "dashboard", "id": dash.id}]
-        })
+        dataset = list(dash.datasources)[0]
+        g.user = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": [{"type": "dashboard", "id": dash.id}]}
+        )
 
-        security_manager.raise_for_access(datasource=dash.datasources[0])
+        security_manager.raise_for_access(datasource=dataset)
+
+    def test_dashboard_access_filter_as_unauthorized_guest(self):
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        dataset = list(dash.datasources)[0]
+        g.user = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": [{"type": "dashboard", "id": dash.id + 1}]}
+        )
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(datasource=dataset)
+
+    def test_chart_access_filter_as_guest(self):
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        chart = dash.slices[0]
+        g.user = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": [{"type": "dashboard", "id": dash.id}]}
+        )
+
+        security_manager.raise_for_access(viz=chart)
+
+    def test_chart_access_filter_as_unauthorized_guest(self):
+        dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        chart = dash.slices[0]
+        g.user = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": [{"type": "dashboard", "id": dash.id + 1}]}
+        )
+
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_access(viz=chart)
