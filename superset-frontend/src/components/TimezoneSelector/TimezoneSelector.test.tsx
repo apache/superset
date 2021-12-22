@@ -55,7 +55,7 @@ describe('TimezoneSelector', () => {
     expect(select).toBeInTheDocument();
     userEvent.click(select);
     const selection = await screen.findByTitle(
-      'GMT -06:00 (Mountain Daylight Time)',
+      'GMT -10:00 (Hawaii Standard Time)',
     );
     expect(selection).toBeInTheDocument();
     userEvent.click(selection);

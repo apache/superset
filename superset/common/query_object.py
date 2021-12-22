@@ -25,8 +25,6 @@ from pandas import DataFrame
 from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric, OrderBy
 from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,

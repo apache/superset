@@ -52,13 +52,13 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
-from superset.charts.post_processing import apply_post_process
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartFavoriteFilter,
     ChartFilter,
 )
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
