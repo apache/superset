@@ -27,28 +27,58 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import TableElement from '../TableElement';
 
-const propTypes = {
-  queryEditor: PropTypes.object.isRequired,
-  height: PropTypes.number,
-  tables: PropTypes.array,
-  actions: PropTypes.object,
-  database: PropTypes.object,
-  offline: PropTypes.bool,
-};
+// const propTypes = {
+//   queryEditor: PropTypes.object.isRequired,
+//   height: PropTypes.number,
+//   tables: PropTypes.array,
+//   actions: PropTypes.object,
+//   database: PropTypes.object,
+//   offline: PropTypes.bool,
+// };
 
-// interface propTypes {
-//   queryEditor: QueryEditor;
-//   height: number;
-//   tables: Array;
+/**
+    onSchemaChange={actions.queryEditorSetSchema}
+    onSchemasLoad={actions.queryEditorSetSchemaOptions}
+    onTableChange={onTableChange}
+    onTablesLoad={actions.queryEditorSetTableOptions}
+ */
 
+// anywhere there is void or any I didnt know what to put, will look into it
+
+interface actionsTypes {
+  queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
+  queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
+  setDatabases: (databases: any) => object;
+
+  // utilized the typing that TableSelector used for its props, which are the same functions for these two below
+  addDangerToast: (msg: string) => void;
+  queryEditorSetSchema: (schema?: string) => void;
+}
+
+// my first attempt at actionTypes:
+// interface actionsTypes {
+//   queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
+//   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
+//   setDatabases: (databases: any) => object;
+//   addDangerToast: (text: string, options?: ToastOptions) => void;
+//   queryEditorSetSchema: (queryEditor: QueryEditor, schema: any) => void;
 // }
 
-const defaultProps = {
-  actions: {},
-  height: 500,
-  offline: false,
-  tables: [],
-};
+interface propTypes {
+  queryEditor: QueryEditor;
+  height: number;
+  tables: Array<object>;
+  actions: actionsTypes;
+  database: object;
+  offline: boolean;
+}
+
+// const defaultProps = {
+//   actions: {},
+//   height: 500,
+//   offline: false,
+//   tables: [],
+// };
 
 const StyledScrollbarContainer = styled.div`
   flex: 1 1 auto;
@@ -77,12 +107,13 @@ const collapseStyles = css`
 `;
 
 export default function SqlEditorLeftBar({
-  actions,
+  actions = {},
   database,
-  height,
+  height = 500,
   queryEditor,
-  tables: tb,
-}) {
+  tables: tb = [],
+  offline = false,
+}: propTypes) {
   const onDbChange = db => {
     actions.queryEditorSetDb(queryEditor, db.id);
     actions.queryEditorSetFunctionNames(queryEditor, db.id);
@@ -178,5 +209,5 @@ export default function SqlEditorLeftBar({
   );
 }
 
-SqlEditorLeftBar.propTypes = propTypes;
-SqlEditorLeftBar.defaultProps = defaultProps;
+// SqlEditorLeftBar.propTypes = propTypes;
+// SqlEditorLeftBar.defaultProps = defaultProps;
