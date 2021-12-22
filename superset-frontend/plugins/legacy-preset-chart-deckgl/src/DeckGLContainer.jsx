@@ -22,6 +22,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { isEqual } from 'lodash';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import { styled } from '@superset-ui/core';
@@ -64,7 +65,7 @@ export class DeckGLContainer extends React.Component {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.viewport !== this.props.viewport) {
+    if (!isEqual(nextProps.viewport, this.props.viewport)) {
       this.setState({ viewState: nextProps.viewport });
     }
   }
