@@ -19,6 +19,7 @@
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
+import ActionButtonControl from './ActionButtonControl'
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
 import ColorPickerControl from './ColorPickerControl';
@@ -45,10 +46,12 @@ import DndColumnSelectControl, {
   DndFilterSelect,
   DndMetricSelect,
 } from './DndColumnSelectControl';
+import ScoreCardGroupControl from './ScoreCardGroupControl'
 
 const controlMap = {
   AnnotationLayerControl,
   BoundsControl,
+  ScoreCardGroupControl,
   CheckboxControl,
   CollectionControl,
   ColorPickerControl,

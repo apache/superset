@@ -77,11 +77,13 @@ class CollectionControl extends React.Component {
   constructor(props) {
     super(props);
     this.onAdd = this.onAdd.bind(this);
+    console.log(props, 'collectioncontrol')
   }
 
   onChange(i, value) {
+    // debugger;
     const newValue = [...this.props.value];
-    newValue[i] = { ...this.props.value[i], ...value };
+    newValue[i] = { key:this.props.value[i].key, ...value };
     this.props.onChange(newValue);
   }
 
@@ -133,6 +135,7 @@ class CollectionControl extends React.Component {
                 <Control
                   {...commonProps}
                   {...o}
+                  ith={i}
                   onChange={this.onChange.bind(this, i)}
                 />
               </div>

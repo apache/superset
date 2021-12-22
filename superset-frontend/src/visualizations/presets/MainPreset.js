@@ -53,6 +53,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+import { ScoreCardChartPlugin } from 'src/visualizations/plugin-chart-score-card/src';
 import {
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
@@ -82,6 +83,7 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
+
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -139,6 +141,7 @@ export default class MainPreset extends Preset {
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
+        new ScoreCardChartPlugin().configure({ key: 'score_card' }),
         new EchartsAreaChartPlugin().configure({
           key: 'echarts_area',
         }),

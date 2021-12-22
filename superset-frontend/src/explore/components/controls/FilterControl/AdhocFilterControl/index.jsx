@@ -87,6 +87,7 @@ function isDictionaryForAdhocFilter(value) {
 
 class AdhocFilterControl extends React.Component {
   constructor(props) {
+    console.log(props, 'AdhocFilterControl')
     super(props);
     this.optionsForSelect = this.optionsForSelect.bind(this);
     this.onRemoveFilter = this.onRemoveFilter.bind(this);
