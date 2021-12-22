@@ -97,7 +97,6 @@ def import_dataset(
                 logger.info("Unable to encode `%s` field: %s", key, config[key])
     for key in ("metrics", "columns"):
         for attributes in config.get(key, []):
-            # should be a dictionary, but in initial exports this was a string
             if attributes.get("extra") is not None:
                 try:
                     attributes["extra"] = json.dumps(attributes["extra"])
