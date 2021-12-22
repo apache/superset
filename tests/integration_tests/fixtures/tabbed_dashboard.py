@@ -24,7 +24,7 @@ from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def tabbed_dashboard():
     position_json = {
         "DASHBOARD_VERSION_KEY": "v2",
