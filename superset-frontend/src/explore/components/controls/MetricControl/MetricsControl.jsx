@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { ensureIsArray, t, useTheme } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Icons from 'src/components/Icons';
 import {
@@ -27,6 +28,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -46,7 +48,7 @@ const propTypes = {
   isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -75,27 +77,6 @@ function isDictionaryForAdhocMetric(value) {
   return value && !(value instanceof AdhocMetric) && value.expressionType;
 }
 
-function columnsContainAllMetrics(value, columns, savedMetrics) {
-  const columnNames = new Set(
-    [...(columns || []), ...(savedMetrics || [])]
-      // eslint-disable-next-line camelcase
-      .map(({ column_name, metric_name }) => column_name || metric_name),
-  );
-
-  return (
-    (Array.isArray(value) ? value : [value])
-      .filter(metric => metric)
-      // find column names
-      .map(metric =>
-        metric.column
-          ? metric.column.column_name
-          : metric.column_name || metric,
-      )
-      .filter(name => name && typeof name === 'string')
-      .every(name => columnNames.has(name))
-  );
-}
-
 // adhoc metrics are stored as dictionaries in URL params. We convert them back into the
 // AdhocMetric class for typechecking, consistency and instance method access.
 function coerceAdhocMetrics(value) {
@@ -118,6 +99,22 @@ function coerceAdhocMetrics(value) {
 
 const emptySavedMetric = { metric_name: '', expression: '' };
 
+// TODO: use typeguards to distinguish saved metrics from adhoc metrics
+const getMetricsMatchingCurrentDataset = (value, columns, savedMetrics) =>
+  ensureIsArray(value).filter(metric => {
+    if (typeof metric === 'string' || metric.metric_name) {
+      return savedMetrics?.some(
+        savedMetric =>
+          savedMetric.metric_name === metric ||
+          savedMetric.metric_name === metric.metric_name,
+      );
+    }
+    return columns?.some(
+      column =>
+        !metric.column || metric.column.column_name === column.column_name,
+    );
+  });
+
 const MetricsControl = ({
   onChange,
   multi,
@@ -125,11 +122,12 @@ const MetricsControl = ({
   columns,
   savedMetrics,
   datasource,
-  datasourceType,
   ...props
 }) => {
   const [value, setValue] = useState(coerceAdhocMetrics(propsValue));
   const theme = useTheme();
+  const prevColumns = usePrevious(columns);
+  const prevSavedMetrics = usePrevious(savedMetrics);
 
   const handleChange = useCallback(
     opts => {
@@ -209,19 +207,20 @@ const MetricsControl = ({
     [value],
   );
 
-  const isAddNewMetricDisabled = useCallback(() => !multi && value.length > 0, [
-    multi,
-    value.length,
-  ]);
+  const isAddNewMetricDisabled = useCallback(
+    () => !multi && value.length > 0,
+    [multi, value.length],
+  );
 
   const savedMetricOptions = useMemo(
     () => getOptionsForSavedMetrics(savedMetrics, propsValue, null),
     [propsValue, savedMetrics],
   );
 
-  const newAdhocMetric = useMemo(() => new AdhocMetric({ isNew: true }), [
-    value,
-  ]);
+  const newAdhocMetric = useMemo(
+    () => new AdhocMetric({ isNew: true }),
+    [value],
+  );
   const addNewMetricPopoverTrigger = useCallback(
     trigger => {
       if (isAddNewMetricDisabled()) {
@@ -233,9 +232,8 @@ const MetricsControl = ({
           onMetricEdit={onNewMetric}
           columns={columns}
           savedMetricsOptions={savedMetricOptions}
-          datasource={datasource}
           savedMetric={emptySavedMetric}
-          datasourceType={datasourceType}
+          datasource={datasource}
         >
           {trigger}
         </AdhocMetricPopoverTrigger>
@@ -244,7 +242,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       isAddNewMetricDisabled,
       newAdhocMetric,
       onNewMetric,
@@ -253,22 +250,32 @@ const MetricsControl = ({
   );
 
   useEffect(() => {
-    // Remove all metrics if selected value no longer a valid column
-    // in the dataset. Must use `nextProps` here because Redux reducers may
-    // have already updated the value for this control.
-    if (!columnsContainAllMetrics(propsValue, columns, savedMetrics)) {
-      handleChange([]);
+    // Remove selected custom metrics that do not exist in the dataset anymore
+    // Remove selected adhoc metrics that use columns which do not exist in the dataset anymore
+    if (
+      propsValue &&
+      (!isEqual(prevColumns, columns) ||
+        !isEqual(prevSavedMetrics, savedMetrics))
+    ) {
+      const matchingMetrics = getMetricsMatchingCurrentDataset(
+        propsValue,
+        columns,
+        savedMetrics,
+      );
+      if (!isEqual(matchingMetrics, propsValue)) {
+        handleChange(matchingMetrics);
+      }
     }
-  }, [columns, savedMetrics]);
+  }, [columns, handleChange, savedMetrics]);
 
   useEffect(() => {
     setValue(coerceAdhocMetrics(propsValue));
   }, [propsValue]);
 
-  const onDropLabel = useCallback(() => handleChange(value), [
-    handleChange,
-    value,
-  ]);
+  const onDropLabel = useCallback(
+    () => handleChange(value),
+    [handleChange, value],
+  );
 
   const valueRenderer = useCallback(
     (option, index) => (
@@ -286,7 +293,6 @@ const MetricsControl = ({
           value,
           value?.[index],
         )}
-        datasourceType={datasourceType}
         onMoveLabel={moveLabel}
         onDropLabel={onDropLabel}
         multi={multi}
@@ -295,7 +301,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       moveLabel,
       multi,
       onDropLabel,

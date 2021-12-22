@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme, css } from '@superset-ui/core';
+import { SupersetTheme, css } from '@superset-ui/core';
 import React, { ReactElement } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -33,13 +33,13 @@ export default function RecipientIcon({ type }: { type: string }) {
     label: '',
   };
   switch (type) {
-    case RecipientIconName.email:
+    case RecipientIconName.Email:
       recipientIconConfig.icon = <Icons.Email css={StyledIcon} />;
-      recipientIconConfig.label = t(`${RecipientIconName.email}`);
+      recipientIconConfig.label = RecipientIconName.Email;
       break;
-    case RecipientIconName.slack:
+    case RecipientIconName.Slack:
       recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
-      recipientIconConfig.label = t(`${RecipientIconName.slack}`);
+      recipientIconConfig.label = RecipientIconName.Slack;
       break;
     default:
       recipientIconConfig.icon = null;

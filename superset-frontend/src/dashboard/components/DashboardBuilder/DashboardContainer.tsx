@@ -36,6 +36,7 @@ import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
+import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -45,9 +46,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilters =
-    useSelector<RootState, Filters>(state => state.nativeFilters?.filters) ??
-    {};
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -68,9 +69,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
-  const filterScopes = Object.values(nativeFilters).map(filter => ({
+  const filterScopes = Object.values(nativeFilters ?? {}).map(filter => ({
     id: filter.id,
     scope: filter.scope,
+    type: filter.type,
   }));
   useEffect(() => {
     if (
@@ -80,6 +82,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       return;
     }
     const scopes = filterScopes.map(filterScope => {
+      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
       const { scope } = filterScope;
       const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {

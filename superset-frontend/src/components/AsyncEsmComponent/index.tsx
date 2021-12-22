@@ -53,7 +53,7 @@ function DefaultPlaceholder({
  */
 export default function AsyncEsmComponent<
   P = PlaceholderProps,
-  M = React.ComponentType<P> | { default: React.ComponentType<P> }
+  M = React.ComponentType<P> | { default: React.ComponentType<P> },
 >(
   /**
    * A promise generator that returns the React component to render.

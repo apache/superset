@@ -24,9 +24,7 @@
         "paths": [
           {
             "name": "@superset-ui/core",
-            "importNames": [
-              "supersetTheme"
-            ],
+            "importNames": ["supersetTheme"],
             "message": "Please use the theme directly from the ThemeProvider rather than importing supersetTheme."
           }
         ]

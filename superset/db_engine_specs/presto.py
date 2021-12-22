@@ -158,7 +158,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
         "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
         "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P0.25Y": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
         "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
@@ -235,7 +235,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         that can set the correct properties for impersonating users
         :param connect_args: config to be updated
         :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         :return: None
         """
@@ -661,9 +660,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
-        :param database: Database instance
         :param cursor: Cursor instance
-        :param username: Effective username
         :return: JSON response from Presto
         """
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
@@ -743,7 +740,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             uri.database = database
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
@@ -871,8 +870,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 for row in data:
                     values = row.get(name) or []
                     if isinstance(values, str):
-                        row[name] = values = cast(List[Any], destringify(values))
-                    for value, col in zip(values, expanded):
+                        values = cast(Optional[List[Any]], destringify(values))
+                        row[name] = values
+                    for value, col in zip(values or [], expanded):
                         row[col["name"]] = value
 
         data = [
@@ -1215,6 +1215,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[

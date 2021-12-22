@@ -65,10 +65,25 @@ class ExportDatabasesCommand(ExportModelsCommand):
             include_defaults=True,
             export_uuids=True,
         )
+
+        # https://github.com/apache/superset/pull/16756 renamed ``allow_csv_upload``
+        # to ``allow_file_upload`, but we can't change the V1 schema
+        replacements = {"allow_file_upload": "allow_csv_upload"}
+        # this preserves key order, which is important
+        payload = {replacements.get(key, key): value for key, value in payload.items()}
+
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
         if payload.get("extra"):
-            payload["extra"] = parse_extra(payload["extra"])
+            extra = payload["extra"] = parse_extra(payload["extra"])
+
+            # ``schemas_allowed_for_csv_upload`` was also renamed to
+            # ``schemas_allowed_for_file_upload``, we need to change to preserve the
+            # V1 schema
+            if "schemas_allowed_for_file_upload" in extra:
+                extra["schemas_allowed_for_csv_upload"] = extra.pop(
+                    "schemas_allowed_for_file_upload"
+                )
 
         payload["version"] = EXPORT_VERSION
 

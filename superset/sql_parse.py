@@ -29,8 +29,10 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
+
+from superset.exceptions import QueryClauseValidationException
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
@@ -133,7 +135,26 @@ class ParsedQuery:
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with coments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
-        return parsed[0].get_type() == "SELECT"
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
@@ -150,7 +171,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
@@ -286,6 +307,11 @@ class ParsedQuery:
 
         table_name_preceding_token = False
 
+        # If the table name is a reserved word (eg, "table_name") it won't be returned. We
+        # fix this by ensuring that at least one identifier is returned after the FROM
+        # before stopping on a keyword.
+        has_processed_identifier = False
+
         for item in token.tokens:
             if item.is_group and (
                 not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
@@ -299,16 +325,25 @@ class ParsedQuery:
                 table_name_preceding_token = True
                 continue
 
-            if item.ttype in Keyword:
+            # If we haven't processed any identifiers it means the table name is a
+            # reserved keyword (eg, "table_name") and we shouldn't skip it.
+            if item.ttype in Keyword and has_processed_identifier:
                 table_name_preceding_token = False
                 continue
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
+                    has_processed_identifier = True
                 elif isinstance(item, IdentifierList):
                     for token2 in item.get_identifiers():
                         if isinstance(token2, TokenList):
                             self._process_tokenlist(token2)
+                    has_processed_identifier = True
+                elif item.ttype in Keyword:
+                    # convert into an identifier
+                    fixed = Identifier([Token(Name, item.value)])
+                    self._process_tokenlist(fixed)
+                    has_processed_identifier = True
             elif isinstance(item, IdentifierList):
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)
@@ -345,3 +380,23 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+
+def validate_filter_clause(clause: str) -> None:
+    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
+        raise QueryClauseValidationException("Filter clause contains comment")
+
+    statements = sqlparse.parse(clause)
+    if len(statements) != 1:
+        raise QueryClauseValidationException("Filter clause contains multiple queries")
+    open_parens = 0
+
+    for token in statements[0]:
+        if token.value in (")", "("):
+            open_parens += 1 if token.value == "(" else -1
+            if open_parens < 0:
+                raise QueryClauseValidationException(
+                    "Closing unclosed parenthesis in filter clause"
+                )
+    if open_parens > 0:
+        raise QueryClauseValidationException("Unclosed parenthesis in filter clause")

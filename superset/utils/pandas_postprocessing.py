@@ -90,12 +90,12 @@ PROPHET_TIME_GRAIN_MAP = {
     "PT5M": "5min",
     "PT10M": "10min",
     "PT15M": "15min",
-    "PT0.5H": "30min",
+    "PT30M": "30min",
     "PT1H": "H",
     "P1D": "D",
     "P1W": "W",
     "P1M": "M",
-    "P0.25Y": "Q",
+    "P3M": "Q",
     "P1Y": "A",
     "1969-12-28T00:00:00Z/P1W": "W",
     "1969-12-29T00:00:00Z/P1W": "W",
@@ -820,8 +820,8 @@ def prophet(  # pylint: disable=too-many-arguments
     freq = PROPHET_TIME_GRAIN_MAP[time_grain]
     # check type at runtime due to marhsmallow schema not being able to handle
     # union types
-    if not periods or periods < 0 or not isinstance(periods, int):
-        raise QueryObjectValidationError(_("Periods must be a positive integer value"))
+    if not isinstance(periods, int) or periods < 0:
+        raise QueryObjectValidationError(_("Periods must be a whole number"))
     if not confidence_interval or confidence_interval <= 0 or confidence_interval >= 1:
         raise QueryObjectValidationError(
             _("Confidence interval must be between 0 and 1 (exclusive)")

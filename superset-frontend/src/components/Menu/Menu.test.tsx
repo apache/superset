@@ -17,12 +17,32 @@
  * under the License.
  */
 import React from 'react';
+import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
 
+const user = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: {
+    Admin: [
+      ['can_sqllab', 'Superset'],
+      ['can_write', 'Dashboard'],
+      ['can_write', 'Chart'],
+    ],
+  },
+  userId: 1,
+  username: 'admin',
+};
+
 const mockedProps = {
+  user,
   data: {
     menu: [
       {
@@ -136,17 +156,27 @@ const notanonProps = {
   },
 };
 
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+
+beforeEach(() => {
+  // setup a DOM element as a render target
+  useSelectorMock.mockClear();
+});
+
 test('should render', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const { container } = render(<Menu {...mockedProps} />);
   expect(container).toBeInTheDocument();
 });
 
 test('should render the navigation', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   expect(screen.getByRole('navigation')).toBeInTheDocument();
 });
 
 test('should render the brand', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       brand: { alt, icon },
@@ -158,6 +188,7 @@ test('should render the brand', () => {
 });
 
 test('should render all the top navbar menu items', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { menu },
   } = mockedProps;
@@ -168,6 +199,7 @@ test('should render all the top navbar menu items', () => {
 });
 
 test('should render the top navbar child menu items', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { menu },
   } = mockedProps;
@@ -184,6 +216,7 @@ test('should render the top navbar child menu items', async () => {
 });
 
 test('should render the dropdown items', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...notanonProps} />);
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -211,12 +244,14 @@ test('should render the dropdown items', async () => {
 });
 
 test('should render the Settings', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
 });
 
 test('should render the Settings menu item', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
@@ -224,6 +259,7 @@ test('should render the Settings menu item', async () => {
 });
 
 test('should render the Settings dropdown child menu items', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { settings },
   } = mockedProps;
@@ -234,16 +270,19 @@ test('should render the Settings dropdown child menu items', async () => {
 });
 
 test('should render the plus menu (+) when user is not anonymous', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...notanonProps} />);
   expect(screen.getByTestId('new-dropdown')).toBeInTheDocument();
 });
 
 test('should NOT render the plus menu (+) when user is anonymous', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
 test('should render the user actions when user is not anonymous', async () => {
+  useSelectorMock.mockReturnValue({ roles: mockedProps.user.roles });
   const {
     data: {
       navbar_right: { user_info_url, user_logout_url },
@@ -263,11 +302,13 @@ test('should render the user actions when user is not anonymous', async () => {
 });
 
 test('should NOT render the user actions when user is anonymous', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   expect(screen.queryByText('User')).not.toBeInTheDocument();
 });
 
 test('should render the Profile link when available', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       navbar_right: { user_profile_url },
@@ -282,6 +323,7 @@ test('should render the Profile link when available', async () => {
 });
 
 test('should render the About section and version_string, sha or build_number when available', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       navbar_right: { version_sha, version_string, build_number },
@@ -301,6 +343,7 @@ test('should render the About section and version_string, sha or build_number wh
 });
 
 test('should render the Documentation link when available', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       navbar_right: { documentation_url },
@@ -313,6 +356,7 @@ test('should render the Documentation link when available', async () => {
 });
 
 test('should render the Bug Report link when available', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       navbar_right: { bug_report_url },
@@ -325,6 +369,7 @@ test('should render the Bug Report link when available', async () => {
 });
 
 test('should render the Login link when user is anonymous', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       navbar_right: { user_login_url },
@@ -337,6 +382,13 @@ test('should render the Login link when user is anonymous', () => {
 });
 
 test('should render the Language Picker', () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
   render(<Menu {...mockedProps} />);
   expect(screen.getByLabelText('Languages')).toBeInTheDocument();
+});
+
+test('should hide create button without proper roles', () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+  render(<Menu {...notanonProps} />);
+  expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });

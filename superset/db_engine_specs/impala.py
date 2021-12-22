@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.engine.reflection import Inspector
 
@@ -36,7 +36,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         "P1D": "TRUNC({col}, 'DD')",
         "P1W": "TRUNC({col}, 'WW')",
         "P1M": "TRUNC({col}, 'MONTH')",
-        "P0.25Y": "TRUNC({col}, 'Q')",
+        "P3M": "TRUNC({col}, 'Q')",
         "P1Y": "TRUNC({col}, 'YYYY')",
     }
 
@@ -45,7 +45,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"

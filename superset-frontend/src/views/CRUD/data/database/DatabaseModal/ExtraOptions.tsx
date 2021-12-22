@@ -371,9 +371,9 @@ const ExtraOptions = ({
           <div className="input-container">
             <input
               type="text"
-              name="schemas_allowed_for_csv_upload"
+              name="schemas_allowed_for_file_upload"
               value={(
-                db?.extra_json?.schemas_allowed_for_csv_upload || []
+                db?.extra_json?.schemas_allowed_for_file_upload || []
               ).join(',')}
               placeholder="schema1,schema2"
               onChange={onExtraInputChange}
@@ -393,7 +393,7 @@ const ExtraOptions = ({
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
               labelText={t(
-                'Impersonate logged in user (Presto, Trino, Hive, and GSheets)',
+                'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
               )}
             />
             <InfoTooltip
@@ -410,9 +410,9 @@ const ExtraOptions = ({
         <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
-              id="allow_csv_upload"
+              id="allow_file_upload"
               indeterminate={false}
-              checked={!!db?.allow_csv_upload}
+              checked={!!db?.allow_file_upload}
               onChange={onInputChange}
               labelText={t('Allow data upload')}
             />

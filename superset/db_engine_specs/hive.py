@@ -105,7 +105,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         "P1D": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd 00:00:00')",
         "P1W": "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",
         "P1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-01 00:00:00')",
-        "P0.25Y": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
+        "P3M": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
         "P1Y": "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')",
         "P1W/1970-01-03T00:00:00Z": "date_format(date_add({col}, INT(6-from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
         "1969-12-28T00:00:00Z/P1W": "date_format(date_add({col}, -INT(from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
@@ -248,7 +248,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             )
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
@@ -363,7 +365,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                             str(query_id),
                             tracking_url,
                         )
-                        tracking_url = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        transformer = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        tracking_url = transformer(tracking_url)
                         logger.info(
                             "Query %s: Transformation applied: %s",
                             str(query_id),
@@ -428,9 +431,12 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df: pd.DataFrame) -> Optional[List[str]]:
-        """Hive partitions look like ds={partition name}"""
+        """Hive partitions look like ds={partition name}/ds={partition name}"""
         if not df.empty:
-            return [df.ix[:, 0].max().split("=")[1]]
+            return [
+                partition_str.split("=")[1]
+                for partition_str in df.iloc[:, 0].max().split("/")
+            ]
         return None
 
     @classmethod

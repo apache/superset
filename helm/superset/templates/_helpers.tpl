@@ -98,5 +98,13 @@ RESULTS_BACKEND = RedisCache(
 {{ tpl $value $ }}
 {{- end }}
 {{- end }}
+{{ if .Values.configOverridesFiles }}
+# Overrides from files
+{{- $files := .Files }}
+{{- range $key, $value := .Values.configOverridesFiles }}
+# {{ $key }}
+{{ $files.Get $value }}
+{{- end }}
+{{- end }}
 
 {{- end }}

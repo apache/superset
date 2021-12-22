@@ -99,6 +99,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
     # same cursor, so we need to run all statements at once
     run_multiple_statements_as_one = True
 
+    allows_hidden_cc_in_orderby = True
+
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
     raw_connections bypass the pybigquery query execution context and deal with
@@ -131,14 +133,14 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT15M": "CAST(TIMESTAMP_SECONDS("
         "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
         ") AS {type})",
-        "PT0.5H": "CAST(TIMESTAMP_SECONDS("
+        "PT30M": "CAST(TIMESTAMP_SECONDS("
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
         "P1M": "{func}({col}, MONTH)",
-        "P0.25Y": "{func}({col}, QUARTER)",
+        "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
     }
 
@@ -184,7 +186,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
@@ -382,7 +386,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
         return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}

@@ -109,7 +109,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "P1D": "DATE({col})",
         "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P0.25Y": "MAKEDATE(YEAR({col}), 1) "
+        "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
         "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
@@ -151,7 +151,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
@@ -204,6 +206,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[

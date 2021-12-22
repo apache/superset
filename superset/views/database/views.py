@@ -35,6 +35,7 @@ from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
+from superset.extensions import event_logger
 from superset.sql_parse import Table
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -42,7 +43,7 @@ from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage
@@ -131,7 +132,7 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, csv_table.schema):
+        if not schema_allows_file_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
@@ -252,7 +253,12 @@ class CsvToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_csv_upload")
+        event_logger.log_with_context(
+            action="successful_csv_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -273,7 +279,7 @@ class ExcelToDatabaseView(SimpleFormView):
         database = form.con.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, excel_table.schema):
+        if not schema_allows_file_upload(database, excel_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
@@ -393,7 +399,12 @@ class ExcelToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_excel_upload")
+        event_logger.log_with_context(
+            action="successful_excel_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -437,7 +448,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             "columns": form.usecols.data if form.usecols.data else None,
         }
 
-        if not schema_allows_csv_upload(database, columnar_table.schema):
+        if not schema_allows_file_upload(database, columnar_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for columnar uploads. "
@@ -540,5 +551,10 @@ class ColumnarToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_columnar_upload")
+        event_logger.log_with_context(
+            action="successful_columnar_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")

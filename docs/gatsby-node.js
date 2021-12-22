@@ -315,6 +315,11 @@ exports.createPages = ({ actions }) => {
     isPermanent: true,
   });
   createRedirect({
+    fromPath: '/usertutorial.html#native-filters',
+    toPath: '/docs/creating-charts-dashboards/exploring-data',
+    isPermanent: true,
+  });
+  createRedirect({
     fromPath: '/usertutorial.html#publishing-your-dashboard',
     toPath: '/docs/creating-charts-dashboards/exploring-data',
     isPermanent: true,

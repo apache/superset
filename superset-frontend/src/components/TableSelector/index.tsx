@@ -27,9 +27,11 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
-import DatabaseSelector from 'src/components/DatabaseSelector';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 
 const TableSelectorWrapper = styled.div`
@@ -76,22 +78,12 @@ const TableLabel = styled.span`
 
 interface TableSelectorProps {
   clearable?: boolean;
-  database?: {
-    id: number;
-    database_name: string;
-    backend: string;
-    allow_multi_schema_metadata_fetch: boolean;
-  };
-  dbId: number;
+  database?: DatabaseObject;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
-  onDbChange?: (db: {
-    id: number;
-    database_name: string;
-    backend: string;
-  }) => void;
+  onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: () => void;
   onTableChange?: (tableName?: string, schema?: string) => void;
@@ -131,7 +123,7 @@ const TableOption = ({ table }: { table: Table }) => {
         <Icons.Table iconSize="m" />
       )}
       {extra?.certification && (
-        <CertifiedIcon
+        <CertifiedBadge
           certifiedBy={extra.certification.certified_by}
           details={extra.certification.details}
           size="l"
@@ -150,7 +142,6 @@ const TableOption = ({ table }: { table: Table }) => {
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
   database,
-  dbId,
   formMode = false,
   getDbList,
   handleError,
@@ -165,7 +156,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableName,
 }) => {
-  const [currentDbId, setCurrentDbId] = useState<number | undefined>(dbId);
+  const [currentDatabase, setCurrentDatabase] = useState<
+    DatabaseObject | undefined
+  >(database);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
   );
@@ -176,13 +169,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
 
   useEffect(() => {
-    if (currentDbId && currentSchema) {
+    // reset selections
+    if (database === undefined) {
+      setCurrentDatabase(undefined);
+      setCurrentSchema(undefined);
+      setCurrentTable(undefined);
+    }
+  }, [database]);
+
+  useEffect(() => {
+    if (currentDatabase && currentSchema) {
       setLoadingTables(true);
       const encodedSchema = encodeURIComponent(currentSchema);
       const forceRefresh = refresh !== previousRefresh;
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       const endpoint = encodeURI(
-        `/superset/tables/${currentDbId}/${encodedSchema}/undefined/${forceRefresh}/`,
+        `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
       );
 
       if (previousRefresh !== refresh) {
@@ -207,11 +209,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           if (onTablesLoad) {
             onTablesLoad(json.options);
           }
-          setTableOptions(
-            options.sort((a: { text: string }, b: { text: string }) =>
-              a.text.localeCompare(b.text),
-            ),
-          );
+          setTableOptions(options);
           setCurrentTable(currentTable);
           setLoadingTables(false);
         })
@@ -223,7 +221,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDbId, currentSchema, onTablesLoad, refresh]);
+  }, [currentDatabase, currentSchema, onTablesLoad, refresh]);
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
@@ -241,12 +239,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   };
 
-  const internalDbChange = (db: {
-    id: number;
-    database_name: string;
-    backend: string;
-  }) => {
-    setCurrentDbId(db?.id);
+  const internalDbChange = (db: DatabaseObject) => {
+    setCurrentDatabase(db);
     if (onDbChange) {
       onDbChange(db);
     }
@@ -263,7 +257,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderDatabaseSelector() {
     return (
       <DatabaseSelector
-        db={database}
+        key={currentDatabase?.id}
+        db={currentDatabase}
         formMode={formMode}
         getDbList={getDbList}
         handleError={handleError}

@@ -22,7 +22,7 @@
 export default function parsePostForm(requestBody: ArrayBuffer) {
   type ParsedFields = Record<string, string[] | string>;
   if (requestBody.constructor.name !== 'ArrayBuffer') {
-    return (requestBody as unknown) as ParsedFields;
+    return requestBody as unknown as ParsedFields;
   }
   const lines = new TextDecoder('utf-8').decode(requestBody).split('\n');
   const fields: ParsedFields = {};

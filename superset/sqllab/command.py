@@ -37,10 +37,10 @@ from superset.sqllab.exceptions import (
 from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
+    from superset.databases.dao import DatabaseDAO
+    from superset.queries.dao import QueryDAO
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-    from superset.queries.dao import QueryDAO
-    from superset.databases.dao import DatabaseDAO
 
 logger = logging.getLogger(__name__)
 

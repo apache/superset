@@ -158,3 +158,19 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
         if value:
             return query.filter(role_model.name.ilike(f"%{value}%"),)
         return query
+
+
+class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified dashboards
+    """
+
+    name = _("Is certified")
+    arg_name = "dashboard_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(and_(Dashboard.certified_by.isnot(None),))
+        if value is False:
+            return query.filter(and_(Dashboard.certified_by.is_(None),))
+        return query

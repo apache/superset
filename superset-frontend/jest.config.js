@@ -16,32 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 module.exports = {
-  testRegex: '(\\/spec|\\/src)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
+  testRegex: '\\/(spec|src|plugins|packages)\\/.*(_spec|\\.test)\\.[jt]sx?$',
+  testPathIgnorePatterns: [
+    'packages\\/generator-superset\\/.*',
+    '/node_modules/',
+  ],
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
+    // mapping to souce code instead of lib or esm module
+    '@superset-ui/(((?!(core/src)).)*)$':
+      '<rootDir>/node_modules/@superset-ui/$1/src',
+    '@superset-ui/core/src/(.*)$':
+      '<rootDir>/node_modules/@superset-ui/core/src/$1',
   },
   testEnvironment: 'jsdom',
+  modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!**/*.stories.*'],
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
+    '!**/*.stories.*',
+    '!packages/superset-ui-demo/**/*',
+  ],
   coverageDirectory: '<rootDir>/coverage/',
+  coveragePathIgnorePatterns: [
+    'coverage/',
+    'node_modules/',
+    'public/',
+    'tmp/',
+    'dist/',
+  ],
+  coverageReporters: ['lcov', 'json-summary', 'html'],
   transform: {
     '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
+    // ts-jest doesn't work with `--coverage`. @superset-ui/core should
+    // 100% coverage, so we use babel-jest in packages and plugins.
+    '(plugins|packages)\\/.+\\.tsx?$': 'babel-jest',
+    '(((?!(plugins|packages)).)*)\\/.+\\.tsx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   globals: {
     'ts-jest': {
       babelConfig: true,
+      // todo: duo to packages/**/test and plugins/**/test lack of type checking
+      // turning off checking in Jest.
+      // https://kulshekhar.github.io/ts-jest/docs/getting-started/options/isolatedModules
+      isolatedModules: true,
       diagnostics: {
         warnOnly: true,
       },
     },
+    __DEV__: true,
+    caches: true,
   },
 };

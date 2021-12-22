@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Preset } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
 import userEvent, { specialChars } from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
+import React from 'react';
+import chartQueries from 'spec/fixtures/mockChartQueries';
+import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
+import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
+import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import {
-  SelectFilterPlugin,
   RangeFilterPlugin,
-  TimeFilterPlugin,
+  SelectFilterPlugin,
   TimeColumnFilterPlugin,
+  TimeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import mockDatasource, { id, datasourceId } from 'spec/fixtures/mockDatasource';
-import chartQueries from 'spec/fixtures/mockChartQueries';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -148,10 +150,11 @@ beforeAll(() => {
   new MainPreset().register();
 });
 
-function defaultRender(initialState = defaultState()) {
-  return render(<FiltersConfigModal {...props} />, {
-    useRedux: true,
+function defaultRender(initialState: any = defaultState(), modalProps = props) {
+  return render(<FiltersConfigModal {...modalProps} />, {
     initialState,
+    useDnd: true,
+    useRedux: true,
   });
 }
 
@@ -337,6 +340,25 @@ test.skip("doesn't render time range pre-filter if there are no temporal columns
     ).not.toBeInTheDocument(),
   );
 });
+
+test('filter title groups are draggable', async () => {
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+  const draggables = document.querySelectorAll('div[draggable=true]');
+  expect(draggables.length).toBe(2);
+});
+
 /*
   TODO
     adds a new value filter type with all fields filled

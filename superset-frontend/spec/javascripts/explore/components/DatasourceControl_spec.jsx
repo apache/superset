@@ -21,8 +21,10 @@ import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import { Menu } from 'src/common/components';
-import DatasourceModal from 'src/datasource/DatasourceModal';
-import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
+import {
+  DatasourceModal,
+  ChangeDatasourceModal,
+} from 'src/components/Datasource';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';

@@ -20,6 +20,8 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+from __future__ import annotations
+
 import copy
 import dataclasses
 import logging
@@ -60,19 +62,26 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
+from superset.sql_parse import validate_filter_clause
+from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
+    get_column_name,
+    get_column_names,
+    get_column_names_from_columns,
+    get_metric_names,
+    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
@@ -83,6 +92,7 @@ from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
+    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.base.models import BaseDatasource
 
 config = app.config
@@ -101,11 +111,6 @@ METRIC_KEYS = [
     "y",
     "size",
 ]
-
-# This regex is to get user defined filter column name, which is the first param in the
-# filter_values function. See the definition of filter_values template:
-# https://github.com/apache/superset/blob/24ad6063d736c1f38ad6f962e586b9b1a21946af/superset/jinja_context.py#L63
-FILTER_VALUES_REGEX = re.compile(r"filter_values\(['\"](\w+)['\"]\,")
 
 
 class BaseViz:  # pylint: disable=too-many-public-methods
@@ -137,12 +142,13 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.query = ""
         self.token = utils.get_form_data_token(form_data)
 
-        self.groupby: List[str] = self.form_data.get("groupby") or []
+        self.groupby: List[Column] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()
 
         self.status: Optional[str] = None
         self.error_msg = ""
         self.results: Optional[QueryResult] = None
+        self.applied_template_filters: List[str] = []
         self.errors: List[Dict[str, Any]] = []
         self.force = force
         self._force_cached = force_cached
@@ -248,6 +254,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
+                "from_dttm": None,
+                "to_dttm": None,
             }
         )
         df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
@@ -270,6 +278,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
+        self.applied_template_filters = self.results.applied_template_filters or []
         self.query = self.results.query
         self.status = self.results.status
         self.errors = self.results.errors
@@ -306,19 +315,30 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
+    @staticmethod
+    def dedup_columns(*columns_args: Optional[List[Column]]) -> List[Column]:
+        # dedup groupby and columns while preserving order
+        labels: List[str] = []
+        deduped_columns: List[Column] = []
+        for columns in columns_args:
+            for column in columns or []:
+                label = get_column_name(column)
+                if label not in labels:
+                    deduped_columns.append(column)
+        return deduped_columns
+
     def query_obj(self) -> QueryObjectDict:  # pylint: disable=too-many-locals
         """Building a query object"""
         self.process_query_filters()
 
-        gb = self.groupby
         metrics = self.all_metrics or []
-        columns = self.form_data.get("columns") or []
-        # merge list and dedup while preserving order
-        groupby = list(OrderedDict.fromkeys(gb + columns))
+
+        groupby = self.dedup_columns(self.groupby, self.form_data.get("columns"))
+        groupby_labels = get_column_names(groupby)
 
         is_timeseries = self.is_timeseries
-        if DTTM_ALIAS in groupby:
-            groupby.remove(DTTM_ALIAS)
+        if DTTM_ALIAS in groupby_labels:
+            del groupby[groupby_labels.index(DTTM_ALIAS)]
             is_timeseries = True
 
         granularity = self.form_data.get("granularity") or self.form_data.get(
@@ -356,6 +376,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+
+        # validate sql filters
+        for param in ("where", "having"):
+            clause = self.form_data.get(param)
+            if clause:
+                try:
+                    validate_filter_clause(clause)
+                except QueryClauseValidationException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -459,33 +488,28 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
-        filter_values_columns = []
-
-        # if using virtual datasource, check filter_values
-        if self.datasource.sql:
-            filter_values_columns = (
-                re.findall(FILTER_VALUES_REGEX, self.datasource.sql)
-            ) or []
-
+        applied_template_filters = self.applied_template_filters or []
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": col}
+            {"column": get_column_name(col)}
             for col in filter_columns
-            if col in columns or col in filter_values_columns
+            if is_adhoc_column(col) or col in columns or col in applied_template_filters
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
-            if col not in columns and col not in filter_values_columns
+            if not is_adhoc_column(col)
+            and col not in columns
+            and col not in applied_template_filters
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
         return payload
 
-    def get_df_payload(
+    def get_df_payload(  # pylint: disable=too-many-statements
         self, query_obj: Optional[QueryObjectDict] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
@@ -504,6 +528,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
+                    self.applied_template_filters = cache_value.get(
+                        "applied_template_filters", []
+                    )
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
@@ -526,10 +553,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             try:
                 invalid_columns = [
                     col
-                    for col in (query_obj.get("columns") or [])
-                    + (query_obj.get("groupby") or [])
+                    for col in get_column_names_from_columns(
+                        query_obj.get("columns") or []
+                    )
+                    + get_column_names_from_columns(query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(List[Metric], query_obj.get("metrics") or [],)
+                        cast(List[Metric], query_obj.get("metrics") or [])
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -695,16 +724,16 @@ class TableViz(BaseViz):
             else QueryMode.AGGREGATE
         )
 
-        columns: List[str] = []  # output columns sans time and percent_metric column
+        columns: List[str]  # output columns sans time and percent_metric column
         percent_columns: List[str] = []  # percent columns that needs extra computation
 
         if self.query_mode == QueryMode.RAW:
-            columns = utils.get_metric_names(self.form_data.get("all_columns") or [])
+            columns = get_metric_names(self.form_data.get("all_columns"))
         else:
-            columns = utils.get_metric_names(
-                self.groupby + (self.form_data.get("metrics") or [])
+            columns = get_column_names(self.groupby) + get_metric_names(
+                self.form_data.get("metrics")
             )
-            percent_columns = utils.get_metric_names(
+            percent_columns = get_metric_names(
                 self.form_data.get("percent_metrics") or []
             )
 
@@ -827,7 +856,7 @@ class TimeTableViz(BaseViz):
         values: Union[List[str], str] = self.metric_labels
         if self.form_data.get("groupby"):
             values = self.metric_labels[0]
-            columns = self.form_data.get("groupby")
+            columns = get_column_names(self.form_data.get("groupby"))
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
@@ -873,7 +902,9 @@ class PivotTableViz(BaseViz):
             )
         if not metrics:
             raise QueryObjectValidationError(_("Please choose at least one metric"))
-        if set(groupby) & set(columns):
+        deduped_cols = self.dedup_columns(groupby, columns)
+
+        if len(deduped_cols) < (len(groupby) + len(columns)):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
@@ -938,18 +969,22 @@ class PivotTableViz(BaseViz):
         groupby = self.form_data.get("groupby") or []
         columns = self.form_data.get("columns") or []
 
-        for column_name in groupby + columns:
-            column = self.datasource.get_column(column_name)
-            if column and column.is_temporal:
-                ts = df[column_name].apply(self._format_datetime)
-                df[column_name] = ts
+        for column in groupby + columns:
+            if is_adhoc_column(column):
+                # TODO: check data type
+                pass
+            else:
+                column_obj = self.datasource.get_column(column)
+                if column_obj and column_obj.is_temporal:
+                    ts = df[column].apply(self._format_datetime)
+                    df[column] = ts
 
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
 
         df = df.pivot_table(
-            index=groupby,
-            columns=columns,
+            index=get_column_names(groupby),
+            columns=get_column_names(columns),
             values=metrics,
             aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
@@ -1010,7 +1045,7 @@ class TreemapViz(BaseViz):
         if df.empty:
             return None
 
-        df = df.set_index(self.form_data.get("groupby"))
+        df = df.set_index(get_column_names(self.form_data.get("groupby")))
         chart_data = [
             {"name": metric, "children": self._nest(metric, df)}
             for metric in df.columns
@@ -1124,7 +1159,7 @@ class BubbleViz(NVD3Viz):
             query_obj["groupby"].append(self.form_data.get("series"))
 
         # dedup groupby if it happens to be the same
-        query_obj["groupby"] = list(dict.fromkeys(query_obj["groupby"]))
+        query_obj["groupby"] = self.dedup_columns(query_obj["groupby"])
 
         # pylint: disable=attribute-defined-outside-init
         self.x_metric = self.form_data["x"]
@@ -1149,7 +1184,7 @@ class BubbleViz(NVD3Viz):
         df["y"] = df[[utils.get_metric_name(self.y_metric)]]
         df["size"] = df[[utils.get_metric_name(self.z_metric)]]
         df["shape"] = "circle"
-        df["group"] = df[[self.series]]
+        df["group"] = df[[get_column_name(self.series)]]  # type: ignore
 
         series: Dict[Any, List[Any]] = defaultdict(list)
         for row in df.to_dict(orient="records"):
@@ -1342,7 +1377,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=self.form_data.get("groupby"),
+                columns=get_column_names(self.form_data.get("groupby")),
                 values=self.metric_labels,
                 fill_value=0,
                 aggfunc=sum,
@@ -1350,7 +1385,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=self.form_data.get("groupby"),
+                columns=get_column_names(self.form_data.get("groupby")),
                 values=self.metric_labels,
                 fill_value=self.pivot_fill_value,
             )
@@ -1723,15 +1758,15 @@ class HistogramViz(BaseViz):
 
         chart_data = []
         if len(self.groupby) > 0:
-            groups = df.groupby(self.groupby)
+            groups = df.groupby(get_column_names(self.groupby))
         else:
             groups = [((), df)]
         for keys, data in groups:
             chart_data.extend(
                 [
                     {
-                        "key": self.labelify(keys, column),
-                        "values": data[column].tolist(),
+                        "key": self.labelify(keys, get_column_name(column)),
+                        "values": data[get_column_name(column)].tolist(),
                     }
                     for column in self.columns
                 ]
@@ -1782,21 +1817,22 @@ class DistributionBarViz(BaseViz):
             return None
 
         metrics = self.metric_labels
-        columns = self.form_data.get("columns") or []
+        columns = get_column_names(self.form_data.get("columns"))
+        groupby = get_column_names(self.groupby)
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = self.groupby + columns
+        filled_cols = groupby + columns
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(self.groupby).sum()[sortby].copy()
+        row = df.groupby(groupby).sum()[sortby].copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
-        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
+        pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
         if self.form_data.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T
@@ -1806,7 +1842,7 @@ class DistributionBarViz(BaseViz):
         pt = pt[metrics]
         chart_data = []
         for name, ys in pt.items():
-            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
+            if pt[name].dtype.kind not in "biufc" or name in groupby:
                 continue
             if isinstance(name, str):
                 series_title = name
@@ -1841,7 +1877,7 @@ class SunburstViz(BaseViz):
         if df.empty:
             return None
         form_data = copy.deepcopy(self.form_data)
-        cols = form_data.get("groupby") or []
+        cols = get_column_names(form_data.get("groupby"))
         cols.extend(["m1", "m2"])
         metric = utils.get_metric_name(form_data["metric"])
         secondary_metric = (
@@ -1895,7 +1931,7 @@ class SankeyViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        source, target = self.groupby
+        source, target = get_column_names(self.groupby)
         (value,) = self.metric_labels
         df.rename(
             columns={source: "source", target: "target", value: "value",}, inplace=True,
@@ -2002,7 +2038,7 @@ class CountryMapViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        cols = [self.form_data.get("entity")]
+        cols = get_column_names([self.form_data.get("entity")])  # type: ignore
         metric = self.metric_labels[0]
         cols += [metric]
         ndf = df[cols]
@@ -2034,7 +2070,7 @@ class WorldMapViz(BaseViz):
         # pylint: disable=import-outside-toplevel
         from superset.examples import countries
 
-        cols = [self.form_data.get("entity")]
+        cols = get_column_names([self.form_data.get("entity")])  # type: ignore
         metric = utils.get_metric_name(self.form_data["metric"])
         secondary_metric = (
             utils.get_metric_name(self.form_data["secondary_metric"])
@@ -2077,6 +2113,7 @@ class FilterBoxViz(BaseViz):
 
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
+    query_context_factory: Optional[QueryContextFactory] = None
     viz_type = "filter_box"
     verbose_name = _("Filters")
     is_timeseries = False
@@ -2088,9 +2125,6 @@ class FilterBoxViz(BaseViz):
         return {}
 
     def run_extra_queries(self) -> None:
-        # pylint: disable=import-outside-toplevel
-        from superset.common.query_context import QueryContext
-
         query_obj = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
         query_obj["row_limit"] = self.filter_row_limit
@@ -2107,7 +2141,7 @@ class FilterBoxViz(BaseViz):
             asc = flt.get("asc")
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
-            QueryContext(
+            self.get_query_context_factory().create(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
                 queries=[query_obj],
             ).raise_for_access()
@@ -2139,6 +2173,14 @@ class FilterBoxViz(BaseViz):
             else:
                 data[col] = []
         return data
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 class ParallelCoordinatesViz(BaseViz):
@@ -2204,8 +2246,8 @@ class HeatmapViz(BaseViz):
         if df.empty:
             return None
 
-        x = self.form_data.get("all_columns_x")
-        y = self.form_data.get("all_columns_y")
+        x = get_column_name(self.form_data.get("all_columns_x"))  # type: ignore
+        y = get_column_name(self.form_data.get("all_columns_y"))  # type: ignore
         v = self.metric_labels[0]
         if x == y:
             df.columns = ["x", "y", "v"]
@@ -2821,7 +2863,7 @@ class DeckGeoJson(BaseDeckGLViz):
         return query_obj
 
     def get_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        geojson = data[self.form_data["geojson"]]
+        geojson = data[get_column_name(self.form_data["geojson"])]
         return json.loads(geojson)
 
 
@@ -2929,7 +2971,7 @@ class PairedTTestViz(BaseViz):
         if df.empty:
             return None
 
-        groups = self.form_data.get("groupby")
+        groups = get_column_names(self.form_data.get("groupby"))
         metrics = self.metric_labels
         df = df.pivot_table(index=DTTM_ALIAS, columns=groups, values=metrics)
         cols = []
@@ -3158,7 +3200,7 @@ class PartitionViz(NVD3TimeSeriesViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        groups = self.form_data.get("groupby", [])
+        groups = get_column_names(self.form_data.get("groupby"))
         time_op = self.form_data.get("time_series_option", "not_time")
         if not groups:
             raise ValueError("Please choose at least one groupby")
