@@ -25,8 +25,6 @@ from marshmallow import ValidationError
 from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
-from superset.extensions import db
-from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportCreationMethodType, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (

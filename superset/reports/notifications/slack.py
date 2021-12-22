@@ -18,7 +18,7 @@
 import json
 import logging
 from io import IOBase
-from typing import List, Optional, Sequence, Union
+from typing import Sequence, Union
 
 import backoff
 from flask_babel import gettext as __
@@ -154,7 +154,7 @@ Error: %(text)s
             client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
             # files_upload returns SlackResponse as we run it in sync mode.
             if files:
-                [
+                for file in files:
                     client.files_upload(
                         channels=channel,
                         file=file,
@@ -162,8 +162,6 @@ Error: %(text)s
                         title=title,
                         filetype=file_type,
                     )
-                    for file in files
-                ]
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")

@@ -159,10 +159,15 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     @validates("extra")
     def validate_extra(
-        self, key: str, value: typing.Dict[typing.Any, typing.Any]
+        self,
+        key: str,
+        value: typing.Dict[
+            typing.Any, typing.Any
+        ],  # pylint: disable=unused-argument,no-self-use
     ) -> typing.Optional[str]:
         if value is not None:
             return json.dumps(value)
+        return None
 
 
 class ReportRecipients(Model, AuditMixinNullable):
