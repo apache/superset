@@ -72,6 +72,7 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
 )
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,16 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        # For alerts we always want to send a fresh screenshot, bypassing
+        # the cache.
+        # TODO (betodealmeida): allow to specify per report if users want
+        # to bypass the cache as well.
+        force = (
+            "true"
+            if self._report_schedule.type == ReportScheduleType.ALERT
+            else "false"
+        )
+
         if self._report_schedule.chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -155,17 +166,22 @@ class BaseReportState:
                     pk=self._report_schedule.chart_id,
                     format=result_format.value,
                     type=ChartDataResultType.POST_PROCESSED.value,
+                    force=force,
                 )
             return get_url_path(
-                "Superset.slice",
+                "Superset.explore",
                 user_friendly=user_friendly,
-                slice_id=self._report_schedule.chart_id,
+                form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+                standalone="true",
+                force=force,
                 **kwargs,
             )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            standalone=DashboardStandaloneMode.REPORT.value,
+            force=force,
             **kwargs,
         )
 
@@ -187,7 +203,7 @@ class BaseReportState:
         """
         screenshot: Optional[BaseScreenshot] = None
         if self._report_schedule.chart:
-            url = self._get_url(standalone="true")
+            url = self._get_url()
             logger.info("Screenshotting chart at %s", url)
             screenshot = ChartScreenshot(
                 url,
