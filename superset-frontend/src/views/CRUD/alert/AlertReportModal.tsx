@@ -154,6 +154,7 @@ const DEFAULT_ALERT = {
   sql: '',
   validator_config_json: {},
   validator_type: '',
+  force_screenshot: false,
   grace_period: undefined,
 };
 
@@ -512,6 +513,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
+      force_screenshot: contentType === 'chart' && !isReport ? 'true' : 'false',
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}

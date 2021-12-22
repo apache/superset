@@ -71,6 +71,7 @@ export interface ReportObject {
   validator_type: string;
   working_timeout: number;
   creation_method: string;
+  force_screenshot: boolean;
 }
 
 interface ChartObject {
@@ -227,6 +228,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       active: true,
       report_format: currentReport?.report_format || defaultNotificationFormat,
       timezone: currentReport?.timezone,
+      force_screenshot: false,
     };
 
     if (isEditMode) {

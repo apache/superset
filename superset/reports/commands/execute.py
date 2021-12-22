@@ -148,13 +148,7 @@ class BaseReportState:
         """
         # For alerts we always want to send a fresh screenshot, bypassing
         # the cache.
-        # TODO (betodealmeida): allow to specify per report if users want
-        # to bypass the cache as well.
-        force = (
-            "true"
-            if self._report_schedule.type == ReportScheduleType.ALERT
-            else "false"
-        )
+        force = "true" if self._report_schedule.force_screenshot else "false"
 
         if self._report_schedule.chart:
             if result_format in {
@@ -181,7 +175,7 @@ class BaseReportState:
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
             standalone=DashboardStandaloneMode.REPORT.value,
-            force=force,
+            # force=force,  TODO (betodealmeida) implement this
             **kwargs,
         )
 

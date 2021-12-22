@@ -51,6 +51,7 @@ def insert_report_schedule(
     recipients: Optional[List[ReportRecipients]] = None,
     report_format: Optional[ReportDataFormat] = None,
     logs: Optional[List[ReportExecutionLog]] = None,
+    force_screenshot: bool = False,
 ) -> ReportSchedule:
     owners = owners or []
     recipients = recipients or []
@@ -75,6 +76,7 @@ def insert_report_schedule(
         logs=logs,
         last_state=last_state,
         report_format=report_format,
+        force_screenshot=force_screenshot,
     )
     db.session.add(report_schedule)
     db.session.commit()
