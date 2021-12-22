@@ -157,6 +157,17 @@ class ImportV1ColumnSchema(Schema):
 
 
 class ImportV1MetricSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+        """
+        Fix for extra initially beeing exported as a string.
+        """
+        if isinstance(data.get("extra"), str):
+            data["extra"] = json.loads(data["extra"])
+
+        return data
+
     metric_name = fields.String(required=True)
     verbose_name = fields.String(allow_none=True)
     metric_type = fields.String(allow_none=True)
