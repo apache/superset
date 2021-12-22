@@ -101,6 +101,7 @@ export interface Props {
   };
   partitionColumn: string;
   operators?: Operators[];
+  validHandler: (isValid: boolean) => void;
 }
 
 export interface BusinessTypesState {
@@ -109,7 +110,7 @@ export interface BusinessTypesState {
   busninessTypeOperatorList: string[];
 }
 
-const useBusinessTypes = () => {
+const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
   const [businessTypesState, setBusinessTypesState] =
     useState<BusinessTypesState>({
       parsedBusniessType: '',
@@ -131,6 +132,7 @@ const useBusinessTypes = () => {
             subjectBusinessType: type,
             busninessTypeOperatorList: json.result.valid_filter_operators,
           });
+          validHandler(json.result.status !== 'invalid');
         })
         .catch(e => {
           setBusinessTypesState({
@@ -139,6 +141,7 @@ const useBusinessTypes = () => {
             busninessTypeOperatorList:
               businessTypesState.busninessTypeOperatorList,
           });
+          validHandler(false);
         });
     }, 600),
     [],
@@ -313,7 +316,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     businessTypesState,
     fetchBusinessTypeValueCallback,
     fetchSubjectBusinessType,
-  } = useBusinessTypes();
+  } = useBusinessTypes(props.validHandler);
   // TODO: This does not need to exists, just use the busninessTypeOperatorList lsit
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
     businessTypesState.subjectBusinessType
