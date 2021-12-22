@@ -179,7 +179,14 @@ function ColumnCollectionTable({
               'filterable',
               'groupby',
             ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
       }
       sortColumns={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
@@ -192,7 +199,14 @@ function ColumnCollectionTable({
               'filterable',
               'groupby',
             ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
       }
       allowDeletes
       allowAddItem={allowAddItem}
@@ -389,7 +403,7 @@ function ColumnCollectionTable({
                 );
               },
               type: d => (d ? <Label>{d}</Label> : null),
-              business_type: d => <Label onChange={onChange}>{d}</Label>,
+              business_type: d => <Label onChange={onColumnsChange}>{d}</Label>,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
