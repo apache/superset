@@ -49,7 +49,11 @@ def test_export(app_context: None, session: Session) -> None:
         ),
     ]
     metrics = [
-        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+        SqlMetric(
+            metric_name="cnt",
+            expression="COUNT(*)",
+            extra=json.dumps({"warning_markdown": None}),
+        ),
     ]
 
     sqla_table = SqlaTable(
@@ -108,7 +112,8 @@ metrics:
   expression: COUNT(*)
   description: null
   d3format: null
-  extra: null
+  extra:
+    warning_markdown: null
   warning_text: null
 columns:
 - column_name: profit
