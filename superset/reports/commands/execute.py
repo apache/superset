@@ -94,9 +94,7 @@ class BaseReportState:
         self._execution_id = execution_id
 
     def set_state_and_log(
-        self,
-        state: ReportState,
-        error_message: Optional[str] = None,
+        self, state: ReportState, error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
@@ -105,8 +103,7 @@ class BaseReportState:
         now_dttm = datetime.utcnow()
         self.set_state(state, now_dttm)
         self.create_log(
-            state,
-            error_message=error_message,
+            state, error_message=error_message,
         )
 
     def set_state(self, state: ReportState, dttm: datetime) -> None:
@@ -187,6 +184,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
+        image_data = []
         screenshots: List[BaseScreenshot] = []
         if self._report_schedule.chart:
             url = self._get_url(standalone="true")
@@ -219,9 +217,10 @@ class BaseReportState:
             ]
         user = self._get_user()
         try:
-            image_data: List[bytes] = [
-                screenshot.get_screenshot(user=user) for screenshot in screenshots
-            ]
+            for screenshot in screenshots:
+                image = screenshot.get_screenshot(user=user)
+                if image is not None:
+                    image_data.append(image)
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout() from ex
@@ -525,14 +524,12 @@ class ReportWorkingState(BaseReportState):
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportState.ERROR,
-                error_message=str(exception_timeout),
+                ReportState.ERROR, error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportState.WORKING,
-            error_message=str(exception_working),
+            ReportState.WORKING, error_message=str(exception_working),
         )
         raise exception_working
 

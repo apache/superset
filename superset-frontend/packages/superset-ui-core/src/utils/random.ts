@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import seedrandom from 'seedrandom';
-
-let random = seedrandom('superset-ui');
+import _seedrandom from 'seedrandom';
 
 export function seed(seed: string) {
-  random = seedrandom(seed);
-  return random;
+  return _seedrandom(seed);
 }
 
 export function seedRandom() {
-  return random();
+  return _seedrandom('superset-ui')();
 }

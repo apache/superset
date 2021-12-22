@@ -54,9 +54,13 @@ describe('callApiAndParseWithTimeout()', () => {
   });
 
   describe('parseResponse', () => {
-    it('calls parseResponse()', () => {
+    it('calls parseResponse()', async () => {
       const parseSpy = jest.spyOn(parseResponse, 'default');
-      callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET' });
+
+      await callApiAndParseWithTimeout({
+        url: mockGetUrl,
+        method: 'GET',
+      });
 
       expect(parseSpy).toHaveBeenCalledTimes(1);
       parseSpy.mockClear();

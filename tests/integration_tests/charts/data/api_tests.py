@@ -32,6 +32,7 @@ from tests.integration_tests.base_tests import (
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
 
@@ -425,6 +426,28 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_invalid_where_parameter_closing_unclosed__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"][
+            "where"
+        ] = "state = 'CA') OR (state = 'NY'"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_invalid_having_parameter_closing_and_comment__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"][
+            "having"
+        ] = "COUNT(1) = 0) UNION ALL SELECT 'abc', 1--comment"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
     def test_with_invalid_datasource__400(self):
         self.query_context_payload["datasource"] = "abc"
 
@@ -442,7 +465,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
-    def test_with_not_permitted_actor__401(self):
+    def test_with_not_permitted_actor__403(self):
         """
         Chart data API: Test chart data query not allowed
         """
@@ -450,7 +473,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.login(username="gamma")
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
-        assert rv.status_code == 401
+        assert rv.status_code == 403
         assert (
             rv.json["errors"][0]["error_type"]
             == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR

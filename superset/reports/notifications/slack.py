@@ -18,7 +18,7 @@
 import json
 import logging
 from io import IOBase
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 import backoff
 from flask_babel import gettext as __
@@ -133,7 +133,7 @@ Error: %(text)s
 
         return self._message_template(table)
 
-    def _get_inline_files(self) -> List[Union[str, IOBase, bytes]]:
+    def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
         if self._content.csv:
             return [self._content.csv]
         if self._content.screenshots:

@@ -283,7 +283,9 @@ const config = {
   },
   resolve: {
     modules: [APP_DIR, 'node_modules', ROOT_DIR],
-    alias: {},
+    alias: {
+      react: path.resolve('./node_modules/react'),
+    },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
@@ -422,7 +424,16 @@ const config = {
 // find all the symlinked plugins and use their source code for imports
 Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
   const srcPath = `./node_modules/${pkg}/src`;
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
+    console.log(
+      `[Superset External Plugin] Use symlink source for ${pkg} @ ${version}`,
+    );
+    // TODO: remove alias once React has been upgraaded to v. 17
+    config.resolve.alias[pkg] = path.resolve(
+      APP_DIR,
+      `node_modules/${pkg}/src`,
+    );
+  } else if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${version}`);
     // only allow exact match so imports like `@superset-ui/plugin-name/lib`
     // and `@superset-ui/plugin-name/esm` can still work.
