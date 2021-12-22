@@ -51,7 +51,10 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for report in session.query(ReportSchedule).all():
-        report.force_screenshot = report.type == "Alert"
+        # Update existing alerts that send chart screenshots so that the cache is
+        # bypassed. We don't turn this one for dashboards because (1) it's currently
+        # not supported but also because (2) it can be very expensive.
+        report.force_screenshot = report.type == "Alert" and report.chart_id is not None
 
     session.commit()
 
