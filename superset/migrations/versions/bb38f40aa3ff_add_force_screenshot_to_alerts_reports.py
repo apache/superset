@@ -17,14 +17,14 @@
 """Add force_screenshot to alerts/reports
 
 Revision ID: bb38f40aa3ff
-Revises: abe27eaf93db
+Revises: 31bb738bd1d2
 Create Date: 2021-12-10 19:25:29.802949
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "bb38f40aa3ff"
-down_revision = "abe27eaf93db"
+down_revision = "31bb738bd1d2"
 
 import sqlalchemy as sa
 from alembic import op
