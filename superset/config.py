@@ -1448,14 +1448,13 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
         string_value = str(val)
         try:
             resp["values"].append(
-                int(string_value)
+                [int(string_value)]
                 if string_value.isnumeric()
                 else port_conversion_dict[string_value]
             )
             resp["formatted_value"] = str(string_value)
-        except Exception as e:
+        except Exception:
             resp["status"] = "invalid"
-            resp["values"].append("")
 
     resp["display_value"] = ", ".join(
         map(
@@ -1474,7 +1473,7 @@ def port_translate_filter_func(
     col: Column, op: FilterOperator, values: List[Any]
 ) -> Any:
     if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
-        vals_list = list(itertools.chain.from_iterable(values))
+        vals_list = itertools.chain.from_iterable(values)
         if op == FilterOperator.IN.value:
             cond = col.in_(vals_list)
         elif op == FilterOperator.NOT_IN.value:
