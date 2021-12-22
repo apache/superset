@@ -118,6 +118,16 @@ const StyledLabelWrapper = styled.div`
   }
 `;
 
+const StyledColumnsTabWrapper = styled.div`
+  .table > tbody > tr > td {
+    vertical-align: middle;
+  }
+
+  .ant-tag {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -1206,7 +1216,7 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={2}
           >
-            <div>
+            <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
@@ -1230,7 +1240,7 @@ class DatasourceEditor extends React.PureComponent {
                 }
               />
               {this.state.metadataLoading && <Loading />}
-            </div>
+            </StyledColumnsTabWrapper>
           </Tabs.TabPane>
           <Tabs.TabPane
             tab={
