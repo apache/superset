@@ -16,14 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import { buildQueryContext, QueryFormData, DrillDown } from '@superset-ui/core';
+import { OwnState } from './types';
 
-export default function buildQuery(formData: QueryFormData) {
-  const { metric, sort_by_metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
+export default function buildQuery(formData: QueryFormData, options: any) {
+  const { metric, sort_by_metric, drillDown } = formData;
+
+  return buildQueryContext(formData, baseQueryObject => {
+    let queryObject = {
       ...baseQueryObject,
       ...(sort_by_metric && { orderby: [[metric, false]] }),
-    },
-  ]);
+    };
+
+    if (drillDown) {
+      const groupby = <string[]>formData.groupby;
+      const ownState = <OwnState>options.ownState || {
+        drilldown: DrillDown.fromHierarchy(groupby),
+      };
+      queryObject = {
+        ...queryObject,
+        ...(drillDown && {
+          groupby: [DrillDown.getColumn(ownState.drilldown, groupby)],
+          filters: [
+            ...(baseQueryObject.filters || []),
+            ...DrillDown.getFilters(ownState.drilldown, groupby),
+          ],
+        }),
+      };
+    }
+
+    return [queryObject];
+  });
 }

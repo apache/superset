@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  t,
+  validateNonEmpty,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelConfig,
@@ -73,6 +79,23 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_DRILL_DOWN)
+          ? [
+              {
+                name: 'drillDown',
+                config: {
+                  type: 'DrillDownControl',
+                  default: false,
+                  label: t('Enable drill down'),
+                  description: t('Columns as hierarchy.'),
+                  mapStateToProps: ({ form_data }) => ({
+                    chartId: form_data?.slice_id || 0,
+                    columns: form_data.groupby,
+                  }),
+                },
+              },
+            ]
+          : [],
       ],
     },
     {
