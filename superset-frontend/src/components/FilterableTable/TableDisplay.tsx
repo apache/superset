@@ -39,66 +39,83 @@ export const TableDiv = styled.div<{
   scrollTable?: boolean;
   small?: boolean;
 }>`
-border: 2px solid red;
-    ${'' /* These styles are suggested for the table fill all available space in its containing element */}
-      display: block;
-        ${'' /* These styles are required for a horizontaly scrollable table overflow */}
-          overflow: auto;
-table{
+{/*border: 2px solid red; */}
+    ${
+      '' /* These styles are suggested for the table fill all available space in its containing element */
+    }
+      {/*display: inline-block;*/}
+        ${
+          '' /* These styles are required for a horizontaly scrollable table overflow */
+        }
+          {/*overflow: auto;*/}
+.table{
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-collapse: separate;
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
-  {/*overflow: auto;*/}
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  overflow: auto;
   border-spacing: 0;
-  border: ${({ theme }) => theme.colors.grayscale.light1};
-
+  border: ${({ theme }) =>
+          `${theme.gridUnit * 0.25}px solid ${theme.colors.grayscale.light2}`};
+};
     .thread {
-        overflow-y: auto;
-        overflow-x: hidden;
+        {/*overflow-y: auto;*/}
+        {/*overflow-x: auto;*/}
     }
     .tbody {
-        overflow-y: scroll;
-        overflow-x: hidden;
-        height: 250px;
+        {/*overflow-y: scroll;*/}
+        {/*overflow-x: scroll;*/}
+        height: ${({ theme }) => `${theme.gridUnit * 100}px `};
+        border-top: ${({ theme }) =>
+          `${theme.gridUnit * 0.5}px solid ${theme.colors.grayscale.light2}`};
+
     }
+
     .th[role='columnheader'] {
         z-index: 1;
-        border-bottom: ${({ theme }) =>
-          `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
-        ${({ small }) => small && `padding-bottom: 0;`}
-        border-right: 1px solid black;
-        text-overflow: elipsis; 
-        overflow: hidden;
+        border-right: ${({ theme }) =>
+          `${theme.gridUnit * 0.25}px solid ${theme.colors.grayscale.light2}`};
+        font-weight: 700;
         cursor: pointer;
+                :last-of-type{
+        border-right: none;
+        }
       }
+      
    .tr[role='row'] {
    min-width: 100%;
-   :last-child{
-   min-width: 100%
-   background: red
-   }
+    height: ${({ theme }) => `${theme.gridUnit * 8}px`};        
    } 
 
       .tr.table-row:nth-child(odd) {
-    background-color: ${({ theme }) => `${theme.colors.grayscale.light2}`};
+    background-color: ${({ theme }) => `${theme.colors.grayscale.light3}`};
     
   }
+
 
     .th,
     .td {
     margin; 0;
-    padding: ${({ theme }) => theme.gridUnit * 1}px;
-    border-right: 1px solid orange
+    padding: ${({ theme }) => theme.gridUnit * 0.125}px;
     position: relative;
+    white-space: nowrap;
+    font-size: ${({ theme }) => `${theme.gridUnit * 3}px`};        
+    padding: ${({ theme }) => `${theme.gridUnit * 3}px`};
+    align-self: center;
 
-    last-child {
+
+    span{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    }
+
+    :last-child {
     border-right: 0
+    color:red;
     
     }
     .resizer {
       display: inline-block;
-      width: 10px;
+      width: ${({ theme }) => theme.gridUnit * 2.5}px;
       height: 100%;
       position: absolute;
       right: 0;
@@ -107,10 +124,11 @@ table{
       z-index: 1;
       ${'' /* prevents from scrolling while dragging on touch devices */}
       touch-action:none;
+      
 
 
       &.isResizing {
-        background: red;
+        background: ${({ theme }) => `${theme.colors.grayscale.light3}`};
       }
     }
   }
@@ -120,8 +138,10 @@ table{
   .tr,
   .td {
     margin: 0;
-    border-bottom: 1px solid green;
-    border-right: 1px solid blue;
+    border-right:  ${({ theme }) =>
+      `${theme.gridUnit * 0.25}px solid ${theme.colors.grayscale.light2}`};
+      empty-cells: show;
+
    :last-of-type{
    border-right: none;
    border-bottom: none;
@@ -139,12 +159,13 @@ const getStyles = (props, align = 'left') => [
   props,
   {
     style: {
-      justifyContent: align == 'right' ? 'flex-end' : 'flex-start',
+      justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
       alignItems: 'flex-start',
       display: 'flex',
     },
   },
 ];
+
 const TableDisplay = ({
   getTableProps,
   getTableBodyProps,
@@ -155,102 +176,105 @@ const TableDisplay = ({
   loading,
   highlightRowId,
 }: TableCollectionProps) => (
-    <TableDiv>
-  <table
-    {...getTableProps()}
-    className="table table-hover"
-    data-test="listview-table"
-  >
-    <div className="thread">
-      {headerGroups.map(headerGroup => (
-        <div className="tr" {...headerGroup.getHeaderGroupProps()}>
-          {headerGroup.headers.map(column => {
-            {
-              /*let sortIcon = <Icons.Sort />;
-            if (column.isSorted && column.isSortedDesc) {
-              sortIcon = <Icons.SortDesc />;
-            } else if (column.isSorted && !column.isSortedDesc) {
-              sortIcon = <Icons.SortAsc />;
-            }*/
-            }
-            return column.hidden ? null : (
-              <div
-                {...column.getHeaderProps(
-                  column.canSort ? column.getSortByToggleProps() : {},
-                )}
-                {...column.getHeaderProps(headerProps)}
-                data-test="sort-header"
-                className="th"
-              >
-                <span>
-                  {column.render('Header')}
-                  {/*{column.isSorted && sortIcon}*/}
-                </span>
-                <div
-                  {...column.getResizerProps()}
-                  className={`resizer ${column.isResizing ? 'isResizing' : ''}`}
-                />
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-    <div className="tbody" {...getTableBodyProps()}>
-      {loading &&
-        rows.length === 0 &&
-        [...new Array(25)].map((_, i) => (
-          <div className="tr" key={i}>
-            {columns.map((column, i2) => {
-              if (column.hidden) return null;
+  <TableDiv>
+    <div
+      {...getTableProps()}
+      className="table table-hover"
+      data-test="listview-table"
+    >
+      <div className="thread">
+        {headerGroups.map(headerGroup => (
+          <div className="tr" {...headerGroup.getHeaderGroupProps()}>
+            {headerGroup.headers.map(column => {
+              let sortIcon = <Icons.Sort />;
+              if (column.isSorted && column.isSortedDesc) {
+                sortIcon = <Icons.SortDesc />;
+              } else if (column.isSorted && !column.isSortedDesc) {
+                sortIcon = <Icons.SortAsc />;
+              }
 
-              return (
-                <div className="td" key={i2}>
-                  {column.accessor('id')}
-                  <span className="loading-bar" role="progressbar">
-                    <span>LOADING</span>
+              return column.hidden ? null : (
+                <div
+                  {...column.getHeaderProps(headerProps)}
+                  data-test="sort-header"
+                  className="th"
+                >
+                  <span
+                    {...column.getHeaderProps(
+                      column.canSort ? column.getSortByToggleProps() : {},
+                    )}
+                    className="header-text"
+                  >
+                    {column.render('Header')}
+                    {column.isSorted && sortIcon}
                   </span>
+                  <div
+                    {...column.getResizerProps()}
+                    className={`resizer ${
+                      column.isResizing ? 'isResizing' : ''
+                    }`}
+                  />
                 </div>
               );
             })}
           </div>
         ))}
-      {rows.length > 0 &&
-        rows.map(row => {
-          prepareRow(row);
-          // @ts-ignore
-          const rowId = row.original.id;
-          return (
-            <div
-              className="tr table-row"
-              data-test="table-row"
-              {...row.getRowProps()}
-            >
-              {row.cells.map(cell => {
-                if (cell.column.hidden) return null;
+      </div>
+      <div className="tbody" {...getTableBodyProps()}>
+        {loading &&
+          rows.length === 0 &&
+          [...new Array(25)].map((_, i) => (
+            <div className="tr" key={i}>
+              {columns.map((column, i2) => {
+                if (column.hidden) return null;
 
-                const columnCellProps = cell.column.cellProps || {};
                 return (
-                  <div
-                    className="td"
-                    data-test="table-row-cell"
-                    {...cell.getCellProps(cellProps)}
-                    {...columnCellProps}
-                  >
-                    <span
-                      className={cx({ 'loading-bar': loading })}
-                      role={loading ? 'progressbar' : undefined}
-                    >
-                      <span data-test="cell-text">{cell.render('Cell')}</span>
+                  <div className="td" key={i2}>
+                    {column.accessor('id')}
+                    <span className="loading-bar" role="progressbar">
+                      <span>LOADING</span>
                     </span>
                   </div>
                 );
               })}
             </div>
-          );
-        })}
+          ))}
+        {rows.length > 0 &&
+          rows.map(row => {
+            prepareRow(row);
+            // @ts-ignore
+            const rowId = row.original.id;
+            return (
+              <div
+                className="tr table-row"
+                data-test="table-row"
+                {...row.getRowProps()}
+              >
+                {row.cells.map(cell => {
+                  if (cell.column.hidden) return null;
+
+                  const columnCellProps = cell.column.cellProps || {};
+                  return (
+                    <div
+                      className="td"
+                      data-test="table-row-cell"
+                      {...cell.getCellProps(cellProps)}
+                      {...columnCellProps}
+                    >
+                      <span
+                        className={cx({ 'loading-bar': loading })}
+                        role={loading ? 'progressbar' : undefined}
+                      >
+                        <span data-test="cell-text">{cell.render('Cell')}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+      </div>
     </div>
-  </table>
-      </TableDiv>
+  </TableDiv>
 );
 export default React.memo(TableDisplay);
