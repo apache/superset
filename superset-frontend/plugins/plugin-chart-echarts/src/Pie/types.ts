@@ -24,6 +24,8 @@ import {
   QueryFormColumn,
   QueryFormData,
   SetDataMaskHook,
+  DrillDownType,
+  JsonObject,
 } from '@superset-ui/core';
 import {
   DEFAULT_LEGEND_FORM_DATA,
@@ -50,6 +52,7 @@ export type EchartsPieFormData = QueryFormData &
     dateFormat: string;
     showLabelsThreshold: number;
     emitFilter: boolean;
+    drillDown: boolean;
   };
 
 export enum EchartsPieLabelType {
@@ -64,6 +67,7 @@ export enum EchartsPieLabelType {
 export interface EchartsPieChartProps extends ChartProps {
   formData: EchartsPieFormData;
   queriesData: ChartDataResponseResult[];
+  ownState: OwnState;
 }
 
 // @ts-ignore
@@ -85,6 +89,8 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   dateFormat: 'smart_date',
 };
 
+export type OwnState = JsonObject & { drilldown: DrillDownType };
+
 export interface PieChartTransformedProps {
   formData: EchartsPieFormData;
   height: number;
@@ -95,4 +101,5 @@ export interface PieChartTransformedProps {
   labelMap: Record<string, DataRecordValue[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
+  ownState?: OwnState;
 }

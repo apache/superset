@@ -27,6 +27,7 @@ export { default as extractTimegrain } from './extractTimegrain';
 export { default as getColumnLabel } from './getColumnLabel';
 export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
+export { default as DrillDown } from './DrillDown';
 export { default as normalizeOrderBy } from './normalizeOrderBy';
 
 export * from './types/AnnotationLayer';
