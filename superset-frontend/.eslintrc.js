@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 const packageConfig = require('./package');
 
 const importCoreModules = [];
@@ -52,12 +51,13 @@ module.exports = {
   },
   env: {
     browser: true,
+    node: true,
   },
   settings: {
     'import/resolver': {
-      webpack: {},
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        moduleDirectory: ['node_modules', '.'],
       },
     },
     // Allow only core/src and core/test, avoid import modules from lib
@@ -69,24 +69,6 @@ module.exports = {
   },
   plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
-    {
-      files: ['cypress-base/**/*'],
-      rules: {
-        'import/no-unresolved': 0,
-        'global-require': 0,
-      },
-    },
-    {
-      files: ['webpack*.js'],
-      env: {
-        node: true,
-      },
-      settings: {
-        'import/resolver': {
-          node: {},
-        },
-      },
-    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -160,23 +142,11 @@ module.exports = {
       },
       settings: {
         'import/resolver': {
-          webpack: {},
           typescript: {},
         },
         react: {
           version: 'detect',
         },
-      },
-    },
-    {
-      files: ['*.stories.jsx', '*.stories.tsx'],
-      rules: {
-        // this is to keep eslint from complaining about storybook addons,
-        // since they are included as dev dependencies rather than direct dependencies.
-        'import/no-extraneous-dependencies': [
-          'error',
-          { devDependencies: true },
-        ],
       },
     },
     {
@@ -219,15 +189,6 @@ module.exports = {
         'jest-dom/prefer-to-have-attribute': 0,
         'jest-dom/prefer-to-have-text-content': 0,
         'jest-dom/prefer-to-have-style': 0,
-      },
-    },
-    {
-      files: './packages/generator-superset/**/*.test.*',
-      env: {
-        node: true,
-      },
-      rules: {
-        'jest/expect-expect': 0,
       },
     },
   ],
