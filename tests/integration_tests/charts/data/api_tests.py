@@ -722,7 +722,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_when_actor_does_not_have_permission_to_datasource__401(self):
+    def test_when_actor_does_not_have_permission_to_datasource__403(self):
         self.test_with_not_permitted_actor__403()
 
     @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
@@ -756,7 +756,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         "load_birth_names_dashboard_with_slices",
         "load_world_bank_dashboard_with_slices",
     )
-    def test_when_actor_does_not_have_permission_to_metric_datasource__401(self):
+    def test_when_actor_does_not_have_permission_to_metric_datasource__403(self):
         self.logout()
         self.login(username="gamma")
         table = self.get_table("birth_names")
@@ -766,7 +766,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         )
         self.query_context_payload["queries"][0]["metrics"].append(metric)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-        assert rv.status_code == 401
+        assert rv.status_code == 403
         self.revoke_role_access_to_table("Gamma", table)
 
     @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
