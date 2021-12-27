@@ -158,6 +158,7 @@ def create_query_context(
     qc = QueryContext(
         datasource=datasource,  # type: ignore
         queries=queries,
+        form_data=None,
         result_format=ChartDataResultFormat.JSON,
         result_type=ChartDataResultType.FULL,
         cache_values={},
