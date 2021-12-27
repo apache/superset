@@ -103,7 +103,7 @@ class ValidatorConfigJSONSchema(Schema):
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
-    threshold = fields.Integer()
+    threshold = fields.Float()
 
 
 class ReportRecipientConfigJSONSchema(Schema):
@@ -202,6 +202,7 @@ class ReportSchedulePostSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    force_screenshot = fields.Boolean(default=False)
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
@@ -292,3 +293,4 @@ class ReportSchedulePutSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    force_screenshot = fields.Boolean(default=False)

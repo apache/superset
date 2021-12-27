@@ -38,8 +38,8 @@ class GetKeyValueCommand(BaseCommand, ABC):
     def run(self) -> Model:
         try:
             config = app.config["FILTER_STATE_CACHE_CONFIG"]
-            refreshTimeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
-            return self.get(self._resource_id, self._key, refreshTimeout)
+            refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+            return self.get(self._resource_id, self._key, refresh_timeout)
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
@@ -48,5 +48,5 @@ class GetKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def get(self, resource_id: int, key: str, refreshTimeout: bool) -> Optional[str]:
+    def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
         ...

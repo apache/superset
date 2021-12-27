@@ -47,13 +47,16 @@ from superset.utils.core import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -63,6 +66,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
+    load_unicode_data,
 )
 from tests.integration_tests.test_app import app
 
@@ -1141,7 +1145,7 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        assert rv.status_code == 401
+        assert rv.status_code == 403
 
     def test_export_database_non_existing(self):
         """
