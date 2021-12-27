@@ -722,7 +722,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
     @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_when_actor_does_not_have_permission_to_datasource__401(self):
-        self.test_with_not_permitted_actor__401()
+        self.test_with_not_permitted_actor__403()
 
     @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
