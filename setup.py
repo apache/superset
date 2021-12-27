@@ -157,6 +157,7 @@ setup(
         "snowflake": [
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
+        "sybase": ["sqlalchemy-sybase>=1.0.6"],
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
         "thumbnails": ["Pillow>=8.3.2, <9.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
