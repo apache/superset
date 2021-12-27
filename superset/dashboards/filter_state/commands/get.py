@@ -30,7 +30,8 @@ class GetFilterStateCommand(GetKeyValueCommand):
             entry: Entry = cache_manager.filter_state_cache.get(
                 cache_key(resource_id, key)
             )
-            if refresh_timeout:
-                cache_manager.filter_state_cache.set(key, entry)
-            return entry["value"]
+            if entry:
+                if refresh_timeout:
+                    cache_manager.filter_state_cache.set(key, entry)
+                return entry["value"]
         return None
