@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module 'file-loader!*.geojson' {
+declare module '*.geojson' {
   const geojsonPath: string;
 
   export default geojsonPath;
