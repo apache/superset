@@ -36,6 +36,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data
 )
 from tests.integration_tests.test_app import app
 
