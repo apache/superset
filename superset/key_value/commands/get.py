@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Dict, Optional
 
 from flask import current_app as app
 from flask_appbuilder.models.sqla import Model
@@ -30,16 +30,21 @@ logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, actor: User, resource_id: int, key: str):
+    def __init__(
+        self, actor: User, resource_id: int, key: str, args: Optional[Dict[str, str]]
+    ):
         self._actor = actor
         self._resource_id = resource_id
         self._key = key
+        self._args = args
 
     def run(self) -> Model:
         try:
             config = app.config["FILTER_STATE_CACHE_CONFIG"]
             refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
-            return self.get(self._resource_id, self._key, refresh_timeout)
+            return self.get(
+                self._actor, self._resource_id, self._key, refresh_timeout, self._args
+            )
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
@@ -48,5 +53,12 @@ class GetKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
+    def get(
+        self,
+        actor: User,
+        resource_id: int,
+        key: str,
+        refresh_timeout: bool,
+        args: Optional[Dict[str, str]],
+    ) -> Optional[str]:
         ...

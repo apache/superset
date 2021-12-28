@@ -577,6 +577,15 @@ FILTER_STATE_CACHE_CONFIG: CacheConfig = {
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
+# Cache for chart form data
+CHART_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "filesystem",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 

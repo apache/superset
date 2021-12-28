@@ -18,26 +18,28 @@ from typing import Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.dashboards.dao import DashboardDAO
+from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.commands.entry import Entry
+from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.utils import cache_key
 
 
-class CreateFilterStateCommand(CreateKeyValueCommand):
-    def create(
+class GetFormDataCommand(GetKeyValueCommand):
+    def get(
         self,
         actor: User,
         resource_id: int,
         key: str,
-        value: str,
+        refresh_timeout: bool,
         args: Optional[Dict[str, str]],
-    ) -> Optional[bool]:
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
-            entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            return cache_manager.filter_state_cache.set(
-                cache_key(resource_id, key), entry
-            )
-        return False
+    ) -> Optional[str]:
+        check_access(actor, resource_id, args)
+        entry: Entry = cache_manager.chart_form_data_cache.get(
+            cache_key(resource_id, key)
+        )
+        if entry:
+            if refresh_timeout:
+                cache_manager.chart_form_data_cache.set(key, entry)
+            return entry["value"]
+        return None

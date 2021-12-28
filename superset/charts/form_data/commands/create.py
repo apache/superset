@@ -18,14 +18,14 @@ from typing import Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.dashboards.dao import DashboardDAO
+from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.commands.entry import Entry
 from superset.key_value.utils import cache_key
 
 
-class CreateFilterStateCommand(CreateKeyValueCommand):
+class CreateFormDataCommand(CreateKeyValueCommand):
     def create(
         self,
         actor: User,
@@ -34,10 +34,8 @@ class CreateFilterStateCommand(CreateKeyValueCommand):
         value: str,
         args: Optional[Dict[str, str]],
     ) -> Optional[bool]:
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
-            entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            return cache_manager.filter_state_cache.set(
-                cache_key(resource_id, key), entry
-            )
-        return False
+        entry: Entry = {"owner": actor.get_user_id(), "value": value}
+        check_access(actor, resource_id, args)
+        return cache_manager.chart_form_data_cache.set(
+            cache_key(resource_id, key), entry
+        )

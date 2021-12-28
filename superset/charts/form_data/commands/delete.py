@@ -18,26 +18,27 @@ from typing import Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
+from superset.charts.form_data.utils import check_access
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
-from superset.key_value.commands.create import CreateKeyValueCommand
+from superset.key_value.commands.delete import DeleteKeyValueCommand
 from superset.key_value.commands.entry import Entry
+from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.utils import cache_key
 
 
-class CreateFilterStateCommand(CreateKeyValueCommand):
-    def create(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
+class DeleteFormDataCommand(DeleteKeyValueCommand):
+    def delete(
+        self, actor: User, resource_id: int, key: str, args: Optional[Dict[str, str]]
     ) -> Optional[bool]:
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
-            entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            return cache_manager.filter_state_cache.set(
-                cache_key(resource_id, key), entry
+        check_access(actor, resource_id, args)
+        entry: Entry = cache_manager.chart_form_data_cache.get(
+            cache_key(resource_id, key)
+        )
+        if entry:
+            if entry["owner"] != actor.get_user_id():
+                raise KeyValueAccessDeniedError()
+            return cache_manager.chart_form_data_cache.delete(
+                cache_key(resource_id, key)
             )
-        return False
+        return True
