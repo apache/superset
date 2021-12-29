@@ -69,6 +69,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from cryptography.x509.base import Certificate
 from flask import current_app, flash, g, Markup, render_template, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
@@ -302,7 +303,7 @@ class ReservedUrlParameters(str, Enum):
     @staticmethod
     def is_standalone_mode() -> Optional[bool]:
         standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
-        standalone: Optional[bool] = (
+        standalone: Optional[bool] = bool(
             standalone_param and standalone_param != "false" and standalone_param != "0"
         )
         return standalone
@@ -1419,7 +1420,7 @@ def get_username() -> Optional[str]:
         return None
 
 
-def parse_ssl_cert(certificate: str):
+def parse_ssl_cert(certificate: str) -> Certificate:
     """
     Parses the contents of a certificate and returns a valid certificate object
     if valid.

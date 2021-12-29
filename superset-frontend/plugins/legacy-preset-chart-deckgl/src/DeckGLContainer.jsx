@@ -25,7 +25,6 @@ import PropTypes from 'prop-types';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from 'deck.gl';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line import/extensions
 import Tooltip from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './css/deckgl.css';
