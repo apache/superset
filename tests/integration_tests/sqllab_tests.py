@@ -65,6 +65,7 @@ QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
+
 @pytest.mark.sql_json_flow
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
