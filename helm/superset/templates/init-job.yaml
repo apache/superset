@@ -31,6 +31,9 @@ spec:
         {{ toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
     spec:
+      {{- if .Values.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
