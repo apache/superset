@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Dict, Type
+from typing import Type
 
-from flask import request, Response
+from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 
 from superset.charts.form_data.commands.create import CreateFormDataCommand
@@ -54,7 +54,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, pk: int, query_params: Dict[str, str]) -> Response:
+    def post(self, pk: int) -> Response:
         """Stores a new value.
         ---
         post:
@@ -97,7 +97,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().post(pk, request.args)
+        return super().post(pk)
 
     @expose("/<int:pk>/form_data/<string:key>/", methods=["PUT"])
     @protect()
@@ -106,7 +106,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def put(self, pk: int, key: str) -> Response:
         """Updates an existing value.
         ---
         put:
@@ -150,7 +150,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().put(pk, key, request.args)
+        return super().put(pk, key)
 
     @expose("/<int:pk>/form_data/<string:key>/", methods=["GET"])
     @protect()
@@ -159,7 +159,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def get(self, pk: int, key: str) -> Response:
         """Retrives a value.
         ---
         get:
@@ -196,7 +196,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().get(pk, key, request.args)
+        return super().get(pk, key)
 
     @expose("/<int:pk>/form_data/<string:key>/", methods=["DELETE"])
     @protect()
@@ -205,7 +205,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def delete(self, pk: int, key: str) -> Response:
         """Deletes a value.
         ---
         delete:
@@ -243,4 +243,4 @@ class ChartFormDataRestApi(KeyValueRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().delete(pk, key, request.args)
+        return super().delete(pk, key)

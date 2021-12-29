@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
@@ -69,7 +69,7 @@ class KeyValueRestApi(BaseApi, ABC):
             pass
         super().add_apispec_components(api_spec)
 
-    def post(self, pk: int, query_params: Dict[str, str]) -> Response:
+    def post(self, pk: int) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
@@ -78,7 +78,7 @@ class KeyValueRestApi(BaseApi, ABC):
                 "actor": g.user,
                 "resource_id": pk,
                 "value": item["value"],
-                "query_params": query_params,
+                "query_params": request.args,
             }
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
@@ -94,7 +94,7 @@ class KeyValueRestApi(BaseApi, ABC):
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
 
-    def put(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def put(self, pk: int, key: str) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
@@ -104,7 +104,7 @@ class KeyValueRestApi(BaseApi, ABC):
                 "resource_id": pk,
                 "key": key,
                 "value": item["value"],
-                "query_params": query_params,
+                "query_params": request.args,
             }
             result = self.get_update_command()(args).run()
             if not result:
@@ -122,13 +122,13 @@ class KeyValueRestApi(BaseApi, ABC):
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
 
-    def get(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def get(self, pk: int, key: str) -> Response:
         try:
             args: Args = {
                 "actor": g.user,
                 "resource_id": pk,
                 "key": key,
-                "query_params": query_params,
+                "query_params": request.args,
             }
             value = self.get_get_command()(args).run()
             if not value:
@@ -144,13 +144,13 @@ class KeyValueRestApi(BaseApi, ABC):
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
 
-    def delete(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
+    def delete(self, pk: int, key: str) -> Response:
         try:
             args: Args = {
                 "actor": g.user,
                 "resource_id": pk,
                 "key": key,
-                "query_params": query_params,
+                "query_params": request.args,
             }
             result = self.get_delete_command()(args).run()
             if not result:
