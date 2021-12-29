@@ -47,7 +47,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 import superset.views.utils
 from superset import (
     dataframe,
@@ -72,7 +72,7 @@ from superset.utils import core as utils
 from superset.views import core as views
 from superset.views.database.views import DatabaseView
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,

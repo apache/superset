@@ -27,7 +27,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class TestCache(SupersetTestCase):

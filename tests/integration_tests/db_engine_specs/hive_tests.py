@@ -26,7 +26,7 @@ from sqlalchemy.sql import select
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table, ParsedQuery
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 
 def test_0_progress():

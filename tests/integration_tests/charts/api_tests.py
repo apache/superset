@@ -37,7 +37,7 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -62,7 +62,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,
 )
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 
 CHART_DATA_URI = "api/v1/chart/data"

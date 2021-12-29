@@ -19,8 +19,8 @@
 import unittest
 from typing import Any, Dict
 
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.test_app import app
+from tests.common.base_tests import SupersetTestCase
+from tests.common.test_app import app
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable

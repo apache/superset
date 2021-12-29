@@ -32,8 +32,8 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
+from tests.common.test_app import app
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
-from tests.integration_tests.test_app import app
 
 from ..fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

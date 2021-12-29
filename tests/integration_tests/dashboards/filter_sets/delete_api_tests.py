@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, TYPE_CHECKING
 
-from tests.integration_tests.base_tests import login
+from tests.common.base_tests import login
 from tests.integration_tests.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_USERNAME,
     FILTER_SET_OWNER_USERNAME,

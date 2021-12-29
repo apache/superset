@@ -41,7 +41,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,

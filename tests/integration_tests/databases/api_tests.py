@@ -44,7 +44,7 @@ from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -68,7 +68,7 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
     load_unicode_data,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 
 class TestDatabaseApi(SupersetTestCase):

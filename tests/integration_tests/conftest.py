@@ -22,7 +22,7 @@ import pytest
 from sqlalchemy.engine import Engine
 from unittest.mock import patch
 
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from superset import db
 from superset.extensions import feature_flag_manager
 from superset.utils.core import get_example_database, json_dumps_w_dates

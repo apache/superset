@@ -16,8 +16,8 @@
 # under the License.
 from typing import Any, Dict, Optional
 
+from tests.common.base_tests import SupersetTestCase
 from tests.common.query_context_generator import QueryContextGenerator
-from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class QueryContextGeneratorInteg(QueryContextGenerator):

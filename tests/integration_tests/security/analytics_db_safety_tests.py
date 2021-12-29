@@ -20,7 +20,7 @@ from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class TestDBConnections(SupersetTestCase):

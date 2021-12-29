@@ -16,7 +16,7 @@
 # under the License.
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import is_valid_config
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class TestCommandsExceptions(SupersetTestCase):

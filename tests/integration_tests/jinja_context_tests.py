@@ -22,12 +22,12 @@ from unittest import mock
 import pytest
 from sqlalchemy.dialects.postgresql import dialect
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 from superset import app
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import ExtraCache, get_template_processor, safe_proxy
 from superset.utils import core as utils
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class TestJinja2Context(SupersetTestCase):

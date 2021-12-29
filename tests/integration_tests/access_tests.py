@@ -35,7 +35,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
 )
-from tests.integration_tests.test_app import app  # isort:skip
+from tests.common.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
@@ -44,7 +44,7 @@ from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_database
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
     "role_name": "override_me",

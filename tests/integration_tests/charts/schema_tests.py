@@ -21,9 +21,9 @@ from unittest import mock
 import pytest
 
 from marshmallow import ValidationError
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,

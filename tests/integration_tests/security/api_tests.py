@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 import json
 
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from flask_wtf.csrf import generate_csrf
 
 

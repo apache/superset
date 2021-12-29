@@ -18,7 +18,7 @@
 from unittest.mock import call, Mock, patch
 
 from superset.extensions import machine_auth_provider_factory
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class MachineAuthProviderTests(SupersetTestCase):

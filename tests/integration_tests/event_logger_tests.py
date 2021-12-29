@@ -30,7 +30,7 @@ from superset.utils.log import (
     DBEventLogger,
     get_event_logger_from_cfg_value,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 
 class TestEventLogger(unittest.TestCase):

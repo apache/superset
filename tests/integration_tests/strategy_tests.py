@@ -42,7 +42,7 @@ from superset.tasks.cache import (
     TopNDashboardsStrategy,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from .dashboard_utils import create_dashboard, create_slice, create_table_metadata
 from .fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,

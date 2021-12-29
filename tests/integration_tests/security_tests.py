@@ -45,7 +45,7 @@ from superset.utils.core import (
 )
 from superset.views.access_requests import AccessRequestsModelView
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,

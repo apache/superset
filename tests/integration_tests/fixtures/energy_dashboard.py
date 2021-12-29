@@ -25,8 +25,8 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
+from tests.common.test_app import app
 from tests.integration_tests.dashboard_utils import create_slice, create_table_metadata
-from tests.integration_tests.test_app import app
 
 misc_dash_slices: Set[str] = set()
 

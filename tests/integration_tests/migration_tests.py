@@ -21,7 +21,7 @@ from superset.migrations.versions.fb13d49b72f9_better_filters import (
     upgrade_slice,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class TestMigration(SupersetTestCase):

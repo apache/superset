@@ -27,7 +27,7 @@ from superset import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 EXPECTED_COLUMNS = [

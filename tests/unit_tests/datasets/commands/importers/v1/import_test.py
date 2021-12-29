@@ -36,7 +36,7 @@ def test_import_(app_context: None, session: Session) -> None:
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     session.add(database)
-    session.flush()
+    session.commit()
 
     dataset_uuid = uuid.uuid4()
     config = {
@@ -130,6 +130,10 @@ def test_import_(app_context: None, session: Session) -> None:
     assert sqla_table.database.uuid == database.uuid
     assert sqla_table.database.id == database.id
 
+    session.delete(database)
+    session.commit()
+    session.close()
+
 
 def test_import_column_extra_is_string(app_context: None, session: Session) -> None:
     """
@@ -188,3 +192,6 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
 
     sqla_table = import_dataset(session, config)
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
+    session.delete(database)
+    session.commit()
+    session.close()

@@ -25,13 +25,13 @@ import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class Model1Api(BaseSupersetModelRestApi):

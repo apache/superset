@@ -32,7 +32,7 @@ from superset.utils.date_parser import (
     parse_human_timedelta,
     parse_past_timedelta,
 )
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 def mock_parse_human_datetime(s):

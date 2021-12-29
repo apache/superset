@@ -17,7 +17,7 @@
 from wtforms.form import Form
 
 from superset.forms import CommaSeparatedListField, filter_not_empty_values
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class TestForm(SupersetTestCase):

@@ -45,8 +45,8 @@ from superset.views.alerts import (
     AlertModelView,
     AlertObservationModelView,
 )
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.test_app import app
+from tests.common.base_tests import SupersetTestCase
+from tests.common.test_app import app
 from tests.integration_tests.utils import read_fixture
 
 logging.basicConfig(level=logging.INFO)

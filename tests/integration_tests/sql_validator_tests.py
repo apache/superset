@@ -32,7 +32,7 @@ from superset.sql_validators.presto_db import (
 )
 from superset.utils.core import get_example_database
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 PRESTO_SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",

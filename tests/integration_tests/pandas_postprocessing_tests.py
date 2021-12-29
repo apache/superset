@@ -32,7 +32,7 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from .fixtures.dataframes import (
     categories_df,
     single_metric_df,

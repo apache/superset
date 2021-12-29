@@ -25,7 +25,7 @@ from unittest import mock
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
-from tests.integration_tests.base_tests import (
+from tests.common.base_tests import (
     SupersetTestCase,
     test_client,
 )
@@ -34,7 +34,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 import pytest
 

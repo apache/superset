@@ -40,7 +40,7 @@ from superset.utils.core import backend
 from superset.views.base import generate_download_headers
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     database_config,

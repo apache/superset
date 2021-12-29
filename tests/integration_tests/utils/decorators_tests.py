@@ -17,7 +17,7 @@
 from unittest.mock import call, Mock
 
 from superset.utils import decorators
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class UtilsDecoratorsTests(SupersetTestCase):

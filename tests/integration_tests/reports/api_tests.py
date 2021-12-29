@@ -39,7 +39,7 @@ from superset.models.reports import (
     ReportState,
 )
 from superset.utils.core import get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

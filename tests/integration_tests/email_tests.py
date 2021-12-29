@@ -26,7 +26,7 @@ from unittest import mock
 
 from superset import app
 from superset.utils import core as utils
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 from .utils import read_fixture
 

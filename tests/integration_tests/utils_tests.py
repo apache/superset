@@ -36,7 +36,7 @@ from flask import Flask, g
 import marshmallow
 from sqlalchemy.exc import ArgumentError
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 from superset import app, db, security_manager
 from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
@@ -79,7 +79,7 @@ from superset.views.utils import (
     get_form_data,
     get_time_range_endpoints,
 )
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,

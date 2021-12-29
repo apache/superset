@@ -32,13 +32,13 @@ from superset.tasks.async_queries import (
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
+from tests.common.test_app import app
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
-from tests.integration_tests.test_app import app
 
 
 class TestAsyncQueries(SupersetTestCase):

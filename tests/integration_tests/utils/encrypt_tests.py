@@ -22,7 +22,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 
 from superset.extensions import encrypted_field_factory
 from superset.utils.encrypt import AbstractEncryptedFieldAdapter, SQLAlchemyUtilsAdapter
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):

@@ -16,7 +16,9 @@
 # under the License.
 # pylint: disable=redefined-outer-name
 
-from typing import Iterator
+import functools
+from typing import Any, Iterator
+from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockFixture
@@ -24,8 +26,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.app import SupersetApp
+from superset.extensions import feature_flag_manager
 from superset.initialization import SupersetAppInitializer
+from superset.utils.core import get_example_database, get_example_default_schema
 
 
 @pytest.fixture()
@@ -34,7 +39,9 @@ def session() -> Iterator[Session]:
     Create an in-memory SQLite session to test models.
     """
     engine = create_engine("sqlite://")
-    Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
+    Session_ = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False
+    )  # pylint: disable=invalid-name
     in_memory_session = Session_()
 
     # flask calls session.remove()
@@ -43,23 +50,17 @@ def session() -> Iterator[Session]:
     yield in_memory_session
 
 
-@pytest.fixture
-def app(mocker: MockFixture, session: Session) -> Iterator[SupersetApp]:
-    """
-    A fixture that generates a Superset app.
-    """
+@pytest.fixture()
+def app(mocker: MockFixture, session: Session):
     app = SupersetApp(__name__)
-
     app.config.from_object("superset.config")
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
     app.config["FAB_ADD_SECURITY_VIEWS"] = False
 
     app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
     app_initializer.init_app()
 
-    # patch session
     mocker.patch(
-        "superset.security.SupersetSecurityManager.get_session", return_value=session,
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
     )
     mocker.patch("superset.db.session", session)
 
@@ -67,7 +68,7 @@ def app(mocker: MockFixture, session: Session) -> Iterator[SupersetApp]:
 
 
 @pytest.fixture
-def app_context(app: SupersetApp) -> Iterator[None]:
+def app_context(app) -> Iterator[None]:
     """
     A fixture that yields and application context.
     """

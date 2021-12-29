@@ -21,7 +21,7 @@ import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 from superset import db, security_manager
 from superset.connectors.druid.views import (
@@ -32,7 +32,7 @@ from superset.connectors.druid.views import (
     DruidMetricInlineView,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 try:

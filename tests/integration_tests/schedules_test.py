@@ -28,7 +28,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from superset import db
 from superset.models.dashboard import Dashboard
 from superset.models.schedules import (
@@ -44,7 +44,7 @@ from superset.tasks.schedules import (
     next_schedules,
 )
 from superset.models.slice import Slice
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.utils import read_fixture
 
 

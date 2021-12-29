@@ -17,7 +17,7 @@
 import pytest
 
 from superset.extensions import db, security_manager
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 
 @pytest.fixture()

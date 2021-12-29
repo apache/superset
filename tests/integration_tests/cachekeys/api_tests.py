@@ -18,12 +18,12 @@
 """Unit tests for Superset"""
 from typing import Dict, Any
 
-from tests.integration_tests.test_app import app  # noqa
+from tests.common.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_default_schema
-from tests.integration_tests.base_tests import (
+from tests.common.base_tests import (
     SupersetTestCase,
     post_assert_metric,
     test_client,

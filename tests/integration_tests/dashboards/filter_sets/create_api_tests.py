@@ -27,7 +27,7 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
     USER_OWNER_TYPE,
 )
-from tests.integration_tests.base_tests import login
+from tests.common.base_tests import login
 from tests.integration_tests.dashboards.filter_sets.consts import (
     ADMIN_USERNAME_FOR_TEST,
     DASHBOARD_OWNER_USERNAME,

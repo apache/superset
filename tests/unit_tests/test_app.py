@@ -14,24 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import patch
 
-from superset.views.log.views import LogModelView
+"""
+Here is where we create the app which ends up being shared across all tests.integration_tests. A future
+optimization will be to create a separate app instance for each test class.
+"""
+from superset.app import create_app
 
-from ..common.base_tests import SupersetTestCase
-
-
-class TestLogModelView(SupersetTestCase):
-    def test_disabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=False):
-            self.login("admin")
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert404(rv)
-
-    def test_enabled(self):
-        with patch.object(LogModelView, "is_enabled", return_value=True):
-            self.login("admin")
-            uri = "/logmodelview/list/"
-            rv = self.client.get(uri)
-            self.assert200(rv)
+app = create_app()

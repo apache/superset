@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from .conftest import with_feature_flags
 
 

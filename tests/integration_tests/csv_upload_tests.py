@@ -29,11 +29,11 @@ import pytest
 
 from superset.sql_parse import Table
 from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
-from tests.integration_tests.test_app import app  # isort:skip
+from tests.common.test_app import app  # isort:skip
 from superset import db
 from superset.models.core import Database
 from superset.utils import core as utils
-from tests.integration_tests.base_tests import get_resp, login, SupersetTestCase
+from tests.common.base_tests import get_resp, login, SupersetTestCase
 
 logger = logging.getLogger(__name__)
 

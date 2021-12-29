@@ -30,7 +30,7 @@ from superset.migrations.shared.security_converge import (
     Pvm,
     PvmMigrationMapType,
 )
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

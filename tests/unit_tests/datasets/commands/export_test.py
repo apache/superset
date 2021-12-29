@@ -34,7 +34,7 @@ def test_export(app_context: None, session: Session) -> None:
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     session.add(database)
-    session.flush()
+    session.commit()
 
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
@@ -190,3 +190,7 @@ version: 1.0.0
 """,
         ),
     ]
+
+    session.delete(database)
+    session.commit()
+    session.close()

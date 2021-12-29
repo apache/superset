@@ -31,10 +31,10 @@ from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_host, get_url_path
 from superset.utils.webdriver import WebDriverProxy
+from tests.common.test_app import app
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.test_app import app
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class TestThumbnailsSeleniumLive(LiveServerTestCase):

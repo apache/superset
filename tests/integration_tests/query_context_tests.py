@@ -31,7 +31,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
 from superset.utils.core import AdhocMetricExpressionType, backend, TimeRangeEndpoint
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,

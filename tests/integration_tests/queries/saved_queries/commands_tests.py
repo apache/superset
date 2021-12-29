@@ -31,7 +31,7 @@ from superset.queries.saved_queries.commands.importers.v1 import (
     ImportSavedQueriesCommand,
 )
 from superset.utils.core import get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     database_metadata_config,

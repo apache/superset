@@ -25,7 +25,7 @@ import pytest
 from flask import escape, url_for
 from sqlalchemy import func
 
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -49,7 +49,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,
 )
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):

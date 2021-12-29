@@ -59,6 +59,8 @@ log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 cancel_query_key = "cancel_query"
 
+print("sqllab config is set")
+
 
 class SqlLabException(Exception):
     pass

@@ -1106,6 +1106,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
+        print("query in execute ", query)
         if not cls.allows_sql_comments:
             query = sql_parse.strip_comments_from_sql(query)
 

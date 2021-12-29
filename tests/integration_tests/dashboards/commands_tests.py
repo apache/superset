@@ -36,7 +36,7 @@ from superset.dashboards.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,

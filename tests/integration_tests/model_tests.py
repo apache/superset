@@ -29,7 +29,7 @@ import pytest
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 from superset import app, db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
@@ -38,7 +38,7 @@ from superset.models.slice import Slice
 from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.core import get_example_database
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,

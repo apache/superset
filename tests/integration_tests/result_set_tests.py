@@ -17,12 +17,12 @@
 # isort:skip_file
 from datetime import datetime
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import dedup, SupersetResultSet
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 
 
 class TestSupersetResultSet(SupersetTestCase):

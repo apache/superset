@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.test_app import app
+from tests.common.test_app import app
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource

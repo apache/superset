@@ -19,8 +19,8 @@ from typing import Optional
 from unittest import mock
 
 from superset.extensions import async_query_manager
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.test_app import app
+from tests.common.base_tests import SupersetTestCase
+from tests.common.test_app import app
 
 
 class TestAsyncEventApi(SupersetTestCase):

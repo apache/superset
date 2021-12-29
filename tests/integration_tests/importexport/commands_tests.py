@@ -23,7 +23,7 @@ from freezegun import freeze_time
 from superset import security_manager
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.utils.core import get_example_database
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 
 
 class TestExportModelsCommand(SupersetTestCase):

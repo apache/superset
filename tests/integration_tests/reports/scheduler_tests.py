@@ -24,8 +24,8 @@ from freezegun.api import FakeDatetime  # type: ignore
 from superset.extensions import db
 from superset.models.reports import ReportScheduleType
 from superset.tasks.scheduler import scheduler
+from tests.common.test_app import app
 from tests.integration_tests.reports.utils import insert_report_schedule
-from tests.integration_tests.test_app import app
 
 
 @patch("superset.tasks.scheduler.execute.apply_async")

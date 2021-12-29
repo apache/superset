@@ -32,6 +32,7 @@ from superset.dashboards.filter_sets.consts import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
+from tests.common.test_app import app
 from tests.integration_tests.dashboards.filter_sets.consts import (
     ADMIN_USERNAME_FOR_TEST,
     DASHBOARD_OWNER_USERNAME,
@@ -44,7 +45,6 @@ from tests.integration_tests.dashboards.superset_factory_util import (
     create_datasource_table,
     create_slice,
 )
-from tests.integration_tests.test_app import app
 
 if TYPE_CHECKING:
     from flask.ctx import AppContext

@@ -42,7 +42,7 @@ from superset.utils.core import (
     get_main_database,
 )
 from superset.utils.dict_import_export import export_to_dict
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.common.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

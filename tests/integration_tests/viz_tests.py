@@ -25,14 +25,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import tests.integration_tests.test_app
+import tests.common.test_app
 import superset.viz as viz
 from superset import app
 from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError, SpatialException
 from superset.utils.core import DTTM_ALIAS
 
-from .base_tests import SupersetTestCase
+from ..common.base_tests import SupersetTestCase
 from .utils import load_fixture
 
 logger = logging.getLogger(__name__)
