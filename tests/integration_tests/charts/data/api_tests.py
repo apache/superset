@@ -126,23 +126,25 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.json["result"][0]["rowcount"] == expected_row_count
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_factory.config", {**app.config, "ROW_LIMIT": 7},
+    )
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
-        row_limit_before = app.config["ROW_LIMIT"]
         expected_row_count = 7
-        app.config["ROW_LIMIT"] = expected_row_count
         del self.query_context_payload["queries"][0]["row_limit"]
         # act
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         # assert
         self.assert_row_count(rv, expected_row_count)
-        # cleanup
-        app.config["ROW_LIMIT"] = row_limit_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.common.query_context_factory.config",
+        {**app.config, "SAMPLES_ROW_LIMIT": 5},
+    )
     def test_as_samples_without_row_limit__row_count_as_default_samples_row_limit(self):
         # arrange
-        samples_row_limit_before = app.config["SAMPLES_ROW_LIMIT"]
         expected_row_count = 5
         app.config["SAMPLES_ROW_LIMIT"] = expected_row_count
         self.query_context_payload["result_type"] = ChartDataResultType.SAMPLES
@@ -154,15 +156,13 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         # assert
         self.assert_row_count(rv, expected_row_count)
 
-        # cleanup
-        app.config["SAMPLES_ROW_LIMIT"] = samples_row_limit_before
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
+    )
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
         # arrange
         expected_row_count = 10
-        max_row_before = app.config["SQL_MAX_ROW"]
-        app.config["SQL_MAX_ROW"] = expected_row_count
         self.query_context_payload["queries"][0]["row_limit"] = 10000000
 
         # act
@@ -170,9 +170,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
-
-        # cleanup
-        app.config["SQL_MAX_ROW"] = max_row_before
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
