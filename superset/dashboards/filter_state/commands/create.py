@@ -14,26 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
-
-from flask_appbuilder.security.sqla.models import User
+from typing import Optional
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.commands.entry import Entry
 from superset.key_value.utils import cache_key
 
 
 class CreateFilterStateCommand(CreateKeyValueCommand):
-    def create(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
-    ) -> Optional[bool]:
+    def create(self, args: Args,) -> Optional[bool]:
+        resource_id = args["resource_id"]
+        actor = args["actor"]
+        key = args["key"]
+        value = args["value"]
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
             entry: Entry = {"owner": actor.get_user_id(), "value": value}

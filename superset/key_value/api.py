@@ -16,9 +16,10 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from apispec import APISpec
+from apispec.exceptions import DuplicateComponentNameError
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi
 from marshmallow import ValidationError
@@ -37,6 +38,7 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.exceptions import InvalidPayloadFormatError
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
 
@@ -56,61 +58,79 @@ class KeyValueRestApi(BaseApi, ABC):
     allow_browser_login = True
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-        if KeyValuePostSchema.__name__ not in api_spec.components._schemas:
+        try:
             api_spec.components.schema(
                 KeyValuePostSchema.__name__, schema=KeyValuePostSchema,
             )
-        if KeyValuePutSchema.__name__ not in api_spec.components._schemas:
             api_spec.components.schema(
                 KeyValuePutSchema.__name__, schema=KeyValuePutSchema,
             )
+        except DuplicateComponentNameError:
+            pass
         super().add_apispec_components(api_spec)
 
-    def post(self, pk: int, args: Optional[Dict[str, Any]] = None) -> Response:
+    def post(self, pk: int, query_params: Dict[str, str]) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            key = self.get_create_command()(g.user, pk, item["value"], args).run()
+            args: Args = {
+                "actor": g.user,
+                "resource_id": pk,
+                "value": item["value"],
+                "query_params": query_params,
+            }
+            key = self.get_create_command()(args).run()
             return self.response(201, key=key)
-        except ValidationError as e:
-            return self.response(400, message=e.messages)
+        except ValidationError as ex:
+            return self.response(400, message=ex.messages)
         except (
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
             KeyValueAccessDeniedError,
-        ) as e:
-            return self.response(403, message=str(e))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as e:
-            return self.response(404, message=str(e))
+        ) as ex:
+            return self.response(403, message=str(ex))
+        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+            return self.response(404, message=str(ex))
 
-    def put(self, pk: int, key: str, args: Optional[Dict[str, Any]]) -> Response:
+    def put(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         if not request.is_json:
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            result = self.get_update_command()(
-                g.user, pk, key, item["value"], args
-            ).run()
+            args: Args = {
+                "actor": g.user,
+                "resource_id": pk,
+                "key": key,
+                "value": item["value"],
+                "query_params": query_params,
+            }
+            result = self.get_update_command()(args).run()
             if not result:
                 return self.response_404()
             return self.response(200, message="Value updated successfully.")
-        except ValidationError as e:
-            return self.response(400, message=e.messages)
+        except ValidationError as ex:
+            return self.response(400, message=ex.messages)
         except (
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
             KeyValueAccessDeniedError,
-        ) as e:
-            return self.response(403, message=str(e))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as e:
-            return self.response(404, message=str(e))
+        ) as ex:
+            return self.response(403, message=str(ex))
+        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+            return self.response(404, message=str(ex))
 
-    def get(self, pk: int, key: str, args: Optional[Dict[str, Any]]) -> Response:
+    def get(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         try:
-            value = self.get_get_command()(g.user, pk, key, args).run()
+            args: Args = {
+                "actor": g.user,
+                "resource_id": pk,
+                "key": key,
+                "query_params": query_params,
+            }
+            value = self.get_get_command()(args).run()
             if not value:
                 return self.response_404()
             return self.response(200, value=value)
@@ -119,14 +139,20 @@ class KeyValueRestApi(BaseApi, ABC):
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
             KeyValueAccessDeniedError,
-        ) as e:
-            return self.response(403, message=str(e))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as e:
-            return self.response(404, message=str(e))
+        ) as ex:
+            return self.response(403, message=str(ex))
+        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+            return self.response(404, message=str(ex))
 
-    def delete(self, pk: int, key: str, args: Optional[Dict[str, Any]]) -> Response:
+    def delete(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         try:
-            result = self.get_delete_command()(g.user, pk, key, args).run()
+            args: Args = {
+                "actor": g.user,
+                "resource_id": pk,
+                "key": key,
+                "query_params": query_params,
+            }
+            result = self.get_delete_command()(args).run()
             if not result:
                 return self.response_404()
             return self.response(200, message="Deleted successfully")
@@ -135,10 +161,10 @@ class KeyValueRestApi(BaseApi, ABC):
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
             KeyValueAccessDeniedError,
-        ) as e:
-            return self.response(403, message=str(e))
-        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as e:
-            return self.response(404, message=str(e))
+        ) as ex:
+            return self.response(403, message=str(ex))
+        except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
+            return self.response(404, message=str(ex))
 
     @abstractmethod
     def get_create_command(self) -> Any:

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Type
+from typing import Dict, Type
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
@@ -54,7 +54,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, pk: int) -> Response:
+    def post(self, pk: int, query_params: Dict[str, str]) -> Response:
         """Stores a new value.
         ---
         post:
@@ -101,7 +101,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(self, pk: int, key: str) -> Response:
+    def put(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         """Updates an existing value.
         ---
         put:
@@ -154,7 +154,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, pk: int, key: str) -> Response:
+    def get(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         """Retrives a value.
         ---
         get:
@@ -200,7 +200,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int, key: str) -> Response:
+    def delete(self, pk: int, key: str, query_params: Dict[str, str]) -> Response:
         """Deletes a value.
         ---
         delete:

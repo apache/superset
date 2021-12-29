@@ -17,31 +17,27 @@
 import logging
 from abc import ABC, abstractmethod
 from secrets import token_urlsafe
-from typing import Dict, Optional
+from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
 
 logger = logging.getLogger(__name__)
 
 
 class CreateKeyValueCommand(BaseCommand, ABC):
-    def __init__(
-        self, actor: User, resource_id: int, value: str, args: Optional[Dict[str, str]]
-    ):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._value = value
+    def __init__(self, args: Args):
         self._args = args
 
     def run(self) -> Model:
         try:
             key = token_urlsafe(48)
-            self.create(self._actor, self._resource_id, key, self._value, self._args)
+            self._args["key"] = key
+            self.create(self._args)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
@@ -51,12 +47,5 @@ class CreateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def create(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
-    ) -> Optional[bool]:
+    def create(self, args: Args,) -> Optional[bool]:
         ...

@@ -20,7 +20,6 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app
 from superset.extensions import cache_manager
 from superset.key_value.commands.entry import Entry
 from superset.key_value.utils import cache_key

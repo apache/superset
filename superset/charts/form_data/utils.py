@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
-
-from flask_appbuilder.security.sqla.models import User
+from typing import Optional
 
 from superset import security_manager
 from superset.charts.commands.exceptions import (
@@ -29,16 +27,18 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
+from superset.key_value.commands.args import Args
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_access(
-    actor: User, resource_id: int, args: Optional[Dict[str, str]],
-) -> Optional[bool]:
+def check_access(args: Args,) -> Optional[bool]:
+    resource_id = args["resource_id"]
+    actor = args["actor"]
+    query_params = args["query_params"]
     if resource_id == 0:
         if args:
-            dataset_id = args.get("dataset_id")
+            dataset_id = query_params.get("dataset_id")
             if dataset_id:
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
                 if dataset:
@@ -47,19 +47,16 @@ def check_access(
                     )
                     if can_access_datasource:
                         return True
-                    else:
-                        raise DatasetAccessDeniedError()
+                    raise DatasetAccessDeniedError()
         raise DatasetNotFoundError()
-    else:
-        chart = ChartDAO.find_by_id(resource_id)
-        if chart:
-            can_access_chart = (
-                is_user_admin()
-                or is_owner(chart, actor)
-                or security_manager.can_access("can_write", "Chart")
-            )
-            if can_access_chart:
-                return True
-            else:
-                raise ChartAccessDeniedError()
-        raise ChartNotFoundError()
+    chart = ChartDAO.find_by_id(resource_id)
+    if chart:
+        can_access_chart = (
+            is_user_admin()
+            or is_owner(chart, actor)
+            or security_manager.can_access("can_write", "Chart")
+        )
+        if can_access_chart:
+            return True
+        raise ChartAccessDeniedError()
+    raise ChartNotFoundError()

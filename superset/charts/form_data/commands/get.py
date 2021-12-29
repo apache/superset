@@ -14,27 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
-
-from flask_appbuilder.security.sqla.models import User
+from typing import Optional
 
 from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.utils import cache_key
 
 
 class GetFormDataCommand(GetKeyValueCommand):
-    def get(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        refresh_timeout: bool,
-        args: Optional[Dict[str, str]],
-    ) -> Optional[str]:
-        check_access(actor, resource_id, args)
+    def get(self, args: Args,) -> Optional[str]:
+        resource_id = args["resource_id"]
+        key = args["key"]
+        refresh_timeout = args["refresh_timeout"]
+        check_access(args)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)
         )

@@ -14,13 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Optional
-
-from flask_appbuilder.security.sqla.models import User
+from typing import Optional
 
 from superset.charts.form_data.utils import check_access
-from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.commands.update import UpdateKeyValueCommand
@@ -28,15 +26,12 @@ from superset.key_value.utils import cache_key
 
 
 class UpdateFormDataCommand(UpdateKeyValueCommand):
-    def update(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
-    ) -> Optional[bool]:
-        check_access(actor, resource_id, args)
+    def update(self, args: Args,) -> Optional[bool]:
+        resource_id = args["resource_id"]
+        actor = args["actor"]
+        key = args["key"]
+        value = args["value"]
+        check_access(args)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)
         )
@@ -48,3 +43,4 @@ class UpdateFormDataCommand(UpdateKeyValueCommand):
             return cache_manager.chart_form_data_cache.set(
                 cache_key(resource_id, key), new_entry
             )
+        return False

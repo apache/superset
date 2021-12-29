@@ -16,13 +16,13 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
+from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueUpdateFailedError
 
 logger = logging.getLogger(__name__)
@@ -30,24 +30,13 @@ logger = logging.getLogger(__name__)
 
 class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
+        self, args: Args,
     ):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._key = key
-        self._value = value
         self._args = args
 
     def run(self) -> Model:
         try:
-            return self.update(
-                self._actor, self._resource_id, self._key, self._value, self._args
-            )
+            return self.update(self._args)
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
@@ -56,12 +45,5 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def update(
-        self,
-        actor: User,
-        resource_id: int,
-        key: str,
-        value: str,
-        args: Optional[Dict[str, str]],
-    ) -> Optional[bool]:
+    def update(self, args: Args,) -> Optional[bool]:
         ...
