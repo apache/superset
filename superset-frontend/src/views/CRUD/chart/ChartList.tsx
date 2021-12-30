@@ -49,7 +49,7 @@ import ListView, {
   SelectOption,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
-import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
@@ -164,7 +164,10 @@ function ChartList(props: ChartListProps) {
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const { userId } = props.user;
-  const userKey = getFromLocalStorage(userId?.toString(), null);
+  // TODO: Fix usage of localStorage keying on the user id
+  const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
+    thumbnails: boolean;
+  };
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -574,8 +577,8 @@ function ChartList(props: ChartListProps) {
       <ChartCard
         chart={chart}
         showThumbnails={
-          userKey
-            ? userKey.thumbnails
+          userSettings
+            ? userSettings.thumbnails
             : isFeatureEnabled(FeatureFlag.THUMBNAILS)
         }
         hasPerm={hasPerm}
@@ -680,8 +683,8 @@ function ChartList(props: ChartListProps) {
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
               showThumbnails={
-                userKey
-                  ? userKey.thumbnails
+                userSettings
+                  ? userSettings.thumbnails
                   : isFeatureEnabled(FeatureFlag.THUMBNAILS)
               }
               defaultViewMode={

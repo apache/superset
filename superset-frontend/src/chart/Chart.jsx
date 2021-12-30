@@ -51,6 +51,7 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  force: PropTypes.bool,
   isFiltersInitialized: PropTypes.bool,
   isDeactivatedViz: PropTypes.bool,
   // state
@@ -84,6 +85,7 @@ const defaultProps = {
   dashboardId: null,
   chartStackTrace: null,
   isDeactivatedViz: false,
+  force: false,
 };
 
 const Styles = styled.div`
@@ -143,7 +145,7 @@ class Chart extends React.PureComponent {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
         this.props.formData,
-        false,
+        this.props.force,
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
@@ -153,7 +155,7 @@ class Chart extends React.PureComponent {
       // Create chart with POST request
       this.props.actions.postChartFormData(
         this.props.formData,
-        false,
+        this.props.force,
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
