@@ -25,6 +25,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
@@ -63,7 +64,9 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         if target_type.upper() == utils.TemporalType.DATETIME:
             return f"""datetime({dttm.isoformat(timespec="seconds")})"""
         return None
@@ -76,7 +79,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
-        database: "Database",
+        database: Database,
         table_name: str,
         engine: Engine,
         schema: Optional[str] = None,

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Dict, Optional, Type
+from typing import Dict, Optional, Type, Any
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.db_engine_specs.exceptions import (
@@ -51,15 +51,18 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1M": "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
         "P0.25Y": "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
         "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
-        "1969-12-28T00:00:00Z/P1W": "DATEADD(day, -1, DATEADD(week, DATEDIFF(week, 0, {col}), 0))",
-        "1969-12-29T00:00:00Z/P1W": "DATEADD(week, DATEDIFF(week, 0, DATEADD(day, -1, {col})), 0)",
+        "1969-12-28T00:00:00Z/P1W":
+            "DATEADD(day, -1, DATEADD(week, DATEDIFF(week, 0, {col}), 0))",
+        "1969-12-29T00:00:00Z/P1W":
+            "DATEADD(week, DATEDIFF(week, 0, DATEADD(day, -1, {col})), 0)",
     }
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        import sqlalchemy_kusto.errors as kusto_exceptions  # pylint: disable=import-error
+        # pylint: disable=import-outside-toplevel
+        import sqlalchemy_kusto.errors as kusto_exceptions
 
         return {
             kusto_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
@@ -68,7 +71,9 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"CONVERT(DATE, '{dttm.date().isoformat()}', 23)"
