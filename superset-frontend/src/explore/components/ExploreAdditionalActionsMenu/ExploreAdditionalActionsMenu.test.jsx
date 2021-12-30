@@ -23,6 +23,7 @@ import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
+
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
