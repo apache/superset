@@ -37,7 +37,7 @@ import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
 import { initialState } from 'src/SqlLab/fixtures';
-import { nativeFiltersInfo } from '../../fixtures/mockNativeFilters';
+import { nativeFiltersInfo } from 'spec/fixtures/mockNativeFilters';
 
 describe('ChartHolder', () => {
   const props = {
