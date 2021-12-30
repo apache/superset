@@ -543,6 +543,8 @@ SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 
+CACHE_WARMUP_USER = THUMBNAIL_SELENIUM_USER
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------
@@ -1328,7 +1330,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        from superset_config import *  # pylint: disable=import-error,wildcard-import,unused-wildcard-import
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

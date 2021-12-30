@@ -17,19 +17,20 @@
 import json
 import logging
 from typing import Any, Dict, List, Optional, Union
-from urllib import request
-from urllib.error import URLError
 
+import requests
 from celery.utils.log import get_task_logger
 from sqlalchemy import and_, func
 
-from superset import app, db
+from superset import app, db, security_manager
 from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
+from superset.utils.celery import session_scope
 from superset.utils.date_parser import parse_human_datetime
+from superset.utils.machine_auth import MachineAuthProvider
 from superset.views.utils import build_extra_filters
 
 logger = get_task_logger(__name__)
@@ -80,7 +81,7 @@ def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str
             "{SUPERSET_WEBSERVER_ADDRESS}:"
             "{SUPERSET_WEBSERVER_PORT}".format(**app.config)
         )
-        return f"{baseurl}{chart.get_explore_url(overrides=extra_filters)}"
+        return f"{baseurl}/superset/warm_up_cache/?slice_id={chart.id}"
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
@@ -285,11 +286,18 @@ def cache_warmup(
     results: Dict[str, List[str]] = {"success": [], "errors": []}
     for url in strategy.get_urls():
         try:
+            cookies = {}
+            with session_scope(nullpool=True) as session:
+                user = security_manager.get_user_by_username(
+                    app.config.get("CACHE_WARMUP_USER"), session=session
+                )
+                cookies = MachineAuthProvider.get_auth_cookies(user)
+
             logger.info("Fetching %s", url)
-            request.urlopen(url)  # pylint: disable=consider-using-with
+            requests.get(url, cookies=cookies)  # pylint: disable=consider-using-with
             results["success"].append(url)
-        except URLError:
-            logger.exception("Error warming up cache!")
+        except requests.exceptions.RequestException as e:
+            logger.exception("Error warming up cache! ", e)
             results["errors"].append(url)
 
     return results
