@@ -21,8 +21,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Row } from 'antd';
-import { Menu, MenuMode } from 'src/common/components';
+import { Menu, MenuMode, Row } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.div`
