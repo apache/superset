@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-import traceback
 from datetime import datetime
 from typing import Dict, Optional, Type, List, Any
 
@@ -30,7 +28,6 @@ from superset.db_engine_specs.exceptions import (
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
-logger = logging.getLogger(__name__)
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     limit_method = LimitMethod.WRAP_SQL
@@ -107,11 +104,8 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
-        logger.info(f"KustoKQL Engine execute call {query}")
-        # traceback.print_stack()
         return super().execute(cursor, query, **kwargs)
 
     @classmethod
     def parse_sql(cls, sql: str) -> List[str]:
-        logger.info(f"parse_sql: Incoming sql: {sql}")
         return [sql]
