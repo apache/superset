@@ -543,7 +543,7 @@ SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 
-CACHE_WARMUP_USER = THUMBNAIL_SELENIUM_USER
+CACHE_WARMUP_USER = "admin"
 
 # ---------------------------------------------------
 # Image and file configuration
