@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Dict, Optional, Type, List, Any
+from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy.engine import Engine
 
