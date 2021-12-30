@@ -40,50 +40,44 @@ export type FunctionalRegistryState<RegistryT> = {
   registryKeys: string[];
 };
 
-export const registryGetAll = <RegistryT>({
-  registryKeys,
-  registry,
-}: FunctionalRegistryState<RegistryT>) => () =>
-  registryKeys.map(key => registry[key]);
+export const registryGetAll =
+  <RegistryT>({ registryKeys, registry }: FunctionalRegistryState<RegistryT>) =>
+  () =>
+    registryKeys.map(key => registry[key]);
 
-export const registryDelete = <RegistryT>({
-  registryKeys,
-  registry,
-}: FunctionalRegistryState<RegistryT>) => (keyToDelete: string) => {
-  // eslint-disable-next-line no-param-reassign
-  registryKeys = registryKeys.filter(key => key !== keyToDelete);
-  // eslint-disable-next-line no-param-reassign
-  delete registry[keyToDelete];
-};
-
-export const registryGet = <RegistryT>({
-  registry,
-}: FunctionalRegistryState<RegistryT>) => (key: string) => registry[key];
-
-export const registrySet = ({
-  registryKeys,
-  registry,
-}: FunctionalRegistryState<JsonObject>) => (key: string, item: JsonObject) => {
-  registryKeys.push(key);
-  // eslint-disable-next-line no-param-reassign
-  registry[key] = {
-    key,
-    ...item,
+export const registryDelete =
+  <RegistryT>({ registryKeys, registry }: FunctionalRegistryState<RegistryT>) =>
+  (keyToDelete: string) => {
+    // eslint-disable-next-line no-param-reassign
+    registryKeys = registryKeys.filter(key => key !== keyToDelete);
+    // eslint-disable-next-line no-param-reassign
+    delete registry[keyToDelete];
   };
-};
 
-export const registrySetComponent = ({
-  registryKeys,
-  registry,
-}: FunctionalRegistryState<ComponentRegistry>) => (
-  key: string,
-  item: ComponentItem,
-) => {
-  registryKeys.push(key);
-  // eslint-disable-next-line no-param-reassign
-  registry[key] = {
-    key,
-    metadata: item.metadata,
-    Component: React.lazy(item.loadComponent),
+export const registryGet =
+  <RegistryT>({ registry }: FunctionalRegistryState<RegistryT>) =>
+  (key: string) =>
+    registry[key];
+
+export const registrySet =
+  ({ registryKeys, registry }: FunctionalRegistryState<JsonObject>) =>
+  (key: string, item: JsonObject) => {
+    registryKeys.push(key);
+    // eslint-disable-next-line no-param-reassign
+    registry[key] = {
+      key,
+      ...item,
+    };
   };
-};
+
+export const registrySetComponent =
+  ({ registryKeys, registry }: FunctionalRegistryState<ComponentRegistry>) =>
+  (key: string, item: ComponentItem) => {
+    registryKeys.push(key);
+    // eslint-disable-next-line no-param-reassign
+    registry[key] = {
+      key,
+      metadata: item.metadata,
+      Component: React.lazy(item.loadComponent),
+    };
+  };
