@@ -18,9 +18,13 @@
  */
 import React from 'react';
 import { mount, shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('ExploreAdditionalActionsMenu', () => {
   const defaultProps = {
@@ -43,12 +47,15 @@ describe('ExploreAdditionalActionsMenu', () => {
     ).toBe(true);
   });
   it('renders a dropdown with 3 items', () => {
-    const wrapper = mount(<ExploreAdditionalActionsMenu {...defaultProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
+    const wrapper = mount(
+      <ExploreAdditionalActionsMenu store={store} {...defaultProps} />,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: {
+          theme: supersetTheme,
+        },
       },
-    });
+    );
     const dropdown = wrapper.find(Dropdown);
     const menu = shallow(<div>{dropdown.prop('overlay')}</div>);
     const menuItems = menu.find(Menu.Item);
