@@ -55,7 +55,8 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        import sqlalchemy_kusto.errors as kusto_exceptions  # pylint: disable=import-error
+        # pylint: disable=import-outside-toplevel,import-error
+        import sqlalchemy_kusto.errors as kusto_exceptions
 
         return {
             kusto_exceptions.DatabaseError: SupersetDBAPIDatabaseError,

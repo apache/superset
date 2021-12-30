@@ -29,7 +29,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
-import sqlparse
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
