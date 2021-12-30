@@ -18,9 +18,8 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -74,10 +73,6 @@ describe('ChartHolder', () => {
           <ChartHolderConnected {...props} {...overrideProps} />
         </DndProvider>
       </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: { theme: supersetTheme },
-      },
     );
     return wrapper;
   }
