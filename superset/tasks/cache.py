@@ -73,7 +73,7 @@ def get_form_data(
     return form_data
 
 
-def get_url(chart: Slice, extra_filters: Optional[Dict[str, Any]] = None) -> str:
+def get_url(chart: Slice) -> str:
     """Return external URL for warming up a given chart/table cache."""
     with app.test_request_context():
         baseurl = (
@@ -180,8 +180,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
         for dashboard in dashboards:
             for chart in dashboard.slices:
-                form_data_with_filters = get_form_data(chart.id, dashboard)
-                urls.append(get_url(chart, form_data_with_filters))
+                urls.append(get_url(chart))
 
         return urls
 
@@ -294,10 +293,10 @@ def cache_warmup(
                 cookies = MachineAuthProvider.get_auth_cookies(user)
 
             logger.info("Fetching %s", url)
-            requests.get(url, cookies=cookies)  # pylint: disable=consider-using-with
+            requests.get(url, cookies=cookies)
             results["success"].append(url)
-        except requests.exceptions.RequestException as e:
-            logger.exception("Error warming up cache! ", e)
+        except requests.exceptions.RequestException as exc:
+            logger.exception("Error warming up cache! %s", exc)
             results["errors"].append(url)
 
     return results
