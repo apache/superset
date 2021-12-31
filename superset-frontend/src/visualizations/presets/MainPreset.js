@@ -80,6 +80,7 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
+import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -164,6 +165,7 @@ export default class MainPreset extends Preset {
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
+        new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         ...experimentalplugins,
       ],
     });
