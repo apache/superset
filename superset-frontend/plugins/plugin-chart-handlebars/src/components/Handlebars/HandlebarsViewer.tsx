@@ -1,5 +1,6 @@
 import { SafeMarkdown } from '@superset-ui/core';
 import Handlebars from 'handlebars';
+import moment from 'moment';
 import React, { useMemo, useState } from 'react';
 
 export interface HandlebarsViewerProps {
@@ -24,3 +25,9 @@ export const HandlebarsViewer = ({
   }
   return <p>Loading...</p>;
 };
+
+//  usage: {{dateFormat my_date format="MMMM YYYY"}}
+Handlebars.registerHelper('dateFormat', function(context, block) {
+    var f = block.hash.format || "YYYY-MM-DD";
+    return moment(context).format(f);
+});
