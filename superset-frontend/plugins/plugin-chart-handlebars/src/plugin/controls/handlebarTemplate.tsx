@@ -13,7 +13,7 @@ interface HandlebarsCustomControlProps {
   value: string;
 }
 
-const HandlbarsTemplateControl = (
+const HandlebarsTemplateControl = (
   props: CustomControlConfig<HandlebarsCustomControlProps>,
 ) => {
   const val = String(
@@ -38,7 +38,7 @@ const HandlbarsTemplateControl = (
 };
 const handlebarsTemplateControlConfig: ControlConfig<any> = {
   ...sharedControls.entity,
-  type: HandlbarsTemplateControl,
+  type: HandlebarsTemplateControl,
   label: t('Handlebars Template'),
   description: t('A handlebars template that is applied to the data'),
   default: `<ul class="data_list">
@@ -54,7 +54,7 @@ const handlebarsTemplateControlConfig: ControlConfig<any> = {
   }),
 };
 
-export const HandlbarsTemplateControlSetItem: ControlSetItem = {
+export const HandlebarsTemplateControlSetItem: ControlSetItem = {
   name: 'handlebarsTemplate',
   config: handlebarsTemplateControlConfig,
 };

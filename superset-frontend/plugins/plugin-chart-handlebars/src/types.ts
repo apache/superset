@@ -31,7 +31,6 @@ export interface HandlebarsStylesProps {
 }
 
 interface HandlebarsCustomizeProps {
-  headerText: string;
   handlebarsTemplate?: string;
   styleTemplate?: string;
 }
@@ -53,7 +52,7 @@ export type HandlebarsQueryFormData = QueryFormData &
     order_desc?: boolean;
     table_timestamp_format?: string;
     emit_filter?: boolean;
-    granularity_sqla?: string;
+    granularitySqla?: string;
     time_grain_sqla?: TimeGranularity;
     column_config?: Record<string, ColumnConfig>;
   };

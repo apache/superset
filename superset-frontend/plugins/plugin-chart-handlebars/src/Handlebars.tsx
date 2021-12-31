@@ -67,7 +67,6 @@ export default function Handlebars(props: HandlebarsProps) {
 
   return (
     <Styles ref={rootElem} height={height} width={width}>
-      <h3>{props.headerText}</h3>
       <HandlebarsViewer data={{ data }} templateSource={templateSource} />
     </Styles>
   );

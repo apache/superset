@@ -25,7 +25,7 @@ import { addLocaleData, t } from '@superset-ui/core';
 import i18n from '../i18n';
 import { AllColumnsControlSetItem } from './controls/columns';
 import { GroupByControlSetItem } from './controls/groupBy';
-import { HandlbarsTemplateControlSetItem } from './controls/handlebarTemplate';
+import { HandlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
 import { IncludeTimeControlSetItem } from './controls/includeTime';
 import {
   RowLimitControlSetItem,
@@ -148,7 +148,7 @@ const config: ControlPanelConfig = {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        [HandlbarsTemplateControlSetItem],
+        [HandlebarsTemplateControlSetItem],
         [StyleControlSetItem],
       ],
     },

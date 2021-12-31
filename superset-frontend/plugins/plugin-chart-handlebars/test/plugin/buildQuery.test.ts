@@ -1,10 +1,11 @@
+import { HandlebarsQueryFormData } from '../../src/types';
 import buildQuery from '../../src/plugin/buildQuery';
 
 describe('Handlebars buildQuery', () => {
-  const formData = {
+  const formData: HandlebarsQueryFormData = {
     datasource: '5__table',
-    granularity_sqla: 'ds',
-    series: 'foo',
+    granularitySqla: 'ds',
+    groupby: ['foo'],
     viz_type: 'my_chart',
   };
 

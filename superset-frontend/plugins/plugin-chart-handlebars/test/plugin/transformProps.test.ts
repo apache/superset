@@ -1,18 +1,16 @@
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, QueryFormData } from '@superset-ui/core';
+import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
 describe('Handlebars tranformProps', () => {
-  const formData = {
+  const formData: HandlebarsQueryFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
-    granularity_sqla: 'ds',
+    granularitySqla: 'ds',
     metric: 'sum__num',
-    series: 'name',
-    boldText: true,
-    headerFontSize: 'xs',
-    headerText: 'my text',
+    groupby: ['name'],
   };
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<QueryFormData>({
     formData,
     width: 800,
     height: 600,
@@ -25,11 +23,9 @@ describe('Handlebars tranformProps', () => {
 
   it('should tranform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual({
+      formData,
       width: 800,
       height: 600,
-      boldText: true,
-      headerFontSize: 'xs',
-      headerText: 'my text',
       data: [
         { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
       ],
