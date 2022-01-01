@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import re
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
@@ -398,7 +399,11 @@ class BaseDatasource(
             ):
                 return datetime.utcfromtimestamp(value / 1000)
             if isinstance(value, str):
-                value = value.strip("\t\n ")
+                value = value.strip("\t\n")
+
+                quotes_value = re.findall(r"['|\"](.*?)['|\"]", value)
+                if len(quotes_value) == 1 and quotes_value[0] == value.strip("'\""):
+                    value = value.strip("'\"")
 
                 if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
