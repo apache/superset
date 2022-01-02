@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-handlebars.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-handlebars)
 
-This plugin provides Write a handlebars template to render the data for Superset.
+This plugin renders the data using a handlebars template.  
 
 ### Usage
 
