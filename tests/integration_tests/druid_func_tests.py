@@ -365,7 +365,7 @@ class TestDruidFunc(SupersetTestCase):
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
     def test_get_filters_keeps_values_if_not_between_in_quotes(self):
-        filtr = {"col": "A", "op": "in", "val": ['"a"b']}
+        filtr = {"col": "A", "op": "in", "val": ["'a'b"]}
         col = DruidColumn(column_name="A")
         column_dict = {"A": col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
