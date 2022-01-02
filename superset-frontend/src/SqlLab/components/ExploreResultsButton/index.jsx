@@ -278,14 +278,16 @@ function ExploreResultsButton(props) {
         buttonSize="small"
         onClick={props.onClick}
         disabled={!allowsSubquery}
-        tooltop={t('Explore the result set in the data exploration view')}
+        tooltip={t(
+          'Explore the result set in the data exploration viewwwwwwwwwwwwww',
+        )}
       >
         <InfoTooltipWithTrigger
           icon="line-chart"
           placement="top"
           label="explore"
         />{' '}
-        {t('Explore')}
+        {t('Jason')}
       </Button>
     </>
   );
