@@ -27,7 +27,7 @@ export const HandlebarsViewer = ({
 };
 
 //  usage: {{dateFormat my_date format="MMMM YYYY"}}
-Handlebars.registerHelper('dateFormat', function(context, block) {
-    var f = block.hash.format || "YYYY-MM-DD";
-    return moment(context).format(f);
+Handlebars.registerHelper('dateFormat', function (context, block) {
+  const f = block.hash.format || 'YYYY-MM-DD';
+  return moment(context).format(f);
 });

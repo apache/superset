@@ -25,7 +25,7 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       ...(sort_by_metric && { orderby: [[metric, false]] }),
-      ...(groupby && { groupby } )
+      ...(groupby && { groupby }),
     },
   ]);
 }
