@@ -105,7 +105,6 @@ const DynamicComponent: FC<FilterSummaryType> = ({
   };
 
   const { Component } = dashboardComponents.get(component.meta.componentKey);
-
   const dashboardData = useSelector<RootState, DashboardData>(
     ({ nativeFilters, dataMask }) => ({
       nativeFilters,
