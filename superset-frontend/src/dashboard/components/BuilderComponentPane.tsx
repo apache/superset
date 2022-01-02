@@ -95,40 +95,42 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                     ...style,
                     top: hasHeader ? withHeaderTopOffset : topOffset,
                   }}
-              >
-                <BuilderComponentPaneTabs
-                  id="tabs"
-                  className="tabs-components"
-                  data-test="dashboard-builder-component-pane-tabs-navigation"
                 >
-                  <Tabs.TabPane key={1} tab={t('Components')}>
-                    <NewTabs />
-                    <NewRow />
-                    <NewColumn />
-                    <NewHeader />
-                    <NewMarkdown />
-                    <NewDivider />
-                    {dashboardComponents
-                      .getAll()
-                      .map(({ key: componentKey, metadata }) => (
-                        <NewDynamicComponent
-                          metadata={metadata}
-                          componentKey={componentKey}
-                        />
-                      ))}
-                  </Tabs.TabPane>
-                  <Tabs.TabPane
-                    key={2}
-                    tab={t('Charts')}
-                    className="tab-charts"
+                  <BuilderComponentPaneTabs
+                    id="tabs"
+                    className="tabs-components"
+                    data-test="dashboard-builder-component-pane-tabs-navigation"
                   >
-                    <SliceAdder
-                      height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
-                    />
-                  </Tabs.TabPane>
-                </BuilderComponentPaneTabs>
-              </div>
-            );
+                    <Tabs.TabPane key={1} tab={t('Components')}>
+                      <NewTabs />
+                      <NewRow />
+                      <NewColumn />
+                      <NewHeader />
+                      <NewMarkdown />
+                      <NewDivider />
+                      {dashboardComponents
+                        .getAll()
+                        .map(({ key: componentKey, metadata }) => (
+                          <NewDynamicComponent
+                            metadata={metadata}
+                            componentKey={componentKey}
+                          />
+                        ))}
+                    </Tabs.TabPane>
+                    <Tabs.TabPane
+                      key={2}
+                      tab={t('Charts')}
+                      className="tab-charts"
+                    >
+                      <SliceAdder
+                        height={
+                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                        }
+                      />
+                    </Tabs.TabPane>
+                  </BuilderComponentPaneTabs>
+                </div>
+              );
             }}
           </Sticky>
         </StickyContainer>
