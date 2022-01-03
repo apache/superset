@@ -31,7 +31,7 @@ export default class ErrorBoundary extends React.Component<
   { error: Error | null; info: React.ErrorInfo | null }
 > {
   static defaultProps = {
-    onError: () => { },
+    onError: () => {},
     showMessage: true,
   };
 
