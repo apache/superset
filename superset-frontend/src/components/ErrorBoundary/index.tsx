@@ -17,27 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 
-const propTypes = {
-  children: PropTypes.node.isRequired,
-  onError: PropTypes.func,
-  showMessage: PropTypes.bool,
-};
-const defaultProps = {
-  onError: () => {},
-  showMessage: true,
-};
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  onError?: Function;
+  showMessage?: boolean;
+}
 
-export default class ErrorBoundary extends React.Component {
-  constructor(props) {
+export default class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  { error: Error | null; info: React.ErrorInfo | null }
+> {
+  static defaultProps = {
+    onError: () => { },
+    showMessage: true,
+  };
+
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { error: null, info: null };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     if (this.props.onError) this.props.onError(error, info);
     this.setState({ error, info });
   }
@@ -66,5 +69,3 @@ export default class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-ErrorBoundary.propTypes = propTypes;
-ErrorBoundary.defaultProps = defaultProps;

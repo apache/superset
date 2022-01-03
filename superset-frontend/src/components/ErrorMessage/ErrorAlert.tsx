@@ -55,7 +55,7 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
   }
 `;
 
-const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
+const ErrorModal = styled(Modal) <{ level: ErrorLevel }>`
   color: ${({ level, theme }) => theme.colors[level].dark2};
   overflow-wrap: break-word;
 
@@ -82,7 +82,7 @@ const LeftSideContent = styled.div`
 
 interface ErrorAlertProps {
   body: ReactNode;
-  copyText?: string;
+  copyText?: string | JSX.Element;
   level: ErrorLevel;
   source?: ErrorSource;
   subtitle: ReactNode;

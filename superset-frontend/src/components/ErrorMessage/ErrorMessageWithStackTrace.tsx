@@ -30,8 +30,8 @@ type Props = {
   error?: SupersetError;
   link?: string;
   subtitle?: React.ReactNode;
-  copyText?: string;
-  stackTrace?: string;
+  copyText?: string | JSX.Element;
+  stackTrace?: string | null;
   source?: ErrorSource;
 };
 
