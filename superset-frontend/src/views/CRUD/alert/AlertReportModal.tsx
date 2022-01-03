@@ -521,7 +521,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
-      selectedTabs,
+      extra: { selectedTabs },
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
       ),
@@ -1347,6 +1347,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </StyledRadioGroup>
               </div>
             )}
+            {currentAlert && currentAlert.dashboard?.value && (
+              <AlertsTabsSelection
+                id={currentAlert.dashboard?.value}
+                onSelect={setSelectedTabs}
+                selectedKeys={[]}
+              />
+            )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
@@ -1365,12 +1372,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               status={notificationAddState}
               onClick={onNotificationAdd}
             />
-            {currentAlert && currentAlert.dashboard?.value && (
-              <AlertsTabsSelection
-                id={currentAlert.dashboard?.value}
-                onSelect={setSelectedTabs}
-              />
-            )}
           </div>
         </div>
       </StyledSectionContainer>
