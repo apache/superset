@@ -143,6 +143,11 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION = True
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+# Same as above but the values are files
+configOverridesFiles:
+  # extend_timeout: extend_timeout.py
+  # enable_oauth: enable_oauth.py
+
 
 configMountPath: "/app/pythonpath"
 
@@ -208,7 +213,7 @@ supersetNode:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/docker-entrypoint.sh"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     redis_port: "6379"

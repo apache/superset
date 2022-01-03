@@ -143,3 +143,31 @@ test('detects if the error message is terminal or if it requires uses interventi
   isTerminal = hasTerminalValidation(passwordNeededErrors.errors);
   expect(isTerminal).toBe(false);
 });
+
+test('does not ask for password when the import type is wrong', () => {
+  const error = {
+    errors: [
+      {
+        message: 'Error importing database',
+        error_type: 'GENERIC_COMMAND_ERROR',
+        level: 'warning',
+        extra: {
+          'metadata.yaml': {
+            type: ['Must be equal to Database.'],
+          },
+          'databases/examples.yaml': {
+            _schema: ['Must provide a password for the database'],
+          },
+          issue_codes: [
+            {
+              code: 1010,
+              message:
+                'Issue 1010 - Superset encountered an error while running a command.',
+            },
+          ],
+        },
+      },
+    ],
+  };
+  expect(hasTerminalValidation(error.errors)).toBe(true);
+});

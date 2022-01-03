@@ -31,6 +31,7 @@ assists people when migrating to a new version.
 - [17290](https://github.com/apache/superset/pull/17290): Bumps pandas to `1.3.4` and pyarrow to `5.0.0`
 - [16660](https://github.com/apache/incubator-superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
 - [16711](https://github.com/apache/incubator-superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+- [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
 
 ### Potential Downtime
 
@@ -38,11 +39,13 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
   (init, load_examples and etc) require setting the FLASK_APP environment variable
   (which is set by default when .flaskenv is loaded)
+- [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 
 ### Deprecations
 
 ### Other
 
+- [17589](https://github.com/apache/incubator-superset/pull/17589): It is now possible to limit access to users' recent activity data by setting the `ENABLE_BROAD_ACTIVITY_ACCESS` config flag to false, or customizing the `raise_for_user_activity_access` method in the security manager.
 - [16809](https://github.com/apache/incubator-superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
 - [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
 

@@ -25,7 +25,7 @@ import {
   ChartDataProvider,
   SupersetClient,
 } from '@superset-ui/core';
-import { BigNumberChartPlugin as LegacyBigNumberPlugin } from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import LegacySankeyPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import LegacySunburstPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
@@ -46,7 +46,7 @@ const SUNBURST = sunburstFormData.viz_type;
 const WORD_CLOUD_LEGACY = wordCloudFormData.viz_type;
 const WORD_CLOUD = 'new_word_cloud';
 
-new LegacyBigNumberPlugin().configure({ key: BIG_NUMBER }).register();
+new BigNumberChartPlugin().configure({ key: BIG_NUMBER }).register();
 // eslint-disable-next-line
 new LegacySankeyPlugin().configure({ key: SANKEY }).register();
 // eslint-disable-next-line

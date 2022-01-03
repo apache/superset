@@ -16,5 +16,6 @@
     "storybook",
     "../**/src",
     "../../plugins/**/src",
+    "../../plugins/**/types",
   ]
 }

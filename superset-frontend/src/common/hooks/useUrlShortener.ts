@@ -23,9 +23,9 @@ export function useUrlShortener(url: string): Function {
   const [update, setUpdate] = useState(false);
   const [shortUrl, setShortUrl] = useState('');
 
-  async function getShortUrl() {
+  async function getShortUrl(urlOverride?: string) {
     if (update) {
-      const newShortUrl = await getShortUrlUtil(url);
+      const newShortUrl = await getShortUrlUtil(urlOverride || url);
       setShortUrl(newShortUrl);
       setUpdate(false);
       return newShortUrl;

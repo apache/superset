@@ -21,7 +21,6 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
@@ -30,6 +29,7 @@ from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.test_app import app
 

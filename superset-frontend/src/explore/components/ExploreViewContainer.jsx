@@ -32,8 +32,9 @@ import { usePrevious } from 'src/common/hooks/usePrevious';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import cx from 'classnames';
@@ -72,6 +73,7 @@ const propTypes = {
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.number.isRequired,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -183,11 +185,6 @@ function ExploreViewContainer(props) {
     ? `${props.forcedHeight}px`
     : `${windowSize.height - navHeight}px`;
 
-  const storageKeys = {
-    controlsWidth: 'controls_width',
-    dataSourceWidth: 'datasource_width',
-  };
-
   const defaultSidebarsWidth = {
     controls_width: 320,
     datasource_width: 300,
@@ -206,6 +203,8 @@ function ExploreViewContainer(props) {
         formData,
         props.standalone ? URL_PARAMS.standalone.name : null,
         false,
+        {},
+        props.force,
       );
 
       try {
@@ -224,7 +223,7 @@ function ExploreViewContainer(props) {
         );
       }
     },
-    [props.form_data, props.standalone],
+    [props.form_data, props.standalone, props.force],
   );
 
   const handlePopstate = useCallback(() => {
@@ -233,7 +232,7 @@ function ExploreViewContainer(props) {
       props.actions.setExploreControls(formData);
       props.actions.postChartFormData(
         formData,
-        false,
+        props.force,
         props.timeout,
         props.chart.id,
       );
@@ -455,12 +454,12 @@ function ExploreViewContainer(props) {
   }
 
   function getSidebarWidths(key) {
-    return getFromLocalStorage(key, defaultSidebarsWidth[key]);
+    return getItem(key, defaultSidebarsWidth[key]);
   }
 
   function setSidebarWidths(key, dimension) {
     const newDimension = Number(getSidebarWidths(key)) + dimension.width;
-    setInLocalStorage(key, newDimension);
+    setItem(key, newDimension);
   }
 
   if (props.standalone) {
@@ -504,13 +503,13 @@ function ExploreViewContainer(props) {
       )}
       <Resizable
         onResizeStop={(evt, direction, ref, d) =>
-          setSidebarWidths(storageKeys.dataSourceWidth, d)
+          setSidebarWidths(LocalStorageKeys.datasource_width, d)
         }
         defaultSize={{
-          width: getSidebarWidths(storageKeys.dataSourceWidth),
+          width: getSidebarWidths(LocalStorageKeys.datasource_width),
           height: '100%',
         }}
-        minWidth={defaultSidebarsWidth[storageKeys.dataSourceWidth]}
+        minWidth={defaultSidebarsWidth[LocalStorageKeys.datasource_width]}
         maxWidth="33%"
         enable={{ right: true }}
         className={
@@ -564,13 +563,13 @@ function ExploreViewContainer(props) {
       ) : null}
       <Resizable
         onResizeStop={(evt, direction, ref, d) =>
-          setSidebarWidths(storageKeys.controlsWidth, d)
+          setSidebarWidths(LocalStorageKeys.controls_width, d)
         }
         defaultSize={{
-          width: getSidebarWidths(storageKeys.controlsWidth),
+          width: getSidebarWidths(LocalStorageKeys.controls_width),
           height: '100%',
         }}
-        minWidth={defaultSidebarsWidth[storageKeys.controlsWidth]}
+        minWidth={defaultSidebarsWidth[LocalStorageKeys.controls_width]}
         maxWidth="33%"
         enable={{ right: true }}
         className="col-sm-3 explore-column controls-column"
@@ -643,6 +642,7 @@ function mapStateToProps(state) {
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,
     standalone: explore.standalone,
+    force: explore.force,
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
