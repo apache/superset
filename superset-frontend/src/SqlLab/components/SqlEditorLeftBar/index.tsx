@@ -48,11 +48,29 @@ import TableElement from '../TableElement';
 interface actionsTypes {
   queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
-  setDatabases: (databases: any) => object;
+  /*
+    Need to add:
+    addTable (X)
+    collapseTable (X)
+    expandTable (X)
+    queryEditorSetSchemaOptions (X)
+    queryEditorSetTableOptions (X)
+    resetState (X)
+  */
+
+  collapseTable: (table: object) => void;
+  expandTable: (table: object) => void;
+
+  // This came from /home/josue/superset/superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx
+  addTable: (queryEditor: any, value: any, schema: any) => void;
 
   // utilized the typing that TableSelector used for its props, which are the same functions for these two below
+  setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (schema?: string) => void;
+  queryEditorSetSchemaOptions: () => void;
+  queryEditorSetTableOptions: (options: Array<any>) => void;
+  resetState: () => void;
 }
 
 // my first attempt at actionTypes:
