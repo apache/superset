@@ -123,8 +123,8 @@ describe('EchartsTimeseries tranformProps', () => {
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 599616000001],
-                [new Date(599916000000), 599916000001],
+                [599616000000, 599616000001],
+                [599916000000, 599916000001],
               ],
               name: 'My Formula',
             }),

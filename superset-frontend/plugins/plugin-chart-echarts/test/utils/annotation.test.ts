@@ -18,8 +18,8 @@
  */
 import {
   AnnotationLayer,
+  AnnotationData,
   AnnotationOpacity,
-  AnnotationResult,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
@@ -126,7 +126,7 @@ describe('extractAnnotationLabels', () => {
         showLabel: true,
       },
     ];
-    const results: AnnotationResult = {
+    const results: AnnotationData = {
       'My Interval': {
         columns: ['col'],
         records: [{ col: 1 }],
@@ -161,8 +161,8 @@ describe('evalFormula', () => {
     ];
 
     expect(evalFormula(layer, data)).toEqual([
-      [new Date(0), 1],
-      [new Date(10), 11],
+      [0, 1],
+      [10, 11],
     ]);
   });
 
@@ -173,8 +173,8 @@ describe('evalFormula', () => {
     ];
 
     expect(evalFormula({ ...layer, value: 'y  = x* 2   -1' }, data)).toEqual([
-      [new Date(0), -1],
-      [new Date(10), 19],
+      [0, -1],
+      [10, 19],
     ]);
   });
 });
