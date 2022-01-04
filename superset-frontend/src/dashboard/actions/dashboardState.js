@@ -46,6 +46,7 @@ import {
   removeFilter,
   updateDirectPathToFilter,
 } from './dashboardFilters';
+import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -284,6 +285,12 @@ export function saveDashboardRequest(data, id, saveType) {
           dispatch({
             type: SET_CHART_CONFIG_COMPLETE,
             chartConfiguration: metadata.chart_configuration,
+          });
+        }
+        if (metadata.native_filter_configuration) {
+          dispatch({
+            type: SET_FILTER_CONFIG_COMPLETE,
+            filterConfig: metadata.native_filter_configuration,
           });
         }
       }

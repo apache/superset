@@ -303,7 +303,7 @@ class ReservedUrlParameters(str, Enum):
     @staticmethod
     def is_standalone_mode() -> Optional[bool]:
         standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
-        standalone: Optional[bool] = (
+        standalone: Optional[bool] = bool(
             standalone_param and standalone_param != "false" and standalone_param != "0"
         )
         return standalone

@@ -284,6 +284,7 @@ const config = {
   resolve: {
     modules: [APP_DIR, 'node_modules', ROOT_DIR],
     alias: {
+      // TODO: remove alias once React has been upgraaded to v. 17
       react: path.resolve('./node_modules/react'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
@@ -422,33 +423,20 @@ const config = {
 };
 
 // find all the symlinked plugins and use their source code for imports
-Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
+Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = `./node_modules/${pkg}/src`;
+  const dir = relativeDir.replace('file://', '');
+
   if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(
-      `[Superset External Plugin] Use symlink source for ${pkg} @ ${version}`,
+      `[Superset External Plugin] Use symlink source for ${pkg} @ ${dir}`,
     );
     // TODO: remove alias once React has been upgraaded to v. 17
-    config.resolve.alias[pkg] = path.resolve(
-      APP_DIR,
-      `node_modules/${pkg}/src`,
-    );
-  } else if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
-    console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${version}`);
-    // only allow exact match so imports like `@superset-ui/plugin-name/lib`
-    // and `@superset-ui/plugin-name/esm` can still work.
-    const pkgDirectory = pkg.split('/').pop();
-    if (/^(core|chart-controls)/.test(pkgDirectory)) {
-      config.resolve.alias[pkg] = path.resolve(
-        APP_DIR,
-        `packages/superset-ui-${pkgDirectory}/src`,
-      );
-    } else {
-      config.resolve.alias[pkg] = path.resolve(
-        APP_DIR,
-        `plugins/${pkgDirectory}/src`,
-      );
-    }
+    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
+  }
+  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+    console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
+    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
 });
 console.log(''); // pure cosmetic new line
