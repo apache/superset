@@ -18,20 +18,20 @@ from typing import Optional
 
 from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.commands.entry import Entry
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class CreateFormDataCommand(CreateKeyValueCommand):
-    def create(self, args: Args,) -> Optional[bool]:
-        resource_id = args["resource_id"]
-        actor = args["actor"]
-        key = args["key"]
-        value = args["value"]
+    def create(self, cmd_params: CommandParameters) -> bool:
+        resource_id = cmd_params["resource_id"]
+        actor = cmd_params["actor"]
+        key = cmd_params["key"]
+        value = cmd_params["value"]
         entry: Entry = {"owner": actor.get_user_id(), "value": value}
-        check_access(args)
+        check_access(cmd_params)
         return cache_manager.chart_form_data_cache.set(
             cache_key(resource_id, key), entry
         )

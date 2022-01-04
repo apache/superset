@@ -27,17 +27,17 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
-from superset.key_value.commands.args import Args
+from superset.key_value.commands.parameters import CommandParameters
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_access(args: Args,) -> Optional[bool]:
-    resource_id = args["resource_id"]
-    actor = args["actor"]
-    query_params = args["query_params"]
+def check_access(parameters: CommandParameters) -> Optional[bool]:
+    resource_id = parameters["resource_id"]
+    actor = parameters["actor"]
+    query_params = parameters["query_params"]
     if resource_id == 0:
-        if args:
+        if parameters:
             dataset_id = query_params.get("dataset_id")
             if dataset_id:
                 dataset = DatasetDAO.find_by_id(int(dataset_id))

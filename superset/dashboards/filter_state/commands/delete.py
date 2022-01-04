@@ -18,18 +18,18 @@ from typing import Optional
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.delete import DeleteKeyValueCommand
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class DeleteFilterStateCommand(DeleteKeyValueCommand):
-    def delete(self, args: Args) -> Optional[bool]:
-        resource_id = args["resource_id"]
-        actor = args["actor"]
-        key = args["key"]
+    def delete(self, cmd_params: CommandParameters) -> bool:
+        resource_id = cmd_params["resource_id"]
+        actor = cmd_params["actor"]
+        key = cmd_params["key"]
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
             entry: Entry = cache_manager.filter_state_cache.get(

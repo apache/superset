@@ -16,20 +16,23 @@
 # under the License.
 from typing import Optional
 
+from flask import current_app as app
+
 from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.get import GetKeyValueCommand
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class GetFormDataCommand(GetKeyValueCommand):
-    def get(self, args: Args,) -> Optional[str]:
-        resource_id = args["resource_id"]
-        key = args["key"]
-        refresh_timeout = args["refresh_timeout"]
-        check_access(args)
+    def get(self, cmd_params: CommandParameters) -> Optional[str]:
+        resource_id = cmd_params["resource_id"]
+        key = cmd_params["key"]
+        config = app.config["CHART_FORM_DATA_CACHE_CONFIG"]
+        refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        check_access(cmd_params)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)
         )

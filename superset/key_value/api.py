@@ -38,8 +38,8 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.exceptions import InvalidPayloadFormatError
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class KeyValueRestApi(BaseApi, ABC):
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            args: Args = {
+            args: CommandParameters = {
                 "actor": g.user,
                 "resource_id": pk,
                 "value": item["value"],
@@ -99,7 +99,7 @@ class KeyValueRestApi(BaseApi, ABC):
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            args: Args = {
+            args: CommandParameters = {
                 "actor": g.user,
                 "resource_id": pk,
                 "key": key,
@@ -124,7 +124,7 @@ class KeyValueRestApi(BaseApi, ABC):
 
     def get(self, pk: int, key: str) -> Response:
         try:
-            args: Args = {
+            args: CommandParameters = {
                 "actor": g.user,
                 "resource_id": pk,
                 "key": key,
@@ -146,7 +146,7 @@ class KeyValueRestApi(BaseApi, ABC):
 
     def delete(self, pk: int, key: str) -> Response:
         try:
-            args: Args = {
+            args: CommandParameters = {
                 "actor": g.user,
                 "resource_id": pk,
                 "key": key,

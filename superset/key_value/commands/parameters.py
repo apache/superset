@@ -20,10 +20,9 @@ from flask_appbuilder.security.sqla.models import User
 from typing_extensions import TypedDict
 
 
-class Args(TypedDict, total=False):
+class CommandParameters(TypedDict, total=False):
     actor: User
     resource_id: int
     key: str
     value: str
-    refresh_timeout: int
     query_params: Dict[str, str]

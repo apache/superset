@@ -23,21 +23,21 @@ from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class CreateKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, args: Args):
-        self._args = args
+    def __init__(self, cmd_params: CommandParameters):
+        self._parameters = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> str:
         try:
             key = token_urlsafe(48)
-            self._args["key"] = key
-            self.create(self._args)
+            self._parameters["key"] = key
+            self.create(self._parameters)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
@@ -47,5 +47,5 @@ class CreateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def create(self, args: Args,) -> Optional[bool]:
+    def create(self, cmd_params: CommandParameters) -> bool:
         ...

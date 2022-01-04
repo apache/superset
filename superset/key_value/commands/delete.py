@@ -22,19 +22,19 @@ from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueDeleteFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, args: Args):
-        self._args = args
+    def __init__(self, cmd_params: CommandParameters):
+        self._parameters = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> bool:
         try:
-            return self.delete(self._args)
+            return self.delete(self._parameters)
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
@@ -43,5 +43,5 @@ class DeleteKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def delete(self, args: Args) -> Optional[bool]:
+    def delete(self, cmd_params: CommandParameters) -> bool:
         ...

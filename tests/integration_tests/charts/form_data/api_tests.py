@@ -60,7 +60,7 @@ def admin_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id):
-    app.config["FILTER_STATE_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
+    app.config["CHART_FORM_DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
     cache_manager.init_app(app)
     entry: Entry = {"owner": admin_id, "value": value}
     cache_manager.chart_form_data_cache.set(cache_key(chart_id, key), entry)
@@ -137,7 +137,7 @@ def test_get_key_not_found(client, chart_id: int):
 
 def test_get_chart_not_found(client):
     login(client, "admin")
-    resp = client.get(f"api/v1/chart/{-1}/form_data/{key}/")
+    resp = client.get(f"api/v1/chart/-1/form_data/{key}/")
     assert resp.status_code == 404
 
 

@@ -22,21 +22,21 @@ from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.exceptions import KeyValueUpdateFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self, args: Args,
+        self, cmd_params: CommandParameters,
     ):
-        self._args = args
+        self._parameters = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> bool:
         try:
-            return self.update(self._args)
+            return self.update(self._parameters)
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
@@ -45,5 +45,5 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def update(self, args: Args,) -> Optional[bool]:
+    def update(self, cmd_params: CommandParameters) -> bool:
         ...

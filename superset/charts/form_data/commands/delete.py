@@ -18,19 +18,19 @@ from typing import Optional
 
 from superset.charts.form_data.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.args import Args
 from superset.key_value.commands.delete import DeleteKeyValueCommand
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class DeleteFormDataCommand(DeleteKeyValueCommand):
-    def delete(self, args: Args) -> Optional[bool]:
-        resource_id = args["resource_id"]
-        actor = args["actor"]
-        key = args["key"]
-        check_access(args)
+    def delete(self, cmd_params: CommandParameters) -> bool:
+        resource_id = cmd_params["resource_id"]
+        actor = cmd_params["actor"]
+        key = cmd_params["key"]
+        check_access(cmd_params)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)
         )
