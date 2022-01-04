@@ -30,9 +30,9 @@ export const pivotOperator: PostProcessingFactory<
   PostProcessingPivot | undefined
 > = (formData, queryObject) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  const { x_axis } = formData;
-  const index = !x_axis || queryObject.is_timeseries ? TIME_COLUMN : x_axis;
-  if (index && metricLabels.length) {
+  const { x_axis: xAxis } = formData;
+  if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
+    const index = !xAxis || queryObject.is_timeseries ? TIME_COLUMN : xAxis;
     if (isValidTimeCompare(formData, queryObject)) {
       return timeComparePivotOperator(formData, queryObject);
     }

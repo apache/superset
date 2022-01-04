@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  AnnotationStyle,
+  AnnotationType,
   ChartProps,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -32,6 +34,7 @@ describe('EchartsTimeseries tranformProps', () => {
     granularity_sqla: 'ds',
     metric: 'sum__num',
     groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
   };
   const queriesData = [
     {
@@ -61,15 +64,15 @@ describe('EchartsTimeseries tranformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 1],
-                [new Date(599916000000), 3],
+                [599616000000, 1],
+                [599916000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 2],
-                [new Date(599916000000), 4],
+                [599616000000, 2],
+                [599916000000, 4],
               ],
               name: 'New York',
             }),
@@ -82,10 +85,11 @@ describe('EchartsTimeseries tranformProps', () => {
   it('should add a formula annotation to viz', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
-      annotationType: 'FORMULA',
+      annotationType: AnnotationType.Formula,
       value: 'x+1',
-      style: 'solid',
+      style: AnnotationStyle.Solid,
       show: true,
+      showLabel: true,
     };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
@@ -105,15 +109,15 @@ describe('EchartsTimeseries tranformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 1],
-                [new Date(599916000000), 3],
+                [599616000000, 1],
+                [599916000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 2],
-                [new Date(599916000000), 4],
+                [599616000000, 2],
+                [599916000000, 4],
               ],
               name: 'New York',
             }),

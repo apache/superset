@@ -126,7 +126,7 @@ export function extractGroupbyLabel({
   groupby?: string[] | null;
   numberFormatter?: NumberFormatter;
   timeFormatter?: TimeFormatter;
-  coltypeMapping: Record<string, GenericDataType>;
+  coltypeMapping?: Record<string, GenericDataType>;
 }): string {
   return ensureIsArray(groupby)
     .map(val =>

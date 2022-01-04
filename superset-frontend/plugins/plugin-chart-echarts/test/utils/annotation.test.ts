@@ -88,6 +88,7 @@ describe('extractAnnotationLabels', () => {
         show: true,
         style: AnnotationStyle.Solid,
         value: 'sin(x)',
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Formula,
@@ -95,6 +96,7 @@ describe('extractAnnotationLabels', () => {
         show: false,
         style: AnnotationStyle.Solid,
         value: 'sin(2x)',
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Interval,
@@ -103,6 +105,7 @@ describe('extractAnnotationLabels', () => {
         show: true,
         style: AnnotationStyle.Solid,
         value: 1,
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Timeseries,
@@ -111,6 +114,7 @@ describe('extractAnnotationLabels', () => {
         style: AnnotationStyle.Dashed,
         sourceType: AnnotationSourceType.Line,
         value: 1,
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Timeseries,
@@ -119,6 +123,7 @@ describe('extractAnnotationLabels', () => {
         style: AnnotationStyle.Dashed,
         sourceType: AnnotationSourceType.Line,
         value: 1,
+        showLabel: true,
       },
     ];
     const results: AnnotationResult = {
@@ -147,6 +152,7 @@ describe('evalFormula', () => {
     show: true,
     style: AnnotationStyle.Solid,
     value: 'x+1',
+    showLabel: true,
   };
   it('Should evaluate a regular formula', () => {
     const data: TimeseriesDataRecord[] = [
