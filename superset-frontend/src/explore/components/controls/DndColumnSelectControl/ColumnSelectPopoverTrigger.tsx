@@ -17,12 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AdhocColumn,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { AdhocColumn, t } from '@superset-ui/core';
 import {
   ColumnMeta,
   isAdhocColumn,
