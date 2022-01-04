@@ -187,7 +187,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
   const metricLabel = getMetricLabel(metric);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn = CategoricalColorNamespace.getScale(
+    colorScheme as string,
+    undefined,
+    formData.sliceId,
+  );
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];

@@ -144,7 +144,11 @@ export default function transformProps(
 
   const { setDataMask = () => {} } = hooks;
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn = CategoricalColorNamespace.getScale(
+    colorScheme as string,
+    undefined,
+    formData.sliceId,
+  );
   const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData: PieSeriesOption[] = data.map(datum => {

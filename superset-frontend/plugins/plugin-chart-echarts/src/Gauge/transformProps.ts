@@ -110,7 +110,11 @@ export default function transformProps(
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const numberFormatter = getNumberFormatter(numberFormat);
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn = CategoricalColorNamespace.getScale(
+    colorScheme as string,
+    undefined,
+    formData.sliceId,
+  );
   const normalizer = maxVal;
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const axisLabels = range(minVal, maxVal, (maxVal - minVal) / splitNumber);

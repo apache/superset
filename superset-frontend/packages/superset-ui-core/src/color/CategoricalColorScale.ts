@@ -50,13 +50,21 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   forcedColors: ColorsLookup;
 
+  scaleValueMap: Map<string, number>;
+
+  chartId: number | undefined;
+
   /**
    * Constructor
    * @param {*} colors an array of colors
    * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(colors: string[], parentForcedColors?: ColorsLookup) {
+  constructor(
+    colors: string[],
+    parentForcedColors?: ColorsLookup,
+    chartId?: number,
+  ) {
     super((value: string) => this.getColor(value));
 
     this.colors = colors;
@@ -64,12 +72,24 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.scale.range(colors);
     this.parentForcedColors = parentForcedColors || {};
     this.forcedColors = {};
+    this.chartId = chartId;
+    this.scaleValueMap = new Map();
   }
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
 
-    getDefaultColorScale().scale(cleanedValue);
+    if (this.chartId) {
+      const defaultColorScale = getDefaultColorScale();
+      if (!defaultColorScale.scaleValueMap.has(cleanedValue)) {
+        defaultColorScale.scaleValueMap.set(cleanedValue, this.chartId);
+      } else if (
+        defaultColorScale.scaleValueMap.get(cleanedValue) !== this.chartId
+      ) {
+        // only set scale color when value that are shared more than two charts
+        defaultColorScale.scale(cleanedValue);
+      }
+    }
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];

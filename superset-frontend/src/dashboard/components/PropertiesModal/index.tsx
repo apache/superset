@@ -274,18 +274,26 @@ const PropertiesModal = ({
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
 
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        jsonMetadataObj.color_namespace || '',
-      );
-      const defaultColorScale = getDefaultColorScale();
-      const scale = categoricalNamespace.getScale(colorScheme);
-      const colorMap = defaultColorScale
-        .domain()
-        .reduce(
-          (res, name) => ({ ...res, [name.toString()]: scale(name) }),
-          {},
+      if (colorScheme) {
+        const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+          jsonMetadataObj.color_namespace || '',
         );
-      jsonMetadataObj.default_label_colors = colorMap;
+        const defaultColorScale = getDefaultColorScale();
+        const scale = categoricalNamespace.getScale(
+          colorScheme,
+          undefined,
+          true,
+        );
+        const colorMap = defaultColorScale
+          .domain()
+          .reduce(
+            (res, name) => ({ ...res, [name.toString()]: scale(name) }),
+            {},
+          );
+        jsonMetadataObj.shared_label_colors = colorMap;
+      } else {
+        jsonMetadataObj.shared_label_colors = undefined;
+      }
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }

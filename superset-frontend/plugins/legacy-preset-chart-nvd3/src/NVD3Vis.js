@@ -313,6 +313,7 @@ function nvd3Vis(element, props) {
     yAxis2ShowMinMax = false,
     yField,
     yIsLogScale,
+    sliceId,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -669,7 +670,7 @@ function nvd3Vis(element, props) {
         generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
       );
     } else if (vizType !== 'bullet') {
-      const colorFn = getScale(colorScheme);
+      const colorFn = getScale(colorScheme, undefined, sliceId);
       chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
     }
 

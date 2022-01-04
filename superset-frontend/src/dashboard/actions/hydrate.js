@@ -93,8 +93,8 @@ export const hydrateDashboard =
       //
     }
 
-    if (metadata?.default_label_colors) {
-      updateColorSchema(metadata, metadata?.default_label_colors);
+    if (metadata?.shared_label_colors) {
+      updateColorSchema(metadata, metadata?.shared_label_colors);
     }
 
     // Priming the color palette with user's label-color mapping provided in

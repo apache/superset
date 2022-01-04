@@ -48,8 +48,8 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
 
   categoricalNamespace.resetColors();
 
-  if (metadata?.default_label_colors) {
-    updateColorSchema(metadata, metadata?.default_label_colors);
+  if (metadata?.shared_label_colors) {
+    updateColorSchema(metadata, metadata?.shared_label_colors);
   }
 
   if (metadata?.label_colors) {

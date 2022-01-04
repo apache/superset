@@ -63,7 +63,11 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
   } = formData as BoxPlotQueryFormData;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn = CategoricalColorNamespace.getScale(
+    colorScheme as string,
+    undefined,
+    formData.sliceId,
+  );
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);

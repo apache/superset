@@ -132,7 +132,11 @@ export default function transformProps(
     ...formData,
   };
 
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn = CategoricalColorNamespace.getScale(
+    colorScheme as string,
+    undefined,
+    formData.sliceId,
+  );
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
     formatLabel({
