@@ -234,7 +234,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    onComparatorChange(event.target.value);
+    const { value } = event.target;
+    setComparator(value);
+    onComparatorChange(value);
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (

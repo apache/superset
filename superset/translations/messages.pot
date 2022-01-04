@@ -13138,7 +13138,7 @@ msgid ""
 msgstr ""
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
-msgid "Use the edit buttom to change this field"
+msgid "Use the edit button to change this field"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:176
