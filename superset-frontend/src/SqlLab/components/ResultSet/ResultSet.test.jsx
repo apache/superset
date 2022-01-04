@@ -23,6 +23,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import Alert from 'src/components/Alert';
+import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -63,6 +64,18 @@ const mockedProps = {
 };
 const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
 const runningQueryProps = { ...mockedProps, query: runningQuery };
+const fetchQueryProps = {
+  ...mockedProps,
+  query: {
+    dbId: 1,
+    cached: false,
+    ctas: false,
+    id: 'ryhHUZCGb',
+    progress: 100,
+    state: 'fetching',
+    startDttm: Date.now() - 500,
+  },
+};
 const cachedQueryProps = { ...mockedProps, query: cachedQuery };
 const failedQueryWithErrorMessageProps = {
   ...mockedProps,
@@ -175,6 +188,11 @@ test('should render stopped query', () => {
 });
 
 test('should render running/pending/fetching query', () => {
+  const wrapper = shallow(<ResultSet {...runningQueryProps} />);
+  expect(wrapper.find(ProgressBar)).toExist();
+});
+
+test('should render fetching w/ 100 progress query', () => {
   const wrapper = shallow(<ResultSet {...runningQueryProps} />);
   expect(wrapper.find(Loading)).toExist();
 });

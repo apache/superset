@@ -35,6 +35,7 @@ import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
@@ -801,6 +802,15 @@ export default class ResultSet extends React.PureComponent<
       }
     }
     let trackingUrl;
+    let progressBar;
+    if (query.progress > 0) {
+      progressBar = (
+        <ProgressBar
+          percent={parseInt(query.progress.toFixed(0), 10)}
+          striped
+        />
+      );
+    }
     if (query.trackingUrl) {
       trackingUrl = (
         <Button
@@ -815,15 +825,17 @@ export default class ResultSet extends React.PureComponent<
       query && query.extra && query.extra.progress
         ? query.extra.progress
         : null;
+
     return (
       <div style={LOADING_STYLES}>
-        <div>
-          <Loading position="normal" />
-        </div>
+        <div>{!progressBar && <Loading position="normal" />}</div>
+        {/* show loading bar whenever progress bar is completed but needs time to render */}
+        <div>{query.progress === 100 && <Loading position="normal" />}</div>
         <QueryStateLabel query={query} />
         <div>
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
+        <div>{query.progress !== 100 && progressBar}</div>
         <div>{trackingUrl}</div>
       </div>
     );
