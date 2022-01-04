@@ -137,31 +137,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return None
 
     @classmethod
-    def select_star(  # pylint: disable=too-many-arguments
-        cls,
-        database: Database,
-        table_name: str,
-        engine: Engine,
-        schema: Optional[str] = None,
-        limit: int = 100,
-        show_cols: bool = False,
-        indent: bool = True,
-        latest_partition: bool = True,
-        cols: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        return super().select_star(
-            database,
-            table_name,
-            engine,
-            None,  # sqlalchemy-kusto doesn't support schema for now
-            limit,
-            show_cols,
-            indent,
-            latest_partition,
-            cols,
-        )
-
-    @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """
             Pessimistic readonly, 100% sure statement won't mutate anything.
