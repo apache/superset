@@ -85,7 +85,6 @@ export default function getInitialState({
         functionNames: [],
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
-        remoteId: activeTab.remoteId,
         validationResult: {
           id: null,
           errors: [],
