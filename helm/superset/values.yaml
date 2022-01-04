@@ -25,6 +25,11 @@ replicaCount: 1
 # Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
+# Create custom service account for Superset. If create: true and name is not provided, superset.fullname will be used.
+# serviceAccountName: superset
+serviceAccount:
+  create: false
+
 # Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
 bootstrapScript: |

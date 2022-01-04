@@ -54,8 +54,8 @@ spec:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
-      {{- if .Values.serviceAccountName }}
-      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
