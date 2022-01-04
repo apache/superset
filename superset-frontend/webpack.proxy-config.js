@@ -21,7 +21,11 @@ const zlib = require('zlib');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const parsedArgs = require('yargs').argv;
 
-const { supersetPort = 8088, superset: supersetUrl = null } = parsedArgs;
+// system environment variables will override CLI arguments
+const { supersetPort = 8088, superset: supersetUrl = null } = {
+  ...parsedArgs,
+  ...process.env,
+};
 const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
   '',
