@@ -77,7 +77,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         response = self.client.post(self.uri)
         self.assert403(response)
 
-    def test_post_embed_token_authorized(self):
+    def test_post_guest_token_authorized(self):
         self.login(username="admin")
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
         resource = {"type": "dashboard", "id": "blah", "rls": "1 = 1"}
@@ -92,3 +92,9 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
 
         self.assertEqual(user, decoded_token["user"])
         self.assertEqual(resource, decoded_token["resources"][0])
+
+    def test_post_guest_token_multiple_resources(self):
+        ...
+
+    def test_post_guest_token_rls(self):
+        ...

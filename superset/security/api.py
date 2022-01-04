@@ -14,35 +14,62 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import logging
+from enum import Enum
+from typing import Any, Dict
 
 from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import BaseApi, safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
-from marshmallow import fields, Schema, ValidationError
+from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.extensions import event_logger
+from superset.security.guest_token import GuestTokenResourceType
 
 logger = logging.getLogger(__name__)
 
 
-class UserSchema(Schema):
+class PermissiveSchema(Schema):
+    """
+    A marshmallow schema that ignores unexpected fields, instead of throwing an error.
+    """
+
+    class Meta:
+        unknown = EXCLUDE
+
+
+class UserSchema(PermissiveSchema):
     username = fields.String()
     first_name = fields.String()
     last_name = fields.String()
 
 
-class ResourceSchema(Schema):
-    type = fields.String(required=True)  # todo figure out how to make this an enum
+class ResourceSchema(PermissiveSchema):
+    type = EnumField(GuestTokenResourceType, by_value=True, required=True)
     id = fields.String(required=True)
-    rls = fields.String()
+
+    @post_load
+    def convert_enum_to_value(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        # we don't care about the enum, we want the value inside
+        data["type"] = data["type"].value
+        return data
 
 
-class GuestTokenCreateSchema(Schema):
+class RlsRuleSchema(PermissiveSchema):
+    dataset = fields.Integer(required=True)  # todo make this optional when possible
+    clause = fields.String(required=True)  # todo other options?
+
+
+class GuestTokenCreateSchema(PermissiveSchema):
     user = fields.Nested(UserSchema)
-    resource = fields.Nested(ResourceSchema, required=True)
+    resources = fields.List(fields.Nested(ResourceSchema), required=True)
+    rls = fields.List(fields.Nested(RlsRuleSchema), required=True)
 
 
 guest_token_create_schema = GuestTokenCreateSchema()
@@ -117,12 +144,12 @@ class SecurityRestApi(BaseApi):
         """
         try:
             body = guest_token_create_schema.load(request.json)
-            # validate stuff:
-            # make sure the resource id is valid
+            # todo validate stuff:
+            # make sure the resource ids are valid
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
-                body["user"], [body["resource"]]
+                body["user"], body["resources"], body["rls"]
             )
             return self.response(200, token=token)
         except ValidationError as error:

@@ -34,10 +34,14 @@ class GuestTokenResourceType(Enum):
 class GuestTokenResource(TypedDict):
     type: GuestTokenResourceType
     id: Union[str, int]
-    rls: Optional[str]
 
 
 GuestTokenResources = List[GuestTokenResource]
+
+
+class GuestTokenRlsRule(TypedDict):
+    dataset: str
+    clause: str
 
 
 class GuestToken(TypedDict):
@@ -45,6 +49,7 @@ class GuestToken(TypedDict):
     exp: float
     user: GuestTokenUser
     resources: GuestTokenResources
+    rls_rules: List[GuestTokenRlsRule]
 
 
 class GuestUser(AnonymousUserMixin):
@@ -79,3 +84,4 @@ class GuestUser(AnonymousUserMixin):
         self.last_name = user.get("last_name", "User")
         self.roles = roles
         self.resources = token["resources"]
+        self.rls = token["rls_rules"]
