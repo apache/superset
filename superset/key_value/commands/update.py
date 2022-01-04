@@ -16,9 +16,7 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand

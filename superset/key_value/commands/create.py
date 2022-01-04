@@ -17,9 +17,7 @@
 import logging
 from abc import ABC, abstractmethod
 from secrets import token_urlsafe
-from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
