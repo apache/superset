@@ -130,7 +130,9 @@ export default function EchartsTimeseries({
       }
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
-        const { seriesName: name } = props;
+        const { seriesName: name, value } = props;
+        const xValue = value[0].getTime?.() || value[0];
+        console.log(xValue);
         const values = Object.values(selectedValues);
         if (values.includes(name)) {
           handleChange(values.filter(v => v !== name));

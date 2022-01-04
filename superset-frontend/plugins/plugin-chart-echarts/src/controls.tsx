@@ -136,9 +136,27 @@ const onlyTotalControl = {
   },
 };
 
+export const xAxisControl = {
+  name: 'x_axis',
+  config: {
+    ...sharedControls.groupby,
+    label: t('X-axis'),
+    default: null,
+    multi: false,
+    description: t(
+      'Dimension to use on x-axis. Leave blank to default to temporal column.',
+    ),
+  },
+};
+
 export const showValueSection = [
   [showValueControl],
   [stackControl],
+  [onlyTotalControl],
+];
+
+export const showValueSectionWithoutStack = [
+  [showValueControl],
   [onlyTotalControl],
 ];
 

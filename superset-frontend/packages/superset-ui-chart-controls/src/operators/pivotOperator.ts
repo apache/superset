@@ -30,7 +30,9 @@ export const pivotOperator: PostProcessingFactory<
   PostProcessingPivot | undefined
 > = (formData, queryObject) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  if (queryObject.is_timeseries && metricLabels.length) {
+  const { x_axis } = formData;
+  const index = !x_axis || queryObject.is_timeseries ? TIME_COLUMN : x_axis;
+  if (index && metricLabels.length) {
     if (isValidTimeCompare(formData, queryObject)) {
       return timeComparePivotOperator(formData, queryObject);
     }
@@ -38,7 +40,7 @@ export const pivotOperator: PostProcessingFactory<
     return {
       operation: 'pivot',
       options: {
-        index: [TIME_COLUMN],
+        index: [index],
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231
