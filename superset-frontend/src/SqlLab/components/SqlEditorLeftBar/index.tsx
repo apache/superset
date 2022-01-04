@@ -125,14 +125,14 @@ const collapseStyles = css`
 `;
 
 export default function SqlEditorLeftBar({
-  actions = {},
+  actions = {} as actionsTypes,
   database,
   height = 500,
   queryEditor,
   tables: tb = [],
   offline = false,
 }: propTypes) {
-  const onDbChange = db => {
+  const onDbChange = (db: object) => {
     actions.queryEditorSetDb(queryEditor, db.id);
     actions.queryEditorSetFunctionNames(queryEditor, db.id);
   };
@@ -143,7 +143,7 @@ export default function SqlEditorLeftBar({
     }
   };
 
-  const onToggleTable = tables => {
+  const onToggleTable = (tables: object[]) => {
     tb.forEach(table => {
       if (!tables.includes(table.id.toString()) && table.expanded) {
         actions.collapseTable(table);
