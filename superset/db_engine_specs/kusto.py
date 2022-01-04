@@ -137,11 +137,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return None
 
     @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return not parsed_query.sql.startswith(".")
-
-    @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
@@ -158,7 +153,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             database,
             table_name,
             engine,
-            None,
+            None,  # sqlalchemy-kusto doesn't support schema for now
             limit,
             show_cols,
             indent,
@@ -167,13 +162,23 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         )
 
     @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+            Pessimistic readonly, 100% sure statement won't mutate anything.
+
+            There are exists command-queries that start with "." (dot)
+            that are read-only too, but we do not support it for now.
+        """
+        return not parsed_query.sql.startswith(".")
+
+    @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
         return not parsed_query.sql.startswith(".")
 
     @classmethod
-    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
-        return super().execute(cursor, query, **kwargs)
-
-    @classmethod
     def parse_sql(cls, sql: str) -> List[str]:
+        """
+        Kusto supports a single query statement, but it could include sub queries
+        and variables declared via let keyword.
+        """
         return [sql]
