@@ -64,7 +64,7 @@ const mockedProps = {
 };
 const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
 const runningQueryProps = { ...mockedProps, query: runningQuery };
-const fetchQueryProps = {
+const fetchingQueryProps = {
   ...mockedProps,
   query: {
     dbId: 1,
@@ -193,7 +193,7 @@ test('should render running/pending/fetching query', () => {
 });
 
 test('should render fetching w/ 100 progress query', () => {
-  const wrapper = shallow(<ResultSet {...runningQueryProps} />);
+  const wrapper = shallow(<ResultSet {...fetchingQueryProps} />);
   expect(wrapper.find(Loading)).toExist();
 });
 
