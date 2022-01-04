@@ -69,7 +69,6 @@ export type Query = {
   queryLimit: number;
   limitingFactor: string;
 };
-
 export interface QueryEditor {
   dbId?: number;
   title: string;

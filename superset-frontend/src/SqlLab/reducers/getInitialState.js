@@ -29,9 +29,6 @@ export default function getInitialState({
   requested_query: requestedQuery,
   user,
 }) {
-  console.log('this is queries');
-  console.log(activeTab);
-  console.log(requestedQuery);
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
    * browser's localStorage. The feature flag `SQLLAB_BACKEND_PERSISTENCE`
@@ -70,7 +67,6 @@ export default function getInitialState({
    * Load state from the backend. This will be empty if the feature flag
    * `SQLLAB_BACKEND_PERSISTENCE` is off.
    */
-  console.log(activeTab);
   tabStateIds.forEach(({ id, label }) => {
     let queryEditor;
     if (activeTab && activeTab.id === id) {
@@ -83,6 +79,7 @@ export default function getInitialState({
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
+        remoteId: activeTab.saved_query?.id,
         autorun: activeTab.autorun,
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,

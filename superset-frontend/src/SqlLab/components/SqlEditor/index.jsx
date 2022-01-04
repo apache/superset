@@ -594,10 +594,10 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
-  saveQuery(query) {
-    const { queryEditor: qe } = this.props;
-    this.props.actions.saveQuery(query);
-    this.props.action.addSavedQueryToTabState(qe, query);
+  async saveQuery(query) {
+    const { queryEditor: qe, actions } = this.props;
+    const savedQuery = await actions.saveQuery(query);
+    actions.addSavedQueryToTabState(qe, savedQuery);
   }
 
   renderEditorBottomBar() {
