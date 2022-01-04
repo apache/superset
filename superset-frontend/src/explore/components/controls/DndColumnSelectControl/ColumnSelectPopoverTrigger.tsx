@@ -47,8 +47,6 @@ interface ColumnSelectPopoverTriggerProps {
 const defaultPopoverLabel = t('My column');
 const editableTitleTab = 'sqlExpression';
 
-const isAdhocColumnsEnabled = isFeatureEnabled(FeatureFlag.UX_BETA);
-
 const ColumnSelectPopoverTrigger = ({
   columns,
   editedColumn,
@@ -109,7 +107,6 @@ const ColumnSelectPopoverTrigger = ({
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
-          isAdhocColumnsEnabled={isAdhocColumnsEnabled}
         />
       </ExplorePopoverContent>
     ),
@@ -148,7 +145,7 @@ const ColumnSelectPopoverTrigger = ({
       defaultVisible={visible}
       visible={visible}
       onVisibleChange={handleTogglePopover}
-      title={isAdhocColumnsEnabled && popoverTitle}
+      title={popoverTitle}
       destroyTooltipOnHide
     >
       {children}
