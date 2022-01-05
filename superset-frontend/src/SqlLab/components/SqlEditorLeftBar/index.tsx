@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { t, styled, css } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -25,6 +24,7 @@ import Icons from 'src/components/Icons';
 import TableSelector from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 import TableElement from '../TableElement';
 
 // const propTypes = {
@@ -58,8 +58,8 @@ interface actionsTypes {
     resetState (X)
   */
 
-  collapseTable: (table: object) => void;
-  expandTable: (table: object) => void;
+  collapseTable: (table: tableType) => void;
+  expandTable: (table: tableType) => void;
 
   // This came from /home/josue/superset/superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx
   addTable: (queryEditor: any, value: any, schema: any) => void;
@@ -82,12 +82,21 @@ interface actionsTypes {
 //   queryEditorSetSchema: (queryEditor: QueryEditor, schema: any) => void;
 // }
 
+type tableType = {
+  id: number;
+  expanded: boolean;
+};
+
+type dbType = {
+  id: number;
+};
+
 interface propTypes {
   queryEditor: QueryEditor;
   height: number;
-  tables: Array<object>;
+  tables: tableType[] | [];
   actions: actionsTypes;
-  database: object;
+  database: DatabaseObject;
   offline: boolean;
 }
 
@@ -125,35 +134,37 @@ const collapseStyles = css`
 `;
 
 export default function SqlEditorLeftBar({
-  actions = {} as actionsTypes,
+  actions,
   database,
   height = 500,
   queryEditor,
-  tables: tb = [],
-  offline = false,
+  tables = [],
 }: propTypes) {
-  const onDbChange = (db: object) => {
+  const onDbChange = (db: dbType) => {
     actions.queryEditorSetDb(queryEditor, db.id);
     actions.queryEditorSetFunctionNames(queryEditor, db.id);
   };
 
-  const onTableChange = (tableName, schemaName) => {
+  const onTableChange = (tableName: string, schemaName: string) => {
     if (tableName && schemaName) {
       actions.addTable(queryEditor, tableName, schemaName);
     }
   };
 
-  const onToggleTable = (tables: object[]) => {
-    tb.forEach(table => {
-      if (!tables.includes(table.id.toString()) && table.expanded) {
+  const onToggleTable = (updatedTables: string[]) => {
+    tables.forEach((table: tableType) => {
+      if (!updatedTables.includes(table.id.toString()) && table.expanded) {
         actions.collapseTable(table);
-      } else if (tables.includes(table.id.toString()) && !table.expanded) {
+      } else if (
+        updatedTables.includes(table.id.toString()) &&
+        !table.expanded
+      ) {
         actions.expandTable(table);
       }
     });
   };
 
-  const renderExpandIconWithTooltip = ({ isActive }) => (
+  const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
     <IconTooltip
       css={css`
         transform: rotate(90deg);
@@ -199,7 +210,7 @@ export default function SqlEditorLeftBar({
           contentHeight={tableMetaDataHeight}
         >
           <Collapse
-            activeKey={tb
+            activeKey={tables
               .filter(({ expanded }) => expanded)
               .map(({ id }) => id)}
             css={collapseStyles}
@@ -208,7 +219,7 @@ export default function SqlEditorLeftBar({
             onChange={onToggleTable}
             expandIcon={renderExpandIconWithTooltip}
           >
-            {tb.map(table => (
+            {tables.map(table => (
               <TableElement table={table} key={table.id} actions={actions} />
             ))}
           </Collapse>
