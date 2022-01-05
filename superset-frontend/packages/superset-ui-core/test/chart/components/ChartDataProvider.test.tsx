@@ -21,7 +21,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import ChartClient from '@superset-ui/core/src/chart/clients/ChartClient';
 import ChartDataProvider, {
-  Props,
+  ChartDataProviderProps,
 } from '@superset-ui/core/src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
@@ -70,12 +70,12 @@ describe('ChartDataProvider', () => {
     mockLoadQueryData.mockClear();
   });
 
-  const props: Props = {
+  const props: ChartDataProviderProps = {
     formData: { ...bigNumberFormData },
     children: () => <div />,
   };
 
-  function setup(overrideProps?: Partial<Props>) {
+  function setup(overrideProps?: Partial<ChartDataProviderProps>) {
     return shallow(<ChartDataProvider {...props} {...overrideProps} />);
   }
 

@@ -282,10 +282,10 @@ const config = {
     minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
-    modules: [APP_DIR, 'node_modules', ROOT_DIR],
+    modules: ['node_modules', APP_DIR],
     alias: {
       // TODO: remove alias once React has been upgraaded to v. 17
-      react: path.resolve('./node_modules/react'),
+      react: path.resolve(path.join(APP_DIR, './node_modules/react')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -411,6 +411,10 @@ const config = {
         include: ROOT_DIR,
         loader: 'js-yaml-loader',
       },
+      {
+        test: /\.geojson$/,
+        type: 'asset/resource',
+      },
     ],
   },
   externals: {
@@ -424,7 +428,7 @@ const config = {
 
 // find all the symlinked plugins and use their source code for imports
 Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
-  const srcPath = `./node_modules/${pkg}/src`;
+  const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file://', '');
 
   if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
