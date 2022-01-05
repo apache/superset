@@ -22,3 +22,4 @@ sasl==0.3.1
 aiohttp>=3.7.4
 typing-extensions==4.0.1
 wrapt==1.12.1
+cryptography==3.4.7
