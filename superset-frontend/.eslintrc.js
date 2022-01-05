@@ -42,6 +42,7 @@ module.exports = {
     'prettier',
     'prettier/react',
     'plugin:react-hooks/recommended',
+    'plugin:react-prefer-function-component/recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -73,6 +74,7 @@ module.exports = {
     'file-progress',
     'theme-colors',
     'translation-vars',
+    'react-prefer-function-component',
   ],
   overrides: [
     {
@@ -84,8 +86,14 @@ module.exports = {
         'prettier',
         'prettier/@typescript-eslint',
         'prettier/react',
+        'plugin:react-prefer-function-component/recommended',
       ],
-      plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
+      plugins: [
+        '@typescript-eslint/eslint-plugin',
+        'prettier',
+        'react',
+        'react-prefer-function-component',
+      ],
       rules: {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
@@ -131,6 +139,7 @@ module.exports = {
         'padded-blocks': 0,
         'prefer-arrow-callback': 0,
         'prefer-destructuring': ['error', { object: true, array: false }],
+        'react-prefer-function-component/react-prefer-function-component': 1,
         'react/destructuring-assignment': 0, // re-enable up for discussion
         'react/forbid-prop-types': 0,
         'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
@@ -271,6 +280,7 @@ module.exports = {
     'no-shadow': 0, // re-enable up for discussion
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
+    'react-prefer-function-component/react-prefer-function-component': 1,
     'prefer-object-spread': 1,
     'prefer-destructuring': ['error', { object: true, array: false }],
     'react/destructuring-assignment': 0, // re-enable up for discussion
