@@ -34,6 +34,10 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   height: 40px;
 }
 
+.navbar-sidebar__brand {
+  padding-left: 0;
+}
+
 .menu,
 .navbar {
   font-size: 14px;
