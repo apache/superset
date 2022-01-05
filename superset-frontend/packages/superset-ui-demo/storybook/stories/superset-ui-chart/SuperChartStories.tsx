@@ -24,7 +24,7 @@ import {
   DiligentChartPlugin,
   BuggyChartPlugin,
   ChartKeys,
-} from '@superset-ui/core/test/chart/components/MockChartPlugins';
+} from '../../../../superset-ui-core/test/chart/components/MockChartPlugins';
 import ResizableChartDemo from '../../shared/components/ResizableChartDemo';
 
 new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }).register();

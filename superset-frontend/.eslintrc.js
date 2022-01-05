@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 const packageConfig = require('./package');
 
 const importCoreModules = [];
@@ -26,7 +25,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   }
 });
 
-// ignore files when running ForkTsCheckerWebpackPlugin
+// ignore files in production mode
 let ignorePatterns = [];
 if (process.env.NODE_ENV === 'production') {
   ignorePatterns = [
@@ -52,12 +51,14 @@ module.exports = {
   },
   env: {
     browser: true,
+    node: true,
   },
   settings: {
     'import/resolver': {
-      webpack: {},
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
+        moduleDirectory: ['node_modules', '.'],
       },
     },
     // Allow only core/src and core/test, avoid import modules from lib
@@ -69,24 +70,6 @@ module.exports = {
   },
   plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
-    {
-      files: ['cypress-base/**/*'],
-      rules: {
-        'import/no-unresolved': 0,
-        'global-require': 0,
-      },
-    },
-    {
-      files: ['webpack*.js'],
-      env: {
-        node: true,
-      },
-      settings: {
-        'import/resolver': {
-          node: {},
-        },
-      },
-    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -136,24 +119,6 @@ module.exports = {
         'no-nested-ternary': 0,
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
-        'no-restricted-imports': [
-          'warn',
-          {
-            paths: [
-              {
-                name: 'antd',
-                message:
-                  'Please import Ant components from the index of common/components',
-              },
-              {
-                name: '@superset-ui/core',
-                importNames: ['supersetTheme'],
-                message:
-                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
-              },
-            ],
-          },
-        ],
         'no-shadow': 0, // re-enable up for discussion
         'no-use-before-define': 0, // disabled temporarily
         'padded-blocks': 0,
@@ -178,23 +143,11 @@ module.exports = {
       },
       settings: {
         'import/resolver': {
-          webpack: {},
           typescript: {},
         },
         react: {
           version: 'detect',
         },
-      },
-    },
-    {
-      files: ['*.stories.jsx', '*.stories.tsx'],
-      rules: {
-        // this is to keep eslint from complaining about storybook addons,
-        // since they are included as dev dependencies rather than direct dependencies.
-        'import/no-extraneous-dependencies': [
-          'error',
-          { devDependencies: true },
-        ],
       },
     },
     {
@@ -239,15 +192,6 @@ module.exports = {
         'jest-dom/prefer-to-have-style': 0,
       },
     },
-    {
-      files: './packages/generator-superset/**/*.test.*',
-      env: {
-        node: true,
-      },
-      rules: {
-        'jest/expect-expect': 0,
-      },
-    },
   ],
   rules: {
     camelcase: [
@@ -287,13 +231,19 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'error',
+      'warn',
       {
         paths: [
           {
             name: 'antd',
             message:
               'Please import Ant components from the index of common/components',
+          },
+          {
+            name: '@superset-ui/core',
+            importNames: ['supersetTheme'],
+            message:
+              'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
           },
         ],
       },

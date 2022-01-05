@@ -31,7 +31,7 @@ describe('createLoadableRenderer', () => {
   let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
   let render: (loaded: { Chart: React.ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
-  let LoadableRenderer: LoadableRendererType<{}, {}>;
+  let LoadableRenderer: LoadableRendererType<{}>;
   let restoreConsole: RestoreConsole;
 
   beforeEach(() => {

@@ -41,6 +41,7 @@ class ReportSchedule(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     type = sa.Column(sa.String(50), nullable=False)
     force_screenshot = sa.Column(sa.Boolean, default=False)
+    chart_id = sa.Column(sa.Integer, nullable=True)
 
 
 def upgrade():
