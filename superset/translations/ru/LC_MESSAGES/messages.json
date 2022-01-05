@@ -4,7 +4,7 @@
     "superset": {
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=1; plural=0;",
+        "plural_forms": "nplurals=1; plural=0",
         "lang": "ru"
       },
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
@@ -18,9 +18,6 @@
       ],
       "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
         "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в Superset>\n        "
-      ],
-      "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
-        "\n                Фильтр был наследован из контекста дашборда.\n                Это не будет сохранено при сохранении графика.\n              "
       ],
       " (excluded)": [" (исключено)"],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
@@ -1125,16 +1122,19 @@
       ],
       "Database does not allow data manipulation.": [""],
       "Database does not exist": ["База данных не существует"],
+      "Database does not support subqueries": ["БД не поддерживает подзапросы"],
       "Database error": ["Database Expression"],
+      "Database is offline.": ["БД офлайн"],
       "Database is required for alerts": [
         "База данных требуется для уведомлений"
       ],
-      "Database name": ["Название таблицы"],
+      "Database name": ["Название БД"],
       "Database not allowed to change": ["Базу данных не разрешено изменять"],
       "Database not found.": ["База данных не найдена."],
       "Database parameters are invalid.": [
         "Параметры базы данных недействительны."
       ],
+      "Database port": ["Порт БД"],
       "Databases": ["Базы данных"],
       "Dataframe Index": ["Индекс"],
       "Dataset": ["Датасет"],
