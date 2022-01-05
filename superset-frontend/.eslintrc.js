@@ -25,7 +25,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
   }
 });
 
-// ignore files when running ForkTsCheckerWebpackPlugin
+// ignore files in production mode
 let ignorePatterns = [];
 if (process.env.NODE_ENV === 'production') {
   ignorePatterns = [
