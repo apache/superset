@@ -35,29 +35,19 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
-class ExploreCtasResultsButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.visualize = this.visualize.bind(this);
-    this.onClick = this.onClick.bind(this);
-  }
-
-  onClick() {
-    this.visualize();
-  }
-
-  buildVizOptions() {
+function ExploreCtasResultsButton(props) {
+  function buildVizOptions() {
     return {
-      datasourceName: this.props.table,
-      schema: this.props.schema,
-      dbId: this.props.dbId,
-      templateParams: this.props.templateParams,
+      datasourceName: props.table,
+      schema: props.schema,
+      dbId: props.dbId,
+      templateParams: props.templateParams,
     };
   }
 
-  visualize() {
-    this.props.actions
-      .createCtasDatasource(this.buildVizOptions())
+  function visualize() {
+    props.actions
+      .createCtasDatasource(buildVizOptions())
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -68,7 +58,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
           all_columns: [],
           row_limit: 1000,
         };
-        this.props.actions.addInfoToast(
+        props.actions.addInfoToast(
           t('Creating a data source and creating a new tab'),
         );
 
@@ -76,30 +66,33 @@ class ExploreCtasResultsButton extends React.PureComponent {
         exploreChart(formData);
       })
       .catch(() => {
-        this.props.actions.addDangerToast(
-          this.props.errorMessage || t('An error occurred'),
+        props.actions.addDangerToast(
+          props.errorMessage || t('An error occurred'),
         );
       });
   }
 
-  render() {
-    return (
-      <>
-        <Button
-          buttonSize="small"
-          onClick={this.onClick}
-          tooltip={t('Explore the result set in the data exploration view')}
-        >
-          <InfoTooltipWithTrigger
-            icon="line-chart"
-            placement="top"
-            label="explore"
-          />{' '}
-          {t('Explore')}
-        </Button>
-      </>
-    );
+  function onClick() {
+    visualize();
   }
+
+  return (
+    <>
+      <Button
+        buttonSize="small"
+        onClick={onClick}
+        tooltip={t('Explore the result set in the data exploration view')}
+      >
+        <InfoTooltipWithTrigger
+          icon="line-chart"
+          placement="top"
+          label="explore"
+        />{' '}
+        {/* NOTE TO SELF: Below, the text should be "Explore" instead of "This is the button" */}
+        {t('This Is the button')}
+      </Button>
+    </>
+  );
 }
 ExploreCtasResultsButton.propTypes = propTypes;
 
