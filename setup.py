@@ -94,7 +94,7 @@ setup(
         "parsedatetime",
         "pgsanity",
         "polyline",
-        "pyparsing>=2.4.7, <3.0.0",
+        "pyparsing>=2.4.7, <4.0.0",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
@@ -110,7 +110,7 @@ setup(
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
         # needed to support Literal (3.8) and TypeGuard (3.10)
-        "typing-extensions>=3.10, <4",
+        "typing-extensions>=4.0.1, <5",
         "wtforms-json",
     ],
     extras_require={
