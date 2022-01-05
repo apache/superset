@@ -1037,7 +1037,7 @@ This script will
 2. update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
-`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
+`superset/translation`, where there's one per language. You can use [Poedit](/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 

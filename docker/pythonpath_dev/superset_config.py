@@ -30,6 +30,12 @@ from celery.schedules import crontab
 
 logger = logging.getLogger()
 
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'ru': {'flag': 'ru', 'name': 'Русский'},
+}
+BABEL_DEFAULT_LOCALE = "ru"
+
 
 def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
     """Get the environment variable or raise exception."""
