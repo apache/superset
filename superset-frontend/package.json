@@ -193,7 +193,6 @@
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
-    "src": "file:./src",
     "urijs": "^1.19.6",
     "use-immer": "^0.6.0",
     "use-query-params": "^1.1.9",
