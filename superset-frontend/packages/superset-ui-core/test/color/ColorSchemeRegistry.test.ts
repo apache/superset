@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import ColorSchemeRegistry from '@superset-ui/core/src/color/ColorSchemeRegistry';
+import ColorSchemeRegistry from '../../src/color/ColorSchemeRegistry';
 
 describe('ColorSchemeRegistry', () => {
   it('exists', () => {
