@@ -188,6 +188,14 @@ export const setInScopeStatusOfFilters =
       type: SET_IN_SCOPE_STATUS_OF_FILTERS,
       filterConfig: filtersWithScopes,
     });
+    // also need to update dashboard metadata native_filter_configuration
+    const { metadata } = getState().dashboardInfo;
+    metadata.native_filter_configuration = filtersWithScopes;
+    dispatch(
+      dashboardInfoChanged({
+        metadata,
+      }),
+    );
   };
 
 type BootstrapData = {
