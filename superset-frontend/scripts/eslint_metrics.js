@@ -1,11 +1,18 @@
 module.exports = results => {
   const byRuleId = results.reduce((map, current) => {
-    current.messages.forEach(({ ruleId, line, column }) => {
+    current.messages.forEach(({ ruleId, line, column, message, ...stuff }) => {
       if (!map[ruleId]) {
         map[ruleId] = [];
       }
 
-      const occurrence = `${current.filePath}:${line}:${column}`;
+      // const occurrence = `${current.filePath}:${line}:${column}:${message}`;
+      const occurrence = {
+        file: current.filePath,
+        line,
+        column,
+        message,
+      };
+
       map[ruleId].push(occurrence);
     });
     return map;
@@ -21,24 +28,27 @@ module.exports = results => {
     'react/forbid-component-props' : {
       description: "We prefer Emotion for styling rather than `className` or `style` props",
     },
+    'no-restricted-imports' : {
+      description: "Please reduce/remove reliance on LESS files - move approprate styles to Emotion and kill off LESS files/imports",
+    },
   };
 
   const metricsByRule = Object.entries(byRuleId)
     .filter(([ruleId, occurrences]) => enforcedRules[ruleId] || false)
     .map(
-      ([ruleId, occurrences]) => `
-    \t{
-    \t\t"issue": "${enforcedRules[ruleId].description}",
-    \t\t"eslint rule": "${ruleId}",
-    \t\t"count": ${occurrences.length},
-    \t\t"files": [
-    \t\t\t"${occurrences.join('",\n\t\t\t\t"')}"
-    \t\t]
-    \t}`,
-    )
-    .join(',');
+      ([ruleId, occurrences]) => 
+      {
+        return {
+         "issue" : enforcedRules[ruleId].description,
+         "eslint rule": ruleId,
+         "count": occurrences.length,
+         occurrences,
+        }
+      }
+    );
 
-  return `{\n\t"metrics": [\t\t${metricsByRule}\n\t]\n}`;
+  const result = {
+    "metrics": metricsByRule,
+  }
+  return JSON.stringify(result, null, 2);
 };
-
-// use via `eslint -f ./eslint_metrics.js`
