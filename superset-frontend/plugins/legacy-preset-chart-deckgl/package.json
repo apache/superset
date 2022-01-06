@@ -45,7 +45,8 @@
     "@superset-ui/core": "0.x.x",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-map-gl": "^4.0.10"
+    "react-map-gl": "^4.0.10",
+    "mapbox-gl": "*"
   },
   "publishConfig": {
     "access": "public"
