@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import createTimeRangeFromGranularity from '@superset-ui/core/src/time-format/utils/createTimeRangeFromGranularity';
 import {
   TimeGranularity,
   getTimeRangeFormatter,
   LOCAL_PREFIX,
-} from '@superset-ui/core/src/time-format';
+} from '@superset-ui/core';
+import createTimeRangeFromGranularity from '../../../src/time-format/utils/createTimeRangeFromGranularity';
 
 const formatString = '%Y-%m-%d %H:%M:%S.%L';
 const formatUTCTimeRange = getTimeRangeFormatter(formatString);

@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import TimeFormatterRegistry from '@superset-ui/core/src/time-format/TimeFormatterRegistry';
-import {
-  TimeFormats,
-  TimeFormatter,
-  PREVIEW_TIME,
-} from '@superset-ui/core/src/time-format';
+import { TimeFormats, TimeFormatter, PREVIEW_TIME } from '@superset-ui/core';
+import TimeFormatterRegistry from '../../src/time-format/TimeFormatterRegistry';
 
 describe('TimeFormatterRegistry', () => {
   let registry: TimeFormatterRegistry;
