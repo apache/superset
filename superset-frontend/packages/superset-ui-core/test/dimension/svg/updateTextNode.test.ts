@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import updateTextNode from '@superset-ui/core/src/dimension/svg/updateTextNode';
-import createTextNode from '@superset-ui/core/src/dimension/svg/createTextNode';
+import updateTextNode from '../../../src/dimension/svg/updateTextNode';
+import createTextNode from '../../../src/dimension/svg/createTextNode';
 
 describe('updateTextNode(node, options)', () => {
   it('handles empty options', () => {
