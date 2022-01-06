@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
 import {
+  JsonObject,
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
@@ -25,7 +25,7 @@ import {
   AnnotationType,
   buildQueryObject,
   QueryObject,
-} from '../../src/query';
+} from '@superset-ui/core';
 
 describe('buildQueryObject', () => {
   let query: QueryObject;

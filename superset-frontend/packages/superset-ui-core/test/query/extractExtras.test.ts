@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import extractExtras from '@superset-ui/core/src/query/extractExtras';
+import extractExtras from '../../src/query/extractExtras';
 
 describe('extractExtras', () => {
   const baseQueryFormData = {
