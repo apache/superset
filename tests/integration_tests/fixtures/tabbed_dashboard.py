@@ -75,6 +75,3 @@ def tabbed_dashboard():
             "tabbed-dash-test", "Tabbed Dash Test", json.dumps(position_json), []
         )
     yield dash
-    with app.app_context():
-        db.session.query(Dashboard).filter(Dashboard.id == dash.id).delete()
-        db.session.commit()
