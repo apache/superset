@@ -33,7 +33,8 @@
     "prop-types": "^15.6.2",
     "react-map-gl": "^4.0.10",
     "supercluster": "^4.1.1",
-    "viewport-mercator-project": "^6.1.1"
+    "viewport-mercator-project": "^6.1.1",
+    "mapbox-gl": "^2.6.1"
   },
   "peerDependencies": {
     "react": "^15 || ^16"
