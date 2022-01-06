@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
+// import PropTypes from 'prop-types';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
@@ -29,32 +29,62 @@ import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { Query } from 'src/SqlLab/types';
 import ResultSet from '../ResultSet';
 import ModalTrigger from '../../../components/ModalTrigger';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
-const propTypes = {
-  columns: PropTypes.array,
-  actions: PropTypes.object,
-  queries: PropTypes.array,
-  onUserClicked: PropTypes.func,
-  onDbClicked: PropTypes.func,
-  displayLimit: PropTypes.number.isRequired,
-};
-const defaultProps = {
-  columns: ['started', 'duration', 'rows'],
-  queries: [],
-  onUserClicked: () => {},
-  onDbClicked: () => {},
-};
+// const propTypes = {
+//   columns: PropTypes.array,
+//   actions: PropTypes.object,
+//   queries: PropTypes.array,
+//   onUserClicked: PropTypes.func,
+//   onDbClicked: PropTypes.func,
+//   displayLimit: PropTypes.number.isRequired,
+// };
 
-const openQuery = id => {
+// const defaultProps = {
+//   columns: ['started', 'duration', 'rows'],
+//   queries: [],
+//   onUserClicked: () => {},
+//   onDbClicked: () => {},
+// };
+
+interface QueryTableQueryTemp1 extends Omit<Query, 'sql'> {
+  sql: string | Record<string, any>;
+}
+
+interface QueryTableQueryTemp2 extends Omit<QueryTableQueryTemp1, 'progress'> {
+  progress: number | Record<string, any>;
+}
+
+interface QueryTableQuery extends Omit<QueryTableQueryTemp2, 'state'> {
+  state: string | Record<string, any>;
+}
+
+interface QueryTableProps {
+  columns: Array<string>;
+  actions: Record<string, any>;
+  queries: Query[];
+  onUserClicked?: Function;
+  onDbClicked?: Function;
+  displayLimit: number;
+}
+
+const openQuery = (id: number) => {
   const url = `/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
 
-const QueryTable = props => {
+const QueryTable = ({
+  columns = ['started', 'duration', 'rows'],
+  actions,
+  queries = [],
+  onUserClicked = () => undefined,
+  onDbClicked = () => undefined,
+  displayLimit = Infinity,
+}: QueryTableProps) => {
   const theme = useTheme();
   const statusAttributes = {
     success: {
@@ -113,49 +143,61 @@ const QueryTable = props => {
     },
   };
 
-  const setHeaders = column => {
+  const setHeaders = (column: string) => {
     if (column === 'sql') {
       return column.toUpperCase();
     }
     return column.charAt(0).toUpperCase().concat(column.slice(1));
   };
-  const columns = useMemo(
+  const columnsOfTable = useMemo(
     () =>
-      props.columns.map(column => ({
+      columns.map(column => ({
         accessor: column,
         Header: () => setHeaders(column),
         disableSortBy: true,
       })),
-    [props.columns],
+    [columns],
   );
 
-  const user = useSelector(({ sqlLab: { user } }) => user);
+  const user = useSelector((state: any) => state.sqlLab.user);
+  // const user = useSelector(({ sqlLab: { user } }) => user);
 
   const data = useMemo(() => {
-    const restoreSql = query => {
-      props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
+    const restoreSql = (query: Record<string, any>) => {
+      actions?.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
     };
 
-    const openQueryInNewTab = query => {
-      props.actions.cloneQueryToNewTab(query, true);
+    const openQueryInNewTab = (query: Record<string, any>) => {
+      actions?.cloneQueryToNewTab(query, true);
     };
 
-    const openAsyncResults = (query, displayLimit) => {
-      props.actions.fetchQueryResults(query, displayLimit);
+    const openAsyncResults = (
+      query: Record<string, any>,
+      displayLimit: number,
+    ) => {
+      actions?.fetchQueryResults(query, displayLimit);
     };
 
-    const clearQueryResults = query => {
-      props.actions.clearQueryResults(query);
+    const clearQueryResults = (query: Record<string, any>) => {
+      actions?.clearQueryResults(query);
     };
 
-    const removeQuery = query => {
-      props.actions.removeQuery(query);
+    const removeQuery = (query: Record<string, any>) => {
+      actions?.removeQuery(query);
     };
 
-    return props.queries
+    return queries
       .map(query => {
-        const q = { ...query };
-        const status = statusAttributes[q.state] || statusAttributes.error;
+        // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
+        const q: QueryTableQuery = { ...query };
+        // console.log('!', q.state);
+        // console.log('qq', q, q.state);
+        // console.log('state', statusAttributes, statusAttributes[q.state]);
+        let status: any;
+        if (typeof q.state === 'string') {
+          status = statusAttributes[q.state] || statusAttributes.error;
+        }
+        // const status = statusAttributes[q.state] || statusAttributes.error;
 
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
@@ -172,7 +214,7 @@ const QueryTable = props => {
           <Button
             buttonSize="small"
             buttonStyle="link"
-            onClick={() => props.onUserClicked(q.userId)}
+            onClick={() => onUserClicked(q.userId)}
           >
             {q.user}
           </Button>
@@ -181,7 +223,7 @@ const QueryTable = props => {
           <Button
             buttonSize="small"
             buttonStyle="link"
-            onClick={() => props.onDbClicked(q.dbId)}
+            onClick={() => onDbClicked(q.dbId)}
           >
             {q.db}
           </Button>
@@ -200,7 +242,7 @@ const QueryTable = props => {
         q.sql = (
           <Card css={[StaticPosition]}>
             <HighlightedSql
-              sql={q.sql}
+              sql={query.sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
@@ -217,16 +259,16 @@ const QueryTable = props => {
                 </Label>
               }
               modalTitle={t('Data preview')}
-              beforeOpen={() => openAsyncResults(query, props.displayLimit)}
+              beforeOpen={() => openAsyncResults(query, displayLimit)}
               onExit={() => clearQueryResults(query)}
               modalBody={
                 <ResultSet
                   showSql
                   user={user}
                   query={query}
-                  actions={props.actions}
+                  actions={actions}
                   height={400}
-                  displayLimit={props.displayLimit}
+                  displayLimit={displayLimit}
                 />
               }
               responsive
@@ -266,35 +308,41 @@ const QueryTable = props => {
               )}
               placement="top"
             >
-              <Icons.Edit iconSize="small" />
+              <Icons.Edit iconSize="s" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
             >
-              <Icons.PlusCircleOutlined
-                iconSize="x-small"
-                css={verticalAlign}
-              />
+              <Icons.PlusCircleOutlined iconSize="s" css={verticalAlign} />
             </StyledTooltip>
             <StyledTooltip
               tooltip={t('Remove query from log')}
               onClick={() => removeQuery(query)}
             >
-              <Icons.Trash iconSize="x-small" />
+              <Icons.Trash iconSize="s" />
             </StyledTooltip>
           </div>
         );
         return q;
       })
       .reverse();
-  }, [props]);
+  }, [
+    // columns,
+    actions,
+    queries,
+    onUserClicked,
+    onDbClicked,
+    displayLimit,
+    statusAttributes,
+    user,
+  ]);
 
   return (
     <div className="QueryTable">
       <TableView
-        columns={columns}
+        columns={columnsOfTable}
         data={data}
         className="table-condensed"
         pageSize={50}
@@ -303,7 +351,7 @@ const QueryTable = props => {
   );
 };
 
-QueryTable.propTypes = propTypes;
-QueryTable.defaultProps = defaultProps;
+// QueryTable.propTypes = propTypes;
+// QueryTable.defaultProps = defaultProps;
 
 export default QueryTable;

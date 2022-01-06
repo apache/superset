@@ -68,6 +68,19 @@ export type Query = {
   rows: number;
   queryLimit: number;
   limitingFactor: string;
+  endDttm: number;
+  duration: string;
+  startDttm: number;
+  time: Record<string, any>;
+  user: Record<string, any>;
+  userId: number;
+  db: Record<string, any>;
+  started: string;
+  querylink: Record<string, any>;
+  queryId: number;
+  executedSql: string;
+  output: string | Record<string, any>;
+  actions: Record<string, any>;
 };
 
 export interface QueryEditor {
