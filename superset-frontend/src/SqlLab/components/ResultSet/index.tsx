@@ -95,7 +95,7 @@ interface ResultSetProps {
   showSql?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
-  defaultQueryLimit: number;
+  defaultQueryLimit?: number;
 }
 
 interface ResultSetState {
