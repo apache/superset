@@ -29,7 +29,7 @@ module.exports = results => {
       description: "We prefer Emotion for styling rather than `className` or `style` props",
     },
     'no-restricted-imports' : {
-      description: "Please reduce/remove reliance on LESS files - move approprate styles to Emotion and kill off LESS files/imports",
+      description: "This rule catches several things that shouldn't be used anymore. LESS, antD, enzyme, etc. See individual occurrence messages for details",
     },
   };
 
