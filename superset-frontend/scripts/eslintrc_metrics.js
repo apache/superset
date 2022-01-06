@@ -61,5 +61,6 @@ module.exports = {
   rules: {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'react/jsx-filename-extension': [1, { extensions: ['.tsx'] }],
+    'react/forbid-component-props': 1,
   },
 };

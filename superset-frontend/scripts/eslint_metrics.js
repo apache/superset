@@ -18,6 +18,9 @@ module.exports = results => {
     'react/jsx-filename-extension' : {
       description: "We prefer Typescript - all JSX files should be converted to TSX",
     },
+    'react/forbid-component-props' : {
+      description: "We prefer Emotion for styling rather than `className` or `style` props",
+    },
   };
 
   const metricsByRule = Object.entries(byRuleId)
