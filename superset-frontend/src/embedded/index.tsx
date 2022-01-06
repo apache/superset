@@ -55,11 +55,6 @@ if (!window.parent) {
     'This page is intended to be embedded in an iframe, but no window.parent was found.';
 }
 
-if (!window.name) {
-  appMountPoint.innerHTML =
-    'This page is intended to be embedded by the Superset SDK, but there does not appear to be an SDK context present.';
-}
-
 // if the page is embedded in an origin that hasn't
 // been authorized by the curator, we forbid access entirely.
 // todo: check the referrer on the route serving this page instead
