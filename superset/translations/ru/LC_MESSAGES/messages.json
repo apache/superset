@@ -2477,8 +2477,8 @@
       "SQL Copied!": ["SQL скопирован!"],
       "SQL Editor": ["Редактор SQL"],
       "SQL Expression": ["Выражение SQL"],
-      "SQL Lab": ["Лаборатория SQL"],
-      "SQL Lab View": ["Лаборатория SQL"],
+      "SQL Lab": ["Лаборатория SQL asdd"],
+      "SQL Lab View": ["Лаборатория SQL asdasd"],
       "SQL Lab uses your browser's local storage to store queries and results.\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\nTo keep SQL Lab from crashing, please delete some query tabs.\nYou can re-access these queries by using the Save feature before you delete the tab.\nNote that you will need to close other SQL Lab windows before you do this.": [
         ""
       ],

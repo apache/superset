@@ -362,7 +362,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
         ]
-
+    logger.debug([get_language_pack(locale)['locale_data']['superset'].get("SQL Lab"), locale])
     bootstrap_data = {
         "flash_messages": messages,
         "conf": frontend_config,
