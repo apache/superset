@@ -11,16 +11,22 @@ module.exports = results => {
     return map;
   }, {});
 
-  const enforcedRules = [
-    'react-prefer-function-component/react-prefer-function-component',
-  ];
+  const enforcedRules = {
+    'react-prefer-function-component/react-prefer-function-component' : {
+      description: "We prefer function components to class-based components",
+    },
+    'react/jsx-filename-extension' : {
+      description: "We prefer Typescript - all JSX files should be converted to TSX",
+    },
+  };
 
   const metricsByRule = Object.entries(byRuleId)
-    .filter(([ruleId, occurrences]) => enforcedRules.includes(ruleId))
+    .filter(([ruleId, occurrences]) => enforcedRules[ruleId] || false)
     .map(
       ([ruleId, occurrences]) => `
     \t{
-    \t\t"rule": "${ruleId}",
+    \t\t"issue": "${enforcedRules[ruleId].description}",
+    \t\t"eslint rule": "${ruleId}",
     \t\t"count": ${occurrences.length},
     \t\t"files": [
     \t\t\t"${occurrences.join('",\n\t\t\t\t"')}"
