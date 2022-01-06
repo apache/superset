@@ -94,26 +94,23 @@ const QueryTable = ({
   const user = useSelector((state: RootState) => state.sqlLab.user);
 
   const data = useMemo(() => {
-    const restoreSql = (query: Record<string, any>) => {
+    const restoreSql = (query: Query) => {
       actions?.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
     };
 
-    const openQueryInNewTab = (query: Record<string, any>) => {
+    const openQueryInNewTab = (query: Query) => {
       actions?.cloneQueryToNewTab(query, true);
     };
 
-    const openAsyncResults = (
-      query: Record<string, any>,
-      displayLimit: number,
-    ) => {
+    const openAsyncResults = (query: Query, displayLimit: number) => {
       actions?.fetchQueryResults(query, displayLimit);
     };
 
-    const clearQueryResults = (query: Record<string, any>) => {
+    const clearQueryResults = (query: Query) => {
       actions?.clearQueryResults(query);
     };
 
-    const removeQuery = (query: Record<string, any>) => {
+    const removeQuery = (query: Query) => {
       actions?.removeQuery(query);
     };
 
@@ -178,6 +175,7 @@ const QueryTable = ({
       .map(query => {
         // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
         const q: QueryTableQuery = { ...query };
+        // state type is string | Object<string,any>, Type 'Record<string, any>' cannot be used as an index type. for statusAttributes[q.state]. Thus having an condition to filter out only when q.state type is string, then index works
         let status: any;
         if (typeof q.state === 'string') {
           status = statusAttributes[q.state] || statusAttributes.error;
