@@ -15,27 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import dataclasses
 import inspect
-import re
 import time
 import unittest
 from collections import namedtuple
 from unittest import mock
 from unittest.mock import Mock, patch
-from typing import Any, Dict
+from typing import Any
 
 import jwt
 import prison
 import pytest
 
-from flask import current_app, g
+from flask import current_app
 
 from superset.models.dashboard import Dashboard
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
-from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -45,22 +43,6 @@ from superset.utils.core import get_example_database, get_example_default_schema
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-)
-from tests.integration_tests.fixtures.public_role import (
-    public_role_like_gamma,
-    public_role_like_test_role,
-)
-from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
