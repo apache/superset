@@ -24,12 +24,28 @@ import {
   getTimeFormatterRegistry,
   smartDateFormatter,
   smartDateVerboseFormatter,
-} from '@superset-ui/core';
+} from '@superset-ui/core'
+
+import {
+  createD3NumberFormatter
+} from '@superset-ui/number-format';
 
 export default function setupFormatters() {
   getNumberFormatterRegistry()
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
+  .registerValue(
+  'CURRENCY_INDIA',
+  createD3NumberFormatter({
+    locale: {
+      decimal: '.',
+      thousands: ',',
+      grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      currency: ['₹', ''],
+    },
+    formatString: '$,.2f',
+  }),
+)
     .registerValue(',0', getNumberFormatter(',.4~f'))
     .registerValue('null', getNumberFormatter(',.4~f'))
     .registerValue('%', getNumberFormatter('.0%'))
