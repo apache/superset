@@ -43,6 +43,7 @@ const metadata = new ChartMetadata({
     t('Percentages'),
     t('Proportional'),
     t('Advanced-Analytics'),
+    t('nvd3'),
   ],
   thumbnail,
   useLegacyApi: true,
