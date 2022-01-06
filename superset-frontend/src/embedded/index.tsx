@@ -58,13 +58,13 @@ if (!window.parent) {
 // if the page is embedded in an origin that hasn't
 // been authorized by the curator, we forbid access entirely.
 // todo: check the referrer on the route serving this page instead
-const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-const parentOrigin = new URL(document.referrer).origin;
-if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-  throw new Error(
-    `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-  );
-}
+// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
+// const parentOrigin = new URL(document.referrer).origin;
+// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
+//   throw new Error(
+//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
+//   );
+// }
 
 async function start(guestToken: string) {
   // the preamble configures a client, but we need to configure a new one
@@ -85,9 +85,9 @@ function validateMessageEvent(event: MessageEvent) {
     throw new Error("Sir, this is a Wendy's");
   }
 
-  if (!ALLOW_ORIGINS.includes(event.origin)) {
-    throw new Error('Message origin is not in the allowed list');
-  }
+  // if (!ALLOW_ORIGINS.includes(event.origin)) {
+  //   throw new Error('Message origin is not in the allowed list');
+  // }
 
   if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
     throw new Error(`Message type does not match type used for embedded comms`);
