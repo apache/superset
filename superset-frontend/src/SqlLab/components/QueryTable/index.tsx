@@ -33,6 +33,10 @@ import ResultSet from '../ResultSet';
 import ModalTrigger from '../../../components/ModalTrigger';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import rootReducer from '../../reducers/index';
+
+// Acquire redux rootstate type, to be used in useSelector
+type RootState = ReturnType<typeof rootReducer>;
 
 // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
 interface QueryTableQueryTemp1 extends Omit<Query, 'sql'> {
@@ -87,7 +91,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector((state: any) => state.sqlLab.user);
+  const user = useSelector((state: RootState) => state.sqlLab.user);
 
   const data = useMemo(() => {
     const restoreSql = (query: Record<string, any>) => {
