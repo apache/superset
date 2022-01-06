@@ -56,7 +56,9 @@ const config = {
             position: 'left',
             label: 'Documentation',
           },
-          { to: '/blog', label: 'Blog', position: 'left' },
+          { to: '/gallery', label: 'Gallery', position: 'left' },
+          { to: '/community', label: 'Community', position: 'left' },
+          { to: '/resources', label: 'Resources', position: 'left' },
           {
             href: 'https://github.com/apache/superset',
             label: 'GitHub',
@@ -96,10 +98,6 @@ const config = {
           {
             title: 'More',
             items: [
-              {
-                label: 'Blog',
-                to: '/blog',
-              },
               {
                 label: 'GitHub',
                 href: 'https://github.com/facebook/docusaurus',
