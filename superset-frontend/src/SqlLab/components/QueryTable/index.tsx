@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-// import PropTypes from 'prop-types';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
@@ -35,22 +34,7 @@ import ModalTrigger from '../../../components/ModalTrigger';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
-// const propTypes = {
-//   columns: PropTypes.array,
-//   actions: PropTypes.object,
-//   queries: PropTypes.array,
-//   onUserClicked: PropTypes.func,
-//   onDbClicked: PropTypes.func,
-//   displayLimit: PropTypes.number.isRequired,
-// };
-
-// const defaultProps = {
-//   columns: ['started', 'duration', 'rows'],
-//   queries: [],
-//   onUserClicked: () => {},
-//   onDbClicked: () => {},
-// };
-
+// query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
 interface QueryTableQueryTemp1 extends Omit<Query, 'sql'> {
   sql: string | Record<string, any>;
 }
@@ -86,62 +70,6 @@ const QueryTable = ({
   displayLimit = Infinity,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const statusAttributes = {
-    success: {
-      config: {
-        icon: <Icons.Check iconColor={theme.colors.success.base} />,
-        label: t('Success'),
-      },
-    },
-    failed: {
-      config: {
-        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
-        label: t('Failed'),
-      },
-    },
-    stopped: {
-      config: {
-        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
-        label: t('Failed'),
-      },
-    },
-    running: {
-      config: {
-        icon: <Icons.Running iconColor={theme.colors.primary.base} />,
-        label: t('Running'),
-      },
-    },
-    fetching: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
-        label: t('fetching'),
-      },
-    },
-    timed_out: {
-      config: {
-        icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
-        label: t('Offline'),
-      },
-    },
-    scheduled: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
-        label: t('Scheduled'),
-      },
-    },
-    pending: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
-        label: t('Scheduled'),
-      },
-    },
-    error: {
-      config: {
-        icon: <Icons.Error iconColor={theme.colors.error.base} />,
-        label: t('Unknown Status'),
-      },
-    },
-  };
 
   const setHeaders = (column: string) => {
     if (column === 'sql') {
@@ -160,7 +88,6 @@ const QueryTable = ({
   );
 
   const user = useSelector((state: any) => state.sqlLab.user);
-  // const user = useSelector(({ sqlLab: { user } }) => user);
 
   const data = useMemo(() => {
     const restoreSql = (query: Record<string, any>) => {
@@ -186,18 +113,71 @@ const QueryTable = ({
       actions?.removeQuery(query);
     };
 
+    const statusAttributes = {
+      success: {
+        config: {
+          icon: <Icons.Check iconColor={theme.colors.success.base} />,
+          label: t('Success'),
+        },
+      },
+      failed: {
+        config: {
+          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          label: t('Failed'),
+        },
+      },
+      stopped: {
+        config: {
+          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          label: t('Failed'),
+        },
+      },
+      running: {
+        config: {
+          icon: <Icons.Running iconColor={theme.colors.primary.base} />,
+          label: t('Running'),
+        },
+      },
+      fetching: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
+          label: t('fetching'),
+        },
+      },
+      timed_out: {
+        config: {
+          icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
+          label: t('Offline'),
+        },
+      },
+      scheduled: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          label: t('Scheduled'),
+        },
+      },
+      pending: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          label: t('Scheduled'),
+        },
+      },
+      error: {
+        config: {
+          icon: <Icons.Error iconColor={theme.colors.error.base} />,
+          label: t('Unknown Status'),
+        },
+      },
+    };
+
     return queries
       .map(query => {
         // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
         const q: QueryTableQuery = { ...query };
-        // console.log('!', q.state);
-        // console.log('qq', q, q.state);
-        // console.log('state', statusAttributes, statusAttributes[q.state]);
         let status: any;
         if (typeof q.state === 'string') {
           status = statusAttributes[q.state] || statusAttributes.error;
         }
-        // const status = statusAttributes[q.state] || statusAttributes.error;
 
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
@@ -328,16 +308,7 @@ const QueryTable = ({
         return q;
       })
       .reverse();
-  }, [
-    // columns,
-    actions,
-    queries,
-    onUserClicked,
-    onDbClicked,
-    displayLimit,
-    statusAttributes,
-    user,
-  ]);
+  }, [actions, queries, onUserClicked, onDbClicked, displayLimit, user, theme]);
 
   return (
     <div className="QueryTable">
@@ -350,8 +321,5 @@ const QueryTable = ({
     </div>
   );
 };
-
-// QueryTable.propTypes = propTypes;
-// QueryTable.defaultProps = defaultProps;
 
 export default QueryTable;
