@@ -33,7 +33,7 @@ import {
   controlPanelSectionsChartOptions,
   controlPanelSectionsChartOptionsOnlyColorScheme,
   controlPanelSectionsChartOptionsTable,
-} from 'spec/javascripts/explore/fixtures';
+} from 'src/explore/fixtures';
 
 const getKnownControlConfig = (controlKey: string, vizType: string) =>
   getControlConfig(controlKey, vizType) as ControlConfig;
