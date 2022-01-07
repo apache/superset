@@ -188,7 +188,7 @@ def import_dashboard(
         )
         # Change database name in params due to using new database for imported dashboard
         if database_id:
-            database_name = session.query(Database).filter(Database.id == '3').first().name
+            database_name = session.query(Database).filter(Database.id == database_id).first().name
             slc.alter_params(database_name=database_name)
         remote_slc = remote_id_slice_map.get(slc.id)
         new_slc_id = import_chart(slc, remote_slc, import_time=import_time)
