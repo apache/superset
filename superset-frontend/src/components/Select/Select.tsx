@@ -641,30 +641,35 @@ const Select = ({
 
   useEffect(() => {
     if (selectValue) {
-      const array = Array.isArray(selectValue)
-        ? (selectValue as AntdLabeledValue[])
-        : [selectValue as AntdLabeledValue | string | number];
-      const options: AntdLabeledValue[] = [];
-      const isLabeledValue = isAsync || labelInValue;
-      array.forEach(element => {
-        const found = selectOptions.find((option: { value: string | number }) =>
-          isLabeledValue
-            ? option.value === (element as AntdLabeledValue).value
-            : option.value === element,
-        );
-        if (!found) {
-          options.push(
-            isLabeledValue
-              ? (element as AntdLabeledValue)
-              : ({ value: element, label: element } as AntdLabeledValue),
+      setSelectOptions(selectOptions => {
+        const array = Array.isArray(selectValue)
+          ? (selectValue as AntdLabeledValue[])
+          : [selectValue as AntdLabeledValue | string | number];
+        const options: AntdLabeledValue[] = [];
+        const isLabeledValue = isAsync || labelInValue;
+        array.forEach(element => {
+          const found = selectOptions.find(
+            (option: { value: string | number }) =>
+              isLabeledValue
+                ? option.value === (element as AntdLabeledValue).value
+                : option.value === element,
           );
+          if (!found) {
+            options.push(
+              isLabeledValue
+                ? (element as AntdLabeledValue)
+                : ({ value: element, label: element } as AntdLabeledValue),
+            );
+          }
+        });
+        if (options.length > 0) {
+          return [...options, ...selectOptions];
         }
+        // return same options won't trigger a re-render
+        return selectOptions;
       });
-      if (options.length > 0) {
-        setSelectOptions([...options, ...selectOptions]);
-      }
     }
-  }, [labelInValue, isAsync, selectOptions, selectValue]);
+  }, [labelInValue, isAsync, selectValue]);
 
   // Stop the invocation of the debounced function after unmounting
   useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
