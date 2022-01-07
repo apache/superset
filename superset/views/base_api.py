@@ -18,8 +18,6 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from apispec import APISpec
-from apispec.exceptions import DuplicateComponentNameError
 from flask import Blueprint, g, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
