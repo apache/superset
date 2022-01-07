@@ -204,6 +204,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         rison.encode(replaceUndefinedByNull(dataMaskSelected)),
       );
 
+      // pathname could be updated somewhere else through window.history
+      // keep react router history in sync with window history
+      history.location.pathname = window.location.pathname;
       history.replace({
         search: newParams.toString(),
       });
