@@ -24,7 +24,7 @@ import { ChartConfiguration, DashboardInfo } from '../reducers/types';
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
 export function updateColorSchema(
-  metadata: any,
+  metadata: Record<string, any>,
   labelColors: Record<string, string>,
 ) {
   const categoricalNamespace = CategoricalColorNamespace.getNamespace(
