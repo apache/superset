@@ -1620,7 +1620,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1635,7 +1635,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "datasource_id": {
             "format": "int32",
@@ -1673,10 +1673,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "params": {
             "nullable": true,
@@ -1726,6 +1726,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1738,6 +1742,27 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -1763,36 +1788,11 @@
         ],
         "type": "object"
       },
-      "ChartDataRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
       "ChartDataRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2353,7 +2353,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2368,7 +2368,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "datasource_id": {
             "format": "int32",
@@ -2406,10 +2406,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "params": {
             "nullable": true,
@@ -2459,6 +2459,10 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2471,6 +2475,27 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2496,36 +2521,11 @@
         ],
         "type": "object"
       },
-      "ChartRestApi.get_list.User2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
       "ChartRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2775,13 +2775,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -2805,6 +2805,27 @@
         "type": "object"
       },
       "CssTemplateRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CssTemplateRestApi.get_list.User1": {
         "properties": {
           "active": {
             "nullable": true,
@@ -2866,27 +2887,6 @@
           "first_name",
           "last_name",
           "username"
-        ],
-        "type": "object"
-      },
-      "CssTemplateRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -3157,7 +3157,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3172,7 +3172,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "css": {
             "nullable": true,
@@ -3251,16 +3251,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -3303,11 +3298,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -12039,8 +12039,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/KeyValuePostSchema",
-                "type": "object"
+                "$ref": "#/components/schemas/KeyValuePostSchema"
               }
             }
           },
@@ -12236,8 +12235,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/KeyValuePutSchema",
-                "type": "object"
+                "$ref": "#/components/schemas/KeyValuePutSchema"
               }
             }
           },
