@@ -22,7 +22,7 @@ import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 import ListViewCard from 'src/components/ListViewCard';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
   CardContainer,

@@ -38,6 +38,7 @@ const metadata = new ChartMetadata({
   name: t('Bar Chart'),
   tags: [
     t('Additive'),
+    t('Bar'),
     t('Categorical'),
     t('Comparison'),
     t('Discrete'),

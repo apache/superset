@@ -21,10 +21,15 @@ import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
+import {
+  MainNav as DropdownMenu,
+  MenuMode,
+  Row,
+  Col,
+  Grid,
+} from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
-import { Row, Col, Grid } from 'antd';
 import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
