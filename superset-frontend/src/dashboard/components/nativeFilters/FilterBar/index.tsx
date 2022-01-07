@@ -216,7 +216,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
       newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
 
-      // pathname could be updated somewhere else through windows.history
+      // pathname could be updated somewhere else through window.history
       // keep react router history in sync with window history
       history.location.pathname = window.location.pathname;
       history.replace({
