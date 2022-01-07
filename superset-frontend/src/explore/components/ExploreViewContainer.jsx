@@ -28,8 +28,8 @@ import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import { usePrevious } from 'src/common/hooks/usePrevious';
-import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
+import { usePrevious } from 'src/hooks/usePrevious';
+import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 import {
   getItem,
