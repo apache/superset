@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
 
@@ -50,12 +50,6 @@ describe('ExploreAdditionalActionsMenu', () => {
   it('renders a dropdown with 3 items', () => {
     const wrapper = mount(
       <ExploreAdditionalActionsMenu store={store} {...defaultProps} />,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
     );
     const dropdown = wrapper.find(Dropdown);
     const menu = shallow(<div>{dropdown.prop('overlay')}</div>);
