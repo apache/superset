@@ -188,9 +188,20 @@ export const setInScopeStatusOfFilters =
       type: SET_IN_SCOPE_STATUS_OF_FILTERS,
       filterConfig: filtersWithScopes,
     });
-    // also need to update dashboard metadata native_filter_configuration
+    // need to update native_filter_configuration in the dashboard metadata
     const { metadata } = getState().dashboardInfo;
-    metadata.native_filter_configuration = filtersWithScopes;
+    const filterConfig: FilterConfiguration =
+      metadata.native_filter_configuration;
+    const mergedFilterConfig = filterConfig.map(filter => {
+      const filterWithScope = filtersWithScopes.find(
+        scope => scope.id === filter.id,
+      );
+      if (!filterWithScope) {
+        return filter;
+      }
+      return { ...filterWithScope, ...filter };
+    });
+    metadata.native_filter_configuration = mergedFilterConfig;
     dispatch(
       dashboardInfoChanged({
         metadata,
