@@ -34,10 +34,10 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
+import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
 import { initialState } from 'src/SqlLab/fixtures';
-import { nativeFiltersInfo } from '../../fixtures/mockNativeFilters';
 
 describe('ChartHolder', () => {
   const props = {
@@ -57,7 +57,7 @@ describe('ChartHolder', () => {
     handleComponentDrop() {},
     updateComponents() {},
     deleteComponent() {},
-    nativeFilters: nativeFiltersInfo.filters,
+    nativeFilters: nativeFilters.filters,
   };
 
   function setup(overrideProps) {
