@@ -430,7 +430,7 @@ const config = {
 // find all the symlinked plugins and use their source code for imports
 Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
-  const dir = relativeDir.replace('file://', '');
+  const dir = relativeDir.replace('file:', '');
 
   if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(
