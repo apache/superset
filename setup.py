@@ -94,7 +94,7 @@ setup(
         "parsedatetime",
         "pgsanity",
         "polyline",
-        "pyparsing>=2.4.7, <3.0.0",
+        "pyparsing>=3.0.6, <4",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
