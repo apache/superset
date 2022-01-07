@@ -476,6 +476,20 @@ $ python3 -m pip install -r requirements/integration.txt
 $ pip-compile-multi --no-upgrade
 ```
 
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+
+```bash
+$ pip-compile-multi -P my-package
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+
+```bash
+$ pip-compile-multi
+```
+
+This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
+
 #### Logging to the browser console
 
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
