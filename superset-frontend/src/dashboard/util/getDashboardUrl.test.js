@@ -18,7 +18,7 @@
  */
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
-import { DashboardStandaloneMode } from '../../../../src/dashboard/util/constants';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 describe('getChartIdsFromLayout', () => {
   const filters = {
