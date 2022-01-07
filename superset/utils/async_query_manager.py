@@ -176,7 +176,7 @@ class AsyncQueryManager:
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
+        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)  # type: ignore
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
@@ -197,5 +197,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)  # type: ignore
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)  # type: ignore

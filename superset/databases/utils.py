@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
+import urllib
 from typing import Any, Dict, List, Optional
 
 from superset import app
@@ -101,3 +103,7 @@ def get_table_metadata(
         "indexes": keys,
         "comment": table_comment,
     }
+
+
+def encode_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: urllib.parse.quote(v) for k, v in parameters.items()}
