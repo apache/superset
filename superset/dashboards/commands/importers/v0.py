@@ -31,6 +31,7 @@ from superset.datasets.commands.importers.v0 import import_dataset
 from superset.exceptions import DashboardImportException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.core import Database
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
@@ -86,6 +87,7 @@ def import_dashboard(
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[Dict[int, int]] = None,
     import_time: Optional[int] = None,
+    database_id: Optional[int] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
 
@@ -173,7 +175,9 @@ def import_dashboard(
     i_params_dict = dashboard_to_import.params_dict
     remote_id_slice_map = {
         slc.params_dict["remote_id"]: slc
-        for slc in session.query(Slice).all()
+        for slc in session.query(Slice)
+            .filter(Slice.datasource_id.in_(list(dataset_id_mapping.values())))
+            .all()
         if "remote_id" in slc.params_dict
     }
     for slc in slices:
@@ -182,6 +186,10 @@ def import_dashboard(
             slc.to_json(),
             dashboard_to_import.dashboard_title,
         )
+        # Change database name in params due to using new database for imported dashboard
+        if database_id:
+            database_name = session.query(Database).filter(Database.id == '3').first().name
+            slc.alter_params(database_name=database_name)
         remote_slc = remote_id_slice_map.get(slc.id)
         new_slc_id = import_chart(slc, remote_slc, import_time=import_time)
         old_to_new_slc_id_dict[slc.id] = new_slc_id
@@ -327,7 +335,8 @@ def import_dashboards(
 
     session.commit()
     for dashboard in data["dashboards"]:
-        import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
+        import_dashboard(dashboard, dataset_id_mapping, import_time=import_time,
+                         database_id=database_id)
     session.commit()
 
 
