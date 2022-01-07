@@ -39,7 +39,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   Filter,

@@ -30,7 +30,7 @@ import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ListView, {
   ListViewProps,
   Filter,
