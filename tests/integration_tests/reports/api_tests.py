@@ -1562,7 +1562,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         }
         response = self.client.post("api/v1/report/", json=report_schedule_data)
         assert response.status_code == 422
-        assert response.json == {"message": {"extra": ["Invalid tab IDs selected"]}}
+        assert response.json == {
+            "message": {"extra": ["Invalid tab IDs selected: ['INVALID-TAB-ID-1']"]}
+        }
 
     @pytest.mark.usefixtures("create_report_schedules")
     @pytest.mark.usefixtures("tabbed_dashboard")

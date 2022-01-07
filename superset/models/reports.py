@@ -17,7 +17,7 @@
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 import json
-import typing
+from typing import Any, Dict, Optional
 
 from cron_descriptor import get_description
 from flask_appbuilder import Model
@@ -161,13 +161,8 @@ class ReportSchedule(Model, AuditMixinNullable):
         return get_description(self.crontab)
 
     @validates("extra")
-    def validate_extra(
-        self,
-        key: str,
-        value: typing.Dict[
-            typing.Any, typing.Any
-        ],  # pylint: disable=unused-argument,no-self-use
-    ) -> typing.Optional[str]:
+    # pylint: disable=unused-argument,no-self-use
+    def validate_extra(self, key: str, value: Dict[Any, Any]) -> Optional[str]:
         if value is not None:
             return json.dumps(value)
         return None

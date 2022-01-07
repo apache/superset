@@ -224,18 +224,18 @@ class BaseReportState:
                 for url in urls
             ]
         user = self._get_user()
-        try:
-            for screenshot in screenshots:
+        for screenshot in screenshots:
+            try:
                 image = screenshot.get_screenshot(user=user)
-                if image is not None:
-                    image_data.append(image)
-        except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
-            raise ReportScheduleScreenshotTimeout() from ex
-        except Exception as ex:
-            raise ReportScheduleScreenshotFailedError(
-                f"Failed taking a screenshot {str(ex)}"
-            ) from ex
+            except SoftTimeLimitExceeded as ex:
+                logger.warning("A timeout occurred while taking a screenshot.")
+                raise ReportScheduleScreenshotTimeout() from ex
+            except Exception as ex:
+                raise ReportScheduleScreenshotFailedError(
+                    f"Failed taking a screenshot {str(ex)}"
+                ) from ex
+            if image is not None:
+                image_data.append(image)
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
         return image_data

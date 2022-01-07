@@ -130,4 +130,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
         ]
         if invalid_tab_ids:
-            exceptions.append(ValidationError("Invalid tab IDs selected", "extra"))
+            exceptions.append(
+                ValidationError(f"Invalid tab IDs selected: {invalid_tab_ids}", "extra")
+            )
