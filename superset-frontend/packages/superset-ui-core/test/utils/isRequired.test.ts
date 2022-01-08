@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { isRequired } from '@superset-ui/core/src';
+import { isRequired } from '@superset-ui/core';
 
 describe('isRequired(field)', () => {
   it('should throw error with the given field in the message', () => {

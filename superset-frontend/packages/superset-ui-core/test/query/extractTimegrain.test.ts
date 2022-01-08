@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import extractTimegrain from '@superset-ui/core/src/query/extractTimegrain';
-import { QueryFormData } from '@superset-ui/core';
+import { extractTimegrain, QueryFormData } from '@superset-ui/core';
 
 describe('extractTimegrain', () => {
   const baseFormData: QueryFormData = {

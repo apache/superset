@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { seed, seedRandom } from '../../src';
+import { seed, seedRandom } from '@superset-ui/core';
 
 describe('random', () => {
   it('seeded random should return the same value', () => {

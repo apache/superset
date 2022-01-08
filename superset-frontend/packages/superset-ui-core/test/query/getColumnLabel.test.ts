@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getColumnLabel } from '@superset-ui/core/src/query';
+import { getColumnLabel } from '@superset-ui/core';
 
 describe('getColumnLabel', () => {
   it('should handle physical column', () => {
