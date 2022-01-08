@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import ColorScheme from '@superset-ui/core/src/color/ColorScheme';
+import ColorScheme from '../../src/color/ColorScheme';
 
 describe('ColorScheme', () => {
   describe('new ColorScheme()', () => {

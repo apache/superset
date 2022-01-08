@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { createD3NumberFormatter } from '@superset-ui/core/src/number-format';
+import { createD3NumberFormatter } from '@superset-ui/core';
 
 describe('createD3NumberFormatter(config)', () => {
   it('requires config.formatString', () => {

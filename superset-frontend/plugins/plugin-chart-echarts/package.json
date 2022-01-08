@@ -30,7 +30,8 @@
     "@superset-ui/core": "0.18.25",
     "d3-array": "^1.2.0",
     "echarts": "^5.2.2",
-    "lodash": "^4.17.15"
+    "lodash": "^4.17.15",
+    "moment": "^2.26.0"
   },
   "peerDependencies": {
     "react": "^16.13.1"

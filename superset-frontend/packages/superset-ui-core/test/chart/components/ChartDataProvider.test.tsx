@@ -19,10 +19,10 @@
 
 import React from 'react';
 import { shallow } from 'enzyme';
-import ChartClient from '@superset-ui/core/src/chart/clients/ChartClient';
+import ChartClient from '../../../src/chart/clients/ChartClient';
 import ChartDataProvider, {
   ChartDataProviderProps,
-} from '@superset-ui/core/src/chart/components/ChartDataProvider';
+} from '../../../src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
 // Note: the mock implementation of these function directly affects the expected results below
@@ -50,7 +50,7 @@ const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
 );
 
 // ChartClient is now a mock
-jest.mock('@superset-ui/core/src/chart/clients/ChartClient', () =>
+jest.mock('../../../src/chart/clients/ChartClient', () =>
   jest.fn().mockImplementation(() => ({
     loadDatasource: mockLoadDatasource,
     loadFormData: mockLoadFormData,

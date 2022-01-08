@@ -61,8 +61,7 @@ module.exports = {
         moduleDirectory: ['node_modules', '.'],
       },
     },
-    // Allow only core/src and core/test, avoid import modules from lib
-    'import/internal-regex': /^@superset-ui\/core\/(src|test)\/.*/,
+    // only allow import from top level of module
     'import/core-modules': importCoreModules,
     react: {
       version: 'detect',
@@ -156,6 +155,8 @@ module.exports = {
         '*.test.tsx',
         '*.test.js',
         '*.test.jsx',
+        '*.stories.tsx',
+        '*.stories.jsx',
         'fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],

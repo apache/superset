@@ -17,14 +17,14 @@
  * under the License.
  */
 import 'whatwg-fetch'; // for adding Response polyfill
-import { JsonObject } from '@superset-ui/core/src/connection';
-import handleError, {
-  ErrorInput,
-} from '@superset-ui/core/src/query/api/v1/handleError';
 import {
+  JsonObject,
   SupersetApiError,
   SupersetApiErrorType,
-} from '@superset-ui/core/src/query/api/v1/types';
+} from '@superset-ui/core';
+import handleError, {
+  ErrorInput,
+} from '../../../../src/query/api/v1/handleError';
 
 async function testHandleError(
   inputError: ErrorInput,

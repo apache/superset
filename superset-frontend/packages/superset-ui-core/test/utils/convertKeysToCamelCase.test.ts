@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { convertKeysToCamelCase } from '@superset-ui/core/src';
+import { convertKeysToCamelCase } from '@superset-ui/core';
 
 describe('convertKeysToCamelCase(object)', () => {
   it('returns undefined for undefined input', () => {
