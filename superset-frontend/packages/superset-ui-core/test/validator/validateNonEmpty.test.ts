@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { validateNonEmpty } from '@superset-ui/core/src';
+import { validateNonEmpty } from '@superset-ui/core';
 import './setup';
 
 describe('validateNonEmpty()', () => {

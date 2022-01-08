@@ -20,9 +20,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { mount } from 'enzyme';
-import reactify, {
-  RenderFuncType,
-} from '@superset-ui/core/src/chart/components/reactify';
+import { reactify } from '@superset-ui/core';
+import { RenderFuncType } from '../../../src/chart/components/reactify';
 
 describe('reactify(renderFn)', () => {
   const renderFn: RenderFuncType<{ content?: string }> = jest.fn(

@@ -22,7 +22,7 @@ import { shallow } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,
-} from '@superset-ui/core/src/chart/components/createLoadableRenderer';
+} from '../../../src/chart/components/createLoadableRenderer';
 
 describe('createLoadableRenderer', () => {
   function TestComponent() {

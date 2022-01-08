@@ -19,24 +19,20 @@
 
 module.exports = {
   testRegex: '\\/(spec|src|plugins|packages)\\/.*(_spec|\\.test)\\.[jt]sx?$',
-  testPathIgnorePatterns: [
-    'packages\\/generator-superset\\/.*',
-    '/node_modules/',
-  ],
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
-    // mapping to souce code instead of lib or esm module
-    '@superset-ui/(((?!(core/src)).)*)$':
-      '<rootDir>/node_modules/@superset-ui/$1/src',
-    '@superset-ui/core/src/(.*)$':
-      '<rootDir>/node_modules/@superset-ui/core/src/$1',
+    // mapping plugins of superset-ui to souce code
+    '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
   testEnvironment: 'jsdom',
-  modulePathIgnorePatterns: ['<rootDir>/temporary_superset_ui'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/temporary_superset_ui',
+    '<rootDir>/packages/generator-superset',
+  ],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
   collectCoverageFrom: [

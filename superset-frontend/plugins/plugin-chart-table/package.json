@@ -31,6 +31,7 @@
     "@superset-ui/core": "0.18.25",
     "@types/d3-array": "^2.9.0",
     "@types/react-table": "^7.0.29",
+    "@types/enzyme": "^3.10.5",
     "d3-array": "^2.4.0",
     "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
