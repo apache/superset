@@ -165,7 +165,7 @@ export default styled(NVD3)`
     padding: 8px;
     color: #fff;
     &:after {
-      content: '\25BC';
+      content: '\\25BC';
       font-size: ${({ theme }) => theme.typography.sizes.m};
       color: #484848;
       position: absolute;
