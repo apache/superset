@@ -31,4 +31,4 @@ from typing import Any, Dict, Iterable
 class ExampleDataGenerator(ABC):
     @abstractmethod
     def generate(self) -> Iterable[Dict[Any, Any]]:
-        pass
+        ...
