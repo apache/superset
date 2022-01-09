@@ -174,6 +174,20 @@ test('displays the selected values first', async () => {
   expect(sortedOptions[1]).toHaveTextContent(option8);
 });
 
+test('displays the original order if allowTopOptions is False', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowTopOptions={false} />);
+  const option3 = OPTIONS[2].label;
+  const option8 = OPTIONS[7].label;
+  await open();
+  userEvent.click(await findSelectOption(option3));
+  userEvent.click(await findSelectOption(option8));
+  await type('{esc}');
+  await open();
+  const options = await findAllSelectOptions();
+  expect(options[2]).toHaveTextContent(option3);
+  expect(options[7]).toHaveTextContent(option8);
+});
+
 test('displays the original order when unselecting', async () => {
   render(<Select {...defaultProps} mode="multiple" />);
   const option3 = OPTIONS[2].label;
