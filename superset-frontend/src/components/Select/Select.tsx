@@ -158,6 +158,11 @@ export interface SelectProps extends PickedSelectProps {
    */
   onError?: (error: string) => void;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
+  /**
+   * It enables the user to show top selected options
+   * True by default
+   */
+  allowTopOptions?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -289,6 +294,7 @@ const Select = ({
   showSearch = true,
   sortComparator = defaultSortComparator,
   value,
+  allowTopOptions = true,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -587,7 +593,7 @@ const Select = ({
 
     // multiple or tags mode keep the dropdown visible while selecting options
     // this waits for the dropdown to be opened before sorting the top options
-    if (!isSingleMode && isDropdownVisible) {
+    if (!isSingleMode && isDropdownVisible && allowTopOptions) {
       handleTopOptions(selectValue);
     }
   };
@@ -691,10 +697,10 @@ const Select = ({
   ]);
 
   useEffect(() => {
-    if (isSingleMode) {
+    if (isSingleMode && allowTopOptions) {
       handleTopOptions(selectValue);
     }
-  }, [handleTopOptions, isSingleMode, selectValue]);
+  }, [handleTopOptions, isSingleMode, selectValue, allowTopOptions]);
 
   useEffect(() => {
     if (loading !== undefined && loading !== isLoading) {
