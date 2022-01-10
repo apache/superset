@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import rejectAfterTimeout from '@superset-ui/core/src/connection/callApi/rejectAfterTimeout';
+import rejectAfterTimeout from '../../../src/connection/callApi/rejectAfterTimeout';
 
 describe('rejectAfterTimeout()', () => {
   it('returns a promise that rejects after the specified timeout', async () => {

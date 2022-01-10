@@ -1,0 +1,21 @@
+---
+name: Kusto
+menu: Connecting to Databases
+route: /docs/databases/kusto
+index: 32
+version: 1
+---
+
+## Kusto
+
+The recommended connector library for Kusto is
+[sqlalchemy-kusto](https://pypi.org/project/sqlalchemy-kusto/1.0.1/)>=1.0.1.
+
+The connection string for Kusto looks like this:
+
+```
+kustosql+https://{cluster_url}/{database}?azure_ad_client_id={azure_ad_client_id}&azure_ad_client_secret={azure_ad_client_secret}&azure_ad_tenant_id={azure_ad_tenant_id}&msi=False
+```
+
+Make sure the user has privileges to access and use all required
+databases/tables/views.

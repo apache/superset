@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Behavior, ChartProps } from '@superset-ui/core/src';
+import { Behavior, ChartProps } from '@superset-ui/core';
 
 const RAW_FORM_DATA = {
   some_field: 1,

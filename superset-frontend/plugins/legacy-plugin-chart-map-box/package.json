@@ -36,6 +36,7 @@
     "viewport-mercator-project": "^6.1.1"
   },
   "peerDependencies": {
-    "react": "^15 || ^16"
+    "react": "^15 || ^16",
+    "mapbox-gl": "*"
   }
 }

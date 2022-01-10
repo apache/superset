@@ -17,10 +17,7 @@
  * under the License.
  */
 
-import {
-  NumberFormatter,
-  createDurationFormatter,
-} from '@superset-ui/core/src/number-format';
+import { NumberFormatter, createDurationFormatter } from '@superset-ui/core';
 
 describe('createDurationFormatter()', () => {
   it('creates an instance of NumberFormatter', () => {

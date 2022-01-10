@@ -35,6 +35,7 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "react": "^16.13.1"
+    "react": "^16.13.1",
+    "enzyme": "*"
   }
 }

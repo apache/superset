@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { buildQueryContext, ApiV1 } from '@superset-ui/core/src/query';
+import { buildQueryContext, ApiV1 } from '@superset-ui/core';
 import setupClientForTest from '../setupClientForTest';
 
 describe('API v1 > getChartData()', () => {

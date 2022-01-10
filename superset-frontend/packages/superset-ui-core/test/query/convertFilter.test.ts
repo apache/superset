@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { convertFilter } from '@superset-ui/core/src/query';
+import { convertFilter } from '@superset-ui/core';
 
 describe('convertFilter', () => {
   it('should handle unary filter', () => {
