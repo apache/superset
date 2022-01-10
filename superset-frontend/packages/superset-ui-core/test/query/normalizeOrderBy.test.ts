@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { normalizeOrderBy, QueryObject } from '@superset-ui/core/src/query';
+import { normalizeOrderBy, QueryObject } from '@superset-ui/core';
 
 describe('normalizeOrderBy', () => {
   it('should not change original queryObject when orderby populated', () => {

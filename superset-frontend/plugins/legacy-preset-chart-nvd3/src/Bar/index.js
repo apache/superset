@@ -35,6 +35,7 @@ const metadata = new ChartMetadata({
   name: t('Time-series Bar Chart'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
+    t('Bar'),
     t('Time'),
     t('Trend'),
     t('Stacked'),
@@ -42,6 +43,7 @@ const metadata = new ChartMetadata({
     t('Percentages'),
     t('Proportional'),
     t('Advanced-Analytics'),
+    t('nvd3'),
   ],
   thumbnail,
   useLegacyApi: true,

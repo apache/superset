@@ -18,10 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 
-import {
-  SupersetClient,
-  SupersetClientClass,
-} from '@superset-ui/core/src/connection';
+import { SupersetClient, SupersetClientClass } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClient', () => {

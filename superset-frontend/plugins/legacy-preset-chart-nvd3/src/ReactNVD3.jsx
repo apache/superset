@@ -44,7 +44,8 @@ NVD3.propTypes = {
 };
 
 export default styled(NVD3)`
-  .superset-legacy-chart-nvd3-dist-bar, .superset-legacy-chart-nvd3-bar {
+  .superset-legacy-chart-nvd3-dist-bar,
+  .superset-legacy-chart-nvd3-bar {
     overflow-x: auto !important;
     svg {
       &.nvd3-svg {
@@ -165,7 +166,7 @@ export default styled(NVD3)`
     padding: 8px;
     color: #fff;
     &:after {
-      content: '\25BC';
+      content: '\\25BC';
       font-size: ${({ theme }) => theme.typography.sizes.m};
       color: #484848;
       position: absolute;
