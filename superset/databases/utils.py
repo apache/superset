@@ -106,4 +106,4 @@ def get_table_metadata(
 
 
 def encode_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    return {k: urllib.parse.quote(v) for k, v in parameters.items()}
+    return {k: urllib.parse.quote_plus(v) for k, v in parameters.items()}
