@@ -865,21 +865,22 @@ export function saveQuery(query) {
       stringify: false,
     })
       .then(result => {
+        const savedQuery = convertQueryToClient(result.json.item);
         dispatch({
           type: QUERY_EDITOR_SAVED,
           query,
-          result: convertQueryToClient(result.json.item),
+          result: savedQuery,
         });
         dispatch(queryEditorSetTitle(query, query.title));
-        return convertQueryToClient(result.json.item);
+        return savedQuery;
       })
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be saved'))),
       );
 }
 
-export function addSavedQueryToTabState(queryEditor, savedQuery) {
-  return function (dispatch) {
+export const addSavedQueryToTabState =
+  (queryEditor, savedQuery) => dispatch => {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: `/tabstateview/${queryEditor.id}`,
@@ -895,7 +896,6 @@ export function addSavedQueryToTabState(queryEditor, savedQuery) {
         dispatch(addSuccessToast(t('Your query was saved')));
       });
   };
-}
 
 export function updateSavedQuery(query) {
   return dispatch =>
