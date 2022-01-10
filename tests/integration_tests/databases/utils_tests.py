@@ -29,6 +29,7 @@ from superset.databases.utils import encode_parameters
                 "database": "postgres",
                 "username": "postgres",
                 "password": "hugh@miles4",
+                "query": {},
             },
             {
                 "host": "local%25host",
@@ -36,6 +37,7 @@ from superset.databases.utils import encode_parameters
                 "database": "postgres",
                 "username": "postgres",
                 "password": "hugh%40miles4",
+                "query": {},
             },
         )
     ],
