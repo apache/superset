@@ -575,7 +575,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def check_secret_key(self) -> None:
         if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
-            logger.warning(80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-")
+            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+            bottom_banner = 80 * "-" + "\n" + 80 * "-"
+            logger.warning(top_banner)
             logger.warning(
                 "A Default SECRET_KEY was detected please use superset_config.py "
                 "to override it.\n"
@@ -583,7 +585,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 " you generate \n"
                 "a sufficiently random sequence, ex: openssl rand -base64 42"
             )
-            logger.warning(80 * "-" + "\n" + 80 * "-")
+            logger.warning(bottom_banner)
 
     def init_app(self) -> None:
         """
