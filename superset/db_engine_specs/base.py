@@ -1381,6 +1381,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return False
 
+    @classmethod
+    def parse_sql(cls, sql: str) -> List[str]:
+        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
-import re
 
 from flask.ctx import AppContext
 
@@ -31,3 +30,29 @@ def test_get_text_clause_with_colon(app_context: AppContext) -> None:
         "SELECT foo FROM tbl WHERE foo = '123:456')"
     )
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
+
+
+def test_parse_sql_single_statement(app_context: AppContext) -> None:
+    """
+    `parse_sql` should properly strip leading and trailing spaces and semicolons
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
+    assert queries == ["SELECT foo FROM tbl"]
+
+
+def test_parse_sql_multi_statement(app_context: AppContext) -> None:
+    """
+    For string with multiple SQL-statements `parse_sql` method should return list
+    where each element represents the single SQL-statement
+    """
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
+    assert queries == [
+        "SELECT foo FROM tbl1",
+        "SELECT bar FROM tbl2",
+    ]
