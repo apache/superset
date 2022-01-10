@@ -148,6 +148,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
+    console.log('hello i hit in menu click')
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
@@ -174,7 +175,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const url = getDashboardUrl({
-          dataMask: this.props.dataMask,
           pathname: window.location.pathname,
           filters: getActiveFilters(),
           hash: window.location.hash,
