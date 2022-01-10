@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from datetime import datetime
+
 import pytest
 from flask.ctx import AppContext
-from datetime import datetime
 
 
 @pytest.mark.parametrize(
