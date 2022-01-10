@@ -63,7 +63,9 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     ]
     list_columns = [
         "changed_on_delta_humanized",
-        "changed_by",
+        "changed_by.first_name",
+        "changed_by.id",
+        "changed_by.last_name",
         "created_on",
         "created_by.first_name",
         "created_by.id",
