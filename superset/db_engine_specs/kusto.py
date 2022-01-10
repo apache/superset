@@ -17,15 +17,12 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
 
-from sqlalchemy.engine import Engine
-
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
@@ -139,10 +136,10 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """
-            Pessimistic readonly, 100% sure statement won't mutate anything.
+        Pessimistic readonly, 100% sure statement won't mutate anything.
 
-            There are exists command-queries that start with "." (dot)
-            that are read-only too, but we do not support it for now.
+        There are exists command-queries that start with "." (dot)
+        that are read-only too, but we do not support it for now.
         """
         return not parsed_query.sql.startswith(".")
 
