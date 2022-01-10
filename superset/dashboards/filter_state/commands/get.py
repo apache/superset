@@ -17,7 +17,6 @@
 from typing import Optional
 
 from superset.dashboards.dao import DashboardDAO
-from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.utils import cache_key
