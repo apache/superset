@@ -149,7 +149,7 @@ how to set up a development environment.
 - [Documentation for Superset End-Users (by Preset)](https://docs.preset.io/docs/terminology)
 - Deploying Superset
   - [Official Docker image](https://hub.docker.com/r/apache/superset)
-  - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset
+  - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
 - Recordings of Past [Superset Community Events](https://preset.io/events)
   - [Live Demo: Interactive Time-series Analysis with Druid and Superset](https://preset.io/events/2021-03-02-interactive-time-series-analysis-with-druid-and-superset/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
