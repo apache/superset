@@ -206,7 +206,7 @@ exports.createPages = ({ actions }) => {
   });
   createRedirect({
     fromPath: '/installation.html#building-from-source',
-    toPath: '/docs/contribution',
+    toPath: '/docs/contributing/contribution-guidelines',
     isPermanent: true,
   });
   createRedirect({
