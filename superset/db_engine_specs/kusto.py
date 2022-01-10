@@ -137,11 +137,11 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """
         Pessimistic readonly, 100% sure statement won't mutate anything.
-
-        There are exists command-queries that start with "." (dot)
-        that are read-only too, but we do not support it for now.
         """
-        return not parsed_query.sql.startswith(".")
+        return (
+            KustoKqlEngineSpec.is_select_query(parsed_query)
+            or parsed_query.sql.startswith(".show")
+        )
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

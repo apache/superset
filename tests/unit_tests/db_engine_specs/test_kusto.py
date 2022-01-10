@@ -72,7 +72,11 @@ def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) 
     [
         ("tbl | limit 100", True),
         ("let foo = 1; tbl | where bar == foo", True),
-        (".show tables", False),
+        (".show tables", True),
+        ("print 1", True),
+        ("set querytrace; Events | take 100", True),
+        (".drop table foo", False),
+        (".set-or-append table foo <| bar", False),
     ],
 )
 def test_kql_is_readonly_query(
