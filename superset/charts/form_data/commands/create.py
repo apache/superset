@@ -24,12 +24,14 @@ from superset.key_value.utils import cache_key
 
 class CreateFormDataCommand(CreateKeyValueCommand):
     def create(self, cmd_params: CommandParameters) -> bool:
-        resource_id = cmd_params["resource_id"]
-        actor = cmd_params["actor"]
-        key = cmd_params["key"]
-        value = cmd_params["value"]
-        entry: Entry = {"owner": actor.get_user_id(), "value": value}
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cmd_params.key
+        value = cmd_params.value
         check_access(cmd_params)
-        return cache_manager.chart_form_data_cache.set(
-            cache_key(resource_id, key), entry
-        )
+        if value:
+            entry: Entry = {"owner": actor.get_user_id(), "value": value}
+            return cache_manager.chart_form_data_cache.set(
+                cache_key(resource_id, key), entry
+            )
+        return False

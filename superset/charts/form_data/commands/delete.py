@@ -25,9 +25,9 @@ from superset.key_value.utils import cache_key
 
 class DeleteFormDataCommand(DeleteKeyValueCommand):
     def delete(self, cmd_params: CommandParameters) -> bool:
-        resource_id = cmd_params["resource_id"]
-        actor = cmd_params["actor"]
-        key = cmd_params["key"]
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cmd_params.key
         check_access(cmd_params)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)

@@ -25,12 +25,12 @@ from superset.key_value.utils import cache_key
 
 class UpdateFilterStateCommand(UpdateKeyValueCommand):
     def update(self, cmd_params: CommandParameters) -> bool:
-        resource_id = cmd_params["resource_id"]
-        actor = cmd_params["actor"]
-        key = cmd_params["key"]
-        value = cmd_params["value"]
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cmd_params.key
+        value = cmd_params.value
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
+        if dashboard and value:
             entry: Entry = cache_manager.filter_state_cache.get(
                 cache_key(resource_id, key)
             )

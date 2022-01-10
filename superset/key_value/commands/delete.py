@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 
 class DeleteKeyValueCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters):
-        self._parameters = cmd_params
+        self._cmd_params = cmd_params
 
     def run(self) -> bool:
         try:
-            return self.delete(self._parameters)
+            return self.delete(self._cmd_params)
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex

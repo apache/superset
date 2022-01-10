@@ -25,9 +25,9 @@ from superset.key_value.utils import cache_key
 
 class DeleteFilterStateCommand(DeleteKeyValueCommand):
     def delete(self, cmd_params: CommandParameters) -> bool:
-        resource_id = cmd_params["resource_id"]
-        actor = cmd_params["actor"]
-        key = cmd_params["key"]
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cmd_params.key
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
             entry: Entry = cache_manager.filter_state_cache.get(

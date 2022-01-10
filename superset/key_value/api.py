@@ -74,12 +74,12 @@ class KeyValueRestApi(BaseApi, ABC):
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            args: CommandParameters = {
-                "actor": g.user,
-                "resource_id": pk,
-                "value": item["value"],
-                "query_params": request.args,
-            }
+            args = CommandParameters(
+                actor=g.user,
+                resource_id=pk,
+                value=item["value"],
+                query_params=request.args,
+            )
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
         except ValidationError as ex:
@@ -99,13 +99,13 @@ class KeyValueRestApi(BaseApi, ABC):
             raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            args: CommandParameters = {
-                "actor": g.user,
-                "resource_id": pk,
-                "key": key,
-                "value": item["value"],
-                "query_params": request.args,
-            }
+            args = CommandParameters(
+                actor=g.user,
+                resource_id=pk,
+                key=key,
+                value=item["value"],
+                query_params=request.args,
+            )
             result = self.get_update_command()(args).run()
             if not result:
                 return self.response_404()
@@ -124,12 +124,9 @@ class KeyValueRestApi(BaseApi, ABC):
 
     def get(self, pk: int, key: str) -> Response:
         try:
-            args: CommandParameters = {
-                "actor": g.user,
-                "resource_id": pk,
-                "key": key,
-                "query_params": request.args,
-            }
+            args = CommandParameters(
+                actor=g.user, resource_id=pk, key=key, query_params=request.args
+            )
             value = self.get_get_command()(args).run()
             if not value:
                 return self.response_404()
@@ -146,12 +143,9 @@ class KeyValueRestApi(BaseApi, ABC):
 
     def delete(self, pk: int, key: str) -> Response:
         try:
-            args: CommandParameters = {
-                "actor": g.user,
-                "resource_id": pk,
-                "key": key,
-                "query_params": request.args,
-            }
+            args = CommandParameters(
+                actor=g.user, resource_id=pk, key=key, query_params=request.args
+            )
             result = self.get_delete_command()(args).run()
             if not result:
                 return self.response_404()

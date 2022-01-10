@@ -27,17 +27,20 @@ from superset.key_value.utils import cache_key
 
 
 class GetFormDataCommand(GetKeyValueCommand):
-    def get(self, cmd_params: CommandParameters) -> Optional[str]:
-        resource_id = cmd_params["resource_id"]
-        key = cmd_params["key"]
+    def __init__(self, cmd_params: CommandParameters) -> None:
+        super().__init__(cmd_params)
         config = app.config["CHART_FORM_DATA_CACHE_CONFIG"]
-        refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        self._refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+
+    def get(self, cmd_params: CommandParameters) -> Optional[str]:
+        resource_id = cmd_params.resource_id
+        key = cmd_params.key
         check_access(cmd_params)
         entry: Entry = cache_manager.chart_form_data_cache.get(
             cache_key(resource_id, key)
         )
         if entry:
-            if refresh_timeout:
+            if self._refresh_timeout:
                 cache_manager.chart_form_data_cache.set(key, entry)
             return entry["value"]
         return None

@@ -33,9 +33,9 @@ from superset.views.utils import is_owner
 
 
 def check_access(parameters: CommandParameters) -> Optional[bool]:
-    resource_id = parameters["resource_id"]
-    actor = parameters["actor"]
-    query_params = parameters["query_params"]
+    resource_id = parameters.resource_id
+    actor = parameters.actor
+    query_params = parameters.query_params
     if resource_id == 0:
         if parameters:
             dataset_id = query_params.get("dataset_id")

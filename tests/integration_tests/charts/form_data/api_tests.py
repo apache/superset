@@ -167,7 +167,11 @@ def test_delete_access_denied(client, chart_id: int):
     assert resp.status_code == 404
 
 
-def test_delete_not_owner(client, chart_id: int):
-    login(client, "gamma")
-    resp = client.delete(f"api/v1/chart/{chart_id}/form_data/{key}/")
-    assert resp.status_code == 404
+def test_delete_not_owner(client, chart_id: int, admin_id: int):
+    another_key = "another_key"
+    another_owner = admin_id + 1
+    entry: Entry = {"owner": another_owner, "value": value}
+    cache_manager.chart_form_data_cache.set(cache_key(chart_id, another_key), entry)
+    login(client, "admin")
+    resp = client.delete(f"api/v1/chart/{chart_id}/form_data/{another_key}/")
+    assert resp.status_code == 403

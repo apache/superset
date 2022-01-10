@@ -75,8 +75,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                    type: object
-                    $ref: '#/components/schemas/KeyValuePostSchema'
+                  $ref: '#/components/schemas/KeyValuePostSchema'
           responses:
             201:
               description: The value was stored successfully.
@@ -126,8 +125,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                    type: object
-                    $ref: '#/components/schemas/KeyValuePutSchema'
+                  $ref: '#/components/schemas/KeyValuePutSchema'
           responses:
             200:
               description: The value was stored successfully.

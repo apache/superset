@@ -24,12 +24,12 @@ from superset.key_value.utils import cache_key
 
 class CreateFilterStateCommand(CreateKeyValueCommand):
     def create(self, cmd_params: CommandParameters) -> bool:
-        resource_id = cmd_params["resource_id"]
-        actor = cmd_params["actor"]
-        key = cmd_params["key"]
-        value = cmd_params["value"]
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cmd_params.key
+        value = cmd_params.value
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
+        if dashboard and value:
             entry: Entry = {"owner": actor.get_user_id(), "value": value}
             return cache_manager.filter_state_cache.set(
                 cache_key(resource_id, key), entry

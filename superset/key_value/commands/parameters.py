@@ -14,15 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict
+from dataclasses import dataclass
+from typing import Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
-from typing_extensions import TypedDict
 
 
-class CommandParameters(TypedDict, total=False):
+@dataclass
+class CommandParameters:
     actor: User
     resource_id: int
-    key: str
-    value: str
     query_params: Dict[str, str]
+    key: Optional[str] = None
+    value: Optional[str] = None

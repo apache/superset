@@ -29,13 +29,13 @@ logger = logging.getLogger(__name__)
 
 class CreateKeyValueCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters):
-        self._parameters = cmd_params
+        self._cmd_params = cmd_params
 
     def run(self) -> str:
         try:
             key = token_urlsafe(48)
-            self._parameters["key"] = key
-            self.create(self._parameters)
+            self._cmd_params.key = key
+            self.create(self._cmd_params)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

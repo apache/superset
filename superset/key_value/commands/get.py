@@ -29,11 +29,11 @@ logger = logging.getLogger(__name__)
 
 class GetKeyValueCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters):
-        self._parameters = cmd_params
+        self._cmd_params = cmd_params
 
     def run(self) -> Optional[str]:
         try:
-            return self.get(self._parameters)
+            return self.get(self._cmd_params)
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
