@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
+
+from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.db_engine_specs.exceptions import (
@@ -23,6 +25,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
 
@@ -89,3 +92,68 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return parsed_query.sql.lower().startswith("select")
+
+
+class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+    limit_method = LimitMethod.WRAP_SQL
+    engine = "kustokql"
+    engine_name = "KustoKQL"
+    time_groupby_inline = True
+    time_secondary_columns = True
+    allows_joins = True
+    allows_subqueries = True
+    allows_sql_comments = False
+    run_multiple_statements_as_one = True
+
+    _time_grain_expressions = {
+        None: "{col}",
+        "PT1S": "{col}/ time(1s)",
+        "PT1M": "{col}/ time(1min)",
+        "PT1H": "{col}/ time(1h)",
+        "P1D": "{col}/ time(1d)",
+        "P1M": "datetime_diff('month',CreateDate, datetime(0001-01-01 00:00:00))+1",
+        "P1Y": "datetime_diff('year',CreateDate, datetime(0001-01-01 00:00:00))+1",
+    }
+
+    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel,import-error
+        import sqlalchemy_kusto.errors as kusto_exceptions
+
+        return {
+            kusto_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
+            kusto_exceptions.OperationalError: SupersetDBAPIOperationalError,
+            kusto_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
+        }
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        if target_type.upper() == utils.TemporalType.DATETIME:
+            return f"""datetime({dttm.isoformat(timespec="seconds")})"""
+        return None
+
+    @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+            Pessimistic readonly, 100% sure statement won't mutate anything.
+
+            There are exists command-queries that start with "." (dot)
+            that are read-only too, but we do not support it for now.
+        """
+        return not parsed_query.sql.startswith(".")
+
+    @classmethod
+    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
+        return not parsed_query.sql.startswith(".")
+
+    @classmethod
+    def parse_sql(cls, sql: str) -> List[str]:
+        """
+        Kusto supports a single query statement, but it could include sub queries
+        and variables declared via let keyword.
+        """
+        return [sql]
