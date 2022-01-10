@@ -134,7 +134,17 @@ class Chart extends React.PureComponent {
     ) {
       // if the chart is deactivated (filter_box), only load once
       if (this.props.isDeactivatedViz && this.props.queriesResponse) {
+        return;
       }
+      this.runQuery();
+    }
+  }
+
+  runQuery() {
+    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
+      // Load saved chart with a GET request
+      this.props.actions.getSavedChart(
+        this.props.formData,
         this.props.force,
         this.props.timeout,
         this.props.chartId,
