@@ -2370,7 +2370,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         max_tries=5,
     )
     def stop_query(self) -> FlaskResponse:
-        client_id = int(request.form.get("client_id"))
+        client_id = request.form.get("client_id")
         query = db.session.query(Query).filter_by(client_id=client_id).one()
         if query.status in [
             QueryStatus.FAILED,
