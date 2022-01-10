@@ -22,6 +22,8 @@ import {
   ChartPlugin,
   AnnotationType,
   Behavior,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
@@ -62,7 +64,9 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Area Chart'),
+        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Area Chart v2')
+          : t('Time-series Area Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
