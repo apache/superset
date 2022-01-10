@@ -25,7 +25,7 @@ from superset.key_value.utils import cache_key
 
 class GetFilterStateCommand(GetKeyValueCommand):
     def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
+        DashboardDAO.get_by_id_or_slug(str(resource_id))
         entry: Entry = cache_manager.filter_state_cache.get(
             cache_key(resource_id, key)
         ) or {}
