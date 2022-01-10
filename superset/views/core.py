@@ -2014,7 +2014,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         ]
         DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
         if not user:
-            err_msg = __("Can't find User, please ask your admin to create one.")
+            err_msg = __("Can't find user, please ask your admin to create one.")
             logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         cluster = (
