@@ -167,9 +167,7 @@ class AsyncQueryManager:
 
     def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
-        return build_job_metadata(
-            channel_id, job_id, user_id, status=self.STATUS_PENDING
-        )
+        return build_job_metadata(channel_id, job_id, user_id, status=self.STATUS_PENDING)
 
     def read_events(
         self, channel: str, last_id: Optional[str]
