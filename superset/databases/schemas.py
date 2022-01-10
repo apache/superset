@@ -28,6 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset import db
+from superset.databases.utils import encode_parameters
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
@@ -254,6 +255,10 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", {})
+
+        # encode parameters
+        parameters = encode_parameters(parameters)
+
         # TODO(AAfghahi) standardize engine.
         engine = (
             data.pop("engine", None)
