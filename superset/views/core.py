@@ -2378,7 +2378,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]:
             logger.warning(
-                "Query with client_id could not be stopped: " "query already complete",
+                "Query with client_id could not be stopped: query already complete",
             )
             return self.json_response("OK")
 
