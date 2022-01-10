@@ -26,7 +26,6 @@ import {
   GenericDataType,
   NumberFormatter,
   TimeFormatter,
-  TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
@@ -37,8 +36,8 @@ function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }
 
-export function extractTimeseriesSeries(
-  data: TimeseriesDataRecord[],
+export function extractSeries(
+  data: DataRecord[],
   opts: {
     fillNeighborValue?: number;
     xAxis?: string;
@@ -47,7 +46,7 @@ export function extractTimeseriesSeries(
 ): SeriesOption[] {
   const { fillNeighborValue, xAxis = DTTM_ALIAS, removeNulls = false } = opts;
   if (data.length === 0) return [];
-  const rows: TimeseriesDataRecord[] = data.map(datum => ({
+  const rows: DataRecord[] = data.map(datum => ({
     ...datum,
     [xAxis]: datum[xAxis],
   }));
@@ -70,7 +69,7 @@ export function extractTimeseriesSeries(
               : row[key],
           ];
         })
-        .filter(row => !removeNulls || row[1] !== null),
+        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null)),
     }));
 }
 

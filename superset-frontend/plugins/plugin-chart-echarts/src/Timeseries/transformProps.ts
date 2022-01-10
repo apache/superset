@@ -43,7 +43,7 @@ import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
   dedupSeries,
-  extractTimeseriesSeries,
+  extractSeries,
   getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
@@ -127,13 +127,10 @@ export default function transformProps(
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseTimeseriesDatum(data, verboseMap);
   const xAxisCol = xAxisOrig || DTTM_ALIAS;
-  const rawSeries = extractTimeseriesSeries(rebasedData, {
+  const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
     xAxis: xAxisCol,
-    removeNulls: [
-      EchartsTimeseriesSeriesType.Line,
-      EchartsTimeseriesSeriesType.Scatter,
-    ].includes(seriesType),
+    removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),

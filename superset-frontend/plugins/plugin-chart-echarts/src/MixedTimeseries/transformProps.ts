@@ -40,7 +40,7 @@ import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
   dedupSeries,
-  extractTimeseriesSeries,
+  extractSeries,
   getLegendProps,
 } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
@@ -131,11 +131,11 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedDataA = rebaseTimeseriesDatum(data1, verboseMap);
-  const rawSeriesA = extractTimeseriesSeries(rebasedDataA, {
+  const rawSeriesA = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
   });
   const rebasedDataB = rebaseTimeseriesDatum(data2, verboseMap);
-  const rawSeriesB = extractTimeseriesSeries(rebasedDataB, {
+  const rawSeriesB = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
   });
 

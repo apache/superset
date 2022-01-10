@@ -20,7 +20,7 @@ import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
 import {
   dedupSeries,
   extractGroupbyLabel,
-  extractTimeseriesSeries,
+  extractSeries,
   formatSeriesName,
   getChartPadding,
   getLegendProps,
@@ -30,7 +30,7 @@ import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
-describe('extractTimeseriesSeries', () => {
+describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
@@ -49,7 +49,7 @@ describe('extractTimeseriesSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractTimeseriesSeries(data)).toEqual([
+    expect(extractSeries(data)).toEqual([
       {
         id: 'Hulk',
         name: 'Hulk',
@@ -66,6 +66,41 @@ describe('extractTimeseriesSeries', () => {
           ['2000-01-01', 2],
           ['2000-02-01', 10],
           ['2000-03-01', 5],
+        ],
+      },
+    ]);
+  });
+
+  it('should remove rows that have a null x-value', () => {
+    const data = [
+      {
+        x: 1,
+        Hulk: null,
+        abc: 2,
+      },
+      {
+        x: null,
+        Hulk: 2,
+        abc: 10,
+      },
+      {
+        x: 2,
+        Hulk: 1,
+        abc: 5,
+      },
+    ];
+    expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
+      {
+        id: 'Hulk',
+        name: 'Hulk',
+        data: [[2, 1]],
+      },
+      {
+        id: 'abc',
+        name: 'abc',
+        data: [
+          [1, 2],
+          [2, 5],
         ],
       },
     ]);
@@ -114,7 +149,7 @@ describe('extractTimeseriesSeries', () => {
         abc: null,
       },
     ];
-    expect(extractTimeseriesSeries(data, { fillNeighborValue: 0 })).toEqual([
+    expect(extractSeries(data, { fillNeighborValue: 0 })).toEqual([
       {
         id: 'abc',
         name: 'abc',
