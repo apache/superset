@@ -789,6 +789,23 @@ If you are using JDBC to connect to Drill, the connection string looks like this
 For a complete tutorial about how to use Apache Drill with Superset, see this tutorial:
 `Visualize Anything with Superset and Drill <http://thedataist.com/visualize-anything-with-superset-and-drill/>`_
 
+Kusto
+---------
+
+The recommended connector library for Kusto is
+[sqlalchemy-kusto](https://pypi.org/project/sqlalchemy-kusto/1.0.1/)>=1.0.1.
+
+The connection string for Kusto looks like this:
+
+```
+kustosql+https://{cluster_url}/{database}?azure_ad_client_id={azure_ad_client_id}&azure_ad_client_secret={azure_ad_client_secret}&azure_ad_tenant_id={azure_ad_tenant_id}&msi=False
+```
+
+Make sure the user has privileges to access and use all required
+databases/tables/views.
+
+See `Azure Data Explorer (Kusto) dialect for SQLAlchemy <https://github.com/dodopizza/sqlalchemy-kusto/>`_.
+
 Deeper SQLAlchemy integration
 -----------------------------
 
