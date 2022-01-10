@@ -320,6 +320,8 @@ const config: ControlPanelConfig = {
                 '1 year',
                 '104 weeks',
                 '2 years',
+                '156 weeks',
+                '3 years',
               ]),
               description: t(
                 'Overlay one or more timeseries from a ' +
