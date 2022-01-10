@@ -148,7 +148,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   handleMenuClick({ key, domEvent }) {
-    console.log('hello i hit in menu click')
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
