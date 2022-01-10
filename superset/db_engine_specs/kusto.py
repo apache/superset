@@ -83,6 +83,9 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt == utils.TemporalType.SMALLDATETIME:
             datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
             return f"""CONVERT(SMALLDATETIME, '{datetime_formatted}', 20)"""
+        if tt == utils.TemporalType.TIMESTAMP:
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CONVERT(TIMESTAMP, '{datetime_formatted}', 20)"""
         return None
 
     @classmethod
@@ -129,8 +132,14 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        if target_type.upper() == utils.TemporalType.DATETIME:
-            return f"""datetime({dttm.isoformat(timespec="seconds")})"""
+        if target_type.upper() in [
+            utils.TemporalType.DATETIME,
+            utils.TemporalType.TIMESTAMP,
+        ]:
+            return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
+        if target_type.upper() == utils.TemporalType.DATE:
+            return f"""datetime({dttm.date().isoformat()})"""
+
         return None
 
     @classmethod
@@ -138,10 +147,9 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         """
         Pessimistic readonly, 100% sure statement won't mutate anything.
         """
-        return (
-            KustoKqlEngineSpec.is_select_query(parsed_query)
-            or parsed_query.sql.startswith(".show")
-        )
+        return KustoKqlEngineSpec.is_select_query(
+            parsed_query
+        ) or parsed_query.sql.startswith(".show")
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

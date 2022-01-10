@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import pytest
 from flask.ctx import AppContext
+from datetime import datetime
 
 
 @pytest.mark.parametrize(
@@ -62,7 +63,7 @@ def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) 
     from superset.sql_parse import ParsedQuery
 
     parsed_query = ParsedQuery(kql)
-    is_select = KustoKqlEngineSpec.is_readonly_query(parsed_query)
+    is_select = KustoKqlEngineSpec.is_select_query(parsed_query)
 
     assert expected == is_select
 
@@ -106,3 +107,48 @@ def test_kql_parse_sql(app_context: AppContext) -> None:
     queries = KustoKqlEngineSpec.parse_sql("let foo = 1; tbl | where bar == foo")
 
     assert queries == ["let foo = 1; tbl | where bar == foo"]
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_dttm",
+    [
+        ("DATETIME", "datetime(2019-01-02T03:04:05.678900)"),
+        ("TIMESTAMP", "datetime(2019-01-02T03:04:05.678900)"),
+        ("DATE", "datetime(2019-01-02)"),
+    ],
+)
+def test_kql_convert_dttm(
+    app_context: AppContext, target_type: str, expected_dttm: str
+) -> None:
+    """
+    Test that date objects are converted correctly.
+    """
+
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+
+    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
+    print(dttm)
+    assert expected_dttm == KustoKqlEngineSpec.convert_dttm(target_type, dttm)
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_dttm",
+    [
+        ("DATETIME", "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)"),
+        ("DATE", "CONVERT(DATE, '2019-01-02', 23)"),
+        ("SMALLDATETIME", "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)"),
+        ("TIMESTAMP", "CONVERT(TIMESTAMP, '2019-01-02 03:04:05', 20)"),
+    ],
+)
+def test_sql_convert_dttm(
+    app_context: AppContext, target_type: str, expected_dttm: str
+) -> None:
+    """
+    Test that date objects are converted correctly.
+    """
+
+    from superset.db_engine_specs.kusto import KustoSqlEngineSpec
+
+    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
+    print(dttm)
+    assert expected_dttm == KustoSqlEngineSpec.convert_dttm(target_type, dttm)
