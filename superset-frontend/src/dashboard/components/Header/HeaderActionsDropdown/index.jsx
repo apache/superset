@@ -174,7 +174,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const url = getDashboardUrl({
-          dataMask: this.props.dataMask,
           pathname: window.location.pathname,
           filters: getActiveFilters(),
           hash: window.location.hash,
