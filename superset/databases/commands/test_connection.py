@@ -34,7 +34,8 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.exceptions import SupersetSecurityException
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -94,10 +95,15 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     # SQLite can't run on a separate thread, so ``func_timeout`` fails
                     alive = engine.dialect.do_ping(conn)
                 except FunctionTimedOut as ex:
-                    raise Exception(
-                        "Please check your connection details and database settings, "
-                        "and ensure that your database is accepting connections, then "
-                        "try connecting again."
+                    raise SupersetTimeoutException(
+                        error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+                        message=(
+                            "Please check your connection details and database settings, "
+                            "and ensure that your database is accepting connections, "
+                            "then try connecting again."
+                        ),
+                        level=ErrorLevel.ERROR,
+                        extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                     ) from ex
                 except Exception:  # pylint: disable=broad-except
                     alive = False
@@ -134,6 +140,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
+        except SupersetTimeoutException as ex:
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
+            # bubble up the exception to return a 408
+            raise ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
