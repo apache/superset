@@ -80,7 +80,6 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-
     if not dash:
         dash = Dashboard()
     dash.dashboard_title = title

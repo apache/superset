@@ -170,6 +170,7 @@ class ReportSchedulePostSchema(Schema):
         description=creation_method_description,
     )
     dashboard = fields.Integer(required=False, allow_none=True)
+    selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -202,6 +203,7 @@ class ReportSchedulePostSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    extra = fields.Dict(default=None,)
     force_screenshot = fields.Boolean(default=False)
 
     @validates_schema
