@@ -20,7 +20,7 @@ import json
 import unittest
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Optional, List
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
@@ -42,6 +42,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
 )
 from tests.integration_tests.test_app import app
+from superset import security_manager
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
@@ -56,7 +57,9 @@ from superset.utils.core import (
     AnnotationType,
     ChartDataResultFormat,
     get_example_database,
+    get_example_default_schema,
     get_main_database,
+    AdhocMetricExpressionType,
 )
 
 
@@ -106,7 +109,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             charts = []
             admin = self.get_user("admin")
             for cx in range(CHARTS_FIXTURE_COUNT - 1):
-                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
+                charts.append(self.insert_chart(f"name{cx}", [admin.id], 1,))
             fav_charts = []
             for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
                 fav_star = FavStar(
@@ -122,6 +125,29 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 db.session.delete(chart)
             for fav_chart in fav_charts:
                 db.session.delete(fav_chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_certified_charts(self):
+        with self.create_app().app_context():
+            certified_charts = []
+            admin = self.get_user("admin")
+            for cx in range(CHARTS_FIXTURE_COUNT):
+                certified_charts.append(
+                    self.insert_chart(
+                        f"certified{cx}",
+                        [admin.id],
+                        1,
+                        certified_by="John Doe",
+                        certification_details="Sample certification",
+                    )
+                )
+
+            yield certified_charts
+
+            # rollback changes
+            for chart in certified_charts:
+                db.session.delete(chart)
             db.session.commit()
 
     @pytest.fixture()
@@ -446,6 +472,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": 1,
             "datasource_type": "table",
             "dashboards": dashboards_ids,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -541,6 +569,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test update
         """
+        schema = get_example_default_schema()
+        full_table_name = f"{schema}.birth_names" if schema else "birth_names"
+
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
@@ -558,6 +589,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "datasource_id": birth_names_table_id,
             "datasource_type": "table",
             "dashboards": [dash_id],
+            "certified_by": "Mario Rossi",
+            "certification_details": "Edited certification",
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
@@ -575,7 +608,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.cache_timeout, 1000)
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
-        self.assertEqual(model.datasource_name, "birth_names")
+        self.assertEqual(model.datasource_name, full_table_name)
+        self.assertEqual(model.certified_by, "Mario Rossi")
+        self.assertEqual(model.certification_details, "Edited certification")
         self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
@@ -726,6 +761,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         expected_result = {
             "cache_timeout": None,
+            "certified_by": None,
+            "certification_details": None,
             "dashboards": [],
             "description": None,
             "owners": [
@@ -919,6 +956,36 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
+
+    @pytest.mark.usefixtures("create_certified_charts")
+    def test_gets_certified_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_is_certified", "value": True,}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], CHARTS_FIXTURE_COUNT)
+
+    @pytest.mark.usefixtures("create_charts")
+    def test_gets_not_certified_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_is_certified", "value": False,}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 17)
 
     @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
@@ -1484,6 +1551,32 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_with_invalid_where_parameter_closing_unclosed__400(self):
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["filters"] = []
+        request_payload["queries"][0]["extras"][
+            "where"
+        ] = "state = 'CA') OR (state = 'NY'"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_with_invalid_having_parameter_closing_and_comment__400(self):
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["filters"] = []
+        request_payload["queries"][0]["extras"][
+            "having"
+        ] = "COUNT(1) = 0) UNION ALL SELECT 'abc', 1--comment"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+
+        assert rv.status_code == 400
+
     def test_chart_data_with_invalid_datasource(self):
         """
         Chart data API: Test chart data query with invalid schema
@@ -2031,3 +2124,58 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(
             set(column for column in data[0].keys()), {"state", "name", "sum__num"}
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_virtual_table_with_colons(self):
+        """
+        Chart data API: test query with literal colon characters in query, metrics,
+        where clause and filters
+        """
+        self.login(username="admin")
+        owner = self.get_user("admin").id
+        user = db.session.query(security_manager.user_model).get(owner)
+
+        table = SqlaTable(
+            table_name="virtual_table_1",
+            schema=get_example_default_schema(),
+            owners=[user],
+            database=get_example_database(),
+            sql="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
+        )
+        db.session.add(table)
+        db.session.commit()
+        table.fetch_metadata()
+
+        request_payload = get_query_context("birth_names")
+        request_payload["datasource"] = {
+            "type": "table",
+            "id": table.id,
+        }
+        request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
+        request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
+        request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["metrics"] = [
+            {
+                "expressionType": AdhocMetricExpressionType.SQL,
+                "sqlExpression": "sum(case when state = ':asdf' then 0 else 1 end)",
+                "label": "count",
+            }
+        ]
+        request_payload["queries"][0]["filters"] = [
+            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+        ]
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        db.session.delete(table)
+        db.session.commit()
+        assert rv.status_code == 200
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        data = result["data"]
+        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}
+        # make sure results and query parameters are unescaped
+        assert {row["foo"] for row in data} == {":foo"}
+        assert {row["bar"] for row in data} == {":bar:"}
+        assert "':asdf'" in result["query"]
+        assert "':xyz:qwerty'" in result["query"]
+        assert "':qwerty:'" in result["query"]

@@ -395,13 +395,16 @@ export function exploreJSON(
       .then(({ response, json }) => {
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
-          const result = 'result' in json ? json.result[0] : json;
+          const result = 'result' in json ? json.result : json;
           switch (response.status) {
             case 200:
               // Query results returned synchronously, meaning query was already cached.
-              return Promise.resolve([result]);
+              return Promise.resolve(result);
             case 202:
               // Query is running asynchronously and we must await the results
+              if (shouldUseLegacyApi(formData)) {
+                return waitForAsyncData(result[0]);
+              }
               return waitForAsyncData(result);
             default:
               throw new Error(

@@ -20,8 +20,9 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -323,45 +324,38 @@ class Header extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
-      expandedSlices,
-      customCss,
-      colorNamespace,
       colorScheme,
+      colorNamespace,
+      customCss,
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
+      slug,
     } = this.props;
-
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-
-    // use the colorScheme for default labels
-    let labelColors = colorScheme ? scale.getColorMap() : {};
-    // but allow metadata to overwrite if it exists
-    // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
-    if (metadataLabelColors) {
-      labelColors = { ...labelColors, ...metadataLabelColors };
-    }
 
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable-line camelcase
+      : dashboardInfo.metadata?.refresh_frequency;
 
     const data = {
-      positions,
-      expanded_slices: expandedSlices,
+      certified_by: dashboardInfo.certified_by,
+      certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
-      label_colors: labelColors,
       dashboard_title: dashboardTitle,
-      refresh_frequency: refreshFrequency,
       last_modified_time: lastModifiedTime,
+      owners: dashboardInfo.owners,
+      roles: dashboardInfo.roles,
+      slug,
+      metadata: {
+        ...dashboardInfo?.metadata,
+        color_namespace:
+          dashboardInfo?.metadata?.color_namespace || colorNamespace,
+        color_scheme: dashboardInfo?.metadata?.color_scheme || colorScheme,
+        positions,
+        refresh_frequency: refreshFrequency,
+      },
     };
 
     // make sure positions data less than DB storage limitation:
@@ -479,6 +473,20 @@ class Header extends React.PureComponent {
       dashboardInfo.common.conf
         .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
 
+    const handleOnPropertiesChange = updates => {
+      const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
+      dashboardInfoChanged({
+        slug: updates.slug,
+        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        certified_by: updates.certifiedBy,
+        certification_details: updates.certificationDetails,
+        owners: updates.owners,
+        roles: updates.roles,
+      });
+      setColorSchemeAndUnsavedChanges(updates.colorScheme);
+      dashboardTitleChanged(updates.title);
+    };
+
     return (
       <StyledDashboardHeader
         className="dashboard-header"
@@ -486,6 +494,14 @@ class Header extends React.PureComponent {
         data-test-id={`${dashboardInfo.id}`}
       >
         <div className="dashboard-component-header header-large">
+          {dashboardInfo.certified_by && (
+            <>
+              <CertifiedIcon
+                certifiedBy={dashboardInfo.certified_by}
+                details={dashboardInfo.certification_details}
+              />{' '}
+            </>
+          )}
           <EditableTitle
             title={dashboardTitle}
             canEdit={userCanEdit && editMode}
@@ -592,33 +608,16 @@ class Header extends React.PureComponent {
           )}
           {shouldShowReport && this.renderReportModal()}
 
-          {this.state.showingPropertiesModal && (
-            <PropertiesModal
-              dashboardId={dashboardInfo.id}
-              show={this.state.showingPropertiesModal}
-              onHide={this.hidePropertiesModal}
-              colorScheme={this.props.colorScheme}
-              onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
-                dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                });
-                setColorSchemeAndUnsavedChanges(updates.colorScheme);
-                dashboardTitleChanged(updates.title);
-                if (updates.slug) {
-                  window.history.pushState(
-                    { event: 'dashboard_properties_changed' },
-                    '',
-                    `/superset/dashboard/${updates.slug}/`,
-                  );
-                }
-              }}
-            />
-          )}
+          <PropertiesModal
+            dashboardId={dashboardInfo.id}
+            dashboardInfo={dashboardInfo}
+            dashboardTitle={dashboardTitle}
+            show={this.state.showingPropertiesModal}
+            onHide={this.hidePropertiesModal}
+            colorScheme={this.props.colorScheme}
+            onSubmit={handleOnPropertiesChange}
+            onlyApply
+          />
 
           {this.state.showingReportModal && (
             <ReportModal

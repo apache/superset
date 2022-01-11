@@ -21,7 +21,7 @@ import React from 'react';
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, Input } from 'src/common/components';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
+import { t, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
@@ -122,37 +122,32 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       dashboardInfo,
       layout: positions,
       customCss,
-      colorNamespace,
-      colorScheme,
-      expandedSlices,
       dashboardId,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
       lastModifiedTime,
     } = this.props;
 
-    const scale = CategoricalColorNamespace.getScale(
-      colorScheme,
-      colorNamespace,
-    );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
     const data = {
-      positions,
+      certified_by: dashboardInfo.certified_by,
+      certification_details: dashboardInfo.certification_details,
       css: customCss,
-      color_namespace: colorNamespace,
-      color_scheme: colorScheme,
-      label_colors: labelColors,
-      expanded_slices: expandedSlices,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: this.state.duplicateSlices,
-      refresh_frequency: refreshFrequency,
       last_modified_time: lastModifiedTime,
+      owners: dashboardInfo.owners,
+      roles: dashboardInfo.roles,
+      metadata: {
+        ...dashboardInfo?.metadata,
+        positions,
+        refresh_frequency: refreshFrequency,
+      },
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {

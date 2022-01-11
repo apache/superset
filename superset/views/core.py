@@ -154,6 +154,7 @@ from superset.views.utils import (
     get_form_data,
     get_viz,
     is_owner,
+    sanitize_datasource_data,
 )
 from superset.viz import BaseViz
 
@@ -850,16 +851,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
-            datasource_database = datasource_data.get("database")
-            if datasource_database:
-                datasource_database["parameters"] = {}
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
+
+        if datasource:
+            datasource_data["owners"] = datasource.owners_data
 
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "datasource": datasource_data,
+            "datasource": sanitize_datasource_data(datasource_data),
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
@@ -2610,7 +2611,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(DATASOURCE_MISSING_ERR)
 
         datasource.raise_for_access()
-        return json_success(json.dumps(datasource.data))
+        return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @has_access_api
     @event_logger.log_this

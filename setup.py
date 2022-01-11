@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.3, <4.0.0",
+        "flask-appbuilder>=3.3.4, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -102,11 +102,12 @@ setup(
         "pyyaml>=5.4",
         "PyJWT>=1.7.1, <2",
         "redis",
+        "requests==2.26.0",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
         "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
-        "sqlalchemy-utils>=0.36.6, <0.37",
+        "sqlalchemy-utils>=0.37.8, <0.38",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "tabulate==0.8.9",
         "typing-extensions>=3.10, <4",  # needed to support Literal (3.8) and TypeGuard (3.10)
@@ -169,5 +170,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

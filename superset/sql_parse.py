@@ -32,6 +32,8 @@ from sqlparse.sql import (
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
+from superset.exceptions import QueryClauseValidationException
+
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
@@ -345,3 +347,23 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+
+def validate_filter_clause(clause: str) -> None:
+    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
+        raise QueryClauseValidationException("Filter clause contains comment")
+
+    statements = sqlparse.parse(clause)
+    if len(statements) != 1:
+        raise QueryClauseValidationException("Filter clause contains multiple queries")
+    open_parens = 0
+
+    for token in statements[0]:
+        if token.value in (")", "("):
+            open_parens += 1 if token.value == "(" else -1
+            if open_parens < 0:
+                raise QueryClauseValidationException(
+                    "Closing unclosed parenthesis in filter clause"
+                )
+    if open_parens > 0:
+        raise QueryClauseValidationException("Unclosed parenthesis in filter clause")

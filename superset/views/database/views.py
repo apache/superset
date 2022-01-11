@@ -35,6 +35,7 @@ from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
+from superset.extensions import event_logger
 from superset.sql_parse import Table
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -252,7 +253,12 @@ class CsvToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_csv_upload")
+        event_logger.log_with_context(
+            action="successful_csv_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -393,7 +399,12 @@ class ExcelToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_excel_upload")
+        event_logger.log_with_context(
+            action="successful_excel_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")
 
 
@@ -540,5 +551,10 @@ class ColumnarToDatabaseView(SimpleFormView):
             db_name=sqla_table.database.database_name,
         )
         flash(message, "info")
-        stats_logger.incr("successful_columnar_upload")
+        event_logger.log_with_context(
+            action="successful_columnar_upload",
+            database=form.con.data.name,
+            schema=form.schema.data,
+            table=form.name.data,
+        )
         return redirect("/tablemodelview/list/")

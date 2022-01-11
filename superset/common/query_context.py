@@ -488,6 +488,7 @@ class QueryContext:
             "cached_dttm": cache.cache_dttm,
             "cache_timeout": self.cache_timeout,
             "df": cache.df,
+            "applied_template_filters": cache.applied_template_filters,
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,

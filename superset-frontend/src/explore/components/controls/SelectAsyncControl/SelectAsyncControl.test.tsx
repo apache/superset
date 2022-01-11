@@ -17,19 +17,21 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import SelectAsyncControl from '.';
 
-jest.mock('src/components/AsyncSelect', () => ({
+const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
+
+jest.mock('src/components/Select/Select', () => ({
   __esModule: true,
   default: (props: any) => (
     <div
       data-test="select-test"
-      data-data-endpoint={props.dataEndpoint}
       data-value={JSON.stringify(props.value)}
       data-placeholder={props.placeholder}
-      data-multi={props.multi ? 'true' : 'false'}
+      data-multi={props.mode}
     >
       <button
         type="button"
@@ -40,19 +42,19 @@ jest.mock('src/components/AsyncSelect', () => ({
       <button type="button" onClick={() => props.mutator()}>
         mutator
       </button>
-
-      <div data-test="valueRenderer">
-        {props.valueRenderer({ label: 'valueRenderer' })}
-      </div>
     </div>
   ),
 }));
 
+fetchMock.get(datasetsOwnersEndpoint, {
+  result: [],
+});
+
 const createProps = () => ({
+  ariaLabel: 'SelectAsyncControl',
   value: [],
-  dataEndpoint: 'api/v1/dataset/related/owners',
+  dataEndpoint: datasetsOwnersEndpoint,
   multi: true,
-  onAsyncErrorMessage: 'Error while fetching data',
   placeholder: 'Select ...',
   onChange: jest.fn(),
   mutator: jest.fn(),
@@ -65,17 +67,13 @@ beforeEach(() => {
 test('Should render', () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
-  expect(screen.getByTestId('SelectAsyncControl')).toBeInTheDocument();
+  expect(screen.getByTestId('select-test')).toBeInTheDocument();
 });
 
-test('Should send correct props to AsyncSelect component - value props', () => {
+test('Should send correct props to Select component - value props', () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
 
-  expect(screen.getByTestId('select-test')).toHaveAttribute(
-    'data-data-endpoint',
-    props.dataEndpoint,
-  );
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-value',
     JSON.stringify(props.value),
@@ -86,14 +84,11 @@ test('Should send correct props to AsyncSelect component - value props', () => {
   );
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-multi',
-    'true',
-  );
-  expect(screen.getByTestId('valueRenderer')).toHaveTextContent(
-    'valueRenderer',
+    'multiple',
   );
 });
 
-test('Should send correct props to AsyncSelect component - function onChange multi:true', () => {
+test('Should send correct props to Select component - function onChange multi:true', () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
   expect(props.onChange).toBeCalledTimes(0);
@@ -101,7 +96,7 @@ test('Should send correct props to AsyncSelect component - function onChange mul
   expect(props.onChange).toBeCalledTimes(1);
 });
 
-test('Should send correct props to AsyncSelect component - function onChange multi:false', () => {
+test('Should send correct props to Select component - function onChange multi:false', () => {
   const props = createProps();
   render(<SelectAsyncControl {...{ ...props, multi: false }} />, {
     useRedux: true,

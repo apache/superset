@@ -64,9 +64,9 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.elements import ColumnClause
-from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
+from sqlalchemy.sql import column, ColumnElement, literal_column, table
+from sqlalchemy.sql.elements import ColumnClause, TextClause
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -102,7 +102,18 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
+def text(clause: str) -> TextClause:
+    """
+    SQLALchemy wrapper to ensure text clauses are escaped properly
+
+    :param clause: clause potentially containing colons
+    :return: text clause with escaped colons
+    """
+    return sa.text(clause.replace(":", "\\:"))
+
+
 class SqlaQuery(NamedTuple):
+    applied_template_filters: List[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
     prequeries: List[str]
@@ -110,6 +121,7 @@ class SqlaQuery(NamedTuple):
 
 
 class QueryStringExtended(NamedTuple):
+    applied_template_filters: Optional[List[str]]
     labels_expected: List[str]
     prequeries: List[str]
     sql: str
@@ -757,7 +769,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
-            labels_expected=sqlaq.labels_expected, sql=sql, prequeries=sqlaq.prequeries
+            applied_template_filters=sqlaq.applied_template_filters,
+            labels_expected=sqlaq.labels_expected,
+            prequeries=sqlaq.prequeries,
+            sql=sql,
         )
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
@@ -790,7 +805,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
-        return TextAsFrom(sa.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        return TextAsFrom(text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
 
     def get_rendered_sql(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -978,7 +993,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
         removed_filters: List[str] = []
+        applied_template_filters: List[str] = []
         template_kwargs["removed_filters"] = removed_filters
+        template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
@@ -1258,7 +1275,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                where_clause_and += [sa.text("({})".format(where))]
+                where_clause_and += [text(f"({where})")]
             having = extras.get("having")
             if having:
                 try:
@@ -1270,7 +1287,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                having_clause_and += [sa.text("({})".format(having))]
+                having_clause_and += [text(f"({having})")]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
@@ -1394,6 +1411,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             labels_expected = [label]
 
         return SqlaQuery(
+            applied_template_filters=applied_template_filters,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
             sqla_query=qry,
@@ -1436,7 +1454,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # string into a timestamp.
                 if column_map[dimension].is_temporal and isinstance(value, str):
                     dttm = dateutil.parser.parse(value)
-                    value = text(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                    value = text(
+                        str(self.db_engine_spec.convert_dttm("TIMESTAMP", dttm))
+                    )
 
                 group.append(groupby_exprs[dimension] == value)
             groups.append(and_(*group))
@@ -1491,6 +1511,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
+            applied_template_filters=query_str_ext.applied_template_filters,
             status=status,
             df=df,
             duration=datetime.now() - qry_start_dttm,
@@ -1643,7 +1664,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         target: "SqlaTable",
     ) -> None:
         """
-        Check whether before update if the target table already exists.
+        Check before update if the target table already exists.
 
         Note this listener is called when any fields are being updated and thus it is
         necessary to first check whether the reference table is being updated.

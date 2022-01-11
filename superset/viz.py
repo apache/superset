@@ -60,12 +60,14 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.sql_parse import validate_filter_clause
 from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
@@ -101,11 +103,6 @@ METRIC_KEYS = [
     "y",
     "size",
 ]
-
-# This regex is to get user defined filter column name, which is the first param in the
-# filter_values function. See the definition of filter_values template:
-# https://github.com/apache/superset/blob/24ad6063d736c1f38ad6f962e586b9b1a21946af/superset/jinja_context.py#L63
-FILTER_VALUES_REGEX = re.compile(r"filter_values\(['\"](\w+)['\"]\,")
 
 
 class BaseViz:  # pylint: disable=too-many-public-methods
@@ -143,6 +140,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.status: Optional[str] = None
         self.error_msg = ""
         self.results: Optional[QueryResult] = None
+        self.applied_template_filters: List[str] = []
         self.errors: List[Dict[str, Any]] = []
         self.force = force
         self._force_cached = force_cached
@@ -270,6 +268,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
+        self.applied_template_filters = self.results.applied_template_filters or []
         self.query = self.results.query
         self.status = self.results.status
         self.errors = self.results.errors
@@ -356,6 +355,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+
+        # validate sql filters
+        for param in ("where", "having"):
+            clause = self.form_data.get(param)
+            if clause:
+                try:
+                    validate_filter_clause(clause)
+                except QueryClauseValidationException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -459,14 +467,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
-        filter_values_columns = []
-
-        # if using virtual datasource, check filter_values
-        if self.datasource.sql:
-            filter_values_columns = (
-                re.findall(FILTER_VALUES_REGEX, self.datasource.sql)
-            ) or []
-
+        applied_template_filters = self.applied_template_filters or []
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
@@ -474,18 +475,18 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         payload["applied_filters"] = [
             {"column": col}
             for col in filter_columns
-            if col in columns or col in filter_values_columns
+            if col in columns or col in applied_template_filters
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
-            if col not in columns and col not in filter_values_columns
+            if col not in columns and col not in applied_template_filters
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
         return payload
 
-    def get_df_payload(
+    def get_df_payload(  # pylint: disable=too-many-statements
         self, query_obj: Optional[QueryObjectDict] = None, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
@@ -504,6 +505,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
+                    self.applied_template_filters = cache_value.get(
+                        "applied_template_filters", []
+                    )
                     self.status = QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")

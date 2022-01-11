@@ -51,7 +51,7 @@ describe('TemplateParamsEditor', () => {
     const spy = jest.spyOn(brace, 'acequire');
     spy.mockReturnValue({ setCompleters: () => 'foo' });
     await waitFor(() => {
-      expect(baseElement.querySelector('#brace-editor')).toBeInTheDocument();
+      expect(baseElement.querySelector('#ace-editor')).toBeInTheDocument();
     });
   });
 });

@@ -476,15 +476,4 @@ export const controls = {
     description: t('The color scheme for rendering chart'),
     schemes: () => categoricalSchemeRegistry.getMap(),
   },
-
-  label_colors: {
-    type: 'ColorMapControl',
-    label: t('Color map'),
-    default: {},
-    renderTrigger: true,
-    mapStateToProps: state => ({
-      colorNamespace: state.form_data.color_namespace,
-      colorScheme: state.form_data.color_scheme,
-    }),
-  },
 };

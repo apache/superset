@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, debounce } from 'lodash';
-import { t, styled } from '@superset-ui/core';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import React, {
+  useEffect,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
+import { uniq, isEqual, sortBy, debounce } from 'lodash';
+import { t, styled, SLOW_DEBOUNCE } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -126,6 +131,7 @@ export function FiltersConfigModal({
   const [currentFilterId, setCurrentFilterId] = useState(
     initialCurrentFilterId,
   );
+  const [erroredFilters, setErroredFilters] = useState<string[]>([]);
 
   // the form values are managed by the antd form, but we copy them to here
   // so that we can display them (e.g. filter titles in the tab headers)
@@ -174,12 +180,13 @@ export function FiltersConfigModal({
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
     form.setFieldsValue({ changed: false });
+    setErroredFilters([]);
   };
 
   const getFilterTitle = (id: string) =>
-    formValues.filters[id]?.name ??
-    filterConfigMap[id]?.name ??
-    t('New filter');
+    formValues.filters[id]?.name ||
+    filterConfigMap[id]?.name ||
+    t('[untitled]');
 
   const getParentFilters = (id: string) =>
     filterIds
@@ -217,6 +224,32 @@ export function FiltersConfigModal({
     }
   };
 
+  const handleErroredFilters = useCallback(() => {
+    // managing left pane errored filters indicators
+    const formValidationFields = form.getFieldsError();
+    const erroredFiltersIds: string[] = [];
+
+    formValidationFields.forEach(field => {
+      const filterId = field.name[1] as string;
+      if (field.errors.length > 0 && !erroredFiltersIds.includes(filterId)) {
+        erroredFiltersIds.push(filterId);
+      }
+    });
+
+    // no form validation issues found, resets errored filters
+    if (!erroredFiltersIds.length && erroredFilters.length > 0) {
+      setErroredFilters([]);
+      return;
+    }
+    // form validation issues found, sets errored filters
+    if (
+      erroredFiltersIds.length > 0 &&
+      !isEqual(sortBy(erroredFilters), sortBy(erroredFiltersIds))
+    ) {
+      setErroredFilters(erroredFiltersIds);
+    }
+  }, [form, erroredFilters]);
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -226,6 +259,8 @@ export function FiltersConfigModal({
       removedFilters,
       setCurrentFilterId,
     );
+
+    handleErroredFilters();
 
     if (values) {
       cleanDeletedParents(values);
@@ -259,19 +294,27 @@ export function FiltersConfigModal({
   const onValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
-        if (
-          changes.filters &&
-          Object.values(changes.filters).some(
-            (filter: any) => filter.name != null,
-          )
-        ) {
-          // we only need to set this if a name changed
-          setFormValues(values);
+        if (changes.filters) {
+          if (
+            Object.values(changes.filters).some(
+              (filter: any) => filter.name != null,
+            )
+          ) {
+            // we only need to set this if a name changed
+            setFormValues(values);
+          }
+          handleErroredFilters();
         }
         setSaveAlertVisible(false);
       }, SLOW_DEBOUNCE),
-    [],
+    [handleErroredFilters],
   );
+
+  useEffect(() => {
+    setErroredFilters(prevErroredFilters =>
+      prevErroredFilters.filter(f => !removedFilters[f]),
+    );
+  }, [removedFilters]);
 
   return (
     <StyledModalWrapper
@@ -289,6 +332,7 @@ export function FiltersConfigModal({
           onDismiss={() => setSaveAlertVisible(false)}
           onCancel={handleCancel}
           handleSave={handleSave}
+          canSave={!erroredFilters.length}
           saveAlertVisible={saveAlertVisible}
           onConfirmCancel={handleConfirmCancel}
         />
@@ -303,6 +347,7 @@ export function FiltersConfigModal({
             layout="vertical"
           >
             <FilterTabs
+              erroredFilters={erroredFilters}
               onEdit={handleTabEdit}
               onChange={setCurrentFilterId}
               getFilterTitle={getFilterTitle}
@@ -320,6 +365,7 @@ export function FiltersConfigModal({
                   removedFilters={removedFilters}
                   restoreFilter={restoreFilter}
                   parentFilters={getParentFilters(id)}
+                  setErroredFilters={setErroredFilters}
                 />
               )}
             </FilterTabs>

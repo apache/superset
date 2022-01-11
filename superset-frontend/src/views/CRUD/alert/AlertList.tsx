@@ -134,6 +134,8 @@ function AlertList({
     setAlertModalOpen(true);
   }
 
+  const generateKey = () => `${new Date().getTime()}`;
+
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
@@ -449,6 +451,7 @@ function AlertList({
         }}
         show={alertModalOpen}
         isReport={isReportEnabled}
+        key={currentAlert?.id || generateKey()}
       />
       {currentAlertDeleting && (
         <DeleteModal

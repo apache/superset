@@ -18,7 +18,7 @@
 -r base.in
 flask-cors>=2.0.0
 mysqlclient==1.4.2.post1
-pillow>=7.0.0,<8.0.0
+pillow>=8.3.1,<9
 pydruid>=0.6.1,<0.7
 pyhive[hive]>=0.6.1
 psycopg2-binary==2.8.5

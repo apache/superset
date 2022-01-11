@@ -25,6 +25,7 @@ import pandas as pd
 from flask import current_app, g
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
@@ -110,7 +111,19 @@ def import_dataset(
     data_uri = config.get("data")
 
     # import recursively to include columns and metrics
-    dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
+    try:
+        dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
+    except MultipleResultsFound:
+        # Finding multiple results when importing a dataset only happens because initially
+        # datasets were imported without schemas (eg, `examples.NULL.users`), and later
+        # they were fixed to have the default schema (eg, `examples.public.users`). If a
+        # user created `examples.public.users` during that time the second import will
+        # fail because the UUID match will try to update `examples.NULL.users` to
+        # `examples.public.users`, resulting in a conflict.
+        #
+        # When that happens, we return the original dataset, unmodified.
+        dataset = session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+
     if dataset.id is None:
         session.flush()
 

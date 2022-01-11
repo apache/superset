@@ -36,12 +36,12 @@ class DrillEngineSpec(BaseEngineSpec):
         "PT1S": "NEARESTDATE({col}, 'SECOND')",
         "PT1M": "NEARESTDATE({col}, 'MINUTE')",
         "PT15M": "NEARESTDATE({col}, 'QUARTER_HOUR')",
-        "PT0.5H": "NEARESTDATE({col}, 'HALF_HOUR')",
+        "PT30M": "NEARESTDATE({col}, 'HALF_HOUR')",
         "PT1H": "NEARESTDATE({col}, 'HOUR')",
         "P1D": "NEARESTDATE({col}, 'DAY')",
         "P1W": "NEARESTDATE({col}, 'WEEK_SUNDAY')",
         "P1M": "NEARESTDATE({col}, 'MONTH')",
-        "P0.25Y": "NEARESTDATE({col}, 'QUARTER')",
+        "P3M": "NEARESTDATE({col}, 'QUARTER')",
         "P1Y": "NEARESTDATE({col}, 'YEAR')",
     }
 
@@ -68,3 +68,21 @@ class DrillEngineSpec(BaseEngineSpec):
     def adjust_database_uri(cls, uri: URL, selected_schema: Optional[str]) -> None:
         if selected_schema:
             uri.database = parse.quote(selected_schema, safe="")
+
+    @classmethod
+    def modify_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user and username is not None:
+            if url.drivername == "drill+odbc":
+                url.query["DelegationUID"] = username
+            elif url.drivername == "drill+jdbc":
+                url.query["impersonation_target"] = username
+            else:
+                url.username = username

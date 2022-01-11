@@ -17,8 +17,12 @@
 """Fixtures for test_datasource.py"""
 from typing import Any, Dict
 
+from superset.utils.core import get_example_database, get_example_default_schema
+
 
 def get_datasource_post() -> Dict[str, Any]:
+    schema = get_example_default_schema()
+
     return {
         "id": None,
         "column_formats": {"ratio": ".2%"},
@@ -26,11 +30,11 @@ def get_datasource_post() -> Dict[str, Any]:
         "description": "Adding a DESCRip",
         "default_endpoint": "",
         "filter_select_enabled": True,
-        "name": "birth_names",
+        "name": f"{schema}.birth_names" if schema else "birth_names",
         "table_name": "birth_names",
         "datasource_name": "birth_names",
         "type": "table",
-        "schema": None,
+        "schema": schema,
         "offset": 66,
         "cache_timeout": 55,
         "sql": "",

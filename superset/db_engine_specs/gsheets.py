@@ -153,9 +153,12 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls, parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
-        encrypted_credentials = json.loads(
-            parameters.get("service_account_info") or "{}"
-        )
+        encrypted_credentials = parameters.get("service_account_info") or "{}"
+
+        # On create the encrypted credentials are a string,
+        # at all other times they are a dict
+        if isinstance(encrypted_credentials, str):
+            encrypted_credentials = json.loads(encrypted_credentials)
 
         table_catalog = parameters.get("catalog", {})
 

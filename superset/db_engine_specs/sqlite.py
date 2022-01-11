@@ -45,7 +45,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         "P1D": "DATE({col})",
         "P1W": "DATE({col}, -strftime('%w', {col}) || ' days')",
         "P1M": "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
-        "P0.25Y": (
+        "P3M": (
             "DATETIME(STRFTIME('%Y-', {col}) || "  # year
             "SUBSTR('00' || "  # pad with zeros to 2 chars
             "((CAST(STRFTIME('%m', {col}) AS INTEGER)) - "  # month as integer
