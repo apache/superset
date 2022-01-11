@@ -117,7 +117,7 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const colorFn = CategoricalColorNamespace.getScale(
+  const colorScale = CategoricalColorNamespace.getScale(
     colorScheme as string,
     undefined,
     formData.sliceId,
