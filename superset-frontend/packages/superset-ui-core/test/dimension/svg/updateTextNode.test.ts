@@ -17,7 +17,7 @@
  * under the License.
  */
 
-// not use react-testing-library in plugins
+// do not use react-testing-library in plugins
 /* eslint-disable jest-dom/prefer-to-have-attribute */
 /* eslint-disable jest-dom/prefer-to-have-text-content */
 /* eslint-disable jest-dom/prefer-to-have-style */
