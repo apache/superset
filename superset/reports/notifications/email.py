@@ -94,15 +94,16 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __("Explore in Superset")
-        img_tag = ""
-        for msgid, _ in images.items():
-            img_tag = img_tag + (
+        img_tags = []
+        for msgid in images.keys():
+            img_tags.append(
                 f"""<div class="image">
                     <img width="1000px" src="cid:{msgid}">
                 </div>
                 <
                 """
             )
+        img_tag = "".join(img_tags)
         body = textwrap.dedent(
             f"""
             <html>
