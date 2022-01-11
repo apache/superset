@@ -319,7 +319,6 @@
     "style-loader": "^3.2.1",
     "thread-loader": "^3.0.4",
     "transform-loader": "^0.2.4",
-    "ts-jest": "^26.4.2",
     "ts-loader": "^9.2.5",
     "typescript": "^4.5.4",
     "webpack": "^5.52.1",
