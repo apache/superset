@@ -70,7 +70,7 @@ module.exports = {
             "message": "Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
           },
           {
-            "name": "antd",
+            "group": ["antd"],
             "message": "Please do not use AntD directly, but instead import through src/common/components"
           }
         ]
