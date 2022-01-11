@@ -579,7 +579,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             bottom_banner = 80 * "-" + "\n" + 80 * "-"
             logger.warning(top_banner)
             logger.warning(
-                "A Default SECRET_KEY was detected please use superset_config.py "
+                "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
                 " you generate \n"
