@@ -45,10 +45,11 @@ export default function transformProps(chartProps) {
     datasource,
     formData,
     hooks,
+    ownState,
     queriesData,
   } = chartProps;
 
-  const { onAddFilter = NOOP, onError = NOOP } = hooks;
+  const { onAddFilter = NOOP, onError = NOOP, setDataMask } = hooks;
 
   const {
     annotationLayers,
@@ -59,6 +60,7 @@ export default function transformProps(chartProps) {
     comparisonType,
     contribution,
     donut,
+    drillDown,
     entity,
     labelsOutside,
     leftMargin,
@@ -148,6 +150,7 @@ export default function transformProps(chartProps) {
     colorScheme,
     comparisonType,
     contribution,
+    drillDown,
     entity,
     isBarStacked: barStacked,
     isDonut: donut,
@@ -166,11 +169,13 @@ export default function transformProps(chartProps) {
         }
       : undefined,
     onError,
+    ownState,
     orderBars,
     pieLabelType,
     rangeLabels,
     ranges,
     reduceXTicks,
+    setDataMask,
     showBarValue,
     showBrush,
     showControls,

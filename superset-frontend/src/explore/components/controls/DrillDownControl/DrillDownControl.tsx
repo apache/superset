@@ -20,7 +20,7 @@ import React from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Checkbox from 'src/components/Checkbox';
-import { DrillDown } from "@superset-ui/core";
+import { DrillDown } from '@superset-ui/core';
 
 type drillDownProps = {
   value: boolean;
@@ -33,27 +33,23 @@ type drillDownProps = {
 
 const checkboxStyle = { paddingRight: '5px' };
 
-export default function DrillDownControl(props: drillDownProps){
+export default function DrillDownControl(props: drillDownProps) {
   const onChange = () => {
     const chartId = props.chartId.toString();
     if (!props.value) {
-      const drilldown = DrillDown.fromHierarchy(props.columns)
-      props.actions.updateDataMask(chartId, {ownState: {drilldown: drilldown}});
+      const drilldown = DrillDown.fromHierarchy(props.columns);
+      props.actions.updateDataMask(chartId, {
+        ownState: { drilldown },
+      });
     } else {
-      props.actions.updateDataMask(chartId, {ownState: {}});
+      props.actions.updateDataMask(chartId, { ownState: {} });
     }
     props.onChange(!props.value);
-  }
+  };
 
-  const renderCheckbox = () => {
-    return (
-      <Checkbox
-        onChange={onChange}
-        style={checkboxStyle}
-        checked={props.value}
-      />
-    );
-  }
+  const renderCheckbox = () => (
+    <Checkbox onChange={onChange} style={checkboxStyle} checked={props.value} />
+  );
 
   if (props.label) {
     return (

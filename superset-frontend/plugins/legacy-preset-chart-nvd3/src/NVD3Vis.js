@@ -24,6 +24,7 @@ import nv from 'nvd3-fork';
 import PropTypes from 'prop-types';
 import {
   CategoricalColorNamespace,
+  DrillDown,
   evalExpression,
   getNumberFormatter,
   getTimeFormatter,
@@ -270,6 +271,7 @@ function nvd3Vis(element, props) {
     colorScheme,
     comparisonType,
     contribution,
+    drillDown,
     entity,
     isBarStacked,
     isDonut,
@@ -284,10 +286,12 @@ function nvd3Vis(element, props) {
     onBrushEnd = NOOP,
     onError = NOOP,
     orderBars,
+    ownState,
     pieLabelType,
     rangeLabels,
     ranges,
     reduceXTicks = false,
+    setDataMask,
     showBarValue,
     showBrush,
     showControls,
@@ -440,6 +444,26 @@ function nvd3Vis(element, props) {
           width = computeBarChartWidth(data, isBarStacked, maxWidth);
         }
         chart.width(width);
+
+        // dispatch the drilldown event
+        chart.multibar.dispatch.on('elementClick', e => {
+          if (drillDown && ownState?.drilldown) {
+            // need the formdata stuff here
+            const value = e.data.x;
+            const drilldown = DrillDown.drillDown(ownState?.drilldown, value);
+            setDataMask({
+              extraFormData: {
+                filters: drilldown.filters,
+              },
+              filterState: {
+                value: value && drilldown.filters.length > 0 ? [value] : null,
+              },
+              ownState: {
+                drilldown,
+              },
+            });
+          }
+        });
         break;
 
       case 'pie':

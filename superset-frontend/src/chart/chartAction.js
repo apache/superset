@@ -137,10 +137,15 @@ const legacyChartDataRequest = async (
       : {},
   });
 
-  const drillPayload = formData.drillDown ? {
-    groupby: [DrillDown.getColumn(ownState.drilldown, formData.groupby)],
-    filters: [...formData.filters || [], ...DrillDown.getFilters(ownState.drilldown, formData.groupby)],
-  }: {};
+  const drillPayload = formData.drillDown
+    ? {
+        groupby: [DrillDown.getColumn(ownState.drilldown, formData.groupby)],
+        filters: [
+          ...(formData.filters || []),
+          ...DrillDown.getFilters(ownState.drilldown, formData.groupby),
+        ],
+      }
+    : {};
 
   const querySettings = {
     ...requestParams,
@@ -150,7 +155,7 @@ const legacyChartDataRequest = async (
         ...formData,
         ...drillPayload,
       },
-    }
+    },
   };
 
   const clientMethod =

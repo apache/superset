@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  t,
+  validateNonEmpty,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -39,6 +44,7 @@ const {
   outerRadius,
   numberFormat,
   showLabels,
+  drillDown,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -49,6 +55,23 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['groupby'],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_DRILL_DOWN)
+          ? [
+              {
+                name: 'drillDown',
+                config: {
+                  type: 'DrillDownControl',
+                  label: t('Enable drill down'),
+                  default: drillDown,
+                  description: t('Columns as hierarchy.'),
+                  mapStateToProps: ({ form_data }) => ({
+                    chartId: form_data?.slice_id || 0,
+                    columns: form_data.groupby,
+                  }),
+                },
+              },
+            ]
+          : [],
         ['metric'],
         ['adhoc_filters'],
         emitFilterControl,

@@ -19,12 +19,13 @@
 import {
   CategoricalColorNamespace,
   DataRecordValue,
-  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
   NumberFormatter,
+  DrillDown,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, PieSeriesOption } from 'echarts';
@@ -93,7 +94,7 @@ export default function transformProps(
   const {
     colorScheme,
     donut,
-    groupby,
+    groupby: hierarchyOrColumns,
     innerRadius,
     labelsOutside,
     labelLine,
@@ -109,19 +110,39 @@ export default function transformProps(
     showLegend,
     showLabelsThreshold,
     emitFilter,
+    drillDown,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
     ...formData,
   };
+
+  const getQueryFormLabels = (x: QueryFormColumn[]): string[] =>
+    x.map(y => (typeof y === 'string' ? y : y.sqlExpression));
+
+  const ownState = {
+    ...(chartProps.ownState.drilldown
+      ? {}
+      : {
+          drilldown: DrillDown.fromHierarchy(
+            getQueryFormLabels(hierarchyOrColumns),
+          ),
+        }),
+    ...chartProps.ownState,
+  };
+
   const metricLabel = getMetricLabel(metric);
-  const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
+  const groupby =
+    drillDown && ownState?.drilldown
+      ? [DrillDown.getColumn(ownState.drilldown, [])]
+      : hierarchyOrColumns;
+  const groupLabels = getQueryFormLabels(groupby);
 
   const keys = data.map(datum =>
     extractGroupbyLabel({
       datum,
-      groupby: groupbyLabels,
+      groupby: groupLabels,
       coltypeMapping,
       timeFormatter: getTimeFormatter(dateFormat),
     }),
@@ -130,13 +151,13 @@ export default function transformProps(
     (acc: Record<string, DataRecordValue[]>, datum) => {
       const label = extractGroupbyLabel({
         datum,
-        groupby: groupbyLabels,
+        groupby: groupLabels,
         coltypeMapping,
         timeFormatter: getTimeFormatter(dateFormat),
       });
       return {
         ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
+        [label]: groupLabels.map(col => datum[col]),
       };
     },
     {},
@@ -150,7 +171,7 @@ export default function transformProps(
   const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
-      groupby: groupbyLabels,
+      groupby: groupLabels,
       coltypeMapping,
       timeFormatter: getTimeFormatter(dateFormat),
     });
@@ -257,6 +278,7 @@ export default function transformProps(
     echartOptions,
     setDataMask,
     emitFilter,
+    ownState,
     labelMap,
     groupby,
     selectedValues,
