@@ -24,6 +24,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from '.';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -143,7 +144,7 @@ const percentageThresholdControl = {
     label: t('Percentage threshold'),
     renderTrigger: true,
     isFloat: true,
-    default: 5,
+    default: DEFAULT_FORM_DATA.percentageThreshold,
     description: t(
       'Minimum threshold in percentage points for showing labels.',
     ),
