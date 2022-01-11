@@ -129,7 +129,7 @@ export default function transformProps(
     yAxisTitlePosition,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
-  const colorFn = CategoricalColorNamespace.getScale(
+  const colorScale = CategoricalColorNamespace.getScale(
     colorScheme as string,
     undefined,
     formData.sliceId,

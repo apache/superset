@@ -17,12 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString } from 'lodash';
-import {
-  Behavior,
-  CategoricalColorNamespace,
-  getChartMetadataRegistry,
-} from '@superset-ui/core';
+import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
 
 import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
