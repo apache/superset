@@ -48,7 +48,9 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from 'src/dashboard/util/constants';
-import setPeriodicRunner from 'src/dashboard/util/setPeriodicRunner';
+import setPeriodicRunner, {
+  stopPeriodicRender,
+} from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 
 const propTypes = {
@@ -168,18 +170,20 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+    if (this.canAddReports()) {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
         'dashboard_id',
         'dashboards',
         dashboardInfo.id,
+        user.email,
       );
     }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
+    const { user } = this.props;
     if (
       UNDO_LIMIT - nextProps.undoLength <= 0 &&
       !this.state.didNotifyMaxUndoHistoryToast
@@ -193,9 +197,24 @@ class Header extends React.PureComponent {
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
+    if (
+      this.canAddReports() &&
+      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+    ) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboard_id',
+        'dashboards',
+        nextProps.dashboardInfo.id,
+        user.email,
+      );
+    }
   }
 
   componentWillUnmount() {
+    stopPeriodicRender(this.refreshTimer);
+    this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
   }
@@ -383,32 +402,31 @@ class Header extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
-    return (
-      (canAddReports || null) &&
-      (attachedReportExists ? (
-        <HeaderReportActionsDropdown
-          showReportModal={this.showReportModal}
-          toggleActive={this.props.toggleActive}
-          deleteActiveReport={this.props.deleteActiveReport}
-        />
-      ) : (
-        <>
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
-        </>
-      ))
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
     );
   }
 
   canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
     const { user } = this.props;
     if (!user) {
       // this is in the case that there is an anonymous user.
@@ -417,7 +435,7 @@ class Header extends React.PureComponent {
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
     return permissions[0].length > 0;
@@ -508,6 +526,7 @@ class Header extends React.PureComponent {
                       buttonStyle={
                         this.state.emphasizeUndo ? 'primary' : undefined
                       }
+                      showMarginRight={false}
                     >
                       <i
                         title="Undo"
@@ -523,6 +542,7 @@ class Header extends React.PureComponent {
                       buttonStyle={
                         this.state.emphasizeRedo ? 'primary' : undefined
                       }
+                      showMarginRight={false}
                     >
                       &nbsp;
                       <i title="Redo" className="redo-action fa fa-share" />

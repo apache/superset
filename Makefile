@@ -58,13 +58,16 @@ update-py:
 
 update-js:
 	# Install js packages
-	cd superset-frontend; npm install
+	cd superset-frontend; npm ci
 
 venv:
 	# Create a virtual environment and activate it (recommended)
 	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.7 or 3.8 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
+
+activate:
+	source venv/bin/activate
 
 pre-commit:
 	# setup pre commit dependencies
@@ -81,3 +84,17 @@ py-lint: pre-commit
 
 js-format:
 	cd superset-frontend; npm run prettier
+
+flask-app:
+	flask run -p 8088 --with-threads --reload --debugger
+
+node-app:
+	cd superset-frontend; npm run dev-server
+
+build-cypress:
+	cd superset-frontend; npm run build-instrumented
+	cd superset-frontend/cypress-base; npm install
+
+open-cypress:
+	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi
+	cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:$(port) npm run cypress open

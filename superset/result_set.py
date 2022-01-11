@@ -72,7 +72,7 @@ def destringify(obj: str) -> Any:
 
 
 class SupersetResultSet:
-    def __init__(  # pylint: disable=too-many-locals,too-many-branches
+    def __init__(  # pylint: disable=too-many-locals
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,

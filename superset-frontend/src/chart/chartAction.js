@@ -21,7 +21,7 @@
 import moment from 'moment';
 import { t, SupersetClient } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
-import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   getAnnotationJsonUrl,
   getExploreUrl,
@@ -30,19 +30,19 @@ import {
   postForm,
   shouldUseLegacyApi,
   getChartDataUri,
-} from '../explore/exploreUtils';
+} from 'src/explore/exploreUtils';
 import {
   requiresQuery,
   ANNOTATION_SOURCE_TYPES,
-} from '../modules/AnnotationTypes';
+} from 'src/modules/AnnotationTypes';
 
-import { addDangerToast } from '../messageToasts/actions';
-import { logEvent } from '../logger/actions';
-import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
-import { getClientErrorObject } from '../utils/getClientErrorObject';
-import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
-import { updateDataMask } from '../dataMask/actions';
-import { waitForAsyncData } from '../middleware/asyncEvent';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { logEvent } from 'src/logger/actions';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
+import { updateDataMask } from 'src/dataMask/actions';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {

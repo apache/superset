@@ -1465,7 +1465,7 @@ install from pip: ::
 
 and run via: ::
 
-    celery flower --app=superset.tasks.celery_app:app
+    celery --app=superset.tasks.celery_app:app flower
 
 Building from source
 ---------------------

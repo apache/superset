@@ -58,6 +58,11 @@ const createProps = () => ({
   tableSectionHeight: 156.9,
   chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
+  queriesResponse: [
+    {
+      colnames: [],
+    },
+  ],
 });
 
 afterAll(() => {

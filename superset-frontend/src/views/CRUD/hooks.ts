@@ -141,7 +141,10 @@ export function useListViewResource<D extends object = any>(
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
-          value,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
         }));
 
       const queryParams = rison.encode({
@@ -327,7 +330,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { ...json.result, id: json.id },
               error: null,
             });
             return json.result;
@@ -678,21 +681,48 @@ export function useDatabaseValidation() {
                         invalid?: string[];
                         missing?: string[];
                         name: string;
+                        catalog: {
+                          name: string;
+                          url: string;
+                          idx: number;
+                        };
                       };
                       message: string;
                     },
                   ) => {
+                    if (extra.catalog) {
+                      if (extra.catalog.name) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            name: message,
+                          },
+                        };
+                      }
+                      if (extra.catalog.url) {
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            url: message,
+                          },
+                        };
+                      }
+
+                      return {
+                        ...obj,
+                        error_type,
+                        [extra.catalog.idx]: {
+                          name: message,
+                          url: message,
+                        },
+                      };
+                    }
                     // if extra.invalid doesn't exist then the
                     // error can't be mapped to a parameter
                     // so leave it alone
                     if (extra.invalid) {
-                      if (extra.invalid[0] === 'catalog') {
-                        return {
-                          ...obj,
-                          [extra.name]: message,
-                          error_type,
-                        };
-                      }
                       return {
                         ...obj,
                         [extra.invalid[0]]: message,

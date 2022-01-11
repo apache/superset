@@ -16,33 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
+import rison from 'rison';
+import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import { Steps } from 'src/common/components';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
-import { css, styled, t } from '@superset-ui/core';
 import { FormLabel } from 'src/components/Form';
+import { Tooltip } from 'src/components/Tooltip';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
-interface Datasource {
-  label: string;
-  value: string;
-}
-
-export type AddSliceContainerProps = {
-  datasources: Datasource[];
+type Dataset = {
+  id: number;
+  table_name: string;
+  description: string;
+  datasource_type: string;
 };
 
+export type AddSliceContainerProps = {};
+
 export type AddSliceContainerState = {
-  datasourceId?: string;
-  datasourceType?: string;
-  datasourceValue?: string;
+  datasource?: { label: string; value: string };
   visType: string | null;
 };
 
-const ESTIMATED_NAV_HEIGHT = '56px';
+const ESTIMATED_NAV_HEIGHT = 56;
+const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -52,7 +54,7 @@ const StyledContainer = styled.div`
     justify-content: space-between;
     width: 100%;
     max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
-    max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT});
+    max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT}px);
     border-radius: ${theme.gridUnit}px;
     background-color: ${theme.colors.grayscale.light5};
     margin-left: auto;
@@ -69,6 +71,7 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
+      margin-bottom: ${theme.gridUnit * 2}px;
 
       & > div {
         min-width: 200px;
@@ -78,22 +81,100 @@ const StyledContainer = styled.div`
       & > span {
         color: ${theme.colors.grayscale.light1};
         margin-left: ${theme.gridUnit * 4}px;
-        margin-top: ${theme.gridUnit * 6}px;
       }
+    }
+
+    & .viz-gallery {
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+      margin: ${theme.gridUnit}px 0px;
+      max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
+      flex: 1;
+    }
+
+    & .footer {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+      align-items: center;
+
+      & > span {
+        color: ${theme.colors.grayscale.light1};
+        margin-right: ${theme.gridUnit * 4}px;
+      }
+    }
+
+    /* The following extra ampersands (&&&&) are used to boost selector specificity */
+
+    &&&& .ant-steps-item-tail {
+      display: none;
+    }
+
+    &&&& .ant-steps-item-icon {
+      margin-right: ${theme.gridUnit * 2}px;
+      width: ${theme.gridUnit * 5}px;
+      height: ${theme.gridUnit * 5}px;
+      line-height: ${theme.gridUnit * 5}px;
+    }
+
+    &&&& .ant-steps-item-title {
+      line-height: ${theme.gridUnit * 5}px;
+    }
+
+    &&&& .ant-steps-item-content {
+      overflow: unset;
+
+      .ant-steps-item-description {
+        margin-top: ${theme.gridUnit}px;
+      }
+    }
+
+    &&&& .ant-tooltip-open {
+      display: inline;
+    }
+
+    &&&& .ant-select-selector {
+      padding: 0;
+    }
+
+    &&&& .ant-select-selection-placeholder {
+      padding-left: ${theme.gridUnit * 3}px;
     }
   `}
 `;
 
-const cssStatic = css`
-  flex: 0 0 auto;
+const TooltipContent = styled.div<{ hasDescription: boolean }>`
+  ${({ theme, hasDescription }) => `
+    .tooltip-header {
+      font-size: ${
+        hasDescription ? theme.typography.sizes.l : theme.typography.sizes.s
+      }px;
+      font-weight: ${
+        hasDescription
+          ? theme.typography.weights.bold
+          : theme.typography.weights.normal
+      };
+    }
+
+    .tooltip-description {
+      margin-top: ${theme.gridUnit * 2}px;
+      display: -webkit-box;
+      -webkit-line-clamp: 20;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  `}
 `;
 
-const StyledVizTypeGallery = styled(VizTypeGallery)`
+const StyledLabel = styled.span`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
-    margin: ${theme.gridUnit * 3}px 0px;
-    flex: 1 1 auto;
+    position: absolute;
+    left: ${theme.gridUnit * 3}px;
+    right: ${theme.gridUnit * 3}px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `}
 `;
 
@@ -110,13 +191,15 @@ export default class AddSliceContainer extends React.PureComponent<
     this.changeDatasource = this.changeDatasource.bind(this);
     this.changeVisType = this.changeVisType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
+    this.newLabel = this.newLabel.bind(this);
+    this.loadDatasources = this.loadDatasources.bind(this);
   }
 
   exploreUrl() {
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
-        datasource: this.state.datasourceValue,
+        datasource: this.state.datasource?.value,
       }),
     );
     return `/superset/explore/?form_data=${formData}`;
@@ -126,11 +209,8 @@ export default class AddSliceContainer extends React.PureComponent<
     window.location.href = this.exploreUrl();
   }
 
-  changeDatasource(value: string) {
-    this.setState({
-      datasourceValue: value,
-      datasourceId: value.split('__')[0],
-    });
+  changeDatasource(datasource: { label: string; value: string }) {
+    this.setState({ datasource });
   }
 
   changeVisType(visType: string | null) {
@@ -138,55 +218,122 @@ export default class AddSliceContainer extends React.PureComponent<
   }
 
   isBtnDisabled() {
-    return !(this.state.datasourceId && this.state.visType);
+    return !(this.state.datasource?.value && this.state.visType);
+  }
+
+  newLabel(item: Dataset) {
+    return (
+      <Tooltip
+        mouseEnterDelay={1}
+        placement="right"
+        title={
+          <TooltipContent hasDescription={!!item.description}>
+            <div className="tooltip-header">{item.table_name}</div>
+            {item.description && (
+              <div className="tooltip-description">{item.description}</div>
+            )}
+          </TooltipContent>
+        }
+      >
+        <StyledLabel>{item.table_name}</StyledLabel>
+      </Tooltip>
+    );
+  }
+
+  loadDatasources(search: string, page: number, pageSize: number) {
+    const query = rison.encode({
+      columns: ['id', 'table_name', 'description', 'datasource_type'],
+      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      page,
+      page_size: pageSize,
+      order_column: 'table_name',
+      order_direction: 'asc',
+    });
+    return SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${query}`,
+    }).then((response: JsonResponse) => {
+      const list: {
+        customLabel: ReactNode;
+        label: string;
+        value: string;
+      }[] = response.json.result
+        .map((item: Dataset) => ({
+          value: `${item.id}__${item.datasource_type}`,
+          customLabel: this.newLabel(item),
+          label: item.table_name,
+        }))
+        .sort((a: { label: string }, b: { label: string }) =>
+          a.label.localeCompare(b.label),
+        );
+      return {
+        data: list,
+        totalCount: response.json.count,
+      };
+    });
   }
 
   render() {
+    const isButtonDisabled = this.isBtnDisabled();
     return (
       <StyledContainer>
-        <h3 css={cssStatic}>{t('Create a new chart')}</h3>
-        <div className="dataset">
-          <Select
-            autoFocus
-            ariaLabel={t('Dataset')}
-            name="select-datasource"
-            header={<FormLabel required>{t('Choose a dataset')}</FormLabel>}
-            onChange={this.changeDatasource}
-            options={this.props.datasources}
-            placeholder={t('Choose a dataset')}
-            showSearch
-            value={this.state.datasourceValue}
+        <h3>{t('Create a new chart')}</h3>
+        <Steps direction="vertical" size="small">
+          <Steps.Step
+            title={<FormLabel>{t('Choose a dataset')}</FormLabel>}
+            status={this.state.datasource?.value ? 'finish' : 'process'}
+            description={
+              <div className="dataset">
+                <Select
+                  autoFocus
+                  ariaLabel={t('Dataset')}
+                  name="select-datasource"
+                  onChange={this.changeDatasource}
+                  options={this.loadDatasources}
+                  placeholder={t('Choose a dataset')}
+                  showSearch
+                  value={this.state.datasource}
+                />
+                <span>
+                  {t(
+                    'Instructions to add a dataset are available in the Superset tutorial.',
+                  )}{' '}
+                  <a
+                    href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <i className="fa fa-external-link" />
+                  </a>
+                </span>
+              </div>
+            }
           />
-          <span>
-            {t(
-              'Instructions to add a dataset are available in the Superset tutorial.',
-            )}{' '}
-            <a
-              href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <i className="fa fa-external-link" />
-            </a>
-          </span>
+          <Steps.Step
+            title={<FormLabel>{t('Choose chart type')}</FormLabel>}
+            status={this.state.visType ? 'finish' : 'process'}
+            description={
+              <VizTypeGallery
+                className="viz-gallery"
+                onChange={this.changeVisType}
+                selectedViz={this.state.visType}
+              />
+            }
+          />
+        </Steps>
+        <div className="footer">
+          {isButtonDisabled && (
+            <span>
+              {t('Please select both a Dataset and a Chart type to proceed')}
+            </span>
+          )}
+          <Button
+            buttonStyle="primary"
+            disabled={isButtonDisabled}
+            onClick={this.gotoSlice}
+          >
+            {t('Create new chart')}
+          </Button>
         </div>
-        <StyledVizTypeGallery
-          onChange={this.changeVisType}
-          selectedViz={this.state.visType}
-        />
-        <Button
-          css={[
-            cssStatic,
-            css`
-              align-self: flex-end;
-            `,
-          ]}
-          buttonStyle="primary"
-          disabled={this.isBtnDisabled()}
-          onClick={this.gotoSlice}
-        >
-          {t('Create new chart')}
-        </Button>
       </StyledContainer>
     );
   }

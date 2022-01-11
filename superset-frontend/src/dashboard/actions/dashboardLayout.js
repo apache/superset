@@ -18,19 +18,18 @@
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/core';
-
-import { addWarningToast } from '../../messageToasts/actions';
-import { updateLayoutComponents } from './dashboardFilters';
-import { setUnsavedChanges } from './dashboardState';
-import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   DASHBOARD_HEADER_ID,
-} from '../util/constants';
-import dropOverflowsParent from '../util/dropOverflowsParent';
-import findParentId from '../util/findParentId';
-import isInDifferentFilterScopes from '../util/isInDifferentFilterScopes';
+} from 'src/dashboard/util/constants';
+import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
+import findParentId from 'src/dashboard/util/findParentId';
+import isInDifferentFilterScopes from 'src/dashboard/util/isInDifferentFilterScopes';
+import { updateLayoutComponents } from './dashboardFilters';
+import { setUnsavedChanges } from './dashboardState';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';

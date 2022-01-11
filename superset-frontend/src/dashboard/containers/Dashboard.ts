@@ -33,6 +33,7 @@ import {
   getAllActiveFilters,
   getRelevantDataMask,
 } from 'src/dashboard/util/activeAllDashboardFilters';
+import { clearDataMaskState } from '../../dataMask/actions';
 
 function mapStateToProps(state: RootState) {
   const {
@@ -83,6 +84,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
     actions: bindActionCreators(
       {
         setDatasources,
+        clearDataMaskState,
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,

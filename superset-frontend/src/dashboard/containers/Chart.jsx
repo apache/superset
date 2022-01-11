@@ -18,26 +18,28 @@
  */
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-
 import {
   toggleExpandSlice,
   setFocusedFilterField,
   unsetFocusedFilterField,
-} from '../actions/dashboardState';
-import { updateComponents } from '../actions/dashboardLayout';
-import { changeFilter } from '../actions/dashboardFilters';
-import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
-import { refreshChart } from '../../chart/chartAction';
-import { logEvent } from '../../logger/actions';
+} from 'src/dashboard/actions/dashboardState';
+import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
+import { changeFilter } from 'src/dashboard/actions/dashboardFilters';
+import {
+  addSuccessToast,
+  addDangerToast,
+} from 'src/components/MessageToasts/actions';
+import { refreshChart } from 'src/chart/chartAction';
+import { logEvent } from 'src/logger/actions';
 import {
   getActiveFilters,
   getAppliedFilterValues,
-} from '../util/activeDashboardFilters';
-import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import Chart from '../components/gridComponents/Chart';
-import { PLACEHOLDER_DATASOURCE } from '../constants';
+} from 'src/dashboard/util/activeDashboardFilters';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import Chart from 'src/dashboard/components/gridComponents/Chart';
+import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 
-const EMPTY_FILTERS = {};
+const EMPTY_OBJECT = {};
 
 function mapStateToProps(
   {
@@ -54,7 +56,7 @@ function mapStateToProps(
   ownProps,
 ) {
   const { id } = ownProps;
-  const chart = chartQueries[id] || {};
+  const chart = chartQueries[id] || EMPTY_OBJECT;
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
@@ -82,7 +84,7 @@ function mapStateToProps(
     datasource,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters: getActiveFilters() || EMPTY_FILTERS,
+    filters: getActiveFilters() || EMPTY_OBJECT,
     formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],

@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Column,
-  QueryMode,
-  t,
-  TimeseriesDataRecord
-} from '@superset-ui/core';
+import { Column, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
 import {
   CccsGridChartProps,
   CccsGridQueryFormData,
@@ -76,7 +71,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const agGridLicenseKey = queriesData[0].agGridLicenseKey as String;
 
-  const { setDataMask = () => { } } = hooks;
+  const { setDataMask = () => {} } = hooks;
 
   const columns = datasource?.columns as Column[];
 
@@ -102,7 +97,11 @@ export default function transformProps(chartProps: CccsGridChartProps) {
 
   // Map of sorting columns, key is column name, value is a struct of sort direction (asc/desc) and sort index
   const sortingColumnMap = new Map<string, {}>();
-  formData.order_by_cols.reduce(function (columnMap: { [x: string]: any; }, item: string, currentIndex: number) {
+  formData.order_by_cols.reduce(function (
+    columnMap: { [x: string]: any },
+    item: string,
+    currentIndex: number,
+  ) {
     // Logic from extractQueryFields.ts
     if (typeof item === 'string') {
       try {
@@ -110,18 +109,21 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         const name = array[0];
         const sortDirection = array[1];
         const sortIndex = currentIndex - 1;
-        const sortOptions = { sortDirection: sortDirection, sortIndex: sortIndex };
+        const sortOptions = {
+          sortDirection: sortDirection,
+          sortIndex: sortIndex,
+        };
         columnMap[name] = sortOptions;
       } catch (error) {
         throw new Error(t('Found invalid orderby option: %s', item));
       }
       return columnMap;
-    }
-    else {
+    } else {
       console.log('Found invalid orderby option: %s.', item);
       return undefined;
     }
-  }, sortingColumnMap);
+  },
+  sortingColumnMap);
 
   // Key is column type, value is renderer name
   const rendererMap = {
@@ -129,7 +131,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     IPV6: 'ipv6ValueRenderer',
     DOMAIN: 'domainValueRenderer',
     COUNTRY: 'countryValueRenderer',
-    JSON: 'jsonValueRenderer'
+    JSON: 'jsonValueRenderer',
   };
 
   var columnDefs: Column[] = [];
@@ -137,10 +139,19 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   if (query_mode === QueryMode.raw) {
     columnDefs = formData.columns.map((column: any) => {
       const columnType = columnTypeMap[column];
-      const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
-      const sortDirection = column in sortingColumnMap ? (sortingColumnMap[column].sortDirection ? 'asc' : 'desc') : null;
-      const sortIndex = column in sortingColumnMap ? sortingColumnMap[column].sortIndex : null;
-      const cellRenderer = columnType in rendererMap ? rendererMap[columnType] : undefined;
+      const columnHeader = columnVerboseNameMap[column]
+        ? columnVerboseNameMap[column]
+        : column;
+      const sortDirection =
+        column in sortingColumnMap
+          ? sortingColumnMap[column].sortDirection
+            ? 'asc'
+            : 'desc'
+          : null;
+      const sortIndex =
+        column in sortingColumnMap ? sortingColumnMap[column].sortIndex : null;
+      const cellRenderer =
+        columnType in rendererMap ? rendererMap[columnType] : undefined;
       const isSortable = true;
       return {
         field: column,
@@ -148,22 +159,24 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         cellRenderer: cellRenderer,
         sortable: isSortable,
         sort: sortDirection,
-        sortIndex: sortIndex
+        sortIndex: sortIndex,
       };
     });
-  }
-  else {
+  } else {
     if (formData.groupby) {
       const groupByColumnDefs = formData.groupby.map((column: any) => {
         const columnType = columnTypeMap[column];
-        const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
-        const cellRenderer = columnType in rendererMap ? rendererMap[columnType] : undefined;
+        const columnHeader = columnVerboseNameMap[column]
+          ? columnVerboseNameMap[column]
+          : column;
+        const cellRenderer =
+          columnType in rendererMap ? rendererMap[columnType] : undefined;
         const isSortable = true;
         return {
           field: column,
           headerName: columnHeader,
           cellRenderer: cellRenderer,
-          sortable: isSortable
+          sortable: isSortable,
         };
       });
       columnDefs = columnDefs.concat(groupByColumnDefs);
@@ -171,7 +184,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
 
     if (formData.metrics) {
       const metricsColumnDefs = formData.metrics.map((column: any) => {
-        const columnHeader = columnVerboseNameMap[column] ? columnVerboseNameMap[column] : column;
+        const columnHeader = columnVerboseNameMap[column]
+          ? columnVerboseNameMap[column]
+          : column;
         return {
           field: column,
           headerName: columnHeader,

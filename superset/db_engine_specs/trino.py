@@ -29,7 +29,6 @@ class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
 
-    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
@@ -110,9 +109,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         return True
 
     @classmethod
-    def estimate_statement_cost(  # pylint: disable=too-many-locals
-        cls, statement: str, cursor: Any
-    ) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
 

@@ -25,7 +25,7 @@ export default function transformProps(chartProps: ChartProps) {
   let data = queriesData[0].data as TimeseriesDataRecord[];
   console.log('formData via TransformProps.ts', formData);
 
-  const selected_values = getSelectedValues(formData)
+  const selected_values = getSelectedValues(formData);
 
   return {
     width,
@@ -36,6 +36,6 @@ export default function transformProps(chartProps: ChartProps) {
     mode,
     boldText,
     headerFontSize,
-    headerText
+    headerText,
   };
 }

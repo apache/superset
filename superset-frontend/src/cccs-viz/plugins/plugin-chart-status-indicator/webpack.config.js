@@ -41,8 +41,8 @@ const config = {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
     fallback: {
-      fs: false
-    }
+      fs: false,
+    },
   },
   module: {
     rules: [

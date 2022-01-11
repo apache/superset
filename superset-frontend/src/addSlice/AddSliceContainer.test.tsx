@@ -28,11 +28,9 @@ import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTy
 import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'spec/helpers/testing-library';
 
-const defaultProps = {
-  datasources: [
-    { label: 'my first table', value: '1__table' },
-    { label: 'another great table', value: '2__table' },
-  ],
+const datasource = {
+  value: '1',
+  label: 'table',
 };
 
 describe('AddSliceContainer', () => {
@@ -43,7 +41,7 @@ describe('AddSliceContainer', () => {
   >;
 
   beforeEach(async () => {
-    wrapper = mount(<AddSliceContainer {...defaultProps} />) as ReactWrapper<
+    wrapper = mount(<AddSliceContainer />) as ReactWrapper<
       AddSliceContainerProps,
       AddSliceContainerState,
       AddSliceContainer
@@ -68,11 +66,8 @@ describe('AddSliceContainer', () => {
   });
 
   it('renders an enabled button if datasource and viz type is selected', () => {
-    const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
-      datasourceValue,
-      datasourceId: datasourceValue.split('__')[0],
-      datasourceType: datasourceValue.split('__')[1],
+      datasource,
       visType: 'table',
     });
     expect(
@@ -81,15 +76,12 @@ describe('AddSliceContainer', () => {
   });
 
   it('formats explore url', () => {
-    const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
-      datasourceValue,
-      datasourceId: datasourceValue.split('__')[0],
-      datasourceType: datasourceValue.split('__')[1],
+      datasource,
       visType: 'table',
     });
     const formattedUrl =
-      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221__table%22%7D';
+      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
     expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
   });
 });

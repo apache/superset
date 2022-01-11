@@ -29,6 +29,8 @@ on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
 ## Release notes for recent releases
+
+- [1.3](release-notes-1-3/README.md)
 - [1.2](release-notes-1-2/README.md)
 - [1.1](release-notes-1-1/README.md)
 - [1.0](release-notes-1-0/README.md)

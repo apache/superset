@@ -164,7 +164,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
             "<RELATED_FIELD>": ("<RELATED_FIELD_FIELD>", "<asc|desc>"),
              ...
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
     Declare the filters for related fields::
@@ -172,7 +173,8 @@ class BaseSupersetModelRestApi(ModelRestApi):
         related_fields = {
             "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
-    """  # pylint: disable=pointless-string-statement
+    """
+
     filter_rel_fields: Dict[str, BaseFilter] = {}
     """
     Declare the related field base filter::
@@ -180,11 +182,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_rel_fields_field = {
             "<RELATED_FIELD>": "<FILTER>")
         }
-    """  # pylint: disable=pointless-string-statement
-    allowed_rel_fields: Set[str] = set()
     """
-    Declare a set of allowed related fields that the `related` endpoint supports
-    """  # pylint: disable=pointless-string-statement
+    allowed_rel_fields: Set[str] = set()
+    # Declare a set of allowed related fields that the `related` endpoint supports.
 
     text_field_rel_fields: Dict[str, str] = {}
     """
@@ -193,15 +193,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
         text_field_rel_fields = {
             "<RELATED_FIELD>": "<RELATED_OBJECT_FIELD>"
         }
-    """  # pylint: disable=pointless-string-statement
+    """
 
     allowed_distinct_fields: Set[str] = set()
 
     openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    """
-    Add extra schemas to the OpenAPI component schemas section
-    """  # pylint: disable=pointless-string-statement
-
+    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]
@@ -490,6 +487,12 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
         # handle pagination
         page, page_size = self._handle_page_args(args)
+
+        ids = args.get("include_ids")
+        if page and ids:
+            # pagination with forced ids is not supported
+            return self.response_422()
+
         try:
             datamodel = self.datamodel.get_related_interface(column_name)
         except KeyError:
@@ -504,7 +507,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # handle filters
         filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
         # Make the query
-        _, rows = datamodel.query(
+        total_rows, rows = datamodel.query(
             filters, order_column, order_direction, page=page, page_size=page_size
         )
 
@@ -512,10 +515,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         result = self._get_result_from_rows(datamodel, rows, column_name)
 
         # If ids are specified make sure we fetch and include them on the response
-        ids = args.get("include_ids")
-        self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+        if ids:
+            self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+            total_rows = len(result)
 
-        return self.response(200, count=len(result), result=result)
+        return self.response(200, count=total_rows, result=result)
 
     @expose("/distinct/<column_name>", methods=["GET"])
     @protect()

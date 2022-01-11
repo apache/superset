@@ -126,8 +126,12 @@ describe('Test explore links', () => {
     cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
     // Add a new option using the "CreatableSelect" feature
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('#dashboard-creatable-select')
-      .type(`${dashboardTitle}{enter}{enter}`);
+      .find('input[aria-label="Select a dashboard"]')
+      .type(`${dashboardTitle}`, { force: true });
+
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+      force: true,
+    });
 
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
@@ -153,8 +157,12 @@ describe('Test explore links', () => {
     // This time around, typing the same dashboard name
     // will select the existing one
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
-      .find('#dashboard-creatable-select')
-      .type(`${dashboardTitle}{enter}{enter}`);
+      .find('input[aria-label="Select a dashboard"]')
+      .type(`${dashboardTitle}{enter}`, { force: true });
+
+    cy.get(`.ant-select-item[label="${dashboardTitle}"]`).click({
+      force: true,
+    });
 
     cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData' });

@@ -1,10 +1,5 @@
-import {
-  ChartProps,
-  DataRecord,
-  getNumberFormatter,
-} from '@superset-ui/core';
+import { ChartProps, DataRecord, getNumberFormatter } from '@superset-ui/core';
 import sandboxedEval from '@superset-ui/legacy-preset-chart-deckgl/lib/utils/sandbox';
-
 
 function insertMetricsIntoMarkdown(
   markdownTemplate: string,

@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { t, SupersetTheme, css } from '@superset-ui/core';
+import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
@@ -47,6 +47,7 @@ export default function HeaderReportActionsDropDown({
     currentReportDeleting,
     setCurrentReportDeleting,
   ] = useState<AlertObject | null>(null);
+  const theme = useTheme();
 
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
@@ -60,7 +61,7 @@ export default function HeaderReportActionsDropDown({
   };
 
   const menu = () => (
-    <Menu selectable={false}>
+    <Menu selectable={false} css={{ width: '200px' }}>
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -68,6 +69,7 @@ export default function HeaderReportActionsDropDown({
           checked={report?.active}
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
+          css={{ marginLeft: theme.gridUnit * 2 }}
         />
       </Menu.Item>
       <Menu.Item onClick={showReportModal}>{t('Edit email report')}</Menu.Item>

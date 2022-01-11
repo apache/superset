@@ -80,8 +80,9 @@ class CollectionControl extends React.Component {
   }
 
   onChange(i, value) {
-    Object.assign(this.props.value[i], value);
-    this.props.onChange(this.props.value);
+    const newValue = [...this.props.value];
+    newValue[i] = { ...this.props.value[i], ...value };
+    this.props.onChange(newValue);
   }
 
   onAdd() {

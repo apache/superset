@@ -22,7 +22,8 @@ import {
   AnnotationData,
   AdhocMetric,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, DatasourceMeta } from '@superset-ui/chart-controls';
+import { DatabaseObject } from 'src/views/CRUD/types';
 
 export { Slice, Chart } from 'src/types/Chart';
 
@@ -54,3 +55,10 @@ export interface ChartState {
 export type OptionSortType = Partial<
   ColumnMeta & AdhocMetric & { saved_metric_name: string }
 >;
+
+export type Datasource = DatasourceMeta & {
+  database?: DatabaseObject;
+  datasource?: string;
+  schema?: string;
+  is_sqllab_view?: boolean;
+};

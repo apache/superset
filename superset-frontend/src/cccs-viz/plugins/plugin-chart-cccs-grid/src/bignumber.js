@@ -48,7 +48,6 @@
 //    *
 //    */
 
-
 //     var BigNumber,
 //       isNumeric = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i,
 //       mathceil = Math.ceil,
@@ -69,7 +68,6 @@
 //       // the arguments to toExponential, toFixed, toFormat, and toPrecision.
 //       MAX = 1E9;                                   // 0 to MAX_INT32
 
-
 //     /*
 //      * Create and return a BigNumber constructor.
 //      */
@@ -78,9 +76,7 @@
 //         P = BigNumber.prototype = { constructor: BigNumber, toString: null, valueOf: null },
 //         ONE = new BigNumber(1),
 
-
 //         //----------------------------- EDITABLE CONFIG DEFAULTS -------------------------------
-
 
 //         // The default values below must be integers within the inclusive ranges stated.
 //         // The values can also be changed at run-time using BigNumber.set.
@@ -164,12 +160,9 @@
 //         // '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_'
 //         ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
 
-
 //       //------------------------------------------------------------------------------------------
 
-
 //       // CONSTRUCTOR
-
 
 //       /*
 //        * The BigNumber constructor and exported function.
@@ -374,9 +367,7 @@
 //         }
 //       }
 
-
 //       // CONSTRUCTOR PROPERTIES
-
 
 //       BigNumber.clone = clone;
 
@@ -390,7 +381,6 @@
 //       BigNumber.ROUND_HALF_CEIL = 7;
 //       BigNumber.ROUND_HALF_FLOOR = 8;
 //       BigNumber.EUCLID = 9;
-
 
 //       /*
 //        * Configure infrequently-changing library-wide settings.
@@ -572,7 +562,6 @@
 //         };
 //       };
 
-
 //       /*
 //        * Return true if v is a BigNumber instance, otherwise return false.
 //        *
@@ -628,7 +617,6 @@
 //           (bignumberError + 'Invalid BigNumber: ' + v);
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the maximum of the arguments.
 //        *
@@ -638,7 +626,6 @@
 //         return maxOrMin(arguments, P.lt);
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the minimum of the arguments.
 //        *
@@ -647,7 +634,6 @@
 //       BigNumber.minimum = BigNumber.min = function () {
 //         return maxOrMin(arguments, P.gt);
 //       };
-
 
 //       /*
 //        * Return a new BigNumber with a random value equal to or greater than 0 and less than 1,
@@ -792,7 +778,6 @@
 //         };
 //       })();
 
-
 //       /*
 //        * Return a BigNumber whose value is the sum of the arguments.
 //        *
@@ -806,9 +791,7 @@
 //         return sum;
 //       };
 
-
 //       // PRIVATE FUNCTIONS
-
 
 //       // Called by BigNumber and BigNumber.prototype.toString.
 //       convertBase = (function () {
@@ -959,7 +942,6 @@
 //           return str;
 //         };
 //       })();
-
 
 //       // Perform division in the specified base. Called by div and convertBase.
 //       div = (function () {
@@ -1220,7 +1202,6 @@
 //         };
 //       })();
 
-
 //       /*
 //        * Return a string representing the value of BigNumber n in fixed-point or exponential
 //        * notation rounded to the specified decimal places or significant digits.
@@ -1287,7 +1268,6 @@
 //         return n.s < 0 && c0 ? '-' + str : str;
 //       }
 
-
 //       // Handle BigNumber.max and BigNumber.min.
 //       function maxOrMin(args, method) {
 //         var n,
@@ -1308,7 +1288,6 @@
 
 //         return m;
 //       }
-
 
 //       /*
 //        * Strip trailing zeros, calculate base 10 exponent and check against MIN_EXP and MAX_EXP.
@@ -1342,7 +1321,6 @@
 
 //         return n;
 //       }
-
 
 //       // Handle values that fail the validity test in BigNumber.
 //       parseNumeric = (function () {
@@ -1392,7 +1370,6 @@
 //           x.c = x.e = null;
 //         }
 //       })();
-
 
 //       /*
 //        * Round x to sd significant digits using rounding mode rm. Check for over/under-flow.
@@ -1555,7 +1532,6 @@
 //         return x;
 //       }
 
-
 //       function valueOf(n) {
 //         var str,
 //           e = n.e;
@@ -1571,9 +1547,7 @@
 //         return n.s < 0 ? '-' + str : str;
 //       }
 
-
 //       // PROTOTYPE/INSTANCE METHODS
-
 
 //       /*
 //        * Return a new BigNumber whose value is the absolute value of this BigNumber.
@@ -1583,7 +1557,6 @@
 //         if (x.s < 0) x.s = 1;
 //         return x;
 //       };
-
 
 //       /*
 //        * Return
@@ -1595,7 +1568,6 @@
 //       P.comparedTo = function (y, b) {
 //         return compare(this, new BigNumber(y, b));
 //       };
-
 
 //       /*
 //        * If dp is undefined or null or true or false, return the number of decimal places of the
@@ -1632,7 +1604,6 @@
 //         return n;
 //       };
 
-
 //       /*
 //        *  n / 0 = I
 //        *  n / N = N
@@ -1657,7 +1628,6 @@
 //         return div(this, new BigNumber(y, b), DECIMAL_PLACES, ROUNDING_MODE);
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the integer part of dividing the value of this
 //        * BigNumber by the value of BigNumber(y, b).
@@ -1665,7 +1635,6 @@
 //       P.dividedToIntegerBy = P.idiv = function (y, b) {
 //         return div(this, new BigNumber(y, b), 0, 1);
 //       };
-
 
 //       /*
 //        * Return a BigNumber whose value is the value of this BigNumber exponentiated by n.
@@ -1801,7 +1770,6 @@
 //         return m ? y.mod(m) : k ? round(y, POW_PRECISION, ROUNDING_MODE, more) : y;
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the value of this BigNumber rounded to an integer
 //        * using rounding mode rm, or ROUNDING_MODE if rm is omitted.
@@ -1817,7 +1785,6 @@
 //         return round(n, n.e + 1, rm);
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is equal to the value of BigNumber(y, b),
 //        * otherwise return false.
@@ -1826,14 +1793,12 @@
 //         return compare(this, new BigNumber(y, b)) === 0;
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is a finite number, otherwise return false.
 //        */
 //       P.isFinite = function () {
 //         return !!this.c;
 //       };
-
 
 //       /*
 //        * Return true if the value of this BigNumber is greater than the value of BigNumber(y, b),
@@ -1842,7 +1807,6 @@
 //       P.isGreaterThan = P.gt = function (y, b) {
 //         return compare(this, new BigNumber(y, b)) > 0;
 //       };
-
 
 //       /*
 //        * Return true if the value of this BigNumber is greater than or equal to the value of
@@ -1853,14 +1817,12 @@
 
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is an integer, otherwise return false.
 //        */
 //       P.isInteger = function () {
 //         return !!this.c && bitFloor(this.e / LOG_BASE) > this.c.length - 2;
 //       };
-
 
 //       /*
 //        * Return true if the value of this BigNumber is less than the value of BigNumber(y, b),
@@ -1870,7 +1832,6 @@
 //         return compare(this, new BigNumber(y, b)) < 0;
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is less than or equal to the value of
 //        * BigNumber(y, b), otherwise return false.
@@ -1879,14 +1840,12 @@
 //         return (b = compare(this, new BigNumber(y, b))) === -1 || b === 0;
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is NaN, otherwise return false.
 //        */
 //       P.isNaN = function () {
 //         return !this.s;
 //       };
-
 
 //       /*
 //        * Return true if the value of this BigNumber is negative, otherwise return false.
@@ -1895,7 +1854,6 @@
 //         return this.s < 0;
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is positive, otherwise return false.
 //        */
@@ -1903,14 +1861,12 @@
 //         return this.s > 0;
 //       };
 
-
 //       /*
 //        * Return true if the value of this BigNumber is 0 or -0, otherwise return false.
 //        */
 //       P.isZero = function () {
 //         return !!this.c && this.c[0] == 0;
 //       };
-
 
 //       /*
 //        *  n - 0 = n
@@ -2044,7 +2000,6 @@
 //         return normalise(y, xc, ye);
 //       };
 
-
 //       /*
 //        *   n % 0 =  N
 //        *   n % N =  N
@@ -2101,7 +2056,6 @@
 
 //         return y;
 //       };
-
 
 //       /*
 //        *  n * 0 = 0
@@ -2193,7 +2147,6 @@
 //         return normalise(y, zc, e);
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the value of this BigNumber negated,
 //        * i.e. multiplied by -1.
@@ -2203,7 +2156,6 @@
 //         x.s = -x.s || null;
 //         return x;
 //       };
-
 
 //       /*
 //        *  n + 0 = n
@@ -2298,7 +2250,6 @@
 //         return normalise(y, xc, ye);
 //       };
 
-
 //       /*
 //        * If sd is undefined or null or true or false, return the number of significant digits of
 //        * the value of this BigNumber, or null if the value of this BigNumber is ±Infinity or NaN.
@@ -2344,7 +2295,6 @@
 //         return n;
 //       };
 
-
 //       /*
 //        * Return a new BigNumber whose value is the value of this BigNumber shifted by k places
 //        * (powers of 10). Shift to the right if n > 0, and to the left if n < 0.
@@ -2357,7 +2307,6 @@
 //         intCheck(k, -MAX_SAFE_INTEGER, MAX_SAFE_INTEGER);
 //         return this.times('1e' + k);
 //       };
-
 
 //       /*
 //        *  sqrt(-n) =  N
@@ -2468,7 +2417,6 @@
 //         return round(r, r.e + DECIMAL_PLACES + 1, ROUNDING_MODE, m);
 //       };
 
-
 //       /*
 //        * Return a string representing the value of this BigNumber in exponential notation and
 //        * rounded using ROUNDING_MODE to dp fixed decimal places.
@@ -2485,7 +2433,6 @@
 //         }
 //         return format(this, dp, rm, 1);
 //       };
-
 
 //       /*
 //        * Return a string representing the value of this BigNumber in fixed-point notation rounding
@@ -2506,7 +2453,6 @@
 //         }
 //         return format(this, dp, rm);
 //       };
-
 
 //       /*
 //        * Return a string representing the value of this BigNumber in fixed-point notation rounded
@@ -2587,7 +2533,6 @@
 //         return (format.prefix || '') + str + (format.suffix || '');
 //       };
 
-
 //       /*
 //        * Return an array of two BigNumbers representing the value of this BigNumber as a simple
 //        * fraction with an integer numerator and an integer denominator.
@@ -2662,14 +2607,12 @@
 //         return r;
 //       };
 
-
 //       /*
 //        * Return the value of this BigNumber converted to a number primitive.
 //        */
 //       P.toNumber = function () {
 //         return +valueOf(this);
 //       };
-
 
 //       /*
 //        * Return a string representing the value of this BigNumber rounded to sd significant digits
@@ -2686,7 +2629,6 @@
 //         if (sd != null) intCheck(sd, 1, MAX);
 //         return format(this, sd, rm, 2);
 //       };
-
 
 //       /*
 //        * Return a string representing the value of this BigNumber in base b, or base 10 if b is
@@ -2732,7 +2674,6 @@
 //         return str;
 //       };
 
-
 //       /*
 //        * Return as toString, but do not accept a base argument, and include the minus sign for
 //        * negative zero.
@@ -2741,7 +2682,6 @@
 //         return valueOf(this);
 //       };
 
-
 //       P._isBigNumber = true;
 
 //       if (configObject != null) BigNumber.set(configObject);
@@ -2749,18 +2689,15 @@
 //       return BigNumber;
 //     }
 
-
 //     // PRIVATE HELPER FUNCTIONS
 
 //     // These functions don't need access to variables,
 //     // e.g. DECIMAL_PLACES, in the scope of the `clone` function above.
 
-
 //     function bitFloor(n) {
 //       var i = n | 0;
 //       return n > 0 || n === i ? i : i - 1;
 //     }
-
 
 //     // Return a coefficient array as a string of base 10 digits.
 //     function coeffToString(a) {
@@ -2781,7 +2718,6 @@
 
 //       return r.slice(0, j + 1 || 1);
 //     }
-
 
 //     // Compare the value of BigNumbers x and y.
 //     function compare(x, y) {
@@ -2823,7 +2759,6 @@
 //       return k == l ? 0 : k > l ^ a ? 1 : -1;
 //     }
 
-
 //     /*
 //      * Check that n is a primitive number, an integer, and in range, otherwise throw.
 //      */
@@ -2836,19 +2771,16 @@
 //       }
 //     }
 
-
 //     // Assumes finite n.
 //     function isOdd(n) {
 //       var k = n.c.length - 1;
 //       return bitFloor(n.e / LOG_BASE) == k && n.c[k] % 2 != 0;
 //     }
 
-
 //     function toExponential(str, e) {
 //       return (str.length > 1 ? str.charAt(0) + '.' + str.slice(1) : str) +
 //        (e < 0 ? 'e' : 'e+') + e;
 //     }
-
 
 //     function toFixedPoint(str, e, z) {
 //       var len, zs;
@@ -2876,9 +2808,7 @@
 //       return str;
 //     }
 
-
 //     // EXPORT
-
 
 //     BigNumber = clone();
 //     BigNumber['default'] = BigNumber.BigNumber = BigNumber;
@@ -2900,4 +2830,3 @@
 //       globalObject.BigNumber = BigNumber;
 //     }
 //   })(this);
-

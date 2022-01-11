@@ -125,6 +125,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "get_data": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -164,7 +165,7 @@ class PandasAxis(int, Enum):
 
 
 class PandasPostprocessingCompare(str, Enum):
-    ABS = "absolute"
+    DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 

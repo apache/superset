@@ -20,6 +20,7 @@
 import {
   AppSection,
   DataMask,
+  DataRecordValue,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
@@ -99,6 +100,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     extraFormData: {},
     filterState,
   });
+  const datatype: GenericDataType = coltypeMap[col];
+  const labelFormatter = useMemo(
+    () =>
+      getDataRecordFormatter({
+        timeFormatter: smartDateDetailedFormatter,
+      }),
+    [],
+  );
+
   const updateDataMask = useCallback(
     (values: SelectValue) => {
       const emptyFilter =
@@ -119,7 +129,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         filterState: {
           ...filterState,
           label: values?.length
-            ? `${(values || []).join(', ')}${suffix}`
+            ? `${(values || [])
+                .map(value => labelFormatter(value, datatype))
+                .join(', ')}${suffix}`
             : undefined,
           value:
             appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
@@ -128,14 +140,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         },
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appSection,
       col,
+      datatype,
       defaultToFirstItem,
       dispatchDataMask,
       enableEmptyFilter,
       inverseSelection,
       JSON.stringify(filterState),
+      labelFormatter,
     ],
   );
 
@@ -181,15 +196,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     clearSuggestionSearch();
     unsetFocusedFilter();
   };
-
-  const datatype: GenericDataType = coltypeMap[col];
-  const labelFormatter = useMemo(
-    () =>
-      getDataRecordFormatter({
-        timeFormatter: smartDateDetailedFormatter,
-      }),
-    [],
-  );
 
   const handleChange = (value?: SelectValue | number | string) => {
     const values = ensureIsArray(value);
@@ -249,12 +255,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }
 
   const options = useMemo(() => {
-    const options: { label: string; value: string | number }[] = [];
+    const options: { label: string; value: DataRecordValue }[] = [];
     data.forEach(row => {
       const [value] = groupby.map(col => row[col]);
       options.push({
         label: labelFormatter(value, datatype),
-        value: typeof value === 'number' ? value : String(value),
+        value,
       });
     });
     return options;
@@ -286,6 +292,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           loading={isRefreshing}
           maxTagCount={5}
           invertSelection={inverseSelection}
+          // @ts-ignore
           options={options}
         />
       </StyledFormItem>

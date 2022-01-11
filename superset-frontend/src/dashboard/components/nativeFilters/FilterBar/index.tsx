@@ -31,6 +31,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
+import { isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
@@ -162,28 +163,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterValues = Object.values<Filter>(filters);
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
 
-  useEffect(() => {
-    setDataMaskSelected(() => dataMaskApplied);
-  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
-
-  // reset filter state if filter type changes
-  useEffect(() => {
-    setDataMaskSelected(draft => {
-      Object.values(filters).forEach(filter => {
-        if (
-          filter.filterType !== previousFilters?.[filter.id]?.filterType &&
-          previousFilters?.[filter.id]?.filterType !== undefined
-        ) {
-          draft[filter.id] = getInitialDataMask(filter.id) as DataMaskWithId;
-        }
-      });
-    });
-  }, [
-    JSON.stringify(filters),
-    JSON.stringify(previousFilters),
-    setDataMaskSelected,
-  ]);
-
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,
@@ -231,6 +210,37 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     },
     [history],
   );
+
+  useEffect(() => {
+    if (previousFilters) {
+      const updates = {};
+      Object.values(filters).forEach(currentFilter => {
+        const currentType = currentFilter.filterType;
+        const currentTargets = currentFilter.targets;
+        const currentDataMask = currentFilter.defaultDataMask;
+        const previousFilter = previousFilters?.[currentFilter.id];
+        const previousType = previousFilter?.filterType;
+        const previousTargets = previousFilter?.targets;
+        const previousDataMask = previousFilter?.defaultDataMask;
+        const typeChanged = currentType !== previousType;
+        const targetsChanged = !isEqual(currentTargets, previousTargets);
+        const dataMaskChanged = !isEqual(currentDataMask, previousDataMask);
+
+        if (typeChanged || targetsChanged || dataMaskChanged) {
+          updates[currentFilter.id] = getInitialDataMask(currentFilter.id);
+        }
+      });
+
+      if (!isEmpty(updates)) {
+        setDataMaskSelected(draft => ({ ...draft, ...updates }));
+        Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
+      }
+    }
+  }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {

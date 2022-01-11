@@ -21,7 +21,7 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
@@ -62,15 +62,7 @@ class SliceModelView(
     @expose("/add", methods=["GET", "POST"])
     @has_access
     def add(self) -> FlaskResponse:
-        datasources = [
-            {"value": str(d.id) + "__" + d.type, "label": repr(d)}
-            for d in security_manager.get_user_datasources()
-        ]
         payload = {
-            "datasources": sorted(
-                datasources,
-                key=lambda d: d["label"].lower() if isinstance(d["label"], str) else "",
-            ),
             "common": common_bootstrap_payload(),
             "user": bootstrap_user_data(g.user),
         }

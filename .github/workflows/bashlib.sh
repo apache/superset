@@ -55,7 +55,6 @@ npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   # cache-restore npm
-
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
@@ -69,7 +68,7 @@ build-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets"
-  npm run build -- --no-progress
+  npm run build
   say "::endgroup::"
 }
 
@@ -81,7 +80,7 @@ build-instrumented-assets() {
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
-    npm run build-instrumented -- --no-progress
+    npm run build-instrumented
     cache-save instrumented-assets
   fi
   say "::endgroup::"

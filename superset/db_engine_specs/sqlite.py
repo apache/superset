@@ -37,14 +37,13 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
 
-    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
         "PT1M": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:00', {col}))",
         "PT1H": "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
         "P1D": "DATE({col})",
-        "P1W": "DATE({col}, -strftime('%W', {col}) || ' days')",
+        "P1W": "DATE({col}, -strftime('%w', {col}) || ' days')",
         "P1M": "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
         "P0.25Y": (
             "DATETIME(STRFTIME('%Y-', {col}) || "  # year

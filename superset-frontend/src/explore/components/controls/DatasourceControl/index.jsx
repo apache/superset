@@ -227,10 +227,7 @@ class DatasourceControl extends React.PureComponent {
             </Tooltip>
           )}
           {extra?.warning_markdown && (
-            <WarningIconWithTooltip
-              warningMarkdown={extra.warning_markdown}
-              size={30}
-            />
+            <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
             overlay={datasourceMenu}

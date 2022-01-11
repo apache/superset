@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   useDrag,
   useDrop,
@@ -28,7 +28,18 @@ import {
   OptionProps,
   OptionItemInterface,
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import { Tooltip } from 'src/components/Tooltip';
+import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import { styled } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
+
+export const OptionLabel = styled.div`
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
 
 export default function OptionWrapper(
   props: OptionProps & {
@@ -38,26 +49,25 @@ export default function OptionWrapper(
 ) {
   const {
     index,
+    label,
+    tooltipTitle,
+    column,
     type,
     onShiftOptions,
     clickClose,
     withCaret,
     isExtra,
     canDelete = true,
-    children,
     ...rest
   } = props;
   const ref = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
 
-  const item: OptionItemInterface = useMemo(
-    () => ({
-      dragIndex: index,
+  const [{ isDragging }, drag] = useDrag({
+    item: {
       type,
-    }),
-    [index, type],
-  );
-  const [, drag] = useDrag({
-    item,
+      dragIndex: index,
+    },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -85,8 +95,8 @@ export default function OptionWrapper(
       // Determine mouse position
       const clientOffset = monitor.getClientOffset();
       // Get pixels to the top
-      const hoverClientY = clientOffset?.y
-        ? clientOffset?.y - hoverBoundingRect.top
+      const hoverClientY = clientOffset
+        ? clientOffset.y - hoverBoundingRect.top
         : 0;
       // Only perform the move when the mouse has crossed half of the items height
       // When dragging downwards, only move when the cursor is below 50%
@@ -107,6 +117,51 @@ export default function OptionWrapper(
     },
   });
 
+  const shouldShowTooltip =
+    (!isDragging && tooltipTitle && label && tooltipTitle !== label) ||
+    (!isDragging &&
+      labelRef &&
+      labelRef.current &&
+      labelRef.current.scrollWidth > labelRef.current.clientWidth);
+
+  const LabelContent = () => {
+    if (!shouldShowTooltip) {
+      return <span>{label}</span>;
+    }
+    return (
+      <Tooltip title={tooltipTitle || label}>
+        <span>{label}</span>
+      </Tooltip>
+    );
+  };
+
+  const ColumnOption = () => (
+    <StyledColumnOption
+      column={column as ColumnMeta}
+      labelRef={labelRef}
+      showTooltip={!!shouldShowTooltip}
+      showType
+    />
+  );
+
+  const Label = () => {
+    if (label) {
+      return (
+        <OptionLabel ref={labelRef}>
+          <LabelContent />
+        </OptionLabel>
+      );
+    }
+    if (column) {
+      return (
+        <OptionLabel>
+          <ColumnOption />
+        </OptionLabel>
+      );
+    }
+    return null;
+  };
+
   drag(drop(ref));
 
   return (
@@ -118,7 +173,7 @@ export default function OptionWrapper(
         isExtra={isExtra}
         canDelete={canDelete}
       >
-        {children}
+        <Label />
       </Option>
     </DragContainer>
   );

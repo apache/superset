@@ -49,7 +49,8 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        import es.exceptions as es_exceptions  # pylint: disable=import-error
+        # pylint: disable=import-error,import-outside-toplevel
+        import es.exceptions as es_exceptions
 
         return {
             es_exceptions.DatabaseError: SupersetDBAPIDatabaseError,

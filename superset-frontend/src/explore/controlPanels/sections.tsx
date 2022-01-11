@@ -77,7 +77,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color scheme'),
-  controlSetRows: [['color_scheme', 'label_colors']],
+  controlSetRows: [['color_scheme']],
 };
 
 export const sqlaTimeSeries: ControlPanelSectionConfig = {
@@ -233,13 +233,13 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             default: 'values',
             choices: [
               ['values', 'Actual values'],
-              ['absolute', 'Absolute difference'],
+              ['absolute', 'Difference'],
               ['percentage', 'Percentage change'],
               ['ratio', 'Ratio'],
             ],
             description: t(
               'How to display time shifts: as individual lines; as the ' +
-                'absolute difference between the main time series and each time shift; ' +
+                'difference between the main time series and each time shift; ' +
                 'as the percentage change; or as the ratio between series and time shifts.',
             ),
           },

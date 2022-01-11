@@ -37,32 +37,52 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
-  userId?: string | number,
-) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  user?: { userId: string | number; firstName: string; lastName: string },
+) => async (filterValue = '', page: number, pageSize: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-  const options =
-    userId && pageIndex === 0 ? [{ label: 'me', value: userId }] : [];
-  try {
-    const queryParams = rison.encode({
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `${resourceEndpoint}?q=${queryParams}`,
-    });
-    const data = json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
-        label,
-        value,
-      }),
-    );
+  const queryParams = rison.encode({
+    filter: filterValue,
+    page,
+    page_size: pageSize,
+  });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `${resourceEndpoint}?q=${queryParams}`,
+  });
 
-    return options.concat(data);
-  } catch (e) {
-    handleError(e);
+  let fetchedLoggedUser = false;
+  const loggedUser = user
+    ? {
+        label: `${user.firstName} ${user.lastName}`,
+        value: user.userId,
+      }
+    : undefined;
+
+  const data: { label: string; value: string | number }[] = [];
+  json?.result?.forEach(
+    ({ text, value }: { text: string; value: string | number }) => {
+      if (
+        loggedUser &&
+        value === loggedUser.value &&
+        text === loggedUser.label
+      ) {
+        fetchedLoggedUser = true;
+      } else {
+        data.push({
+          label: text,
+          value,
+        });
+      }
+    },
+  );
+
+  if (loggedUser && (!filterValue || fetchedLoggedUser)) {
+    data.unshift(loggedUser);
   }
-  return [];
+
+  return {
+    data,
+    totalCount: json?.count,
+  };
 };
 
 export const PAGE_SIZE = 5;
@@ -132,10 +152,19 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
+    const filters = [
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: 0,
+      },
+    ];
     const newBatch = [
-      SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
       SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=${getParams()}`,
+        endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
+      }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/?q=${getParams(filters)}`,
       }),
     ];
     return Promise.all(newBatch)
@@ -269,14 +298,11 @@ export function shortenSQL(sql: string, maxLines: number) {
   return lines.join('\n');
 }
 
+// loading card count for homepage
+export const loadingCardCount = 5;
+
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
-
-export const CardStylesOverrides = styled.div`
-  .ant-card-cover > div {
-    height: 264px;
-  }
-`;
 
 export const CardContainer = styled.div<{
   showThumbnails?: boolean | undefined;
@@ -286,7 +312,7 @@ export const CardContainer = styled.div<{
     display: grid;
     grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
-    max-height: ${showThumbnails ? '314' : '140'}px;
+    max-height: ${showThumbnails ? '314' : '148'}px;
     margin-top: ${theme.gridUnit * -6}px;
     padding: ${
       showThumbnails

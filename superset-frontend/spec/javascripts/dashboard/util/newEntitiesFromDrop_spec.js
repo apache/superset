@@ -94,7 +94,11 @@ describe('newEntitiesFromDrop', () => {
 
     expect(result.a.children).toHaveLength(1);
     expect(Object.keys(result)).toHaveLength(3);
-    expect(result[newRowId].type).toBe(ROW_TYPE);
-    expect(result[newChartId].type).toBe(CHART_TYPE);
+    const newRow = result[newRowId];
+    expect(newRow.type).toBe(ROW_TYPE);
+    expect(newRow.parents).toEqual(['a']);
+    const newChart = result[newChartId];
+    expect(newChart.type).toBe(CHART_TYPE);
+    expect(newChart.parents).toEqual(['a', newRowId]);
   });
 });

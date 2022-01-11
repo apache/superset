@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
 from superset.common.utils import QueryCacheManager
@@ -49,7 +50,6 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     normalize_dttm_col,
-    QueryStatus,
     TIME_COMPARISION,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
@@ -102,12 +102,11 @@ class QueryContext:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
         )
-        self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
-        self.viz_type = viz_type
+        self.queries = [QueryObject(self, **query_obj) for query_obj in queries]
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
@@ -117,20 +116,21 @@ class QueryContext:
         }
 
     @staticmethod
-    def left_join_on_dttm(
-        left_df: pd.DataFrame, right_df: pd.DataFrame
+    def left_join_df(
+        left_df: pd.DataFrame, right_df: pd.DataFrame, join_keys: List[str],
     ) -> pd.DataFrame:
-        df = left_df.set_index(DTTM_ALIAS).join(right_df.set_index(DTTM_ALIAS))
-        df.reset_index(level=0, inplace=True)
+        df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
+        df.reset_index(inplace=True)
         return df
 
-    def processing_time_offsets(
+    def processing_time_offsets(  # pylint: disable=too-many-locals
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> CachedTimeOffset:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
-        queries = []
-        cache_keys = []
+        queries: List[str] = []
+        cache_keys: List[Optional[str]] = []
+        rv_dfs: List[pd.DataFrame] = [df]
 
         time_offsets = query_object.time_offsets
         outer_from_dttm = query_object.from_dttm
@@ -142,7 +142,7 @@ class QueryContext:
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
-                raise QueryObjectValidationError(str(ex))
+                raise QueryObjectValidationError(str(ex)) from ex
             # make sure subquery use main query where clause
             query_object_clone.inner_from_dttm = outer_from_dttm
             query_object_clone.inner_to_dttm = outer_to_dttm
@@ -159,31 +159,34 @@ class QueryContext:
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
             cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
-            # whether hit in the cache
+            # whether hit on the cache
             if cache.is_loaded:
-                df = self.left_join_on_dttm(df, cache.df)
+                rv_dfs.append(cache.df)
                 queries.append(cache.query)
                 cache_keys.append(cache_key)
                 continue
 
             query_object_clone_dct = query_object_clone.to_dict()
-            result = self.datasource.query(query_object_clone_dct)
-            queries.append(result.query)
-            cache_keys.append(None)
-
             # rename metrics: SUM(value) => SUM(value) 1 year ago
-            columns_name_mapping = {
+            metrics_mapping = {
                 metric: TIME_COMPARISION.join([metric, offset])
                 for metric in get_metric_names(
                     query_object_clone_dct.get("metrics", [])
                 )
             }
-            columns_name_mapping[DTTM_ALIAS] = DTTM_ALIAS
+            join_keys = [col for col in df.columns if col not in metrics_mapping.keys()]
+
+            result = self.datasource.query(query_object_clone_dct)
+            queries.append(result.query)
+            cache_keys.append(None)
 
             offset_metrics_df = result.df
             if offset_metrics_df.empty:
                 offset_metrics_df = pd.DataFrame(
-                    {col: [np.NaN] for col in columns_name_mapping.values()}
+                    {
+                        col: [np.NaN]
+                        for col in join_keys + list(metrics_mapping.values())
+                    }
                 )
             else:
                 # 1. normalize df, set dttm column
@@ -191,25 +194,23 @@ class QueryContext:
                     offset_metrics_df, query_object_clone
                 )
 
-                # 2. extract `metrics` columns and `dttm` column from extra query
-                offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
+                # 2. rename extra query columns
+                offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
-                # 3. rename extra query columns
-                offset_metrics_df = offset_metrics_df.rename(
-                    columns=columns_name_mapping
-                )
-
-                # 4. set offset for dttm column
+                # 3. set time offset for dttm column
                 offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
                     DTTM_ALIAS
                 ] - DateOffset(**normalize_time_delta(offset))
 
-            # df left join `offset_metrics_df` on `DTTM`
-            df = self.left_join_on_dttm(df, offset_metrics_df)
+            # df left join `offset_metrics_df`
+            offset_df = self.left_join_df(
+                left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
+            )
+            offset_slice = offset_df[metrics_mapping.values()]
 
-            # set offset df to cache.
+            # set offset_slice to cache and stack.
             value = {
-                "df": offset_metrics_df,
+                "df": offset_slice,
                 "query": result.query,
             }
             cache.set(
@@ -219,8 +220,10 @@ class QueryContext:
                 datasource_uid=self.datasource.uid,
                 region=CacheRegion.DATA,
             )
+            rv_dfs.append(offset_slice)
 
-        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
+        rv_df = pd.concat(rv_dfs, axis=1, copy=False) if time_offsets else df
+        return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         timestamp_format = None
@@ -421,7 +424,7 @@ class QueryContext:
             payload = viz_obj.get_payload()
             return payload["data"]
         except SupersetException as ex:
-            raise QueryObjectValidationError(error_msg_from_exception(ex))
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
     def get_annotation_data(self, query_obj: QueryObject) -> Dict[str, Any]:
         """
@@ -455,7 +458,6 @@ class QueryContext:
                 invalid_columns = [
                     col
                     for col in query_obj.columns
-                    + query_obj.groupby
                     + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]

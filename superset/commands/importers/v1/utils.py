@@ -47,9 +47,9 @@ def load_yaml(file_name: str, content: str) -> Dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
-    except yaml.parser.ParserError:
+    except yaml.parser.ParserError as ex:
         logger.exception("Invalid YAML in %s", file_name)
-        raise ValidationError({file_name: "Not a valid YAML file"})
+        raise ValidationError({file_name: "Not a valid YAML file"}) from ex
 
 
 def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
@@ -63,15 +63,15 @@ def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
     metadata = load_yaml(METADATA_FILE_NAME, contents[METADATA_FILE_NAME])
     try:
         MetadataSchema().load(metadata)
-    except ValidationError as exc:
+    except ValidationError as ex:
         # if the version doesn't match raise an exception so that the
         # dispatcher can try a different command version
-        if "version" in exc.messages:
-            raise IncorrectVersionError(exc.messages["version"][0])
+        if "version" in ex.messages:
+            raise IncorrectVersionError(ex.messages["version"][0]) from ex
 
         # otherwise we raise the validation error
-        exc.messages = {METADATA_FILE_NAME: exc.messages}
-        raise exc
+        ex.messages = {METADATA_FILE_NAME: ex.messages}
+        raise ex
 
     return metadata
 

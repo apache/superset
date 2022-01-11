@@ -19,11 +19,13 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  DatasourceType,
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
   isFeatureEnabled,
   Metric,
+  QueryFormMetric,
   tn,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -32,12 +34,15 @@ import { usePrevious } from 'src/common/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
-import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  isDatasourcePanelDndItem,
+} from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
+import { DndControlProps } from './types';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -75,10 +80,12 @@ const getOptionsForSavedMetrics = (
       : savedMetric,
   ) ?? [];
 
+type ValueType = Metric | AdhocMetric | QueryFormMetric;
+
 const columnsContainAllMetrics = (
-  value: (string | AdhocMetric | ColumnMeta)[],
+  value: ValueType | ValueType[] | null | undefined,
   columns: ColumnMeta[],
-  savedMetrics: savedMetricType[],
+  savedMetrics: (savedMetricType | Metric)[],
 ) => {
   const columnNames = new Set(
     [...(columns || []), ...(savedMetrics || [])]
@@ -102,6 +109,12 @@ const columnsContainAllMetrics = (
       .filter(name => name && typeof name === 'string')
       .every(name => columnNames.has(name))
   );
+};
+
+export type DndMetricSelectProps = DndControlProps<ValueType> & {
+  savedMetrics: savedMetricType[];
+  columns: ColumnMeta[];
+  datasourceType?: DatasourceType;
 };
 
 export const DndMetricSelect = (props: any) => {
@@ -130,12 +143,12 @@ export const DndMetricSelect = (props: any) => {
     [multi, onChange],
   );
 
-  const [value, setValue] = useState<(AdhocMetric | Metric | string)[]>(
+  const [value, setValue] = useState<ValueType[]>(
     coerceAdhocMetrics(props.value),
   );
-  const [droppedItem, setDroppedItem] = useState<DatasourcePanelDndItem | null>(
-    null,
-  );
+  const [droppedItem, setDroppedItem] = useState<
+    DatasourcePanelDndItem | typeof EMPTY_OBJECT
+  >({});
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
   const prevColumns = usePrevious(columns);
   const prevSavedMetrics = usePrevious(savedMetrics);
@@ -185,10 +198,13 @@ export const DndMetricSelect = (props: any) => {
 
   const onMetricEdit = useCallback(
     (changedMetric: Metric | AdhocMetric, oldMetric: Metric | AdhocMetric) => {
+      if (oldMetric instanceof AdhocMetric && oldMetric.equals(changedMetric)) {
+        return;
+      }
       const newValue = value.map(value => {
         if (
           // compare saved metrics
-          value === (oldMetric as Metric).metric_name ||
+          ('metric_name' in oldMetric && value === oldMetric.metric_name) ||
           // compare adhoc metrics
           typeof (value as AdhocMetric).optionName !== 'undefined'
             ? (value as AdhocMetric).optionName ===
@@ -245,10 +261,13 @@ export const DndMetricSelect = (props: any) => {
     [props.savedMetrics, props.value],
   );
 
-  const handleDropLabel = useCallback(() => onChange(value), [onChange, value]);
+  const handleDropLabel = useCallback(
+    () => onChange(multi ? value : value[0]),
+    [multi, onChange, value],
+  );
 
   const valueRenderer = useCallback(
-    (option: Metric | AdhocMetric | string, index: number) => (
+    (option: ValueType, index: number) => (
       <MetricDefinitionValue
         key={index}
         index={index}
@@ -262,12 +281,14 @@ export const DndMetricSelect = (props: any) => {
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
+        multi={multi}
       />
     ),
     [
       getSavedMetricOptionsForMetric,
       handleDropLabel,
       moveLabel,
+      multi,
       onMetricEdit,
       onRemoveMetric,
       props.columns,
@@ -304,9 +325,17 @@ export const DndMetricSelect = (props: any) => {
     [onNewMetric, togglePopover],
   );
 
+  const handleClickGhostButton = useCallback(() => {
+    setDroppedItem({});
+    togglePopover(true);
+  }, [togglePopover]);
+
   const adhocMetric = useMemo(() => {
-    if (droppedItem?.type === DndItemType.Column) {
-      const itemValue = droppedItem?.value as ColumnMeta;
+    if (
+      isDatasourcePanelDndItem(droppedItem) &&
+      droppedItem.type === DndItemType.Column
+    ) {
+      const itemValue = droppedItem.value as ColumnMeta;
       const config: Partial<AdhocMetric> = {
         column: { column_name: itemValue?.column_name },
       };
@@ -326,19 +355,32 @@ export const DndMetricSelect = (props: any) => {
     return new AdhocMetric({ isNew: true });
   }, [droppedItem]);
 
+  const ghostButtonText = isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+    ? tn(
+        'Drop a column/metric here or click',
+        'Drop columns/metrics here or click',
+        multi ? 2 : 1,
+      )
+    : tn(
+        'Drop column or metric here',
+        'Drop columns or metrics here',
+        multi ? 2 : 1,
+      );
+
   return (
     <div className="metrics-select">
-      <DndSelectLabel<OptionValueType, OptionValueType[]>
+      <DndSelectLabel
         onDrop={handleDrop}
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={tn(
-          'Drop column or metric',
-          'Drop columns or metrics',
-          multi ? 2 : 1,
-        )}
+        ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
+        onClickGhostButton={
+          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
+            ? handleClickGhostButton
+            : undefined
+        }
         {...props}
       />
       <AdhocMetricPopoverTrigger
@@ -352,7 +394,6 @@ export const DndMetricSelect = (props: any) => {
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-        createNew
       >
         <div />
       </AdhocMetricPopoverTrigger>

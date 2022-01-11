@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -107,7 +108,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
-        "post_data",
+        "data",
         "get_data",
         "data_from_cache",
         "viz_types",
@@ -152,6 +153,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description_markeddown",
         "edit_url",
         "id",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
@@ -170,12 +175,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "datasource_id",
         "datasource_name",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "slice_name",
         "viz_type",
     ]
     search_columns = [
         "created_by",
         "changed_by",
+        "last_saved_at",
+        "last_saved_by.id",
+        "last_saved_by.first_name",
+        "last_saved_by.last_name",
         "datasource_id",
         "datasource_name",
         "datasource_type",
@@ -490,9 +503,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # Post-process the data so it matches the data presented in the chart.
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
-        if (
-            result_type == ChartDataResultType.POST_PROCESSED
-        ):
+        if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data)
 
         if result_format == ChartDataResultFormat.CSV:
@@ -640,7 +651,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
-    def post_data(self) -> Response:
+    def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
         data response for the given query.
@@ -988,6 +999,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         # If not screenshot then send request to compute thumb to celery
         if not screenshot:
+            self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
@@ -995,11 +1007,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:
+            self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
                 url_for(
                     f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
                 )
             )
+        self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )

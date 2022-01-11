@@ -183,10 +183,10 @@ You can read more about customizing Superset using the configuration file
 
 Table schemas evolve, and Superset needs to reflect that. It’s pretty common in the life cycle of a
 dashboard to want to add a new dimension or metric. To get Superset to discover your new columns,
-all you have to do is to go to **Menu -> Sources -> Tables**, click the edit icon next to the table
-who’s schema has changed, and hit **Save** from the **Detail** tab. Behind the scene, the new
-columns will get merged it. Following this, you may want to re-edit the table afterwards to
-configure the Column tab, check the appropriate boxes and save again.
+all you have to do is to go to **Data -> Datasets**, click the edit icon next to the dataset
+whose schema has changed, and hit **Sync columns from source** from the **Columns** tab.
+Behind the scene, the new columns will get merged it. Following this, you may want to re-edit the
+table afterwards to configure the Columns tab, check the appropriate boxes and save again.
 
 ### What database engine can I use as a backend for Superset?
 
@@ -211,12 +211,6 @@ You can take a look at this Flask-AppBuilder
 ### How can I set a default filter on my dashboard?
 
 Simply apply the filter and save the dashboard while the filter is active.
-
-### How do I get Superset to refresh the schema of my table?
-
-When adding columns to a table, you can have Superset detect and merge the new columns in by using
-the “Refresh Metadata” action in the **Source -> Tables** page. Simply check the box next to the
-tables you want the schema refreshed, and click **Actions -> Refresh Metadata**.
 
 ### Is there a way to force the use specific colors?
 

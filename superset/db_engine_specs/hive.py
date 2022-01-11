@@ -35,6 +35,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 
@@ -62,8 +62,8 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     :returns: The S3 location of the table
     """
 
-    # Optional dependency
-    import boto3  # pylint: disable=import-error
+    # pylint: disable=import-outside-toplevel
+    import boto3
 
     bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
@@ -128,6 +128,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def patch(cls) -> None:
+        # pylint: disable=import-outside-toplevel
         from pyhive import hive
         from TCLIService import (
             constants as patched_constants,
@@ -152,6 +153,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
+        # pylint: disable=import-outside-toplevel
         import pyhive
         from TCLIService import ttypes
 
@@ -256,6 +258,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+    @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
     ) -> None:
@@ -314,6 +320,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cls, cursor: Any, query: Query, session: Session
     ) -> None:
         """Updates progress information"""
+        # pylint: disable=import-outside-toplevel
         from pyhive import hive
 
         unfinished_states = (

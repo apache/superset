@@ -19,7 +19,7 @@
 import { GwwkChartsProps } from '../types';
 import { getURIDirectory } from 'src/explore/exploreUtils';
 import { safeStringify } from 'src/utils/safeStringify';
-import { Container, Table, Td, Tr } from '../utils'
+import { Container, Table, Td, Tr } from '../utils';
 /* eslint camelcase: 0 */
 const URI = require('urijs');
 
@@ -39,7 +39,7 @@ function buildUrl(id: string, filter_name: string, selected_values: string[]) {
       operator: 'IN',
       subject: filter_name,
     },
-  ]
+  ];
 
   const formData = {
     slice_id: id,
@@ -70,10 +70,10 @@ export default function GwwkCharts(props: GwwkChartsProps) {
             const url = buildUrl(row.id, row.filter_name, selected_values);
             return (
               <Tr>
-                <Td><a href={url}>
-                  <span style={{ fontWeight: 'bold' }}>
-                    {row.name}
-                  </span></a>
+                <Td>
+                  <a href={url}>
+                    <span style={{ fontWeight: 'bold' }}>{row.name}</span>
+                  </a>
                 </Td>
                 <Td>
                   <span style={{ fontWeight: 'normal' }}>
@@ -81,10 +81,10 @@ export default function GwwkCharts(props: GwwkChartsProps) {
                   </span>
                 </Td>
               </Tr>
-            )
+            );
           })}
         </tbody>
       </Table>
     </Container>
-  )
+  );
 }

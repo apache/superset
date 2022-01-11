@@ -211,7 +211,7 @@ def _append_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments,too-many-locals
     df: DataFrame,
     index: List[str],
     aggregates: Dict[str, Dict[str, Any]],
@@ -397,14 +397,14 @@ def rolling(  # pylint: disable=too-many-arguments
         )
     try:
         df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
-    except TypeError:
+    except TypeError as ex:
         raise QueryObjectValidationError(
             _(
                 "Invalid options for %(rolling_type)s: %(options)s",
                 rolling_type=rolling_type,
                 options=rolling_type_options,
             )
-        )
+        ) from ex
     df = _append_columns(df, df_rolling, columns)
     if min_periods:
         df = df[min_periods:]
@@ -470,9 +470,8 @@ def diff(
     return _append_columns(df, df_diff, columns)
 
 
-# pylint: disable=too-many-arguments
 @validate_column_args("source_columns", "compare_columns")
-def compare(
+def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
@@ -499,17 +498,17 @@ def compare(
         )
     if compare_type not in tuple(PandasPostprocessingCompare):
         raise QueryObjectValidationError(
-            _("`compare_type` must be `absolute`, `percentage` or `ratio`")
+            _("`compare_type` must be `difference`, `percentage` or `ratio`")
         )
     if len(source_columns) == 0:
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
-        if compare_type == PandasPostprocessingCompare.ABS:
+        if compare_type == PandasPostprocessingCompare.DIFF:
             diff_series = df[s_col] - df[c_col]
         elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
-                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
             )
         else:
             # compare_type == "ratio"
@@ -569,8 +568,8 @@ def geohash_decode(
         return _append_columns(
             df, lonlat_df, {"latitude": latitude, "longitude": longitude}
         )
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geohash string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geohash string")) from ex
 
 
 def geohash_encode(
@@ -592,8 +591,8 @@ def geohash_encode(
             lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
-    except ValueError:
-        QueryObjectValidationError(_("Invalid longitude/latitude"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid longitude/latitude")) from ex
 
 
 def geodetic_parse(
@@ -634,8 +633,8 @@ def geodetic_parse(
         if altitude:
             columns["altitude"] = altitude
         return _append_columns(df, geodetic_df, columns)
-    except ValueError:
-        raise QueryObjectValidationError(_("Invalid geodetic string"))
+    except ValueError as ex:
+        raise QueryObjectValidationError(_("Invalid geodetic string")) from ex
 
 
 @validate_column_args("columns")
@@ -714,14 +713,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
+        # pylint: disable=import-error,import-outside-toplevel
+        from prophet import Prophet
+
         prophet_logger = logging.getLogger("prophet.plot")
-
         prophet_logger.setLevel(logging.CRITICAL)
-        from prophet import Prophet  # pylint: disable=import-error
-
         prophet_logger.setLevel(logging.NOTSET)
-    except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`prophet` package not installed"))
+    except ModuleNotFoundError as ex:
+        raise QueryObjectValidationError(_("`prophet` package not installed")) from ex
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,
@@ -916,3 +915,29 @@ def boxplot(
         for metric in metrics
     }
     return aggregate(df, groupby=groupby, aggregates=aggregates)
+
+
+def resample(
+    df: DataFrame,
+    rule: str,
+    method: str,
+    time_column: str,
+    fill_value: Optional[Union[float, int]] = None,
+) -> DataFrame:
+    """
+    resample a timeseries dataframe.
+
+    :param df: DataFrame to resample.
+    :param rule: The offset string representing target conversion.
+    :param method: How to fill the NaN value after resample.
+    :param time_column: existing columns in DataFrame.
+    :param fill_value: What values do fill missing.
+    :return: DataFrame after resample
+    :raises QueryObjectValidationError: If the request in incorrect
+    """
+    df = df.set_index(time_column)
+    if method == "asfreq" and fill_value is not None:
+        df = df.resample(rule).asfreq(fill_value=fill_value)
+    else:
+        df = getattr(df.resample(rule), method)()
+    return df.reset_index()

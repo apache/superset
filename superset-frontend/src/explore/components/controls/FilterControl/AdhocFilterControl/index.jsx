@@ -329,7 +329,6 @@ class AdhocFilterControl extends React.Component {
         options={this.state.options}
         onFilterEdit={this.onNewFilter}
         partitionColumn={this.state.partitionColumn}
-        createNew
       >
         {trigger}
       </AdhocFilterPopoverTrigger>

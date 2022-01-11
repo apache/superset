@@ -211,8 +211,8 @@ test('Should render all elements inside modal', async () => {
   const props = createProps();
   render(<PropertiesModal {...props} />);
   await waitFor(() => {
-    expect(screen.getAllByRole('textbox')).toHaveLength(4);
-
+    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),
     ).toBeVisible();

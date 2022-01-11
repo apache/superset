@@ -98,7 +98,6 @@ def load_birth_names(
     only_metadata: bool = False, force: bool = False, sample: bool = False
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
-    # pylint: disable=too-many-locals
     tbl_name = "birth_names"
     database = get_example_database()
     table_exists = database.has_table_by_name(tbl_name)

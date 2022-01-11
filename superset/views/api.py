@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=R
 from typing import Any
 
 import simplejson as json
@@ -45,7 +44,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
-    def query(self) -> FlaskResponse:
+    def query(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Takes a query_obj constructed in the client and returns payload data response
         for the given query_obj.
@@ -65,7 +64,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self) -> FlaskResponse:
+    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer

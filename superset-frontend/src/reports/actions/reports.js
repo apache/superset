@@ -19,7 +19,11 @@
 /* eslint camelcase: 0 */
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { addDangerToast, addSuccessToast } from '../../messageToasts/actions';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
@@ -97,21 +101,26 @@ const structureFetchAction = (dispatch, getState) => {
 
 export const ADD_REPORT = 'ADD_REPORT';
 
-export const addReport = report => dispatch => {
+export const addReport = report => dispatch =>
   SupersetClient.post({
     endpoint: `/api/v1/report/`,
     jsonPayload: report,
   })
-    .then(() => {
-      dispatch({ type: ADD_REPORT, report });
+    .then(({ json }) => {
+      dispatch({ type: ADD_REPORT, json });
       dispatch(addSuccessToast(t('The report has been created')));
     })
-    .catch(() =>
+    .catch(async e => {
+      const parsedError = await getClientErrorObject(e);
+      const errorMessage = parsedError.message;
+      const errorArr = Object.keys(errorMessage);
+      const error = errorMessage[errorArr[0]];
       dispatch(
-        addDangerToast(t('An error occurred while creating this report.')),
-      ),
-    );
-};
+        addDangerToast(
+          t('An error occurred while editing this report: %s', error),
+        ),
+      );
+    });
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 

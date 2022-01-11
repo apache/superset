@@ -24,7 +24,7 @@ from urllib import parse
 import msgpack
 import pyarrow as pa
 import simplejson as json
-from flask import g, request
+from flask import g, has_request_context, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -32,6 +32,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -47,7 +48,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.typing import FormData
-from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.utils.core import TimeRangeEndpoint
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -130,46 +131,52 @@ def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data: Dict[str, Any] = {}
-    # chart data API requests are JSON
-    request_json_data = (
-        request.json["queries"][0]
-        if request.is_json and "queries" in request.json
-        else None
-    )
 
-    add_sqllab_custom_filters(form_data)
+    if has_request_context():  # type: ignore
+        # chart data API requests are JSON
+        request_json_data = (
+            request.json["queries"][0]
+            if request.is_json and "queries" in request.json
+            else None
+        )
 
-    request_form_data = request.form.get("form_data")
-    request_args_data = request.args.get("form_data")
-    if request_json_data:
-        form_data.update(request_json_data)
-    if request_form_data:
-        parsed_form_data = loads_request_json(request_form_data)
-        # some chart data api requests are form_data
-        queries = parsed_form_data.get("queries")
-        if isinstance(queries, list):
-            form_data.update(queries[0])
-        else:
-            form_data.update(parsed_form_data)
-    # request params can overwrite the body
-    if request_args_data:
-        form_data.update(loads_request_json(request_args_data))
+        add_sqllab_custom_filters(form_data)
 
-    # Fallback to using the Flask globals (used for cache warmup) if defined.
+        request_form_data = request.form.get("form_data")
+        request_args_data = request.args.get("form_data")
+        if request_json_data:
+            form_data.update(request_json_data)
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            # some chart data api requests are form_data
+            queries = parsed_form_data.get("queries")
+            if isinstance(queries, list):
+                form_data.update(queries[0])
+            else:
+                form_data.update(parsed_form_data)
+        # request params can overwrite the body
+        if request_args_data:
+            form_data.update(loads_request_json(request_args_data))
+
+    # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
         form_data = getattr(g, "form_data")
+        # chart data API requests are JSON
+        json_data = form_data["queries"][0] if "queries" in form_data else {}
+        form_data.update(json_data)
 
-    url_id = request.args.get("r")
-    if url_id:
-        saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if saved_url:
-            url_str = parse.unquote_plus(
-                saved_url.url.split("?")[1][10:], encoding="utf-8"
-            )
-            url_form_data = loads_request_json(url_str)
-            # allow form_date in request override saved url
-            url_form_data.update(form_data)
-            form_data = url_form_data
+    if has_request_context():  # type: ignore
+        url_id = request.args.get("r")
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split("?")[1][10:], encoding="utf-8"
+                )
+                url_form_data = loads_request_json(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
@@ -352,7 +359,7 @@ def get_dashboard_extra_filters(
         dashboard is None
         or not dashboard.json_metadata
         or not dashboard.slices
-        or not any([slc for slc in dashboard.slices if slc.id == slice_id])
+        or not any(slc for slc in dashboard.slices if slc.id == slice_id)
     ):
         return []
 
@@ -455,7 +462,7 @@ def is_slice_in_container(
 
 
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
-    """ Check if user is owner of the slice """
+    """Check if user is owner of the slice"""
     return obj and user in obj.owners
 
 
@@ -521,7 +528,7 @@ def check_datasource_perms(
                 level=ErrorLevel.ERROR,
                 message=str(ex),
             )
-        )
+        ) from ex
 
     if datasource_type is None:
         raise SupersetSecurityException(
@@ -539,14 +546,14 @@ def check_datasource_perms(
             form_data=form_data,
             force=False,
         )
-    except NoResultFound:
+    except NoResultFound as ex:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
                 message=_("Could not find viz object"),
             )
-        )
+        ) from ex
 
     viz_obj.raise_for_access()
 
@@ -572,14 +579,14 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
                 form_data=form_data,
                 force=False,
             )
-        except NoResultFound:
+        except NoResultFound as ex:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                     level=ErrorLevel.ERROR,
                     message="Could not find viz object",
                 )
-            )
+            ) from ex
 
         viz_obj.raise_for_access()
 
@@ -597,8 +604,8 @@ def _deserialize_results_payload(
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
             try:
                 pa_table = pa.deserialize(ds_payload["data"])
-            except pa.ArrowSerializationError:
-                raise SerializationError("Unable to deserialize table")
+            except pa.ArrowSerializationError as ex:
+                raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_records(df) or []

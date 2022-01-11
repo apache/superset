@@ -271,7 +271,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @permission_name("post")
     def post(self) -> Response:
@@ -336,7 +335,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    def put(self, pk: int) -> Response:  # pylint: disable=too-many-return-statements
+    def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---
         put:

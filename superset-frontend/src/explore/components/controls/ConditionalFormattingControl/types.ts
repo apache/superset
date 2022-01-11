@@ -22,6 +22,7 @@ import { PopoverProps } from 'antd/lib/popover';
 import { ControlComponentProps } from '@superset-ui/chart-controls/lib/shared-controls/components/types';
 
 export enum COMPARATOR {
+  NONE = 'None',
   GREATER_THAN = '>',
   LESS_THAN = '<',
   GREATER_OR_EQUAL = '≥',

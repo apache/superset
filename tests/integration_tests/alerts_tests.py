@@ -76,7 +76,7 @@ def setup_database():
 def create_alert(
     db_session: Session,
     sql: str,
-    validator_type: AlertValidatorType = AlertValidatorType.operator,
+    validator_type: AlertValidatorType = AlertValidatorType.OPERATOR,
     validator_config: str = "",
 ) -> Alert:
     db_session.commit()

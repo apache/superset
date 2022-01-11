@@ -28,9 +28,11 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.mysql import dialect
 
 from tests.integration_tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -422,7 +424,7 @@ class SupersetTestCase(TestCase):
         self.login(username="admin")
         database_name = "db_for_macros_testing"
         db_id = 200
-        return self.get_or_create(
+        database = self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
             session=db.session,
@@ -430,7 +432,14 @@ class SupersetTestCase(TestCase):
             id=db_id,
         )
 
-    def delete_fake_db_for_macros(self):
+        def mock_get_dialect() -> Dialect:
+            return dialect()
+
+        database.get_dialect = mock_get_dialect
+        return database
+
+    @staticmethod
+    def delete_fake_db_for_macros():
         database = (
             db.session.query(Database)
             .filter(Database.database_name == "db_for_macros_testing")

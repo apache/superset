@@ -65,7 +65,9 @@ export default {
             config: {
               type: 'TextControl',
               label: t('Subheader'),
-              description: t('Description text that shows up below your Big Number'),
+              description: t(
+                'Description text that shows up below your Big Number',
+              ),
             },
           },
         ],

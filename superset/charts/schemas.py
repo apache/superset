@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 from typing import Any, Dict
 
 from flask_babel import gettext as _
@@ -82,6 +83,11 @@ query_context_description = (
     "in order to generate the data the visualization, and in what "
     "format the data should be returned."
 )
+query_context_generation_description = (
+    "The query context generation represents whether the query_context"
+    "is user generated or not so that it does not update user modfied"
+    "state."
+)
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout "
     "for this chart. Note this defaults to the datasource/table"
@@ -145,7 +151,6 @@ class ChartEntityResponseSchema(Schema):
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
     modified = fields.String()
-    datasource = fields.String(description=datasource_name_description)
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
         description=description_markeddown_description
@@ -176,6 +181,9 @@ class ChartPostSchema(Schema):
         description=query_context_description,
         allow_none=True,
         validate=utils.validate_json,
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -211,6 +219,9 @@ class ChartPutSchema(Schema):
     params = fields.String(description=params_description, allow_none=True)
     query_context = fields.String(
         description=query_context_description, allow_none=True
+    )
+    query_context_generation = fields.Boolean(
+        description=query_context_generation_description, allow_none=True
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -293,6 +304,13 @@ class ChartDataAdhocMetricSchema(Schema):
         "metrics have a unique identifier. If undefined, a random name "
         "will be generated.",
         example="metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
+    )
+    timeGrain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -621,18 +639,15 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
 
     index = (
         fields.List(
-            fields.String(
-                allow_none=False,
-                description="Columns to group by on the table index (=rows)",
-            ),
+            fields.String(allow_none=False),
+            description="Columns to group by on the table index (=rows)",
             minLength=1,
             required=True,
         ),
     )
     columns = fields.List(
-        fields.String(
-            allow_none=False, description="Columns to group by on the table columns",
-        ),
+        fields.String(allow_none=False),
+        description="Columns to group by on the table columns",
     )
     metric_fill_value = fields.Number(
         description="Value to replace missing values with in aggregate calculations.",
@@ -732,6 +747,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "sort",
                 "diff",
                 "compare",
+                "resample",
             )
         ),
         example="aggregate",
@@ -771,6 +787,13 @@ class ChartDataFilterSchema(Schema):
         description="The value or values to compare against. Can be a string, "
         "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
+    )
+    grain = fields.String(
+        description="Optional time grain for temporal filters", example="PT1M",
+    )
+    isExtra = fields.Boolean(
+        description="Indicates if the filter has been added by a filter component as "
+        "opposed to being a part of the original query."
     )
 
 
@@ -939,7 +962,9 @@ class ChartDataQueryObjectSchema(Schema):
         deprecated=True,
     )
     groupby = fields.List(
-        fields.String(description="Columns by which to group the query.",),
+        fields.String(),
+        description="Columns by which to group the query. "
+        "This field is deprecated, use `columns` instead.",
         allow_none=True,
     )
     metrics = fields.List(
@@ -987,12 +1012,33 @@ class ChartDataQueryObjectSchema(Schema):
     is_timeseries = fields.Boolean(
         description="Is the `query_object` a timeseries.", allow_none=True,
     )
+    series_columns = fields.List(
+        fields.String(),
+        description="Columns to use when limiting series count. "
+        "All columns must be present in the `columns` property. "
+        "Requires `series_limit` and `series_limit_metric` to be set.",
+        allow_none=True,
+    )
+    series_limit = fields.Integer(
+        description="Maximum number of series. "
+        "Requires `series` and `series_limit_metric` to be set.",
+        allow_none=True,
+    )
+    series_limit_metric = fields.Raw(
+        description="Metric used to limit timeseries queries by. "
+        "Requires `series` and `series_limit` to be set.",
+        allow_none=True,
+    )
     timeseries_limit = fields.Integer(
-        description="Maximum row count for timeseries queries. Default: `0`",
+        description="Maximum row count for timeseries queries. "
+        "This field is deprecated, use `series_limit` instead."
+        "Default: `0`",
         allow_none=True,
     )
     timeseries_limit_metric = fields.Raw(
-        description="Metric used to limit timeseries queries by.", allow_none=True,
+        description="Metric used to limit timeseries queries by. "
+        "This field is deprecated, use `series_limit_metric` instead.",
+        allow_none=True,
     )
     row_limit = fields.Integer(
         description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',

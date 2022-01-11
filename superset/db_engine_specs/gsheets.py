@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
-from superset.databases.schemas import encrypted_field_properties
+from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -45,10 +45,15 @@ ma_plugin = MarshmallowPlugin()
 
 class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
+    service_account_info = EncryptedString(
+        required=False,
+        description="Contents of GSheets JSON credentials.",
+        field_name="service_account_info",
+    )
 
 
 class GSheetsParametersType(TypedDict):
-    credentials_info: Dict[str, Any]
+    service_account_info: str
     catalog: Dict[str, str]
 
 
@@ -108,13 +113,14 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         encrypted_extra: Optional[  # pylint: disable=unused-argument
             Dict[str, Any]
         ] = None,
-    ) -> str:  # pylint: disable=unused-variable
-
+    ) -> str:
         return "gsheets://"
 
     @classmethod
     def get_parameters_from_uri(
-        cls, encrypted_extra: Optional[Dict[str, str]] = None,
+        cls,
+        uri: str,  # pylint: disable=unused-argument
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
@@ -147,18 +153,14 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls, parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
-        credentials_info = parameters.get("credentials_info")
+        encrypted_credentials = json.loads(
+            parameters.get("service_account_info") or "{}"
+        )
+
         table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
-            errors.append(
-                SupersetError(
-                    message="URL is required",
-                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                    level=ErrorLevel.WARNING,
-                    extra={"invalid": ["catalog"], "name": "", "url": ""},
-                ),
-            )
+            # Allowing users to submit empty catalogs
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
@@ -168,9 +170,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         subject = g.user.email if g.user else None
 
         engine = create_engine(
-            "gsheets://", service_account_info=credentials_info, subject=subject,
+            "gsheets://", service_account_info=encrypted_credentials, subject=subject,
         )
         conn = engine.connect()
+        idx = 0
         for name, url in table_catalog.items():
 
             if not name:
@@ -179,9 +182,21 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message="Sheet name is required",
                         error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"invalid": [], "name": name, "url": url},
+                        extra={"catalog": {"idx": idx, "name": True}},
                     ),
                 )
+                return errors
+
+            if not url:
+                errors.append(
+                    SupersetError(
+                        message="URL is required",
+                        error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                        level=ErrorLevel.WARNING,
+                        extra={"catalog": {"idx": idx, "url": True}},
+                    ),
+                )
+                return errors
 
             try:
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
@@ -192,7 +207,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message="URL could not be identified",
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"invalid": ["catalog"], "name": name, "url": url},
+                        extra={"catalog": {"idx": idx, "url": True}},
                     ),
                 )
+            idx += 1
         return errors

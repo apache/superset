@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 
-export default class DomainValueRenderer extends Component<{}, { cellValue: any }>{
+export default class DomainValueRenderer extends Component<
+  {},
+  { cellValue: any }
+> {
   constructor(props: any) {
     super(props);
 
@@ -24,7 +27,7 @@ export default class DomainValueRenderer extends Component<{}, { cellValue: any 
     );
   }
 
-  static getValueToDisplay(params: { valueFormatted: any; value: any; }) {
+  static getValueToDisplay(params: { valueFormatted: any; value: any }) {
     return params.valueFormatted ? params.valueFormatted : params.value;
   }
 }

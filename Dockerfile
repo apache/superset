@@ -46,7 +46,7 @@ RUN cd /app \
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-FROM node:14 AS superset-node
+FROM node:16 AS superset-node
 
 ARG NPM_VER=7
 RUN npm install -g npm@${NPM_VER}
@@ -66,7 +66,7 @@ RUN --mount=type=secret,id=npmrc,target=/tmp/.npmrc,uid=1000 \
 
 # Next, copy in the rest and let webpack do its thing
 COPY ./superset-frontend /app/superset-frontend
-# This is BY FAR the most expensive step (thanks Terser!)
+# This seems to be the most expensive step
 RUN cd /app/superset-frontend \
         && npm run ${BUILD_CMD} \
         && rm -rf node_modules

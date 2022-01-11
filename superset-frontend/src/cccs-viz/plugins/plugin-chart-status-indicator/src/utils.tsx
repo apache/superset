@@ -2,7 +2,6 @@ import React, { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import { SupersetAppState } from './types';
 
-
 export function jsFunctionControl(
   label: ReactNode,
   description: ReactNode,

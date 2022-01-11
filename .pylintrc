@@ -70,7 +70,8 @@ confidence=
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-#enable=
+enable=
+    useless-suppression,
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -83,14 +84,10 @@ confidence=
 # --disable=W"
 disable=
     missing-docstring,
-    too-many-lines,
-    ungrouped-imports,
-    import-outside-toplevel,
-    raise-missing-from,
-    super-with-arguments,
-    too-few-public-methods,
-    too-many-locals,
-
+    duplicate-code,
+    unspecified-encoding,
+    # re-enable once this no longer raises false positives
+    too-many-instance-attributes
 
 [REPORTS]
 
@@ -123,7 +120,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 [BASIC]
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x
+good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x,y
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=fd,foo,bar,baz,toto,tutu,tata

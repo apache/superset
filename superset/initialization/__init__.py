@@ -26,6 +26,7 @@ from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
@@ -42,6 +43,7 @@ from superset.extensions import (
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
+    profiling,
     results_backend_manager,
     talisman,
 )
@@ -56,8 +58,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=R0904
-class SupersetAppInitializer:
+class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def __init__(self, app: SupersetApp) -> None:
         super().__init__()
 
@@ -65,7 +66,7 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -110,9 +111,7 @@ class SupersetAppInitializer:
         # models which in turn try to import
         # the global Flask app
         #
-        # pylint: disable=too-many-locals
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-branches
+        # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.async_events.api import AsyncEventsRestApi
@@ -142,6 +141,7 @@ class SupersetAppInitializer:
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
+        from superset.dashboards.filter_sets.api import FilterSetRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
             AlertLogModelView,
@@ -167,11 +167,12 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.views import (
+            ColumnarToDatabaseView,
             CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
         )
-        from superset.views.datasource import Datasource
+        from superset.views.datasource.views import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
@@ -208,6 +209,7 @@ class SupersetAppInitializer:
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
+        appbuilder.add_api(FilterSetRestApi)
         #
         # Setup regular views
         #
@@ -281,6 +283,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
+        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -371,7 +374,20 @@ class SupersetAppInitializer:
                 )
             ),
         )
-
+        appbuilder.add_link(
+            "Upload a Columnar file",
+            label=__("Upload a Columnar file"),
+            href="/columnartodatabaseview/form",
+            icon="fa-upload",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["COLUMNAR_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
         try:
             import xlrd  # pylint: disable=unused-import
 
@@ -566,6 +582,7 @@ class SupersetAppInitializer:
         self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
+        self.enable_profiling()
         self.setup_event_logger()
         self.setup_bundle_manifest()
         self.register_blueprints()
@@ -621,6 +638,7 @@ class SupersetAppInitializer:
         # Doing local imports here as model importing causes a reference to
         # app.config to be invoked and we need the current_app to have been setup
         #
+        # pylint: disable=import-outside-toplevel
         from superset.utils.url_map_converters import (
             ObjectTypeConverter,
             RegexConverter,
@@ -631,13 +649,12 @@ class SupersetAppInitializer:
 
     def configure_middlewares(self) -> None:
         if self.config["ENABLE_CORS"]:
+            # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
 
             CORS(self.superset_app, **self.config["CORS_OPTIONS"])
 
         if self.config["ENABLE_PROXY_FIX"]:
-            from werkzeug.middleware.proxy_fix import ProxyFix
-
             self.superset_app.wsgi_app = ProxyFix(  # type: ignore
                 self.superset_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
             )
@@ -715,6 +732,10 @@ class SupersetAppInitializer:
 
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.superset_app)
+
+    def enable_profiling(self) -> None:
+        if self.config["PROFILING"]:
+            profiling.init_app(self.superset_app)
 
 
 class SupersetIndexView(IndexView):

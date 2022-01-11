@@ -187,7 +187,7 @@ export const getDateFilterControlTestId = testWithId(
 );
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints, onChange,} = props;
+  const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -224,10 +224,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
-        } else if (
-          guessedFrame === 'Today' ||
-          guessedFrame === 'Yesterday'
-        ) {
+        } else if (guessedFrame === 'Today' || guessedFrame === 'Yesterday') {
           setActualTimeRange(guessedFrame);
           setTooltipTitle(actualRange || '');
         } else {

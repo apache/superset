@@ -29,13 +29,13 @@ describe('Advanced analytics', () => {
 
     cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
 
-    cy.get('[data-test=time_compare]').find('.Select__control').click();
+    cy.get('[data-test=time_compare]').find('.ant-select').click();
     cy.get('[data-test=time_compare]')
-      .find('input[type=text]')
+      .find('input[type=search]')
       .type('28 days{enter}');
 
     cy.get('[data-test=time_compare]')
-      .find('input[type=text]')
+      .find('input[type=search]')
       .type('1 year{enter}');
 
     cy.get('button[data-test="run-query-button"]').click();
@@ -48,10 +48,10 @@ describe('Advanced analytics', () => {
 
     cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
     cy.get('[data-test=time_compare]')
-      .find('.Select__multi-value__label')
+      .find('.ant-select-selector')
       .contains('28 days');
     cy.get('[data-test=time_compare]')
-      .find('.Select__multi-value__label')
+      .find('.ant-select-selector')
       .contains('1 year');
   });
 });

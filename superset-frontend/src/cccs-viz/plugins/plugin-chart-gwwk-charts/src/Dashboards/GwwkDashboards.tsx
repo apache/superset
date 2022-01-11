@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GwwkChartsProps } from '../types';
-import {Container} from '../utils'
+import { Container } from '../utils';
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
@@ -25,7 +25,6 @@ import {Container} from '../utils'
 // Theming variables are provided for your use via a ThemeProvider
 // imported from @superset-ui/core. For variables available, please visit
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
-
 
 export default function GwwkDashboards(props: GwwkChartsProps) {
   // height and width are the height and width of the DOM element as it exists in the dashboard.
@@ -39,13 +38,14 @@ export default function GwwkDashboards(props: GwwkChartsProps) {
           {data.map((row, index) => {
             return (
               <tr>
-                <td>preselected_filters not currently working for native filters</td>
+                <td>
+                  preselected_filters not currently working for native filters
+                </td>
               </tr>
-            )
+            );
           })}
         </tbody>
       </table>
     </Container>
-  )
-
+  );
 }

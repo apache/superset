@@ -6,7 +6,6 @@ import {
 import { DEFAULT_FORM_DATA } from './constants';
 import { jsFunctionControl } from './utils';
 
-
 export default {
   controlPanelSections: [
     {

@@ -31,6 +31,10 @@ export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
 
+export const labelMarginBotton = (theme: SupersetTheme) => css`
+  margin-bottom: ${theme.gridUnit * 2}px;
+`;
+
 export const marginBottom = (theme: SupersetTheme) => css`
   margin-bottom: ${theme.gridUnit * 4}px;
 `;
@@ -442,6 +446,10 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const CredentialInfoForm = styled.div`
+  .catalog-type-select {
+    margin: 0 0 20px;
+  }
+
   .label-select {
     text-transform: uppercase;
     color: ${({ theme }) => theme.colors.grayscale.dark1};
@@ -542,23 +550,24 @@ export const StyledCatalogTable = styled.div`
   margin-bottom: 16px;
 
   .catalog-type-select {
-    margin: 0 0 40px;
+    margin: 0 0 20px;
   }
 
   .gsheet-title {
     font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
     font-weight: bold;
-    margin: ${({ theme }) => theme.gridUnit * 6}px 0 16px;
+    margin: ${({ theme }) => theme.gridUnit * 10}px 0 16px;
   }
 
   .catalog-label {
-    margin: 0 0 8px;
+    margin: 0 0 7px;
   }
 
   .catalog-name {
     display: flex;
     .catalog-name-input {
       width: 95%;
+      margin-bottom: 0px;
     }
   }
 
@@ -570,7 +579,7 @@ export const StyledCatalogTable = styled.div`
   .catalog-delete {
     align-self: center;
     background: ${({ theme }) => theme.colors.grayscale.light4};
-    margin: 5px;
+    margin: 5px 5px 8px 5px;
   }
 
   .catalog-add-btn {

@@ -149,7 +149,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         try:
             DeleteAnnotationLayerCommand(g.user, pk).run()
             return self.response(200, message="OK")
-        except AnnotationLayerNotFoundError as ex:
+        except AnnotationLayerNotFoundError:
             return self.response_404()
         except AnnotationLayerDeleteIntegrityError as ex:
             return self.response_422(message=str(ex))
@@ -288,7 +288,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         try:
             new_model = UpdateAnnotationLayerCommand(g.user, pk, item).run()
             return self.response(200, id=new_model.id, result=item)
-        except (AnnotationLayerNotFoundError) as ex:
+        except AnnotationLayerNotFoundError:
             return self.response_404()
         except AnnotationLayerInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())

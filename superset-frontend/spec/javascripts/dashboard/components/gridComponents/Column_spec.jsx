@@ -36,7 +36,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
-import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Column', () => {
   const columnWithoutChildren = {

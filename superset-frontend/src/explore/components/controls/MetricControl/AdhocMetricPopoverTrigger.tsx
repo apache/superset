@@ -35,7 +35,6 @@ export type AdhocMetricPopoverTriggerProps = {
   savedMetric: savedMetricType;
   datasourceType: string;
   children: ReactNode;
-  createNew?: boolean;
   isControlledComponent?: boolean;
   visible?: boolean;
   togglePopover?: (visible: boolean) => void;
@@ -232,7 +231,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         visible={visible}
         onVisibleChange={togglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide={this.props.createNew}
+        destroyTooltipOnHide
       >
         {this.props.children}
       </Popover>

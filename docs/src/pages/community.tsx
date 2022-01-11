@@ -26,7 +26,7 @@ import { pmc } from '../resources/data';
 
 const links = [
   [
-    'https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ',
+    'https://join.slack.com/t/apache-superset/shared_invite/zt-uxbh5g36-AISUtHbzOXcu0BIj7kgUaw',
     'Slack',
     'interact with other Superset users and community members',
   ],

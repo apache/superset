@@ -56,7 +56,7 @@ export const checkIsMissingRequiredValue = (
   const value = filterState?.value;
   // TODO: this property should be unhardcoded
   return (
-    filter.controlValues.enableEmptyFilter &&
+    filter.controlValues?.enableEmptyFilter &&
     (value === null || value === undefined)
   );
 };

@@ -33,6 +33,8 @@ interface IModalTriggerProps {
   width?: string;
   maxWidth?: string;
   responsive?: boolean;
+  draggable?: boolean;
+  resizable?: boolean;
 }
 
 export default {
@@ -53,4 +55,6 @@ InteractiveModalTrigger.args = {
   width: '600px',
   maxWidth: '1000px',
   responsive: true,
+  draggable: false,
+  resizable: false,
 };

@@ -21,13 +21,14 @@ from flask_caching import Cache
 from pandas import DataFrame
 
 from superset import app
+from superset.common.db_query_status import QueryStatus
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.cache import set_and_log_cache
-from superset.utils.core import error_msg_from_exception, get_stacktrace, QueryStatus
+from superset.utils.core import error_msg_from_exception, get_stacktrace
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]

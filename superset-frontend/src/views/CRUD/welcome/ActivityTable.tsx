@@ -21,9 +21,9 @@ import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 
-import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { LoadingCards, ActivityData } from 'src/views/CRUD/welcome/Welcome';
 import {
   CardStyles,
   getEditedObjects,
@@ -34,7 +34,7 @@ import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
-import { ActivityData } from './Welcome';
+
 import EmptyState from './EmptyState';
 
 /**
@@ -230,7 +230,7 @@ export default function ActivityTable({
   const doneFetching = loadedCount < 3;
 
   if ((loadingState && !editedObjs) || doneFetching) {
-    return <Loading position="inline" />;
+    return <LoadingCards />;
   }
   return (
     <Styles>

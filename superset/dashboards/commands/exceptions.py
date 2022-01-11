@@ -14,16 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
-    CommandException,
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
     ForbiddenError,
     ImportFailedError,
+    ObjectNotFoundError,
     UpdateFailedError,
 )
 
@@ -41,8 +43,11 @@ class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
 
 
-class DashboardNotFoundError(CommandException):
-    message = _("Dashboard not found.")
+class DashboardNotFoundError(ObjectNotFoundError):
+    def __init__(
+        self, dashboard_id: Optional[str] = None, exception: Optional[Exception] = None
+    ) -> None:
+        super().__init__("Dashboard", dashboard_id, exception)
 
 
 class DashboardCreateFailedError(CreateFailedError):

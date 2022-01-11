@@ -19,7 +19,7 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Input, Switch, Select, Button } from 'src/common/components';
+import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
@@ -32,13 +32,24 @@ import {
   infoTooltip,
   StyledFooterButton,
   StyledCatalogTable,
+  labelMarginBotton,
 } from './styles';
 import { CatalogObject, DatabaseForm, DatabaseObject } from '../types';
+
+// These are the columns that are going to be added to encrypted extra, they differ in name based
+// on the engine, however we want to use the same component for each of them. Make sure to add the
+// the engine specific name here.
+export const encryptedCredentialsMap = {
+  gsheets: 'service_account_info',
+  bigquery: 'credentials_info',
+};
 
 enum CredentialInfoOptions {
   jsonUpload,
   copyPaste,
 }
+
+const castStringToBoolean = (optionValue: string) => optionValue === 'true';
 
 export const FormFieldOrder = [
   'host',
@@ -48,6 +59,7 @@ export const FormFieldOrder = [
   'password',
   'database_name',
   'credentials_info',
+  'service_account_info',
   'catalog',
   'query',
   'encryption',
@@ -56,11 +68,13 @@ export const FormFieldOrder = [
 interface FieldPropTypes {
   required: boolean;
   hasTooltip?: boolean;
-  tooltipText?: (valuse: any) => string;
+  tooltipText?: (value: any) => string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
     onRemoveTableCatalog: (idx: number) => void;
@@ -86,12 +100,46 @@ const CredentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
+  const [isPublic, setIsPublic] = useState<boolean>(true);
+  const showCredentialsInfo =
+    db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
+  // a database that has an optional encrypted field has an encrypted_extra that is an empty object, this checks for that.
+  const isEncrypted = isEditMode && db?.encrypted_extra !== '{}';
+  const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
+  const encryptedValue =
+    typeof db?.parameters?.[encryptedField] === 'object'
+      ? JSON.stringify(db?.parameters?.[encryptedField])
+      : db?.parameters?.[encryptedField];
   return (
     <CredentialInfoForm>
-      {!isEditMode && (
+      {db?.engine === 'gsheets' && (
+        <div className="catalog-type-select">
+          <FormLabel
+            css={(theme: SupersetTheme) => labelMarginBotton(theme)}
+            required
+          >
+            {t('Type of Google Sheets allowed')}
+          </FormLabel>
+          <Select
+            style={{ width: '100%' }}
+            defaultValue={isEncrypted ? 'false' : 'true'}
+            onChange={(value: string) =>
+              setIsPublic(castStringToBoolean(value))
+            }
+          >
+            <Select.Option value="true" key={1}>
+              {t('Publicly shared sheets only')}
+            </Select.Option>
+            <Select.Option value="false" key={2}>
+              {t('Public and privately shared sheets')}
+            </Select.Option>
+          </Select>
+        </div>
+      )}
+      {showCredentialsInfo && (
         <>
           <FormLabel required>
-            {t('How do you want to enter service account credentials?')}
+            {t('How∂ do you want to enter service account credentials?')}
           </FormLabel>
           <Select
             defaultValue={uploadOption}
@@ -115,8 +163,8 @@ const CredentialsInfo = ({
           <FormLabel required>{t('Service Account')}</FormLabel>
           <textarea
             className="input-form"
-            name="credentials_info"
-            value={db?.parameters?.credentials_info}
+            name={encryptedField}
+            value={encryptedValue}
             onChange={changeMethods.onParametersChange}
             placeholder="Paste content of service credentials JSON file here"
           />
@@ -125,69 +173,73 @@ const CredentialsInfo = ({
           </span>
         </div>
       ) : (
-        <div
-          className="input-container"
-          css={(theme: SupersetTheme) => infoTooltip(theme)}
-        >
-          <div css={{ display: 'flex', alignItems: 'center' }}>
-            <FormLabel required>{t('Upload Credentials')}</FormLabel>
-            <InfoTooltip
-              tooltip={t(
-                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
-              )}
-              viewBox="0 0 24 24"
-            />
-          </div>
-
-          {!fileToUpload && (
-            <Button
-              className="input-upload-btn"
-              onClick={() => document?.getElementById('selectedFile')?.click()}
-            >
-              {t('Choose File')}
-            </Button>
-          )}
-          {fileToUpload && (
-            <div className="input-upload-current">
-              {fileToUpload}
-              <DeleteFilled
-                onClick={() => {
-                  setFileToUpload(null);
-                  changeMethods.onParametersChange({
-                    target: {
-                      name: 'credentials_info',
-                      value: '',
-                    },
-                  });
-                }}
+        showCredentialsInfo && (
+          <div
+            className="input-container"
+            css={(theme: SupersetTheme) => infoTooltip(theme)}
+          >
+            <div css={{ display: 'flex', alignItems: 'center' }}>
+              <FormLabel required>{t('Upload Credentials')}</FormLabel>
+              <InfoTooltip
+                tooltip={t(
+                  'Use the JSON file you automatically downloaded when creating your service account.',
+                )}
+                viewBox="0 0 24 24"
               />
             </div>
-          )}
 
-          <input
-            id="selectedFile"
-            className="input-upload"
-            type="file"
-            onChange={async event => {
-              let file;
-              if (event.target.files) {
-                file = event.target.files[0];
-              }
-              setFileToUpload(file?.name);
-              changeMethods.onParametersChange({
-                target: {
-                  type: null,
-                  name: 'credentials_info',
-                  value: await file?.text(),
-                  checked: false,
-                },
-              });
-              (document.getElementById(
-                'selectedFile',
-              ) as HTMLInputElement).value = null as any;
-            }}
-          />
-        </div>
+            {!fileToUpload && (
+              <Button
+                className="input-upload-btn"
+                onClick={() =>
+                  document?.getElementById('selectedFile')?.click()
+                }
+              >
+                {t('Choose File')}
+              </Button>
+            )}
+            {fileToUpload && (
+              <div className="input-upload-current">
+                {fileToUpload}
+                <DeleteFilled
+                  onClick={() => {
+                    setFileToUpload(null);
+                    changeMethods.onParametersChange({
+                      target: {
+                        name: encryptedField,
+                        value: '',
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            <input
+              id="selectedFile"
+              className="input-upload"
+              type="file"
+              onChange={async event => {
+                let file;
+                if (event.target.files) {
+                  file = event.target.files[0];
+                }
+                setFileToUpload(file?.name);
+                changeMethods.onParametersChange({
+                  target: {
+                    type: null,
+                    name: encryptedField,
+                    value: await file?.text(),
+                    checked: false,
+                  },
+                });
+                (document.getElementById(
+                  'selectedFile',
+                ) as HTMLInputElement).value = null as any;
+              }}
+            />
+          </div>
+        )
       )}
     </CredentialInfoForm>
   );
@@ -202,16 +254,9 @@ const TableCatalog = ({
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+
   return (
     <StyledCatalogTable>
-      <div className="catalog-type-select">
-        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
-        <Select style={{ width: '100%' }} defaultValue="true" disabled>
-          <Select.Option value="true" key={1}>
-            {t('Publicly shared sheets only')}
-          </Select.Option>
-        </Select>
-      </div>
       <h4 className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
       </h4>
@@ -222,10 +267,13 @@ const TableCatalog = ({
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
-              <Input
+              <ValidatedInput
                 className="catalog-name-input"
+                required={required}
+                validationMethods={{ onBlur: getValidation }}
+                errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
-                onChange={e => {
+                onChange={(e: { target: { value: any } }) => {
                   changeMethods.onParametersChange({
                     target: {
                       type: `catalog-${idx}`,
@@ -236,7 +284,6 @@ const TableCatalog = ({
                 }}
                 value={sheet.name}
               />
-
               {tableCatalog?.length > 1 && (
                 <CloseOutlined
                   className="catalog-delete"
@@ -248,7 +295,7 @@ const TableCatalog = ({
               className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
-              errorMessage={catalogError[sheet.name]}
+              errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({
@@ -415,15 +462,15 @@ const queryField = ({
   db,
 }: FieldPropTypes) => (
   <ValidatedInput
-    id="query"
-    name="query"
+    id="query_input"
+    name="query_input"
     required={required}
-    value={db?.parameters?.query}
+    value={db?.query_input || ''}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
     placeholder="e.g. param1=value1&param2=value2"
     label="Additional Parameters"
-    onChange={changeMethods.onParametersChange}
+    onChange={changeMethods.onQueryChange}
     helpText={t('Add additional custom parameters')}
   />
 );
@@ -468,6 +515,7 @@ const FORM_FIELD_MAP = {
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
+  service_account_info: CredentialsInfo,
   catalog: TableCatalog,
 };
 
@@ -475,6 +523,7 @@ const DatabaseConnectionForm = ({
   dbModel: { parameters },
   onParametersChange,
   onChange,
+  onQueryChange,
   onParametersUploadFileChange,
   onAddTableCatalog,
   onRemoveTableCatalog,
@@ -494,6 +543,9 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onParametersUploadFileChange?: (
@@ -523,6 +575,7 @@ const DatabaseConnectionForm = ({
             changeMethods: {
               onParametersChange,
               onChange,
+              onQueryChange,
               onParametersUploadFileChange,
               onAddTableCatalog,
               onRemoveTableCatalog,

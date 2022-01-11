@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Dict, Set
 
+from flask import g
 from sqlalchemy.orm import Session
 
 from superset.models.dashboard import Dashboard
@@ -56,7 +57,7 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     }
 
 
-def update_id_refs(
+def update_id_refs(  # pylint: disable=too-many-locals
     config: Dict[str, Any],
     chart_ids: Dict[str, int],
     dataset_info: Dict[str, Dict[str, Any]],
@@ -119,7 +120,7 @@ def update_id_refs(
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
 
     # fix native filter references
-    native_filter_configuration = fixed["metadata"].get(
+    native_filter_configuration = fixed.get("metadata", {}).get(
         "native_filter_configuration", []
     )
     for native_filter in native_filter_configuration:
@@ -154,5 +155,8 @@ def import_dashboard(
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
     if dashboard.id is None:
         session.flush()
+
+    if hasattr(g, "user") and g.user:
+        dashboard.owners.append(g.user)
 
     return dashboard

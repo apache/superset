@@ -49,12 +49,12 @@ export default class CccsGridChartPlugin extends ChartPlugin<
         t('Grid'),
         t('Popular'),
         t('Report'),
-        t('Tabular')
+        t('Tabular'),
       ],
-      exampleGallery: [{url: example1}],
+      exampleGallery: [{ url: example1 }],
       thumbnail,
       behaviors: [Behavior.INTERACTIVE_CHART],
-   });
+    });
 
     super({
       buildQuery,

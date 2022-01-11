@@ -21,7 +21,9 @@ import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
-import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
+import withToasts, {
+  ToastProps,
+} from 'src/components/MessageToasts/withToasts';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
 
 const QueryTitle = styled.div`

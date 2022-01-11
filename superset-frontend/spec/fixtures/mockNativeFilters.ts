@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ExtraFormData } from '@superset-ui/core';
+import { NativeFilterType } from 'src/dashboard/components/nativeFilters/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from '../../src/dataMask/types';
 
@@ -50,6 +51,7 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
+      type: NativeFilterType.NATIVE_FILTER,
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
@@ -78,6 +80,7 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
+      type: NativeFilterType.NATIVE_FILTER,
     },
   },
 };

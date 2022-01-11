@@ -66,7 +66,7 @@ const defaultProps = {
 };
 
 // export unwrapped component for testing
-export class UnwrappedDragDroppable extends React.Component {
+export class UnwrappedDragDroppable extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

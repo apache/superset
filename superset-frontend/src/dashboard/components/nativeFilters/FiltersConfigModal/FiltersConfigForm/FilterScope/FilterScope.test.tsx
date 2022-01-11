@@ -37,6 +37,7 @@ describe('FilterScope', () => {
     restoreFilter: jest.fn(),
     parentFilters: [],
     save,
+    removedFilters: {},
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {

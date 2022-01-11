@@ -44,9 +44,13 @@ def import_migration_script(filepath: Path) -> ModuleType:
     Import migration script as if it were a module.
     """
     spec = importlib.util.spec_from_file_location(filepath.stem, filepath)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore
-    return module
+    if spec:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore
+        return module
+    raise Exception(
+        "No module spec found in location: `{path}`".format(path=str(filepath))
+    )
 
 
 def extract_modified_tables(module: ModuleType) -> Set[str]:

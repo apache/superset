@@ -2,7 +2,6 @@ import React from 'react';
 import { styled, SafeMarkdown } from '@superset-ui/core';
 import { ChartProps } from './types';
 
-
 const Container = styled.div`
   display: flex;
   justify-content: space-between;

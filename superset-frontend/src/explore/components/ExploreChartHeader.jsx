@@ -91,6 +91,7 @@ const StyledHeader = styled.div`
   }
 
   .action-button {
+    color: ${({ theme }) => theme.colors.grayscale.base};
     margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
       ${({ theme }) => theme.gridUnit}px;
   }
@@ -116,8 +117,8 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { user, chart } = this.props;
-    if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+    if (this.canAddReports()) {
+      const { user, chart } = this.props;
       // this is in the case that there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -164,33 +165,32 @@ export class ExploreChartHeader extends React.PureComponent {
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
-    const canAddReports = isFeatureEnabled(FeatureFlag.ALERT_REPORTS);
-    return (
-      (canAddReports || null) &&
-      (attachedReportExists ? (
-        <HeaderReportActionsDropdown
-          showReportModal={this.showReportModal}
-          hideReportModal={this.hideReportModal}
-          toggleActive={this.props.toggleActive}
-          deleteActiveReport={this.props.deleteActiveReport}
-        />
-      ) : (
-        <>
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={this.showReportModal}
-          >
-            <Icons.Calendar />
-          </span>
-        </>
-      ))
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        toggleActive={this.props.toggleActive}
+        deleteActiveReport={this.props.deleteActiveReport}
+      />
+    ) : (
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
     );
   }
 
   canAddReports() {
+    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+      return false;
+    }
     const { user } = this.props;
     if (!user) {
       // this is in the case that there is an anonymous user.
@@ -199,7 +199,7 @@ export class ExploreChartHeader extends React.PureComponent {
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
-        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
     return permissions[0].length > 0;
@@ -294,7 +294,7 @@ export class ExploreChartHeader extends React.PureComponent {
             props={{
               userId: this.props.user.userId,
               userEmail: this.props.user.email,
-              chartId: this.props.chart.id,
+              chart: this.props.chart,
               creationMethod: 'charts',
             }}
           />

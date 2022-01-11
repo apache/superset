@@ -478,18 +478,18 @@ class TestPostProcessing(SupersetTestCase):
         self.assertListEqual(series_to_list(post_df["z"]), [0.0, 2.0, 8.0, 6.0])
 
     def test_compare(self):
-        # `absolute` comparison
+        # `difference` comparison
         post_df = proc.compare(
             df=timeseries_df2,
             source_columns=["y"],
             compare_columns=["z"],
-            compare_type="absolute",
+            compare_type="difference",
         )
         self.assertListEqual(
-            post_df.columns.tolist(), ["label", "y", "z", "absolute__y__z",]
+            post_df.columns.tolist(), ["label", "y", "z", "difference__y__z",]
         )
         self.assertListEqual(
-            series_to_list(post_df["absolute__y__z"]), [0.0, -2.0, -8.0, -6.0],
+            series_to_list(post_df["difference__y__z"]), [0.0, -2.0, -8.0, -6.0],
         )
 
         # drop original columns
@@ -497,10 +497,10 @@ class TestPostProcessing(SupersetTestCase):
             df=timeseries_df2,
             source_columns=["y"],
             compare_columns=["z"],
-            compare_type="absolute",
+            compare_type="difference",
             drop_original_columns=True,
         )
-        self.assertListEqual(post_df.columns.tolist(), ["label", "absolute__y__z",])
+        self.assertListEqual(post_df.columns.tolist(), ["label", "difference__y__z",])
 
         # `percentage` comparison
         post_df = proc.compare(
@@ -513,7 +513,7 @@ class TestPostProcessing(SupersetTestCase):
             post_df.columns.tolist(), ["label", "y", "z", "percentage__y__z",]
         )
         self.assertListEqual(
-            series_to_list(post_df["percentage__y__z"]), [0.0, -1.0, -4.0, -3],
+            series_to_list(post_df["percentage__y__z"]), [0.0, -0.5, -0.8, -0.75],
         )
 
         # `ratio` comparison
@@ -870,3 +870,22 @@ class TestPostProcessing(SupersetTestCase):
                 metrics=["cars"],
                 percentiles=[10, 90, 10],
             )
+
+    def test_resample(self):
+        df = timeseries_df.copy()
+        df.index.name = "time_column"
+        df.reset_index(inplace=True)
+
+        post_df = proc.resample(
+            df=df, rule="1D", method="ffill", time_column="time_column",
+        )
+        self.assertListEqual(
+            post_df["label"].tolist(), ["x", "y", "y", "y", "z", "z", "q"]
+        )
+        self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 4.0])
+
+        post_df = proc.resample(
+            df=df, rule="1D", method="asfreq", time_column="time_column", fill_value=0,
+        )
+        self.assertListEqual(post_df["label"].tolist(), ["x", "y", 0, 0, "z", 0, "q"])
+        self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 0, 0, 3.0, 0, 4.0])

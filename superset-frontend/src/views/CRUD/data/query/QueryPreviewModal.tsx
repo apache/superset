@@ -21,7 +21,9 @@ import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
+import withToasts, {
+  ToastProps,
+} from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
 import { QueryObject } from 'src/views/CRUD/types';

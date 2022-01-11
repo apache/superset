@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
 import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKING
 
 import pandas as pd
 from apispec import APISpec
@@ -30,8 +31,9 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
-from superset.databases.schemas import encrypted_field_properties, EncryptedField
+from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -68,7 +70,7 @@ ma_plugin = MarshmallowPlugin()
 
 
 class BigQueryParametersSchema(Schema):
-    credentials_info = EncryptedField(
+    credentials_info = EncryptedString(
         required=False, description="Contents of BigQuery JSON credentials.",
     )
     query = fields.Dict(required=False)
@@ -324,14 +326,15 @@ class BigQueryEngineSpec(BaseEngineSpec):
         """
 
         try:
+            # pylint: disable=import-outside-toplevel
             import pandas_gbq
             from google.oauth2 import service_account
-        except ImportError:
+        except ImportError as ex:
             raise Exception(
                 "Could not import libraries `pandas_gbq` or `google.oauth2`, which are "
                 "required to be installed in your environment in order "
                 "to upload data to BigQuery"
-            )
+            ) from ex
 
         if not table.schema:
             raise Exception("The table schema must be defined")
@@ -365,10 +368,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
 
+        if encrypted_extra:
+            credentials_info = encrypted_extra.get("credentials_info")
+            if isinstance(credentials_info, str):
+                credentials_info = json.loads(credentials_info)
+            project_id = credentials_info.get("project_id")
         if not encrypted_extra:
             raise ValidationError("Missing service credentials")
-
-        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
             return f"{cls.default_driver}://{project_id}/?{query_params}"
@@ -386,6 +392,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return {**encrypted_extra, "query": value.query}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-error,import-outside-toplevel
+        from google.auth.exceptions import DefaultCredentialsError
+
+        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
 
     @classmethod
     def validate_parameters(

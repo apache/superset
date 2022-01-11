@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, formatSelectOptions, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 import { D3_FORMAT_OPTIONS } from '../BigNumberTotal/controlPanel';
@@ -42,7 +46,9 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               label: t('Comparison Period Lag'),
               isInt: true,
-              description: t('Based on granularity, number of time periods to compare against'),
+              description: t(
+                'Based on granularity, number of time periods to compare against',
+              ),
             },
           },
         ],
@@ -106,7 +112,11 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_picker', null], [headerFontSize], [subheaderFontSize]],
+      controlSetRows: [
+        ['color_picker', null],
+        [headerFontSize],
+        [subheaderFontSize],
+      ],
     },
     {
       label: t('Advanced Analytics'),
@@ -121,7 +131,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Rolling Function'),
               default: 'None',
-              choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
+              choices: formatSelectOptions([
+                'None',
+                'mean',
+                'sum',
+                'std',
+                'cumsum',
+              ]),
               description: t(
                 'Defines a rolling window function to apply, works along ' +
                   'with the [Periods] text box',

@@ -68,11 +68,6 @@ const FilterPopoverContentContainer = styled.div`
     max-width: none;
   }
 
-  .filter-edit-clause-dropdown {
-    width: ${({ theme }) => theme.gridUnit * 30}px;
-    margin-right: ${({ theme }) => theme.gridUnit}px;
-  }
-
   .filter-edit-clause-info {
     font-size: ${({ theme }) => theme.typography.sizes.xs}px;
     padding-left: ${({ theme }) => theme.gridUnit}px;

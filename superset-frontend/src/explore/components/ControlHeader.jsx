@@ -26,8 +26,8 @@ import Icons from 'src/components/Icons';
 
 const propTypes = {
   name: PropTypes.string,
-  label: PropTypes.string,
-  description: PropTypes.string,
+  label: PropTypes.node,
+  description: PropTypes.node,
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
   rightNode: PropTypes.node,

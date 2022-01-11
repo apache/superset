@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -115,6 +116,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "extra",
         "parameters",
+        "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
     ]
@@ -275,9 +277,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(  # pylint: disable=too-many-return-statements, arguments-differ
-        self, pk: int
-    ) -> Response:
+    def put(self, pk: int) -> Response:
         """Changes a Database
         ---
         put:
@@ -331,6 +331,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(g.user, pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if changed_model.parameters:
+                item["parameters"] = changed_model.parameters
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
@@ -355,7 +357,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
         log_to_statsd=False,
     )
-    def delete(self, pk: int) -> Response:  # pylint: disable=arguments-differ
+    def delete(self, pk: int) -> Response:
         """Deletes a Database
         ---
         delete:
@@ -591,9 +593,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
-    def test_connection(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
         post:
@@ -977,9 +977,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
-    def validate_parameters(  # pylint: disable=too-many-return-statements
-        self,
-    ) -> FlaskResponse:
+    def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---
         post:
@@ -1014,7 +1012,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
-        except ValidationError as error:
+        except ValidationError as ex:
             errors = [
                 SupersetError(
                     message="\n".join(messages),
@@ -1022,9 +1020,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
                 )
-                for attribute, messages in error.messages.items()
+                for attribute, messages in ex.messages.items()
             ]
-            raise InvalidParametersError(errors)
+            raise InvalidParametersError(errors) from ex
 
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()

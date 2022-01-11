@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-statements
 import json
 
 from superset import db
@@ -172,7 +171,7 @@ POSITION_JSON = """\
 }"""
 
 
-def load_deck_dash() -> None:
+def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     print("Loading deck.gl dashboard")
     slices = []
     table = get_table_connector_registry()
@@ -287,6 +286,7 @@ def load_deck_dash() -> None:
     slices.append(slc)
 
     slice_data = {
+        "autozoom": False,
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",

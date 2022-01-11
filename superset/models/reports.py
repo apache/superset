@@ -50,7 +50,7 @@ class ReportScheduleType(str, enum.Enum):
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
-    """ Validator types for alerts """
+    """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
@@ -153,10 +153,7 @@ class ReportSchedule(Model, AuditMixinNullable):
         return get_description(self.crontab)
 
 
-class ReportRecipients(
-    Model, AuditMixinNullable
-):  # pylint: disable=too-few-public-methods
-
+class ReportRecipients(Model, AuditMixinNullable):
     """
     Report Recipients, meant to support multiple notification types, eg: Slack, email
     """
