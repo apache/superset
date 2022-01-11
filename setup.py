@@ -146,7 +146,7 @@ setup(
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
         "pinot": ["pinotdb>=0.3.3, <0.4"],
-        "postgres": ["psycopg2-binary==2.8.5"],
+        "postgres": ["psycopg2-binary==2.9.1"],
         "presto": ["pyhive[presto]>=0.4.0"],
         "trino": ["sqlalchemy-trino>=0.2"],
         "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],

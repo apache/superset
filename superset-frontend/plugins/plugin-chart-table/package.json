@@ -27,8 +27,6 @@
   },
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "@types/d3-array": "^2.9.0",
     "@types/react-table": "^7.0.29",
     "@types/enzyme": "^3.10.5",
@@ -41,6 +39,8 @@
   },
   "peerDependencies": {
     "@types/react": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }

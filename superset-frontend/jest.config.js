@@ -50,26 +50,9 @@ module.exports = {
     'dist/',
   ],
   coverageReporters: ['lcov', 'json-summary', 'html'],
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    // ts-jest doesn't work with `--coverage`. @superset-ui/core should
-    // 100% coverage, so we use babel-jest in packages and plugins.
-    '(plugins|packages)\\/.+\\.tsx?$': 'babel-jest',
-    '(((?!(plugins|packages)).)*)\\/.+\\.tsx?$': 'ts-jest',
-  },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   globals: {
-    'ts-jest': {
-      babelConfig: true,
-      // todo: duo to packages/**/test and plugins/**/test lack of type checking
-      // turning off checking in Jest.
-      // https://kulshekhar.github.io/ts-jest/docs/getting-started/options/isolatedModules
-      isolatedModules: true,
-      diagnostics: {
-        warnOnly: true,
-      },
-    },
     __DEV__: true,
     caches: true,
   },

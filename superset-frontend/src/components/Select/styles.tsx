@@ -25,10 +25,10 @@ import {
   SelectComponentsConfig,
   components as defaultComponents,
   InputProps as ReactSelectInputProps,
+  Props as SelectProps,
 } from 'react-select';
-import { Props as SelectProps } from 'react-select/src/Select';
-import { colors as reactSelectColors } from 'react-select/src/theme';
-import { DeepNonNullable } from 'react-select/src/components';
+import type { colors as reactSelectColors } from 'react-select/src/theme';
+import type { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
 import { SupersetStyledSelectProps } from './DeprecatedSelect';
 
