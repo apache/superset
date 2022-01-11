@@ -14,10 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-import string
-from datetime import date, datetime
-from random import choice, getrandbits, randint, random, uniform
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -31,6 +27,9 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
+from tests.common.example_data_generator.birth_names.birth_names_generator_factory import (
+    BirthNamesGeneratorFactory,
+)
 from tests.integration_tests.dashboard_utils import create_table_metadata
 from tests.integration_tests.test_app import app
 
@@ -148,87 +147,4 @@ def _get_dataframe(database: Database) -> DataFrame:
 
 
 def _get_birth_names_data() -> List[Dict[Any, Any]]:
-    data = []
-    names = generate_names()
-    for year in range(1960, 2020):
-        ds = datetime(year, 1, 1, 0, 0, 0)
-        for _ in range(20):
-            gender = "boy" if choice([True, False]) else "girl"
-            num = randint(1, 100000)
-            data.append(
-                {
-                    "ds": ds,
-                    "gender": gender,
-                    "name": choice(names),
-                    "num": num,
-                    "state": choice(us_states),
-                    "num_boys": num if gender == "boy" else 0,
-                    "num_girls": num if gender == "girl" else 0,
-                }
-            )
-
-    return data
-
-
-def generate_names() -> List[str]:
-    names = []
-    for _ in range(250):
-        names.append(
-            "".join(choice(string.ascii_lowercase) for _ in range(randint(3, 12)))
-        )
-    return names
-
-
-us_states = [
-    "AL",
-    "AK",
-    "AZ",
-    "AR",
-    "CA",
-    "CO",
-    "CT",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "ID",
-    "IL",
-    "IN",
-    "IA",
-    "KS",
-    "KY",
-    "LA",
-    "ME",
-    "MD",
-    "MA",
-    "MI",
-    "MN",
-    "MS",
-    "MO",
-    "MT",
-    "NE",
-    "NV",
-    "NH",
-    "NJ",
-    "NM",
-    "NY",
-    "NC",
-    "ND",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VT",
-    "VA",
-    "WA",
-    "WV",
-    "WI",
-    "WY",
-    "other",
-]
+    return list(BirthNamesGeneratorFactory.make().generate())
