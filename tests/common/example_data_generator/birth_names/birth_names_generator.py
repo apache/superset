@@ -23,18 +23,57 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing,
+#  software distributed under the License is distributed on an
+#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#  KIND, either express or implied.  See the License for the
+#  specific language governing permissions and limitations
+#  under the License.
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing,
+#  software distributed under the License is distributed on an
+#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+#  KIND, either express or implied.  See the License for the
+#  specific language governing permissions and limitations
+#  under the License.
 from __future__ import annotations
 
 from datetime import datetime
 from random import choice, randint
 from typing import Any, Dict, Iterable
 
-from tests.common.example_data_generator.base import ExampleDataGenerator
+from tests.common.example_data_generator.base_generator import ExampleDataGenerator
 from tests.common.example_data_generator.consts import US_STATES
 from tests.common.example_data_generator.string_generator import StringGenerator
 
+NUM_GIRLS = "num_girls"
+NUM_BOYS = "num_boys"
+STATE = "state"
+NUM = "num"
+NAME = "name"
+GENDER = "gender"
+DS = "ds"
 GIRL = "girl"
 BOY = "boy"
+
+from collections import OrderedDict
+
+BIRTH_NAMES_COLUMNS = OrderedDict(
+    [
+        (DS, datetime),
+        (GENDER, str),
+        (NAME, str),
+        (NUM, int),
+        (STATE, str),
+        (NUM_BOYS, int),
+        (NUM_GIRLS, int),
+    ]
+)
 
 
 class BirthNamesGenerator(ExampleDataGenerator):
@@ -70,11 +109,11 @@ class BirthNamesGenerator(ExampleDataGenerator):
         gender = choice([BOY, GIRL])
         num = randint(1, 100000)
         return {
-            "ds": dt,
-            "gender": gender,
-            "name": self._names_generator.generate(),
-            "num": num,
-            "state": choice(US_STATES),
-            "num_boys": num if gender == BOY else 0,
-            "num_girls": num if gender == GIRL else 0,
+            DS: dt,
+            GENDER: gender,
+            NAME: self._names_generator.generate(),
+            NUM: num,
+            STATE: choice(US_STATES),
+            NUM_BOYS: num if gender == BOY else 0,
+            NUM_GIRLS: num if gender == GIRL else 0,
         }
