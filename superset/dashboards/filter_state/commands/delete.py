@@ -27,16 +27,12 @@ class DeleteFilterStateCommand(DeleteKeyValueCommand):
     def delete(self, cmd_params: CommandParameters) -> bool:
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        key = cmd_params.key
+        key = cache_key(resource_id, cmd_params.key)
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
-            entry: Entry = cache_manager.filter_state_cache.get(
-                cache_key(resource_id, key)
-            )
+            entry: Entry = cache_manager.filter_state_cache.get(key)
             if entry:
                 if entry["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
-                return cache_manager.filter_state_cache.delete(
-                    cache_key(resource_id, key)
-                )
+                return cache_manager.filter_state_cache.delete(key)
         return False

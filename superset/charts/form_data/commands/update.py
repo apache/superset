@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.charts.form_data.utils import check_access
+from superset.charts.form_data.utils import check_access, get_dataset_id
 from superset.extensions import cache_manager
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
@@ -25,20 +25,16 @@ from superset.key_value.utils import cache_key
 
 class UpdateFormDataCommand(UpdateKeyValueCommand):
     def update(self, cmd_params: CommandParameters) -> bool:
+        check_access(cmd_params)
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        key = cmd_params.key
+        key = cache_key(resource_id or get_dataset_id(cmd_params), cmd_params.key)
         value = cmd_params.value
-        check_access(cmd_params)
-        entry: Entry = cache_manager.chart_form_data_cache.get(
-            cache_key(resource_id, key)
-        )
+        entry: Entry = cache_manager.chart_form_data_cache.get(key)
         if entry and value:
             user_id = actor.get_user_id()
             if entry["owner"] != user_id:
                 raise KeyValueAccessDeniedError()
             new_entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            return cache_manager.chart_form_data_cache.set(
-                cache_key(resource_id, key), new_entry
-            )
+            return cache_manager.chart_form_data_cache.set(key, new_entry)
         return False

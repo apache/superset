@@ -27,19 +27,15 @@ class UpdateFilterStateCommand(UpdateKeyValueCommand):
     def update(self, cmd_params: CommandParameters) -> bool:
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        key = cmd_params.key
+        key = cache_key(resource_id, cmd_params.key)
         value = cmd_params.value
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard and value:
-            entry: Entry = cache_manager.filter_state_cache.get(
-                cache_key(resource_id, key)
-            )
+            entry: Entry = cache_manager.filter_state_cache.get(key)
             if entry:
                 user_id = actor.get_user_id()
                 if entry["owner"] != user_id:
                     raise KeyValueAccessDeniedError()
                 new_entry: Entry = {"owner": actor.get_user_id(), "value": value}
-                return cache_manager.filter_state_cache.set(
-                    cache_key(resource_id, key), new_entry
-                )
+                return cache_manager.filter_state_cache.set(key, new_entry)
         return False

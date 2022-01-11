@@ -68,7 +68,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
           - in: query
             schema:
               type: integer
-            name: dataset
+            name: dataset_id
             required: false
           requestBody:
             required: true
@@ -98,7 +98,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/form_data/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/form_data/<string:key>", methods=["PUT"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -120,6 +120,11 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: false
           requestBody:
             required: true
             content:
@@ -150,7 +155,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/form_data/<string:key>/", methods=["GET"])
+    @expose("/<int(signed=True):pk>/form_data/<string:key>", methods=["GET"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -172,6 +177,11 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: false
           responses:
             200:
               description: Returns the stored value.
@@ -196,7 +206,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/form_data/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/form_data/<string:key>", methods=["DELETE"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -219,6 +229,11 @@ class ChartFormDataRestApi(KeyValueRestApi):
               type: string
             name: key
             description: The value key.
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: false
           responses:
             200:
               description: Deleted the stored value.

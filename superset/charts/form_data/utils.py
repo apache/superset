@@ -32,22 +32,25 @@ from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def check_access(parameters: CommandParameters) -> Optional[bool]:
-    resource_id = parameters.resource_id
-    actor = parameters.actor
-    query_params = parameters.query_params
+def get_dataset_id(cmd_params: CommandParameters) -> Optional[str]:
+    query_params = cmd_params.query_params
+    if query_params:
+        return query_params.get("dataset_id")
+    return None
+
+
+def check_access(cmd_params: CommandParameters) -> Optional[bool]:
+    resource_id = cmd_params.resource_id
+    actor = cmd_params.actor
     if resource_id == 0:
-        if parameters:
-            dataset_id = query_params.get("dataset_id")
-            if dataset_id:
-                dataset = DatasetDAO.find_by_id(int(dataset_id))
-                if dataset:
-                    can_access_datasource = security_manager.can_access_datasource(
-                        dataset
-                    )
-                    if can_access_datasource:
-                        return True
-                    raise DatasetAccessDeniedError()
+        dataset_id = get_dataset_id(cmd_params)
+        if dataset_id:
+            dataset = DatasetDAO.find_by_id(int(dataset_id))
+            if dataset:
+                can_access_datasource = security_manager.can_access_datasource(dataset)
+                if can_access_datasource:
+                    return True
+                raise DatasetAccessDeniedError()
         raise DatasetNotFoundError()
     chart = ChartDAO.find_by_id(resource_id)
     if chart:

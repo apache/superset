@@ -33,9 +33,9 @@ class GetFilterStateCommand(GetKeyValueCommand):
 
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
-        key = cmd_params.key
+        key = cache_key(resource_id, cmd_params.key)
         DashboardDAO.get_by_id_or_slug(str(resource_id))
-        entry = cache_manager.filter_state_cache.get(cache_key(resource_id, key)) or {}
+        entry = cache_manager.filter_state_cache.get(key) or {}
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)
         return entry.get("value")

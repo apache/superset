@@ -18,7 +18,7 @@ from typing import Optional
 
 from flask import current_app as app
 
-from superset.charts.form_data.utils import check_access
+from superset.charts.form_data.utils import check_access, get_dataset_id
 from superset.extensions import cache_manager
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.get import GetKeyValueCommand
@@ -33,12 +33,10 @@ class GetFormDataCommand(GetKeyValueCommand):
         self._refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
 
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
-        resource_id = cmd_params.resource_id
-        key = cmd_params.key
         check_access(cmd_params)
-        entry: Entry = cache_manager.chart_form_data_cache.get(
-            cache_key(resource_id, key)
-        )
+        resource_id = cmd_params.resource_id
+        key = cache_key(resource_id or get_dataset_id(cmd_params), cmd_params.key)
+        entry: Entry = cache_manager.chart_form_data_cache.get(key)
         if entry:
             if self._refresh_timeout:
                 cache_manager.chart_form_data_cache.set(key, entry)
