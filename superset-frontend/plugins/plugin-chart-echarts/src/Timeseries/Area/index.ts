@@ -54,9 +54,13 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
-        ),
+        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t(
+              'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
+            )
+          : t(
+              'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
+            ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
