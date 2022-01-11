@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import sqlite3
 from contextlib import closing
 from typing import Any, Dict, Optional
 
@@ -89,6 +90,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                         engine.dialect.do_ping,
                         args=(conn,),
                     )
+                except sqlite3.ProgrammingError:
+                    # SQLite can't run on a separate thread, so ``func_timeout`` fails
+                    alive = engine.dialect.do_ping(conn)
                 except FunctionTimedOut as ex:
                     raise Exception(
                         "Please check your connection details and database settings, "
