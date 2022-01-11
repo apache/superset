@@ -879,7 +879,8 @@ def update_api_docs() -> None:
     "--previous_secret_key",
     "-a",
     required=False,
-    help="An optional previous secret key, if PREVIOUS_SECRET_KEY is not set on the config",
+    help="An optional previous secret key, if PREVIOUS_SECRET_KEY "
+    "is not set on the config",
 )
 def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
     previous_secret_key = previous_secret_key or current_app.config.get(

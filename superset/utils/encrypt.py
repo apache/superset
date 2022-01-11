@@ -74,13 +74,13 @@ class EncryptedFieldFactory:
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
-        from superset import db
+        from superset import db  # pylint: disable=import-outside-toplevel
 
-        self.db = db
+        self._db = db
         self._previous_secret_key = previous_secret_key
         self._dialect: Dialect = db.engine.url.get_dialect()
 
-    def _discover_encrypted_fields(self) -> Dict[str, Dict[str, EncryptedType]]:
+    def discover_encrypted_fields(self) -> Dict[str, Dict[str, EncryptedType]]:
         """
         Iterates over SqlAlchemy's metadata, looking for EncryptedType
         columns along the way. Builds up a dict of
@@ -89,7 +89,7 @@ class SecretsMigrator:
         """
         meta_info: Dict[str, Any] = {}
 
-        for table_name, table in self.db.metadata.tables.items():
+        for table_name, table in self._db.metadata.tables.items():
             for col_name, col in table.columns.items():
                 if isinstance(col.type, EncryptedType):
                     cols = meta_info.get(table_name, {})
@@ -103,16 +103,17 @@ class SecretsMigrator:
         if value is None or isinstance(value, bytes):
             return value
         # Note that the Postgres Driver returns memoryview's for BLOB types
-        elif isinstance(value, memoryview):
+        if isinstance(value, memoryview):
             return value.tobytes()
-        elif isinstance(value, str):
+        if isinstance(value, str):
             return bytes(value.encode("utf8"))
 
         # Just bail if we haven't seen this type before...
         raise ValueError(f"DB column {col_name} has unknown type: {type(value)}")
 
+    @staticmethod
     def _select_columns_from_table(
-        self, conn: Connection, column_names: List[str], table_name: str
+        conn: Connection, column_names: List[str], table_name: str
     ) -> RowProxy:
         return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")
 
@@ -152,14 +153,14 @@ class SecretsMigrator:
                     )
                     return
                 except Exception:
-                    raise exc
+                    raise Exception from exc
 
             re_encrypted_columns[column_name] = encrypted_type.process_bind_param(
                 unencrypted_value, self._dialect,
             )
 
         set_cols = ",".join(
-            [f"{name} = :{name}" for name in re_encrypted_columns.keys()]
+            [f"{name} = :{name}" for name in list(re_encrypted_columns.keys())]
         )
         logger.info("Processing table: %s", table_name)
         conn.execute(
@@ -169,9 +170,9 @@ class SecretsMigrator:
         )
 
     def run(self) -> None:
-        encrypted_meta_info = self._discover_encrypted_fields()
+        encrypted_meta_info = self.discover_encrypted_fields()
 
-        with self.db.engine.begin() as conn:
+        with self._db.engine.begin() as conn:
             logger.info("Collecting info for re encryption")
             for table_name, columns in encrypted_meta_info.items():
                 column_names = list(columns.keys())
