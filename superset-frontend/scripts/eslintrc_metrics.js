@@ -62,11 +62,19 @@ module.exports = {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'react/jsx-filename-extension': [1, { extensions: ['.tsx'] }],
     'react/forbid-component-props': 1,
-    "no-restricted-imports": ["error", {
-        "patterns": [{
-          "group": ["**/*.less"],
-          "message": "Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
-        }]
-    }]
+    "no-restricted-imports": [
+      "warn", {
+        "patterns": [
+          {
+            "group": ["**/*.less"],
+            "message": "Please reduce/remove reliance on LESS files - move approprate styles to Emotion"
+          },
+          {
+            "name": "antd",
+            "message": "Please do not use AntD directly, but instead import through src/common/components"
+          }
+        ]
+      }
+    ]
   },
 };
