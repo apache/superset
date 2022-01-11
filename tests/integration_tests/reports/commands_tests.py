@@ -17,7 +17,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -61,6 +61,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,
     load_world_bank_data,
@@ -135,6 +136,7 @@ def create_report_notification(
     grace_period: Optional[int] = None,
     report_format: Optional[ReportDataFormat] = None,
     name: Optional[str] = None,
+    extra: Optional[Dict[str, Any]] = None,
     force_screenshot: bool = False,
 ) -> ReportSchedule:
     report_type = report_type or ReportScheduleType.REPORT
@@ -175,6 +177,7 @@ def create_report_notification(
         validator_config_json=validator_config_json,
         grace_period=grace_period,
         report_format=report_format or ReportDataFormat.VISUALIZATION,
+        extra=extra,
         force_screenshot=force_screenshot,
     )
     return report_schedule
@@ -284,6 +287,18 @@ def create_report_email_dashboard():
         )
         yield report_schedule
 
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_email_tabbed_dashboard(tabbed_dashboard):
+    with app.app_context():
+        report_schedule = create_report_notification(
+            email_target="target@email.com",
+            dashboard=tabbed_dashboard,
+            extra={"dashboard_tab_ids": ["TAB-j53G4gtKGF", "TAB-nerWR09Ju",]},
+        )
+        yield report_schedule
         cleanup_report_schedule(report_schedule)
 
 
@@ -1314,7 +1329,7 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the there is no attached image
-        assert email_mock.call_args[1]["images"] is None
+        assert email_mock.call_args[1]["images"] == {}
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -1553,9 +1568,7 @@ def test_fail_csv(
             TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(
-        create_report_email_chart_with_csv
-    )
+    get_target_from_report_schedule(create_report_email_chart_with_csv)
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == OWNER_EMAIL
 
@@ -1585,7 +1598,7 @@ def test_email_disable_screenshot(email_mock, create_alert_email_chart):
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == notification_targets[0]
     # Assert the there is no attached image
-    assert email_mock.call_args[1]["images"] is None
+    assert email_mock.call_args[1]["images"] == {}
 
     assert_log(ReportState.SUCCESS)
 
@@ -1733,3 +1746,29 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
     with pytest.raises(SoftTimeLimitExceeded) as excinfo:
         AsyncPruneReportScheduleLogCommand().run()
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
+
+
+@pytest.mark.usefixtures("create_report_email_tabbed_dashboard",)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.reports.commands.execute.DashboardScreenshot",)
+def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
+    dashboard_screenshot_mock,
+    send_email_smtp_mock,
+    create_report_email_tabbed_dashboard,
+):
+    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard = create_report_email_tabbed_dashboard.dashboard
+
+    AsyncExecuteReportScheduleCommand(
+        TEST_ID, create_report_email_tabbed_dashboard.id, datetime.utcnow()
+    ).run()
+
+    tabs = json.loads(create_report_email_tabbed_dashboard.extra)["dashboard_tab_ids"]
+    assert dashboard_screenshot_mock.call_count == 2
+    for index, tab in enumerate(tabs):
+        assert dashboard_screenshot_mock.call_args_list[index].args == (
+            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/?standalone=3#{tab}",
+            f"{dashboard.digest}",
+        )
+    assert send_email_smtp_mock.called is True
+    assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 2
