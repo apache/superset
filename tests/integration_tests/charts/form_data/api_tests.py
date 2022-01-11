@@ -66,7 +66,9 @@ def dataset_id() -> int:
     with app.app_context() as ctx:
         session: Session = ctx.app.appbuilder.get_session
         dataset = (
-            session.query(SqlaTable).filter_by(table_name="wb_health_population").one()
+            session.query(SqlaTable)
+            .filter_by(table_name="wb_health_population")
+            .first()
         )
         return dataset.id
 
