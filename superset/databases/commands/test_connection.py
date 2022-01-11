@@ -18,8 +18,10 @@ import logging
 from contextlib import closing
 from typing import Any, Dict, Optional
 
+from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
+from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
@@ -78,7 +80,21 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             with closing(engine.raw_connection()) as conn:
                 try:
-                    alive = engine.dialect.do_ping(conn)
+                    alive = func_timeout(
+                        int(
+                            app.config[
+                                "TEST_DATABASE_CONNECTION_TIMEOUT"
+                            ].total_seconds()
+                        ),
+                        engine.dialect.do_ping,
+                        args=(conn,),
+                    )
+                except FunctionTimedOut as ex:
+                    raise Exception(
+                        "Please check your connection details and database settings, "
+                        "and ensure that your database is accepting connections, then "
+                        "try connecting again."
+                    ) from ex
                 except Exception:  # pylint: disable=broad-except
                     alive = False
                 if not alive:
