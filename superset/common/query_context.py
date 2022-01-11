@@ -112,7 +112,7 @@ class QueryContext:
             "queries": queries,
             "result_type": self.result_type,
             "result_format": self.result_format,
-            "viz_type": self.viz_type,
+            "viz_type": viz_type,
         }
 
     @staticmethod
