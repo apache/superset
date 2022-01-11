@@ -14,6 +14,9 @@
   --ifm-color-primary-lighter: #a5dbe9;
   --ifm-color-primary-lightest: #D2EDF4;
   --ifm-code-font-size: 95%;
+  --ifm-menu-link-padding-vertical: 12px;
+  --doc-sidebar-width: 350px !important;
+  --ifm-navbar-height: none;
 }
 
 .docusaurus-highlight-code-line {
@@ -23,8 +26,22 @@
   padding: 0 var(--ifm-pre-padding);
 }
 
-html[data-theme="dark"] .docusaurus-highlight-code-line {
+html[data-theme='dark'] .docusaurus-highlight-code-line {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+.navbar__logo {
+  height: 40px;
+}
+
+.navbar-sidebar__brand {
+  padding-left: 0;
+}
+
+.menu,
+.navbar {
+  font-size: 14px;
+  font-weight: 400;
 }
 
 /* Hacks to disable Swagger UI's "try it out" interactive mode */
@@ -38,4 +55,18 @@ html[data-theme="dark"] .docusaurus-highlight-code-line {
 .swagger-ui table th,
 .swagger-ui table tr {
   border: none;
+}
+
+.markdown h2:first-child {
+  margin-top: 0.5em;
+}
+
+@media only screen and (min-width: 800px) {
+  .navbar__logo {
+    height: 50px;
+  }
+
+  .navbar {
+    padding-left: 0;
+  }
 }
