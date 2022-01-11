@@ -350,6 +350,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
+    # With Superset 2.0, we are updating the default so that the legacy datasource
+    # editor no longer shows. Currently this is set to false so that the editor
+    # option does show, but we will be depreciating it.
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": False,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
     # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
