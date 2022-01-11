@@ -35,6 +35,7 @@ from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
+from flask_appbuilder.api.manager import resolver
 
 from superset import app, appbuilder, config, security_manager
 from superset.extensions import celery_app, db
@@ -857,8 +858,8 @@ def update_api_docs() -> None:
         version=api_version,
         openapi_version="3.0.2",
         info=dict(description=current_app.appbuilder.app_name),
-        plugins=[MarshmallowPlugin()],
-        servers=[{"url": "/api/{}".format(api_version)}],
+        plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
+        servers=[{"url": "http://localhost:8088"}],
     )
     for base_api in current_app.appbuilder.baseviews:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:
