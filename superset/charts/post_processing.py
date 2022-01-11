@@ -331,7 +331,7 @@ def apply_post_process(
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
-    viz_type = form_data.get("viz_type") if form_data.get("viz_type") else result["query_context"].viz_type
+    viz_type = form_data.get("viz_type","") if form_data.get("viz_type","") else result.get("viz_type","")
     if viz_type not in post_processors:
         return result
 
