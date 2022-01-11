@@ -28,8 +28,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "@types/d3-cloud": "^1.2.1",
     "@types/d3-scale": "^2.0.2",
     "d3-cloud": "^1.2.5",
@@ -38,6 +36,8 @@
   },
   "peerDependencies": {
     "@types/react": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
     "react": "^16.13.1"
   }
 }

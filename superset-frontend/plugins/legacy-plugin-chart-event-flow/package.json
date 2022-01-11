@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "react": "^15 || ^16"
+    "react": "^15 || ^16",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*"
   }
 }
