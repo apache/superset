@@ -9,5 +9,15 @@
     "**/*.spec.tsx?",
     "**/*.spec.jsx?",
     "**/__mocks__/**"
-  ]
+  ],
+  "command": {
+    "publish": {
+      "message": "chore(superset-ui): publish %s",
+      "graphType": "all"
+    },
+    "version": {
+      "message": "chore(superset-ui): publish %s",
+      "exact": true
+    }
+  }
 }
