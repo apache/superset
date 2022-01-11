@@ -382,7 +382,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": False,
     "DASHBOARD_DRILL_DOWN": False,
-    # Feature is under active development and breaking changes are expected
+    "CLEAR_FILTER_ON_TAB_NAV": False,
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
