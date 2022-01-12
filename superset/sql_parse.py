@@ -42,7 +42,7 @@ CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
 
 
-# Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
+# TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
 sqlparse.keywords.SQL_REGEX.insert(
     0,
     (
