@@ -37,7 +37,9 @@ export default class ConciseCardChartPlugin extends ChartPlugin<
   constructor() {
     const metadata = new ChartMetadata({
       behaviors: [Behavior.INTERACTIVE_CHART],
-      description: t('Displays metrics in concise way, with dynamic "category" and "tag" filters'),
+      description: t(
+        'Displays metrics in concise way, with dynamic "category" and "tag" filters',
+      ),
       name: t('ConciseCard'),
       thumbnail,
     });

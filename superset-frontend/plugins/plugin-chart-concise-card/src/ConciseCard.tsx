@@ -43,11 +43,12 @@ export default function ConciseCard(props: ConciseCardProps) {
   const [isQueryRunning, setIsQueryRunning] = useState(false);
   const [customData, setCustomData] = useState(null);
 
-  const firstFilterValueChanged = firstFilterValue && firstFilterValue !== firstFilterQueriedValue;
+  const firstFilterValueChanged =
+    firstFilterValue && firstFilterValue !== firstFilterQueriedValue;
   const secondFilterValueChanged =
     secondFilterValue && secondFilterValue !== secondFilterQueriedValue;
 
-  const enableRunButton: boolean = Boolean(
+  const enableRunButton = Boolean(
     !isQueryRunning && (secondFilterValueChanged || firstFilterValueChanged),
   );
 
@@ -76,7 +77,11 @@ export default function ConciseCard(props: ConciseCardProps) {
     const relevantFilters = customAdhocFilters || adhocFilters;
     if (relevantFilters) {
       relevantFilters.forEach(
-        (filter: { operatorId: string; subject: string; comparator: SetStateAction<any> }) => {
+        (filter: {
+          operatorId: string;
+          subject: string;
+          comparator: SetStateAction<any>;
+        }) => {
           if (filter.operatorId === OPERATOR_ID_EQUALS) {
             if (filter.subject === firstFilterData.colnames[0]) {
               setFirstFilterQueriedValue(filter.comparator);
@@ -112,7 +117,7 @@ export default function ConciseCard(props: ConciseCardProps) {
     <Styles>
       {formData && (
         <SubChart
-          borderTopColor={'#450097'}
+          borderTopColor="#450097"
           data={customData || firstData}
           formData={formData}
           filterFieldsData={filterFieldsData}

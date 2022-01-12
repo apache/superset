@@ -28,7 +28,8 @@ const Value = styled.span`
 export default function SecondaryMetric(props: { metric: Metric }) {
   const { metric } = props;
 
-  const value = metric.value % 1 === 0 ? metric.value : metric.value.toPrecision(3);
+  const value =
+    metric.value % 1 === 0 ? metric.value : metric.value.toPrecision(3);
 
   return (
     <Container key={metric.key}>

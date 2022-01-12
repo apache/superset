@@ -1,9 +1,12 @@
+import React from 'react';
 import PrimaryMetric from '../PrimaryMetric/PrimaryMetric';
 import SecondaryMetricContainer from '../SecondaryMetricsContainer/SecondaryMetricsContainer';
-import React from 'react';
 import { Metric } from '../../types';
 
-export default function Result(props: { primaryMetric: Metric; secondaryMetrics: Metric[] }) {
+export default function Result(props: {
+  primaryMetric: Metric;
+  secondaryMetrics: Metric[];
+}) {
   const { primaryMetric, secondaryMetrics } = props;
   return (
     <div>

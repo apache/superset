@@ -14,7 +14,8 @@ const DivComponent = styled.div`
 export default function NoResult() {
   return (
     <DivComponent>
-      No records found for this filter combination. Please select different Category and\or Tag
+      No records found for this filter combination. Please select different
+      Category and\or Tag
     </DivComponent>
   );
 }

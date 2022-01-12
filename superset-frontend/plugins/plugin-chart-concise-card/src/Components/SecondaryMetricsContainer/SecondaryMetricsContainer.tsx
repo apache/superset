@@ -3,7 +3,9 @@ import React from 'react';
 import SecondaryMetric from '../SecondaryMetric/SecondaryMetric';
 import { SecondaryMetricsContainerProps } from '../../types';
 
-export default function SecondaryMetricContainer(props: SecondaryMetricsContainerProps) {
+export default function SecondaryMetricContainer(
+  props: SecondaryMetricsContainerProps,
+) {
   const MetricContainer = styled.div`
     margin-top: 40px;
     line-height: 22px;
@@ -13,9 +15,9 @@ export default function SecondaryMetricContainer(props: SecondaryMetricsContaine
 
   const { secondaryMetrics } = props;
 
-  const metricComponents = secondaryMetrics.map(m => {
-    return <SecondaryMetric metric={m} />;
-  });
+  const metricComponents = secondaryMetrics.map(m => (
+    <SecondaryMetric metric={m} />
+  ));
 
   return <MetricContainer>{metricComponents}</MetricContainer>;
 }

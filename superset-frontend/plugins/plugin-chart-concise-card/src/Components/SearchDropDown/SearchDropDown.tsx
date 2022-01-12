@@ -61,7 +61,10 @@ export default function SearchDropDown(props: {
 
   if (inputValue) {
     filteredValues = filteredValues.filter(value =>
-      value.toString().toLowerCase().includes(inputValue.toString().toLowerCase()),
+      value
+        .toString()
+        .toLowerCase()
+        .includes(inputValue.toString().toLowerCase()),
     );
   }
   filteredValues = filteredValues.slice(0, 199);
@@ -69,19 +72,17 @@ export default function SearchDropDown(props: {
   useEffect(() => setInputValue(selectedValue), [selectedValue]);
   useEffect(() => setInputValue(defaultValue), [defaultValue]);
 
-  const listItems = filteredValues.map(v => {
-    return (
-      <ListItemComponent
-        onClick={() => {
-          setShowDropdown(false);
-          setSelectedValue(v);
-          setInputValue(v);
-        }}
-      >
-        {v}
-      </ListItemComponent>
-    );
-  });
+  const listItems = filteredValues.map(v => (
+    <ListItemComponent
+      onClick={() => {
+        setShowDropdown(false);
+        setSelectedValue(v);
+        setInputValue(v);
+      }}
+    >
+      {v}
+    </ListItemComponent>
+  ));
 
   return (
     <OutsideClickHandler

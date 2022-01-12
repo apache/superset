@@ -1,4 +1,8 @@
-import { buildQueryContext, getChartBuildQueryRegistry, SupersetClient } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  getChartBuildQueryRegistry,
+  SupersetClient,
+} from '@superset-ui/core';
 
 const supersetClient = SupersetClient.getInstance();
 
@@ -32,14 +36,12 @@ const buildReqestPayload = (formData: any) => {
   const buildQuery: any =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
     ((buildQueryformData: any) =>
-      buildQueryContext(buildQueryformData, baseQueryObject => {
-        return [
-          {
-            ...baseQueryObject,
-            filters: formData.filters,
-          },
-        ];
-      }));
+      buildQueryContext(buildQueryformData, baseQueryObject => [
+        {
+          ...baseQueryObject,
+          filters: formData.filters,
+        },
+      ]));
 
   return buildQuery(formData);
 };
@@ -65,10 +67,18 @@ export function runCustomQuery(
   const transformedFilters = transformFilters(adhocFilters);
 
   if (firstFieldValue) {
-    transformedFilters.push({ col: firstColumn, op: '==', val: firstFieldValue });
+    transformedFilters.push({
+      col: firstColumn,
+      op: '==',
+      val: firstFieldValue,
+    });
   }
   if (secondFieldValue) {
-    transformedFilters.push({ col: secondColumn, op: '==', val: secondFieldValue });
+    transformedFilters.push({
+      col: secondColumn,
+      op: '==',
+      val: secondFieldValue,
+    });
   }
 
   const customFormData = {

@@ -30,8 +30,8 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     data,
     formData,
-    firstFilterData: firstFilterData,
-    secondFilterData: secondFilterData,
+    firstFilterData,
+    secondFilterData,
     // and now your control data, manipulated as needed, and passed through as props!
     boldText,
     headerFontSize,

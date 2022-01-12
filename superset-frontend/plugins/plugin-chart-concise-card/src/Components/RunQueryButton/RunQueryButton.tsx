@@ -21,7 +21,10 @@ export default function RunQueryButton(props: {
   const { setShouldRunQuery, enableRunButton } = props;
 
   return (
-    <ButtonComponent disabled={!enableRunButton} onClick={() => setShouldRunQuery(true)}>
+    <ButtonComponent
+      disabled={!enableRunButton}
+      onClick={() => setShouldRunQuery(true)}
+    >
       Run
     </ButtonComponent>
   );

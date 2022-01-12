@@ -56,10 +56,16 @@ export default function SubChart(props: SubChartProps) {
   return (
     <Styles borderTopColor={borderTopColor}>
       <FilterFieldsContainer filterFieldsData={filterFieldsData} />
-      <RunQueryButton setShouldRunQuery={setShouldRunQuery} enableRunButton={enableRunButton} />
+      <RunQueryButton
+        setShouldRunQuery={setShouldRunQuery}
+        enableRunButton={enableRunButton}
+      />
 
       {primaryMetric.value ? (
-        <Result primaryMetric={primaryMetric} secondaryMetrics={secondaryMetrics} />
+        <Result
+          primaryMetric={primaryMetric}
+          secondaryMetrics={secondaryMetrics}
+        />
       ) : (
         <NoResult />
       )}

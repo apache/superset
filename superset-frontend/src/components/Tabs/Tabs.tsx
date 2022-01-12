@@ -39,7 +39,9 @@ const StyledTabs = ({
   const handleChange = () => {
     if (isFeatureEnabled(FeatureFlag.CLEAR_FILTER_ON_TAB_NAV)) {
       const globalState = store.getState();
-      Object.keys(globalState.dataMask).forEach(key => dispatch(clearDataMask(globalState.dataMask[key].id)));
+      Object.keys(globalState.dataMask).forEach(key =>
+        dispatch(clearDataMask(globalState.dataMask[key].id)),
+      );
     }
   };
   return (

@@ -26,7 +26,11 @@ function useOutsideAlerter(ref: any, callback: any, callbackArg: any) {
 /**
  * Component that alerts if you click outside of it
  */
-function OutsideAlerter(props: { children: object; callbackArg: string; callback: object }) {
+function OutsideAlerter(props: {
+  children: object;
+  callbackArg: string;
+  callback: object;
+}) {
   const { children, callback, callbackArg } = props;
   const wrapperRef = useRef(null);
 
