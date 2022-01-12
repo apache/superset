@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { <%= packageLabel %>ChartPlugin } from '../src';
+import { <%= packageLabel %> } from '../src';
 
 /**
  * The example tests in this file act as a starting point, and
@@ -26,8 +26,8 @@ import { <%= packageLabel %>ChartPlugin } from '../src';
  * treated correctly (e.g. formData from plugin controls
  * properly transform the data and/or any resulting props).
  */
-describe('@superset-ui/plugin-chart-<%= packageName %>', () => {
+describe('<%= packageName %>', () => {
   it('exists', () => {
-    expect(<%= packageLabel %>ChartPlugin).toBeDefined();
+    expect(<%= packageLabel %>).toBeDefined();
   });
 });

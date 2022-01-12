@@ -77,6 +77,7 @@ module.exports = class extends Generator {
     };
 
     [
+      ['gitignore.erb', '.gitignore'],
       ['babel.config.erb', 'babel.config.js'],
       ['jest.config.erb', 'jest.config.js'],
       ['package.erb', 'package.json'],
