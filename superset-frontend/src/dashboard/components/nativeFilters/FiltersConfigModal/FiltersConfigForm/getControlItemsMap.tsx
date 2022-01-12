@@ -26,6 +26,7 @@ import { FormInstance } from 'antd/lib/form';
 import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem } from 'src/components/Form';
+import SelectControl from 'src/explore/components/controls/SelectControl';
 import {
   doesColumnMatchFilterType,
   getControlItems,
@@ -146,6 +147,7 @@ export default function getControlItemsMap({
       (controlItem: CustomControlItem) =>
         controlItem?.config?.renderTrigger &&
         controlItem.name !== 'sortAscending' &&
+        controlItem?.config?.type !== 'SelectControl' &&
         controlItem.name !== 'enableSingleValue',
     )
     .forEach(controlItem => {
@@ -210,6 +212,69 @@ export default function getControlItemsMap({
         </>
       );
       mapControlItems[controlItem.name] = { element, checked: initialValue };
+    });
+  controlItems
+    .filter(
+      (controlItem: CustomControlItem) =>
+        controlItem?.config?.renderTrigger &&
+        controlItem.name !== 'sortAscending' &&
+        controlItem?.config?.type === 'SelectControl',
+    )
+    .forEach(controlItem => {
+      const initialValue =
+        filterToEdit?.controlValues?.[controlItem.name] ??
+        controlItem?.config?.default;
+      const element = (
+        <>
+          <CleanFormItem
+            name={['filters', filterId, 'requiredFirst', controlItem.name]}
+            hidden
+            initialValue={
+              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
+            }
+          />
+          <Tooltip
+            key={controlItem.name}
+            placement="left"
+            title={
+              controlItem.config.affectsDataMask &&
+              disabled &&
+              t('Populate "Default value" to enable this control')
+            }
+          >
+            <StyledRowFormItem
+              key={controlItem.name}
+              name={['filters', filterId, 'controlValues', controlItem.name]}
+              initialValue={initialValue}
+              valuePropName="option"
+              colon={false}
+              label={
+                <StyledLabel>
+                  {t(`${controlItem.config?.label}`) || t('Select')}
+                </StyledLabel>
+              }
+            >
+              <SelectControl
+                name={controlItem.name}
+                clearable={false}
+                freeForm={controlItem.config.freeForm}
+                disabled={controlItem.config.affectsDataMask && disabled}
+                onChange={(value: any) => {
+                  setNativeFilterFieldValues(form, filterId, {
+                    [controlItem.name]: value,
+                    defaultDataMask: null,
+                  });
+                  // controlItem.config.value = value;
+                  forceUpdate();
+                }}
+                value={controlItem.config.value || initialValue}
+                choices={controlItem.config.choices}
+              />
+            </StyledRowFormItem>
+          </Tooltip>
+        </>
+      );
+      mapControlItems[controlItem.name] = { element, checked: false };
     });
   return {
     controlItems: mapControlItems,

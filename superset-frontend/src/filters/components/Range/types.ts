@@ -25,14 +25,16 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-interface PluginFilterSelectCustomizeProps {
+interface PluginFilterRangeCustomizeProps {
   max?: number;
   min?: number;
+  stepSize: number;
+  logScale: boolean;
 }
 
 export type PluginFilterRangeQueryFormData = QueryFormData &
   PluginFilterStylesProps &
-  PluginFilterSelectCustomizeProps;
+  PluginFilterRangeCustomizeProps;
 
 export type PluginFilterRangeProps = PluginFilterStylesProps & {
   data: DataRecord[];

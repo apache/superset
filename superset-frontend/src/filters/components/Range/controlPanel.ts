@@ -69,6 +69,74 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'logScale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Logarithmic Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Make the scale logarithmic.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'stepSize',
+            config: {
+              type: 'SelectControl',
+              label: t('Step Size'),
+              default: 1,
+              renderTrigger: true,
+              freeForm: true,
+              choices: [
+                [0.01, 0.01],
+                [0.1, 0.1],
+                [1, 1],
+                [2, 2],
+                [10, 10],
+                [25, 25],
+                [100, 100],
+              ],
+              description: t('Set the slider step size.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'logScale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Logarithmic Scale'),
+              default: false,
+              renderTrigger: true,
+              description: t('Make the scale logarithmic.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'stepSize',
+            config: {
+              type: 'SelectControl',
+              label: t('Step Size'),
+              default: 1,
+              renderTrigger: true,
+              freeForm: true,
+              choices: [
+                [0.01, 0.01],
+                [0.1, 0.1],
+                [1, 1],
+                [2, 2],
+                [10, 10],
+                [25, 25],
+                [100, 100],
+              ],
+              description: t('Set the slider step size.'),
+            },
+          },
+        ],
       ],
     },
   ],

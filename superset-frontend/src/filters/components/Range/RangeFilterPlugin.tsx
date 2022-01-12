@@ -30,6 +30,9 @@ import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
+
+// could add in scalePow and others
+import { scaleLog, scaleLinear } from 'd3-scale';
 import { SingleValueType } from './SingleValueType';
 
 const LIGHT_BLUE = '#99e7f0';
@@ -111,8 +114,7 @@ const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
 
-const tipFormatter = (value: number) => numberFormatter(value);
-
+// lower and upper are NOT transformed!!!!
 const getLabel = (lower: number | null, upper: number | null): string => {
   if (lower !== null && upper !== null && lower === upper) {
     return `x = ${numberFormatter(lower)}`;
@@ -129,20 +131,6 @@ const getLabel = (lower: number | null, upper: number | null): string => {
   return '';
 };
 
-const getMarks = (
-  lower: number | null,
-  upper: number | null,
-): { [key: number]: string } => {
-  const newMarks: { [key: number]: string } = {};
-  if (lower !== null) {
-    newMarks[lower] = numberFormatter(lower);
-  }
-  if (upper !== null) {
-    newMarks[upper] = numberFormatter(upper);
-  }
-  return newMarks;
-};
-
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
     data,
@@ -157,7 +145,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, inputRef, enableSingleValue } = formData;
+  const { groupby, defaultValue, inputRef, stepSize, logScale, enableSingleValue } = formData;
+  const scaler = (logScale) ? scaleLog().domain([min+1, max+1]) : scaleLinear().range([min, max]);
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -165,14 +154,46 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const rangeValue = enableSingleValue === undefined;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
+  // these could be replaced with a property instead, to allow custom transforms
+  const transformScale = useCallback(
+    (val: number | null) => {
+        return val ? scaler(val + 1 * logScale) : val;
+    },
+    [logScale],
+  );
+
+  const inverseScale = useCallback(
+    (val: number | null) => val ? scaler.invert(val) - 1 * logScale : val,
+    [logScale],
+  );
+
   const [value, setValue] = useState<[number, number]>(
-    defaultValue ?? [min, enableSingleExactValue ? min : max],
+    (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(transformScale),
   );
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
   const minIndex = 0;
   const maxIndex = 1;
   const minMax = value ?? [min, max];
 
+  const tipFormatter = (value: number) =>
+    numberFormatter(inverseScale(Number(value)));
+
+  // lower & upper are transformed
+  const getMarks = useCallback(
+    (lower: number | null, upper: number | null): { [key: number]: string } => {
+      const newMarks: { [key: number]: string } = {};
+      if (lower !== null) {
+        newMarks[lower] = numberFormatter(inverseScale(lower));
+      }
+      if (upper !== null) {
+        newMarks[upper] = numberFormatter(inverseScale(upper));
+      }
+      return newMarks;
+    },
+    [inverseScale, value],
+  );
+
+  // value is transformed
   const getBounds = useCallback(
     (
       value: [number, number],
@@ -184,41 +205,49 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       return {
-        lower: lowerRaw > min ? lowerRaw : null,
-        upper: upperRaw < max ? upperRaw : null,
+        lower: lowerRaw > Number(transformScale(min)) ? lowerRaw : null,
+        upper: upperRaw < Number(transformScale(max)) ? upperRaw : null,
       };
     },
-    [max, min, enableSingleExactValue],
+    [max, min, transformScale, value, enableSingleExactValue],
   );
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
+      // value is transformed
       setValue(value);
+      // lower & upper are transformed
       const { lower, upper } = getBounds(value);
       setMarks(getMarks(lower, upper));
-
+      // removed Number
       setDataMask({
-        extraFormData: getRangeExtraFormData(col, lower, upper),
+        extraFormData: getRangeExtraFormData(
+          col,
+          inverseScale(lower),
+          inverseScale(upper),
+        ),
         filterState: {
           value: lower !== null || upper !== null ? value : null,
-          label: getLabel(lower, upper),
+          label: getLabel(inverseScale(lower), inverseScale(upper)),
         },
       });
     },
-    [col, getBounds, setDataMask],
+    [col, getBounds, setDataMask, getMarks, inverseScale],
   );
 
+  // value is transformed
   const handleChange = useCallback((value: [number, number]) => {
     setValue(value);
   }, []);
 
+  // value is transformed
   useEffect(() => {
     // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
     if (row?.min === undefined && row?.max === undefined) {
       return;
     }
 
-    let filterStateValue = filterState.value ?? [min, max];
+    let filterStateValue = filterState.value ?? [min, max].map(transformScale);
     if (enableSingleMaxValue) {
       const filterStateMax =
         filterStateValue[maxIndex] <= minMax[maxIndex]
@@ -257,6 +286,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
+  const minMax = useMemo(
+    () => {
+      return value ?? [min ?? 0, max].map(transformScale);
+    },
+    [max, min, value, transformScale],
+  );
   useEffect(() => {
     if (enableSingleMaxValue) {
       handleAfterChange([min, minMax[minIndex]]);
@@ -292,6 +327,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           >
             {enableSingleMaxValue && (
               <Slider
+                min={transformScale(min) ?? 0}
+                max={transformScale(max) ?? undefined}
                 min={min}
                 max={max}
                 value={minMax[maxIndex]}
@@ -299,11 +336,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 marks={marks}
                 onAfterChange={value => handleAfterChange([min, value])}
                 onChange={value => handleChange([min, value])}
+                step={stepSize}
               />
             )}
             {enableSingleMinValue && (
               <StyledMinSlider
                 validateStatus={filterState.validateStatus}
+                min={transformScale(min) ?? 0}
+                max={transformScale(max) ?? undefined}
                 min={min}
                 max={max}
                 value={minMax[minIndex]}
@@ -311,10 +351,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 marks={marks}
                 onAfterChange={value => handleAfterChange([value, max])}
                 onChange={value => handleChange([value, max])}
+                step={stepSize}
               />
             )}
             {enableSingleExactValue && (
               <Slider
+                min={transformScale(min) ?? 0}
+                max={transformScale(max) ?? undefined}
                 min={min}
                 max={max}
                 included={false}
@@ -323,11 +366,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 marks={marks}
                 onAfterChange={value => handleAfterChange([value, value])}
                 onChange={value => handleChange([value, value])}
+                step={stepSize}
               />
             )}
             {rangeValue && (
               <Slider
                 range
+                min={transformScale(min) ?? 0}
+                max={transformScale(max) ?? undefined}
                 min={min}
                 max={max}
                 value={minMax}
@@ -335,6 +381,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 onChange={handleChange}
                 tipFormatter={tipFormatter}
                 marks={marks}
+                step={stepSize}
               />
             )}
           </Wrapper>
