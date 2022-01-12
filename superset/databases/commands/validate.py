@@ -30,7 +30,6 @@ from superset.databases.commands.exceptions import (
     InvalidParametersError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.databases.utils import encode_parameters
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -100,12 +99,9 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         except json.decoder.JSONDecodeError:
             encrypted_extra = {}
 
-        # encode parameters
-        params = encode_parameters(self._properties.get("parameters", {}))
-
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(  # type: ignore
-            params, encrypted_extra,
+            self._properties.get("parameters", {}), encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
