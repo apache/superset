@@ -35,19 +35,23 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
-function ExploreCtasResultsButton(props) {
-  function buildVizOptions() {
-    return {
-      datasourceName: props.table,
-      schema: props.schema,
-      dbId: props.dbId,
-      templateParams: props.templateParams,
-    };
-  }
+const ExploreCtasResultsButton = ({
+  table,
+  schema,
+  dbId,
+  templateParams,
+  errorMessage,
+  actions: { createCtasDatasource, addInfoToast, addDangerToast },
+}) => {
+  const buildVizOptions = {
+    datasourceName: table,
+    schema,
+    dbId,
+    templateParams,
+  };
 
-  function visualize() {
-    props.actions
-      .createCtasDatasource(buildVizOptions())
+  const visualize = () => {
+    createCtasDatasource(buildVizOptions())
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -58,42 +62,35 @@ function ExploreCtasResultsButton(props) {
           all_columns: [],
           row_limit: 1000,
         };
-        props.actions.addInfoToast(
-          t('Creating a data source and creating a new tab'),
-        );
+        addInfoToast(t('Creating a data source and creating a new tab'));
 
         // open new window for data visualization
         exploreChart(formData);
       })
       .catch(() => {
-        props.actions.addDangerToast(
-          props.errorMessage || t('An error occurred'),
-        );
+        addDangerToast(errorMessage || t('An error occurred'));
       });
-  }
+  };
 
-  function onClick() {
+  const onClick = () => {
     visualize();
-  }
+  };
 
   return (
-    <>
-      <Button
-        buttonSize="small"
-        onClick={onClick}
-        tooltip={t('Explore the result set in the data exploration view')}
-      >
-        <InfoTooltipWithTrigger
-          icon="line-chart"
-          placement="top"
-          label="explore"
-        />{' '}
-        {/* NOTE TO SELF: Below, the text should be "Explore" instead of "This is the button" */}
-        {t('This Is the button')}
-      </Button>
-    </>
+    <Button
+      buttonSize="small"
+      onClick={onClick}
+      tooltip={t('Explore the result set in the data exploration view')}
+    >
+      <InfoTooltipWithTrigger
+        icon="line-chart"
+        placement="top"
+        label="explore"
+      />{' '}
+      {t('Explore')}
+    </Button>
   );
-}
+};
 ExploreCtasResultsButton.propTypes = propTypes;
 
 function mapStateToProps({ sqlLab, common }) {
