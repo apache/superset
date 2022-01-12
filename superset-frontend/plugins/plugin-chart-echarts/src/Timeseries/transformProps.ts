@@ -250,7 +250,10 @@ export default function transformProps(
     xAxisDataType === GenericDataType.TEMPORAL
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
-  const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+  const xAxisFormatter =
+    xAxisDataType === GenericDataType.TEMPORAL
+      ? getXAxisFormatter(xAxisTimeFormat)
+      : String;
 
   const labelMap = series.reduce(
     (acc: Record<string, DataRecordValue[]>, datum) => {
