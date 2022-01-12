@@ -1199,3 +1199,9 @@ def test_validate_filter_clause_comment():
 def test_validate_filter_clause_subquery_comment():
     with pytest.raises(QueryClauseValidationException):
         validate_filter_clause("(1 = 1 -- comment\n)")
+
+
+def test_sqlparse_issue_652():
+    stmt = sqlparse.parse(r"foo = '\' AND bar = 'baz'")[0]
+    assert len(stmt.tokens) == 5
+    assert str(stmt.tokens[0]) == "foo = '\\'"
