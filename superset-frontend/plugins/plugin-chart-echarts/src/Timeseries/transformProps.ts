@@ -156,7 +156,7 @@ export default function transformProps(
 
   rebasedData.forEach(data => {
     const values = Object.keys(data).reduce((prev, curr) => {
-      if (curr === DTTM_ALIAS) {
+      if (curr === xAxisCol) {
         return prev;
       }
       const value = data[curr] || 0;
