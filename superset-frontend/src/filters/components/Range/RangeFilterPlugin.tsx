@@ -164,12 +164,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   // these could be replaced with a property instead, to allow custom transforms
   const transformScale = useCallback(
-    (val: number | null) => (val ? scaler(val + 1 * logScale) : val),
+    (val: number | null) => (val ? scaler(val + (logScale ? 1 : 0)) : val),
     [logScale],
   );
 
   const inverseScale = useCallback(
-    (val: number | null) => (val ? scaler.invert(val) - 1 * logScale : val),
+    (val: number | null) =>
+      val ? scaler.invert(val) - (logScale ? 1 : 0) : val,
     [logScale],
   );
 
@@ -181,7 +182,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
   const minIndex = 0;
   const maxIndex = 1;
-  const minMax = value ?? [min, max];
+  const minMax = useMemo(
+    () => value ?? [min ?? 0, max].map(transformScale),
+    [max, min, value, transformScale],
+  );
 
   const tipFormatter = (value: number) =>
     numberFormatter(inverseScale(Number(value)));
@@ -294,10 +298,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  const minMax = useMemo(
-    () => value ?? [min ?? 0, max].map(transformScale),
-    [max, min, value, transformScale],
-  );
   useEffect(() => {
     if (enableSingleMaxValue) {
       handleAfterChange([min, minMax[minIndex]]);
