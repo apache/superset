@@ -335,8 +335,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               <Slider
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
-                min={min}
-                max={max}
                 value={minMax[maxIndex]}
                 tipFormatter={tipFormatter}
                 marks={marks}
@@ -350,8 +348,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 validateStatus={filterState.validateStatus}
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
-                min={min}
-                max={max}
                 value={minMax[minIndex]}
                 tipFormatter={tipFormatter}
                 marks={marks}
@@ -364,8 +360,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               <Slider
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
-                min={min}
-                max={max}
                 included={false}
                 value={minMax[minIndex]}
                 tipFormatter={tipFormatter}
@@ -380,8 +374,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 range
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
-                min={min}
-                max={max}
                 value={minMax}
                 onAfterChange={handleAfterChange}
                 onChange={handleChange}
