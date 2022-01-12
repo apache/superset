@@ -81,6 +81,7 @@ export function transformSeries(
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
+    thresholdValues?: number[];
     richTooltip?: boolean;
   },
 ): SeriesOption | undefined {
@@ -100,6 +101,7 @@ export function transformSeries(
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
+    thresholdValues = [],
     richTooltip,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
@@ -211,8 +213,12 @@ export function transformSeries(
         } = params;
         const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
-        if (!stack || !onlyTotal || isSelectedLegend) {
-          return formatter(numericValue);
+        if (!stack || isSelectedLegend) return formatter(numericValue);
+        if (!onlyTotal) {
+          if (numericValue >= thresholdValues[dataIndex]) {
+            return formatter(numericValue);
+          }
+          return '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
           return formatter(totalStackedValues[dataIndex]);
