@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fetchExploreJson } from '@superset-ui/core/src/query/api/legacy';
+import { fetchExploreJson } from '../../../../src/query/api/legacy';
 import setupClientForTest from '../setupClientForTest';
 
 describe('fetchExploreJson()', () => {

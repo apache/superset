@@ -34,7 +34,7 @@ import handleResourceExport from 'src/utils/export';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
-} from 'src/components/Menu/SubMenu';
+} from 'src/views/components/SubMenu';
 import ListView, {
   ListViewProps,
   Filters,

@@ -16,17 +16,23 @@
 # under the License.
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
+
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.utils import cache_key
 
 
 class CreateFilterStateCommand(CreateKeyValueCommand):
-    def create(self, resource_id: int, key: str, value: str) -> Optional[bool]:
+    def create(
+        self, actor: User, resource_id: int, key: str, value: str
+    ) -> Optional[bool]:
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
+            entry: Entry = {"owner": actor.get_user_id(), "value": value}
             return cache_manager.filter_state_cache.set(
-                cache_key(resource_id, key), value
+                cache_key(resource_id, key), entry
             )
         return False

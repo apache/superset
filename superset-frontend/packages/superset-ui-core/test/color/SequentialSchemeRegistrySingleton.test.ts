@@ -20,7 +20,7 @@
 import {
   SequentialScheme,
   getSequentialSchemeRegistry,
-} from '@superset-ui/core/src/color';
+} from '@superset-ui/core';
 
 describe('SequentialSchemeRegistry', () => {
   it('has default value out-of-the-box', () => {

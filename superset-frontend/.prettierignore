@@ -20,7 +20,9 @@ lib/
 tmp/
 node_modules/
 tsconfig.json
+lerna.json
 CHANGELOG.md
 *.geojson
 *-topo.json
 temporary_superset_ui/
+storybook-static/

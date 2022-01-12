@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { promiseTimeout, getTextDimension } from '@superset-ui/core/src';
+import { promiseTimeout, getTextDimension } from '@superset-ui/core';
 import { addDummyFill, removeDummyFill, SAMPLE_TEXT } from './getBBoxDummyFill';
 
 describe('getTextDimension(input)', () => {

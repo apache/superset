@@ -41,6 +41,7 @@ from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-mod
 from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 
+from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -103,6 +104,11 @@ def _try_json_readsha(filepath: str, length: int) -> Optional[str]:
         return None
 
 
+#
+# If True, we will skip the call to load the logger config found in alembic.init
+#
+ALEMBIC_SKIP_LOG_CONFIG = False
+
 # Depending on the context in which this config is loaded, the
 # version_info.json file may or may not be available, as it is
 # generated on install via setup.py. In the event that we're
@@ -155,8 +161,10 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
+# Your App secret key. Make sure you override it on superset_config.py.
+# Use a strong complex alphanumeric string and use a tool to help you generate
+# a sufficiently random sequence, ex: openssl rand -base64 42"
+SECRET_KEY = CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -285,6 +293,8 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
+
+AUTH_STRICT_RESPONSE_CODES = True
 
 # ---------------------------------------------------
 # Roles config
@@ -1292,6 +1302,9 @@ MENU_HIDE_USER_INFO = False
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+# Set to False to only allow viewing own recent activity
+ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

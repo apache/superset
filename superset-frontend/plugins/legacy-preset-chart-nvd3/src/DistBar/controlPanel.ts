@@ -35,6 +35,7 @@ import {
   yAxisLabel,
   yAxisShowMinmax,
   yAxisBounds,
+  richTooltip,
 } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
@@ -58,6 +59,8 @@ const config: ControlPanelConfig = {
               label: t('Sort Descending'),
               default: true,
               description: t('Whether to sort descending or ascending'),
+              visibility: ({ controls }) =>
+                Boolean(controls?.timeseries_limit_metric.value),
             },
           },
         ],
@@ -81,6 +84,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showLegend],
         [showBarValue],
+        [richTooltip],
         [barStacked],
         [
           {

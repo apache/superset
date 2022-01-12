@@ -18,8 +18,9 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import CertifiedBadge from '../CertifiedBadge';
 
 export interface EditableTitleProps {
   canEdit?: boolean;
@@ -34,7 +35,13 @@ export interface EditableTitleProps {
   title?: string;
   defaultTitle?: string;
   placeholder?: string;
+  certifiedBy?: string;
+  certificationDetails?: string;
 }
+
+const StyledCertifiedBadge = styled(CertifiedBadge)`
+  vertical-align: middle;
+`;
 
 export default function EditableTitle({
   canEdit = false,
@@ -48,6 +55,8 @@ export default function EditableTitle({
   title = '',
   defaultTitle = '',
   placeholder = '',
+  certifiedBy,
+  certificationDetails,
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
@@ -222,6 +231,14 @@ export default function EditableTitle({
       )}
       style={style}
     >
+      {certifiedBy && (
+        <>
+          <StyledCertifiedBadge
+            certifiedBy={certifiedBy}
+            details={certificationDetails}
+          />{' '}
+        </>
+      )}
       {titleComponent}
     </span>
   );

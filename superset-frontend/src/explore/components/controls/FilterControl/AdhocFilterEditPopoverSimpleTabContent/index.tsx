@@ -37,6 +37,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
+import { propertyComparator } from 'src/components/Select/Select';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -233,7 +234,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    onComparatorChange(event.target.value);
+    const { value } = event.target;
+    setComparator(value);
+    onComparatorChange(value);
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
@@ -387,12 +390,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         css={theme => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevant(op, subject))
-          .map(option => ({
+          .map((option, index) => ({
             value: option,
             label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
             key: option,
+            order: index,
           }))}
         {...operatorSelectProps}
+        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
@@ -402,6 +407,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             label: String(suggestion),
           }))}
           {...comparatorSelectProps}
+          sortComparator={propertyComparator(
+            typeof suggestions[0] === 'number' ? 'value' : 'label',
+          )}
         />
       ) : (
         <StyledInput

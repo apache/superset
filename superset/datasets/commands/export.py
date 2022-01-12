@@ -31,7 +31,7 @@ from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
-JSON_KEYS = {"params", "template_params"}
+JSON_KEYS = {"params", "template_params", "extra"}
 
 
 class ExportDatasetsCommand(ExportModelsCommand):
@@ -59,12 +59,15 @@ class ExportDatasetsCommand(ExportModelsCommand):
                     payload[key] = json.loads(payload[key])
                 except json.decoder.JSONDecodeError:
                     logger.info("Unable to decode `%s` field: %s", key, payload[key])
-        for metric in payload.get("metrics", []):
-            if metric.get("extra"):
-                try:
-                    metric["extra"] = json.loads(metric["extra"])
-                except json.decoder.JSONDecodeError:
-                    logger.info("Unable to decode `extra` field: %s", metric["extra"])
+        for key in ("metrics", "columns"):
+            for attributes in payload.get(key, []):
+                if attributes.get("extra"):
+                    try:
+                        attributes["extra"] = json.loads(attributes["extra"])
+                    except json.decoder.JSONDecodeError:
+                        logger.info(
+                            "Unable to decode `extra` field: %s", attributes["extra"]
+                        )
 
         payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)

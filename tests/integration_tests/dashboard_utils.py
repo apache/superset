@@ -29,35 +29,30 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 
 
-def create_table_for_dashboard(
-    df: DataFrame,
+def get_table(
+    table_name: str, database: Database, schema: Optional[str] = None,
+):
+    schema = schema or get_example_default_schema()
+    table_source = ConnectorRegistry.sources["table"]
+    return (
+        db.session.query(table_source)
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .one_or_none()
+    )
+
+
+def create_table_metadata(
     table_name: str,
     database: Database,
-    dtype: Dict[str, Any],
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
     schema = schema or get_example_default_schema()
 
-    df.to_sql(
-        table_name,
-        database.get_sqla_engine(),
-        if_exists="replace",
-        chunksize=500,
-        dtype=dtype,
-        index=False,
-        method="multi",
-        schema=schema,
-    )
-
-    table_source = ConnectorRegistry.sources["table"]
-    table = (
-        db.session.query(table_source)
-        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
-        .one_or_none()
-    )
+    table = get_table(table_name, database, schema)
     if not table:
+        table_source = ConnectorRegistry.sources["table"]
         table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
@@ -85,7 +80,6 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-
     if not dash:
         dash = Dashboard()
     dash.dashboard_title = title

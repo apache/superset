@@ -154,6 +154,11 @@
             "description": "Should the layer be shown",
             "type": "boolean"
           },
+          "showLabel": {
+            "description": "Should the label always be shown",
+            "nullable": true,
+            "type": "boolean"
+          },
           "showMarkers": {
             "description": "Should markers be shown. Only applies to line annotations.",
             "type": "boolean"
@@ -227,7 +232,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta4"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -238,7 +243,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta3"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -261,6 +266,40 @@
         },
         "type": "object"
       },
+      "AnnotationLayerRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "AnnotationLayerRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "AnnotationLayerRestApi.post": {
         "properties": {
           "descr": {
@@ -275,6 +314,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "name"
+        ],
         "type": "object"
       },
       "AnnotationLayerRestApi.put": {
@@ -308,7 +350,7 @@
             "type": "string"
           },
           "layer": {
-            "$ref": "#/components/schemas/Meta2"
+            "$ref": "#/components/schemas/AnnotationRestApi.get.AnnotationLayer"
           },
           "long_descr": {
             "nullable": true,
@@ -330,16 +372,30 @@
         ],
         "type": "object"
       },
+      "AnnotationRestApi.get.AnnotationLayer": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "end_dttm": {
             "format": "date-time",
@@ -365,6 +421,38 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "AnnotationRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first_name"
+        ],
+        "type": "object"
+      },
+      "AnnotationRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "first_name"
+        ],
         "type": "object"
       },
       "AnnotationRestApi.post": {
@@ -396,6 +484,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "end_dttm",
+          "short_descr",
+          "start_dttm"
+        ],
         "type": "object"
       },
       "AnnotationRestApi.put": {
@@ -407,10 +500,12 @@
           },
           "json_metadata": {
             "description": "JSON metadata",
+            "nullable": true,
             "type": "string"
           },
           "long_descr": {
             "description": "A long description",
+            "nullable": true,
             "type": "string"
           },
           "short_descr": {
@@ -530,6 +625,10 @@
             "example": true,
             "type": "boolean"
           },
+          "isExtra": {
+            "description": "Indicates if the filter has been added by a filter component as opposed to being a part of the original query.",
+            "type": "boolean"
+          },
           "label": {
             "description": "Label for the metric. Is automatically generated unless hasCustomLabel is true, in which case label must be defined.",
             "example": "Weighted observations",
@@ -543,6 +642,11 @@
           "sqlExpression": {
             "description": "The metric as defined by a SQL aggregate expression. Only required for SQL expression type.",
             "example": "SUM(weight * observations) / SUM(weight)",
+            "type": "string"
+          },
+          "timeGrain": {
+            "description": "Optional time grain for temporal filters",
+            "example": "PT1M",
             "type": "string"
           }
         },
@@ -608,6 +712,7 @@
           "metrics": {
             "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
             "items": {},
+            "nullable": true,
             "type": "array"
           },
           "percentiles": {
@@ -761,9 +866,17 @@
       "ChartDataFilter": {
         "properties": {
           "col": {
-            "description": "The column to filter.",
-            "example": "country",
+            "description": "The column to filter by. Can be either a string (physical or saved expression) or an object (adhoc column)",
+            "example": "country"
+          },
+          "grain": {
+            "description": "Optional time grain for temporal filters",
+            "example": "PT1M",
             "type": "string"
+          },
+          "isExtra": {
+            "description": "Indicates if the filter has been added by a filter component as opposed to being a part of the original query.",
+            "type": "boolean"
           },
           "op": {
             "description": "The comparison operator.",
@@ -892,8 +1005,8 @@
             "type": "string"
           },
           "columns": {
+            "description": "Columns to group by on the table columns",
             "items": {
-              "description": "Columns to group by on the table columns",
               "type": "string"
             },
             "type": "array"
@@ -935,7 +1048,8 @@
               "select",
               "sort",
               "diff",
-              "compare"
+              "compare",
+              "resample"
             ],
             "example": "aggregate",
             "type": "string"
@@ -1039,6 +1153,9 @@
             "description": "Should the queries be forced to load from the source. Default: `false`",
             "type": "boolean"
           },
+          "form_data": {
+            "nullable": true
+          },
           "queries": {
             "items": {
               "$ref": "#/components/schemas/ChartDataQueryObject"
@@ -1075,9 +1192,7 @@
           },
           "columns": {
             "description": "Columns which to select in the query.",
-            "items": {
-              "type": "string"
-            },
+            "items": {},
             "nullable": true,
             "type": "array"
           },
@@ -1121,10 +1236,8 @@
             "type": "string"
           },
           "groupby": {
-            "items": {
-              "description": "Columns by which to group the query.",
-              "type": "string"
-            },
+            "description": "Columns by which to group the query. This field is deprecated, use `columns` instead.",
+            "items": {},
             "nullable": true,
             "type": "array"
           },
@@ -1208,6 +1321,22 @@
             "nullable": true,
             "type": "integer"
           },
+          "series_columns": {
+            "description": "Columns to use when limiting series count. All columns must be present in the `columns` property. Requires `series_limit` and `series_limit_metric` to be set.",
+            "items": {},
+            "nullable": true,
+            "type": "array"
+          },
+          "series_limit": {
+            "description": "Maximum number of series. Requires `series` and `series_limit_metric` to be set.",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "series_limit_metric": {
+            "description": "Metric used to limit timeseries queries by. Requires `series` and `series_limit` to be set.",
+            "nullable": true
+          },
           "time_offsets": {
             "items": {
               "type": "string"
@@ -1227,13 +1356,13 @@
             "type": "string"
           },
           "timeseries_limit": {
-            "description": "Maximum row count for timeseries queries. Default: `0`",
+            "description": "Maximum row count for timeseries queries. This field is deprecated, use `series_limit` instead.Default: `0`",
             "format": "int32",
             "nullable": true,
             "type": "integer"
           },
           "timeseries_limit_metric": {
-            "description": "Metric used to limit timeseries queries by.",
+            "description": "Metric used to limit timeseries queries by. This field is deprecated, use `series_limit_metric` instead.",
             "nullable": true
           },
           "url_params": {
@@ -1289,6 +1418,21 @@
             "nullable": true,
             "type": "string"
           },
+          "colnames": {
+            "description": "A list of column names",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "coltypes": {
+            "description": "A list of generic data types of each column",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "data": {
             "description": "A list with results",
             "items": {
@@ -1300,6 +1444,11 @@
             "description": "Error",
             "nullable": true,
             "type": "string"
+          },
+          "from_dttm": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
           },
           "is_cached": {
             "description": "Is the result cached",
@@ -1337,6 +1486,11 @@
               "timed_out"
             ],
             "type": "string"
+          },
+          "to_dttm": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "required": [
@@ -1356,6 +1510,489 @@
               "$ref": "#/components/schemas/ChartDataResponseResult"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChartDataRestApi.get": {
+        "properties": {
+          "cache_timeout": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
+          "dashboards": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get.Dashboard"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "owners": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get.User"
+          },
+          "params": {
+            "nullable": true,
+            "type": "string"
+          },
+          "query_context": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slice_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "viz_type": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartDataRestApi.get.Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "json_metadata": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartDataRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list": {
+        "properties": {
+          "cache_timeout": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+          },
+          "changed_by_name": {
+            "readOnly": true
+          },
+          "changed_by_url": {
+            "readOnly": true
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "changed_on_utc": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+          },
+          "datasource_id": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "datasource_name_text": {
+            "readOnly": true
+          },
+          "datasource_type": {
+            "maxLength": 200,
+            "nullable": true,
+            "type": "string"
+          },
+          "datasource_url": {
+            "readOnly": true
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description_markeddown": {
+            "readOnly": true
+          },
+          "edit_url": {
+            "readOnly": true
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_saved_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_saved_by": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+          },
+          "owners": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+          },
+          "params": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slice_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "table": {
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.SqlaTable"
+          },
+          "thumbnail_url": {
+            "readOnly": true
+          },
+          "url": {
+            "readOnly": true
+          },
+          "viz_type": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.SqlaTable": {
+        "properties": {
+          "default_endpoint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "table_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User3": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.post": {
+        "properties": {
+          "cache_timeout": {
+            "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this chart",
+            "nullable": true,
+            "type": "string"
+          },
+          "dashboards": {
+            "items": {
+              "description": "A list of dashboards to include this new chart to.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "datasource_id": {
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "datasource_name": {
+            "description": "The datasource name.",
+            "nullable": true,
+            "type": "string"
+          },
+          "datasource_type": {
+            "description": "The type of dataset/datasource identified on `datasource_id`.",
+            "enum": [
+              "druid",
+              "table",
+              "view"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the chart propose.",
+            "nullable": true,
+            "type": "string"
+          },
+          "owners": {
+            "items": {
+              "description": "Owner are users ids allowed to delete or change this chart. If left empty you will be one of the owners of the chart.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "params": {
+            "description": "Parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object for power users who may want to alter specific parameters.",
+            "nullable": true,
+            "type": "string"
+          },
+          "query_context": {
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "nullable": true,
+            "type": "string"
+          },
+          "query_context_generation": {
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "slice_name": {
+            "description": "The name of the chart.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "viz_type": {
+            "description": "The type of chart visualization used.",
+            "example": [
+              "bar",
+              "line_multi",
+              "area",
+              "table"
+            ],
+            "maxLength": 250,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "datasource_id",
+          "datasource_type",
+          "slice_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.put": {
+        "properties": {
+          "cache_timeout": {
+            "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this chart",
+            "nullable": true,
+            "type": "string"
+          },
+          "dashboards": {
+            "items": {
+              "description": "A list of dashboards to include this new chart to.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "datasource_id": {
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "datasource_type": {
+            "description": "The type of dataset/datasource identified on `datasource_id`.",
+            "enum": [
+              "druid",
+              "table",
+              "view"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the chart propose.",
+            "nullable": true,
+            "type": "string"
+          },
+          "owners": {
+            "items": {
+              "description": "Owner are users ids allowed to delete or change this chart. If left empty you will be one of the owners of the chart.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "params": {
+            "description": "Parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object for power users who may want to alter specific parameters.",
+            "nullable": true,
+            "type": "string"
+          },
+          "query_context": {
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "nullable": true,
+            "type": "string"
+          },
+          "query_context_generation": {
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "slice_name": {
+            "description": "The name of the chart.",
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "viz_type": {
+            "description": "The type of chart visualization used.",
+            "example": [
+              "bar",
+              "line_multi",
+              "area",
+              "table"
+            ],
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -1514,12 +2151,16 @@
             "format": "int32",
             "type": "integer"
           },
-          "changed_on": {
-            "description": "The ISO date that the chart was last changed.",
+          "certification_details": {
+            "description": "Details of the certification",
             "type": "string"
           },
-          "datasource": {
-            "description": "The datasource name.",
+          "certified_by": {
+            "description": "Person or group that has certified this chart",
+            "type": "string"
+          },
+          "changed_on": {
+            "description": "The ISO date that the chart was last changed.",
             "type": "string"
           },
           "description": {
@@ -1613,15 +2254,23 @@
             "nullable": true,
             "type": "integer"
           },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "dashboards": {
-            "$ref": "#/components/schemas/Meta9"
+            "$ref": "#/components/schemas/ChartRestApi.get.Dashboard"
           },
           "description": {
             "nullable": true,
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta10"
+            "$ref": "#/components/schemas/ChartRestApi.get.User"
           },
           "params": {
             "nullable": true,
@@ -1644,6 +2293,50 @@
         },
         "type": "object"
       },
+      "ChartRestApi.get.Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "json_metadata": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
       "ChartRestApi.get_list": {
         "properties": {
           "cache_timeout": {
@@ -1651,8 +2344,16 @@
             "nullable": true,
             "type": "integer"
           },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta8"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1667,7 +2368,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta5"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "datasource_id": {
             "format": "int32",
@@ -1699,8 +2400,16 @@
             "format": "int32",
             "type": "integer"
           },
+          "last_saved_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_saved_by": {
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+          },
           "owners": {
-            "$ref": "#/components/schemas/Meta7"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "params": {
             "nullable": true,
@@ -1712,7 +2421,7 @@
             "type": "string"
           },
           "table": {
-            "$ref": "#/components/schemas/Meta6"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.SqlaTable"
           },
           "thumbnail_url": {
             "readOnly": true
@@ -1728,6 +2437,107 @@
         },
         "type": "object"
       },
+      "ChartRestApi.get_list.SqlaTable": {
+        "properties": {
+          "default_endpoint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "table_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User3": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "ChartRestApi.post": {
         "properties": {
           "cache_timeout": {
@@ -1735,6 +2545,16 @@
             "format": "int32",
             "nullable": true,
             "type": "integer"
+          },
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this chart",
+            "nullable": true,
+            "type": "string"
           },
           "dashboards": {
             "items": {
@@ -1786,6 +2606,11 @@
             "nullable": true,
             "type": "string"
           },
+          "query_context_generation": {
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "nullable": true,
+            "type": "boolean"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "maxLength": 250,
@@ -1819,6 +2644,16 @@
             "format": "int32",
             "nullable": true,
             "type": "integer"
+          },
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this chart",
+            "nullable": true,
+            "type": "string"
           },
           "dashboards": {
             "items": {
@@ -1867,6 +2702,11 @@
             "nullable": true,
             "type": "string"
           },
+          "query_context_generation": {
+            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "nullable": true,
+            "type": "boolean"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "maxLength": 250,
@@ -1893,7 +2733,7 @@
       "CssTemplateRestApi.get": {
         "properties": {
           "created_by": {
-            "$ref": "#/components/schemas/Meta13"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get.User"
           },
           "css": {
             "nullable": true,
@@ -1911,16 +2751,37 @@
         },
         "type": "object"
       },
+      "CssTemplateRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta12"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta11"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -1941,6 +2802,48 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "CssTemplateRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CssTemplateRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "CssTemplateRestApi.post": {
@@ -2112,6 +3015,14 @@
       },
       "DashboardGetResponseSchema": {
         "properties": {
+          "certification_details": {
+            "description": "Details of the certification",
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this dashboard",
+            "type": "string"
+          },
           "changed_by": {
             "$ref": "#/components/schemas/User"
           },
@@ -2173,9 +3084,6 @@
           "slug": {
             "type": "string"
           },
-          "table_names": {
-            "type": "string"
-          },
           "thumbnail_url": {
             "type": "string"
           },
@@ -2196,8 +3104,16 @@
       },
       "DashboardRestApi.get_list": {
         "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta15"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2212,7 +3128,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta14"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "css": {
             "nullable": true,
@@ -2232,7 +3148,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta17"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "position_json": {
             "nullable": true,
@@ -2243,7 +3159,7 @@
             "type": "boolean"
           },
           "roles": {
-            "$ref": "#/components/schemas/Meta16"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.Role"
           },
           "slug": {
             "maxLength": 255,
@@ -2262,8 +3178,107 @@
         },
         "type": "object"
       },
+      "DashboardRestApi.get_list.Role": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
       "DashboardRestApi.post": {
         "properties": {
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this dashboard",
+            "nullable": true,
+            "type": "string"
+          },
           "css": {
             "type": "string"
           },
@@ -2314,6 +3329,16 @@
       },
       "DashboardRestApi.put": {
         "properties": {
+          "certification_details": {
+            "description": "Details of the certification",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this dashboard",
+            "nullable": true,
+            "type": "string"
+          },
           "css": {
             "description": "Override CSS for the dashboard.",
             "nullable": true,
@@ -2491,10 +3516,6 @@
       },
       "DatabaseRestApi.get": {
         "properties": {
-          "allow_csv_upload": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "allow_ctas": {
             "nullable": true,
             "type": "boolean"
@@ -2504,6 +3525,10 @@
             "type": "boolean"
           },
           "allow_dml": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allow_file_upload": {
             "nullable": true,
             "type": "boolean"
           },
@@ -2560,6 +3585,9 @@
           "parameters": {
             "readOnly": true
           },
+          "parameters_schema": {
+            "readOnly": true
+          },
           "server_cert": {
             "nullable": true,
             "type": "string"
@@ -2577,10 +3605,6 @@
       },
       "DatabaseRestApi.get_list": {
         "properties": {
-          "allow_csv_upload": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "allow_ctas": {
             "nullable": true,
             "type": "boolean"
@@ -2590,6 +3614,10 @@
             "type": "boolean"
           },
           "allow_dml": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allow_file_upload": {
             "nullable": true,
             "type": "boolean"
           },
@@ -2622,7 +3650,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta18"
+            "$ref": "#/components/schemas/DatabaseRestApi.get_list.User"
           },
           "database_name": {
             "maxLength": 250,
@@ -2654,12 +3682,25 @@
         ],
         "type": "object"
       },
+      "DatabaseRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "DatabaseRestApi.post": {
         "properties": {
-          "allow_csv_upload": {
-            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
           "allow_ctas": {
             "description": "Allow CREATE TABLE AS option in SQL Lab",
             "type": "boolean"
@@ -2670,6 +3711,10 @@
           },
           "allow_dml": {
             "description": "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab",
+            "type": "boolean"
+          },
+          "allow_file_upload": {
+            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
             "type": "boolean"
           },
           "allow_multi_schema_metadata_fetch": {
@@ -2711,7 +3756,7 @@
             "type": "boolean"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_csv_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
             "type": "string"
           },
           "force_ctas_schema": {
@@ -2722,7 +3767,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2749,10 +3794,6 @@
       },
       "DatabaseRestApi.put": {
         "properties": {
-          "allow_csv_upload": {
-            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
           "allow_ctas": {
             "description": "Allow CREATE TABLE AS option in SQL Lab",
             "type": "boolean"
@@ -2763,6 +3804,10 @@
           },
           "allow_dml": {
             "description": "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab",
+            "type": "boolean"
+          },
+          "allow_file_upload": {
+            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
             "type": "boolean"
           },
           "allow_multi_schema_metadata_fetch": {
@@ -2805,7 +3850,7 @@
             "type": "boolean"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_csv_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
             "type": "string"
           },
           "force_ctas_schema": {
@@ -2816,7 +3861,7 @@
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2862,11 +3907,11 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_csv_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2910,11 +3955,11 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_csv_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. the <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.</p>",
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "parameters": {
@@ -2951,6 +3996,10 @@
             "nullable": true,
             "type": "string"
           },
+          "extra": {
+            "nullable": true,
+            "type": "string"
+          },
           "filterable": {
             "type": "boolean"
           },
@@ -2974,11 +4023,11 @@
             "type": "string"
           },
           "type": {
-            "maxLength": 32,
-            "minLength": 1,
+            "nullable": true,
             "type": "string"
           },
           "uuid": {
+            "format": "uuid",
             "nullable": true,
             "type": "string"
           },
@@ -3079,6 +4128,10 @@
           "expression": {
             "type": "string"
           },
+          "extra": {
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -3091,6 +4144,15 @@
           "metric_type": {
             "maxLength": 32,
             "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "verbose_name": {
             "nullable": true,
             "type": "string"
           },
@@ -3191,10 +4253,10 @@
             "type": "integer"
           },
           "columns": {
-            "$ref": "#/components/schemas/Meta22"
+            "$ref": "#/components/schemas/DatasetRestApi.get.TableColumn"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta23"
+            "$ref": "#/components/schemas/DatasetRestApi.get.Database"
           },
           "datasource_type": {
             "readOnly": true
@@ -3212,7 +4274,6 @@
             "type": "string"
           },
           "fetch_values_predicate": {
-            "maxLength": 1000,
             "nullable": true,
             "type": "string"
           },
@@ -3234,7 +4295,7 @@
             "type": "string"
           },
           "metrics": {
-            "$ref": "#/components/schemas/Meta25"
+            "$ref": "#/components/schemas/DatasetRestApi.get.SqlMetric"
           },
           "offset": {
             "format": "int32",
@@ -3242,7 +4303,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta24"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "schema": {
             "maxLength": 255,
@@ -3273,10 +4334,193 @@
         ],
         "type": "object"
       },
+      "DatasetRestApi.get.Database": {
+        "properties": {
+          "backend": {
+            "readOnly": true
+          },
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.SqlMetric": {
+        "properties": {
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "d3format": {
+            "maxLength": 128,
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "extra": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "metric_name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "metric_type": {
+            "maxLength": 32,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "verbose_name": {
+            "maxLength": 1024,
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_text": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression",
+          "metric_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.TableColumn": {
+        "properties": {
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "column_name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "expression": {
+            "nullable": true,
+            "type": "string"
+          },
+          "extra": {
+            "nullable": true,
+            "type": "string"
+          },
+          "filterable": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "groupby": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "is_active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "is_dttm": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "python_date_format": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type_generic": {
+            "readOnly": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "verbose_name": {
+            "maxLength": 1024,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "column_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta19"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3291,9 +4535,16 @@
             "readOnly": true
           },
           "database": {
-            "$ref": "#/components/schemas/Meta21"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.Database"
+          },
+          "datasource_type": {
+            "readOnly": true
           },
           "default_endpoint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
             "nullable": true,
             "type": "string"
           },
@@ -3312,7 +4563,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta20"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -3331,6 +4582,65 @@
         "required": [
           "database",
           "table_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.Database": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -3506,6 +4816,161 @@
         },
         "type": "object"
       },
+      "FilterSetRestApi.get": {
+        "properties": {
+          "dashboard_id": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "owner_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "owner_type": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "params": {
+            "readOnly": true
+          }
+        },
+        "required": [
+          "name",
+          "owner_id",
+          "owner_type"
+        ],
+        "type": "object"
+      },
+      "FilterSetRestApi.get_list": {
+        "properties": {
+          "changed_by_fk": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_by_fk": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "dashboard_id": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "owner_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "owner_type": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "params": {
+            "readOnly": true
+          }
+        },
+        "required": [
+          "name",
+          "owner_id",
+          "owner_type"
+        ],
+        "type": "object"
+      },
+      "FilterSetRestApi.post": {
+        "properties": {
+          "description": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "json_metadata": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          },
+          "owner_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "owner_type": {
+            "enum": [
+              "User",
+              "Dashboard"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "json_metadata",
+          "name",
+          "owner_type"
+        ],
+        "type": "object"
+      },
+      "FilterSetRestApi.put": {
+        "properties": {
+          "description": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "json_metadata": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          },
+          "owner_type": {
+            "enum": [
+              "Dashboard"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "GetFavStarIdsSchema": {
         "properties": {
           "result": {
@@ -3516,6 +4981,30 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "KeyValuePostSchema": {
+        "properties": {
+          "value": {
+            "description": "Any type of JSON supported text.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "KeyValuePutSchema": {
+        "properties": {
+          "value": {
+            "description": "Any type of JSON supported text.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
         "type": "object"
       },
       "LogRestApi.get": {
@@ -3555,7 +5044,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/Meta43"
+            "$ref": "#/components/schemas/LogRestApi.get.User"
           },
           "user_id": {
             "format": "int32",
@@ -3563,6 +5052,18 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "LogRestApi.get.User": {
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
         "type": "object"
       },
       "LogRestApi.get_list": {
@@ -3602,7 +5103,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/Meta42"
+            "$ref": "#/components/schemas/LogRestApi.get_list.User"
           },
           "user_id": {
             "format": "int32",
@@ -3610,6 +5111,18 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "LogRestApi.get_list.User": {
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
         "type": "object"
       },
       "LogRestApi.post": {
@@ -3643,961 +5156,6 @@
         },
         "type": "object"
       },
-      "Meta": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "first_name"
-        ],
-        "type": "object"
-      },
-      "Meta1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "first_name"
-        ],
-        "type": "object"
-      },
-      "Meta10": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta11": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta12": {
-        "properties": {
-          "active": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "changed_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "created_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "email": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "fail_login_count": {
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_login": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "login_count": {
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "password": {
-            "maxLength": 256,
-            "nullable": true,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta13": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta14": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta15": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta16": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      },
-      "Meta17": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta18": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta19": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta2": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "name": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "Meta20": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta21": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta22": {
-        "properties": {
-          "changed_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "column_name": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "created_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "nullable": true,
-            "type": "string"
-          },
-          "expression": {
-            "nullable": true,
-            "type": "string"
-          },
-          "filterable": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "groupby": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "is_active": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "is_dttm": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "python_date_format": {
-            "maxLength": 255,
-            "nullable": true,
-            "type": "string"
-          },
-          "type": {
-            "maxLength": 32,
-            "nullable": true,
-            "type": "string"
-          },
-          "type_generic": {
-            "readOnly": true
-          },
-          "uuid": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "verbose_name": {
-            "maxLength": 1024,
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "column_name"
-        ],
-        "type": "object"
-      },
-      "Meta23": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta24": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta25": {
-        "properties": {
-          "changed_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "created_on": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "d3format": {
-            "maxLength": 128,
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "nullable": true,
-            "type": "string"
-          },
-          "expression": {
-            "type": "string"
-          },
-          "extra": {
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "metric_name": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "metric_type": {
-            "maxLength": 32,
-            "nullable": true,
-            "type": "string"
-          },
-          "uuid": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "verbose_name": {
-            "maxLength": 1024,
-            "nullable": true,
-            "type": "string"
-          },
-          "warning_text": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "expression",
-          "metric_name"
-        ],
-        "type": "object"
-      },
-      "Meta26": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta27": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta28": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "Meta29": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta3": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta30": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta31": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta32": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta33": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta34": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta35": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "type": {
-            "maxLength": 50,
-            "type": "string"
-          }
-        },
-        "required": [
-          "type"
-        ],
-        "type": "object"
-      },
-      "Meta36": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta37": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta38": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "recipient_config_json": {
-            "nullable": true,
-            "type": "string"
-          },
-          "type": {
-            "maxLength": 50,
-            "type": "string"
-          }
-        },
-        "required": [
-          "type"
-        ],
-        "type": "object"
-      },
-      "Meta39": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta4": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta40": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "slice_name": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          },
-          "viz_type": {
-            "maxLength": 250,
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "Meta41": {
-        "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "Meta42": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta43": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta5": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta6": {
-        "properties": {
-          "default_endpoint": {
-            "nullable": true,
-            "type": "string"
-          },
-          "table_name": {
-            "maxLength": 250,
-            "type": "string"
-          }
-        },
-        "required": [
-          "table_name"
-        ],
-        "type": "object"
-      },
-      "Meta7": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta8": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta9": {
-        "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
       "QueryRestApi.get": {
         "properties": {
           "changed_on": {
@@ -4610,7 +5168,7 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta28"
+            "$ref": "#/components/schemas/QueryRestApi.get.Database"
           },
           "end_result_backend_time": {
             "nullable": true,
@@ -4717,6 +5275,15 @@
         ],
         "type": "object"
       },
+      "QueryRestApi.get.Database": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "QueryRestApi.get_list": {
         "properties": {
           "changed_on": {
@@ -4725,7 +5292,7 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta27"
+            "$ref": "#/components/schemas/QueryRestApi.get_list.Database"
           },
           "end_time": {
             "nullable": true,
@@ -4780,11 +5347,49 @@
             "type": "string"
           },
           "user": {
-            "$ref": "#/components/schemas/Meta26"
+            "$ref": "#/components/schemas/QueryRestApi.get_list.User"
           }
         },
         "required": [
           "database"
+        ],
+        "type": "object"
+      },
+      "QueryRestApi.get_list.Database": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "QueryRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -4986,7 +5591,7 @@
             "type": "boolean"
           },
           "chart": {
-            "$ref": "#/components/schemas/Meta40"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.Slice"
           },
           "context_markdown": {
             "nullable": true,
@@ -5002,14 +5607,18 @@
             "type": "string"
           },
           "dashboard": {
-            "$ref": "#/components/schemas/Meta41"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.Dashboard"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta37"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.Database"
           },
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "force_screenshot": {
+            "nullable": true,
+            "type": "boolean"
           },
           "grace_period": {
             "format": "int32",
@@ -5049,10 +5658,10 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta39"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta38"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.ReportRecipients"
           },
           "report_format": {
             "maxLength": 50,
@@ -5094,6 +5703,96 @@
         ],
         "type": "object"
       },
+      "ReportScheduleRestApi.get.Dashboard": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.Database": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.ReportRecipients": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "recipient_config_json": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.Slice": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "slice_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "viz_type": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "ReportScheduleRestApi.get_list": {
         "properties": {
           "active": {
@@ -5101,7 +5800,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta34"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -5112,7 +5811,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta33"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -5154,10 +5853,10 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta36"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
           },
           "recipients": {
-            "$ref": "#/components/schemas/Meta35"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
           },
           "timezone": {
             "maxLength": 100,
@@ -5173,6 +5872,77 @@
           "name",
           "recipients",
           "type"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.ReportRecipients": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -5215,6 +5985,9 @@
             "example": "Daily sales dashboard to marketing",
             "nullable": true,
             "type": "string"
+          },
+          "force_screenshot": {
+            "type": "boolean"
           },
           "grace_period": {
             "description": "Once an alert is triggered, how long, in seconds, before Superset nags you again. (in seconds)",
@@ -5266,6 +6039,601 @@
           },
           "timezone": {
             "description": "A timezone string that represents the location of the timezone.",
+            "enum": [
+              "Africa/Abidjan",
+              "Africa/Accra",
+              "Africa/Addis_Ababa",
+              "Africa/Algiers",
+              "Africa/Asmara",
+              "Africa/Asmera",
+              "Africa/Bamako",
+              "Africa/Bangui",
+              "Africa/Banjul",
+              "Africa/Bissau",
+              "Africa/Blantyre",
+              "Africa/Brazzaville",
+              "Africa/Bujumbura",
+              "Africa/Cairo",
+              "Africa/Casablanca",
+              "Africa/Ceuta",
+              "Africa/Conakry",
+              "Africa/Dakar",
+              "Africa/Dar_es_Salaam",
+              "Africa/Djibouti",
+              "Africa/Douala",
+              "Africa/El_Aaiun",
+              "Africa/Freetown",
+              "Africa/Gaborone",
+              "Africa/Harare",
+              "Africa/Johannesburg",
+              "Africa/Juba",
+              "Africa/Kampala",
+              "Africa/Khartoum",
+              "Africa/Kigali",
+              "Africa/Kinshasa",
+              "Africa/Lagos",
+              "Africa/Libreville",
+              "Africa/Lome",
+              "Africa/Luanda",
+              "Africa/Lubumbashi",
+              "Africa/Lusaka",
+              "Africa/Malabo",
+              "Africa/Maputo",
+              "Africa/Maseru",
+              "Africa/Mbabane",
+              "Africa/Mogadishu",
+              "Africa/Monrovia",
+              "Africa/Nairobi",
+              "Africa/Ndjamena",
+              "Africa/Niamey",
+              "Africa/Nouakchott",
+              "Africa/Ouagadougou",
+              "Africa/Porto-Novo",
+              "Africa/Sao_Tome",
+              "Africa/Timbuktu",
+              "Africa/Tripoli",
+              "Africa/Tunis",
+              "Africa/Windhoek",
+              "America/Adak",
+              "America/Anchorage",
+              "America/Anguilla",
+              "America/Antigua",
+              "America/Araguaina",
+              "America/Argentina/Buenos_Aires",
+              "America/Argentina/Catamarca",
+              "America/Argentina/ComodRivadavia",
+              "America/Argentina/Cordoba",
+              "America/Argentina/Jujuy",
+              "America/Argentina/La_Rioja",
+              "America/Argentina/Mendoza",
+              "America/Argentina/Rio_Gallegos",
+              "America/Argentina/Salta",
+              "America/Argentina/San_Juan",
+              "America/Argentina/San_Luis",
+              "America/Argentina/Tucuman",
+              "America/Argentina/Ushuaia",
+              "America/Aruba",
+              "America/Asuncion",
+              "America/Atikokan",
+              "America/Atka",
+              "America/Bahia",
+              "America/Bahia_Banderas",
+              "America/Barbados",
+              "America/Belem",
+              "America/Belize",
+              "America/Blanc-Sablon",
+              "America/Boa_Vista",
+              "America/Bogota",
+              "America/Boise",
+              "America/Buenos_Aires",
+              "America/Cambridge_Bay",
+              "America/Campo_Grande",
+              "America/Cancun",
+              "America/Caracas",
+              "America/Catamarca",
+              "America/Cayenne",
+              "America/Cayman",
+              "America/Chicago",
+              "America/Chihuahua",
+              "America/Coral_Harbour",
+              "America/Cordoba",
+              "America/Costa_Rica",
+              "America/Creston",
+              "America/Cuiaba",
+              "America/Curacao",
+              "America/Danmarkshavn",
+              "America/Dawson",
+              "America/Dawson_Creek",
+              "America/Denver",
+              "America/Detroit",
+              "America/Dominica",
+              "America/Edmonton",
+              "America/Eirunepe",
+              "America/El_Salvador",
+              "America/Ensenada",
+              "America/Fort_Nelson",
+              "America/Fort_Wayne",
+              "America/Fortaleza",
+              "America/Glace_Bay",
+              "America/Godthab",
+              "America/Goose_Bay",
+              "America/Grand_Turk",
+              "America/Grenada",
+              "America/Guadeloupe",
+              "America/Guatemala",
+              "America/Guayaquil",
+              "America/Guyana",
+              "America/Halifax",
+              "America/Havana",
+              "America/Hermosillo",
+              "America/Indiana/Indianapolis",
+              "America/Indiana/Knox",
+              "America/Indiana/Marengo",
+              "America/Indiana/Petersburg",
+              "America/Indiana/Tell_City",
+              "America/Indiana/Vevay",
+              "America/Indiana/Vincennes",
+              "America/Indiana/Winamac",
+              "America/Indianapolis",
+              "America/Inuvik",
+              "America/Iqaluit",
+              "America/Jamaica",
+              "America/Jujuy",
+              "America/Juneau",
+              "America/Kentucky/Louisville",
+              "America/Kentucky/Monticello",
+              "America/Knox_IN",
+              "America/Kralendijk",
+              "America/La_Paz",
+              "America/Lima",
+              "America/Los_Angeles",
+              "America/Louisville",
+              "America/Lower_Princes",
+              "America/Maceio",
+              "America/Managua",
+              "America/Manaus",
+              "America/Marigot",
+              "America/Martinique",
+              "America/Matamoros",
+              "America/Mazatlan",
+              "America/Mendoza",
+              "America/Menominee",
+              "America/Merida",
+              "America/Metlakatla",
+              "America/Mexico_City",
+              "America/Miquelon",
+              "America/Moncton",
+              "America/Monterrey",
+              "America/Montevideo",
+              "America/Montreal",
+              "America/Montserrat",
+              "America/Nassau",
+              "America/New_York",
+              "America/Nipigon",
+              "America/Nome",
+              "America/Noronha",
+              "America/North_Dakota/Beulah",
+              "America/North_Dakota/Center",
+              "America/North_Dakota/New_Salem",
+              "America/Nuuk",
+              "America/Ojinaga",
+              "America/Panama",
+              "America/Pangnirtung",
+              "America/Paramaribo",
+              "America/Phoenix",
+              "America/Port-au-Prince",
+              "America/Port_of_Spain",
+              "America/Porto_Acre",
+              "America/Porto_Velho",
+              "America/Puerto_Rico",
+              "America/Punta_Arenas",
+              "America/Rainy_River",
+              "America/Rankin_Inlet",
+              "America/Recife",
+              "America/Regina",
+              "America/Resolute",
+              "America/Rio_Branco",
+              "America/Rosario",
+              "America/Santa_Isabel",
+              "America/Santarem",
+              "America/Santiago",
+              "America/Santo_Domingo",
+              "America/Sao_Paulo",
+              "America/Scoresbysund",
+              "America/Shiprock",
+              "America/Sitka",
+              "America/St_Barthelemy",
+              "America/St_Johns",
+              "America/St_Kitts",
+              "America/St_Lucia",
+              "America/St_Thomas",
+              "America/St_Vincent",
+              "America/Swift_Current",
+              "America/Tegucigalpa",
+              "America/Thule",
+              "America/Thunder_Bay",
+              "America/Tijuana",
+              "America/Toronto",
+              "America/Tortola",
+              "America/Vancouver",
+              "America/Virgin",
+              "America/Whitehorse",
+              "America/Winnipeg",
+              "America/Yakutat",
+              "America/Yellowknife",
+              "Antarctica/Casey",
+              "Antarctica/Davis",
+              "Antarctica/DumontDUrville",
+              "Antarctica/Macquarie",
+              "Antarctica/Mawson",
+              "Antarctica/McMurdo",
+              "Antarctica/Palmer",
+              "Antarctica/Rothera",
+              "Antarctica/South_Pole",
+              "Antarctica/Syowa",
+              "Antarctica/Troll",
+              "Antarctica/Vostok",
+              "Arctic/Longyearbyen",
+              "Asia/Aden",
+              "Asia/Almaty",
+              "Asia/Amman",
+              "Asia/Anadyr",
+              "Asia/Aqtau",
+              "Asia/Aqtobe",
+              "Asia/Ashgabat",
+              "Asia/Ashkhabad",
+              "Asia/Atyrau",
+              "Asia/Baghdad",
+              "Asia/Bahrain",
+              "Asia/Baku",
+              "Asia/Bangkok",
+              "Asia/Barnaul",
+              "Asia/Beirut",
+              "Asia/Bishkek",
+              "Asia/Brunei",
+              "Asia/Calcutta",
+              "Asia/Chita",
+              "Asia/Choibalsan",
+              "Asia/Chongqing",
+              "Asia/Chungking",
+              "Asia/Colombo",
+              "Asia/Dacca",
+              "Asia/Damascus",
+              "Asia/Dhaka",
+              "Asia/Dili",
+              "Asia/Dubai",
+              "Asia/Dushanbe",
+              "Asia/Famagusta",
+              "Asia/Gaza",
+              "Asia/Harbin",
+              "Asia/Hebron",
+              "Asia/Ho_Chi_Minh",
+              "Asia/Hong_Kong",
+              "Asia/Hovd",
+              "Asia/Irkutsk",
+              "Asia/Istanbul",
+              "Asia/Jakarta",
+              "Asia/Jayapura",
+              "Asia/Jerusalem",
+              "Asia/Kabul",
+              "Asia/Kamchatka",
+              "Asia/Karachi",
+              "Asia/Kashgar",
+              "Asia/Kathmandu",
+              "Asia/Katmandu",
+              "Asia/Khandyga",
+              "Asia/Kolkata",
+              "Asia/Krasnoyarsk",
+              "Asia/Kuala_Lumpur",
+              "Asia/Kuching",
+              "Asia/Kuwait",
+              "Asia/Macao",
+              "Asia/Macau",
+              "Asia/Magadan",
+              "Asia/Makassar",
+              "Asia/Manila",
+              "Asia/Muscat",
+              "Asia/Nicosia",
+              "Asia/Novokuznetsk",
+              "Asia/Novosibirsk",
+              "Asia/Omsk",
+              "Asia/Oral",
+              "Asia/Phnom_Penh",
+              "Asia/Pontianak",
+              "Asia/Pyongyang",
+              "Asia/Qatar",
+              "Asia/Qostanay",
+              "Asia/Qyzylorda",
+              "Asia/Rangoon",
+              "Asia/Riyadh",
+              "Asia/Saigon",
+              "Asia/Sakhalin",
+              "Asia/Samarkand",
+              "Asia/Seoul",
+              "Asia/Shanghai",
+              "Asia/Singapore",
+              "Asia/Srednekolymsk",
+              "Asia/Taipei",
+              "Asia/Tashkent",
+              "Asia/Tbilisi",
+              "Asia/Tehran",
+              "Asia/Tel_Aviv",
+              "Asia/Thimbu",
+              "Asia/Thimphu",
+              "Asia/Tokyo",
+              "Asia/Tomsk",
+              "Asia/Ujung_Pandang",
+              "Asia/Ulaanbaatar",
+              "Asia/Ulan_Bator",
+              "Asia/Urumqi",
+              "Asia/Ust-Nera",
+              "Asia/Vientiane",
+              "Asia/Vladivostok",
+              "Asia/Yakutsk",
+              "Asia/Yangon",
+              "Asia/Yekaterinburg",
+              "Asia/Yerevan",
+              "Atlantic/Azores",
+              "Atlantic/Bermuda",
+              "Atlantic/Canary",
+              "Atlantic/Cape_Verde",
+              "Atlantic/Faeroe",
+              "Atlantic/Faroe",
+              "Atlantic/Jan_Mayen",
+              "Atlantic/Madeira",
+              "Atlantic/Reykjavik",
+              "Atlantic/South_Georgia",
+              "Atlantic/St_Helena",
+              "Atlantic/Stanley",
+              "Australia/ACT",
+              "Australia/Adelaide",
+              "Australia/Brisbane",
+              "Australia/Broken_Hill",
+              "Australia/Canberra",
+              "Australia/Currie",
+              "Australia/Darwin",
+              "Australia/Eucla",
+              "Australia/Hobart",
+              "Australia/LHI",
+              "Australia/Lindeman",
+              "Australia/Lord_Howe",
+              "Australia/Melbourne",
+              "Australia/NSW",
+              "Australia/North",
+              "Australia/Perth",
+              "Australia/Queensland",
+              "Australia/South",
+              "Australia/Sydney",
+              "Australia/Tasmania",
+              "Australia/Victoria",
+              "Australia/West",
+              "Australia/Yancowinna",
+              "Brazil/Acre",
+              "Brazil/DeNoronha",
+              "Brazil/East",
+              "Brazil/West",
+              "CET",
+              "CST6CDT",
+              "Canada/Atlantic",
+              "Canada/Central",
+              "Canada/Eastern",
+              "Canada/Mountain",
+              "Canada/Newfoundland",
+              "Canada/Pacific",
+              "Canada/Saskatchewan",
+              "Canada/Yukon",
+              "Chile/Continental",
+              "Chile/EasterIsland",
+              "Cuba",
+              "EET",
+              "EST",
+              "EST5EDT",
+              "Egypt",
+              "Eire",
+              "Etc/GMT",
+              "Etc/GMT+0",
+              "Etc/GMT+1",
+              "Etc/GMT+10",
+              "Etc/GMT+11",
+              "Etc/GMT+12",
+              "Etc/GMT+2",
+              "Etc/GMT+3",
+              "Etc/GMT+4",
+              "Etc/GMT+5",
+              "Etc/GMT+6",
+              "Etc/GMT+7",
+              "Etc/GMT+8",
+              "Etc/GMT+9",
+              "Etc/GMT-0",
+              "Etc/GMT-1",
+              "Etc/GMT-10",
+              "Etc/GMT-11",
+              "Etc/GMT-12",
+              "Etc/GMT-13",
+              "Etc/GMT-14",
+              "Etc/GMT-2",
+              "Etc/GMT-3",
+              "Etc/GMT-4",
+              "Etc/GMT-5",
+              "Etc/GMT-6",
+              "Etc/GMT-7",
+              "Etc/GMT-8",
+              "Etc/GMT-9",
+              "Etc/GMT0",
+              "Etc/Greenwich",
+              "Etc/UCT",
+              "Etc/UTC",
+              "Etc/Universal",
+              "Etc/Zulu",
+              "Europe/Amsterdam",
+              "Europe/Andorra",
+              "Europe/Astrakhan",
+              "Europe/Athens",
+              "Europe/Belfast",
+              "Europe/Belgrade",
+              "Europe/Berlin",
+              "Europe/Bratislava",
+              "Europe/Brussels",
+              "Europe/Bucharest",
+              "Europe/Budapest",
+              "Europe/Busingen",
+              "Europe/Chisinau",
+              "Europe/Copenhagen",
+              "Europe/Dublin",
+              "Europe/Gibraltar",
+              "Europe/Guernsey",
+              "Europe/Helsinki",
+              "Europe/Isle_of_Man",
+              "Europe/Istanbul",
+              "Europe/Jersey",
+              "Europe/Kaliningrad",
+              "Europe/Kiev",
+              "Europe/Kirov",
+              "Europe/Lisbon",
+              "Europe/Ljubljana",
+              "Europe/London",
+              "Europe/Luxembourg",
+              "Europe/Madrid",
+              "Europe/Malta",
+              "Europe/Mariehamn",
+              "Europe/Minsk",
+              "Europe/Monaco",
+              "Europe/Moscow",
+              "Europe/Nicosia",
+              "Europe/Oslo",
+              "Europe/Paris",
+              "Europe/Podgorica",
+              "Europe/Prague",
+              "Europe/Riga",
+              "Europe/Rome",
+              "Europe/Samara",
+              "Europe/San_Marino",
+              "Europe/Sarajevo",
+              "Europe/Saratov",
+              "Europe/Simferopol",
+              "Europe/Skopje",
+              "Europe/Sofia",
+              "Europe/Stockholm",
+              "Europe/Tallinn",
+              "Europe/Tirane",
+              "Europe/Tiraspol",
+              "Europe/Ulyanovsk",
+              "Europe/Uzhgorod",
+              "Europe/Vaduz",
+              "Europe/Vatican",
+              "Europe/Vienna",
+              "Europe/Vilnius",
+              "Europe/Volgograd",
+              "Europe/Warsaw",
+              "Europe/Zagreb",
+              "Europe/Zaporozhye",
+              "Europe/Zurich",
+              "GB",
+              "GB-Eire",
+              "GMT",
+              "GMT+0",
+              "GMT-0",
+              "GMT0",
+              "Greenwich",
+              "HST",
+              "Hongkong",
+              "Iceland",
+              "Indian/Antananarivo",
+              "Indian/Chagos",
+              "Indian/Christmas",
+              "Indian/Cocos",
+              "Indian/Comoro",
+              "Indian/Kerguelen",
+              "Indian/Mahe",
+              "Indian/Maldives",
+              "Indian/Mauritius",
+              "Indian/Mayotte",
+              "Indian/Reunion",
+              "Iran",
+              "Israel",
+              "Jamaica",
+              "Japan",
+              "Kwajalein",
+              "Libya",
+              "MET",
+              "MST",
+              "MST7MDT",
+              "Mexico/BajaNorte",
+              "Mexico/BajaSur",
+              "Mexico/General",
+              "NZ",
+              "NZ-CHAT",
+              "Navajo",
+              "PRC",
+              "PST8PDT",
+              "Pacific/Apia",
+              "Pacific/Auckland",
+              "Pacific/Bougainville",
+              "Pacific/Chatham",
+              "Pacific/Chuuk",
+              "Pacific/Easter",
+              "Pacific/Efate",
+              "Pacific/Enderbury",
+              "Pacific/Fakaofo",
+              "Pacific/Fiji",
+              "Pacific/Funafuti",
+              "Pacific/Galapagos",
+              "Pacific/Gambier",
+              "Pacific/Guadalcanal",
+              "Pacific/Guam",
+              "Pacific/Honolulu",
+              "Pacific/Johnston",
+              "Pacific/Kiritimati",
+              "Pacific/Kosrae",
+              "Pacific/Kwajalein",
+              "Pacific/Majuro",
+              "Pacific/Marquesas",
+              "Pacific/Midway",
+              "Pacific/Nauru",
+              "Pacific/Niue",
+              "Pacific/Norfolk",
+              "Pacific/Noumea",
+              "Pacific/Pago_Pago",
+              "Pacific/Palau",
+              "Pacific/Pitcairn",
+              "Pacific/Pohnpei",
+              "Pacific/Ponape",
+              "Pacific/Port_Moresby",
+              "Pacific/Rarotonga",
+              "Pacific/Saipan",
+              "Pacific/Samoa",
+              "Pacific/Tahiti",
+              "Pacific/Tarawa",
+              "Pacific/Tongatapu",
+              "Pacific/Truk",
+              "Pacific/Wake",
+              "Pacific/Wallis",
+              "Pacific/Yap",
+              "Poland",
+              "Portugal",
+              "ROC",
+              "ROK",
+              "Singapore",
+              "Turkey",
+              "UCT",
+              "US/Alaska",
+              "US/Aleutian",
+              "US/Arizona",
+              "US/Central",
+              "US/East-Indiana",
+              "US/Eastern",
+              "US/Hawaii",
+              "US/Indiana-Starke",
+              "US/Michigan",
+              "US/Mountain",
+              "US/Pacific",
+              "US/Samoa",
+              "UTC",
+              "Universal",
+              "W-SU",
+              "WET",
+              "Zulu"
+            ],
             "type": "string"
           },
           "type": {
@@ -5342,6 +6710,9 @@
             "nullable": true,
             "type": "string"
           },
+          "force_screenshot": {
+            "type": "boolean"
+          },
           "grace_period": {
             "description": "Once an alert is triggered, how long, in seconds, before Superset nags you again. (in seconds)",
             "example": 14400,
@@ -5392,6 +6763,601 @@
           },
           "timezone": {
             "description": "A timezone string that represents the location of the timezone.",
+            "enum": [
+              "Africa/Abidjan",
+              "Africa/Accra",
+              "Africa/Addis_Ababa",
+              "Africa/Algiers",
+              "Africa/Asmara",
+              "Africa/Asmera",
+              "Africa/Bamako",
+              "Africa/Bangui",
+              "Africa/Banjul",
+              "Africa/Bissau",
+              "Africa/Blantyre",
+              "Africa/Brazzaville",
+              "Africa/Bujumbura",
+              "Africa/Cairo",
+              "Africa/Casablanca",
+              "Africa/Ceuta",
+              "Africa/Conakry",
+              "Africa/Dakar",
+              "Africa/Dar_es_Salaam",
+              "Africa/Djibouti",
+              "Africa/Douala",
+              "Africa/El_Aaiun",
+              "Africa/Freetown",
+              "Africa/Gaborone",
+              "Africa/Harare",
+              "Africa/Johannesburg",
+              "Africa/Juba",
+              "Africa/Kampala",
+              "Africa/Khartoum",
+              "Africa/Kigali",
+              "Africa/Kinshasa",
+              "Africa/Lagos",
+              "Africa/Libreville",
+              "Africa/Lome",
+              "Africa/Luanda",
+              "Africa/Lubumbashi",
+              "Africa/Lusaka",
+              "Africa/Malabo",
+              "Africa/Maputo",
+              "Africa/Maseru",
+              "Africa/Mbabane",
+              "Africa/Mogadishu",
+              "Africa/Monrovia",
+              "Africa/Nairobi",
+              "Africa/Ndjamena",
+              "Africa/Niamey",
+              "Africa/Nouakchott",
+              "Africa/Ouagadougou",
+              "Africa/Porto-Novo",
+              "Africa/Sao_Tome",
+              "Africa/Timbuktu",
+              "Africa/Tripoli",
+              "Africa/Tunis",
+              "Africa/Windhoek",
+              "America/Adak",
+              "America/Anchorage",
+              "America/Anguilla",
+              "America/Antigua",
+              "America/Araguaina",
+              "America/Argentina/Buenos_Aires",
+              "America/Argentina/Catamarca",
+              "America/Argentina/ComodRivadavia",
+              "America/Argentina/Cordoba",
+              "America/Argentina/Jujuy",
+              "America/Argentina/La_Rioja",
+              "America/Argentina/Mendoza",
+              "America/Argentina/Rio_Gallegos",
+              "America/Argentina/Salta",
+              "America/Argentina/San_Juan",
+              "America/Argentina/San_Luis",
+              "America/Argentina/Tucuman",
+              "America/Argentina/Ushuaia",
+              "America/Aruba",
+              "America/Asuncion",
+              "America/Atikokan",
+              "America/Atka",
+              "America/Bahia",
+              "America/Bahia_Banderas",
+              "America/Barbados",
+              "America/Belem",
+              "America/Belize",
+              "America/Blanc-Sablon",
+              "America/Boa_Vista",
+              "America/Bogota",
+              "America/Boise",
+              "America/Buenos_Aires",
+              "America/Cambridge_Bay",
+              "America/Campo_Grande",
+              "America/Cancun",
+              "America/Caracas",
+              "America/Catamarca",
+              "America/Cayenne",
+              "America/Cayman",
+              "America/Chicago",
+              "America/Chihuahua",
+              "America/Coral_Harbour",
+              "America/Cordoba",
+              "America/Costa_Rica",
+              "America/Creston",
+              "America/Cuiaba",
+              "America/Curacao",
+              "America/Danmarkshavn",
+              "America/Dawson",
+              "America/Dawson_Creek",
+              "America/Denver",
+              "America/Detroit",
+              "America/Dominica",
+              "America/Edmonton",
+              "America/Eirunepe",
+              "America/El_Salvador",
+              "America/Ensenada",
+              "America/Fort_Nelson",
+              "America/Fort_Wayne",
+              "America/Fortaleza",
+              "America/Glace_Bay",
+              "America/Godthab",
+              "America/Goose_Bay",
+              "America/Grand_Turk",
+              "America/Grenada",
+              "America/Guadeloupe",
+              "America/Guatemala",
+              "America/Guayaquil",
+              "America/Guyana",
+              "America/Halifax",
+              "America/Havana",
+              "America/Hermosillo",
+              "America/Indiana/Indianapolis",
+              "America/Indiana/Knox",
+              "America/Indiana/Marengo",
+              "America/Indiana/Petersburg",
+              "America/Indiana/Tell_City",
+              "America/Indiana/Vevay",
+              "America/Indiana/Vincennes",
+              "America/Indiana/Winamac",
+              "America/Indianapolis",
+              "America/Inuvik",
+              "America/Iqaluit",
+              "America/Jamaica",
+              "America/Jujuy",
+              "America/Juneau",
+              "America/Kentucky/Louisville",
+              "America/Kentucky/Monticello",
+              "America/Knox_IN",
+              "America/Kralendijk",
+              "America/La_Paz",
+              "America/Lima",
+              "America/Los_Angeles",
+              "America/Louisville",
+              "America/Lower_Princes",
+              "America/Maceio",
+              "America/Managua",
+              "America/Manaus",
+              "America/Marigot",
+              "America/Martinique",
+              "America/Matamoros",
+              "America/Mazatlan",
+              "America/Mendoza",
+              "America/Menominee",
+              "America/Merida",
+              "America/Metlakatla",
+              "America/Mexico_City",
+              "America/Miquelon",
+              "America/Moncton",
+              "America/Monterrey",
+              "America/Montevideo",
+              "America/Montreal",
+              "America/Montserrat",
+              "America/Nassau",
+              "America/New_York",
+              "America/Nipigon",
+              "America/Nome",
+              "America/Noronha",
+              "America/North_Dakota/Beulah",
+              "America/North_Dakota/Center",
+              "America/North_Dakota/New_Salem",
+              "America/Nuuk",
+              "America/Ojinaga",
+              "America/Panama",
+              "America/Pangnirtung",
+              "America/Paramaribo",
+              "America/Phoenix",
+              "America/Port-au-Prince",
+              "America/Port_of_Spain",
+              "America/Porto_Acre",
+              "America/Porto_Velho",
+              "America/Puerto_Rico",
+              "America/Punta_Arenas",
+              "America/Rainy_River",
+              "America/Rankin_Inlet",
+              "America/Recife",
+              "America/Regina",
+              "America/Resolute",
+              "America/Rio_Branco",
+              "America/Rosario",
+              "America/Santa_Isabel",
+              "America/Santarem",
+              "America/Santiago",
+              "America/Santo_Domingo",
+              "America/Sao_Paulo",
+              "America/Scoresbysund",
+              "America/Shiprock",
+              "America/Sitka",
+              "America/St_Barthelemy",
+              "America/St_Johns",
+              "America/St_Kitts",
+              "America/St_Lucia",
+              "America/St_Thomas",
+              "America/St_Vincent",
+              "America/Swift_Current",
+              "America/Tegucigalpa",
+              "America/Thule",
+              "America/Thunder_Bay",
+              "America/Tijuana",
+              "America/Toronto",
+              "America/Tortola",
+              "America/Vancouver",
+              "America/Virgin",
+              "America/Whitehorse",
+              "America/Winnipeg",
+              "America/Yakutat",
+              "America/Yellowknife",
+              "Antarctica/Casey",
+              "Antarctica/Davis",
+              "Antarctica/DumontDUrville",
+              "Antarctica/Macquarie",
+              "Antarctica/Mawson",
+              "Antarctica/McMurdo",
+              "Antarctica/Palmer",
+              "Antarctica/Rothera",
+              "Antarctica/South_Pole",
+              "Antarctica/Syowa",
+              "Antarctica/Troll",
+              "Antarctica/Vostok",
+              "Arctic/Longyearbyen",
+              "Asia/Aden",
+              "Asia/Almaty",
+              "Asia/Amman",
+              "Asia/Anadyr",
+              "Asia/Aqtau",
+              "Asia/Aqtobe",
+              "Asia/Ashgabat",
+              "Asia/Ashkhabad",
+              "Asia/Atyrau",
+              "Asia/Baghdad",
+              "Asia/Bahrain",
+              "Asia/Baku",
+              "Asia/Bangkok",
+              "Asia/Barnaul",
+              "Asia/Beirut",
+              "Asia/Bishkek",
+              "Asia/Brunei",
+              "Asia/Calcutta",
+              "Asia/Chita",
+              "Asia/Choibalsan",
+              "Asia/Chongqing",
+              "Asia/Chungking",
+              "Asia/Colombo",
+              "Asia/Dacca",
+              "Asia/Damascus",
+              "Asia/Dhaka",
+              "Asia/Dili",
+              "Asia/Dubai",
+              "Asia/Dushanbe",
+              "Asia/Famagusta",
+              "Asia/Gaza",
+              "Asia/Harbin",
+              "Asia/Hebron",
+              "Asia/Ho_Chi_Minh",
+              "Asia/Hong_Kong",
+              "Asia/Hovd",
+              "Asia/Irkutsk",
+              "Asia/Istanbul",
+              "Asia/Jakarta",
+              "Asia/Jayapura",
+              "Asia/Jerusalem",
+              "Asia/Kabul",
+              "Asia/Kamchatka",
+              "Asia/Karachi",
+              "Asia/Kashgar",
+              "Asia/Kathmandu",
+              "Asia/Katmandu",
+              "Asia/Khandyga",
+              "Asia/Kolkata",
+              "Asia/Krasnoyarsk",
+              "Asia/Kuala_Lumpur",
+              "Asia/Kuching",
+              "Asia/Kuwait",
+              "Asia/Macao",
+              "Asia/Macau",
+              "Asia/Magadan",
+              "Asia/Makassar",
+              "Asia/Manila",
+              "Asia/Muscat",
+              "Asia/Nicosia",
+              "Asia/Novokuznetsk",
+              "Asia/Novosibirsk",
+              "Asia/Omsk",
+              "Asia/Oral",
+              "Asia/Phnom_Penh",
+              "Asia/Pontianak",
+              "Asia/Pyongyang",
+              "Asia/Qatar",
+              "Asia/Qostanay",
+              "Asia/Qyzylorda",
+              "Asia/Rangoon",
+              "Asia/Riyadh",
+              "Asia/Saigon",
+              "Asia/Sakhalin",
+              "Asia/Samarkand",
+              "Asia/Seoul",
+              "Asia/Shanghai",
+              "Asia/Singapore",
+              "Asia/Srednekolymsk",
+              "Asia/Taipei",
+              "Asia/Tashkent",
+              "Asia/Tbilisi",
+              "Asia/Tehran",
+              "Asia/Tel_Aviv",
+              "Asia/Thimbu",
+              "Asia/Thimphu",
+              "Asia/Tokyo",
+              "Asia/Tomsk",
+              "Asia/Ujung_Pandang",
+              "Asia/Ulaanbaatar",
+              "Asia/Ulan_Bator",
+              "Asia/Urumqi",
+              "Asia/Ust-Nera",
+              "Asia/Vientiane",
+              "Asia/Vladivostok",
+              "Asia/Yakutsk",
+              "Asia/Yangon",
+              "Asia/Yekaterinburg",
+              "Asia/Yerevan",
+              "Atlantic/Azores",
+              "Atlantic/Bermuda",
+              "Atlantic/Canary",
+              "Atlantic/Cape_Verde",
+              "Atlantic/Faeroe",
+              "Atlantic/Faroe",
+              "Atlantic/Jan_Mayen",
+              "Atlantic/Madeira",
+              "Atlantic/Reykjavik",
+              "Atlantic/South_Georgia",
+              "Atlantic/St_Helena",
+              "Atlantic/Stanley",
+              "Australia/ACT",
+              "Australia/Adelaide",
+              "Australia/Brisbane",
+              "Australia/Broken_Hill",
+              "Australia/Canberra",
+              "Australia/Currie",
+              "Australia/Darwin",
+              "Australia/Eucla",
+              "Australia/Hobart",
+              "Australia/LHI",
+              "Australia/Lindeman",
+              "Australia/Lord_Howe",
+              "Australia/Melbourne",
+              "Australia/NSW",
+              "Australia/North",
+              "Australia/Perth",
+              "Australia/Queensland",
+              "Australia/South",
+              "Australia/Sydney",
+              "Australia/Tasmania",
+              "Australia/Victoria",
+              "Australia/West",
+              "Australia/Yancowinna",
+              "Brazil/Acre",
+              "Brazil/DeNoronha",
+              "Brazil/East",
+              "Brazil/West",
+              "CET",
+              "CST6CDT",
+              "Canada/Atlantic",
+              "Canada/Central",
+              "Canada/Eastern",
+              "Canada/Mountain",
+              "Canada/Newfoundland",
+              "Canada/Pacific",
+              "Canada/Saskatchewan",
+              "Canada/Yukon",
+              "Chile/Continental",
+              "Chile/EasterIsland",
+              "Cuba",
+              "EET",
+              "EST",
+              "EST5EDT",
+              "Egypt",
+              "Eire",
+              "Etc/GMT",
+              "Etc/GMT+0",
+              "Etc/GMT+1",
+              "Etc/GMT+10",
+              "Etc/GMT+11",
+              "Etc/GMT+12",
+              "Etc/GMT+2",
+              "Etc/GMT+3",
+              "Etc/GMT+4",
+              "Etc/GMT+5",
+              "Etc/GMT+6",
+              "Etc/GMT+7",
+              "Etc/GMT+8",
+              "Etc/GMT+9",
+              "Etc/GMT-0",
+              "Etc/GMT-1",
+              "Etc/GMT-10",
+              "Etc/GMT-11",
+              "Etc/GMT-12",
+              "Etc/GMT-13",
+              "Etc/GMT-14",
+              "Etc/GMT-2",
+              "Etc/GMT-3",
+              "Etc/GMT-4",
+              "Etc/GMT-5",
+              "Etc/GMT-6",
+              "Etc/GMT-7",
+              "Etc/GMT-8",
+              "Etc/GMT-9",
+              "Etc/GMT0",
+              "Etc/Greenwich",
+              "Etc/UCT",
+              "Etc/UTC",
+              "Etc/Universal",
+              "Etc/Zulu",
+              "Europe/Amsterdam",
+              "Europe/Andorra",
+              "Europe/Astrakhan",
+              "Europe/Athens",
+              "Europe/Belfast",
+              "Europe/Belgrade",
+              "Europe/Berlin",
+              "Europe/Bratislava",
+              "Europe/Brussels",
+              "Europe/Bucharest",
+              "Europe/Budapest",
+              "Europe/Busingen",
+              "Europe/Chisinau",
+              "Europe/Copenhagen",
+              "Europe/Dublin",
+              "Europe/Gibraltar",
+              "Europe/Guernsey",
+              "Europe/Helsinki",
+              "Europe/Isle_of_Man",
+              "Europe/Istanbul",
+              "Europe/Jersey",
+              "Europe/Kaliningrad",
+              "Europe/Kiev",
+              "Europe/Kirov",
+              "Europe/Lisbon",
+              "Europe/Ljubljana",
+              "Europe/London",
+              "Europe/Luxembourg",
+              "Europe/Madrid",
+              "Europe/Malta",
+              "Europe/Mariehamn",
+              "Europe/Minsk",
+              "Europe/Monaco",
+              "Europe/Moscow",
+              "Europe/Nicosia",
+              "Europe/Oslo",
+              "Europe/Paris",
+              "Europe/Podgorica",
+              "Europe/Prague",
+              "Europe/Riga",
+              "Europe/Rome",
+              "Europe/Samara",
+              "Europe/San_Marino",
+              "Europe/Sarajevo",
+              "Europe/Saratov",
+              "Europe/Simferopol",
+              "Europe/Skopje",
+              "Europe/Sofia",
+              "Europe/Stockholm",
+              "Europe/Tallinn",
+              "Europe/Tirane",
+              "Europe/Tiraspol",
+              "Europe/Ulyanovsk",
+              "Europe/Uzhgorod",
+              "Europe/Vaduz",
+              "Europe/Vatican",
+              "Europe/Vienna",
+              "Europe/Vilnius",
+              "Europe/Volgograd",
+              "Europe/Warsaw",
+              "Europe/Zagreb",
+              "Europe/Zaporozhye",
+              "Europe/Zurich",
+              "GB",
+              "GB-Eire",
+              "GMT",
+              "GMT+0",
+              "GMT-0",
+              "GMT0",
+              "Greenwich",
+              "HST",
+              "Hongkong",
+              "Iceland",
+              "Indian/Antananarivo",
+              "Indian/Chagos",
+              "Indian/Christmas",
+              "Indian/Cocos",
+              "Indian/Comoro",
+              "Indian/Kerguelen",
+              "Indian/Mahe",
+              "Indian/Maldives",
+              "Indian/Mauritius",
+              "Indian/Mayotte",
+              "Indian/Reunion",
+              "Iran",
+              "Israel",
+              "Jamaica",
+              "Japan",
+              "Kwajalein",
+              "Libya",
+              "MET",
+              "MST",
+              "MST7MDT",
+              "Mexico/BajaNorte",
+              "Mexico/BajaSur",
+              "Mexico/General",
+              "NZ",
+              "NZ-CHAT",
+              "Navajo",
+              "PRC",
+              "PST8PDT",
+              "Pacific/Apia",
+              "Pacific/Auckland",
+              "Pacific/Bougainville",
+              "Pacific/Chatham",
+              "Pacific/Chuuk",
+              "Pacific/Easter",
+              "Pacific/Efate",
+              "Pacific/Enderbury",
+              "Pacific/Fakaofo",
+              "Pacific/Fiji",
+              "Pacific/Funafuti",
+              "Pacific/Galapagos",
+              "Pacific/Gambier",
+              "Pacific/Guadalcanal",
+              "Pacific/Guam",
+              "Pacific/Honolulu",
+              "Pacific/Johnston",
+              "Pacific/Kiritimati",
+              "Pacific/Kosrae",
+              "Pacific/Kwajalein",
+              "Pacific/Majuro",
+              "Pacific/Marquesas",
+              "Pacific/Midway",
+              "Pacific/Nauru",
+              "Pacific/Niue",
+              "Pacific/Norfolk",
+              "Pacific/Noumea",
+              "Pacific/Pago_Pago",
+              "Pacific/Palau",
+              "Pacific/Pitcairn",
+              "Pacific/Pohnpei",
+              "Pacific/Ponape",
+              "Pacific/Port_Moresby",
+              "Pacific/Rarotonga",
+              "Pacific/Saipan",
+              "Pacific/Samoa",
+              "Pacific/Tahiti",
+              "Pacific/Tarawa",
+              "Pacific/Tongatapu",
+              "Pacific/Truk",
+              "Pacific/Wake",
+              "Pacific/Wallis",
+              "Pacific/Yap",
+              "Poland",
+              "Portugal",
+              "ROC",
+              "ROK",
+              "Singapore",
+              "Turkey",
+              "UCT",
+              "US/Alaska",
+              "US/Aleutian",
+              "US/Arizona",
+              "US/Central",
+              "US/East-Indiana",
+              "US/Eastern",
+              "US/Hawaii",
+              "US/Indiana-Starke",
+              "US/Michigan",
+              "US/Mountain",
+              "US/Pacific",
+              "US/Samoa",
+              "UTC",
+              "Universal",
+              "W-SU",
+              "WET",
+              "Zulu"
+            ],
             "type": "string"
           },
           "type": {
@@ -5440,10 +7406,10 @@
       "SavedQueryRestApi.get": {
         "properties": {
           "created_by": {
-            "$ref": "#/components/schemas/Meta31"
+            "$ref": "#/components/schemas/SavedQueryRestApi.get.User"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta32"
+            "$ref": "#/components/schemas/SavedQueryRestApi.get.Database"
           },
           "description": {
             "nullable": true,
@@ -5473,13 +7439,50 @@
         },
         "type": "object"
       },
+      "SavedQueryRestApi.get.Database": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "SavedQueryRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "SavedQueryRestApi.get_list": {
         "properties": {
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta29"
+            "$ref": "#/components/schemas/SavedQueryRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -5487,7 +7490,7 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta30"
+            "$ref": "#/components/schemas/SavedQueryRestApi.get_list.Database"
           },
           "db_id": {
             "format": "int32",
@@ -5531,6 +7534,43 @@
             "readOnly": true
           }
         },
+        "type": "object"
+      },
+      "SavedQueryRestApi.get_list.Database": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "SavedQueryRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "SavedQueryRestApi.post": {
@@ -5785,8 +7825,8 @@
             "type": "string"
           },
           "threshold": {
-            "format": "int32",
-            "type": "integer"
+            "format": "float",
+            "type": "number"
           }
         },
         "type": "object"
@@ -6034,7 +8074,7 @@
   },
   "openapi": "3.0.2",
   "paths": {
-    "/annotation_layer/": {
+    "/api/v1/annotation_layer/": {
       "delete": {
         "description": "Deletes multiple annotation layers in a bulk operation.",
         "parameters": [
@@ -6250,7 +8290,7 @@
         ]
       }
     },
-    "/annotation_layer/_info": {
+    "/api/v1/annotation_layer/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -6336,7 +8376,7 @@
         ]
       }
     },
-    "/annotation_layer/related/{column_name}": {
+    "/api/v1/annotation_layer/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -6393,7 +8433,7 @@
         ]
       }
     },
-    "/annotation_layer/{pk}": {
+    "/api/v1/annotation_layer/{pk}": {
       "delete": {
         "description": "Delete Annotation layer",
         "parameters": [
@@ -6608,7 +8648,7 @@
         ]
       }
     },
-    "/annotation_layer/{pk}/annotation/": {
+    "/api/v1/annotation_layer/{pk}/annotation/": {
       "delete": {
         "description": "Deletes multiple annotation in a bulk operation.",
         "parameters": [
@@ -6814,7 +8854,7 @@
         ]
       }
     },
-    "/annotation_layer/{pk}/annotation/{annotation_id}": {
+    "/api/v1/annotation_layer/{pk}/annotation/{annotation_id}": {
       "delete": {
         "description": "Delete Annotation layer",
         "parameters": [
@@ -7025,7 +9065,7 @@
         ]
       }
     },
-    "/async_event/": {
+    "/api/v1/async_event/": {
       "get": {
         "description": "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.",
         "parameters": [
@@ -7100,7 +9140,7 @@
         ]
       }
     },
-    "/cachekey/invalidate": {
+    "/api/v1/cachekey/invalidate": {
       "post": {
         "description": "Takes a list of datasources, finds the associated cache records and invalidates them and removes the database records",
         "requestBody": {
@@ -7135,7 +9175,7 @@
         ]
       }
     },
-    "/chart/": {
+    "/api/v1/chart/": {
       "delete": {
         "description": "Deletes multiple Charts in a bulk operation.",
         "parameters": [
@@ -7354,7 +9394,7 @@
         ]
       }
     },
-    "/chart/_info": {
+    "/api/v1/chart/_info": {
       "get": {
         "description": "Several metadata information about chart API endpoints.",
         "parameters": [
@@ -7440,7 +9480,7 @@
         ]
       }
     },
-    "/chart/data": {
+    "/api/v1/chart/data": {
       "post": {
         "description": "Takes a query context constructed in the client and returns payload data response for the given query.",
         "requestBody": {
@@ -7495,7 +9535,7 @@
         ]
       }
     },
-    "/chart/data/{cache_key}": {
+    "/api/v1/chart/data/{cache_key}": {
       "get": {
         "description": "Takes a query context cache key and returns payload data response for the given query.",
         "parameters": [
@@ -7545,7 +9585,7 @@
         ]
       }
     },
-    "/chart/export/": {
+    "/api/v1/chart/export/": {
       "get": {
         "description": "Exports multiple charts and downloads them as YAML files",
         "parameters": [
@@ -7596,7 +9636,7 @@
         ]
       }
     },
-    "/chart/favorite_status/": {
+    "/api/v1/chart/favorite_status/": {
       "get": {
         "description": "Check favorited dashboards for current user",
         "parameters": [
@@ -7646,7 +9686,7 @@
         ]
       }
     },
-    "/chart/import/": {
+    "/api/v1/chart/import/": {
       "post": {
         "requestBody": {
           "content": {
@@ -7712,7 +9752,7 @@
         ]
       }
     },
-    "/chart/related/{column_name}": {
+    "/api/v1/chart/related/{column_name}": {
       "get": {
         "description": "Get a list of all possible owners for a chart. Use `owners` has the `column_name` parameter",
         "parameters": [
@@ -7770,7 +9810,7 @@
         ]
       }
     },
-    "/chart/{pk}": {
+    "/api/v1/chart/{pk}": {
       "delete": {
         "description": "Deletes a Chart.",
         "parameters": [
@@ -7995,7 +10035,7 @@
         ]
       }
     },
-    "/chart/{pk}/cache_screenshot/": {
+    "/api/v1/chart/{pk}/cache_screenshot/": {
       "get": {
         "description": "Compute and cache a screenshot.",
         "parameters": [
@@ -8056,7 +10096,7 @@
         ]
       }
     },
-    "/chart/{pk}/data/": {
+    "/api/v1/chart/{pk}/data/": {
       "get": {
         "description": "Takes a chart ID and uses the query context stored when the chart was saved to return payload data response.",
         "parameters": [
@@ -8127,7 +10167,7 @@
         ]
       }
     },
-    "/chart/{pk}/screenshot/{digest}/": {
+    "/api/v1/chart/{pk}/screenshot/{digest}/": {
       "get": {
         "description": "Get a computed screenshot from cache.",
         "parameters": [
@@ -8186,7 +10226,7 @@
         ]
       }
     },
-    "/chart/{pk}/thumbnail/{digest}/": {
+    "/api/v1/chart/{pk}/thumbnail/{digest}/": {
       "get": {
         "description": "Compute or get already computed chart thumbnail from cache.",
         "parameters": [
@@ -8245,7 +10285,7 @@
         ]
       }
     },
-    "/css_template/": {
+    "/api/v1/css_template/": {
       "delete": {
         "description": "Deletes multiple css templates in a bulk operation.",
         "parameters": [
@@ -8461,7 +10501,7 @@
         ]
       }
     },
-    "/css_template/_info": {
+    "/api/v1/css_template/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -8547,7 +10587,7 @@
         ]
       }
     },
-    "/css_template/related/{column_name}": {
+    "/api/v1/css_template/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -8604,7 +10644,7 @@
         ]
       }
     },
-    "/css_template/{pk}": {
+    "/api/v1/css_template/{pk}": {
       "delete": {
         "description": "Delete CSS template",
         "parameters": [
@@ -8817,7 +10857,7 @@
         ]
       }
     },
-    "/dashboard/": {
+    "/api/v1/dashboard/": {
       "delete": {
         "description": "Deletes multiple Dashboards in a bulk operation.",
         "parameters": [
@@ -9039,7 +11079,7 @@
         ]
       }
     },
-    "/dashboard/_info": {
+    "/api/v1/dashboard/_info": {
       "get": {
         "description": "Several metadata information about dashboard API endpoints.",
         "parameters": [
@@ -9125,7 +11165,7 @@
         ]
       }
     },
-    "/dashboard/export/": {
+    "/api/v1/dashboard/export/": {
       "get": {
         "description": "Exports multiple Dashboards and downloads them as YAML files.",
         "parameters": [
@@ -9178,7 +11218,7 @@
         ]
       }
     },
-    "/dashboard/favorite_status/": {
+    "/api/v1/dashboard/favorite_status/": {
       "get": {
         "description": "Check favorited dashboards for current user",
         "parameters": [
@@ -9228,7 +11268,7 @@
         ]
       }
     },
-    "/dashboard/import/": {
+    "/api/v1/dashboard/import/": {
       "post": {
         "requestBody": {
           "content": {
@@ -9294,7 +11334,7 @@
         ]
       }
     },
-    "/dashboard/related/{column_name}": {
+    "/api/v1/dashboard/related/{column_name}": {
       "get": {
         "description": "Get a list of all possible owners for a dashboard.",
         "parameters": [
@@ -9352,7 +11392,292 @@
         ]
       }
     },
-    "/dashboard/{id_or_slug}": {
+    "/api/v1/dashboard/{dashboard_id}/filtersets": {
+      "get": {
+        "description": "Get a dashboard's list of filter sets",
+        "parameters": [
+          {
+            "description": "The id of the dashboard",
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "description": {
+                        "description": "A description field of the filter set",
+                        "type": "string"
+                      },
+                      "json_metadata": {
+                        "description": "metadata of the filter set",
+                        "type": "string"
+                      },
+                      "name": {
+                        "description": "Name of the Filter set",
+                        "type": "string"
+                      },
+                      "owner_id": {
+                        "description": "A description field of the filter set",
+                        "type": "integer"
+                      },
+                      "owner_type": {
+                        "description": "the Type of the owner ( Dashboard/User)",
+                        "type": "integer"
+                      },
+                      "parameters": {
+                        "description": "JSON schema defining the needed parameters"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "FilterSets"
+          },
+          "302": {
+            "description": "Redirects to the current digest"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "FilterSetRestApi"
+        ]
+      },
+      "post": {
+        "description": "Create a new Dashboard's Filter Set.",
+        "parameters": [
+          {
+            "description": "The id of the dashboard",
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilterSetRestApi.post"
+              }
+            }
+          },
+          "description": "Filter set schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/FilterSetRestApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Filter set added"
+          },
+          "302": {
+            "description": "Redirects to the current digest"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "FilterSetRestApi"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{dashboard_id}/filtersets/{pk}": {
+      "delete": {
+        "description": "Deletes a Dashboard.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Filter set deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "FilterSetRestApi"
+        ]
+      },
+      "put": {
+        "description": "Changes a Dashboard's Filter set.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dashboard_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilterSetRestApi.put"
+              }
+            }
+          },
+          "description": "Filter set schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/FilterSetRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Filter set changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "FilterSetRestApi"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{id_or_slug}": {
       "get": {
         "description": "Get a dashboard detail information.",
         "parameters": [
@@ -9391,6 +11716,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           }
@@ -9405,7 +11733,7 @@
         ]
       }
     },
-    "/dashboard/{id_or_slug}/charts": {
+    "/api/v1/dashboard/{id_or_slug}/charts": {
       "get": {
         "description": "Get the chart definitions for a given dashboard",
         "parameters": [
@@ -9446,6 +11774,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           }
@@ -9460,7 +11791,7 @@
         ]
       }
     },
-    "/dashboard/{id_or_slug}/datasets": {
+    "/api/v1/dashboard/{id_or_slug}/datasets": {
       "get": {
         "description": "Returns a list of a dashboard's datasets. Each dataset includes only the information necessary to render the dashboard's charts.",
         "parameters": [
@@ -9502,6 +11833,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           }
@@ -9516,7 +11850,7 @@
         ]
       }
     },
-    "/dashboard/{pk}": {
+    "/api/v1/dashboard/{pk}": {
       "delete": {
         "description": "Deletes a Dashboard.",
         "parameters": [
@@ -9602,6 +11936,9 @@
                     "id": {
                       "type": "number"
                     },
+                    "last_modified_time": {
+                      "type": "number"
+                    },
                     "result": {
                       "$ref": "#/components/schemas/DashboardRestApi.put"
                     }
@@ -9641,7 +11978,269 @@
         ]
       }
     },
-    "/dashboard/{pk}/thumbnail/{digest}/": {
+    "/api/v1/dashboard/{pk}/filter_state": {
+      "post": {
+        "description": "Stores a new value.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyValuePostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "key": {
+                      "description": "The key to retrieve the value.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The value was stored successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Filter State"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{pk}/filter_state/{key}/": {
+      "delete": {
+        "description": "Deletes a value.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The value key.",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "description": "The result of the operation",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Deleted the stored value."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Filter State"
+        ]
+      },
+      "get": {
+        "description": "Retrives a value.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "value": {
+                      "description": "The stored value",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Returns the stored value."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Filter State"
+        ]
+      },
+      "put": {
+        "description": "Updates an existing value.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyValuePutSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "description": "The result of the operation",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The value was stored successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Filter State"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{pk}/thumbnail/{digest}/": {
       "get": {
         "description": "Compute async or get already computed dashboard thumbnail from cache.",
         "parameters": [
@@ -9724,7 +12323,7 @@
         ]
       }
     },
-    "/database/": {
+    "/api/v1/database/": {
       "get": {
         "description": "Get a list of models",
         "parameters": [
@@ -9890,7 +12489,7 @@
         ]
       }
     },
-    "/database/_info": {
+    "/api/v1/database/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -9976,7 +12575,7 @@
         ]
       }
     },
-    "/database/available/": {
+    "/api/v1/database/available/": {
       "get": {
         "description": "Get names of databases currently available",
         "responses": {
@@ -9984,45 +12583,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "databases": {
-                    "items": {
-                      "properties": {
-                        "available_drivers": {
-                          "description": "Installed drivers for the engine",
-                          "items": {
-                            "type": "string"
-                          },
-                          "type": "array"
-                        },
-                        "default_driver": {
-                          "description": "Default driver for the engine",
+                  "items": {
+                    "properties": {
+                      "available_drivers": {
+                        "description": "Installed drivers for the engine",
+                        "items": {
                           "type": "string"
                         },
-                        "engine": {
-                          "description": "Name of the SQLAlchemy engine",
-                          "type": "string"
-                        },
-                        "name": {
-                          "description": "Name of the database",
-                          "type": "string"
-                        },
-                        "parameters": {
-                          "description": "JSON schema defining the needed parameters",
-                          "type": "object"
-                        },
-                        "preferred": {
-                          "description": "Is the database preferred?",
-                          "type": "boolean"
-                        },
-                        "sqlalchemy_uri_placeholder": {
-                          "description": "Example placeholder for the SQLAlchemy URI",
-                          "type": "string"
-                        }
+                        "type": "array"
                       },
-                      "type": "object"
+                      "default_driver": {
+                        "description": "Default driver for the engine",
+                        "type": "string"
+                      },
+                      "engine": {
+                        "description": "Name of the SQLAlchemy engine",
+                        "type": "string"
+                      },
+                      "name": {
+                        "description": "Name of the database",
+                        "type": "string"
+                      },
+                      "parameters": {
+                        "description": "JSON schema defining the needed parameters",
+                        "type": "object"
+                      },
+                      "preferred": {
+                        "description": "Is the database preferred?",
+                        "type": "boolean"
+                      },
+                      "sqlalchemy_uri_placeholder": {
+                        "description": "Example placeholder for the SQLAlchemy URI",
+                        "type": "string"
+                      }
                     },
-                    "type": "array"
-                  }
+                    "type": "object"
+                  },
+                  "type": "array"
                 }
               }
             },
@@ -10045,7 +12642,7 @@
         ]
       }
     },
-    "/database/export/": {
+    "/api/v1/database/export/": {
       "get": {
         "description": "Download database(s) and associated dataset(s) as a zip file",
         "parameters": [
@@ -10093,7 +12690,7 @@
         ]
       }
     },
-    "/database/import/": {
+    "/api/v1/database/import/": {
       "post": {
         "requestBody": {
           "content": {
@@ -10159,7 +12756,7 @@
         ]
       }
     },
-    "/database/test_connection": {
+    "/api/v1/database/test_connection": {
       "post": {
         "description": "Tests a database connection",
         "requestBody": {
@@ -10209,7 +12806,7 @@
         ]
       }
     },
-    "/database/validate_parameters": {
+    "/api/v1/database/validate_parameters": {
       "post": {
         "description": "Validates parameters used to connect to a database",
         "requestBody": {
@@ -10259,7 +12856,7 @@
         ]
       }
     },
-    "/database/{pk}": {
+    "/api/v1/database/{pk}": {
       "delete": {
         "description": "Deletes a Database.",
         "parameters": [
@@ -10484,7 +13081,7 @@
         ]
       }
     },
-    "/database/{pk}/function_names/": {
+    "/api/v1/database/{pk}/function_names/": {
       "get": {
         "description": "Get function names supported by a database",
         "parameters": [
@@ -10528,7 +13125,7 @@
         ]
       }
     },
-    "/database/{pk}/related_objects/": {
+    "/api/v1/database/{pk}/related_objects/": {
       "get": {
         "description": "Get charts and dashboards count associated to a database",
         "parameters": [
@@ -10572,7 +13169,7 @@
         ]
       }
     },
-    "/database/{pk}/schemas/": {
+    "/api/v1/database/{pk}/schemas/": {
       "get": {
         "description": "Get all schemas from a database",
         "parameters": [
@@ -10631,7 +13228,7 @@
         ]
       }
     },
-    "/database/{pk}/select_star/{table_name}/": {
+    "/api/v1/database/{pk}/select_star/{table_name}/": {
       "get": {
         "description": "Get database select star for table",
         "parameters": [
@@ -10700,7 +13297,7 @@
         ]
       }
     },
-    "/database/{pk}/select_star/{table_name}/{schema_name}/": {
+    "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": {
       "get": {
         "description": "Get database select star for table",
         "parameters": [
@@ -10769,7 +13366,7 @@
         ]
       }
     },
-    "/database/{pk}/table/{table_name}/{schema_name}/": {
+    "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
       "get": {
         "description": "Get database table metadata",
         "parameters": [
@@ -10838,7 +13435,7 @@
         ]
       }
     },
-    "/dataset/": {
+    "/api/v1/dataset/": {
       "delete": {
         "description": "Deletes multiple Datasets in a bulk operation.",
         "parameters": [
@@ -11060,7 +13657,7 @@
         ]
       }
     },
-    "/dataset/_info": {
+    "/api/v1/dataset/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -11146,7 +13743,7 @@
         ]
       }
     },
-    "/dataset/distinct/{column_name}": {
+    "/api/v1/dataset/distinct/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -11203,7 +13800,7 @@
         ]
       }
     },
-    "/dataset/export/": {
+    "/api/v1/dataset/export/": {
       "get": {
         "description": "Exports multiple datasets and downloads them as YAML files",
         "parameters": [
@@ -11253,7 +13850,7 @@
         ]
       }
     },
-    "/dataset/import/": {
+    "/api/v1/dataset/import/": {
       "post": {
         "requestBody": {
           "content": {
@@ -11319,7 +13916,7 @@
         ]
       }
     },
-    "/dataset/related/{column_name}": {
+    "/api/v1/dataset/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -11376,7 +13973,7 @@
         ]
       }
     },
-    "/dataset/{pk}": {
+    "/api/v1/dataset/{pk}": {
       "delete": {
         "description": "Deletes a Dataset",
         "parameters": [
@@ -11608,7 +14205,7 @@
         ]
       }
     },
-    "/dataset/{pk}/column/{column_id}": {
+    "/api/v1/dataset/{pk}/column/{column_id}": {
       "delete": {
         "description": "Delete a Dataset column",
         "parameters": [
@@ -11673,7 +14270,7 @@
         ]
       }
     },
-    "/dataset/{pk}/metric/{metric_id}": {
+    "/api/v1/dataset/{pk}/metric/{metric_id}": {
       "delete": {
         "description": "Delete a Dataset metric",
         "parameters": [
@@ -11738,7 +14335,7 @@
         ]
       }
     },
-    "/dataset/{pk}/refresh": {
+    "/api/v1/dataset/{pk}/refresh": {
       "put": {
         "description": "Refreshes and updates columns of a dataset",
         "parameters": [
@@ -11793,7 +14390,7 @@
         ]
       }
     },
-    "/dataset/{pk}/related_objects": {
+    "/api/v1/dataset/{pk}/related_objects": {
       "get": {
         "description": "Get charts and dashboards count associated to a dataset",
         "parameters": [
@@ -11837,7 +14434,7 @@
         ]
       }
     },
-    "/log/": {
+    "/api/v1/log/": {
       "get": {
         "description": "Get a list of models",
         "parameters": [
@@ -11999,7 +14596,7 @@
         ]
       }
     },
-    "/log/{pk}": {
+    "/api/v1/log/{pk}": {
       "get": {
         "description": "Get an item model",
         "parameters": [
@@ -12101,7 +14698,7 @@
         ]
       }
     },
-    "/menu/": {
+    "/api/v1/menu/": {
       "get": {
         "description": "Get the menu data structure. Returns a forest like structure with the menu the user has access to",
         "responses": {
@@ -12162,48 +14759,7 @@
         ]
       }
     },
-    "/openapi/{version}/_openapi": {
-      "get": {
-        "description": "Get the OpenAPI spec for a specific API version",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "version",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The OpenAPI spec"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "OpenApi"
-        ]
-      }
-    },
-    "/query/": {
+    "/api/v1/query/": {
       "get": {
         "description": "Get a list of queries, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
         "parameters": [
@@ -12312,7 +14868,7 @@
         ]
       }
     },
-    "/query/distinct/{column_name}": {
+    "/api/v1/query/distinct/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -12369,7 +14925,7 @@
         ]
       }
     },
-    "/query/related/{column_name}": {
+    "/api/v1/query/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -12426,7 +14982,7 @@
         ]
       }
     },
-    "/query/{pk}": {
+    "/api/v1/query/{pk}": {
       "get": {
         "description": "Get query detail information.",
         "parameters": [
@@ -12528,7 +15084,7 @@
         ]
       }
     },
-    "/report/": {
+    "/api/v1/report/": {
       "delete": {
         "description": "Deletes multiple report schedules in a bulk operation.",
         "parameters": [
@@ -12747,7 +15303,7 @@
         ]
       }
     },
-    "/report/_info": {
+    "/api/v1/report/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -12833,7 +15389,7 @@
         ]
       }
     },
-    "/report/related/{column_name}": {
+    "/api/v1/report/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -12890,7 +15446,7 @@
         ]
       }
     },
-    "/report/{pk}": {
+    "/api/v1/report/{pk}": {
       "delete": {
         "description": "Delete a report schedule",
         "parameters": [
@@ -13111,7 +15667,7 @@
         ]
       }
     },
-    "/report/{pk}/log/": {
+    "/api/v1/report/{pk}/log/": {
       "get": {
         "description": "Get a list of report schedule logs, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
         "parameters": [
@@ -13190,7 +15746,7 @@
         ]
       }
     },
-    "/report/{pk}/log/{log_id}": {
+    "/api/v1/report/{pk}/log/{log_id}": {
       "get": {
         "description": "Get a report schedule log",
         "parameters": [
@@ -13270,7 +15826,7 @@
         ]
       }
     },
-    "/saved_query/": {
+    "/api/v1/saved_query/": {
       "delete": {
         "description": "Deletes multiple saved queries in a bulk operation.",
         "parameters": [
@@ -13486,7 +16042,7 @@
         ]
       }
     },
-    "/saved_query/_info": {
+    "/api/v1/saved_query/_info": {
       "get": {
         "description": "Get metadata information about this API resource",
         "parameters": [
@@ -13572,7 +16128,7 @@
         ]
       }
     },
-    "/saved_query/distinct/{column_name}": {
+    "/api/v1/saved_query/distinct/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -13629,7 +16185,7 @@
         ]
       }
     },
-    "/saved_query/export/": {
+    "/api/v1/saved_query/export/": {
       "get": {
         "description": "Exports multiple saved queries and downloads them as YAML files",
         "parameters": [
@@ -13680,7 +16236,7 @@
         ]
       }
     },
-    "/saved_query/import/": {
+    "/api/v1/saved_query/import/": {
       "post": {
         "requestBody": {
           "content": {
@@ -13746,7 +16302,7 @@
         ]
       }
     },
-    "/saved_query/related/{column_name}": {
+    "/api/v1/saved_query/related/{column_name}": {
       "get": {
         "parameters": [
           {
@@ -13803,7 +16359,7 @@
         ]
       }
     },
-    "/saved_query/{pk}": {
+    "/api/v1/saved_query/{pk}": {
       "delete": {
         "description": "Delete saved query",
         "parameters": [
@@ -14016,7 +16572,7 @@
         ]
       }
     },
-    "/security/csrf_token/": {
+    "/api/v1/security/csrf_token/": {
       "get": {
         "description": "Fetch the CSRF token",
         "responses": {
@@ -14052,7 +16608,7 @@
         ]
       }
     },
-    "/security/login": {
+    "/api/v1/security/login": {
       "post": {
         "description": "Authenticate and get a JWT access and refresh token",
         "requestBody": {
@@ -14125,7 +16681,7 @@
         ]
       }
     },
-    "/security/refresh": {
+    "/api/v1/security/refresh": {
       "post": {
         "description": "Use the refresh token to get a new JWT access token",
         "responses": {
@@ -14161,11 +16717,52 @@
           "Security"
         ]
       }
+    },
+    "/api/{version}/_openapi": {
+      "get": {
+        "description": "Get the OpenAPI spec for a specific API version",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The OpenAPI spec"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "OpenApi"
+        ]
+      }
     }
   },
   "servers": [
     {
-      "url": "/api/v1"
+      "url": "http://localhost:8088"
     }
   ]
 }

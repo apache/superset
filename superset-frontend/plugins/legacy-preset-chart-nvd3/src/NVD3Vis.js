@@ -673,15 +673,19 @@ function nvd3Vis(element, props) {
       chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
     }
 
-    if (isVizTypes(['line', 'area']) && useRichTooltip) {
+    if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {
       chart.useInteractiveGuideline(true);
-      if (vizType === 'line') {
+      if (vizType === 'line' || vizType === 'bar') {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(
             d,
             smartDateVerboseFormatter,
             yAxisFormatter,
           ),
+        );
+      } else if (vizType === 'dist_bar') {
+        chart.interactiveLayer.tooltip.contentGenerator(d =>
+          generateCompareTooltipContent(d, yAxisFormatter),
         );
       } else {
         // area chart

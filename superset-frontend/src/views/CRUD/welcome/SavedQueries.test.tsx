@@ -24,7 +24,7 @@ import configureStore from 'redux-mock-store';
 import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import SavedQueries from 'src/views/CRUD/welcome/SavedQueries';
 
 // store needed for withToasts(DashboardTable)

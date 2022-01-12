@@ -21,40 +21,41 @@
 describe('logging', () => {
   beforeEach(() => {
     jest.resetModules();
-    // Explicit is better than implicit
-    console.warn = console.error = function mockedConsole(message) {
-      throw new Error(message);
-    };
+    jest.resetAllMocks();
   });
-  it('should pipe to `console` methods', () => {
-    const { logging } = require('@superset-ui/core/src');
 
+  it('should pipe to `console` methods', () => {
+    const { logging } = require('@superset-ui/core');
+
+    jest.spyOn(logging, 'debug').mockImplementation();
+    jest.spyOn(logging, 'log').mockImplementation();
+    jest.spyOn(logging, 'info').mockImplementation();
     expect(() => {
       logging.debug();
       logging.log();
       logging.info();
     }).not.toThrow();
-    expect(() => {
-      logging.warn('warn');
-    }).toThrow('warn');
-    expect(() => {
-      logging.error('error');
-    }).toThrow('error');
 
-    // to support: npx jest --silent
-    const spy = jest.spyOn(logging, 'trace');
-    spy.mockImplementation(() => {
+    jest.spyOn(logging, 'warn').mockImplementation(() => {
+      throw new Error('warn');
+    });
+    expect(() => logging.warn()).toThrow('warn');
+
+    jest.spyOn(logging, 'error').mockImplementation(() => {
+      throw new Error('error');
+    });
+    expect(() => logging.error()).toThrow('error');
+
+    jest.spyOn(logging, 'trace').mockImplementation(() => {
       throw new Error('Trace:');
     });
-    expect(() => {
-      logging.trace();
-    }).toThrow('Trace:');
-    spy.mockRestore();
+    expect(() => logging.trace()).toThrow('Trace:');
   });
+
   it('should use noop functions when console unavailable', () => {
     const { console } = window;
     Object.assign(window, { console: undefined });
-    const { logging } = require('@superset-ui/core/src');
+    const { logging } = require('@superset-ui/core');
 
     afterAll(() => {
       Object.assign(window, { console });

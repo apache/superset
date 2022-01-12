@@ -20,8 +20,7 @@
 import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
-import { promiseTimeout } from '@superset-ui/core/src';
-import { WithLegend } from '@superset-ui/core/src/chart-composition';
+import { promiseTimeout, WithLegend } from '@superset-ui/core';
 
 let renderChart = jest.fn();
 let renderLegend = jest.fn();

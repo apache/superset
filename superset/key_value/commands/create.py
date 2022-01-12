@@ -31,16 +31,16 @@ logger = logging.getLogger(__name__)
 
 class CreateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self, user: User, resource_id: int, value: str,
+        self, actor: User, resource_id: int, value: str,
     ):
-        self._actor = user
+        self._actor = actor
         self._resource_id = resource_id
         self._value = value
 
     def run(self) -> Model:
         try:
             key = token_urlsafe(48)
-            self.create(self._resource_id, key, self._value)
+            self.create(self._actor, self._resource_id, key, self._value)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
@@ -50,5 +50,7 @@ class CreateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def create(self, resource_id: int, key: str, value: str) -> Optional[bool]:
+    def create(
+        self, actor: User, resource_id: int, key: str, value: str
+    ) -> Optional[bool]:
         ...

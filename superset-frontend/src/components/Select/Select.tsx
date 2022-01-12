@@ -171,7 +171,6 @@ const StyledSelect = styled(AntdSelect)`
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
-
     // Open the dropdown when clicking on the suffix
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
@@ -196,7 +195,6 @@ const StyledError = styled.div`
     width: 100%;
     padding: ${theme.gridUnit * 2}px;
     color: ${theme.colors.error.base};
-
     & svg {
       margin-right: ${theme.gridUnit * 2}px;
     }
@@ -298,8 +296,9 @@ const Select = ({
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions =
     options && Array.isArray(options) ? options : EMPTY_OPTIONS;
-  const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptions);
+  const [selectOptions, setSelectOptions] = useState<OptionsType>(
+    initialOptions.sort(sortComparator),
+  );
   const shouldUseChildrenOptions = !!selectOptions.find(
     opt => opt?.customLabel,
   );
@@ -642,30 +641,35 @@ const Select = ({
 
   useEffect(() => {
     if (selectValue) {
-      const array = Array.isArray(selectValue)
-        ? (selectValue as AntdLabeledValue[])
-        : [selectValue as AntdLabeledValue | string | number];
-      const options: AntdLabeledValue[] = [];
-      const isLabeledValue = isAsync || labelInValue;
-      array.forEach(element => {
-        const found = selectOptions.find((option: { value: string | number }) =>
-          isLabeledValue
-            ? option.value === (element as AntdLabeledValue).value
-            : option.value === element,
-        );
-        if (!found) {
-          options.push(
-            isLabeledValue
-              ? (element as AntdLabeledValue)
-              : ({ value: element, label: element } as AntdLabeledValue),
+      setSelectOptions(selectOptions => {
+        const array = Array.isArray(selectValue)
+          ? (selectValue as AntdLabeledValue[])
+          : [selectValue as AntdLabeledValue | string | number];
+        const options: AntdLabeledValue[] = [];
+        const isLabeledValue = isAsync || labelInValue;
+        array.forEach(element => {
+          const found = selectOptions.find(
+            (option: { value: string | number }) =>
+              isLabeledValue
+                ? option.value === (element as AntdLabeledValue).value
+                : option.value === element,
           );
+          if (!found) {
+            options.push(
+              isLabeledValue
+                ? (element as AntdLabeledValue)
+                : ({ value: element, label: element } as AntdLabeledValue),
+            );
+          }
+        });
+        if (options.length > 0) {
+          return [...options, ...selectOptions];
         }
+        // return same options won't trigger a re-render
+        return selectOptions;
       });
-      if (options.length > 0) {
-        setSelectOptions([...options, ...selectOptions]);
-      }
     }
-  }, [labelInValue, isAsync, selectOptions, selectValue]);
+  }, [labelInValue, isAsync, selectValue]);
 
   // Stop the invocation of the debounced function after unmounting
   useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);

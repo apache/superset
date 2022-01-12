@@ -53,9 +53,11 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -70,7 +72,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}}',
         "published": False,
     }
 
@@ -413,29 +415,29 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         from datetime import datetime
         import humanize
 
-        admin = self.get_user("admin")
-        start_changed_on = datetime.now()
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
+        with freeze_time("2020-01-01T00:00:00Z"):
+            admin = self.get_user("admin")
+            dashboard = self.insert_dashboard("title", "slug1", [admin.id])
 
-        self.login(username="admin")
+            self.login(username="admin")
 
-        arguments = {
-            "order_column": "changed_on_delta_humanized",
-            "order_direction": "desc",
-        }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+            }
+            uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
 
-        rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
-        )
+            rv = self.get_assert_metric(uri, "get_list")
+            self.assertEqual(rv.status_code, 200)
+            data = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(
+                data["result"][0]["changed_on_delta_humanized"],
+                humanize.naturaltime(datetime.now()),
+            )
 
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
+            # rollback changes
+            db.session.delete(dashboard)
+            db.session.commit()
 
     def test_get_dashboards_filter(self):
         """

@@ -19,26 +19,9 @@
 import PropTypes from 'prop-types';
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
-import {
-  getNumberFormatter,
-  getTimeFormatter,
-  getSequentialSchemeRegistry,
-} from '@superset-ui/core';
+import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import CalHeatMap from './vendor/cal-heatmap';
 import './vendor/cal-heatmap.css';
-
-function convertUTC(dttm) {
-  return new Date(
-    dttm.getUTCFullYear(),
-    dttm.getUTCMonth(),
-    dttm.getUTCDate(),
-    dttm.getUTCHours(),
-    dttm.getUTCMinutes(),
-    dttm.getUTCSeconds(),
-  );
-}
-
-const convertUTCTS = uts => convertUTC(new Date(uts)).getTime();
 
 const propTypes = {
   data: PropTypes.shape({
@@ -65,8 +48,8 @@ const propTypes = {
   showMetricName: PropTypes.bool,
   showValues: PropTypes.bool,
   steps: PropTypes.number,
-  timeFormat: PropTypes.string,
-  valueFormat: PropTypes.string,
+  timeFormatter: PropTypes.func,
+  valueFormatter: PropTypes.func,
   verboseMap: PropTypes.object,
 };
 
@@ -84,13 +67,10 @@ function Calendar(element, props) {
     showValues,
     steps,
     subdomainGranularity,
-    timeFormat,
-    valueFormat,
+    timeFormatter,
+    valueFormatter,
     verboseMap,
   } = props;
-
-  const valueFormatter = getNumberFormatter(valueFormat);
-  const timeFormatter = getTimeFormatter(timeFormat);
 
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
@@ -102,17 +82,7 @@ function Calendar(element, props) {
     ? (date, value) => valueFormatter(value)
     : null;
 
-  // Trick to convert all timestamps to UTC
-  // TODO: Verify if this conversion is really necessary
-  // since all timestamps should always be in UTC.
-  const metricsData = {};
-  Object.keys(data.data).forEach(metric => {
-    metricsData[metric] = {};
-    Object.keys(data.data[metric]).forEach(ts => {
-      metricsData[metric][convertUTCTS(ts * 1000) / 1000] =
-        data.data[metric][ts];
-    });
-  });
+  const metricsData = data.data;
 
   Object.keys(metricsData).forEach(metric => {
     const calContainer = div.append('div');
@@ -131,7 +101,7 @@ function Calendar(element, props) {
 
     const cal = new CalHeatMap();
     cal.init({
-      start: convertUTCTS(data.start),
+      start: data.start,
       data: timestamps,
       itemSelector: calContainer.node(),
       legendVerticalPosition: 'top',

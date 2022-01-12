@@ -73,6 +73,7 @@ export default function buildQueryContext(
         ...hooks,
       },
     }),
+    form_data: formData,
     result_format: formData.result_format || 'json',
     result_type: formData.result_type || 'full',
   };

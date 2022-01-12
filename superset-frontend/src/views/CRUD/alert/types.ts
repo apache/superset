@@ -68,6 +68,7 @@ export type AlertObject = {
   dashboard?: MetaObject;
   database?: MetaObject;
   description?: string;
+  force_screenshot: boolean;
   grace_period?: number;
   id: number;
   last_eval_dttm?: number;
