@@ -24,6 +24,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './Timeseries/types';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -136,10 +137,29 @@ const onlyTotalControl = {
   },
 };
 
+const percentageThresholdControl = {
+  name: 'percentage_threshold',
+  config: {
+    type: 'TextControl',
+    label: t('Percentage threshold'),
+    renderTrigger: true,
+    isFloat: true,
+    default: DEFAULT_FORM_DATA.percentageThreshold,
+    description: t(
+      'Minimum threshold in percentage points for showing labels.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value) &&
+      Boolean(controls?.stack?.value) &&
+      Boolean(!controls?.only_total?.value),
+  },
+};
+
 export const showValueSection = [
   [showValueControl],
   [stackControl],
   [onlyTotalControl],
+  [percentageThresholdControl],
 ];
 
 const richTooltipControl = {
