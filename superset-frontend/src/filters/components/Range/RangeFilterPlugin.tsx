@@ -27,12 +27,11 @@ import {
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
+// could add in scalePow and others
+import { scaleLog, scaleLinear } from 'd3-scale';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
-
-// could add in scalePow and others
-import { scaleLog, scaleLinear } from 'd3-scale';
 import { SingleValueType } from './SingleValueType';
 
 const LIGHT_BLUE = '#99e7f0';
@@ -145,8 +144,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, inputRef, stepSize, logScale, enableSingleValue } = formData;
-  const scaler = (logScale) ? scaleLog().domain([min+1, max+1]) : scaleLinear().range([min, max]);
+  const {
+    groupby,
+    defaultValue,
+    inputRef,
+    stepSize,
+    logScale,
+    enableSingleValue,
+  } = formData;
+  const scaler = logScale
+    ? scaleLog().domain([min + 1, max + 1])
+    : scaleLinear().range([min, max]);
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -156,19 +164,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   // these could be replaced with a property instead, to allow custom transforms
   const transformScale = useCallback(
-    (val: number | null) => {
-        return val ? scaler(val + 1 * logScale) : val;
-    },
+    (val: number | null) => (val ? scaler(val + 1 * logScale) : val),
     [logScale],
   );
 
   const inverseScale = useCallback(
-    (val: number | null) => val ? scaler.invert(val) - 1 * logScale : val,
+    (val: number | null) => (val ? scaler.invert(val) - 1 * logScale : val),
     [logScale],
   );
 
   const [value, setValue] = useState<[number, number]>(
-    (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(transformScale),
+    (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(
+      transformScale,
+    ),
   );
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
   const minIndex = 0;
@@ -287,9 +295,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const minMax = useMemo(
-    () => {
-      return value ?? [min ?? 0, max].map(transformScale);
-    },
+    () => value ?? [min ?? 0, max].map(transformScale),
     [max, min, value, transformScale],
   );
   useEffect(() => {
