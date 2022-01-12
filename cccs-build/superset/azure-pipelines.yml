@@ -33,7 +33,7 @@ steps:
       containerRegistry: $(containerRegistry)
       repository: $(imageRepository)
       dockerfile: $(dockerfile)
-      arguments: --build-arg BUILD_NUMBER=$(Build.BuildNumber)
+      arguments: --env BUILD_NUMBER=$(Build.BuildNumber)
       tags: |
         $(BRANCH_NAME)
         $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
