@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Set
@@ -39,6 +40,16 @@ ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
+
+
+# TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
+sqlparse.keywords.SQL_REGEX.insert(
+    0,
+    (
+        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
+        sqlparse.tokens.String.Single,
+    ),
+)
 
 
 class CtasMethod(str, Enum):
