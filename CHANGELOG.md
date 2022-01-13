@@ -67,6 +67,9 @@ under the License.
 - [#16136](https://github.com/apache/superset/pull/16136) feat: add profiling to Superset pages (@betodealmeida)
 
 **Fixes**
+- [#17945](https://github.com/apache/superset/pull/17945) fix(dashboard): scope status of filter not update in dashboard metadata (@stephenLYZ)
+- [#17349](https://github.com/apache/superset/pull/17349) fix(Dashboard): Check validity of control item (@geido)
+- [#17842](https://github.com/apache/superset/pull/17842) fix(dashboard): update native filter info in metadata is not updated (@stephenLYZ)
 - [#17835](https://github.com/apache/superset/pull/17835) fix: resolve tests for 1.4 (@eschutho)
 - [#17781](https://github.com/apache/superset/pull/17781) fix(dashboard): commit update once (@serenajiang)
 - [#17766](https://github.com/apache/superset/pull/17766) fix: Remove positions from json_metadata (@geido)
@@ -230,6 +233,9 @@ under the License.
 - [#15762](https://github.com/apache/superset/pull/15762) fix: Align alert solid small svg center (@duynguyenhoang)
 
 **Others**
+- [#17964](https://github.com/apache/superset/pull/17964) chore: bump FAB to 3.4.3 (@dpgaspar)
+- [#17894](https://github.com/apache/superset/pull/17894) chore: bump gunicorn to 20.1.0 (@mporracindie)
+- [#17420](https://github.com/apache/superset/pull/17420) chore: Bump FAB to 3.4.0 (@kamalkeshavani-aiinside)
 - [#17752](https://github.com/apache/superset/pull/17752) chore: add release to pip requirements (@eschutho)
 - [#17724](https://github.com/apache/superset/pull/17724) ci: temp fix for mysqlclient on an OS regression bug (@dpgaspar)
 - [#17702](https://github.com/apache/superset/pull/17702) chore(sql): clean up invalid filter clause exception types (@villebro)
