@@ -31,10 +31,10 @@ import {
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
-import { useUiConfig } from '../UiConfigContext';
 
 interface BrandProps {
   path: string;
