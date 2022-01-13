@@ -1356,13 +1356,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return None
 
     def has_guest_access(
-        self, resource_type: GuestTokenResourceType, id: Union[str, int]
+        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
     ) -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
             return False
 
-        strid = str(id)
+        strid = str(resource_id)
         for resource in user.resources:
             if resource["type"] == resource_type.value and str(resource["id"]) == strid:
                 return True
