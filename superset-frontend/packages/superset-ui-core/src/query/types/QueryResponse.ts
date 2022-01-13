@@ -50,7 +50,7 @@ export interface ChartDataResponseResult {
   annotation_data: AnnotationData[] | null;
   cache_key: string | null;
   cache_timeout: number | null;
-  cache_dttm: string | null;
+  cached_dttm: string | null;
   /**
    * Array of data records as dictionary
    */
@@ -76,6 +76,8 @@ export interface ChartDataResponseResult {
     | 'scheduled'
     | 'success'
     | 'timed_out';
+  from_dttm: number | null;
+  to_dttm: number | null;
 }
 
 export interface TimeseriesChartDataResponseResult

@@ -27,7 +27,7 @@ import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
-} from 'src/common/hooks/apiResources';
+} from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -36,18 +36,19 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import {
   FILTER_BOX_MIGRATION_STATES,
   FILTER_BOX_TRANSITION_SNOOZE_DURATION,
-  FILTER_BOX_TRANSITION_SNOOZED_AT,
 } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
+import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -126,8 +127,10 @@ const DashboardPage: FC = () => {
           }
 
           // has cookie?
-          const snoozeDash =
-            getFromLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, 0) || {};
+          const snoozeDash = getItem(
+            LocalStorageKeys.filter_box_transition_snoozed_at,
+            {},
+          );
           if (
             Date.now() - (snoozeDash[id] || 0) <
             FILTER_BOX_TRANSITION_SNOOZE_DURATION
@@ -153,16 +156,40 @@ const DashboardPage: FC = () => {
   }, [readyToRender]);
 
   useEffect(() => {
-    if (readyToRender) {
-      if (!isDashboardHydrated.current) {
-        isDashboardHydrated.current = true;
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
-          // only initialize filterset once
-          dispatch(getFilterSets());
-        }
+    // eslint-disable-next-line consistent-return
+    async function getDataMaskApplied() {
+      const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
+      let dataMaskFromUrl = nativeFilterKeyValue || {};
+
+      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+      // check if key from key_value api and get datamask
+      if (nativeFilterKeyValue) {
+        dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }
-      dispatch(hydrateDashboard(dashboard, charts, filterboxMigrationState));
+      if (isOldRison) {
+        dataMaskFromUrl = isOldRison;
+      }
+
+      if (readyToRender) {
+        if (!isDashboardHydrated.current) {
+          isDashboardHydrated.current = true;
+          if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET)) {
+            // only initialize filterset once
+            dispatch(getFilterSets(id));
+          }
+        }
+        dispatch(
+          hydrateDashboard(
+            dashboard,
+            charts,
+            filterboxMigrationState,
+            dataMaskFromUrl,
+          ),
+        );
+      }
+      return null;
     }
+    if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender, filterboxMigrationState]);
 
@@ -210,9 +237,11 @@ const DashboardPage: FC = () => {
           setFilterboxMigrationState(FILTER_BOX_MIGRATION_STATES.REVIEWING);
         }}
         onClickSnooze={() => {
-          const snoozedDash =
-            getFromLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, 0) || {};
-          setInLocalStorage(FILTER_BOX_TRANSITION_SNOOZED_AT, {
+          const snoozedDash = getItem(
+            LocalStorageKeys.filter_box_transition_snoozed_at,
+            {},
+          );
+          setItem(LocalStorageKeys.filter_box_transition_snoozed_at, {
             ...snoozedDash,
             [id]: Date.now(),
           });

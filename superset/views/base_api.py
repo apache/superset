@@ -18,8 +18,6 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from apispec import APISpec
-from apispec.exceptions import DuplicateComponentNameError
 from flask import Blueprint, g, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -197,8 +195,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     allowed_distinct_fields: Set[str] = set()
 
-    openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]
@@ -217,33 +213,19 @@ class BaseSupersetModelRestApi(ModelRestApi):
     }
 
     def __init__(self) -> None:
+        super().__init__()
         # Setup statsd
         self.stats_logger = BaseStatsLogger()
         # Add base API spec base query parameter schemas
         if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
         self.apispec_parameter_schemas["get_related_schema"] = get_related_schema
-        if self.openapi_spec_component_schemas is None:
-            self.openapi_spec_component_schemas = ()
-        self.openapi_spec_component_schemas = self.openapi_spec_component_schemas + (
+        self.openapi_spec_component_schemas: Tuple[
+            Type[Schema], ...
+        ] = self.openapi_spec_component_schemas + (
             RelatedResponseSchema,
             DistincResponseSchema,
         )
-        super().__init__()
-
-    def add_apispec_components(self, api_spec: APISpec) -> None:
-        """
-        Adds extra OpenApi schema spec components, these are declared
-        on the `openapi_spec_component_schemas` class property
-        """
-        for schema in self.openapi_spec_component_schemas:
-            try:
-                api_spec.components.schema(
-                    schema.__name__, schema=schema,
-                )
-            except DuplicateComponentNameError:
-                pass
-        super().add_apispec_components(api_spec)
 
     def create_blueprint(
         self, appbuilder: AppBuilder, *args: Any, **kwargs: Any
@@ -252,6 +234,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return super().create_blueprint(appbuilder, *args, **kwargs)
 
     def _init_properties(self) -> None:
+        """
+        Lock down initial not configured REST API columns. We want to just expose
+        model ids, if something is misconfigured. By default FAB exposes all available
+        columns on a Model
+        """
         model_id = self.datamodel.get_pk_name()
         if self.list_columns is None and not self.list_model_schema:
             self.list_columns = [model_id]

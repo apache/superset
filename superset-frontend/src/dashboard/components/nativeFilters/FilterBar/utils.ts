@@ -69,7 +69,6 @@ export const checkIsApplyDisabled = (
 ) => {
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
-
   return (
     areObjectsEqual(
       getOnlyExtraFormData(dataMaskSelected),

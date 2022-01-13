@@ -115,8 +115,9 @@ const FilterFocusHighlight = React.forwardRef(
       dashboardFilters,
     );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
-    if (!(focusedFilterScope || focusedNativeFilterId))
+    if (!(focusedFilterScope || focusedNativeFilterId)) {
       return <div ref={ref} {...otherProps} />;
+    }
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container

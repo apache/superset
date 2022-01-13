@@ -46,6 +46,9 @@ superset:
 	# Load some data to play with
 	superset load-examples
 
+	# Install node packages
+	cd superset-frontend; npm install
+
 update: update-py update-js
 
 update-py:

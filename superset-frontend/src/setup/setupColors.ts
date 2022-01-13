@@ -18,9 +18,12 @@
  */
 import {
   CategoricalScheme,
+  ColorScheme,
+  ColorSchemeConfig,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
+  SequentialSchemeConfig,
   CategoricalAirbnb,
   CategoricalD3,
   CategoricalEcharts,
@@ -33,9 +36,9 @@ import {
   ColorSchemeRegistry,
 } from '@superset-ui/core';
 
-function registerColorSchemes(
-  registry: ColorSchemeRegistry<unknown>,
-  colorSchemes: (CategoricalScheme | SequentialScheme)[],
+function registerColorSchemes<T extends ColorScheme>(
+  registry: ColorSchemeRegistry<T>,
+  colorSchemes: T[],
   standardDefaultKey: string,
 ) {
   colorSchemes.forEach(scheme => {
@@ -48,9 +51,15 @@ function registerColorSchemes(
 }
 
 export default function setupColors(
-  extraCategoricalColorSchemes: CategoricalScheme[] = [],
-  extraSequentialColorSchemes: SequentialScheme[] = [],
+  extraCategoricalColorSchemeConfigs: ColorSchemeConfig[] = [],
+  extraSequentialColorSchemeConfigs: SequentialSchemeConfig[] = [],
 ) {
+  const extraCategoricalColorSchemes = extraCategoricalColorSchemeConfigs.map(
+    config => new CategoricalScheme(config),
+  );
+  const extraSequentialColorSchemes = extraSequentialColorSchemeConfigs.map(
+    config => new SequentialScheme(config),
+  );
   registerColorSchemes(
     // @ts-ignore
     getCategoricalSchemeRegistry(),
@@ -69,7 +78,11 @@ export default function setupColors(
   registerColorSchemes(
     // @ts-ignore
     getSequentialSchemeRegistry(),
-    [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
+    [
+      ...SequentialCommon,
+      ...SequentialD3,
+      ...extraSequentialColorSchemes.map(s => new SequentialScheme(s)),
+    ],
     'superset_seq_1',
   );
 }

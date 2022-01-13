@@ -48,6 +48,8 @@ const config: ControlPanelConfig = {
               label: t('Sort Descending'),
               default: true,
               description: t('Whether to sort descending or ascending'),
+              visibility: ({ controls }) =>
+                Boolean(controls?.timeseries_limit_metric.value),
             },
           },
           {
@@ -318,6 +320,8 @@ const config: ControlPanelConfig = {
                 '1 year',
                 '104 weeks',
                 '2 years',
+                '156 weeks',
+                '3 years',
               ]),
               description: t(
                 'Overlay one or more timeseries from a ' +

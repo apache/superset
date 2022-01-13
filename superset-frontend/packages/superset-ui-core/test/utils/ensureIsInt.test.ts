@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsInt } from '../../src';
+import { ensureIsInt } from '@superset-ui/core';
 
 describe('ensureIsInt', () => {
   it('handle inputs correctly', () => {

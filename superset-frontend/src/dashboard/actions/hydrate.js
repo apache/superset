@@ -67,6 +67,7 @@ export const hydrateDashboard =
     dashboardData,
     chartData,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
+    dataMaskApplied,
   ) =>
   (dispatch, getState) => {
     const { user, common } = getState();
@@ -378,10 +379,11 @@ export const hydrateDashboard =
           slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
-            flash_messages: common.flash_messages,
-            conf: common.conf,
+            flash_messages: common?.flash_messages,
+            conf: common?.conf,
           },
         },
+        dataMask: dataMaskApplied,
         dashboardFilters,
         nativeFilters,
         dashboardState: {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { overrideExtraFormData } from '@superset-ui/core/src/query/processExtraFormData';
+import { overrideExtraFormData } from '../../src/query/processExtraFormData';
 
 describe('overrideExtraFormData', () => {
   it('should assign allowed non-existent value', () => {
