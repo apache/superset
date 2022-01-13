@@ -45,11 +45,11 @@ def test_table() -> None:
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
     """
-    assert str(Table("table_name")) == "table_name"
-    assert str(Table("table_name", "schema_name")) == "schema_name.table_name"
+    assert str(Table("tbname")) == "tbname"
+    assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (
-        str(Table("table_name", "schema_name", "catalog_name"))
-        == "catalog_name.schema_name.table_name"
+        str(Table("tbname", "schemaname", "catalogname"))
+        == "catalogname.schemaname.tbname"
     )
     assert (
         str(Table("table.name", "schema/name", "catalog\nname"))
@@ -534,22 +534,6 @@ def test_extract_tables_multistatement() -> None:
     assert extract_tables("SELECT * FROM t1; SELECT * FROM t2;") == {
         Table("t1"),
         Table("t2"),
-    }
-
-
-def test_extract_tables_keyword() -> None:
-    """
-    Test that table names that are keywords work as expected.
-
-    If the table name is a ``sqlparse`` reserved keyword (eg, "table_name") the parser
-    needs extra logic to identify it.
-    """
-    assert extract_tables("SELECT * FROM table_name") == {Table("table_name")}
-    assert extract_tables("SELECT * FROM table_name AS foo") == {Table("table_name")}
-
-    # these 3 are considered keywords
-    assert extract_tables("SELECT * FROM catalog_name.schema_name.table_name") == {
-        Table("table_name", "schema_name", "catalog_name")
     }
 
 
