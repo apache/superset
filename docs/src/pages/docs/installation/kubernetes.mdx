@@ -1,8 +1,8 @@
 ---
-name: Running on Kubernetes
+name: Running on Kubernetes (Helm)
 menu: Installation and Configuration
 route: /docs/installation/running-on-kubernetes
-index: 12
+index: 13
 version: 1
 ---
 
@@ -94,24 +94,19 @@ postgresql:
 
 #### Dependencies
 
-You can specify pip packages to be installed before startup, e.g. to install extra database drivers:
+Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
+recommended to build own image with this step done in CI. The following example installs the Big Query and Elasticsearch
+database drivers so that you can connect to those datasources in your Superset installation.
 
 ```yaml
-additionalRequirements:
-  - psycopg2
-  - redis
-  - elasticsearch-dbapi
-  - pymssql
-  - gsheetsdb
-  # Force verstion to work around https://github.com/betodealmeida/gsheets-db-api/issues/15
-  - moz-sql-parser==4.9.21002
-  # For OAuth
-  - Authlib
-  # For webdriver / reports
-  - gevent
+bootstrapScript: |
+  #!/bin/bash
+  pip install psycopg2==2.8.5 \
+    redis==3.2.1 \
+    pybigquery==2.26.0 \
+    elasticsearch-dbapi==0.2.5 &&\
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
-
-__WARNING__: The list will replace the default one from the default `values.yaml` entirely, not _add_ to it...
 
 #### superset_config.py
 

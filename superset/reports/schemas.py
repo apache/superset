@@ -21,6 +21,7 @@ from flask_babel import gettext as _
 from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 from marshmallow_enum import EnumField
+from pytz import all_timezones
 
 from superset.models.reports import (
     ReportCreationMethodType,
@@ -102,7 +103,7 @@ class ValidatorConfigJSONSchema(Schema):
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
-    threshold = fields.Integer()
+    threshold = fields.Float()
 
 
 class ReportRecipientConfigJSONSchema(Schema):
@@ -153,7 +154,11 @@ class ReportSchedulePostSchema(Schema):
         allow_none=False,
         required=True,
     )
-    timezone = fields.String(description=timezone_description, default="UTC")
+    timezone = fields.String(
+        description=timezone_description,
+        default="UTC",
+        validate=validate.OneOf(choices=tuple(all_timezones)),
+    )
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
@@ -165,6 +170,7 @@ class ReportSchedulePostSchema(Schema):
         description=creation_method_description,
     )
     dashboard = fields.Integer(required=False, allow_none=True)
+    selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -197,6 +203,8 @@ class ReportSchedulePostSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    extra = fields.Dict(default=None,)
+    force_screenshot = fields.Boolean(default=False)
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
@@ -233,7 +241,11 @@ class ReportSchedulePutSchema(Schema):
         validate=[validate_crontab, Length(1, 1000)],
         required=False,
     )
-    timezone = fields.String(description=timezone_description, default="UTC")
+    timezone = fields.String(
+        description=timezone_description,
+        default="UTC",
+        validate=validate.OneOf(choices=tuple(all_timezones)),
+    )
     sql = fields.String(
         description=sql_description,
         example="SELECT value FROM time_series_table",
@@ -283,3 +295,4 @@ class ReportSchedulePutSchema(Schema):
         default=ReportDataFormat.VISUALIZATION,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
+    force_screenshot = fields.Boolean(default=False)

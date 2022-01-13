@@ -17,7 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { SupersetClient } from '@superset-ui/core';
+// https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
+// in order to mock modules in test case, so avoid absolute import module
+import { SupersetClient } from '../../packages/superset-ui-core/src/connection';
 
 export default function setupSupersetClient() {
   // The following is needed to mock out SupersetClient requests

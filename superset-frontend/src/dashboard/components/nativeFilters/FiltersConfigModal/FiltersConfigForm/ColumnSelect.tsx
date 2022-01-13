@@ -19,7 +19,7 @@
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { Column, ensureIsArray, SupersetClient, t } from '@superset-ui/core';
-import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
+import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { Select } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
@@ -77,8 +77,8 @@ export function ColumnSelect({
     [columns, filterValues],
   );
 
-  const currentFilterType = form.getFieldValue('filters')?.[filterId]
-    .filterType;
+  const currentFilterType =
+    form.getFieldValue('filters')?.[filterId].filterType;
   const currentColumn = useMemo(
     () => columns?.find(column => column.column_name === value),
     [columns, value],

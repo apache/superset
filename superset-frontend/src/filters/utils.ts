@@ -60,11 +60,20 @@ export const getRangeExtraFormData = (
   upper?: number | null,
 ) => {
   const filters: QueryObjectFilterClause[] = [];
-  if (lower !== undefined && lower !== null) {
+  if (lower !== undefined && lower !== null && lower !== upper) {
     filters.push({ col, op: '>=', val: lower });
   }
-  if (upper !== undefined && upper !== null) {
+  if (upper !== undefined && upper !== null && upper !== lower) {
     filters.push({ col, op: '<=', val: upper });
+  }
+  if (
+    upper !== undefined &&
+    upper !== null &&
+    lower !== undefined &&
+    lower !== null &&
+    upper === lower
+  ) {
+    filters.push({ col, op: '==', val: upper });
   }
 
   return filters.length

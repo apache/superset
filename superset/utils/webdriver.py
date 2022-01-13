@@ -21,13 +21,12 @@ from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
-from requests.models import PreparedRequest
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
     WebDriverException,
 )
-from selenium.webdriver import chrome, firefox
+from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
@@ -51,22 +50,26 @@ class DashboardStandaloneMode(Enum):
 
 
 class WebDriverProxy:
-    def __init__(
-        self, driver_type: str, window: Optional[WindowSize] = None,
-    ):
+    def __init__(self, driver_type: str, window: Optional[WindowSize] = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
         self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
         self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
 
     def create(self) -> WebDriver:
+        pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class = firefox.webdriver.WebDriver
             options = firefox.options.Options()
+            profile = FirefoxProfile()
+            profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
+            kwargs: Dict[Any, Any] = dict(options=options, firefox_profile=profile)
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
             options = chrome.options.Options()
+            options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
+            kwargs = dict(options=options)
         else:
             raise Exception(f"Webdriver name ({self._driver_type}) not supported")
         # Prepare args for the webdriver init
@@ -75,7 +78,6 @@ class WebDriverProxy:
         for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
             options.add_argument(arg)
 
-        kwargs: Dict[Any, Any] = dict(options=options)
         kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
         logger.info("Init selenium driver")
 
@@ -102,13 +104,8 @@ class WebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: "User",
+        self, url: str, element_name: str, user: "User"
     ) -> Optional[bytes]:
-        params = {"standalone": DashboardStandaloneMode.REPORT.value}
-        req = PreparedRequest()
-        req.prepare_url(url, params)
-        url = req.url or ""
-
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)

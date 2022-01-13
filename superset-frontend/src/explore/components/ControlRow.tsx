@@ -30,9 +30,15 @@ export default function ControlRow({ controls }: { controls: Control[] }) {
   );
   const colSize = NUM_COLUMNS / countableControls.length;
   return (
-    <div className="row space-1">
+    <div className="row">
       {controls.map((control, i) => (
-        <div className={`col-lg-${colSize} col-xs-12`} key={i}>
+        <div
+          className={`col-lg-${colSize} col-xs-12`}
+          style={{
+            display: control?.props.type === 'HiddenControl' ? 'none' : 'block',
+          }}
+          key={i}
+        >
           {control}
         </div>
       ))}

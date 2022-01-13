@@ -38,15 +38,21 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import (
+    backend,
+    get_example_database,
+    get_example_default_schema,
+)
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
@@ -54,9 +60,11 @@ from tests.integration_tests.fixtures.public_role import (
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,
+    load_unicode_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 NEW_SECURITY_CONVERGE_VIEWS = (
@@ -467,13 +475,13 @@ class TestRolePermission(SupersetTestCase):
         table.table_name = "tmp_perm_table_v2"
         session.commit()
         # TODO(bogdan): modify slice permissions on the table update.
-        self.assertNotEquals(slice.perm, table.perm)
+        self.assertNotEqual(slice.perm, table.perm)
         self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
         self.assertEqual(
             table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
         # TODO(bogdan): modify slice schema permissions on the table update.
-        self.assertNotEquals(slice.schema_perm, table.schema_perm)
+        self.assertNotEqual(slice.schema_perm, table.schema_perm)
         self.assertIsNone(slice.schema_perm)
 
         # updating slice refreshes the permissions
@@ -832,11 +840,11 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_alpha(alpha_perm_tuples)
         self.assert_cannot_alpha(alpha_perm_tuples)
 
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
-    )
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_admin_permissions(self):
+        if backend() == "hive":
+            return
+
         self.assert_can_gamma(get_perm_tuples("Admin"))
         self.assert_can_alpha(get_perm_tuples("Admin"))
         self.assert_can_admin(get_perm_tuples("Admin"))

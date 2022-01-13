@@ -41,6 +41,7 @@ from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-mod
 from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 
+from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -103,6 +104,11 @@ def _try_json_readsha(filepath: str, length: int) -> Optional[str]:
         return None
 
 
+#
+# If True, we will skip the call to load the logger config found in alembic.init
+#
+ALEMBIC_SKIP_LOG_CONFIG = False
+
 # Depending on the context in which this config is loaded, the
 # version_info.json file may or may not be available, as it is
 # generated on install via setup.py. In the event that we're
@@ -155,8 +161,10 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
+# Your App secret key. Make sure you override it on superset_config.py.
+# Use a strong complex alphanumeric string and use a tool to help you generate
+# a sufficiently random sequence, ex: openssl rand -base64 42"
+SECRET_KEY = CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -191,7 +199,7 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.data.api.data"]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -286,6 +294,8 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
 
+AUTH_STRICT_RESPONSE_CODES = True
+
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
@@ -314,6 +324,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -339,6 +350,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
+    # With Superset 2.0, we are updating the default so that the legacy datasource
+    # editor no longer shows. Currently this is set to false so that the editor
+    # option does show, but we will be depreciating it.
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": False,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
     # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
@@ -392,6 +407,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_FILTER_BOX_MIGRATION": False,
     "ENABLE_DND_WITH_CLICK_UX": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -558,6 +574,15 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+
+# Cache for filters state
+FILTER_STATE_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "filesystem",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
@@ -797,10 +822,12 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# FEATURE_FLAGS = {
-#     "ESTIMATE_QUERY_COST": True,
-#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
-# }
+#  Then on define the formatter on the config:
+#
+# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
+    str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
+] = {}
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -1084,7 +1111,11 @@ EMAIL_REPORTS_USER = "admin"
 WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
-WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
+WEBDRIVER_WINDOW = {
+    "dashboard": (1600, 2000),
+    "slice": (3000, 1200),
+    "pixel_density": 1,
+}
 
 # An optional override to the default auth hook used to provide auth to the
 # offline webdriver
@@ -1140,6 +1171,11 @@ PREFERRED_DATABASES: List[str] = [
     "SQLite",
     # etc.
 ]
+# When adding a new database we try to connect to it. Depending on which parameters are
+# incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the
+# database times out. Instead of relying on the driver timeout we can specify a shorter
+# one here.
+TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
@@ -1275,6 +1311,9 @@ MENU_HIDE_USER_INFO = False
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+# Set to False to only allow viewing own recent activity
+ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

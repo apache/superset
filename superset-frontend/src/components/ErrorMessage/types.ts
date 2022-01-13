@@ -96,12 +96,12 @@ export type SupersetError<ExtraType = Record<string, any> | null> = {
   message: string;
 };
 
-export type ErrorMessageComponentProps<
-  ExtraType = Record<string, any> | null
-> = {
-  error: SupersetError<ExtraType>;
-  source?: ErrorSource;
-  subtitle?: React.ReactNode;
-};
+export type ErrorMessageComponentProps<ExtraType = Record<string, any> | null> =
+  {
+    error: SupersetError<ExtraType>;
+    source?: ErrorSource;
+    subtitle?: React.ReactNode;
+  };
 
-export type ErrorMessageComponent = React.ComponentType<ErrorMessageComponentProps>;
+export type ErrorMessageComponent =
+  React.ComponentType<ErrorMessageComponentProps>;

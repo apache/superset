@@ -14,16 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
-import string
-from datetime import date, datetime
-from random import choice, getrandbits, randint, random, uniform
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import DateTime, String
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
@@ -31,29 +27,17 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
-from tests.integration_tests.dashboard_utils import create_table_for_dashboard
+from tests.common.example_data_generator.birth_names.birth_names_generator_factory import (
+    BirthNamesGeneratorFactory,
+)
+from tests.integration_tests.dashboard_utils import create_table_metadata
 from tests.integration_tests.test_app import app
 
-
-@pytest.fixture()
-def load_birth_names_dashboard_with_slices():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+BIRTH_NAMES_TBL_NAME = "birth_names"
 
 
-@pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
-
-
-def _load_data():
-    table_name = "birth_names"
-
+@pytest.fixture(scope="session")
+def load_birth_names_data():
     with app.app_context():
         database = get_example_database()
         df = _get_dataframe(database)
@@ -63,35 +47,61 @@ def _load_data():
             "state": String(10),
             "name": String(255),
         }
-        table = _create_table(
-            df=df,
-            table_name=table_name,
-            database=database,
+
+        df.to_sql(
+            BIRTH_NAMES_TBL_NAME,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
             dtype=dtype,
-            fetch_values_predicate="123 = 123",
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
         )
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS birth_names")
 
-        from superset.examples.birth_names import create_dashboard, create_slices
 
-        slices, _ = create_slices(table, admin_owner=False)
-        dash = create_dashboard(slices)
-        slices_ids_to_delete = [slice.id for slice in slices]
-        dash_id_to_delete = dash.id
-        return dash_id_to_delete, slices_ids_to_delete
+@pytest.fixture()
+def load_birth_names_dashboard_with_slices(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+@pytest.fixture(scope="module")
+def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+def _create_dashboards():
+    table = _create_table(
+        table_name=BIRTH_NAMES_TBL_NAME,
+        database=get_example_database(),
+        fetch_values_predicate="123 = 123",
+    )
+
+    from superset.examples.birth_names import create_dashboard, create_slices
+
+    slices, _ = create_slices(table, admin_owner=False)
+    dash = create_dashboard(slices)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_table(
-    df: DataFrame,
-    table_name: str,
-    database: "Database",
-    dtype: Dict[str, Any],
-    fetch_values_predicate: Optional[str] = None,
+    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
 ):
-    table = create_table_for_dashboard(
-        df=df,
+    table = create_table_metadata(
         table_name=table_name,
         database=database,
-        dtype=dtype,
         fetch_values_predicate=fetch_values_predicate,
     )
     from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
@@ -115,8 +125,6 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)
     for metric in metrics:
@@ -139,87 +147,4 @@ def _get_dataframe(database: Database) -> DataFrame:
 
 
 def _get_birth_names_data() -> List[Dict[Any, Any]]:
-    data = []
-    names = generate_names()
-    for year in range(1960, 2020):
-        ds = datetime(year, 1, 1, 0, 0, 0)
-        for _ in range(20):
-            gender = "boy" if choice([True, False]) else "girl"
-            num = randint(1, 100000)
-            data.append(
-                {
-                    "ds": ds,
-                    "gender": gender,
-                    "name": choice(names),
-                    "num": num,
-                    "state": choice(us_states),
-                    "num_boys": num if gender == "boy" else 0,
-                    "num_girls": num if gender == "girl" else 0,
-                }
-            )
-
-    return data
-
-
-def generate_names() -> List[str]:
-    names = []
-    for _ in range(250):
-        names.append(
-            "".join(choice(string.ascii_lowercase) for _ in range(randint(3, 12)))
-        )
-    return names
-
-
-us_states = [
-    "AL",
-    "AK",
-    "AZ",
-    "AR",
-    "CA",
-    "CO",
-    "CT",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "ID",
-    "IL",
-    "IN",
-    "IA",
-    "KS",
-    "KY",
-    "LA",
-    "ME",
-    "MD",
-    "MA",
-    "MI",
-    "MN",
-    "MS",
-    "MO",
-    "MT",
-    "NE",
-    "NV",
-    "NH",
-    "NJ",
-    "NM",
-    "NY",
-    "NC",
-    "ND",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VT",
-    "VA",
-    "WA",
-    "WV",
-    "WI",
-    "WY",
-    "other",
-]
+    return list(BirthNamesGeneratorFactory.make().generate())

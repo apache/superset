@@ -2,7 +2,7 @@
 name: Configuring Superset
 menu: Installation and Configuration
 route: /docs/installation/configuring-superset
-index: 3
+index: 4
 version: 1
 ---
 
@@ -21,7 +21,7 @@ SUPERSET_WEBSERVER_PORT = 8088
 
 # Flask App Builder configuration
 # Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+SECRET_KEY = 'USE_YOUR_OWN_SECURE_RANDOM_KEY'
 
 # The SQLAlchemy connection string to your database backend
 # This connection defines the path to the database that stores your
@@ -56,7 +56,8 @@ for more information on how to configure it.
 Make sure to change:
 
 - `SQLALCHEMY_DATABASE_URI`: by default it is stored at ~/.superset/superset.db
-- `SECRET_KEY`: to a long random string
+- `SECRET_KEY`: Use a strong complex alphanumeric string and use a tool
+                to help you generate a sufficiently random sequence, ex: openssl rand -base64 42"
 
 If you need to exempt endpoints from CSRF (e.g. if you are running a custom auth postback endpoint),
 you can add the endpoints to `WTF_CSRF_EXEMPT_LIST`:

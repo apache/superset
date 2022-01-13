@@ -23,6 +23,10 @@ export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
+  migrationState: {
+    name: 'migration_state',
+    type: 'string',
+  },
   standalone: {
     name: 'standalone',
     type: 'number',
@@ -34,6 +38,10 @@ export const URL_PARAMS = {
   nativeFilters: {
     name: 'native_filters',
     type: 'rison',
+  },
+  nativeFiltersKey: {
+    name: 'native_filters_key',
+    type: 'string',
   },
   filterSet: {
     name: 'filter_set',

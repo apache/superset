@@ -52,7 +52,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 from typing_extensions import TypedDict
 
@@ -64,7 +64,6 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
-from superset.utils.memoized import memoized
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -280,6 +279,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
+    allows_escaped_colons = True
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -338,6 +338,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, extra: Dict[str, Any],
     ) -> bool:
         return False
+
+    @classmethod
+    def get_text_clause(cls, clause: str) -> TextClause:
+        """
+        SQLALchemy wrapper to ensure text clauses are escaped properly
+
+        :param clause: string clause with potentially unescaped characters
+        :return: text clause with escaped characters
+        """
+        if cls.allows_escaped_colons:
+            clause = clause.replace(":", "\\:")
+        return text(clause)
 
     @classmethod
     def get_engine(
@@ -692,13 +704,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
-        cls, target_type: str, dttm: datetime,
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param db_extra: The database extra object
         :return: The SQL expression
         """
         return None
@@ -1286,10 +1299,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select()
 
     @classmethod
-    @memoized
     def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[
@@ -1304,6 +1317,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Converts native database type to sqlalchemy column type.
         :param native_type: Native database typee
         :param source: Type coming from the database table or cursor description
+        :param db_extra: The database extra object
         :return: ColumnSpec object
         """
         col_types = cls.get_sqla_column_type(
@@ -1315,7 +1329,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    column_type, cls, native_type or ""
+                    column_type, cls, native_type or "", db_extra=db_extra or {}
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
@@ -1366,6 +1380,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         return False
+
+    @classmethod
+    def parse_sql(cls, sql: str) -> List[str]:
+        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
 
 # schema for adding a database by providing parameters instead of the

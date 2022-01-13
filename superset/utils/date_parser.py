@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from time import struct_time
 from typing import Dict, List, Optional, Tuple
 
+import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -322,10 +323,14 @@ class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
             dttm = dttm.replace(
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
+        if unit == "quarter":
+            dttm = (
+                pd.Period(pd.Timestamp(dttm), freq="Q").to_timestamp().to_pydatetime()
+            )
         elif unit == "month":
             dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         elif unit == "week":
-            dttm = dttm - relativedelta(days=dttm.weekday())
+            dttm -= relativedelta(days=dttm.weekday())
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
         elif unit == "day":
             dttm = dttm.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -443,7 +448,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         + Group(
             date_expr
             + comma
-            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
             + ppOptional(comma)
         )
         + rparen

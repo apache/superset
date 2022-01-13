@@ -23,7 +23,7 @@
 const { readdirSync } = require("fs");
 const process = require("process");
 
-const INITIAL_DIRECTORIES = ["spec", "src"];
+const INITIAL_DIRECTORIES = ["spec", "src", "packages"];
 const DEFAULT_DIRECTORY = process.cwd();
 
 const getDirectories = (source) =>

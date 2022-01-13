@@ -22,7 +22,7 @@ from typing import Any, Dict, List
 import pandas as pd
 import pytest
 from pandas import DataFrame
-from sqlalchemy import DateTime, String, TIMESTAMP
+from sqlalchemy import DateTime, String
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -32,43 +32,59 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_database, get_example_default_schema
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
-    create_table_for_dashboard,
+    create_table_metadata,
 )
 from tests.integration_tests.test_app import app
 
-
-@pytest.fixture()
-def load_world_bank_dashboard_with_slices():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+WB_HEALTH_POPULATION = "wb_health_population"
 
 
-@pytest.fixture(scope="module")
-def load_world_bank_dashboard_with_slices_module_scope():
-    dash_id_to_delete, slices_ids_to_delete = _load_data()
-    yield
-    with app.app_context():
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
-
-
-def _load_data():
-    table_name = "wb_health_population"
-
+@pytest.fixture(scope="session")
+def load_world_bank_data():
     with app.app_context():
         database = get_example_database()
-        schema = get_example_default_schema()
-        df = _get_dataframe(database)
         dtype = {
             "year": DateTime if database.backend != "presto" else String(255),
             "country_code": String(3),
             "country_name": String(255),
             "region": String(255),
         }
-        table = create_table_for_dashboard(
-            df, table_name, database, dtype, schema=schema
+        _get_dataframe(database).to_sql(
+            WB_HEALTH_POPULATION,
+            get_example_database().get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype=dtype,
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
         )
+
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS wb_health_population")
+
+
+@pytest.fixture()
+def load_world_bank_dashboard_with_slices(load_world_bank_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+@pytest.fixture(scope="module")
+def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+def create_dashboard_for_loaded_data():
+    with app.app_context():
+        table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]
@@ -112,8 +128,6 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS wb_health_population")
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
     db.session.delete(dash)
     for slice_id in slices_ids:

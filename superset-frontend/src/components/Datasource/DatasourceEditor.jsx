@@ -30,7 +30,7 @@ import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Label from 'src/components/Label';
@@ -118,6 +118,16 @@ const StyledLabelWrapper = styled.div`
   }
 `;
 
+const StyledColumnsTabWrapper = styled.div`
+  .table > tbody > tr > td {
+    vertical-align: middle;
+  }
+
+  .ant-tag {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -156,7 +166,9 @@ CollectionTabTitle.propTypes = {
 
 function ColumnCollectionTable({
   columns,
-  onChange,
+  datasource,
+  onColumnsChange,
+  onDatasourceChange,
   editableColumnName,
   showExpression,
   allowAddItem,
@@ -166,8 +178,22 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       collection={columns}
-      tableColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
-      sortColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
+      tableColumns={[
+        'column_name',
+        'type',
+        'is_dttm',
+        'main_dttm_col',
+        'filterable',
+        'groupby',
+      ]}
+      sortColumns={[
+        'column_name',
+        'type',
+        'is_dttm',
+        'main_dttm_col',
+        'filterable',
+        'groupby',
+      ]}
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -284,25 +310,26 @@ function ColumnCollectionTable({
         type: t('Data type'),
         groupby: t('Is dimension'),
         is_dttm: t('Is temporal'),
+        main_dttm_col: t('Default datetime'),
         filterable: t('Is filterable'),
       }}
-      onChange={onChange}
+      onChange={onColumnsChange}
       itemRenderers={{
         column_name: (v, onItemChange, _, record) =>
           editableColumnName ? (
             <StyledLabelWrapper>
               {record.is_certified && (
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />
               )}
-              <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+              <TextControl value={v} onChange={onItemChange} />
             </StyledLabelWrapper>
           ) : (
             <StyledLabelWrapper>
               {record.is_certified && (
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />
@@ -310,6 +337,25 @@ function ColumnCollectionTable({
               {v}
             </StyledLabelWrapper>
           ),
+        main_dttm_col: (value, _onItemChange, _label, record) => {
+          const checked = datasource.main_dttm_col === record.column_name;
+          const disabled = !columns.find(
+            column => column.column_name === record.column_name,
+          ).is_dttm;
+          return (
+            <Radio
+              data-test={`radio-default-dttm-${record.column_name}`}
+              checked={checked}
+              disabled={disabled}
+              onChange={() =>
+                onDatasourceChange({
+                  ...datasource,
+                  main_dttm_col: record.column_name,
+                })
+              }
+            />
+          );
+        },
         type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
@@ -320,7 +366,9 @@ function ColumnCollectionTable({
 }
 ColumnCollectionTable.propTypes = {
   columns: PropTypes.array.isRequired,
-  onChange: PropTypes.func.isRequired,
+  datasource: PropTypes.object.isRequired,
+  onColumnsChange: PropTypes.func.isRequired,
+  onDatasourceChange: PropTypes.func.isRequired,
   editableColumnName: PropTypes.bool,
   showExpression: PropTypes.bool,
   allowAddItem: PropTypes.bool,
@@ -452,9 +500,8 @@ class DatasourceEditor extends React.PureComponent {
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.tableChangeAndSyncMetadata = this.tableChangeAndSyncMetadata.bind(
-      this,
-    );
+    this.tableChangeAndSyncMetadata =
+      this.tableChangeAndSyncMetadata.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
@@ -832,6 +879,23 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     return (
       <div>
+        {this.allowEditSource && (
+          <EditLockContainer>
+            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+              {this.state.isEditMode ? (
+                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+              ) : (
+                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
+              )}
+            </span>
+            {!this.state.isEditMode && (
+              <div>{t('Click the lock to make changes.')}</div>
+            )}
+            {this.state.isEditMode && (
+              <div>{t('Click the lock to prevent further changes.')}</div>
+            )}
+          </EditLockContainer>
+        )}
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
@@ -985,23 +1049,6 @@ class DatasourceEditor extends React.PureComponent {
             </Col>
           )}
         </Fieldset>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
-            )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
       </div>
     );
   }
@@ -1041,11 +1088,6 @@ class DatasourceEditor extends React.PureComponent {
         expandFieldset={
           <FormContainer>
             <Fieldset compact>
-              <Field
-                fieldKey="verbose_name"
-                label={t('Label')}
-                control={<TextControl controlId="verbose_name" />}
-              />
               <Field
                 fieldKey="description"
                 label={t('Description')}
@@ -1114,7 +1156,7 @@ class DatasourceEditor extends React.PureComponent {
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
-                <CertifiedIcon
+                <CertifiedBadge
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />
@@ -1128,15 +1170,17 @@ class DatasourceEditor extends React.PureComponent {
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+            <TextControl canEdit value={v} onChange={onChange} />
           ),
           expression: (v, onChange) => (
-            <EditableTitle
+            <TextAreaControl
               canEdit
-              title={v}
-              onSaveTitle={onChange}
+              initialValue={v}
+              onChange={onChange}
               extraClasses={['datasource-sql-expression']}
-              multiLine
+              language="sql"
+              offerEditInModal={false}
+              minLines={5}
             />
           ),
           description: (v, onChange, label) => (
@@ -1210,7 +1254,7 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={2}
           >
-            <div>
+            <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
@@ -1227,13 +1271,16 @@ class DatasourceEditor extends React.PureComponent {
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
+                editableColumnName
                 columns={this.state.databaseColumns}
-                onChange={databaseColumns =>
+                datasource={datasource}
+                onColumnsChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
                 }
+                onDatasourceChange={this.onDatasourceChange}
               />
               {this.state.metadataLoading && <Loading />}
-            </div>
+            </StyledColumnsTabWrapper>
           </Tabs.TabPane>
           <Tabs.TabPane
             tab={
@@ -1246,9 +1293,11 @@ class DatasourceEditor extends React.PureComponent {
           >
             <ColumnCollectionTable
               columns={this.state.calculatedColumns}
-              onChange={calculatedColumns =>
+              onColumnsChange={calculatedColumns =>
                 this.setColumns({ calculatedColumns })
               }
+              onDatasourceChange={this.onDatasourceChange}
+              datasource={datasource}
               editableColumnName
               showExpression
               allowAddItem
