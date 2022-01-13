@@ -1069,17 +1069,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            is_dashboard_access_check_applicable = feature_flag_manager.is_feature_enabled(
+            should_check_dashboard_access = feature_flag_manager.is_feature_enabled(
                 "DASHBOARD_RBAC"
-            ) or self.is_guest_user(
-                g.user
-            )
+            ) or self.is_guest_user(g.user)
 
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or (
-                    is_dashboard_access_check_applicable
+                    should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
                 )
             ):
