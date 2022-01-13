@@ -17,13 +17,14 @@
  * under the License.
  */
 import {
+  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN, isValidTimeCompare } from './utils';
+import { isValidTimeCompare } from './utils';
 import { timeComparePivotOperator } from './timeComparePivotOperator';
 
 export const pivotOperator: PostProcessingFactory<
@@ -32,7 +33,7 @@ export const pivotOperator: PostProcessingFactory<
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    const index = !xAxis || queryObject.is_timeseries ? TIME_COLUMN : xAxis;
+    const index = !xAxis || queryObject.is_timeseries ? DTTM_ALIAS : xAxis;
     if (isValidTimeCompare(formData, queryObject)) {
       return timeComparePivotOperator(formData, queryObject);
     }

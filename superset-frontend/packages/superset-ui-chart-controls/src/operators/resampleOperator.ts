@@ -17,9 +17,8 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingResample } from '@superset-ui/core';
+import { DTTM_ALIAS, PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN } from './utils';
 
 export const resampleOperator: PostProcessingFactory<
   PostProcessingResample | undefined
@@ -34,7 +33,7 @@ export const resampleOperator: PostProcessingFactory<
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
-        time_column: TIME_COLUMN,
+        time_column: DTTM_ALIAS,
       },
     };
   }

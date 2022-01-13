@@ -16,9 +16,8 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingProphet } from '@superset-ui/core';
+import { DTTM_ALIAS, PostProcessingProphet } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN } from './utils';
 
 export const prophetOperator: PostProcessingFactory<
   PostProcessingProphet | undefined
@@ -33,7 +32,7 @@ export const prophetOperator: PostProcessingFactory<
         yearly_seasonality: formData.forecastSeasonalityYearly,
         weekly_seasonality: formData.forecastSeasonalityWeekly,
         daily_seasonality: formData.forecastSeasonalityDaily,
-        index: formData.x_axis || TIME_COLUMN,
+        index: formData.x_axis || DTTM_ALIAS,
       },
     };
   }

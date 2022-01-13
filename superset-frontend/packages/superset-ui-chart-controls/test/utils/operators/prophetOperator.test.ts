@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData } from '@superset-ui/core';
+import { DTTM_ALIAS, QueryObject, SqlaFormData } from '@superset-ui/core';
 import { prophetOperator } from '../../../src';
-import { TIME_COLUMN } from '../../../lib';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -66,7 +65,7 @@ test('should do prophetOperator with default index', () => {
       yearly_seasonality: true,
       weekly_seasonality: false,
       daily_seasonality: false,
-      index: TIME_COLUMN,
+      index: DTTM_ALIAS,
     },
   });
 });

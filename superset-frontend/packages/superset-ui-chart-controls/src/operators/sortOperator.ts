@@ -17,9 +17,8 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingSort, RollingType } from '@superset-ui/core';
+import { DTTM_ALIAS, PostProcessingSort, RollingType } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN } from './utils';
 
 export const sortOperator: PostProcessingFactory<
   PostProcessingSort | undefined
@@ -29,7 +28,7 @@ export const sortOperator: PostProcessingFactory<
     (xAxis || queryObject.is_timeseries) &&
     Object.values(RollingType).includes(formData.rolling_type)
   ) {
-    const index = xAxis || TIME_COLUMN;
+    const index = xAxis || DTTM_ALIAS;
     return {
       operation: 'sort',
       options: {
