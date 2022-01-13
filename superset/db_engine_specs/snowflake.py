@@ -27,6 +27,7 @@ from marshmallow import fields, Schema
 from sqlalchemy.engine.url import make_url, URL
 from typing_extensions import TypedDict
 
+from superset.databases.utils import encode_parameters
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -197,6 +198,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             Dict[str, Any]
         ] = None,
     ) -> str:
+
+        # encode parameters
+        parameters = encode_parameters(parameters)  # type: ignore
 
         return str(
             URL(
