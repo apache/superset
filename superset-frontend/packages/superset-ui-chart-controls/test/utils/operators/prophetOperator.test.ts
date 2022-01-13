@@ -18,6 +18,7 @@
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { prophetOperator } from '../../../src';
+import { TIME_COLUMN } from '../../../lib';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -42,7 +43,7 @@ test('should skip prophetOperator', () => {
   expect(prophetOperator(formData, queryObject)).toEqual(undefined);
 });
 
-test('should do prophetOperator', () => {
+test('should do prophetOperator with default index', () => {
   expect(
     prophetOperator(
       {
@@ -65,6 +66,36 @@ test('should do prophetOperator', () => {
       yearly_seasonality: true,
       weekly_seasonality: false,
       daily_seasonality: false,
+      index: TIME_COLUMN,
+    },
+  });
+});
+
+test('should do prophetOperator over named column', () => {
+  expect(
+    prophetOperator(
+      {
+        ...formData,
+        x_axis: 'ds',
+        forecastEnabled: true,
+        forecastPeriods: '3',
+        forecastInterval: '5',
+        forecastSeasonalityYearly: true,
+        forecastSeasonalityWeekly: false,
+        forecastSeasonalityDaily: false,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'prophet',
+    options: {
+      time_grain: 'P1Y',
+      periods: 3.0,
+      confidence_interval: 5.0,
+      yearly_seasonality: true,
+      weekly_seasonality: false,
+      daily_seasonality: false,
+      index: 'ds',
     },
   });
 });

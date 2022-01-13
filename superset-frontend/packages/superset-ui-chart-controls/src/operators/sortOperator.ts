@@ -24,15 +24,17 @@ import { TIME_COLUMN } from './utils';
 export const sortOperator: PostProcessingFactory<
   PostProcessingSort | undefined
 > = (formData, queryObject) => {
+  const { x_axis: xAxis } = formData;
   if (
-    queryObject.is_timeseries &&
+    (xAxis || queryObject.is_timeseries) &&
     Object.values(RollingType).includes(formData.rolling_type)
   ) {
+    const index = xAxis || TIME_COLUMN;
     return {
       operation: 'sort',
       options: {
         columns: {
-          [TIME_COLUMN]: true,
+          [index]: true,
         },
       },
     };

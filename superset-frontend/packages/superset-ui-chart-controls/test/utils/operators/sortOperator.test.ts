@@ -125,3 +125,19 @@ test('sort by __timestamp', () => {
     },
   });
 });
+
+test('sort by named x-axis', () => {
+  expect(
+    sortOperator(
+      { ...formData, x_axis: 'ds', rolling_type: 'cumsum' },
+      { ...queryObject },
+    ),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      columns: {
+        ds: true,
+      },
+    },
+  });
+});
