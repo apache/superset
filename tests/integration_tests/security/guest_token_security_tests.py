@@ -19,12 +19,12 @@ from unittest import mock
 
 import pytest
 from flask import g
-from integration_tests.base_tests import SupersetTestCase
 
 from superset import db, security_manager
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestUser
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
