@@ -16,7 +16,7 @@ coverage:
         target: auto
         threshold: 0%
       core-packages-ts:
-        target: 95%
+        target: 100%
         paths:
           - 'superset-frontend/packages'
           - '!superset-frontend/packages/**/*.jsx'

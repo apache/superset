@@ -17,10 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
+import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
 import { t } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import {
+  createFilterKey,
+  getFilterValue,
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
   url: string;
@@ -30,6 +36,7 @@ interface ShareMenuItemProps {
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
+  dashboardId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -41,14 +48,32 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     emailBody,
     addDangerToast,
     addSuccessToast,
+    dashboardId,
     ...rest
   } = props;
 
   const getShortUrl = useUrlShortener(url);
 
+  async function getCopyUrl() {
+    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
+    if (typeof risonObj === 'object' || !dashboardId) return null;
+    const prevData = await getFilterValue(
+      dashboardId,
+      getUrlParam(URL_PARAMS.nativeFiltersKey),
+    );
+    const newDataMaskKey = await createFilterKey(
+      dashboardId,
+      JSON.stringify(prevData),
+    );
+    const newUrl = new URL(`${window.location.origin}${url}`);
+    newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
+    return `${newUrl.pathname}${newUrl.search}`;
+  }
+
   async function onCopyLink() {
     try {
-      const shortUrl = await getShortUrl();
+      const copyUrl = await getCopyUrl();
+      const shortUrl = await getShortUrl(copyUrl);
       await copyTextToClipboard(shortUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
@@ -58,7 +83,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onShareByEmail() {
     try {
-      const shortUrl = await getShortUrl();
+      const copyUrl = await getCopyUrl();
+      const shortUrl = await getShortUrl(copyUrl);
       const bodyWithLink = `${emailBody}${shortUrl}`;
       window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
     } catch (error) {

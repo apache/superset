@@ -19,45 +19,31 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getMetricLabel,
-  normalizeOrderBy,
   QueryFormColumn,
+  QueryFormOrderBy,
 } from '@superset-ui/core';
 import { PivotTableQueryFormData } from '../types';
 
 export default function buildQuery(formData: PivotTableQueryFormData) {
-  const {
-    groupbyColumns = [],
-    groupbyRows = [],
-    order_desc = true,
-    legacy_order_by,
-  } = formData;
+  const { groupbyColumns = [], groupbyRows = [] } = formData;
   // TODO: add deduping of AdhocColumns
   const groupbySet = new Set([
     ...ensureIsArray<QueryFormColumn>(groupbyColumns),
     ...ensureIsArray<QueryFormColumn>(groupbyRows),
   ]);
   return buildQueryContext(formData, baseQueryObject => {
-    const queryObject = normalizeOrderBy({
-      ...baseQueryObject,
-      order_desc,
-      legacy_order_by,
-    });
-    const { metrics } = queryObject;
-    const orderBy = ensureIsArray(legacy_order_by);
-    if (
-      orderBy.length &&
-      !metrics?.find(
-        metric => getMetricLabel(metric) === getMetricLabel(orderBy[0]),
-      )
-    ) {
-      metrics?.push(orderBy[0]);
+    const { series_limit_metric, metrics, order_desc } = baseQueryObject;
+    let orderBy: QueryFormOrderBy[] | undefined;
+    if (series_limit_metric) {
+      orderBy = [[series_limit_metric, !order_desc]];
+    } else if (Array.isArray(metrics) && metrics[0]) {
+      orderBy = [[metrics[0], !order_desc]];
     }
     return [
       {
-        ...queryObject,
+        ...baseQueryObject,
+        orderby: orderBy,
         columns: [...groupbySet],
-        metrics,
       },
     ];
   });

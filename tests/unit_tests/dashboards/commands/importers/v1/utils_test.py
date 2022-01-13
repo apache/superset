@@ -45,7 +45,10 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
             },
         },
         "metadata": {
-            "filter_scopes": {"101": {"filter_name": {"immune": [102, 103],},},},
+            "filter_scopes": {
+                "101": {"filter_name": {"immune": [102, 103]}},
+                "104": {"filter_name": {"immune": [102, 103]}},
+            },
         },
         "native_filter_configuration": [],
     }

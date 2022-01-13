@@ -17,8 +17,13 @@
  * under the License.
  */
 
-import updateTextNode from '@superset-ui/core/src/dimension/svg/updateTextNode';
-import createTextNode from '@superset-ui/core/src/dimension/svg/createTextNode';
+// do not use react-testing-library in plugins
+/* eslint-disable jest-dom/prefer-to-have-attribute */
+/* eslint-disable jest-dom/prefer-to-have-text-content */
+/* eslint-disable jest-dom/prefer-to-have-style */
+
+import updateTextNode from '../../../src/dimension/svg/updateTextNode';
+import createTextNode from '../../../src/dimension/svg/createTextNode';
 
 describe('updateTextNode(node, options)', () => {
   it('handles empty options', () => {
@@ -91,3 +96,7 @@ describe('updateTextNode(node, options)', () => {
     expect(node.textContent).toEqual('');
   });
 });
+
+/* eslint-enable jest-dom/prefer-to-have-attribute */
+/* eslint-enable jest-dom/prefer-to-have-text-content */
+/* eslint-enable jest-dom/prefer-to-have-style */

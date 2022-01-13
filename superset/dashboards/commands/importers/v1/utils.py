@@ -84,6 +84,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
         metadata["filter_scopes"] = {
             str(id_map[int(old_id)]): columns
             for old_id, columns in metadata["filter_scopes"].items()
+            if int(old_id) in id_map
         }
 
         # now update columns to use new IDs:
@@ -107,6 +108,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
             {
                 str(id_map[int(old_id)]): value
                 for old_id, value in default_filters.items()
+                if int(old_id) in id_map
             }
         )
 

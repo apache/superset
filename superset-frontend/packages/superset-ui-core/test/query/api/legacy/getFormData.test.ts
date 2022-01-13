@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { getFormData } from '@superset-ui/core/src/query/api/legacy';
+import { getFormData } from '../../../../src/query/api/legacy';
 
 import setupClientForTest from '../setupClientForTest';
 

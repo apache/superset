@@ -43,6 +43,17 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 
 {{/*
+Create the name of the service account to use
+*/}}
+{{- define "superset.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{- default (include "superset.fullname" .) .Values.serviceAccountName -}}
+{{- else -}}
+{{- default "default" .Values.serviceAccountName -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "superset.chart" -}}
@@ -96,6 +107,14 @@ RESULTS_BACKEND = RedisCache(
 {{- range $key, $value := .Values.configOverrides }}
 # {{ $key }}
 {{ tpl $value $ }}
+{{- end }}
+{{- end }}
+{{ if .Values.configOverridesFiles }}
+# Overrides from files
+{{- $files := .Files }}
+{{- range $key, $value := .Values.configOverridesFiles }}
+# {{ $key }}
+{{ $files.Get $value }}
 {{- end }}
 {{- end }}
 

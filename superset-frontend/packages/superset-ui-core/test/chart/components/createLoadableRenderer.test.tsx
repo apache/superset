@@ -22,7 +22,7 @@ import { shallow } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,
-} from '@superset-ui/core/src/chart/components/createLoadableRenderer';
+} from '../../../src/chart/components/createLoadableRenderer';
 
 describe('createLoadableRenderer', () => {
   function TestComponent() {
@@ -31,7 +31,7 @@ describe('createLoadableRenderer', () => {
   let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
   let render: (loaded: { Chart: React.ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
-  let LoadableRenderer: LoadableRendererType<{}, {}>;
+  let LoadableRenderer: LoadableRendererType<{}>;
   let restoreConsole: RestoreConsole;
 
   beforeEach(() => {

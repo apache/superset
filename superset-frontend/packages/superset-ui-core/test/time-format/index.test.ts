@@ -29,7 +29,7 @@ import {
   smartDateVerboseFormatter,
   TimeFormats,
   TimeFormatter,
-} from '@superset-ui/core/src/time-format';
+} from '@superset-ui/core';
 
 describe('index', () => {
   it('exports modules', () => {

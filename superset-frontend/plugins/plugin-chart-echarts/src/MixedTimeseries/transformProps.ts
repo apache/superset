@@ -33,6 +33,7 @@ import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesChartTransformedProps,
+  EchartsMixedTimeseriesProps,
 } from './types';
 import { ForecastSeriesEnum } from '../types';
 import { parseYAxisBound } from '../utils/controls';
@@ -63,14 +64,22 @@ import {
 import { TIMESERIES_CONSTANTS } from '../constants';
 
 export default function transformProps(
-  chartProps: EchartsMixedTimeseriesFormData,
+  chartProps: EchartsMixedTimeseriesProps,
 ): EchartsMixedTimeseriesChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    datasource,
+  } = chartProps;
   const { annotation_data: annotationData_ } = queriesData[0];
   const annotationData = annotationData_ || {};
-  const data1: TimeseriesDataRecord[] = queriesData[0].data || [];
-  const data2: TimeseriesDataRecord[] = queriesData[1].data || [];
+  const { verboseMap = {} } = datasource;
+  const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
+  const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
 
   const {
     area,
@@ -121,10 +130,12 @@ export default function transformProps(
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rawSeriesA = extractTimeseriesSeries(rebaseTimeseriesDatum(data1), {
+  const rebasedDataA = rebaseTimeseriesDatum(data1, verboseMap);
+  const rawSeriesA = extractTimeseriesSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
   });
-  const rawSeriesB = extractTimeseriesSeries(rebaseTimeseriesDatum(data2), {
+  const rebasedDataB = rebaseTimeseriesDatum(data2, verboseMap);
+  const rawSeriesB = extractTimeseriesSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
   });
 

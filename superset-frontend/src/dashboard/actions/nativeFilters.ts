@@ -188,6 +188,25 @@ export const setInScopeStatusOfFilters =
       type: SET_IN_SCOPE_STATUS_OF_FILTERS,
       filterConfig: filtersWithScopes,
     });
+    // need to update native_filter_configuration in the dashboard metadata
+    const { metadata } = getState().dashboardInfo;
+    const filterConfig: FilterConfiguration =
+      metadata.native_filter_configuration;
+    const mergedFilterConfig = filterConfig.map(filter => {
+      const filterWithScope = filtersWithScopes.find(
+        scope => scope.id === filter.id,
+      );
+      if (!filterWithScope) {
+        return filter;
+      }
+      return { ...filterWithScope, ...filter };
+    });
+    metadata.native_filter_configuration = mergedFilterConfig;
+    dispatch(
+      dashboardInfoChanged({
+        metadata,
+      }),
+    );
   };
 
 type BootstrapData = {
@@ -204,8 +223,7 @@ export interface SetBootstrapData {
 }
 
 export const getFilterSets =
-  () => async (dispatch: Dispatch, getState: () => RootState) => {
-    const dashboardId = getState().dashboardInfo.id;
+  (dashboardId: number) => async (dispatch: Dispatch) => {
     const fetchFilterSets = makeApi<
       null,
       {
@@ -271,7 +289,7 @@ export const createFilterSet =
     dispatch({
       type: CREATE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const updateFilterSet =
@@ -308,7 +326,7 @@ export const updateFilterSet =
     dispatch({
       type: UPDATE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const deleteFilterSet =
@@ -329,7 +347,7 @@ export const deleteFilterSet =
     dispatch({
       type: DELETE_FILTER_SET_COMPLETE,
     });
-    dispatch(getFilterSets());
+    dispatch(getFilterSets(dashboardId));
   };
 
 export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';

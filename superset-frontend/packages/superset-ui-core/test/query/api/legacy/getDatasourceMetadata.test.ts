@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { getDatasourceMetadata } from '@superset-ui/core/src/query/api/legacy';
+import { getDatasourceMetadata } from '../../../../src/query/api/legacy';
 
 import setupClientForTest from '../setupClientForTest';
 

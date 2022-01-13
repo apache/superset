@@ -1438,7 +1438,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             self._get_series_orderby(
                                 series_limit_metric, metrics_by_name, columns_by_name,
                             ),
-                            False,
+                            not order_desc,
                         )
                     ]
 
