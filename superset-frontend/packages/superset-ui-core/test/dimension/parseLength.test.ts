@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { parseLength } from '@superset-ui/core/src';
+import { parseLength } from '@superset-ui/core';
 
 describe('parseLength(input)', () => {
   it('handles string "auto"', () => {

@@ -41,6 +41,7 @@ export {
   Divider,
   Dropdown,
   Form,
+  Grid,
   Empty,
   Typography,
   Tree,

@@ -24,17 +24,15 @@ import {
   buildQueryContext,
   QueryFormData,
   configure as configureTranslation,
-} from '@superset-ui/core/src';
-
-import {
   ChartClient,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
-} from '@superset-ui/core/src/chart';
-import { SliceIdAndOrFormData } from '@superset-ui/core/src/chart/clients/ChartClient';
+} from '@superset-ui/core';
+
 import { LOGIN_GLOB } from '../fixtures/constants';
 import { sankeyFormData } from '../fixtures/formData';
+import { SliceIdAndOrFormData } from '../../../src/chart/clients/ChartClient';
 
 configureTranslation();
 

@@ -29,8 +29,6 @@
   },
   "dependencies": {
     "@data-ui/xy-chart": "^0.0.84",
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
     "dompurify": "^2.0.6",
@@ -42,6 +40,8 @@
     "urijs": "^1.18.10"
   },
   "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
     "react": "^15 || ^16"
   }
 }

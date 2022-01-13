@@ -22,8 +22,11 @@ import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  dangerouslyGetItemDoNotUse,
+  setItem,
+  dangerouslySetItemDoNotUse,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -35,10 +38,6 @@ import {
   getUserOwnedObjects,
   loadingCardCount,
 } from 'src/views/CRUD/utils';
-import {
-  HOMEPAGE_ACTIVITY_FILTER,
-  HOMEPAGE_COLLAPSE_STATE,
-} from 'src/views/CRUD/storageKeys';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Switch } from 'src/common/components';
 
@@ -146,7 +145,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const id = userid.toString();
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
-  const userKey = getFromLocalStorage(id, null);
+  const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
   if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) {
     defaultChecked =
@@ -161,17 +160,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
   const [loadedCount, setLoadedCount] = useState(0);
 
-  const collapseState = getFromLocalStorage(HOMEPAGE_COLLAPSE_STATE, null);
+  const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
-    setInLocalStorage(HOMEPAGE_COLLAPSE_STATE, state);
+    setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
   useEffect(() => {
-    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
-    setActiveState(collapseState || DEFAULT_TAB_ARR);
+    const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
+    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
@@ -183,7 +182,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             setActiveChild('Viewed');
           } else if (!activeTab && !data.Viewed) {
             setActiveChild('Created');
-          } else setActiveChild(activeTab);
+          } else setActiveChild(activeTab || 'Created');
         } else if (!activeTab) setActiveChild('Created');
         else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
@@ -237,7 +236,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   const handleToggle = () => {
     setChecked(!checked);
-    setInLocalStorage(id, { thumbnails: !checked });
+    dangerouslySetItemDoNotUse(id, { thumbnails: !checked });
   };
 
   useEffect(() => {

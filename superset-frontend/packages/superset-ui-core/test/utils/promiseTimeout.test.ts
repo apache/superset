@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { promiseTimeout } from '@superset-ui/core/src';
+import { promiseTimeout } from '@superset-ui/core';
 
 describe('promiseTimeout(func, delay)', () => {
   beforeEach(() => {

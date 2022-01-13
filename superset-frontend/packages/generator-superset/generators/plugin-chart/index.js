@@ -32,7 +32,9 @@ module.exports = class extends Generator {
         name: 'packageName',
         message: 'Package name:',
         // Default to current folder name
-        default: _.kebabCase(this.appname.replace('plugin chart', '').trim()),
+        default: _.kebabCase(
+          this.appname.replace('superset plugin chart', '').trim(),
+        ),
       },
       {
         type: 'input',
@@ -40,23 +42,8 @@ module.exports = class extends Generator {
         message: 'Description:',
         // Default to current folder name
         default: _.upperFirst(
-          _.startCase(this.appname.replace('plugin chart', '').trim()),
+          _.startCase(this.appname.replace('superset plugin chart', '').trim()),
         ),
-      },
-      {
-        type: 'list',
-        name: 'componentType',
-        message: 'What type of React component would you like?',
-        choices: [
-          {
-            name: 'Class component',
-            value: 'class',
-          },
-          {
-            name: 'Function component (with hooks)',
-            value: 'function',
-          },
-        ],
       },
       {
         type: 'list',
@@ -72,12 +59,6 @@ module.exports = class extends Generator {
             value: 'regular',
           },
         ],
-      },
-      {
-        type: 'confirm',
-        name: 'addBadges',
-        message: "Add superset-ui badges to your plugin's README.md",
-        default: true,
       },
     ]);
   }
@@ -96,9 +77,11 @@ module.exports = class extends Generator {
     };
 
     [
+      ['babel.config.erb', 'babel.config.js'],
+      ['jest.config.erb', 'jest.config.js'],
       ['package.erb', 'package.json'],
-      ['tsconfig.json', 'tsconfig.json'],
       ['README.erb', 'README.md'],
+      ['tsconfig.json', 'tsconfig.json'],
       ['src/index.erb', 'src/index.ts'],
       ['src/plugin/buildQuery.erb', 'src/plugin/buildQuery.ts'],
       ['src/plugin/controlPanel.erb', 'src/plugin/controlPanel.ts'],
@@ -107,6 +90,10 @@ module.exports = class extends Generator {
       ['src/types.erb', 'src/types.ts'],
       ['src/MyChart.erb', `src/${packageLabel}.tsx`],
       ['test/index.erb', 'test/index.test.ts'],
+      [
+        'test/__mocks__/mockExportString.js',
+        'test/__mocks__/mockExportString.js',
+      ],
       ['test/plugin/buildQuery.test.erb', 'test/plugin/buildQuery.test.ts'],
       [
         'test/plugin/transformProps.test.erb',

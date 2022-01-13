@@ -19,7 +19,7 @@
 
 import React from 'react';
 import { shallow } from 'enzyme';
-import FallbackComponent from '@superset-ui/core/src/chart/components/FallbackComponent';
+import FallbackComponent from '../../../src/chart/components/FallbackComponent';
 
 describe('FallbackComponent', () => {
   const ERROR = new Error('CaffeineOverLoadException');

@@ -23,6 +23,7 @@ import {
   getNumberFormatter,
 } from '@superset-ui/core';
 import { DataColumnMeta } from '../types';
+import DateWithFormatter from './DateWithFormatter';
 
 const xss = new FilterXSS({
   whiteList: {
@@ -62,7 +63,12 @@ function formatValue(
     return [false, ''];
   }
   // render null as `N/A`
-  if (value === null) {
+  if (
+    value === null ||
+    // null values in temporal columns are wrapped in a Date object, so make sure we
+    // handle them here too
+    (value instanceof DateWithFormatter && value.input === null)
+  ) {
     return [false, 'N/A'];
   }
   if (formatter) {

@@ -31,4 +31,5 @@ superset db upgrade
 superset init
 
 echo "Running tests"
-pytest --durations=0 --maxfail=1 --cov=superset $@
+
+pytest --durations=0 --maxfail=1 --cov=superset "$@"
