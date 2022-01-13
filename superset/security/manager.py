@@ -1103,11 +1103,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
         return AnonymousUserMixin()
 
-    def get_user_roles(self) -> List[Role]:
-        if g.user.is_anonymous:
+    def get_user_roles(self, user: User) -> List[Role]:
+        if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
-        return g.user.roles
+        return user.roles
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
@@ -1223,7 +1223,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         def has_rbac_access() -> bool:
             return is_feature_enabled("DASHBOARD_RBAC") and any(
                 dashboard_role.id
-                in [user_role.id for user_role in self.get_user_roles()]
+                in [user_role.id for user_role in self.get_user_roles(g.user)]
                 for dashboard_role in dashboard.roles
             )
 
