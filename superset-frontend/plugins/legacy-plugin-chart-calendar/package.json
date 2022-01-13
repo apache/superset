@@ -28,14 +28,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
     "d3-array": "^2.0.3",
     "d3-selection": "^1.4.0",
     "d3-tip": "^0.9.1",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
     "react": "^16.13.1"
   }
 }

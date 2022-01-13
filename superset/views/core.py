@@ -841,6 +841,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 query_context,
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
+        force = request.args.get("force") in {"force", "1", "true"}
         dummy_datasource_data: Dict[str, Any] = {
             "type": datasource_type,
             "name": datasource_name,
@@ -865,6 +866,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "datasource_type": datasource_type,
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
+            "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
@@ -2013,10 +2015,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         ]
         DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
         if not user:
-            err_msg = __(
-                "Can't find User '%(name)s', please ask your admin " "to create one.",
-                name=user_name,
-            )
+            err_msg = __("Can't find user, please ask your admin to create one.")
             logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         cluster = (
@@ -2025,10 +2024,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .one_or_none()
         )
         if not cluster:
-            err_msg = __(
-                "Can't find DruidCluster with cluster_name = " "'%(name)s'",
-                name=cluster_name,
-            )
+            err_msg = __("Can't find DruidCluster")
             logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         try:
@@ -2376,7 +2372,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     def stop_query(self) -> FlaskResponse:
         client_id = request.form.get("client_id")
-
         query = db.session.query(Query).filter_by(client_id=client_id).one()
         if query.status in [
             QueryStatus.FAILED,
@@ -2384,9 +2379,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]:
             logger.warning(
-                "Query with client_id %s could not be stopped: "
-                "query already complete",
-                str(client_id),
+                "Query with client_id could not be stopped: query already complete",
             )
             return self.json_response("OK")
 
@@ -2413,7 +2406,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         schema = request.form.get("schema") or None
         template_params = json.loads(request.form.get("templateParams") or "{}")
 
-        if len(template_params) > 0:
+        if template_params is not None and len(template_params) > 0:
             # TODO: factor the Database object out of template rendering
             #       or provide it as mydb so we can render template params
             #       without having to also persist a Query ORM object.

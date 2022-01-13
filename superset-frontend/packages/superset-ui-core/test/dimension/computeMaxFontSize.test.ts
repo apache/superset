@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { computeMaxFontSize } from '@superset-ui/core/src';
+import { computeMaxFontSize } from '@superset-ui/core';
 import { addDummyFill, removeDummyFill, SAMPLE_TEXT } from './getBBoxDummyFill';
 
 describe('computeMaxFontSize(input)', () => {

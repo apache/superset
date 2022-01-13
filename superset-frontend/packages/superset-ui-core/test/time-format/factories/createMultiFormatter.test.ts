@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import createMultiFormatter from '@superset-ui/core/src/time-format/factories/createMultiFormatter';
+import { createMultiFormatter } from '@superset-ui/core';
 
 describe('createMultiFormatter()', () => {
   describe('creates a multi-step formatter', () => {

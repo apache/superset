@@ -43,9 +43,10 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
+from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import insert_report_schedule
-
 
 REPORTS_COUNT = 10
 
@@ -1525,3 +1526,80 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 405
         rv = self.client.delete(uri)
         assert rv.status_code == 405
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("tabbed_dashboard")
+    def test_when_invalid_tab_ids_are_given_it_raises_bad_request(self):
+        """
+        when tab ids are specified in the extra argument, make sure that the
+        tab ids are valid.
+        """
+        self.login(username="admin")
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "tabbed-dash-test")
+            .first()
+        )
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+            ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
+            "chart": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+            "extra": {"dashboard_tab_ids": ["INVALID-TAB-ID-1", "TABS-IpViLohnyP"]},
+        }
+        response = self.client.post("api/v1/report/", json=report_schedule_data)
+        assert response.status_code == 422
+        assert response.json == {
+            "message": {"extra": ["Invalid tab IDs selected: ['INVALID-TAB-ID-1']"]}
+        }
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("tabbed_dashboard")
+    def test_when_tab_ids_are_given_it_gets_added_to_extra(self):
+        self.login(username="admin")
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.slug == "tabbed-dash-test")
+            .first()
+        )
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "creation_method": ReportCreationMethodType.ALERTS_REPORTS,
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+            ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
+            "chart": None,
+            "dashboard": dashboard.id,
+            "database": example_db.id,
+            "extra": {"dashboard_tab_ids": ["TABS-IpViLohnyP"]},
+        }
+        response = self.client.post("api/v1/report/", json=report_schedule_data)
+        assert response.status_code == 201
+        assert json.loads(
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.id == response.json["id"])
+            .first()
+            .extra
+        ) == {"dashboard_tab_ids": ["TABS-IpViLohnyP"]}

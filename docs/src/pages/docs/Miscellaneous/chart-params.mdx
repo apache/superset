@@ -1,0 +1,148 @@
+---
+name: Chart Parameters Reference
+menu: Miscellaneous
+route: /docs/miscellaneous/chart-params
+index: 4
+version: 1
+---
+
+## Chart Parameters
+
+Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
+
+The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+
+Note not all fields are correctly categorized. The fields vary based on visualization type and may appear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
+
+### Datasource & Chart Type
+
+| Field             | Type     | Notes                               |
+| ----------------- | -------- | ----------------------------------- |
+| `database_name`   | _string_ | _Deprecated?_                       |
+| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
+| `datasource_name` | _string_ | _Deprecated?_                       |
+| `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
+| `viz_type`        | _string_ | The **Visualization Type** widget   |
+
+### Time
+
+| Field               | Type     | Notes                                 |
+| ------------------- | -------- | ------------------------------------- |
+| `druid_time_origin` | _string_ | The Druid **Origin** widget           |
+| `granularity`       | _string_ | The Druid **Time Granularity** widget |
+| `granularity_sqla`  | _string_ | The SQLA **Time Column** widget       |
+| `time_grain_sqla`   | _string_ | The SQLA **Time Grain** widget        |
+| `time_range`        | _string_ | The **Time range** widget             |
+
+### GROUP BY
+
+| Field                     | Type            | Notes             |
+| ------------------------- | --------------- | ----------------- |
+| `metrics`                 | _array(string)_ | See Query section |
+| `order_asc`               | -               | See Query section |
+| `row_limit`               | -               | See Query section |
+| `timeseries_limit_metric` | -               | See Query section |
+
+### NOT GROUPED BY
+
+| Field           | Type            | Notes                   |
+| --------------- | --------------- | ----------------------- |
+| `order_by_cols` | _array(string)_ | The **Ordering** widget |
+| `row_limit`     | -               | See Query section       |
+
+### Y Axis 1
+
+| Field           | Type | Notes                                              |
+| --------------- | ---- | -------------------------------------------------- |
+| `metric`        | -    | The **Left Axis Metric** widget. See Query section |
+| `y_axis_format` | -    | See Y Axis section                                 |
+
+### Y Axis 2
+
+| Field      | Type | Notes                                               |
+| ---------- | ---- | --------------------------------------------------- |
+| `metric_2` | -    | The **Right Axis Metric** widget. See Query section |
+
+### Query
+
+| Field                                                                                                  | Type                                              | Notes                                             |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
+| `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
+| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159)                         |
+| `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
+| `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
+| `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
+| `metric`<br/>`metric_2`<br/>`metrics`<br/>`percent_mertics`<br/>`secondary_metric`<br/>`size`<br/>`x`<br/>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
+| `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
+| `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
+| `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |
+
+The `metric` (or equivalent) and `timeseries_limit_metric` fields are all composed of either metric names or the JSON representation of the `AdhocMetric` TypeScript type. The `adhoc_filters` is composed of the JSON represent of the `AdhocFilter` TypeScript type (which can comprise of columns or metrics depending on whether it is a WHERE or HAVING clause). The `all_columns`, `all_columns_x`, `columns`, `groupby`, and `order_by_cols` fields all represent column names.
+
+### Chart Options
+
+| Field          | Type      | Notes                       |
+| -------------- | --------- | --------------------------- |
+| `color_picker` | _object_  | The **Fixed Color** widget  |
+| `label_colors` | _object_  | The **Color Scheme** widget |
+| `normalized`   | _boolean_ | The **Normalized** widget   |
+
+### Y Axis
+
+| Field            | Type     | Notes                        |
+| ---------------- | -------- | ---------------------------- |
+| `y_axis_2_label` | _N/A_    | _Deprecated?_                |
+| `y_axis_format`  | _string_ | The **Y Axis Format** widget |
+| `y_axis_zero`    | _N/A_    | _Deprecated?_                |
+
+Note the `y_axis_format` is defined under various section for some charts.
+
+### Other
+
+| Field          | Type     | Notes |
+| -------------- | -------- | ----- |
+| `color_scheme` | _string_ |       |
+
+### Unclassified
+
+| Field                         | Type  | Notes |
+| ----------------------------- | ----- | ----- |
+| `add_to_dash`                 | _N/A_ |       |
+| `code`                        | _N/A_ |       |
+| `collapsed_fieldsets`         | _N/A_ |       |
+| `comparison type`             | _N/A_ |       |
+| `country_fieldtype`           | _N/A_ |       |
+| `default_filters`             | _N/A_ |       |
+| `entity`                      | _N/A_ |       |
+| `expanded_slices`             | _N/A_ |       |
+| `filter_immune_slice_fields`  | _N/A_ |       |
+| `filter_immune_slices`        | _N/A_ |       |
+| `flt_col_0`                   | _N/A_ |       |
+| `flt_col_1`                   | _N/A_ |       |
+| `flt_eq_0`                    | _N/A_ |       |
+| `flt_eq_1`                    | _N/A_ |       |
+| `flt_op_0`                    | _N/A_ |       |
+| `flt_op_1`                    | _N/A_ |       |
+| `goto_dash`                   | _N/A_ |       |
+| `import_time`                 | _N/A_ |       |
+| `label`                       | _N/A_ |       |
+| `linear_color_scheme`         | _N/A_ |       |
+| `new_dashboard_name`          | _N/A_ |       |
+| `new_slice_name`              | _N/A_ |       |
+| `num_period_compare`          | _N/A_ |       |
+| `period_ratio_type`           | _N/A_ |       |
+| `perm`                        | _N/A_ |       |
+| `rdo_save`                    | _N/A_ |       |
+| `refresh_frequency`           | _N/A_ |       |
+| `remote_id`                   | _N/A_ |       |
+| `resample_fillmethod`         | _N/A_ |       |
+| `resample_how`                | _N/A_ |       |
+| `rose_area_proportion`        | _N/A_ |       |
+| `save_to_dashboard_id`        | _N/A_ |       |
+| `schema`                      | _N/A_ |       |
+| `series`                      | _N/A_ |       |
+| `show_bubbles`                | _N/A_ |       |
+| `slice_name`                  | _N/A_ |       |
+| `timed_refresh_immune_slices` | _N/A_ |       |
+| `userid`                      | _N/A_ |       |

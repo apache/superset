@@ -22,7 +22,7 @@ import moment from 'moment';
 import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';

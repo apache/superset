@@ -19,7 +19,7 @@
 
 /* eslint no-console: 0 */
 import mockConsole from 'jest-mock-console';
-import { Registry, OverwritePolicy } from '@superset-ui/core/src';
+import { Registry, OverwritePolicy } from '@superset-ui/core';
 
 const loader = () => 'testValue';
 

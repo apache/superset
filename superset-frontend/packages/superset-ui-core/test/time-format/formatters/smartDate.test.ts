@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import TimeFormatter from '@superset-ui/core/src/time-format/TimeFormatter';
-import smartDateFormatter from '@superset-ui/core/src/time-format/formatters/smartDate';
+import { TimeFormatter, smartDateFormatter } from '@superset-ui/core';
 
 describe('smartDateFormatter', () => {
   it('is a function', () => {

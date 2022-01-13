@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core/src/query';
+import { buildQueryContext } from '@superset-ui/core';
 
 describe('buildQueryContext', () => {
   it('should build datasource for table sources and apply defaults', () => {

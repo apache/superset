@@ -30,7 +30,7 @@ import * as featureFlags from 'src/featureFlags';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

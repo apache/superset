@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import LazyFactory from '@superset-ui/core/src/dimension/svg/LazyFactory';
+import LazyFactory from '../../../src/dimension/svg/LazyFactory';
 
 describe('LazyFactory', () => {
   describe('createInContainer()', () => {
