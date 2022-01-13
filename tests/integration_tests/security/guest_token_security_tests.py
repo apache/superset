@@ -76,3 +76,14 @@ class TestGuestTokenSecurity(SupersetTestCase):
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=chart)
+
+    def test_get_guest_user_roles_explicit(self):
+        roles = security_manager.get_user_roles(self.authorized_guest)
+        self.assertEqual(self.authorized_guest.roles, roles)
+
+    @patch("superset.security.manager.g")
+    def test_get_guest_user_roles_implicit(self, mock_g):
+        mock_g.user = self.authorized_guest
+
+        roles = security_manager.get_user_roles(self.authorized_guest)
+        self.assertEqual(self.authorized_guest.roles, roles)

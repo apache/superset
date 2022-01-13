@@ -1041,6 +1041,19 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
 
+    @patch("superset.security.manager.g")
+    def test_get_user_roles(self, mock_g):
+        admin = security_manager.find_user("admin")
+        mock_g.user = admin
+        roles = security_manager.get_user_roles()
+        self.assertEqual(admin.roles, roles)
+
+    @patch("superset.security.manager.g")
+    def test_get_anonymous_roles(self, mock_g):
+        mock_g.user = security_manager.get_anonymous_user()
+        roles = security_manager.get_user_roles()
+        self.assertEqual([security_manager.get_public_role()], roles)
+
 
 class TestAccessRequestEndpoints(SupersetTestCase):
     def test_access_request_disabled(self):
