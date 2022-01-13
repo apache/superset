@@ -62,7 +62,7 @@ test('should skip resampleOperator', () => {
   ).toEqual(undefined);
 });
 
-test('should do resample', () => {
+test('should do resample on implicit time column', () => {
   expect(
     resampleOperator(
       { ...formData, resample_method: 'ffill', resample_rule: '1D' },
@@ -75,6 +75,28 @@ test('should do resample', () => {
       rule: '1D',
       fill_value: null,
       time_column: '__timestamp',
+    },
+  });
+});
+
+test('should do resample on x-axis', () => {
+  expect(
+    resampleOperator(
+      {
+        ...formData,
+        x_axis: 'ds',
+        resample_method: 'ffill',
+        resample_rule: '1D',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'resample',
+    options: {
+      method: 'ffill',
+      rule: '1D',
+      fill_value: null,
+      time_column: 'ds',
     },
   });
 });

@@ -33,7 +33,7 @@ export const resampleOperator: PostProcessingFactory<
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
-        time_column: DTTM_ALIAS,
+        time_column: formData.x_axis || DTTM_ALIAS,
       },
     };
   }
