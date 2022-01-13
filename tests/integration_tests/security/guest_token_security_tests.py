@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from flask import g
@@ -46,28 +47,32 @@ class TestGuestTokenSecurity(SupersetTestCase):
             {"user": {}, "resources": [{"type": "dashboard", "id": self.dash.id + 1}]}
         )
 
-    def test_dashboard_access_filter_as_guest(self):
+    @patch("superset.security.manager.g")
+    def test_dashboard_access_filter_as_guest(self, mock_g):
         dataset = list(self.dash.datasources)[0]
-        g.user = self.authorized_guest
+        mock_g.user = self.authorized_guest
 
         security_manager.raise_for_access(datasource=dataset)
 
-    def test_dashboard_access_filter_as_unauthorized_guest(self):
+    @patch("superset.security.manager.g")
+    def test_dashboard_access_filter_as_unauthorized_guest(self, mock_g):
         dataset = list(self.dash.datasources)[0]
-        g.user = self.unauthorized_guest
+        mock_g.user = self.unauthorized_guest
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(datasource=dataset)
 
-    def test_chart_access_filter_as_guest(self):
+    @patch("superset.security.manager.g")
+    def test_chart_access_filter_as_guest(self, mock_g):
         chart = self.dash.slices[0]
-        g.user = self.authorized_guest
+        mock_g.user = self.authorized_guest
 
         security_manager.raise_for_access(viz=chart)
 
-    def test_chart_access_filter_as_unauthorized_guest(self):
+    @patch("superset.security.manager.g")
+    def test_chart_access_filter_as_unauthorized_guest(self, mock_g):
         chart = self.dash.slices[0]
-        g.user = self.unauthorized_guest
+        mock_g.user = self.unauthorized_guest
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=chart)
