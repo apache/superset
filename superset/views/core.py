@@ -38,7 +38,6 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
-from flask_login import AnonymousUserMixin, LoginManager
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
