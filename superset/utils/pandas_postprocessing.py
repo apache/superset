@@ -958,12 +958,13 @@ def boxplot(
     return aggregate(df, groupby=groupby, aggregates=aggregates)
 
 
+@validate_column_args("groupby_columns")
 def resample(
     df: DataFrame,
     rule: str,
     method: str,
     time_column: str,
-    groupby_columns: Optional[Tuple[str]] = None,
+    groupby_columns: Optional[Tuple[Optional[str], ...]] = None,
     fill_value: Optional[Union[float, int]] = None,
 ) -> DataFrame:
     """

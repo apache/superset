@@ -1074,3 +1074,25 @@ The Dataframe contains a timestamp column, a string column and a numeric column.
             ["2022-01-11"] * 3 + ["2022-01-12"] * 3 + ["2022-01-13"] * 3
         )
         assert list(post_df["val"]) == [3.0, 2.0, 1.0, 0, 0, 0, 6.0, 5.0, 4.0]
+
+        # should raise error when get a non-existent column
+        with pytest.raises(QueryObjectValidationError):
+            proc.resample(
+                df=df,
+                rule="1D",
+                method="asfreq",
+                fill_value=0,
+                time_column="__timestamp",
+                groupby_columns=tuple(["city", "unkonw_column"]),
+            )
+
+        # should raise error when get a None value in groupby list
+        with pytest.raises(QueryObjectValidationError):
+            proc.resample(
+                df=df,
+                rule="1D",
+                method="asfreq",
+                fill_value=0,
+                time_column="__timestamp",
+                groupby_columns=tuple(["city", None]),
+            )
