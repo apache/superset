@@ -63,7 +63,6 @@ const ExploreCtasResultsButton = (
           row_limit: 1000,
         };
         addInfoToast(t('Creating a data source and creating a new tab'));
-
         // open new window for data visualization
         exploreChart(formData);
       })
@@ -72,14 +71,10 @@ const ExploreCtasResultsButton = (
       });
   };
 
-  const onClick = () => {
-    visualize();
-  };
-
   return (
     <Button
       buttonSize="small"
-      onClick={onClick}
+      onClick={visualize}
       tooltip={t('Explore the result set in the data exploration view')}
     >
       <InfoTooltipWithTrigger
