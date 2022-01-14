@@ -19,12 +19,10 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from flask import g
 
 from superset import db, security_manager
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.security.guest_token import GuestUser
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -87,3 +85,23 @@ class TestGuestTokenSecurity(SupersetTestCase):
 
         roles = security_manager.get_user_roles(self.authorized_guest)
         self.assertEqual(self.authorized_guest.roles, roles)
+
+    def test_user_is_not_guest(self):
+        is_guest = security_manager.is_guest_user(security_manager.find_user("admin"))
+        self.assertTrue(is_guest)
+
+    def test_anon_is_not_guest(self):
+        is_guest = security_manager.is_guest_user(security_manager.get_anonymous_user())
+        self.assertTrue(is_guest)
+
+    def test_guest_is_guest(self):
+        is_guest = security_manager.is_guest_user(self.authorized_guest)
+        self.assertTrue(is_guest)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        EMBEDDED_SUPERSET=False,
+    )
+    def test_is_guest_user_flag_off(self):
+        is_guest = security_manager.is_guest_user(self.authorized_guest)
+        self.assertFalse(is_guest)
