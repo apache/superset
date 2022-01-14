@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtensibleFunction } from '@superset-ui/core/src';
+import { ExtensibleFunction } from '@superset-ui/core';
 
 describe('ExtensibleFunction', () => {
   interface Func1 {

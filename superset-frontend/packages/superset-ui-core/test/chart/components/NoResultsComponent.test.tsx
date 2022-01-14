@@ -19,8 +19,8 @@
 
 import React from 'react';
 import { shallow } from 'enzyme';
-import NoResultsComponent from '@superset-ui/core/src/chart/components/NoResultsComponent';
-import { configure } from '@superset-ui/core/src';
+import { configure } from '@superset-ui/core';
+import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 configure();
 

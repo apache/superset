@@ -61,7 +61,7 @@ export function getInitialDataMask(
   } as DataMaskWithId;
 }
 
-async function fillNativeFilters(
+function fillNativeFilters(
   filterConfig: FilterConfiguration,
   mergedDataMask: DataMaskStateWithId,
   draftDataMask: DataMaskStateWithId,
@@ -139,8 +139,6 @@ const dataMaskReducer = produce(
           action.filterConfig ?? [],
           cleanState,
           draft,
-          // @ts-ignore
-          action.data.dataMask,
           action.filters,
         );
         return cleanState;

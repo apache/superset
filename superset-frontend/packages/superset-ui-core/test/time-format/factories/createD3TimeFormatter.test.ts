@@ -18,9 +18,11 @@
  */
 
 import { TimeLocaleDefinition } from 'd3-time-format';
-import createD3TimeFormatter from '@superset-ui/core/src/time-format/factories/createD3TimeFormatter';
-import { PREVIEW_TIME } from '@superset-ui/core/src/time-format/TimeFormatter';
-import { TimeFormats } from '@superset-ui/core/src/time-format';
+import {
+  createD3TimeFormatter,
+  PREVIEW_TIME,
+  TimeFormats,
+} from '@superset-ui/core';
 
 const thLocale: TimeLocaleDefinition = {
   dateTime: '%a %e %b %Y %X',

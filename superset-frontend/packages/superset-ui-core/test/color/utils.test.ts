@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { getContrastingColor } from '@superset-ui/core/src/color';
+import { getContrastingColor } from '@superset-ui/core';
 
 describe('color utils', () => {
   describe('getContrastingColor', () => {

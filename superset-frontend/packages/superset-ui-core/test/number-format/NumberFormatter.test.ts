@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NumberFormatter } from '@superset-ui/core/src/number-format';
+import { NumberFormatter } from '@superset-ui/core';
 
 describe('NumberFormatter', () => {
   describe('new NumberFormatter(config)', () => {

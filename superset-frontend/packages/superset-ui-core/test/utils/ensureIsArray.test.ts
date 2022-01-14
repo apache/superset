@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray } from '../../src';
+import { ensureIsArray } from '@superset-ui/core';
 
 describe('ensureIsArray', () => {
   it('handle inputs correctly', () => {

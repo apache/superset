@@ -27,7 +27,7 @@ import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
-} from 'src/common/hooks/apiResources';
+} from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';

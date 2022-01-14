@@ -72,6 +72,7 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
 )
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,8 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        force = "true" if self._report_schedule.force_screenshot else "false"
+
         if self._report_schedule.chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -155,17 +158,22 @@ class BaseReportState:
                     pk=self._report_schedule.chart_id,
                     format=result_format.value,
                     type=ChartDataResultType.POST_PROCESSED.value,
+                    force=force,
                 )
             return get_url_path(
-                "Superset.slice",
+                "Superset.explore",
                 user_friendly=user_friendly,
-                slice_id=self._report_schedule.chart_id,
+                form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+                standalone="true",
+                force=force,
                 **kwargs,
             )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            standalone=DashboardStandaloneMode.REPORT.value,
+            # force=force,  TODO (betodealmeida) implement this
             **kwargs,
         )
 
@@ -179,41 +187,55 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshot(self) -> bytes:
+    def _get_screenshots(self) -> List[bytes]:
         """
-        Get a chart or dashboard screenshot
-
+        Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot: Optional[BaseScreenshot] = None
+        image_data = []
+        screenshots: List[BaseScreenshot] = []
         if self._report_schedule.chart:
-            url = self._get_url(standalone="true")
-            logger.info("Screenshotting chart at %s", url)
-            screenshot = ChartScreenshot(
-                url,
-                self._report_schedule.chart.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-            )
-        else:
             url = self._get_url()
-            logger.info("Screenshotting dashboard at %s", url)
-            screenshot = DashboardScreenshot(
-                url,
-                self._report_schedule.dashboard.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            logger.info("Screenshotting chart at %s", url)
+            screenshots = [
+                ChartScreenshot(
+                    url,
+                    self._report_schedule.chart.digest,
+                    window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                )
+            ]
+        else:
+            tabs: Optional[List[str]] = json.loads(self._report_schedule.extra).get(
+                "dashboard_tab_ids", None
             )
+            dashboard_base_url = self._get_url()
+            if tabs is None:
+                urls = [dashboard_base_url]
+            else:
+                urls = [f"{dashboard_base_url}#{tab_id}" for tab_id in tabs]
+            screenshots = [
+                DashboardScreenshot(
+                    url,
+                    self._report_schedule.dashboard.digest,
+                    window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                )
+                for url in urls
+            ]
         user = self._get_user()
-        try:
-            image_data = screenshot.get_screenshot(user=user)
-        except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
-            raise ReportScheduleScreenshotTimeout() from ex
-        except Exception as ex:
-            raise ReportScheduleScreenshotFailedError(
-                f"Failed taking a screenshot {str(ex)}"
-            ) from ex
+        for screenshot in screenshots:
+            try:
+                image = screenshot.get_screenshot(user=user)
+            except SoftTimeLimitExceeded as ex:
+                logger.warning("A timeout occurred while taking a screenshot.")
+                raise ReportScheduleScreenshotTimeout() from ex
+            except Exception as ex:
+                raise ReportScheduleScreenshotFailedError(
+                    f"Failed taking a screenshot {str(ex)}"
+                ) from ex
+            if image is not None:
+                image_data.append(image)
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
         return image_data
@@ -277,7 +299,7 @@ class BaseReportState:
         context.
         """
         try:
-            self._get_screenshot()
+            self._get_screenshots()
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
@@ -297,14 +319,14 @@ class BaseReportState:
         csv_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = None
+        screenshot_data = []
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
             if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
-                screenshot_data = self._get_screenshot()
+                screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif (
@@ -338,7 +360,7 @@ class BaseReportState:
         return NotificationContent(
             name=name,
             url=url,
-            screenshot=screenshot_data,
+            screenshots=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,

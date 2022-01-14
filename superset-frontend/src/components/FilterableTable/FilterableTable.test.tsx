@@ -271,4 +271,63 @@ describe('FilterableTable sorting - RTL', () => {
     expect(gridCells[9]).toHaveTextContent('3439718.0300000007');
     expect(gridCells[10]).toHaveTextContent('4528047.219999993');
   });
+
+  it('sorts YYYY-MM-DD properly', () => {
+    const dsProps = {
+      orderedColumnKeys: ['ds'],
+      data: [
+        { ds: '2021-01-01' },
+        { ds: '2022-01-01' },
+        { ds: '2021-01-02' },
+        { ds: '2021-01-03' },
+        { ds: '2021-12-01' },
+        { ds: '2021-10-01' },
+        { ds: '2022-01-02' },
+      ],
+      height: 500,
+    };
+    render(<FilterableTable {...dsProps} />);
+
+    const dsColumn = screen.getByRole('columnheader', { name: 'ds' });
+    const gridCells = screen.getAllByRole('gridcell');
+
+    // Original order
+    expect(gridCells[0]).toHaveTextContent('2021-01-01');
+    expect(gridCells[1]).toHaveTextContent('2022-01-01');
+    expect(gridCells[2]).toHaveTextContent('2021-01-02');
+    expect(gridCells[3]).toHaveTextContent('2021-01-03');
+    expect(gridCells[4]).toHaveTextContent('2021-12-01');
+    expect(gridCells[5]).toHaveTextContent('2021-10-01');
+    expect(gridCells[6]).toHaveTextContent('2022-01-02');
+
+    // First click to sort ascending
+    userEvent.click(dsColumn);
+    expect(gridCells[0]).toHaveTextContent('2021-01-01');
+    expect(gridCells[1]).toHaveTextContent('2021-01-02');
+    expect(gridCells[2]).toHaveTextContent('2021-01-03');
+    expect(gridCells[3]).toHaveTextContent('2021-10-01');
+    expect(gridCells[4]).toHaveTextContent('2021-12-01');
+    expect(gridCells[5]).toHaveTextContent('2022-01-01');
+    expect(gridCells[6]).toHaveTextContent('2022-01-02');
+
+    // Second click to sort descending
+    userEvent.click(dsColumn);
+    expect(gridCells[0]).toHaveTextContent('2022-01-02');
+    expect(gridCells[1]).toHaveTextContent('2022-01-01');
+    expect(gridCells[2]).toHaveTextContent('2021-12-01');
+    expect(gridCells[3]).toHaveTextContent('2021-10-01');
+    expect(gridCells[4]).toHaveTextContent('2021-01-03');
+    expect(gridCells[5]).toHaveTextContent('2021-01-02');
+    expect(gridCells[6]).toHaveTextContent('2021-01-01');
+
+    // Third click to sort ascending again
+    userEvent.click(dsColumn);
+    expect(gridCells[0]).toHaveTextContent('2021-01-01');
+    expect(gridCells[1]).toHaveTextContent('2021-01-02');
+    expect(gridCells[2]).toHaveTextContent('2021-01-03');
+    expect(gridCells[3]).toHaveTextContent('2021-10-01');
+    expect(gridCells[4]).toHaveTextContent('2021-12-01');
+    expect(gridCells[5]).toHaveTextContent('2022-01-01');
+    expect(gridCells[6]).toHaveTextContent('2022-01-02');
+  });
 });

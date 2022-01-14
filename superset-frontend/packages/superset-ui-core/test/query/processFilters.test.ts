@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processFilters from '@superset-ui/core/src/query/processFilters';
+import processFilters from '../../src/query/processFilters';
 
 describe('processFilters', () => {
   it('should handle non-array adhoc_filters', () => {

@@ -24,7 +24,7 @@ import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import DeleteModal from 'src/components/DeleteModal';

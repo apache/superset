@@ -21,7 +21,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { usePrevious } from 'src/hooks/usePrevious';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';

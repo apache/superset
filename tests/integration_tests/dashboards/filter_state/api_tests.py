@@ -21,7 +21,6 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
@@ -146,9 +145,9 @@ def test_put_not_owner(client, dashboard_id: int):
     assert resp.status_code == 403
 
 
-def test_get_key_not_found(client):
+def test_get_key_not_found(client, dashboard_id: int):
     login(client, "admin")
-    resp = client.get("unknown-key")
+    resp = client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/unknown-key/")
     assert resp.status_code == 404
 
 

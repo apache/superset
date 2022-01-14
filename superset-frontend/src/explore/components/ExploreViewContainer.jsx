@@ -28,8 +28,8 @@ import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
-import { usePrevious } from 'src/common/hooks/usePrevious';
-import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
+import { usePrevious } from 'src/hooks/usePrevious';
+import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 import {
   getItem,
@@ -73,6 +73,7 @@ const propTypes = {
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.number.isRequired,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -202,6 +203,8 @@ function ExploreViewContainer(props) {
         formData,
         props.standalone ? URL_PARAMS.standalone.name : null,
         false,
+        {},
+        props.force,
       );
 
       try {
@@ -220,7 +223,7 @@ function ExploreViewContainer(props) {
         );
       }
     },
-    [props.form_data, props.standalone],
+    [props.form_data, props.standalone, props.force],
   );
 
   const handlePopstate = useCallback(() => {
@@ -229,7 +232,7 @@ function ExploreViewContainer(props) {
       props.actions.setExploreControls(formData);
       props.actions.postChartFormData(
         formData,
-        false,
+        props.force,
         props.timeout,
         props.chart.id,
       );
@@ -639,6 +642,7 @@ function mapStateToProps(state) {
     table_name: form_data.datasource_name,
     vizType: form_data.viz_type,
     standalone: explore.standalone,
+    force: explore.force,
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,

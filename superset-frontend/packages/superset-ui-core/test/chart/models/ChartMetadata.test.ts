@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import ChartMetadata from '@superset-ui/core/src/chart/models/ChartMetadata';
+import { ChartMetadata } from '@superset-ui/core';
 
 describe('ChartMetadata', () => {
   it('exists', () => {
