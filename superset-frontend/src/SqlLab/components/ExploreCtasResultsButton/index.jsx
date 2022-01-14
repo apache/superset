@@ -35,14 +35,14 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
-const ExploreCtasResultsButton = ({
+const ExploreCtasResultsButton = (
   table,
   schema,
   dbId,
   templateParams,
   errorMessage,
-  actions: { createCtasDatasource, addInfoToast, addDangerToast },
-}) => {
+  { createCtasDatasource, addInfoToast, addDangerToast } = actions,
+) => {
   const buildVizOptions = {
     datasourceName: table,
     schema,

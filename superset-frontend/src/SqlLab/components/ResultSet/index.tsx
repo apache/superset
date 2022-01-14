@@ -733,7 +733,6 @@ export default class ResultSet extends React.PureComponent<
                     table={tempTable}
                     schema={tempSchema}
                     dbId={exploreDBId}
-                    database={this.props.database}
                     actions={this.props.actions}
                   />
                 </ButtonGroup>
