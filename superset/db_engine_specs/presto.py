@@ -23,19 +23,7 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    List,
-    Match,
-    Optional,
-    Pattern,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
@@ -49,11 +37,10 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
-from sqlalchemy.types import TypeEngine
 
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -94,7 +81,6 @@ CONNECTION_PORT_CLOSED_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
     r"line (?P<location>.+?): Catalog '(?P<catalog_name>.+?)' does not exist"
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -449,86 +435,82 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
             types.BOOLEAN,
-            utils.GenericDataType.BOOLEAN,
+            GenericDataType.BOOLEAN,
         ),
         (
             re.compile(r"^tinyint.*", re.IGNORECASE),
             TinyInteger(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
             types.SMALLINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
             types.INTEGER(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
             types.BIGINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
             types.DECIMAL(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^varbinary.*", re.IGNORECASE),
             types.VARBINARY(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
-        (
-            re.compile(r"^json.*", re.IGNORECASE),
-            types.JSON(),
-            utils.GenericDataType.STRING,
-        ),
+        (re.compile(r"^json.*", re.IGNORECASE), types.JSON(), GenericDataType.STRING,),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATETIME(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^timestamp.*", re.IGNORECASE),
             types.TIMESTAMP(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^interval.*", re.IGNORECASE),
             Interval(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^time.*", re.IGNORECASE),
             types.Time(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.STRING),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
     )
 
     @classmethod
@@ -1217,15 +1199,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         native_type: Optional[str],
         db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
