@@ -34,8 +34,8 @@ from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
     check_ownership,
-    DeleteMixin,
     common_bootstrap_payload,
+    DeleteMixin,
     generate_download_headers,
     SupersetModelView,
 )
