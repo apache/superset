@@ -86,6 +86,20 @@ $ yo @superset-ui/superset
    create src/images/thumbnail.png
 ```
 
+To build the plugin, run the following commands:
+
+```
+npm i --force
+npm run build
+```
+
+Alternatively, to run the plugin in development mode (=rebuilding whenever changes
+are made), start the dev server with the following command:
+
+```
+npm run dev
+```
+
 To add the package to Superset, go to the `superset-frontend` subdirectory in your
 Superset source folder (assuming both the `superset-plugin-chart-hello-world` plugin
 and `superset` repos are in the same root directory) and run
