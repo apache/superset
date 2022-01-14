@@ -325,7 +325,9 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
     "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
-def test_import_datasets_sync_argument_columns_metrics(import_datasets_command, app_context, fs):
+def test_import_datasets_sync_argument_columns_metrics(
+    import_datasets_command, app_context, fs
+):
     """
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using both columns and metrics with the --sync flag
@@ -338,18 +340,24 @@ def test_import_datasets_sync_argument_columns_metrics(import_datasets_command, 
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
-    response = runner.invoke(superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"])
+    response = runner.invoke(
+        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"]
+    )
 
     assert response.exit_code == 0
-    expected_contents = { "dataset.yaml": "hello: world" }
-    import_datasets_command.assert_called_with(expected_contents, sync_columns=True, sync_metrics=True)
+    expected_contents = {"dataset.yaml": "hello: world"}
+    import_datasets_command.assert_called_with(
+        expected_contents, sync_columns=True, sync_metrics=True
+    )
 
 
 @mock.patch.dict(
     "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
-def test_import_datasets_sync_argument_columns(import_datasets_command, app_context, fs):
+def test_import_datasets_sync_argument_columns(
+    import_datasets_command, app_context, fs
+):
     """
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using only columns with the --sync flag
@@ -362,18 +370,24 @@ def test_import_datasets_sync_argument_columns(import_datasets_command, app_cont
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
-    response = runner.invoke(superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "columns"])
+    response = runner.invoke(
+        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "columns"]
+    )
 
     assert response.exit_code == 0
-    expected_contents = { "dataset.yaml": "hello: world" }
-    import_datasets_command.assert_called_with(expected_contents, sync_columns=True, sync_metrics=False)
+    expected_contents = {"dataset.yaml": "hello: world"}
+    import_datasets_command.assert_called_with(
+        expected_contents, sync_columns=True, sync_metrics=False
+    )
 
 
 @mock.patch.dict(
     "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
-def test_import_datasets_sync_argument_metrics(import_datasets_command, app_context, fs):
+def test_import_datasets_sync_argument_metrics(
+    import_datasets_command, app_context, fs
+):
     """
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using only metrics with the --sync flag
@@ -386,11 +400,15 @@ def test_import_datasets_sync_argument_metrics(import_datasets_command, app_cont
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
-    response = runner.invoke(superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics"])
+    response = runner.invoke(
+        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics"]
+    )
 
     assert response.exit_code == 0
-    expected_contents = { "dataset.yaml": "hello: world" }
-    import_datasets_command.assert_called_with(expected_contents, sync_columns=False, sync_metrics=True)
+    expected_contents = {"dataset.yaml": "hello: world"}
+    import_datasets_command.assert_called_with(
+        expected_contents, sync_columns=False, sync_metrics=True
+    )
 
 
 @mock.patch.dict(
