@@ -1170,7 +1170,11 @@ class TestGuestTokens(SupersetTestCase):
 
         token = security_manager.create_guest_access_token(user, resources)
         # unfortunately we cannot mock time in the jwt lib
-        decoded_token = jwt.decode(token, self.app.config["GUEST_TOKEN_JWT_SECRET"])
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+        )
 
         self.assertEqual(user, decoded_token["user"])
         self.assertEqual(resources, decoded_token["resources"])
