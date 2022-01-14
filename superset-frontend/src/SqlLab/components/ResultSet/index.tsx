@@ -708,7 +708,6 @@ export default class ResultSet extends React.PureComponent<
       if (query.ctas_method === CtasEnum.VIEW) {
         object = 'View';
       }
-
       return (
         <div>
           <Alert
