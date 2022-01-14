@@ -228,16 +228,20 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    const { userId } = user;
-    const { id } = chart;
-
     if (canAddReports()) {
-      fetchUISpecificReport(userId, 'chart_id', 'charts', id);
+      fetchUISpecificReport(user.userId, 'chart_id', 'charts', chart.id);
     }
     if (dashboardId) {
       fetchChartDashboardData();
     }
-  }, []);
+  }, [
+    canAddReports,
+    fetchUISpecificReport,
+    user.userId,
+    chart.id,
+    dashboardId,
+    fetchChartDashboardData,
+  ]);
 
   const {
     chartStatus,

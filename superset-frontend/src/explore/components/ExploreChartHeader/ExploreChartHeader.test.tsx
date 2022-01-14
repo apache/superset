@@ -25,6 +25,7 @@ import ExploreHeader from '.';
 
 const createProps = () => ({
   chart: {
+    id: 1,
     latestQueryFormData: {
       viz_type: 'histogram',
       datasource: '49__table',
@@ -93,6 +94,10 @@ const createProps = () => ({
   user: {
     userId: 1,
   },
+  can_download: true,
+  can_overwrite: true,
+  isStarred: true,
+  reports: {},
 });
 
 test('Cancelling changes to the properties should reset previous properties', () => {
