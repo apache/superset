@@ -8,7 +8,7 @@
     "lib",
     "test"
   ],
-  "extends": "../../tsconfig.options.json",
+  "extends": "../../tsconfig.json",
   "include": [
     "src/**/*",
     "types/**/*",
