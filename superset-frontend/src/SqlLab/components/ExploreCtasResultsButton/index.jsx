@@ -88,18 +88,14 @@ const ExploreCtasResultsButton = (
 };
 ExploreCtasResultsButton.propTypes = propTypes;
 
-function mapStateToProps({ sqlLab, common }) {
-  return {
-    errorMessage: sqlLab.errorMessage,
-    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
-  };
-}
+const mapStateToProps = ({ sqlLab, common }) => ({
+  errorMessage: sqlLab.errorMessage,
+  timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
+});
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
+const mapDispatchToProps = dispatch => ({
+  actions: bindActionCreators(actions, dispatch),
+});
 
 export default connect(
   mapStateToProps,
