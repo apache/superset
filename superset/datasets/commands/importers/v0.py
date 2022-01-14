@@ -284,7 +284,9 @@ class ImportDatasetsCommand(BaseCommand):
     """
 
     # pylint: disable=unused-argument
-    def __init__(self, contents: Dict[str, str], **kwargs: Any):
+    def __init__(
+        self, contents: Dict[str, str], *args: Any, **kwargs: Any,
+    ):
         self.contents = contents
         self._configs: Dict[str, Any] = {}
 
