@@ -81,6 +81,10 @@ const JSON_TREE_THEME = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 };
+// This regex handles all possible number formats in javascript, including ints, floats,
+// exponential notation, NaN, and Infinity.
+// See https://stackoverflow.com/a/30987109 for more details
+const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
   height: 100%;
@@ -322,16 +326,21 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
-  // Parse any floating numbers so they'll sort correctly
-  parseFloatingNums = (value: any) => {
-    const floatValue = parseFloat(value);
-    return Number.isNaN(floatValue) ? value : floatValue;
+  // Parse any numbers from strings so they'll sort correctly
+  parseNumberFromString = (value: string | number | null) => {
+    if (typeof value === 'string') {
+      if (ONLY_NUMBER_REGEX.test(value)) {
+        return parseFloat(value);
+      }
+    }
+
+    return value;
   };
 
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = this.parseFloatingNums(a[sortBy]);
-      const bValue = this.parseFloatingNums(b[sortBy]);
+      const aValue = this.parseNumberFromString(a[sortBy]);
+      const bValue = this.parseNumberFromString(b[sortBy]);
 
       // equal items sort equally
       if (aValue === bValue) {

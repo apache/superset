@@ -29,12 +29,14 @@ const SqlAlchemyTab = ({
   testConnection,
   conf,
   isEditMode = false,
+  testInProgress = false,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   testConnection: EventHandler<MouseEvent<HTMLElement>>;
   conf: { SQLALCHEMY_DOCS_URL: string; SQLALCHEMY_DISPLAY_TEXT: string };
   isEditMode?: boolean;
+  testInProgress?: boolean;
 }) => (
   <>
     <StyledInputContainer>
@@ -88,6 +90,7 @@ const SqlAlchemyTab = ({
     </StyledInputContainer>
     <Button
       onClick={testConnection}
+      disabled={testInProgress}
       cta
       buttonStyle="link"
       css={(theme: SupersetTheme) => wideButton(theme)}
