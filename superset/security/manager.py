@@ -1068,9 +1068,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            should_check_dashboard_access = feature_flag_manager.is_feature_enabled(
-                "DASHBOARD_RBAC"
-            ) or self.is_guest_user(g.user)
+            should_check_dashboard_access = (
+                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                or self.is_guest_user()
+            )
 
             if not (
                 self.can_access_schema(datasource)
@@ -1230,7 +1231,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         has_published_access = (
             not is_feature_enabled("DASHBOARD_RBAC")
-            and not self.is_guest_user(g.user)
+            and not self.is_guest_user()
             and dashboard.published
         )
 
@@ -1342,17 +1343,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return cast(GuestToken, token)
 
     @staticmethod
-    def is_guest_user(user: Any) -> bool:
+    def is_guest_user(user: Optional[Any] = None) -> bool:
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
+        if not user:
+            user = g.user
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
 
-        if self.is_guest_user(g.user):
+        if self.is_guest_user():
             return g.user
         return None
 
