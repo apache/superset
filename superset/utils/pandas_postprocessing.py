@@ -959,7 +959,7 @@ def boxplot(
 
 
 @validate_column_args("groupby_columns")
-def resample(
+def resample(  # pylint: disable=too-many-arguments
     df: DataFrame,
     rule: str,
     method: str,
