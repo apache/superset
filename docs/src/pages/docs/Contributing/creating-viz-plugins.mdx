@@ -66,7 +66,7 @@ $ yo @superset-ui/superset
 ? Description: Hello World
 ? What type of chart would you like? Time-series chart
    create package.json
-identical .gitignore
+   create .gitignore
    create babel.config.js
    create jest.config.js
    create README.md
@@ -106,7 +106,7 @@ to import the plugin and later add the following to the array that's passed to t
 `plugins` property:
 
 ```js
-new SupersetPluginChartHelloWorld().configure({ key: 'superset-plugin-chart-hello-world' }),
+new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
 ```
 
 After that the plugin should show up when you run Superset, e.g. the development server:
