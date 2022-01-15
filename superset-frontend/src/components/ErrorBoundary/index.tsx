@@ -26,9 +26,14 @@ interface ErrorBoundaryProps {
   showMessage?: boolean;
 }
 
+interface ErrorBoundaryState {
+  error: Error | null;
+  info: React.ErrorInfo | null;
+}
+
 export default class ErrorBoundary extends React.Component<
   ErrorBoundaryProps,
-  { error: Error | null; info: React.ErrorInfo | null }
+  ErrorBoundaryState
 > {
   static defaultProps = {
     onError: () => {},
