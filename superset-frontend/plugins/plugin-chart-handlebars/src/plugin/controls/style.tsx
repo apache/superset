@@ -1,5 +1,4 @@
 import {
-  ControlConfig,
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
@@ -35,21 +34,21 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     </div>
   );
 };
-const styleControlConfig: ControlConfig<any> = {
-  ...sharedControls.entity,
-  type: StyleControl,
-  label: t('CSS Styles'),
-  description: t('CSS applied to the chart'),
-  default: '',
-  isInt: false,
-
-  validators: [],
-  mapStateToProps: ({ controls }) => ({
-    value: controls?.handlebars_template?.value,
-  }),
-};
 
 export const StyleControlSetItem: ControlSetItem = {
   name: 'styleTemplate',
-  config: styleControlConfig,
+  config: {
+    ...sharedControls.entity,
+    type: StyleControl,
+    label: t('CSS Styles'),
+    description: t('CSS applied to the chart'),
+    default: '',
+    isInt: false,
+    renderTrigger: true,
+
+    validators: [],
+    mapStateToProps: ({ controls }) => ({
+      value: controls?.handlebars_template?.value,
+    }),
+  },
 };
