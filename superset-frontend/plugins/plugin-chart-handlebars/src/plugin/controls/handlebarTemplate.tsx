@@ -1,5 +1,4 @@
 import {
-  ControlConfig,
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
@@ -36,25 +35,25 @@ const HandlebarsTemplateControl = (
     </div>
   );
 };
-const handlebarsTemplateControlConfig: ControlConfig<any> = {
-  ...sharedControls.entity,
-  type: HandlebarsTemplateControl,
-  label: t('Handlebars Template'),
-  description: t('A handlebars template that is applied to the data'),
-  default: `<ul class="data_list">
-    {{#each data}}
-      <li>{{this}}</li>
-    {{/each}}
-  </ul>`,
-  isInt: false,
-
-  validators: [validateNonEmpty],
-  mapStateToProps: ({ controls }) => ({
-    value: controls?.handlebars_template?.value,
-  }),
-};
 
 export const HandlebarsTemplateControlSetItem: ControlSetItem = {
   name: 'handlebarsTemplate',
-  config: handlebarsTemplateControlConfig,
+  config: {
+    ...sharedControls.entity,
+    type: HandlebarsTemplateControl,
+    label: t('Handlebars Template'),
+    description: t('A handlebars template that is applied to the data'),
+    default: `<ul class="data_list">
+      {{#each data}}
+        <li>{{this}}</li>
+      {{/each}}
+    </ul>`,
+    isInt: false,
+    renderTrigger: true,
+
+    validators: [validateNonEmpty],
+    mapStateToProps: ({ controls }) => ({
+      value: controls?.handlebars_template?.value,
+    }),
+  },
 };
