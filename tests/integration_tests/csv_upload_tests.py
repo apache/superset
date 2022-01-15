@@ -27,6 +27,7 @@ from unittest import mock
 import pandas as pd
 import pytest
 
+import superset.utils.database
 from superset.sql_parse import Table
 from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
 from tests.integration_tests.test_app import app  # isort:skip
@@ -61,11 +62,11 @@ def setup_csv_upload():
     with app.app_context():
         login(test_client, username="admin")
 
-        upload_db = utils.get_or_create_db(
+        upload_db = superset.utils.database.get_or_create_db(
             CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
         )
         extra = upload_db.get_extra()
-        extra["explore_database_id"] = utils.get_example_database().id
+        extra["explore_database_id"] = superset.utils.database.get_example_database().id
         upload_db.extra = json.dumps(extra)
         upload_db.allow_file_upload = True
         db.session.commit()
@@ -275,7 +276,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
     assert f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"' in resp
     table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE_W_EXPLORE)
-    assert table.database_id == utils.get_example_database().id
+    assert table.database_id == superset.utils.database.get_example_database().id
 
 
 @pytest.mark.usefixtures("setup_csv_upload")

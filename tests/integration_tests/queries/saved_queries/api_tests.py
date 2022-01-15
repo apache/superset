@@ -31,7 +31,7 @@ from superset import db
 from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (

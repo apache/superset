@@ -181,7 +181,7 @@ def add_data(
     :param bool append: if the table already exists, append data or replace?
     """
     # pylint: disable=import-outside-toplevel
-    from superset.utils.core import get_example_database
+    from superset.utils.database import get_example_database
 
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)
