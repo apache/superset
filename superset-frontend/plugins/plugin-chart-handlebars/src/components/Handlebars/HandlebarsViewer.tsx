@@ -1,4 +1,4 @@
-import { SafeMarkdown } from '@superset-ui/core';
+import { SafeMarkdown, styled } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
@@ -13,12 +13,27 @@ export const HandlebarsViewer = ({
   data,
 }: HandlebarsViewerProps) => {
   const [renderedTemplate, setRenderedTemplate] = useState('');
+  const [error, setError] = useState('');
 
   useMemo(() => {
-    const template = Handlebars.compile(templateSource);
-    const result = template(data);
-    setRenderedTemplate(result);
+    try {
+      const template = Handlebars.compile(templateSource);
+      const result = template(data);
+      setRenderedTemplate(result);
+      setError('');
+    } catch (error) {
+      setRenderedTemplate('');
+      setError(error.message);
+    }
   }, [templateSource, data]);
+
+  const Error = styled.pre`
+    white-space: pre-wrap;
+  `;
+
+  if (error) {
+    return <Error>{error}</Error>;
+  }
 
   if (renderedTemplate) {
     return <SafeMarkdown source={renderedTemplate} />;
