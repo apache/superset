@@ -19,8 +19,8 @@ from unittest.mock import Mock, patch
 from tests.example_data.data_generator.string_generator import StringGenerator
 
 
-@patch("tests.common.example_data_generator.string_generator.choices")
-@patch("tests.common.example_data_generator.string_generator.randint")
+@patch("tests.example_data.data_generator.string_generator.choices")
+@patch("tests.example_data.data_generator.string_generator.randint")
 def test_string_generator(randint_mock: Mock, choices_mock: Mock):
     letters = "abcdets"
     min_len = 3
