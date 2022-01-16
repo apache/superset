@@ -41,10 +41,10 @@ def birth_names_data_generator() -> BirthNamesGenerator:
 
 @fixture(scope="session")
 def birth_names_table_factory(
-    birth_names_data_generator: BirthNamesGenerator,
+    birth_names_data_generator: BirthNamesGenerator, support_datetime_type: bool,
 ) -> Callable[[], Table]:
     def _birth_names_table_factory() -> Table:
-        return BirthNamesMetaDataFactory().make_table(
+        return BirthNamesMetaDataFactory(support_datetime_type).make_table(
             data=birth_names_data_generator.generate()
         )
 

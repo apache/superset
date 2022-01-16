@@ -39,7 +39,10 @@ def get_or_create_db(
     from superset.models import core as models
 
     database = (
-        db.session.query(models.Database).filter_by(database_name=database_name).first()
+        db.session.query(models.Database)
+        .filter_by(database_name=database_name)
+        .autoflush(False)
+        .first()
     )
 
     # databases with a fixed UUID

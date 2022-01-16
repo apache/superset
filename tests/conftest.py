@@ -26,7 +26,7 @@
 from __future__ import annotations
 
 from typing import Callable, TYPE_CHECKING
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, PropertyMock
 
 from pytest import fixture
 
@@ -38,9 +38,12 @@ from tests.example_data.data_loading.pandas.table_df_convertor import (
     TableToDfConvertorImpl,
 )
 
+SUPPORT_DATETIME_TYPE = "support_datetime_type"
+
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
+    from superset.connectors.sqla.models import Database
     from tests.example_data.data_loading.base_data_loader import DataLoader
     from tests.example_data.data_loading.pandas.pandas_data_loader import (
         TableToDfConvertor,
@@ -48,30 +51,53 @@ if TYPE_CHECKING:
 
 pytest_plugins = "tests.fixtures"
 
-
-@fixture(scope="session")
-def example_db_engine_provider() -> Callable[[], Engine]:
-    return lambda: Mock()
+PRESTO = "presto"
+BACKEND_PROPERTY_VALUE = "sqlite"
 
 
 @fixture(scope="session")
-def pandas_loader_configuration() -> PandasLoaderConfigurations:
-    return PandasLoaderConfigurations.make_default()
+def example_db_provider() -> Callable[[], Database]:
+    def mock_provider() -> Mock:
+        mock = MagicMock()
+        type(mock).backend = PropertyMock(return_value=BACKEND_PROPERTY_VALUE)
+        return mock
+
+    return mock_provider
+
+
+@fixture(scope="session")
+def example_db_engine(example_db_provider: Callable[[], Database]) -> Engine:
+    return example_db_provider().get_sqla_engine()
+
+
+@fixture(scope="session")
+def pandas_loader_configuration(support_datetime_type,) -> PandasLoaderConfigurations:
+    return PandasLoaderConfigurations.make_from_dict(
+        {SUPPORT_DATETIME_TYPE: support_datetime_type}
+    )
+
+
+@fixture(scope="session")
+def support_datetime_type(example_db_provider: Callable[[], Database]) -> bool:
+    return example_db_provider().backend == PRESTO
 
 
 @fixture(scope="session")
 def table_to_df_convertor(
     pandas_loader_configuration: PandasLoaderConfigurations,
 ) -> TableToDfConvertor:
-    return TableToDfConvertorImpl(True, pandas_loader_configuration.strftime)
+    return TableToDfConvertorImpl(
+        pandas_loader_configuration.support_datetime_type,
+        pandas_loader_configuration.strftime,
+    )
 
 
 @fixture(scope="session")
 def data_loader(
-    example_db_engine_provider: Callable[[], Engine],
+    example_db_engine: Engine,
     pandas_loader_configuration: PandasLoaderConfigurations,
     table_to_df_convertor: TableToDfConvertor,
 ) -> DataLoader:
     return PandasDataLoader(
-        example_db_engine_provider(), pandas_loader_configuration, table_to_df_convertor
+        example_db_engine, pandas_loader_configuration, table_to_df_convertor
     )

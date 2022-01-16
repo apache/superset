@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -86,7 +86,36 @@ def drop_from_schema(engine: Engine, schema_name: str):
         engine.execute(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}")
 
 
-@pytest.mark.usefixtures()
+@pytest.fixture(scope="session")
+def example_db_provider() -> Callable[[], Database]:  # type: ignore
+    class _example_db_provider:
+        _db: Optional[Database] = None
+
+        def __call__(self) -> Database:
+            with app.app_context():
+                if self._db is None:
+                    self._db = get_example_database()
+                    self._load_lazy_data_to_decouple_from_session()
+
+                return self._db
+
+        def _load_lazy_data_to_decouple_from_session(self) -> None:
+            self._db.get_sqla_engine()  # type: ignore
+            self._db.backend  # type: ignore
+
+        def remove(self) -> None:
+            if self._db:
+                with app.app_context():
+                    remove_database(self._db)
+
+    _instance = _example_db_provider()
+
+    yield _instance
+
+    # TODO - can not use it until referenced objects will be deleted.
+    # _instance.remove()
+
+
 @pytest.fixture(scope="session")
 def example_db_engine_provider() -> Callable[[], Engine]:  # type: ignore
     class _example_db_engine_provider:

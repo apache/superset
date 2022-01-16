@@ -110,6 +110,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     return access_request
 
 
+@pytest.mark.chart_data_flow
 class TestRequestAccess(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
