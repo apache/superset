@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
+from __future__ import annotations
+
 import functools
-from typing import Any
+from typing import Any, Callable, Optional, TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.engine import Engine
-from unittest.mock import patch
 
-from tests.integration_tests.test_app import app
 from superset import db
 from superset.extensions import feature_flag_manager
 from superset.utils.core import json_dumps_w_dates
-from superset.utils.database import get_example_database
+from superset.utils.database import get_example_database, remove_database
+from tests.integration_tests.test_app import app
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import Database
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
@@ -80,6 +84,30 @@ def drop_from_schema(engine: Engine, schema_name: str):
     for tv in tables_or_views:
         engine.execute(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}")
         engine.execute(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}")
+
+
+@pytest.mark.usefixtures()
+@pytest.fixture(scope="session")
+def example_db_engine_provider() -> Callable[[], Engine]:  # type: ignore
+    class _example_db_engine_provider:
+        _db: Optional[Database] = None
+
+        def __call__(self) -> Engine:
+            with app.app_context():
+                if self._db is None:
+                    self._db = get_example_database()
+                return self._db.get_sqla_engine()
+
+        def remove(self):
+            if self._db:
+                with app.app_context():
+                    remove_database(self._db)
+
+    _instance = _example_db_engine_provider()
+
+    yield _instance
+
+    _instance.remove()
 
 
 def setup_presto_if_needed():
