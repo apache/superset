@@ -29,8 +29,8 @@ from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import (
     get_example_data,
     get_slice_json,
