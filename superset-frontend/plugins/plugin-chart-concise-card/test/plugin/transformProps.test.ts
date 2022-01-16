@@ -42,13 +42,12 @@ describe('ConciseCard tranformProps', () => {
   });
 
   it('should tranform chart props for viz', () => {
-    expect(transformProps(chartProps)).toEqual({
-      width: 800,
-      height: 600,
-      boldText: true,
-      headerFontSize: 'xs',
-      headerText: 'my text',
-      data: [{ name: 'Hulk', sum__num: 1 }],
-    });
+    const transformedProps = transformProps(chartProps);
+    expect(transformedProps.width).toEqual(800);
+    expect(transformedProps.height).toEqual(600);
+    expect(transformedProps.boldText).toEqual(true);
+    expect(transformedProps.headerFontSize).toEqual('xs');
+    expect(transformedProps.headerText).toEqual('my text');
+    expect(transformedProps.data).toEqual([{ name: 'Hulk', sum__num: 1 }]);
   });
 });
