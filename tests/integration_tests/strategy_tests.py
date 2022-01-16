@@ -30,7 +30,7 @@ import pytest
 import pandas as pd
 
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from superset import db
 

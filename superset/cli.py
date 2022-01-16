@@ -37,9 +37,9 @@ from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
 from flask_appbuilder.api.manager import resolver
 
+import superset.utils.database as database_utils
 from superset import app, appbuilder, config, security_manager
 from superset.extensions import celery_app, db
-from superset.utils import core as utils
 from superset.utils.celery import session_scope
 from superset.utils.encrypt import SecretsMigrator
 from superset.utils.urls import get_url_path
@@ -120,7 +120,7 @@ def load_examples_run(
     if only_metadata:
         print("Loading examples metadata")
     else:
-        examples_db = utils.get_example_database()
+        examples_db = database_utils.get_example_database()
         print(f"Loading examples metadata and related data into {examples_db}")
 
     # pylint: disable=import-outside-toplevel
@@ -227,7 +227,7 @@ def import_directory(directory: str, overwrite: bool, force: bool) -> None:
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI"""
-    utils.get_or_create_db(database_name, uri, not skip_create)
+    database_utils.get_or_create_db(database_name, uri, not skip_create)
 
 
 @superset.command()
@@ -768,7 +768,7 @@ def load_test_users_run() -> None:
 
         sm = security_manager
 
-        examples_db = utils.get_example_database()
+        examples_db = database_utils.get_example_database()
 
         examples_pv = sm.add_permission_view_menu("database_access", examples_db.perm)
 
