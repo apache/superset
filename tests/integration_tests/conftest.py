@@ -107,7 +107,8 @@ def example_db_engine_provider() -> Callable[[], Engine]:  # type: ignore
 
     yield _instance
 
-    _instance.remove()
+    # TODO - can not use it until referenced objects will be deleted.
+    # _instance.remove()
 
 
 def setup_presto_if_needed():
