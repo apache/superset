@@ -25,8 +25,8 @@ from unittest.mock import patch
 from tests.integration_tests.test_app import app
 from superset import db
 from superset.extensions import feature_flag_manager
-from superset.utils.core import get_example_database, json_dumps_w_dates
-
+from superset.utils.core import json_dumps_w_dates
+from superset.utils.database import get_example_database
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"

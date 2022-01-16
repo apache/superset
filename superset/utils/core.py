@@ -86,7 +86,6 @@ from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict, TypeGuard
 
 from superset.constants import (
-    EXAMPLES_DB_UUID,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -107,6 +106,7 @@ from superset.typing import (
     FormData,
     Metric,
 )
+from superset.utils.database import get_example_database
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -117,8 +117,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseColumn, BaseDatasource
-    from superset.models.core import Database
-
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1205,49 +1203,6 @@ def user_label(user: User) -> Optional[str]:
         return user.username
 
     return None
-
-
-def get_or_create_db(
-    database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
-) -> "Database":
-    # pylint: disable=import-outside-toplevel
-    from superset import db
-    from superset.models import core as models
-
-    database = (
-        db.session.query(models.Database).filter_by(database_name=database_name).first()
-    )
-
-    # databases with a fixed UUID
-    uuids = {
-        "examples": EXAMPLES_DB_UUID,
-    }
-
-    if not database and always_create:
-        logger.info("Creating database reference for %s", database_name)
-        database = models.Database(
-            database_name=database_name, uuid=uuids.get(database_name)
-        )
-        db.session.add(database)
-
-    if database:
-        database.set_sqlalchemy_uri(sqlalchemy_uri)
-        db.session.commit()
-
-    return database
-
-
-def get_example_database() -> "Database":
-    db_uri = (
-        current_app.config.get("SQLALCHEMY_EXAMPLES_URI")
-        or current_app.config["SQLALCHEMY_DATABASE_URI"]
-    )
-    return get_or_create_db("examples", db_uri)
-
-
-def get_main_database() -> "Database":
-    db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    return get_or_create_db("main", db_uri)
 
 
 def get_example_default_schema() -> Optional[str]:

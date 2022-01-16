@@ -42,7 +42,8 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 
 class ImportExamplesCommand(ImportModelsCommand):

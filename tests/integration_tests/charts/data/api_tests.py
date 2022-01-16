@@ -47,11 +47,10 @@ from superset.models.slice import Slice
 from superset.typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
-    get_example_database,
     get_example_default_schema,
-    get_main_database,
     AdhocMetricExpressionType,
 )
+from superset.utils.database import get_example_database, get_main_database
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
 from tests.common.query_context_generator import ANNOTATION_LAYERS

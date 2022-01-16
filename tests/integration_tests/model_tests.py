@@ -36,7 +36,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.sql_types.base import literal_dttm_type_factory
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import (
