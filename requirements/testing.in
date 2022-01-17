@@ -38,3 +38,4 @@ statsd
 pytest-mock
 # DB dependencies
 -e file:.[bigquery]
+-e file:.[trino]
