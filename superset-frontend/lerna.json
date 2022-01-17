@@ -1,9 +1,12 @@
 {
   "lerna": "3.2.1",
   "npmClient": "npm",
-  "packages": ["packages/*", "plugins/*"],
+  "packages": [
+    "packages/*",
+    "plugins/*"
+  ],
   "useWorkspaces": true,
-  "version": "0.18.25",
+  "version": "0.19.0",
   "ignoreChanges": [
     "**/*.md",
     "**/*.spec.tsx?",

@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-word-cloud",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset Chart Plugin - Word Cloud",
   "sideEffects": [
     "*.css"
@@ -35,9 +35,9 @@
     "encodable": "^0.7.6"
   },
   "peerDependencies": {
-    "@types/react": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@types/react": "*",
     "react": "^16.13.1"
   }
 }

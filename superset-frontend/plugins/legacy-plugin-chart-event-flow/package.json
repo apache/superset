@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-event-flow",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset Legacy Chart - Event Flow",
   "sideEffects": [
     "*.css"
@@ -32,8 +32,8 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "react": "^15 || ^16",
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "react": "^15 || ^16"
   }
 }

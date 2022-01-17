@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart-controls",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset UI control-utils",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -33,10 +33,10 @@
   "peerDependencies": {
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
+    "@types/enzyme": "^3.10.5",
     "@types/react": "*",
     "antd": "^4.9.4",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "@types/enzyme": "^3.10.5"
+    "react-dom": "^16.13.1"
   }
 }

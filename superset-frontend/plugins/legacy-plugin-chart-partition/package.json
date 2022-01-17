@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-partition",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset Legacy Chart - Partition",
   "sideEffects": [
     "*.css"
@@ -35,7 +35,7 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1",
-    "enzyme": "*"
+    "enzyme": "*",
+    "react": "^16.13.1"
   }
 }
