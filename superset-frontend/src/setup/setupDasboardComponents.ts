@@ -22,10 +22,10 @@
   superset-frontend/src/visualizations/presets/dashboardComponents.ts file
  */
 
-import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
-import test from '../visualizations/dashboardComponents/TestComponent';
+// import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
+// import test from '../visualizations/dashboardComponents/ExampleComponent';
 
 export default function setupDashboardComponents() {
-  // TODO: can be removed after POC approved
-  dashboardComponentsRegistry.set('test', test);
+  // Add custom dashboard components here. Example:
+  // dashboardComponentsRegistry.set('test', test);
 }

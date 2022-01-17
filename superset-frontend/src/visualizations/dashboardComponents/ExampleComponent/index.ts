@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { JsonObject } from '@superset-ui/core';
 
 // TODO: POC only component can be removed after PR approved
-const TestComponent = ({ dashboardData }: JsonObject) => (
-  <div>We have next keys: {Object.keys(dashboardData).join(', ')}</div>
-);
-
-export default TestComponent;
+export default {
+  metadata: {
+    name: 'Example',
+    description: 'Example description',
+    iconName: 'filter',
+  },
+  loadComponent: () => import('./ExampleComponent'),
+};

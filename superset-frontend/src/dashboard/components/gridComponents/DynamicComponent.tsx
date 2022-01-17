@@ -38,7 +38,7 @@ import { RootState } from '../../types';
 import { NativeFiltersState } from '../../reducers/types';
 import { DataMaskStateWithId } from '../../../dataMask/types';
 
-type DashboardData = {
+type DashboardComponentMetadata = {
   nativeFilters: NativeFiltersState;
   dataMask: DataMaskStateWithId;
 };
@@ -105,7 +105,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
   };
 
   const { Component } = dashboardComponents.get(component.meta.componentKey);
-  const dashboardData = useSelector<RootState, DashboardData>(
+  const dashboardData = useSelector<RootState, DashboardComponentMetadata>(
     ({ nativeFilters, dataMask }) => ({
       nativeFilters,
       dataMask,
