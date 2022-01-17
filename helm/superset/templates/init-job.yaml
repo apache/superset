@@ -76,6 +76,19 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
 {{ toYaml .Values.init.resources | indent 10 }}
+
+    {{- with .Values.init.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.init.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.init.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
 {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
