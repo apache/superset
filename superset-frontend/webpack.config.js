@@ -285,7 +285,9 @@ const config = {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
     modules: ['node_modules', APP_DIR],
     alias: {
-      // TODO: remove alias once React has been upgraaded to v. 17
+      // TODO: remove aliases once React has been upgraded to v. 17 and
+      //  AntD version conflict has been resolved
+      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
@@ -432,13 +434,6 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
-    console.log(
-      `[Superset External Plugin] Use symlink source for ${pkg} @ ${dir}`,
-    );
-    // TODO: remove alias once React has been upgraaded to v. 17
-    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
-  }
   if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);

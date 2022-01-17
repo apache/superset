@@ -32,9 +32,7 @@ module.exports = class extends Generator {
         name: 'packageName',
         message: 'Package name:',
         // Default to current folder name
-        default: _.kebabCase(
-          this.appname.replace('superset plugin chart', '').trim(),
-        ),
+        default: _.kebabCase(this.appname),
       },
       {
         type: 'input',
@@ -77,6 +75,7 @@ module.exports = class extends Generator {
     };
 
     [
+      ['gitignore.erb', '.gitignore'],
       ['babel.config.erb', 'babel.config.js'],
       ['jest.config.erb', 'jest.config.js'],
       ['package.erb', 'package.json'],
