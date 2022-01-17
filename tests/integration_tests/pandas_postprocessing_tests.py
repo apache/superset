@@ -1063,7 +1063,7 @@ The Dataframe contains a timestamp column, a string column and a numeric column.
             method="asfreq",
             fill_value=0,
             time_column="__timestamp",
-            groupby_columns=tuple(["city"]),
+            groupby_columns=("city",),
         )
         assert list(post_df.columns) == [
             "__timestamp",
@@ -1083,7 +1083,7 @@ The Dataframe contains a timestamp column, a string column and a numeric column.
                 method="asfreq",
                 fill_value=0,
                 time_column="__timestamp",
-                groupby_columns=tuple(["city", "unkonw_column"]),
+                groupby_columns=("city", "unkonw_column",),
             )
 
         # should raise error when get a None value in groupby list
@@ -1094,5 +1094,5 @@ The Dataframe contains a timestamp column, a string column and a numeric column.
                 method="asfreq",
                 fill_value=0,
                 time_column="__timestamp",
-                groupby_columns=tuple(["city", None]),
+                groupby_columns=("city", None,),
             )
