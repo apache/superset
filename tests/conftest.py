@@ -79,7 +79,7 @@ def pandas_loader_configuration(support_datetime_type,) -> PandasLoaderConfigura
 
 @fixture(scope="session")
 def support_datetime_type(example_db_provider: Callable[[], Database]) -> bool:
-    return example_db_provider().backend == PRESTO
+    return example_db_provider().backend != PRESTO
 
 
 @fixture(scope="session")
@@ -87,7 +87,7 @@ def table_to_df_convertor(
     pandas_loader_configuration: PandasLoaderConfigurations,
 ) -> TableToDfConvertor:
     return TableToDfConvertorImpl(
-        pandas_loader_configuration.support_datetime_type,
+        not pandas_loader_configuration.support_datetime_type,
         pandas_loader_configuration.strftime,
     )
 

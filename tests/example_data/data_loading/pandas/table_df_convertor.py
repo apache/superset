@@ -27,20 +27,20 @@ if TYPE_CHECKING:
 
 
 class TableToDfConvertorImpl(TableToDfConvertor):
-    _convert_ds_to_timestamp: bool
+    convert_datetime_to_str: bool
     _time_format: Optional[str]
 
     def __init__(
         self, convert_ds_to_datetime: bool, time_format: Optional[str] = None
     ) -> None:
-        self._convert_ds_to_timestamp = convert_ds_to_datetime
+        self.convert_datetime_to_str = convert_ds_to_datetime
         self._time_format = time_format
 
     def convert(self, table: Table) -> DataFrame:
         df_rv = DataFrame(table.data)
-        if self._should_add_datetime():
+        if self._should_convert_datetime_to_str():
             df_rv.ds = df_rv.ds.dt.strftime(self._time_format)
         return df_rv
 
-    def _should_add_datetime(self) -> bool:
-        return self._convert_ds_to_timestamp and self._time_format is not None
+    def _should_convert_datetime_to_str(self) -> bool:
+        return self.convert_datetime_to_str and self._time_format is not None
