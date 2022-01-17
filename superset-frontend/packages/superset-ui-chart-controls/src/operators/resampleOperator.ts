@@ -17,7 +17,11 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingResample } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isPhysicalColumn,
+  PostProcessingResample,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 import { TIME_COLUMN } from './utils';
 
@@ -28,6 +32,13 @@ export const resampleOperator: PostProcessingFactory<
   const resampleMethod = resampleZeroFill ? 'asfreq' : formData.resample_method;
   const resampleRule = formData.resample_rule;
   if (resampleMethod && resampleRule) {
+    const groupby_columns = ensureIsArray(queryObject.columns).map(column => {
+      if (isPhysicalColumn(column)) {
+        return column;
+      }
+      return column.label;
+    });
+
     return {
       operation: 'resample',
       options: {
@@ -35,6 +46,7 @@ export const resampleOperator: PostProcessingFactory<
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
         time_column: TIME_COLUMN,
+        groupby_columns,
       },
     };
   }
