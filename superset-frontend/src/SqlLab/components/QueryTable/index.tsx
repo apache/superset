@@ -29,32 +29,30 @@ import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Query } from 'src/SqlLab/types';
+import ModalTrigger from 'src/components/ModalTrigger';
+import rootReducer from 'src/SqlLab/reducers';
 import ResultSet from '../ResultSet';
-import ModalTrigger from '../../../components/ModalTrigger';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
-import rootReducer from '../../reducers/index';
 
-// Acquire redux rootstate type, to be used in useSelector
 type RootState = ReturnType<typeof rootReducer>;
 
-// query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
-interface QueryTableQueryTemp1 extends Omit<Query, 'sql'> {
-  sql: string | Record<string, any>;
-}
-
-interface QueryTableQueryTemp2 extends Omit<QueryTableQueryTemp1, 'progress'> {
-  progress: number | Record<string, any>;
-}
-
-interface QueryTableQuery extends Omit<QueryTableQueryTemp2, 'state'> {
-  state: string | Record<string, any>;
+interface QueryTableQuery extends Omit<Query, 'state' | 'sql' | 'progress'> {
+  state?: Record<string, any>;
+  sql?: Record<string, any>;
+  progress?: Record<string, any>;
 }
 
 interface QueryTableProps {
-  columns: Array<string>;
-  actions: Record<string, any>;
-  queries: Query[];
+  columns?: string[];
+  actions: {
+    queryEditorSetSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
+  };
+  queries?: Query[];
   onUserClicked?: Function;
   onDbClicked?: Function;
   displayLimit: number;
@@ -71,7 +69,7 @@ const QueryTable = ({
   queries = [],
   onUserClicked = () => undefined,
   onDbClicked = () => undefined,
-  displayLimit = Infinity,
+  displayLimit,
 }: QueryTableProps) => {
   const theme = useTheme();
 
@@ -93,25 +91,34 @@ const QueryTable = ({
 
   const user = useSelector((state: RootState) => state.sqlLab.user);
 
+  // As 5 actions are required, deconstruction is used here. The aliasName is provided for clearQueryResults and removeQuery to have a difference from function name declared later. Deconstruction is not made at function parameter, bc actions are passed in as prop at ResultSet.
+  const {
+    queryEditorSetSql,
+    cloneQueryToNewTab,
+    fetchQueryResults,
+    clearQueryResults: clearQueryResultsAlias,
+    removeQuery: removeQueryAlias,
+  } = actions;
+
   const data = useMemo(() => {
     const restoreSql = (query: Query) => {
-      actions?.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
+      queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
     };
 
     const openQueryInNewTab = (query: Query) => {
-      actions?.cloneQueryToNewTab(query, true);
+      cloneQueryToNewTab(query, true);
     };
 
     const openAsyncResults = (query: Query, displayLimit: number) => {
-      actions?.fetchQueryResults(query, displayLimit);
+      fetchQueryResults(query, displayLimit);
     };
 
     const clearQueryResults = (query: Query) => {
-      actions?.clearQueryResults(query);
+      clearQueryResultsAlias(query);
     };
 
     const removeQuery = (query: Query) => {
-      actions?.removeQuery(query);
+      removeQueryAlias(query);
     };
 
     const statusAttributes = {
@@ -173,13 +180,12 @@ const QueryTable = ({
 
     return queries
       .map(query => {
-        // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query
-        const q: QueryTableQuery = { ...query };
-        // state type is string | Object<string,any>, Type 'Record<string, any>' cannot be used as an index type. for statusAttributes[q.state]. Thus having an condition to filter out only when q.state type is string, then index works
-        let status: any;
-        if (typeof q.state === 'string') {
-          status = statusAttributes[q.state] || statusAttributes.error;
-        }
+        // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query.
+        // qTemp is used to bring in the properties that you don't overwrite, which will be assigned to q, so that q.state/q.sql/q.progress will be later object.
+        const { state, sql, progress, ...qTemp } = query;
+        const q: QueryTableQuery = { ...qTemp };
+
+        const status = statusAttributes[state] || statusAttributes.error;
 
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
@@ -224,7 +230,7 @@ const QueryTable = ({
         q.sql = (
           <Card css={[StaticPosition]}>
             <HighlightedSql
-              sql={query.sql}
+              sql={sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
@@ -264,17 +270,14 @@ const QueryTable = ({
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
         q.progress =
-          q.state === 'success' ? (
+          state === 'success' ? (
             <ProgressBar
-              percent={parseInt(q.progress.toFixed(0), 10)}
+              percent={parseInt(progress.toFixed(0), 10)}
               striped
               showInfo={false}
             />
           ) : (
-            <ProgressBar
-              percent={parseInt(q.progress.toFixed(0), 10)}
-              striped
-            />
+            <ProgressBar percent={parseInt(progress.toFixed(0), 10)} striped />
           );
         q.state = (
           <Tooltip title={status.config.label} placement="bottom">
@@ -297,20 +300,32 @@ const QueryTable = ({
               tooltip={t('Run query in a new tab')}
               placement="top"
             >
-              <Icons.PlusCircleOutlined iconSize="s" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="xs" css={verticalAlign} />
             </StyledTooltip>
             <StyledTooltip
               tooltip={t('Remove query from log')}
               onClick={() => removeQuery(query)}
             >
-              <Icons.Trash iconSize="s" />
+              <Icons.Trash iconSize="xs" />
             </StyledTooltip>
           </div>
         );
         return q;
       })
       .reverse();
-  }, [actions, queries, onUserClicked, onDbClicked, displayLimit, user, theme]);
+  }, [
+    queries,
+    onUserClicked,
+    onDbClicked,
+    user,
+    displayLimit,
+    actions,
+    clearQueryResultsAlias,
+    cloneQueryToNewTab,
+    fetchQueryResults,
+    queryEditorSetSql,
+    removeQueryAlias,
+  ]);
 
   return (
     <div className="QueryTable">
