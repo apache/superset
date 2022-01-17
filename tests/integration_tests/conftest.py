@@ -116,30 +116,6 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
     # _instance.remove()
 
 
-@pytest.fixture(scope="session")
-def example_db_engine_provider() -> Callable[[], Engine]:  # type: ignore
-    class _example_db_engine_provider:
-        _db: Optional[Database] = None
-
-        def __call__(self) -> Engine:
-            with app.app_context():
-                if self._db is None:
-                    self._db = get_example_database()
-                return self._db.get_sqla_engine()
-
-        def remove(self):
-            if self._db:
-                with app.app_context():
-                    remove_database(self._db)
-
-    _instance = _example_db_engine_provider()
-
-    yield _instance
-
-    # TODO - can not use it until referenced objects will be deleted.
-    # _instance.remove()
-
-
 def setup_presto_if_needed():
     backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
     database = get_example_database()
