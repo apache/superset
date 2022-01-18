@@ -31,7 +31,7 @@ module.exports = class extends Generator {
         type: 'input',
         name: 'packageName',
         message: 'Package name:',
-        // superset-plugin-chart-hello-world
+        // Default to current folder name, e.g. superset-plugin-chart-hello-world
         default: _.kebabCase(this.appname),
       },
       {
@@ -47,7 +47,7 @@ module.exports = class extends Generator {
         type: 'input',
         name: 'description',
         message: 'Description:',
-        // Default to current folder name
+        // Superset Plugin Chart Hello World
         default: _.upperFirst(_.startCase(this.appname)),
       },
       {
@@ -56,12 +56,12 @@ module.exports = class extends Generator {
         message: 'What type of chart would you like?',
         choices: [
           {
-            name: 'Time-series chart',
-            value: 'timeseries',
-          },
-          {
             name: 'Regular chart',
             value: 'regular',
+          },
+          {
+            name: 'Time-series chart',
+            value: 'timeseries',
           },
         ],
       },
