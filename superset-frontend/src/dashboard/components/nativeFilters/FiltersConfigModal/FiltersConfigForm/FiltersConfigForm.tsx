@@ -21,6 +21,7 @@ import {
   ColumnMeta,
   InfoTooltipWithTrigger,
   Metric,
+  TimeFilter,
 } from '@superset-ui/chart-controls';
 import {
   AdhocFilter,
@@ -57,6 +58,7 @@ import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Radio } from 'src/components/Radio';
 import Tabs from 'src/components/Tabs';
+import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import {
   Chart,
@@ -1112,16 +1114,31 @@ const FiltersConfigForm = (
                         ]}
                       >
                         <DateFilterControl
-                          name="time_range"
                           endpoints={['inclusive', 'exclusive']}
-                          onChange={timeRange => {
+                          dateFilter={{
+                            timeRange: formFilter?.time_range || 'No filter',
+                          }}
+                          onChange={(timeFilter: TimeFilter) => {
                             setNativeFilterFieldValues(form, filterId, {
-                              time_range: timeRange,
+                              time_range: timeFilter.timeRange,
                             });
                             forceUpdate();
                             validatePreFilter();
                           }}
-                        />
+                          showTimeColumnSection={false}
+                        >
+                          {({ label, tooltipTitle, onOpen }) => (
+                            <Tooltip placement="top" title={tooltipTitle}>
+                              <Label
+                                className="pointer"
+                                data-test="time-range-trigger"
+                                onClick={onOpen}
+                              >
+                                {label}
+                              </Label>
+                            </Tooltip>
+                          )}
+                        </DateFilterControl>
                       </StyledRowFormItem>
                     )}
                     {hasTimeRange && (

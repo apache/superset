@@ -36,6 +36,7 @@ import DateFilterLabel from './DateFilterLabel';
 import DndSelectLabel from '../DndColumnSelectControl';
 import { DndItemType } from '../../DndItemType';
 import ControlHeader from '../../ControlHeader';
+import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
 
 const DND_ACCEPTED_TYPES = [DndItemType.Column];
 
@@ -47,6 +48,7 @@ export interface DateFilterControlI {
   timeColumnOptions: { value: string; label: string }[];
   timeGrainOptions: { value: string; label: string }[];
   value: TimeFilters;
+  isTimeseries?: boolean;
 }
 
 export const DndDateFilterControl = (props: DateFilterControlI) => {
@@ -57,12 +59,12 @@ export const DndDateFilterControl = (props: DateFilterControlI) => {
     timeColumnOptions,
     timeGrainOptions,
     value,
+    isTimeseries,
   } = props;
   const [newDatePopoverVisible, setNewDatePopoverVisible] = useState(false);
   const [droppedItem, setDroppedItem] = useState<ColumnMeta | undefined>(
     undefined,
   );
-  const [popoversVisibility, setPopoversVisibility] = useState({});
 
   const onRemoveFilter = useCallback(
     (index: number) => {
@@ -126,28 +128,33 @@ export const DndDateFilterControl = (props: DateFilterControlI) => {
         <DateFilterLabel
           key={`${dateFilter.timeColumn}-${dateFilter.timeGrain}-${dateFilter.timeRange}-${dateFilter.isXAxis}-${index}`}
           datasource={datasource}
-          index={index}
           dateFilter={dateFilter}
           onChange={(timeFilter: TimeFilter) => handleChange(timeFilter, index)}
           onRemoveFilter={onRemoveFilter}
           onShiftFilters={onShiftFilters}
           timeGrainOptions={timeGrainOptions}
           timeColumnOptions={timeColumnOptions}
-          setPopoverVisible={(isVisible: boolean) =>
-            setPopoversVisibility(curVisibility => ({
-              ...curVisibility,
-              [index]: isVisible,
-            }))
-          }
-          popoverVisible={popoversVisibility[index]}
-        />
+          isTimeseries={isTimeseries}
+        >
+          {({ label, tooltipTitle, onRemoveFilter, onShiftFilters }) => (
+            <OptionWrapper
+              index={index}
+              label={label}
+              tooltipTitle={tooltipTitle}
+              clickClose={onRemoveFilter}
+              onShiftOptions={onShiftFilters}
+              type={DndItemType.Column}
+              withCaret
+            />
+          )}
+        </DateFilterLabel>
       )),
     [
       datasource,
       handleChange,
+      isTimeseries,
       onRemoveFilter,
       onShiftFilters,
-      popoversVisibility,
       timeColumnOptions,
       timeGrainOptions,
       value,
@@ -167,7 +174,7 @@ export const DndDateFilterControl = (props: DateFilterControlI) => {
     () => ({
       ...DEFAULT_DATE_FILTER,
       timeColumn: droppedItem?.column_name,
-      isXAxis: value.length === 0,
+      isXAxis: isTimeseries && value.length === 0,
     }),
     [droppedItem?.column_name, value.length],
   );
@@ -195,9 +202,9 @@ export const DndDateFilterControl = (props: DateFilterControlI) => {
         onRemoveFilter={noOp}
         timeColumnOptions={timeColumnOptions}
         timeGrainOptions={timeGrainOptions}
-        index={-1}
         popoverVisible={newDatePopoverVisible}
         setPopoverVisible={setNewDatePopoverVisible}
+        isTimeseries={isTimeseries}
       >
         <div />
       </DateFilterLabel>

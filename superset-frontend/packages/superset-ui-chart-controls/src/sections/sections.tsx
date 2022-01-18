@@ -30,7 +30,17 @@ const baseTimeSection = {
 
 export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
-  controlSetRows: [['time_filter'], ['time_grain_sqla']],
+  controlSetRows: [
+    [
+      {
+        name: 'time_filter',
+        override: {
+          isTimeseries: true,
+        },
+      },
+    ],
+    ['time_grain_sqla'],
+  ],
 };
 
 export const legacyRegularTime: ControlPanelSectionConfig = {

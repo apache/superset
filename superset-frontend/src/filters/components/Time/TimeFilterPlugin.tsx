@@ -17,7 +17,10 @@
  * under the License.
  */
 import { styled, TimeRangeEndpoint } from '@superset-ui/core';
+import { TimeFilter } from '@superset-ui/chart-controls';
 import React, { useCallback, useEffect } from 'react';
+import { Tooltip } from 'src/components/Tooltip';
+import Label from 'src/components/Label';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
@@ -72,7 +75,8 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   } = props;
 
   const handleTimeRangeChange = useCallback(
-    (timeRange?: string): void => {
+    (timeFilter?: TimeFilter): void => {
+      const timeRange = timeFilter?.timeRange;
       const isSet = timeRange && timeRange !== NO_TIME_RANGE;
       setDataMask({
         extraFormData: isSet
@@ -89,11 +93,10 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   );
 
   useEffect(() => {
-    handleTimeRangeChange(filterState.value);
+    handleTimeRangeChange({ timeRange: filterState.value });
   }, [filterState.value]);
 
   return props.formData?.inView ? (
-    // @ts-ignore
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
         tabIndex={-1}
@@ -106,11 +109,24 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
       >
         <DateFilterControl
           endpoints={endpoints}
-          value={filterState.value || NO_TIME_RANGE}
-          name="time_range"
+          dateFilter={{ timeRange: filterState.value || NO_TIME_RANGE }}
+          // name="time_range"
           onChange={handleTimeRangeChange}
-          type={filterState.validateStatus}
-        />
+          messageType={filterState.validateStatus}
+          showTimeColumnSection={false}
+        >
+          {({ label, tooltipTitle, onOpen }) => (
+            <Tooltip placement="top" title={tooltipTitle}>
+              <Label
+                className="pointer"
+                data-test="time-range-trigger"
+                onClick={onOpen}
+              >
+                {label}
+              </Label>
+            </Tooltip>
+          )}
+        </DateFilterControl>
       </ControlContainer>
     </TimeFilterStyles>
   ) : null;

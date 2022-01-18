@@ -25,8 +25,7 @@ import {
   useTheme,
   Datasource,
   SupersetClient,
-  css,
-  SupersetTheme,
+  JsonObject,
 } from '@superset-ui/core';
 import { DEFAULT_DATE_FILTER, TimeFilter } from '@superset-ui/chart-controls';
 import {
@@ -39,13 +38,13 @@ import {
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
+import { Type } from 'src/components/Label';
 import { testWithId } from 'src/utils/testUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { noOp } from 'src/utils/common';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { FrameType } from './types';
 import { DateFilterPopoverContent } from './components/DateFilterPopoverContent';
-import { DndItemType } from '../../DndItemType';
-import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
@@ -100,18 +99,20 @@ const IconWrapper = styled.span`
 `;
 
 interface DateFilterLabelI {
-  children?: React.ReactNode;
+  children: React.ReactNode | ((props: JsonObject) => React.ReactNode);
   onChange: (timeFilter: TimeFilter) => void;
   endpoints?: TimeRangeEndpoints;
-  dateFilter: TimeFilter;
-  datasource: Datasource;
-  timeColumnOptions: { value: string; label: string }[];
-  timeGrainOptions: { value: string; label: string }[];
-  onRemoveFilter: (index: number) => void;
-  onShiftFilters: (dragIndex: number, hoverIndex: number) => void;
-  index: number;
-  popoverVisible: boolean;
-  setPopoverVisible: (val: boolean) => void;
+  dateFilter?: TimeFilter;
+  datasource?: Datasource;
+  timeColumnOptions?: { value: string; label: string }[];
+  timeGrainOptions?: { value: string; label: string }[];
+  onRemoveFilter?: (index: number) => void;
+  onShiftFilters?: (dragIndex: number, hoverIndex: number) => void;
+  popoverVisible?: boolean;
+  setPopoverVisible?: (val: boolean) => void;
+  showTimeColumnSection?: boolean;
+  isTimeseries?: boolean;
+  messageType?: Type;
 }
 
 export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
@@ -123,26 +124,26 @@ const overlayStyle = {
   width: '600px',
 };
 
+const TooltipContentStyles = styled.div`
+  .col-name {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
+
 const generateTooltip = (
   timeColumn: string,
   timeGrain: string,
   range1: string,
   range2?: string,
 ) => (
-  <div>
-    <div
-      css={(theme: SupersetTheme) => css`
-        font-weight: ${theme.typography.weights.bold};
-      `}
-    >
-      {timeColumn}
-    </div>
+  <TooltipContentStyles>
+    {timeColumn && <div className="col-name">{timeColumn}</div>}
     {timeGrain && <div>{timeGrain}</div>}
     <div>
       <span>{range1}</span>
       {range2 && <span>{` (${range2})`}</span>}
     </div>
-  </div>
+  </TooltipContentStyles>
 );
 
 export default function DateFilterLabel(props: DateFilterLabelI) {
@@ -151,14 +152,16 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
     datasource,
     endpoints,
     onChange,
-    timeColumnOptions,
-    timeGrainOptions,
+    timeColumnOptions = [],
+    timeGrainOptions = [],
     dateFilter = DEFAULT_DATE_FILTER,
-    onRemoveFilter,
-    onShiftFilters,
-    index = 1,
-    popoverVisible,
-    setPopoverVisible,
+    onRemoveFilter = noOp,
+    onShiftFilters = noOp,
+    popoverVisible: controlledPopoverVisible,
+    setPopoverVisible: controlledSetPopoverVisible,
+    showTimeColumnSection = true,
+    isTimeseries = false,
+    messageType,
   } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(
     dateFilter.timeRange,
@@ -183,13 +186,45 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
 
   const theme = useTheme();
 
+  const isVisibilityControlled =
+    controlledPopoverVisible !== undefined &&
+    controlledSetPopoverVisible !== undefined &&
+    typeof controlledSetPopoverVisible === 'function';
+
+  const [popoverVisible, setPopoverVisible] = useState(false);
+
+  const isPopoverVisible = isVisibilityControlled
+    ? controlledPopoverVisible
+    : popoverVisible;
+  const setPopoverVisibility = (visible: boolean) => {
+    if (isVisibilityControlled) {
+      controlledSetPopoverVisible(visible);
+    } else {
+      setPopoverVisible(visible);
+    }
+  };
+
+  const timeColumnName = useMemo(
+    () =>
+      datasource?.columns?.find(
+        column => column.column_name === dateFilter.timeColumn,
+      )?.verbose_name ??
+      dateFilter.timeColumn ??
+      '',
+    [datasource?.columns, dateFilter.timeColumn],
+  );
+
   useEffect(() => {
     fetchTimeRange(dateFilter.timeRange, endpoints).then(
       ({ value: actualRange, error }) => {
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
-          setTooltipTitle(dateFilter.timeRange || '');
+          setTooltipTitle(
+            messageType === ('error' as Type)
+              ? t('Default value is required')
+              : dateFilter.timeRange || '',
+          );
         } else {
           /*
           HRT == human readable text
@@ -202,6 +237,12 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
+          const timeGrainName =
+            timeGrainOptions.find(
+              option => option.value === dateFilter.timeGrain,
+            )?.label ??
+            dateFilter.timeGrain ??
+            '';
           if (
             guessedFrame === 'Common' ||
             guessedFrame === 'Calendar' ||
@@ -210,8 +251,8 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
             setActualTimeRange(dateFilter.timeRange);
             setTooltipTitle(
               generateTooltip(
-                dateFilter.timeColumn || '',
-                dateFilter.timeGrain || '',
+                timeColumnName,
+                timeGrainName,
                 dateFilter.timeRange,
                 actualRange || '',
               ),
@@ -219,11 +260,7 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
           } else {
             setActualTimeRange(actualRange || '');
             setTooltipTitle(
-              generateTooltip(
-                dateFilter.timeColumn || '',
-                dateFilter.timeGrain || '',
-                actualRange || '',
-              ),
+              generateTooltip(timeColumnName, timeGrainName, actualRange || ''),
             );
           }
           setValidTimeRange(true);
@@ -254,20 +291,20 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
     [timeRangeValue],
   );
 
-  function onOpen() {
+  const onOpen = () => {
     setTimeRangeValue(dateFilter.timeRange);
     setFrame(guessedFrame);
-    setPopoverVisible(true);
-  }
+    setPopoverVisibility(true);
+  };
 
-  function onHide() {
+  const onHide = () => {
     setTimeRangeValue(dateFilter.timeRange);
     setFrame(guessedFrame);
-    setPopoverVisible(false);
-  }
+    setPopoverVisibility(false);
+  };
 
   const togglePopover = () => {
-    if (popoverVisible) {
+    if (isPopoverVisible) {
       onHide();
     } else {
       onOpen();
@@ -290,11 +327,13 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
       frame={frame}
       setFrame={setFrame}
       guessedFrame={guessedFrame}
-      setShow={setPopoverVisible}
+      setShow={setPopoverVisibility}
       timeRangeValue={timeRangeValue}
       setTimeRangeValue={setTimeRangeValue}
       evalResponse={evalResponse}
       validTimeRange={validTimeRange}
+      showTimeColumnSection={showTimeColumnSection}
+      isTimeseries={isTimeseries}
     />
   );
 
@@ -302,15 +341,12 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
   if (dateFilter.isXAxis) {
     label += '(X-Axis) ';
   }
-  const timeColumnVerboseName = useMemo(
-    () =>
-      datasource?.columns?.find(
-        column => column.column_name === dateFilter.timeColumn,
-      )?.verbose_name,
-    [datasource?.columns, dateFilter.timeColumn],
-  );
-  label += timeColumnVerboseName ?? dateFilter.timeColumn;
-  label += ` (${actualTimeRange})`;
+  if (timeColumnName) {
+    label += `${timeColumnName} (${actualTimeRange})`;
+  } else {
+    label += actualTimeRange;
+  }
+
   return (
     <>
       <Popover
@@ -318,23 +354,21 @@ export default function DateFilterLabel(props: DateFilterLabelI) {
         trigger="click"
         content={overlayContent}
         title={title}
-        defaultVisible={popoverVisible}
-        visible={popoverVisible}
+        defaultVisible={isPopoverVisible}
+        visible={isPopoverVisible}
         onVisibleChange={togglePopover}
         overlayStyle={overlayStyle}
         destroyTooltipOnHide
       >
-        {children || (
-          <OptionWrapper
-            index={index}
-            label={label}
-            tooltipTitle={tooltipTitle}
-            clickClose={onRemoveFilter}
-            onShiftOptions={onShiftFilters}
-            type={DndItemType.Column}
-            withCaret
-          />
-        )}
+        {typeof children === 'function'
+          ? children({
+              label,
+              tooltipTitle,
+              onRemoveFilter,
+              onShiftFilters,
+              onOpen,
+            })
+          : children}
       </Popover>
     </>
   );

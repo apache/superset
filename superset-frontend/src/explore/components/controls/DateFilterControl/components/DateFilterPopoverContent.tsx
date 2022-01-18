@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { css, styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,
   TimeFilter,
@@ -90,6 +90,11 @@ const ContentStyleWrapper = styled.div`
   }
 `;
 
+const TimeColumnSectionControlWrapper = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  line-height: 1;
+`;
+
 const IconWrapper = styled.span`
   span {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
@@ -114,13 +119,16 @@ interface DateFilterPopoverContentI {
   guessedFrame: FrameType;
   onChange: (val: TimeFilter) => void;
   setFrame: (frame: FrameType) => void;
-  setShow: (val: boolean) => void;
+  setShow?: (val: boolean) => void;
   setTimeRangeValue: (value: string) => void;
   timeColumnOptions: { value: string; label: string }[];
   timeGrainOptions: { value: string; label: string }[];
   timeRangeValue: string;
   validTimeRange: boolean;
+  showTimeColumnSection: boolean;
+  isTimeseries: boolean;
 }
+
 export const DateFilterPopoverContent = ({
   dateFilter,
   evalResponse,
@@ -134,6 +142,8 @@ export const DateFilterPopoverContent = ({
   timeGrainOptions,
   timeRangeValue,
   validTimeRange,
+  showTimeColumnSection,
+  isTimeseries,
 }: DateFilterPopoverContentI) => {
   const [timeGrain, setTimeGrain] = useState(dateFilter.timeGrain);
   const [timeColumn, setTimeColumn] = useState(dateFilter.timeColumn);
@@ -151,7 +161,7 @@ export const DateFilterPopoverContent = ({
   function onHide() {
     setTimeRangeValue(dateFilter.timeRange);
     setFrame(guessedFrame);
-    setShow(false);
+    setShow?.(false);
   }
 
   function onSave() {
@@ -161,56 +171,62 @@ export const DateFilterPopoverContent = ({
 
   return (
     <ContentStyleWrapper>
-      <div className="control-label">
-        {t('Time column')}{' '}
-        <InfoTooltipWithTrigger
-          tooltip={t(
-            'The time column for the visualization. Note that you ' +
-              'can define arbitrary expression that return a DATETIME ' +
-              'column in the table. Also note that the ' +
-              'filter below is applied against this column or ' +
-              'expression',
+      {showTimeColumnSection && (
+        <>
+          <TimeColumnSectionControlWrapper>
+            <div className="control-label">
+              {t('Time column')}{' '}
+              <InfoTooltipWithTrigger
+                tooltip={t(
+                  'The time column for the visualization. Note that you ' +
+                    'can define arbitrary expression that return a DATETIME ' +
+                    'column in the table. Also note that the ' +
+                    'filter below is applied against this column or ' +
+                    'expression',
+                )}
+                placement="right"
+              />
+            </div>
+            <StyledSelect
+              ariaLabel={t('Time column')}
+              options={timeColumnOptions}
+              value={timeColumn}
+              onChange={(value: string) => setTimeColumn(value)}
+            />
+          </TimeColumnSectionControlWrapper>
+          {isTimeseries && (
+            <TimeColumnSectionControlWrapper>
+              <XAxisCheckbox
+                setChecked={(value: boolean) => setIsXAxis(value)}
+                checked={!!isXAxis}
+                disabled={dateFilter.isXAxis}
+              />
+            </TimeColumnSectionControlWrapper>
           )}
-          placement="right"
-        />
-      </div>
-      <StyledSelect
-        ariaLabel={t('Time column')}
-        options={timeColumnOptions}
-        value={timeColumn}
-        onChange={(value: string) => setTimeColumn(value)}
-      />
-      <div
-        css={(theme: SupersetTheme) => css`
-          margin: ${theme.gridUnit * 4}px 0;
-        `}
-      >
-        <XAxisCheckbox
-          setChecked={(value: boolean) => setIsXAxis(value)}
-          checked={isXAxis}
-          disabled={dateFilter.isXAxis}
-        />
-      </div>
-      <div className="control-label">
-        {t('Time grain')}{' '}
-        <InfoTooltipWithTrigger
-          tooltip={t(
-            'The time granularity for the visualization. This ' +
-              'applies a date transformation to alter ' +
-              'your time column and defines a new time granularity. ' +
-              'The options here are defined on a per database ' +
-              'engine basis in the Superset source code.',
-          )}
-          placement="right"
-        />
-      </div>
-      <StyledSelect
-        ariaLabel={t('Time grain')}
-        options={timeGrainOptions}
-        value={timeGrain}
-        onChange={(value: string) => setTimeGrain(value)}
-      />
-      <Divider />
+          <TimeColumnSectionControlWrapper>
+            <div className="control-label">
+              {t('Time grain')}{' '}
+              <InfoTooltipWithTrigger
+                tooltip={t(
+                  'The time granularity for the visualization. This ' +
+                    'applies a date transformation to alter ' +
+                    'your time column and defines a new time granularity. ' +
+                    'The options here are defined on a per database ' +
+                    'engine basis in the Superset source code.',
+                )}
+                placement="right"
+              />
+            </div>
+            <StyledSelect
+              ariaLabel={t('Time grain')}
+              options={timeGrainOptions}
+              value={timeGrain}
+              onChange={(value: string) => setTimeGrain(value)}
+            />
+          </TimeColumnSectionControlWrapper>
+          <Divider />
+        </>
+      )}
       <div className="control-label">{t('RANGE TYPE')}</div>
       <StyledSelect
         ariaLabel={t('RANGE TYPE')}
@@ -259,7 +275,7 @@ export const DateFilterPopoverContent = ({
           <Button
             buttonStyle="primary"
             cta
-            disabled={!validTimeRange || !timeColumn}
+            disabled={!validTimeRange}
             key="apply"
             onClick={onSave}
             {...getDateFilterControlTestId('apply-button')}

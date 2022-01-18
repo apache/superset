@@ -312,7 +312,8 @@ const time_filter: SharedControlConfig<'DndDateFilterControl'> = {
   type: 'DndDateFilterControl',
   freeForm: true,
   label: t('Time column and range'),
-  default: [], // this value is translated, but the backend wouldn't understand a translated value?
+  default: [],
+  isTimeseries: false,
   description: t(
     'The time range for the visualization. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +

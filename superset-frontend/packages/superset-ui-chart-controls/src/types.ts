@@ -385,7 +385,7 @@ export type TimeFilter = {
   timeColumn?: string;
   timeGrain?: string;
   timeRange: string;
-  isXAxis: boolean;
+  isXAxis?: boolean;
 };
 
 export type TimeFilters = TimeFilter[];
