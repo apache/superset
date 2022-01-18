@@ -31,14 +31,20 @@ const Styles = styled.div<<%= packageLabel %>StylesProps>`
   background-color: ${({ theme }) => theme.colors.secondary.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   border-radius: ${({ theme }) => theme.gridUnit * 2}px;
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-  overflow-y: scroll;
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
 
   h3 {
     /* You can use your props to control CSS! */
-    font-size: ${({ theme, headerFontSize }) => theme.typography.sizes[headerFontSize]};
+    font-size: ${({ theme, headerFontSize }) => theme.typography.sizes[headerFontSize]}px;
     font-weight: ${({ theme, boldText }) => theme.typography.weights[boldText ? 'bold' : 'normal']};
+  }
+
+  pre {
+    height: ${({ theme, headerFontSize, height }) => (
+      height - theme.gridUnit * 16 - theme.typography.sizes[headerFontSize]
+    )}px;
+    overflow: scroll;
   }
 `;
 

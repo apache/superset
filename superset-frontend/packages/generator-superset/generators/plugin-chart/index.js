@@ -31,17 +31,24 @@ module.exports = class extends Generator {
         type: 'input',
         name: 'packageName',
         message: 'Package name:',
-        // Default to current folder name
+        // superset-plugin-chart-hello-world
         default: _.kebabCase(this.appname),
+      },
+      {
+        type: 'input',
+        name: 'pluginName',
+        message: 'Plugin name:',
+        // Hello World
+        default: _.startCase(
+          _.camelCase(this.appname.replace('superset plugin chart', '').trim()),
+        ),
       },
       {
         type: 'input',
         name: 'description',
         message: 'Description:',
         // Default to current folder name
-        default: _.upperFirst(
-          _.startCase(this.appname.replace('superset plugin chart', '').trim()),
-        ),
+        default: _.upperFirst(_.startCase(this.appname)),
       },
       {
         type: 'list',
@@ -62,16 +69,12 @@ module.exports = class extends Generator {
   }
 
   writing() {
-    // 'hello-world' -> 'HelloWorld'
+    // SupersetPluginChartHelloWorld
     const packageLabel = _.upperFirst(_.camelCase(this.answers.packageName));
-
-    // 'hello-world' -> 'Hello World'
-    const pluginName = _.startCase(_.camelCase(this.answers.packageName));
 
     const params = {
       ...this.answers,
       packageLabel,
-      pluginName,
     };
 
     [
@@ -79,6 +82,7 @@ module.exports = class extends Generator {
       ['babel.config.erb', 'babel.config.js'],
       ['jest.config.erb', 'jest.config.js'],
       ['package.erb', 'package.json'],
+      ['package-lock.erb', 'package-lock.json'],
       ['README.erb', 'README.md'],
       ['tsconfig.json', 'tsconfig.json'],
       ['src/index.erb', 'src/index.ts'],
