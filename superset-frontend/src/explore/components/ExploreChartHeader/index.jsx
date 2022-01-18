@@ -159,22 +159,19 @@ export class ExploreChartHeader extends React.PureComponent {
             // setting the chart to use the dashboard custom label colors if any
             const metadata = JSON.parse(dashboard.json_metadata);
             const sharedLabelColors = metadata.shared_label_colors || {};
-            const labelColors = metadata.label_colors || {};
+            const customLabelColors = metadata.label_colors || {};
+            const mergedLabelColors = {
+              ...sharedLabelColors,
+              ...customLabelColors,
+            };
 
             const categoricalNamespace =
               CategoricalColorNamespace.getNamespace();
 
-            Object.keys(sharedLabelColors).forEach(label => {
+            Object.keys(mergedLabelColors).forEach(label => {
               categoricalNamespace.setColor(
                 label,
-                sharedLabelColors[label],
-                metadata.color_scheme,
-              );
-            });
-            Object.keys(labelColors).forEach(label => {
-              categoricalNamespace.setColor(
-                label,
-                labelColors[label],
+                mergedLabelColors[label],
                 metadata.color_scheme,
               );
             });
