@@ -83,6 +83,10 @@ export default function OptionWrapper(
       const { dragIndex } = item;
       const hoverIndex = index;
 
+      if (dragIndex === undefined || hoverIndex === undefined) {
+        return;
+      }
+
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
         return;

@@ -16,44 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import {
-  SupersetClient,
   styled,
   t,
   TimeRangeEndpoints,
   useTheme,
+  Datasource,
+  SupersetClient,
+  css,
+  SupersetTheme,
 } from '@superset-ui/core';
+import { DEFAULT_DATE_FILTER, TimeFilter } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
-  formatTimeRange,
-  COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,
-  FRAME_OPTIONS,
+  COMMON_RANGE_VALUES_SET,
   customTimeRangeDecode,
+  formatTimeRange,
 } from 'src/explore/components/controls/DateFilterControl/utils';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import Button from 'src/components/Button';
-import ControlHeader from 'src/explore/components/ControlHeader';
-import Label, { Type } from 'src/components/Label';
-import Popover from 'src/components/Popover';
-import { Divider } from 'src/common/components';
-import Icons from 'src/components/Icons';
-import Select, { propertyComparator } from 'src/components/Select/Select';
-import { Tooltip } from 'src/components/Tooltip';
-import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { SLOW_DEBOUNCE } from 'src/constants';
+import Popover from 'src/components/Popover';
+import Icons from 'src/components/Icons';
 import { testWithId } from 'src/utils/testUtils';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { FrameType } from './types';
-
-import {
-  CommonFrame,
-  CalendarFrame,
-  CustomFrame,
-  AdvancedFrame,
-} from './components';
+import { DateFilterPopoverContent } from './components/DateFilterPopoverContent';
+import { DndItemType } from '../../DndItemType';
+import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
@@ -94,66 +86,6 @@ const fetchTimeRange = async (
   }
 };
 
-const StyledPopover = styled(Popover)``;
-const StyledRangeType = styled(Select)`
-  width: 272px;
-`;
-
-const ContentStyleWrapper = styled.div`
-  .ant-row {
-    margin-top: 8px;
-  }
-
-  .ant-input-number {
-    width: 100%;
-  }
-
-  .ant-picker {
-    padding: 4px 17px 4px;
-    border-radius: 4px;
-    width: 100%;
-  }
-
-  .ant-divider-horizontal {
-    margin: 16px 0;
-  }
-
-  .control-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #b2b2b2;
-    line-height: 16px;
-    text-transform: uppercase;
-    margin: 8px 0;
-  }
-
-  .vertical-radio {
-    display: block;
-    height: 40px;
-    line-height: 40px;
-  }
-
-  .section-title {
-    font-style: normal;
-    font-weight: 500;
-    font-size: 15px;
-    line-height: 24px;
-    margin-bottom: 8px;
-  }
-
-  .control-anchor-to {
-    margin-top: 16px;
-  }
-
-  .control-anchor-to-datetime {
-    width: 217px;
-  }
-
-  .footer {
-    text-align: right;
-  }
-`;
-
 const IconWrapper = styled.span`
   span {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
@@ -167,12 +99,19 @@ const IconWrapper = styled.span`
   }
 `;
 
-interface DateFilterControlProps {
-  name: string;
-  onChange: (timeRange: string) => void;
-  value?: string;
+interface DateFilterLabelI {
+  children?: React.ReactNode;
+  onChange: (timeFilter: TimeFilter) => void;
   endpoints?: TimeRangeEndpoints;
-  type?: Type;
+  dateFilter: TimeFilter;
+  datasource: Datasource;
+  timeColumnOptions: { value: string; label: string }[];
+  timeGrainOptions: { value: string; label: string }[];
+  onRemoveFilter: (index: number) => void;
+  onShiftFilters: (dragIndex: number, hoverIndex: number) => void;
+  index: number;
+  popoverVisible: boolean;
+  setPopoverVisible: (val: boolean) => void;
 }
 
 export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
@@ -180,27 +119,79 @@ export const getDateFilterControlTestId = testWithId(
   DATE_FILTER_CONTROL_TEST_ID,
 );
 
-export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints, onChange, type } = props;
-  const [actualTimeRange, setActualTimeRange] = useState<string>(value);
+const overlayStyle = {
+  width: '600px',
+};
 
-  const [show, setShow] = useState<boolean>(false);
-  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+const generateTooltip = (
+  timeColumn: string,
+  timeGrain: string,
+  range1: string,
+  range2?: string,
+) => (
+  <div>
+    <div
+      css={(theme: SupersetTheme) => css`
+        font-weight: ${theme.typography.weights.bold};
+      `}
+    >
+      {timeColumn}
+    </div>
+    {timeGrain && <div>{timeGrain}</div>}
+    <div>
+      <span>{range1}</span>
+      {range2 && <span>{` (${range2})`}</span>}
+    </div>
+  </div>
+);
+
+export default function DateFilterLabel(props: DateFilterLabelI) {
+  const {
+    children,
+    datasource,
+    endpoints,
+    onChange,
+    timeColumnOptions,
+    timeGrainOptions,
+    dateFilter = DEFAULT_DATE_FILTER,
+    onRemoveFilter,
+    onShiftFilters,
+    index = 1,
+    popoverVisible,
+    setPopoverVisible,
+  } = props;
+  const [actualTimeRange, setActualTimeRange] = useState<string>(
+    dateFilter.timeRange,
+  );
+
+  const guessedFrame = useMemo(
+    () => guessFrame(dateFilter.timeRange),
+    [dateFilter.timeRange],
+  );
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
-  const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
-  const [timeRangeValue, setTimeRangeValue] = useState(value);
+  const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(
+    dateFilter.timeRange,
+  );
+  const [timeRangeValue, setTimeRangeValue] = useState(dateFilter.timeRange);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
-  const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<string>(value);
+  const [evalResponse, setEvalResponse] = useState<string | undefined>(
+    dateFilter.timeRange,
+  );
+  const [tooltipTitle, setTooltipTitle] = useState<
+    string | React.ReactNode | undefined
+  >(dateFilter.timeRange);
+
+  const theme = useTheme();
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-        setTooltipTitle(value || '');
-      } else {
-        /*
+    fetchTimeRange(dateFilter.timeRange, endpoints).then(
+      ({ value: actualRange, error }) => {
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+          setTooltipTitle(dateFilter.timeRange || '');
+        } else {
+          /*
           HRT == human readable text
           ADR == actual datetime range
           +--------------+------+----------+--------+----------+-----------+
@@ -211,26 +202,36 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
-        if (
-          guessedFrame === 'Common' ||
-          guessedFrame === 'Calendar' ||
-          guessedFrame === 'No filter'
-        ) {
-          setActualTimeRange(value);
-          setTooltipTitle(
-            type === ('error' as Type)
-              ? t('Default value is required')
-              : actualRange || '',
-          );
-        } else {
-          setActualTimeRange(actualRange || '');
-          setTooltipTitle(value || '');
+          if (
+            guessedFrame === 'Common' ||
+            guessedFrame === 'Calendar' ||
+            guessedFrame === 'No filter'
+          ) {
+            setActualTimeRange(dateFilter.timeRange);
+            setTooltipTitle(
+              generateTooltip(
+                dateFilter.timeColumn || '',
+                dateFilter.timeGrain || '',
+                dateFilter.timeRange,
+                actualRange || '',
+              ),
+            );
+          } else {
+            setActualTimeRange(actualRange || '');
+            setTooltipTitle(
+              generateTooltip(
+                dateFilter.timeColumn || '',
+                dateFilter.timeGrain || '',
+                actualRange || '',
+              ),
+            );
+          }
+          setValidTimeRange(true);
         }
-        setValidTimeRange(true);
-      }
-      setLastFetchedTimeRange(value);
-    });
-  }, [value]);
+        setLastFetchedTimeRange(dateFilter.timeRange);
+      },
+    );
+  }, [dateFilter.timeRange]);
 
   useDebouncedEffect(
     () => {
@@ -253,99 +254,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     [timeRangeValue],
   );
 
-  function onSave() {
-    onChange(timeRangeValue);
-    setShow(false);
-  }
-
   function onOpen() {
-    setTimeRangeValue(value);
+    setTimeRangeValue(dateFilter.timeRange);
     setFrame(guessedFrame);
-    setShow(true);
+    setPopoverVisible(true);
   }
 
   function onHide() {
-    setTimeRangeValue(value);
+    setTimeRangeValue(dateFilter.timeRange);
     setFrame(guessedFrame);
-    setShow(false);
+    setPopoverVisible(false);
   }
 
   const togglePopover = () => {
-    if (show) {
+    if (popoverVisible) {
       onHide();
     } else {
-      setShow(true);
+      onOpen();
     }
   };
-
-  function onChangeFrame(value: string) {
-    if (value === 'No filter') {
-      setTimeRangeValue('No filter');
-    }
-    setFrame(value as FrameType);
-  }
-
-  const theme = useTheme();
-
-  const overlayContent = (
-    <ContentStyleWrapper>
-      <div className="control-label">{t('RANGE TYPE')}</div>
-      <StyledRangeType
-        ariaLabel={t('RANGE TYPE')}
-        options={FRAME_OPTIONS}
-        value={frame}
-        onChange={onChangeFrame}
-        sortComparator={propertyComparator('order')}
-      />
-      {frame !== 'No filter' && <Divider />}
-      {frame === 'Common' && (
-        <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Calendar' && (
-        <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Custom' && (
-        <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'No filter' && <div data-test="no-filter" />}
-      <Divider />
-      <div>
-        <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && <div>{evalResponse}</div>}
-        {!validTimeRange && (
-          <IconWrapper className="warning">
-            <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
-            <span className="text error">{evalResponse}</span>
-          </IconWrapper>
-        )}
-      </div>
-      <Divider />
-      <div className="footer">
-        <Button
-          buttonStyle="secondary"
-          cta
-          key="cancel"
-          onClick={onHide}
-          data-test="cancel-button"
-        >
-          {t('CANCEL')}
-        </Button>
-        <Button
-          buttonStyle="primary"
-          cta
-          disabled={!validTimeRange}
-          key="apply"
-          onClick={onSave}
-          {...getDateFilterControlTestId('apply-button')}
-        >
-          {t('APPLY')}
-        </Button>
-      </div>
-    </ContentStyleWrapper>
-  );
 
   const title = (
     <IconWrapper>
@@ -354,33 +281,61 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </IconWrapper>
   );
 
-  const overlayStyle = {
-    width: '600px',
-  };
+  const overlayContent = (
+    <DateFilterPopoverContent
+      timeColumnOptions={timeColumnOptions}
+      timeGrainOptions={timeGrainOptions}
+      onChange={onChange}
+      dateFilter={dateFilter}
+      frame={frame}
+      setFrame={setFrame}
+      guessedFrame={guessedFrame}
+      setShow={setPopoverVisible}
+      timeRangeValue={timeRangeValue}
+      setTimeRangeValue={setTimeRangeValue}
+      evalResponse={evalResponse}
+      validTimeRange={validTimeRange}
+    />
+  );
 
+  let label = '';
+  if (dateFilter.isXAxis) {
+    label += '(X-Axis) ';
+  }
+  const timeColumnVerboseName = useMemo(
+    () =>
+      datasource?.columns?.find(
+        column => column.column_name === dateFilter.timeColumn,
+      )?.verbose_name,
+    [datasource?.columns, dateFilter.timeColumn],
+  );
+  label += timeColumnVerboseName ?? dateFilter.timeColumn;
+  label += ` (${actualTimeRange})`;
   return (
     <>
-      <ControlHeader {...props} />
-      <StyledPopover
+      <Popover
         placement="right"
         trigger="click"
         content={overlayContent}
         title={title}
-        defaultVisible={show}
-        visible={show}
+        defaultVisible={popoverVisible}
+        visible={popoverVisible}
         onVisibleChange={togglePopover}
         overlayStyle={overlayStyle}
+        destroyTooltipOnHide
       >
-        <Tooltip placement="top" title={tooltipTitle}>
-          <Label
-            className="pointer"
-            data-test="time-range-trigger"
-            onClick={onOpen}
-          >
-            {actualTimeRange}
-          </Label>
-        </Tooltip>
-      </StyledPopover>
+        {children || (
+          <OptionWrapper
+            index={index}
+            label={label}
+            tooltipTitle={tooltipTitle}
+            clickClose={onRemoveFilter}
+            onShiftOptions={onShiftFilters}
+            type={DndItemType.Column}
+            withCaret
+          />
+        )}
+      </Popover>
     </>
   );
 }

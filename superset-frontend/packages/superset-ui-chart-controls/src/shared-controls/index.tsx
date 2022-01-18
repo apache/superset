@@ -308,6 +308,35 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   }),
 };
 
+const time_filter: SharedControlConfig<'DndDateFilterControl'> = {
+  type: 'DndDateFilterControl',
+  freeForm: true,
+  label: t('Time column and range'),
+  default: [], // this value is translated, but the backend wouldn't understand a translated value?
+  description: t(
+    'The time range for the visualization. All relative times, e.g. "Last month", ' +
+      '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
+      'local time (sans timezone). All tooltips and placeholder times are expressed ' +
+      'in UTC (sans timezone). The timestamps are then evaluated by the database ' +
+      "using the engine's local timezone. Note one can explicitly set the timezone " +
+      'per the ISO 8601 format if specifying either the start and/or end time.',
+  ),
+  mapStateToProps: ({ datasource, form_data }) => ({
+    datasource,
+    timeColumnOptions: datasource?.columns
+      .filter(column => column.is_dttm)
+      .map(column => ({
+        value: column.column_name,
+        label: column.verbose_name ?? column.column_name,
+      })),
+    timeGrainOptions: datasource?.time_grain_sqla?.map(timeGrain => ({
+      value: timeGrain[0],
+      label: timeGrain[1],
+    })),
+    endpoints: form_data?.time_range_endpoints || null,
+  }),
+};
+
 const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
@@ -504,6 +533,7 @@ const sharedControls = {
   granularity_sqla: enableExploreDnd ? dnd_granularity_sqla : granularity_sqla,
   time_grain_sqla,
   time_range,
+  time_filter,
   row_limit,
   limit,
   timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,

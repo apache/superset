@@ -30,18 +30,12 @@ const baseTimeSection = {
 
 export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
-  controlSetRows: [
-    ['granularity'],
-    ['druid_time_origin'],
-    ['granularity_sqla'],
-    ['time_grain_sqla'],
-    ['time_range'],
-  ],
+  controlSetRows: [['time_filter'], ['time_grain_sqla']],
 };
 
 export const legacyRegularTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
-  controlSetRows: [['granularity_sqla'], ['time_range']],
+  controlSetRows: [['time_filter']],
 };
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {

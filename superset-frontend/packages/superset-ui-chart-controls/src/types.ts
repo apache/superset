@@ -61,7 +61,7 @@ export interface DatasourceMeta {
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
-  time_grain_sqla?: string;
+  time_grain_sqla?: [string, string][];
   granularity_sqla?: string;
   datasource_name: string | null;
   description: string | null;
@@ -147,6 +147,7 @@ export type InternalControlType =
   | 'DndColumnSelect'
   | 'DndFilterSelect'
   | 'DndMetricSelect'
+  | 'DndDateFilterControl'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -379,6 +380,15 @@ export type ColorFormatters = {
   column: string;
   getColorFromValue: (value: number) => string | undefined;
 }[];
+
+export type TimeFilter = {
+  timeColumn?: string;
+  timeGrain?: string;
+  timeRange: string;
+  isXAxis: boolean;
+};
+
+export type TimeFilters = TimeFilter[];
 
 export default {};
 

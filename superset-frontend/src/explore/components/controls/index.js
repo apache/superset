@@ -24,7 +24,7 @@ import CollectionControl from './CollectionControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
-import DateFilterControl from './DateFilterControl';
+import DateFilterControl, { DndDateFilterControl } from './DateFilterControl';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
@@ -57,6 +57,7 @@ const controlMap = {
   DateFilterControl,
   DndColumnSelectControl,
   DndColumnSelect,
+  DndDateFilterControl,
   DndFilterSelect,
   DndMetricSelect,
   FixedOrMetricControl,

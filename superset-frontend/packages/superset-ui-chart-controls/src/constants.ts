@@ -17,13 +17,13 @@
  * under the License.
  */
 import { t, QueryMode, DTTM_ALIAS, GenericDataType } from '@superset-ui/core';
-import { ColumnMeta } from './types';
+import { ColumnMeta, TimeFilter } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
   time_range: t('Time Range'),
   granularity_sqla: t('Time Column'),
-  time_grain_sqla: t('Time Grain'),
+  time_grain_sqla: t('Chart time Grain'),
   druid_time_origin: t('Origin'),
   granularity: t('Time Granularity'),
 };
@@ -44,4 +44,11 @@ export const TIME_COLUMN_OPTION: ColumnMeta = {
 export const QueryModeLabel = {
   [QueryMode.aggregate]: t('Aggregate'),
   [QueryMode.raw]: t('Raw records'),
+};
+
+export const DEFAULT_DATE_FILTER: TimeFilter = {
+  timeColumn: undefined,
+  timeRange: t('No filter'),
+  isXAxis: false,
+  timeGrain: undefined,
 };

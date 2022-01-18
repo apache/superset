@@ -25,7 +25,7 @@ export interface OptionProps {
   children?: ReactNode;
   index: number;
   label?: string;
-  tooltipTitle?: string;
+  tooltipTitle?: string | ReactNode;
   column?: ColumnMeta | AdhocColumn;
   clickClose: (index: number) => void;
   withCaret?: boolean;
