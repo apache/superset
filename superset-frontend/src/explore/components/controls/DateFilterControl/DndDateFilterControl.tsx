@@ -91,10 +91,7 @@ export const DndDateFilterControl = (props: DateFilterControlI) => {
     (item: DatasourcePanelDndItem) => {
       const columnName = (item.value as ColumnMeta).column_name;
 
-      return (
-        timeColumnOptions.some(option => option.value === columnName) &&
-        value.every(val => val.timeColumn !== columnName)
-      );
+      return timeColumnOptions.some(option => option.value === columnName);
     },
     [timeColumnOptions, value],
   );
