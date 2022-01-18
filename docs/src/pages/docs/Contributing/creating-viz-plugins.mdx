@@ -59,6 +59,7 @@ After that the generator will ask a few questions (the defaults should be fine):
 ```
 $ yo @superset-ui/superset
 
+
      _-----_     ╭──────────────────────────╮
     |       |    │      Welcome to the      │
     |--(o)--|    │    generator-superset    │
@@ -70,12 +71,14 @@ $ yo @superset-ui/superset
  ´   `  |° ´ Y `
 
 ? Package name: superset-plugin-chart-hello-world
-? Description: Hello World
-? What type of chart would you like? Time-series chart
+? Plugin name: Hello World
+? Description: Superset Plugin Chart Hello World
+? What type of chart would you like? Regular chart
    create package.json
    create .gitignore
    create babel.config.js
    create jest.config.js
+   create package-lock.json
    create README.md
    create tsconfig.json
    create src/index.ts
@@ -96,7 +99,7 @@ $ yo @superset-ui/superset
 To build the viz plugin, run the following commands:
 
 ```
-npm i --force
+npm ci
 npm run build
 ```
 
