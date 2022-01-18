@@ -123,32 +123,11 @@ const LabelContainer = (props: {
   className: string;
 }) => {
   const labelRef = useRef<HTMLDivElement>(null);
-  const [showTooltip, setShowTooltip] = useState(true);
-  const isLabelTruncated = () =>
-    !!(
-      labelRef &&
-      labelRef.current &&
-      labelRef.current.scrollWidth > labelRef.current.clientWidth
-    );
-  const handleShowTooltip = () => {
-    const shouldShowTooltip = isLabelTruncated();
-    if (shouldShowTooltip !== showTooltip) {
-      setShowTooltip(shouldShowTooltip);
-    }
-  };
-  const handleResetTooltip = () => {
-    setShowTooltip(true);
-  };
   const extendedProps = {
     labelRef,
-    showTooltip,
   };
   return (
-    <LabelWrapper
-      onMouseEnter={handleShowTooltip}
-      onMouseLeave={handleResetTooltip}
-      className={props.className}
-    >
+    <LabelWrapper className={props.className}>
       {React.cloneElement(props.children, extendedProps)}
     </LabelWrapper>
   );

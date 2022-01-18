@@ -27,7 +27,6 @@ import { ColumnMeta } from '../types';
 export type ColumnOptionProps = {
   column: ColumnMeta;
   showType?: boolean;
-  showTooltip?: boolean;
   labelRef?: React.RefObject<any>;
 };
 
@@ -41,7 +40,6 @@ export function ColumnOption({
   column,
   labelRef,
   showType = false,
-  showTooltip = true,
 }: ColumnOptionProps) {
   const { expression, column_name, type_generic } = column;
   const hasExpression = expression && expression !== column_name;
@@ -57,10 +55,10 @@ export function ColumnOption({
           details={column.certification_details}
         />
       )}
-      {showTooltip ? (
+      {column.verbose_name ? (
         <Tooltip
           id="metric-name-tooltip"
-          title={column.verbose_name || column.column_name}
+          title={column.column_name}
           trigger={['hover']}
           placement="top"
         >
@@ -68,12 +66,12 @@ export function ColumnOption({
             className="m-r-5 option-label column-option-label"
             ref={labelRef}
           >
-            {column.verbose_name || column.column_name}
+            {column.verbose_name}
           </span>
         </Tooltip>
       ) : (
         <span className="m-r-5 option-label column-option-label" ref={labelRef}>
-          {column.verbose_name || column.column_name}
+          {column.column_name}
         </span>
       )}
       {column.description && (

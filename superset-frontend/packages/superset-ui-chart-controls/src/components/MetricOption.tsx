@@ -37,7 +37,6 @@ export interface MetricOptionProps {
   openInNewWindow?: boolean;
   showFormula?: boolean;
   showType?: boolean;
-  showTooltip?: boolean;
   url?: string;
   labelRef?: React.RefObject<any>;
 }
@@ -48,7 +47,6 @@ export function MetricOption({
   openInNewWindow = false,
   showFormula = true,
   showType = false,
-  showTooltip = true,
   url = '',
 }: MetricOptionProps) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
@@ -72,10 +70,10 @@ export function MetricOption({
           details={metric.certification_details}
         />
       )}
-      {showTooltip ? (
+      {metric.metric_name ? (
         <Tooltip
           id="metric-name-tooltip"
-          title={verbose}
+          title={metric.metric_name}
           trigger={['hover']}
           placement="top"
         >
