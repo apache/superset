@@ -16,9 +16,9 @@
 # under the License.
 """Unit tests for Superset"""
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
+from flask import g
 
 from superset import db, security_manager
 from superset.exceptions import SupersetSecurityException
@@ -26,16 +26,35 @@ from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
-from tests.integration_tests.fixtures.public_role import public_role_like_gamma
-from tests.integration_tests.fixtures.query_context import get_query_context
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
+)
+class TestGuestUserSecurity(SupersetTestCase):
+    def test_user_is_not_guest(self):
+        is_guest = security_manager.is_guest_user(security_manager.find_user("admin"))
+        self.assertFalse(is_guest)
+
+    def test_anon_is_not_guest(self):
+        is_guest = security_manager.is_guest_user(security_manager.get_anonymous_user())
+        self.assertFalse(is_guest)
+
+    def test_guest_is_guest(self):
+        authorized_guest = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": []}
+        )
+        is_guest = security_manager.is_guest_user(authorized_guest)
+        self.assertTrue(is_guest)
 
 
 @mock.patch.dict(
     "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
 )
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-class TestGuestTokenSecurity(SupersetTestCase):
+class TestGuestTokenDashboardAccess(SupersetTestCase):
     def setUp(self) -> None:
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.authorized_guest = security_manager.get_guest_user_from_token(
@@ -45,32 +64,28 @@ class TestGuestTokenSecurity(SupersetTestCase):
             {"user": {}, "resources": [{"type": "dashboard", "id": self.dash.id + 1}]}
         )
 
-    @patch("superset.security.manager.g")
-    def test_dashboard_access_filter_as_guest(self, mock_g):
+    def test_dashboard_access_filter_as_guest(self):
         dataset = list(self.dash.datasources)[0]
-        mock_g.user = self.authorized_guest
+        g.user = self.authorized_guest
 
         security_manager.raise_for_access(datasource=dataset)
 
-    @patch("superset.security.manager.g")
-    def test_dashboard_access_filter_as_unauthorized_guest(self, mock_g):
+    def test_dashboard_access_filter_as_unauthorized_guest(self):
         dataset = list(self.dash.datasources)[0]
-        mock_g.user = self.unauthorized_guest
+        g.user = self.unauthorized_guest
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(datasource=dataset)
 
-    @patch("superset.security.manager.g")
-    def test_chart_access_filter_as_guest(self, mock_g):
+    def test_chart_access_filter_as_guest(self):
         chart = self.dash.slices[0]
-        mock_g.user = self.authorized_guest
+        g.user = self.authorized_guest
 
         security_manager.raise_for_access(viz=chart)
 
-    @patch("superset.security.manager.g")
-    def test_chart_access_filter_as_unauthorized_guest(self, mock_g):
+    def test_chart_access_filter_as_unauthorized_guest(self):
         chart = self.dash.slices[0]
-        mock_g.user = self.unauthorized_guest
+        g.user = self.unauthorized_guest
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=chart)
@@ -79,24 +94,11 @@ class TestGuestTokenSecurity(SupersetTestCase):
         roles = security_manager.get_user_roles(self.authorized_guest)
         self.assertEqual(self.authorized_guest.roles, roles)
 
-    @patch("superset.security.manager.g")
-    def test_get_guest_user_roles_implicit(self, mock_g):
-        mock_g.user = self.authorized_guest
+    def test_get_guest_user_roles_implicit(self):
+        g.user = self.authorized_guest
 
         roles = security_manager.get_user_roles(self.authorized_guest)
         self.assertEqual(self.authorized_guest.roles, roles)
-
-    def test_user_is_not_guest(self):
-        is_guest = security_manager.is_guest_user(security_manager.find_user("admin"))
-        self.assertTrue(is_guest)
-
-    def test_anon_is_not_guest(self):
-        is_guest = security_manager.is_guest_user(security_manager.get_anonymous_user())
-        self.assertTrue(is_guest)
-
-    def test_guest_is_guest(self):
-        is_guest = security_manager.is_guest_user(self.authorized_guest)
-        self.assertTrue(is_guest)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
