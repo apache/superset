@@ -18,7 +18,7 @@
  */
 
 import { ScaleOrdinal } from 'd3-scale';
-import { CategoricalColorScale } from '@superset-ui/core';
+import { CategoricalColorScale, getSharedColorScale } from '@superset-ui/core';
 
 describe('CategoricalColorScale', () => {
   it('exists', () => {
@@ -189,6 +189,44 @@ describe('CategoricalColorScale', () => {
       const scale: ScaleOrdinal<{ toString(): string }, string> =
         new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale('pig')).toBe('blue');
+    });
+  });
+
+  describe('static getSharedColorScale()', () => {
+    it('getSharedColorScale() returns a shared color scale', () => {
+      const sharedColorScale = getSharedColorScale();
+      expect(sharedColorScale).toBeDefined();
+    });
+  });
+
+  describe('.sharedColorScale(value)', () => {
+    it('when called without chartId, do not change shared color scale', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const sharedColorScale = getSharedColorScale();
+      const sharedDomain = sharedColorScale.domain();
+      scale.getColor('pig');
+      expect(sharedColorScale.domain()).toEqual(sharedDomain);
+    });
+    it('when called with chartId, should save chartId if valueChartMap do not has value', () => {
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        undefined,
+        1,
+      );
+      const sharedColorScale = getSharedColorScale();
+      scale.getColor('pig');
+      const chartId = sharedColorScale.valueChartMap.get('pig');
+      expect(chartId).toEqual(1);
+    });
+    it('when called with chartId, should return domain if valueChartMap has value but not same chartId', () => {
+      const scale = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        undefined,
+        2,
+      );
+      const sharedColorScale = getSharedColorScale();
+      scale.getColor('pig');
+      expect(sharedColorScale.domain()).toEqual(['pig']);
     });
   });
 });

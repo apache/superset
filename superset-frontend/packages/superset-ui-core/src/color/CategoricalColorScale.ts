@@ -26,17 +26,6 @@ import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
-
-let defaultColorScale: CategoricalColorScale;
-export function getDefaultColorScale() {
-  if (defaultColorScale) return defaultColorScale;
-  const defaultSchemaKey = getCategoricalSchemeRegistry().getDefaultKey() ?? '';
-  const scheme = getCategoricalSchemeRegistry().get(defaultSchemaKey);
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  defaultColorScale = new CategoricalColorScale(scheme?.colors ?? []);
-  return defaultColorScale;
-}
-
 interface CategoricalColorScale {
   (x: { toString(): string }): string;
 }
@@ -50,9 +39,9 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   forcedColors: ColorsLookup;
 
-  scaleValueMap: Map<string, number>;
-
   chartId: number | undefined;
+
+  valueChartMap: Map<string, number>;
 
   /**
    * Constructor
@@ -73,23 +62,11 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.parentForcedColors = parentForcedColors || {};
     this.forcedColors = {};
     this.chartId = chartId;
-    this.scaleValueMap = new Map();
+    this.valueChartMap = new Map();
   }
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
-
-    if (this.chartId) {
-      const defaultColorScale = getDefaultColorScale();
-      if (!defaultColorScale.scaleValueMap.has(cleanedValue)) {
-        defaultColorScale.scaleValueMap.set(cleanedValue, this.chartId);
-      } else if (
-        defaultColorScale.scaleValueMap.get(cleanedValue) !== this.chartId
-      ) {
-        // only set scale color when value that are shared more than two charts
-        defaultColorScale.scale(cleanedValue);
-      }
-    }
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
@@ -101,6 +78,8 @@ class CategoricalColorScale extends ExtensibleFunction {
     if (forcedColor) {
       return forcedColor;
     }
+
+    this.sharedColorScale(cleanedValue);
 
     return this.scale(cleanedValue);
   }
@@ -213,6 +192,31 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.scale.unknown(value);
     return this;
   }
+
+  sharedColorScale(cleanedValue: string) {
+    if (this.chartId) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const sharedColorScale = getSharedColorScale();
+      if (!sharedColorScale.valueChartMap.has(cleanedValue)) {
+        sharedColorScale.valueChartMap.set(cleanedValue, this.chartId);
+      } else if (
+        sharedColorScale.valueChartMap.get(cleanedValue) !== this.chartId
+      ) {
+        // only set scale color when value that are shared more than two charts
+        sharedColorScale.scale(cleanedValue);
+      }
+    }
+  }
 }
 
 export default CategoricalColorScale;
+
+let sharedColorScale: CategoricalColorScale;
+
+export function getSharedColorScale() {
+  if (sharedColorScale) return sharedColorScale;
+  const defaultSchemaKey = getCategoricalSchemeRegistry().getDefaultKey() ?? '';
+  const scheme = getCategoricalSchemeRegistry().get(defaultSchemaKey);
+  sharedColorScale = new CategoricalColorScale(scheme?.colors ?? []);
+  return sharedColorScale;
+}
