@@ -28,11 +28,11 @@
     "access": "public"
   },
   "dependencies": {
-    "d3": "^3.5.17",
-    "prop-types": "^15.6.2"
+    "d3": "^3.5.17"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "prop-types": "*"
   }
 }

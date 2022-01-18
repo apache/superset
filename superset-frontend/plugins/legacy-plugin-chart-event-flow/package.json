@@ -28,12 +28,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/event-flow": "^0.0.84",
-    "prop-types": "^15.6.2"
+    "@data-ui/event-flow": "^0.0.84"
   },
   "peerDependencies": {
-    "react": "^15 || ^16",
+    "react": "*",
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "prop-types": "*"
   }
 }

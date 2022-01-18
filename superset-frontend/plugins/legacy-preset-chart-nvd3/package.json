@@ -36,12 +36,12 @@
     "lodash": "^4.17.11",
     "moment": "^2.20.1",
     "nvd3-fork": "^2.0.5",
-    "prop-types": "^15.6.2",
     "urijs": "^1.18.10"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "*",
+    "prop-types": "*"
   }
 }

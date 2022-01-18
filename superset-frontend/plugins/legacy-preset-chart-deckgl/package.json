@@ -43,9 +43,9 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "react-map-gl": "^4.0.10",
+    "react": "*",
+    "react-dom": "*",
+    "react-map-gl": "*",
     "mapbox-gl": "*"
   },
   "publishConfig": {

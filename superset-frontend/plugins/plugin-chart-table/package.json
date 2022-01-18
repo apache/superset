@@ -41,7 +41,7 @@
     "@types/react": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "*",
+    "react-dom": "*"
   }
 }

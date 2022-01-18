@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "prop-types": "^15.6.2",
-    "react": "^16.13.1"
+    "prop-types": "^15.6.2"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "react": "*"
   }
 }

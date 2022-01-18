@@ -29,13 +29,13 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "d3-hierarchy": "^1.1.8",
-    "prop-types": "^15.6.2"
+    "d3-hierarchy": "^1.1.8"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1",
-    "enzyme": "*"
+    "react": "*",
+    "enzyme": "*",
+    "prop-types": "*"
   }
 }

@@ -29,12 +29,12 @@
   },
   "dependencies": {
     "d3-array": "^2.0.3",
-    "d3-scale": "^3.0.1",
-    "prop-types": "^15.6.2"
+    "d3-scale": "^3.0.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "*",
+    "prop-types": "*"
   }
 }

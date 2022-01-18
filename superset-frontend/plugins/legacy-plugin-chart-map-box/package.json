@@ -28,7 +28,6 @@
     "access": "public"
   },
   "dependencies": {
-    "prop-types": "^15.6.2",
     "react-map-gl": "^4.0.10",
     "supercluster": "^4.1.1",
     "viewport-mercator-project": "^6.1.1"
@@ -36,7 +35,8 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16",
-    "mapbox-gl": "*"
+    "react": "*",
+    "mapbox-gl": "*",
+    "prop-types": "*"
   }
 }

@@ -32,12 +32,12 @@
     "@data-ui/theme": "^0.0.84",
     "@vx/legend": "^0.0.198",
     "@vx/responsive": "^0.0.199",
-    "@vx/scale": "^0.0.197",
-    "prop-types": "^15.6.2"
+    "@vx/scale": "^0.0.197"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "*",
+    "prop-types": "*"
   }
 }

@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "d3-sankey-diagram": "^0.7.3",
-    "d3-selection": "^1.4.0",
-    "prop-types": "^15.6.2"
+    "d3-selection": "^1.4.0"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "prop-types": "*"
   }
 }

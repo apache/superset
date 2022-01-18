@@ -29,12 +29,12 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "nvd3": "1.8.6",
-    "prop-types": "^15.6.2"
+    "nvd3": "1.8.6"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^16.13.1"
+    "react": "*",
+    "prop-types": "*"
   }
 }
