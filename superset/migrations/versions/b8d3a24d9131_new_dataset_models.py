@@ -57,13 +57,13 @@ def upgrade():
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=True,),
         sa.Column("description", sa.TEXT(), nullable=True),
         sa.Column("warning_text", sa.TEXT(), nullable=True),
-        sa.Column("units", sa.TEXT(), nullable=True),
+        sa.Column("unit", sa.TEXT(), nullable=True),
         sa.Column("is_temporal", sa.BOOLEAN(), nullable=False),
         sa.Column("is_spatial", sa.BOOLEAN(), nullable=False, default=False,),
         sa.Column("is_partition", sa.BOOLEAN(), nullable=False, default=False,),
         sa.Column("is_aggregation", sa.BOOLEAN(), nullable=False, default=False,),
         sa.Column("is_additive", sa.BOOLEAN(), nullable=False, default=False,),
-        sa.Column("increase_good", sa.BOOLEAN(), nullable=False, default=True,),
+        sa.Column("is_increase_desired", sa.BOOLEAN(), nullable=False, default=True,),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("sl_columns") as batch_op:

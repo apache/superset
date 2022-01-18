@@ -43,11 +43,8 @@ def test_table_model(app_context: None, session: Session) -> None:
 
     assert table.id == 1
     assert table.uuid is not None
-
     assert table.database_id == 1
-
     assert table.catalog == "my_catalog"
     assert table.schema == "my_schema"
     assert table.name == "my_table"
-
     assert [column.name for column in table.columns] == ["ds"]

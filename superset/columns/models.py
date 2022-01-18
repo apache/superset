@@ -69,7 +69,7 @@ class Column(
     # Additional metadata describing the column.
     description = sa.Column(sa.Text)
     warning_text = sa.Column(sa.Text)
-    units = sa.Column(sa.Text)
+    unit = sa.Column(sa.Text)
 
     # Is this a time column? Useful for plotting time series.
     is_temporal = sa.Column(sa.Boolean, default=False)
@@ -90,6 +90,6 @@ class Column(
     # additive, so it shouldn't be used in a ``SUM``.
     is_additive = sa.Column(sa.Boolean, default=False)
 
-    # Is an increase good? Useful for displaying the results of A/B tests, or setting up
-    # alerts. Eg, this is true for "revenue", but false for "latency".
-    increase_good = sa.Column(sa.Boolean, default=True)
+    # Is an increase desired? Useful for displaying the results of A/B tests, or setting
+    # up alerts. Eg, this is true for "revenue", but false for "latency".
+    is_increase_desired = sa.Column(sa.Boolean, default=True)

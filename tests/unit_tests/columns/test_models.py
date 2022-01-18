@@ -44,7 +44,7 @@ def test_column_model(app_context: None, session: Session) -> None:
     # test that default values are set correctly
     assert column.description is None
     assert column.warning_text is None
-    assert column.units is None
+    assert column.unit is None
     assert column.is_temporal is False
     assert column.is_spatial is False
     assert column.is_partition is False
