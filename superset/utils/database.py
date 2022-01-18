@@ -39,7 +39,10 @@ def get_or_create_db(
     from superset.models import core as models
 
     database = (
-        db.session.query(models.Database).filter_by(database_name=database_name).first()
+        db.session.query(models.Database)
+        .filter_by(database_name=database_name)
+        .autoflush(False)
+        .first()
     )
 
     # databases with a fixed UUID
@@ -72,3 +75,14 @@ def get_example_database() -> Database:
 def get_main_database() -> Database:
     db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
+
+
+# TODO - the below method used by tests so should move there but should move together
+# with above function... think of how to refactor it
+def remove_database(database: Database) -> None:
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+
+    session = db.session
+    session.delete(database)
+    session.commit()
