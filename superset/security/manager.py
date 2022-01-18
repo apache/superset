@@ -1222,25 +1222,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.views.base import is_user_admin
         from superset.views.utils import is_owner
 
-        def has_rbac_access() -> bool:
-            return is_feature_enabled("DASHBOARD_RBAC") and any(
+        has_rbac_access = True
+
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            has_rbac_access = any(
                 dashboard_role.id
-                in [user_role.id for user_role in self.get_user_roles(g.user)]
+                in [user_role.id for user_role in self.get_user_roles()]
                 for dashboard_role in dashboard.roles
             )
-
-        has_published_access = (
-            not is_feature_enabled("DASHBOARD_RBAC")
-            and not self.is_guest_user()
-            and dashboard.published
-        )
 
         can_access = (
             is_user_admin()
             or is_owner(dashboard, g.user)
-            or has_published_access
-            or has_rbac_access()
             or self.has_guest_access(GuestTokenResourceType.DASHBOARD, dashboard.id)
+            or (dashboard.published and has_rbac_access)
             or (not dashboard.published and not dashboard.roles)
         )
 
