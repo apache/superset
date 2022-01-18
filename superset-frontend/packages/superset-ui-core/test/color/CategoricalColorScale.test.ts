@@ -219,13 +219,19 @@ describe('CategoricalColorScale', () => {
       expect(chartId).toEqual(1);
     });
     it('when called with chartId, should return domain if valueChartMap has value but not same chartId', () => {
-      const scale = new CategoricalColorScale(
+      const scale1 = new CategoricalColorScale(
+        ['blue', 'red', 'green'],
+        undefined,
+        1,
+      );
+      const scale2 = new CategoricalColorScale(
         ['blue', 'red', 'green'],
         undefined,
         2,
       );
       const sharedColorScale = getSharedColorScale();
-      scale.getColor('pig');
+      scale1.getColor('pig');
+      scale2.getColor('pig');
       expect(sharedColorScale.domain()).toEqual(['pig']);
     });
   });

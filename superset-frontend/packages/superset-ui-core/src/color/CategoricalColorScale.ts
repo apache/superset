@@ -215,8 +215,6 @@ let sharedColorScale: CategoricalColorScale;
 
 export function getSharedColorScale() {
   if (sharedColorScale) return sharedColorScale;
-  const defaultSchemaKey = getCategoricalSchemeRegistry().getDefaultKey() ?? '';
-  const scheme = getCategoricalSchemeRegistry().get(defaultSchemaKey);
-  sharedColorScale = new CategoricalColorScale(scheme?.colors ?? []);
+  sharedColorScale = new CategoricalColorScale([]);
   return sharedColorScale;
 }
