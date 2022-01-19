@@ -124,7 +124,7 @@ def load_examples_run(
         print(f"Loading examples metadata and related data into {examples_db}")
 
     # pylint: disable=import-outside-toplevel
-    from superset import examples
+    import superset.examples.data_loading as examples
 
     examples.load_css_templates()
 
