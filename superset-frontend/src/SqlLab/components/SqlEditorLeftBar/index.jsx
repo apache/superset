@@ -47,8 +47,25 @@ const StyledScrollbarContainer = styled.div`
   overflow: auto;
 `;
 
-const StyledScrollbarContent = styled.div`
-  height: ${props => props.contentHeight}px;
+const collapseStyles = css`
+  .ant-collapse-item {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  }
+  .ant-collapse-header {
+    padding: 0px !important;
+    display: flex;
+    align-items: center;
+  }
+  .ant-collapse-content-box {
+    padding: 0px ${({ theme }) => theme.gridUnit * 4}px 0px 0px !important;
+  }
+  .ant-collapse-arrow {
+    top: ${({ theme }) => theme.gridUnit * 2}px !important;
+    color: ${({ theme }) => theme.colors.primary.dark1} !important;
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.dark2} !important;
+    }
+  }
 `;
 
 export default function SqlEditorLeftBar({
@@ -118,31 +135,17 @@ export default function SqlEditorLeftBar({
       />
       <div className="divider" />
       <StyledScrollbarContainer>
-        <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
+        <div
+          css={css`
+            height: ${props => props.contentHeight}px;
+          `}
+          contentHeight={tableMetaDataHeight}
+        >
           <Collapse
             activeKey={tb
               .filter(({ expanded }) => expanded)
               .map(({ id }) => id)}
-            css={theme => css`
-              .ant-collapse-item {
-                margin-bottom: ${theme.gridUnit * 3}px;
-              }
-              .ant-collapse-header {
-                padding: 0px !important;
-                display: flex;
-                align-items: center;
-              }
-              .ant-collapse-content-box {
-                padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
-              }
-              .ant-collapse-arrow {
-                top: ${theme.gridUnit * 2}px !important;
-                color: ${theme.colors.primary.dark1} !important;
-                &: hover {
-                  color: ${theme.colors.primary.dark2} !important;
-                }
-              }
-            `}
+            css={collapseStyles}
             expandIconPosition="right"
             ghost
             onChange={onToggleTable}
@@ -152,7 +155,7 @@ export default function SqlEditorLeftBar({
               <TableElement table={table} key={table.id} actions={actions} />
             ))}
           </Collapse>
-        </StyledScrollbarContent>
+        </div>
       </StyledScrollbarContainer>
       {shouldShowReset && (
         <Button
