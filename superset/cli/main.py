@@ -15,16 +15,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import importlib
 import logging
+import pkgutil
 from typing import Any, Dict
 
 import click
 from colorama import Fore, Style
 from flask.cli import FlaskGroup, with_appcontext
 
-from superset import app, appbuilder, security_manager
-from superset.cli import celery, examples, importexport, test, thumbnails, update
-from superset.cli.lib import feature_flags, normalize_token
+from superset import app, appbuilder, cli, security_manager
+from superset.cli.lib import normalize_token
 from superset.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -43,25 +44,13 @@ def superset() -> None:
 
 
 # add sub-commands
-superset.add_command(celery.flower)
-superset.add_command(celery.worker)
-superset.add_command(examples.load_examples)
-superset.add_command(importexport.export_dashboards)
-if not feature_flags.get("VERSIONED_EXPORT"):
-    superset.add_command(importexport.export_datasource_schema)
-superset.add_command(importexport.export_datasources)
-superset.add_command(importexport.import_dashboards)
-superset.add_command(importexport.import_datasources)
-superset.add_command(importexport.import_directory)
-superset.add_command(test.alert)
-superset.add_command(test.load_test_users)
-superset.add_command(thumbnails.compute_thumbnails)
-superset.add_command(update.re_encrypt_secrets)
-superset.add_command(update.refresh_druid)
-superset.add_command(update.set_database_uri)
-superset.add_command(update.sync_tags)
-superset.add_command(update.update_api_docs)
-superset.add_command(update.update_datasources_cache)
+for load, module_name, is_pkg in pkgutil.walk_packages(
+    cli.__path__, cli.__name__ + "."  # type: ignore
+):
+    module = importlib.import_module(module_name)
+    for attribute in module.__dict__.values():
+        if isinstance(attribute, click.core.Command):
+            superset.add_command(attribute)
 
 
 @superset.command()
