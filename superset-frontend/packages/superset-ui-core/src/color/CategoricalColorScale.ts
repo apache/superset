@@ -22,7 +22,6 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
-import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
