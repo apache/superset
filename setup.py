@@ -62,7 +62,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    entry_points={"console_scripts": ["superset=superset.cli:superset"]},
+    entry_points={"console_scripts": ["superset=superset.cli.main:superset"]},
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
