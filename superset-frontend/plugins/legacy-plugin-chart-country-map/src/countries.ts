@@ -103,7 +103,7 @@ export const countries = {
   korea,
   kuwait,
   liechtenstein,
-  lithuania
+  lithuania,
   malaysia,
   morocco,
   myanmar,
