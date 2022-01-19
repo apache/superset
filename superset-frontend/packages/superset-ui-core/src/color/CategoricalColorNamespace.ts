@@ -37,14 +37,14 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  getScale(schemeId?: string, chartId?: number, revert = false) {
+  getScale(schemeId?: string, chartId?: number) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
-    const colors = scheme?.colors.slice();
-    if (revert) {
-      colors?.reverse();
-    }
-    return new CategoricalColorScale(colors ?? [], this.forcedItems, chartId);
+    return new CategoricalColorScale(
+      scheme?.colors ?? [],
+      this.forcedItems,
+      chartId,
+    );
   }
 
   /**

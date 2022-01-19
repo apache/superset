@@ -22,7 +22,7 @@ import * as CategoricalColorNamespace from './CategoricalColorNamespace';
 export { CategoricalColorNamespace };
 export {
   default as CategoricalColorScale,
-  getDefaultColorScale,
+  getSharedColorScale,
 } from './CategoricalColorScale';
 export { default as CategoricalScheme } from './CategoricalScheme';
 export * from './CategoricalScheme';

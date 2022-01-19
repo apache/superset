@@ -30,7 +30,7 @@ import {
   getCategoricalSchemeRegistry,
   ensureIsArray,
   CategoricalColorNamespace,
-  getDefaultColorScale,
+  getSharedColorScale,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -278,18 +278,18 @@ const PropertiesModal = ({
         const categoricalNamespace = CategoricalColorNamespace.getNamespace(
           jsonMetadataObj.color_namespace || '',
         );
-        const defaultColorScale = getDefaultColorScale();
-        const scale = categoricalNamespace.getScale(
-          colorScheme,
-          undefined,
-          true,
-        );
-        const colorMap = defaultColorScale
+        const sharedColorScale = getSharedColorScale();
+        const scale = categoricalNamespace.getScale(colorScheme);
+        const colors = scale.range();
+        // reverse to prevent color conflicts
+        colors.reverse();
+        const colorMap = sharedColorScale
           .domain()
-          .reduce(
-            (res, name) => ({ ...res, [name.toString()]: scale(name) }),
-            {},
-          );
+          .reduce((res, name, index) => {
+            const value = name.toString();
+            const color = colors[index % colors.length];
+            return { ...res, [value]: color };
+          }, {});
         jsonMetadataObj.shared_label_colors = colorMap;
       } else {
         jsonMetadataObj.shared_label_colors = undefined;
