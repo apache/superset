@@ -58,10 +58,7 @@ def worker(workers: int) -> None:
     "-a", "--address", default="localhost", help="Address on which to run the service",
 )
 def flower(port: int, address: str) -> None:
-    """Runs a Celery Flower web server
-
-    Celery Flower is a UI to monitor the Celery operation on a given
-    broker"""
+    """Runs a Celery Flower web server"""
     broker_url = celery_app.conf.BROKER_URL
     cmd = (
         "celery flower "
