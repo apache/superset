@@ -101,18 +101,18 @@ def test_export_datasources_original(app_context, fs):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 def test_export_dashboards_versioned_export(app_context, fs):
     """
     Test that a ZIP file is exported.
     """
     # pylint: disable=reimported, redefined-outer-name
-    import superset.cli.lib  # noqa: F811
+    import superset.cli.importexport  # noqa: F811
 
     # reload to define export_dashboards correctly based on the
     # feature flags
-    importlib.reload(superset.cli.lib)
+    importlib.reload(superset.cli.importexport)
 
     runner = app.test_cli_runner()
     with freeze_time("2021-01-01T00:00:00Z"):
@@ -125,7 +125,7 @@ def test_export_dashboards_versioned_export(app_context, fs):
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
     "superset.dashboards.commands.export.ExportDashboardsCommand.run",
@@ -155,7 +155,7 @@ def test_failing_export_dashboards_versioned_export(
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 def test_export_datasources_versioned_export(app_context, fs):
     """
@@ -179,7 +179,7 @@ def test_export_datasources_versioned_export(app_context, fs):
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
     "superset.dashboards.commands.export.ExportDatasetsCommand.run",
@@ -206,7 +206,7 @@ def test_failing_export_datasources_versioned_export(
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch("superset.dashboards.commands.importers.dispatcher.ImportDashboardsCommand")
 def test_import_dashboards_versioned_export(import_dashboards_command, app_context, fs):
@@ -249,7 +249,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
     "superset.dashboards.commands.importers.dispatcher.ImportDashboardsCommand.run",
@@ -293,7 +293,7 @@ def test_failing_import_dashboards_versioned_export(
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand")
 def test_import_datasets_versioned_export(import_datasets_command, app_context, fs):
@@ -336,7 +336,7 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
     "superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand.run",
