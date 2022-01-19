@@ -17,7 +17,6 @@
  * under the License.
  */
 
-
 import austria from './countries/austria.geojson';
 import australia from './countries/australia.geojson';
 import belgium from './countries/belgium.geojson';
@@ -25,6 +24,7 @@ import brazil from './countries/brazil.geojson';
 import bulgaria from './countries/bulgaria.geojson';
 import canada from './countries/canada.geojson';
 import china from './countries/china.geojson';
+import cyprus from './countries/cyprus.geojson';
 import denmark from './countries/denmark.geojson';
 import egypt from './countries/egypt.geojson';
 import estonia from './countries/estonia.geojson';
@@ -78,7 +78,6 @@ import vietnam from './countries/vietnam.geojson';
 export const countries = {
   austria,
   australia,
-  bahrain,
   belgium,
   brazil,
   bulgaria,
@@ -127,6 +126,7 @@ export const countries = {
   syria,
   thailand,
   timorleste,
+  united_arab_emirates,
   uk,
   ukraine,
   uruguay,
