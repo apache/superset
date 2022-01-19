@@ -30,7 +30,7 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 

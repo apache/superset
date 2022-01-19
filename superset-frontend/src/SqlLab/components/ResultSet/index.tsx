@@ -37,7 +37,9 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import FilterableTable, {
+  MAX_COLUMNS_FOR_TABLE,
+} from 'src/components/FilterableTable/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -560,7 +562,12 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter results')}
+              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
+              placeholder={
+                columns.length > MAX_COLUMNS_FOR_TABLE
+                  ? t('Too many columns to filter')
+                  : t('Filter results')
+              }
             />
           )}
         </ResultSetControls>

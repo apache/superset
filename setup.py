@@ -81,6 +81,7 @@ setup(
         "flask-talisman",
         "flask-migrate",
         "flask-wtf",
+        "func_timeout",
         "geopy",
         "graphlib-backport",
         "gunicorn>=20.1.0",

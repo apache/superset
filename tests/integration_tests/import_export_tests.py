@@ -45,7 +45,8 @@ from superset.dashboards.commands.importers.v0 import import_chart, import_dashb
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,

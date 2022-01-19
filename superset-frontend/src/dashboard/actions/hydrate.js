@@ -66,7 +66,7 @@ export const hydrateDashboard =
     dataMaskApplied,
   ) =>
   (dispatch, getState) => {
-    const { user, common } = getState();
+    const { user, common, dashboardState } = getState();
 
     const { metadata } = dashboardData;
     const regularUrlParams = extractUrlParams('regular');
@@ -397,7 +397,7 @@ export const hydrateDashboard =
           maxUndoHistoryExceeded: false,
           lastModifiedTime: dashboardData.changed_on,
           isRefreshing: false,
-          activeTabs: [],
+          activeTabs: dashboardState?.activeTabs || [],
           filterboxMigrationState,
         },
         dashboardLayout,
