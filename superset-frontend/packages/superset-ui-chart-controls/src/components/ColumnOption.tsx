@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
+import { getColumnLabelText, getColumnTooltipText } from './labelUtils';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -44,6 +45,11 @@ export function ColumnOption({
   const { expression, column_name, type_generic } = column;
   const hasExpression = expression && expression !== column_name;
   const type = hasExpression ? 'expression' : type_generic;
+  const [tooltipText, setTooltipText] = useState(column.column_name);
+
+  useEffect(() => {
+    setTooltipText(getColumnTooltipText(column, labelRef));
+  }, [labelRef, column]);
 
   return (
     <StyleOverrides>
@@ -55,25 +61,17 @@ export function ColumnOption({
           details={column.certification_details}
         />
       )}
-      {column.verbose_name ? (
-        <Tooltip
-          id="metric-name-tooltip"
-          title={column.column_name}
-          trigger={['hover']}
-          placement="top"
-        >
-          <span
-            className="m-r-5 option-label column-option-label"
-            ref={labelRef}
-          >
-            {column.verbose_name}
-          </span>
-        </Tooltip>
-      ) : (
+      <Tooltip
+        id="metric-name-tooltip"
+        title={tooltipText}
+        trigger={['hover']}
+        placement="top"
+      >
         <span className="m-r-5 option-label column-option-label" ref={labelRef}>
-          {column.column_name}
+          {getColumnLabelText(column)}
         </span>
-      )}
+      </Tooltip>
+
       {column.description && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
