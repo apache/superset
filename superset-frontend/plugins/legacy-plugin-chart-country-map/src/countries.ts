@@ -108,7 +108,7 @@ export const countries = {
   morocco,
   myanmar,
   netherlands,
-  nigeria
+  nigeria,
   norway,
   oman,
   pakistan,
