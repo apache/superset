@@ -57,7 +57,7 @@ def check_access(cmd_params: CommandParameters) -> Optional[bool]:
         can_access_chart = (
             is_user_admin()
             or is_owner(chart, actor)
-            or security_manager.can_access("can_write", "Chart")
+            or security_manager.can_access("can_read", "Chart")
         )
         if can_access_chart:
             return True
