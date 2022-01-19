@@ -17,7 +17,7 @@
  * under the License.
  */
 
-/* eslint-disable import/no-webpack-loader-syntax, import/no-unresolved */
+
 import austria from './countries/austria.geojson';
 import australia from './countries/australia.geojson';
 import belgium from './countries/belgium.geojson';
