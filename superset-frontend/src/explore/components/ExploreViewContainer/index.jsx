@@ -210,7 +210,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [shouldForceUpdate, setshouldForceUpdate] = useState(-1);
+  const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
 
   const theme = useTheme();
   const width = `${windowSize.width}px`;
@@ -528,7 +528,7 @@ function ExploreViewContainer(props) {
       )}
       <Resizable
         onResizeStop={(evt, direction, ref, d) => {
-          setshouldForceUpdate(d?.width);
+          setShouldForceUpdate(d?.width);
           setSidebarWidths(LocalStorageKeys.datasource_width, d);
         }}
         defaultSize={{
