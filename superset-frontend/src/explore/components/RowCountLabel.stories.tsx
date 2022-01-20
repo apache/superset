@@ -16,36 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Superset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+import React from 'react';
+import RowCountLabel from './RowCountLabel';
 
-module.exports = {
-  core: {
-    builder: 'webpack5',
+export default {
+  title: 'RowCountLabel',
+  component: RowCountLabel,
+};
+
+const options = {
+  loading: {
+    loading: true,
   },
-  stories: [
-    '../src/@(components|common|filters|explore)/**/*.stories.@(t|j)sx',
-  ],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs',
-    'storybook-addon-paddings',
-  ],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
-    },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-  typescript: {
-    reactDocgen: 'none',
+  full: {
+    rowcount: 100,
+    limit: 100,
+  },
+  medium: {
+    rowcount: 50,
+    limit: 100,
+  },
+  suffix: {
+    rowcount: 1,
+    suffix: 'suffix',
   },
 };
+
+export const RowCountLabelGallery = () => (
+  <>
+    {Object.keys(options).map(name => (
+      <>
+        <h4>{name}</h4>
+        <RowCountLabel
+          loading={options[name].loading}
+          rowcount={options[name].rowcount}
+          limit={options[name].limit}
+          suffix={options[name].suffix}
+        />
+      </>
+    ))}
+  </>
+);
