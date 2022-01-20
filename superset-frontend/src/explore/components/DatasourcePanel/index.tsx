@@ -45,6 +45,8 @@ export interface Props {
     datasource: DatasourceControl;
   };
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
+  // we use this props control force update when this panel resize
+  shouldForceUpdate?: number;
 }
 
 const Button = styled.button`
@@ -141,6 +143,7 @@ export default function DataSourcePanel({
   datasource,
   controls: { datasource: datasourceControl },
   actions,
+  shouldForceUpdate,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
 
@@ -288,7 +291,10 @@ export default function DataSourcePanel({
                 )}
               </div>
               {metricSlice.map(m => (
-                <LabelContainer key={m.metric_name} className="column">
+                <LabelContainer
+                  key={m.metric_name + String(shouldForceUpdate)}
+                  className="column"
+                >
                   {enableExploreDnd ? (
                     <DatasourcePanelDragOption
                       value={m}
@@ -321,7 +327,10 @@ export default function DataSourcePanel({
                 )}
               </div>
               {columnSlice.map(col => (
-                <LabelContainer key={col.column_name} className="column">
+                <LabelContainer
+                  key={col.column_name + String(shouldForceUpdate)}
+                  className="column"
+                >
                   {enableExploreDnd ? (
                     <DatasourcePanelDragOption
                       value={col}
@@ -355,6 +364,7 @@ export default function DataSourcePanel({
       search,
       showAllColumns,
       showAllMetrics,
+      shouldForceUpdate,
     ],
   );
 
