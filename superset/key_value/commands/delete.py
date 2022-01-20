@@ -16,27 +16,23 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.key_value.commands.exceptions import KeyValueDeleteFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, actor: User, resource_id: int, key: str):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._key = key
+    def __init__(self, cmd_params: CommandParameters):
+        self._cmd_params = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> bool:
         try:
-            return self.delete(self._actor, self._resource_id, self._key)
+            return self.delete(self._cmd_params)
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
@@ -45,5 +41,5 @@ class DeleteKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def delete(self, actor: User, resource_id: int, key: str) -> Optional[bool]:
+    def delete(self, cmd_params: CommandParameters) -> bool:
         ...

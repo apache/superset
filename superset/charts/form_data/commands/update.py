@@ -14,25 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.dashboards.dao import DashboardDAO
+from superset.charts.form_data.utils import check_access, get_dataset_id
 from superset.extensions import cache_manager
-from superset.key_value.commands.delete import DeleteKeyValueCommand
 from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.commands.parameters import CommandParameters
+from superset.key_value.commands.update import UpdateKeyValueCommand
 from superset.key_value.utils import cache_key
 
 
-class DeleteFilterStateCommand(DeleteKeyValueCommand):
-    def delete(self, cmd_params: CommandParameters) -> bool:
+class UpdateFormDataCommand(UpdateKeyValueCommand):
+    def update(self, cmd_params: CommandParameters) -> bool:
+        check_access(cmd_params)
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        key = cache_key(resource_id, cmd_params.key)
-        dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
-        if dashboard:
-            entry: Entry = cache_manager.filter_state_cache.get(key)
-            if entry:
-                if entry["owner"] != actor.get_user_id():
-                    raise KeyValueAccessDeniedError()
-                return cache_manager.filter_state_cache.delete(key)
+        key = cache_key(resource_id or get_dataset_id(cmd_params), cmd_params.key)
+        value = cmd_params.value
+        entry: Entry = cache_manager.chart_form_data_cache.get(key)
+        if entry and value:
+            user_id = actor.get_user_id()
+            if entry["owner"] != user_id:
+                raise KeyValueAccessDeniedError()
+            new_entry: Entry = {"owner": actor.get_user_id(), "value": value}
+            return cache_manager.chart_form_data_cache.set(key, new_entry)
         return False
