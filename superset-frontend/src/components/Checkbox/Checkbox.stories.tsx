@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { useArgs } from '@storybook/client-api';
-import Checkbox from '.';
+import Checkbox, { CheckboxProps } from '.';
 
 export default {
   title: 'Checkbox',
@@ -42,9 +42,8 @@ export const CheckboxGallery = () =>
     </div>
   ));
 
-// eslint-disable-next-line no-unused-vars
-export const InteractiveCheckbox = _args => {
-  const [{ checked, style }, updateArgs] = useArgs();
+export const InteractiveCheckbox = ({ checked, style }: CheckboxProps) => {
+  const [, updateArgs] = useArgs();
   const toggleCheckbox = () => {
     updateArgs({ checked: !checked });
   };
