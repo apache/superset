@@ -18,11 +18,13 @@
  */
 import React, { ReactElement, useState } from 'react';
 import cx from 'classnames';
+import { useDispatch } from 'react-redux';
 import { QueryFormData, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
@@ -100,6 +102,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     addDangerToast,
   } = props;
 
+  const dispatch = useDispatch();
   const copyTooltipText = t('Copy chart URL to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
   const longUrl = getExploreLongUrl(latestQueryFormData);
@@ -111,8 +114,14 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       const shortUrl = await getShortUrl();
       await copyTextToClipboard(shortUrl);
       setCopyTooltip(t('Copied to clipboard!'));
+      dispatch(addSuccessToast(t('Copied to clipboard!')));
     } catch (error) {
       setCopyTooltip(t('Sorry, your browser does not support copying.'));
+      dispatch(
+        addDangerToast(t('Sorry, your browser does not support copying.'), {
+          noDuplicate: true,
+        }),
+      );
     }
   };
 
