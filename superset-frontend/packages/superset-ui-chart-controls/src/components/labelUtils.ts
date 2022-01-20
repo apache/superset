@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 
 export const isLabelTruncated = (labelRef?: React.RefObject<any>): boolean =>
@@ -38,10 +39,10 @@ export const getColumnTooltipText = (
   }
 
   if (isLabelTruncated(labelRef) && column.verbose_name) {
-    return `verbose name: ${column.verbose_name}`;
+    return t('verbose name: %s', column.verbose_name);
   }
 
-  return `column name: ${column.column_name}`;
+  return t('column name: %s', column.column_name);
 };
 
 type MetricType = Omit<Metric, 'id'> & { label?: string };
@@ -56,12 +57,12 @@ export const getMeticTooltipText = (
   }
 
   if (isLabelTruncated(labelRef) && metric.verbose_name) {
-    return `verbose name: ${metric.verbose_name}`;
+    return t('verbose name: %s', metric.verbose_name);
   }
 
   if (isLabelTruncated(labelRef) && metric.label) {
-    return `label name: ${metric.label}`;
+    return t('label name: %s', metric.label);
   }
 
-  return `metric name: ${metric.metric_name}`;
+  return t('metric name: %s', metric.metric_name);
 };
