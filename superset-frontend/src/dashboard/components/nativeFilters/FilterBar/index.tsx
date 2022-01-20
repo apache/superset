@@ -19,7 +19,14 @@
 
 /* eslint-disable no-param-reassign */
 import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  LegacyRef,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
@@ -159,6 +166,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
+  const parent = useRef() as LegacyRef<HTMLDivElement> | undefined;
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
   const dashboardId = useSelector<any, string>(
@@ -305,6 +313,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       {...getFilterBarTestId()}
       className={cx({ open: filtersOpen })}
       width={width}
+      ref={parent}
     >
       <CollapsedBar
         {...getFilterBarTestId('collapsable')}
@@ -382,6 +391,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               dataMaskSelected={dataMaskSelected}
               directPathToChild={directPathToChild}
               onFilterSelectionChange={handleFilterSelectionChange}
+              parentRef={parent}
             />
           </div>
         )}

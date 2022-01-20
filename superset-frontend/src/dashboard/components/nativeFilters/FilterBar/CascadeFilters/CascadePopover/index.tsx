@@ -22,6 +22,7 @@ import React, {
   useMemo,
   useState,
   useRef,
+  RefObject,
 } from 'react';
 import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
@@ -41,6 +42,7 @@ interface CascadePopoverProps {
   inView?: boolean;
   onVisibleChange: (visible: boolean) => void;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  parentRef?: RefObject<any>;
 }
 
 const StyledTitleBox = styled.div`
@@ -93,6 +95,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onFilterSelectionChange,
   directPathToChild,
   inView,
+  parentRef,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
@@ -163,6 +166,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
         inView={inView}
+        parentRef={parentRef}
       />
     );
   }

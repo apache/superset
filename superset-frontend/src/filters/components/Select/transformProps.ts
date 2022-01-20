@@ -32,6 +32,7 @@ export default function transformProps(
     appSection,
     filterState,
     isRefreshing,
+    parentRef,
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const {
@@ -50,6 +51,7 @@ export default function transformProps(
     filterState,
     coltypeMap,
     appSection,
+    parentRef,
     width,
     behaviors,
     height,

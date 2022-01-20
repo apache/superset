@@ -21,6 +21,7 @@
  * TS declarations for selectors with up to 12 arguments. */
 // @ts-nocheck
 import { createSelector } from 'reselect';
+import { RefObject } from 'react';
 import {
   AppSection,
   Behavior,
@@ -128,6 +129,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   isRefreshing?: boolean;
 
+  parentRef?: RefObject<any>;
+
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
@@ -143,6 +146,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       height = DEFAULT_HEIGHT,
       appSection,
       isRefreshing,
+      parentRef,
     } = config;
     this.width = width;
     this.height = height;
@@ -159,6 +163,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.behaviors = behaviors;
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
+    this.parentRef = parentRef;
   }
 }
 
@@ -178,6 +183,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.behaviors,
     input => input.appSection,
     input => input.isRefreshing,
+    input => input.parentRef,
     (
       annotationData,
       datasource,
@@ -192,6 +198,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       behaviors,
       appSection,
       isRefreshing,
+      parentRef,
     ) =>
       new ChartProps({
         annotationData,
@@ -207,6 +214,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         behaviors,
         appSection,
         isRefreshing,
+        parentRef,
       }),
   );
 };

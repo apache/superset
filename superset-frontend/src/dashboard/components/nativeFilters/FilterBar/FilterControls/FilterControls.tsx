@@ -55,6 +55,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   directPathToChild,
   dataMaskSelected,
   onFilterSelectionChange,
+  parentRef,
 }) => {
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const filters = useFilters();
@@ -105,6 +106,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           onFilterSelectionChange={onFilterSelectionChange}
           directPathToChild={directPathToChild}
           inView={false}
+          parentRef={parentRef}
         />
       );
     },

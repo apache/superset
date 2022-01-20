@@ -83,9 +83,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setFocusedFilter,
     unsetFocusedFilter,
     appSection,
-    showOverflow,
     parentRef,
   } = props;
+
   const {
     enableEmptyFilter,
     multiSelect,
@@ -291,7 +291,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           value={filterState.value || []}
           disabled={isDisabled}
           getPopupContainer={
-            showOverflow ? () => parentRef?.current : undefined
+            parentRef?.current ? () => parentRef?.current : undefined
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}

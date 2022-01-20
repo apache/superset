@@ -90,6 +90,12 @@ export interface SelectProps extends PickedSelectProps {
    * */
   allowNewOptions?: boolean;
   /**
+   * Refobject that references the parent container
+   * the select component is located to prevent
+   * dropdown movement onscroll.
+   */
+  getPopupContainer?: RefObject<any>;
+  /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.
    */
@@ -271,6 +277,7 @@ const Select = ({
   ariaLabel,
   fetchOnlyOnSearch,
   filterOption = true,
+  getPopupContainer,
   header = null,
   invertSelection = false,
   labelInValue = false,
@@ -701,7 +708,6 @@ const Select = ({
       setIsLoading(loading);
     }
   }, [isLoading, loading]);
-
   return (
     <StyledContainer>
       {header}
@@ -709,7 +715,9 @@ const Select = ({
         aria-label={ariaLabel || name}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
-        getPopupContainer={triggerNode => triggerNode.parentNode}
+        getPopupContainer={
+          getPopupContainer || (triggerNode => triggerNode.parentNode)
+        }
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
