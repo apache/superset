@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel
 
+import json
 import logging
 from collections import defaultdict
 from pathlib import Path
@@ -26,6 +27,7 @@ import yaml
 from superset import db
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +42,7 @@ def get_metric_expression(metric: Dict[str, Any]) -> str:
 
 def sync_datasets(  # pylint: disable=too-many-locals
     manifest_path: Path, database: "Database",
-) -> None:
+) -> List["SqlaTable"]:
     """
     Read the DBT manifest and import models as datasets with metrics.
     """
@@ -61,8 +63,9 @@ def sync_datasets(  # pylint: disable=too-many-locals
             metrics[unique_id].append(metric)
 
     # add datasets
-    datasets = list(manifest["sources"].values()) + list(manifest["nodes"].values())
-    for config in datasets:
+    datasets: List[SqlaTable] = []
+    configs = list(manifest["sources"].values()) + list(manifest["nodes"].values())
+    for config in configs:
         new = DatasetDAO.validate_uniqueness(
             database.id, config["schema"], config["name"]
         )
@@ -90,8 +93,14 @@ def sync_datasets(  # pylint: disable=too-many-locals
             )
             dataset.fetch_metadata()
 
-        # add extra metadata
+        # add description and extra metadata
         dataset.description = config["description"]
+        extra = {k: config[k] for k in ["resource_type", "unique_id"]}
+        if config["resource_type"] == "source":
+            extra["depends_on"] = "source('{schema}', '{name}')".format(**config)
+        elif config["resource_type"] == "model":
+            extra["depends_on"] = "ref('{name}')".format(**config)
+        dataset.extra = json.dumps(extra)
 
         # delete existing metrics before adding the ones from the config
         for existing_metric in dataset.metrics:
@@ -112,4 +121,8 @@ def sync_datasets(  # pylint: disable=too-many-locals
                     )
                 )
 
+        datasets.append(dataset)
+
     db.session.commit()
+
+    return datasets

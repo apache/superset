@@ -25,28 +25,36 @@ from pathlib import Path
 import click
 from flask.cli import with_appcontext
 
+from superset.cli.sync.dbt.dashboards import sync_dashboards
 from superset.cli.sync.dbt.databases import sync_database
 from superset.cli.sync.dbt.datasets import sync_datasets
 
 
 @click.command()
 @with_appcontext
-@click.argument("manifest", type=click.Path(exists=True, resolve_path=True))
+@click.argument("manifest", type=click.Path(exists=True))
 @click.option(
     "--project", help="Name of the DBT project", default="default",
 )
 @click.option("--target", help="Target name", default="dev")
 @click.option(
-    "--profile",
-    help="Location of profiles.yml file",
-    type=click.Path(exists=True, resolve_path=True),
+    "--profile", help="Location of profiles.yml file", type=click.Path(exists=True),
 )
-def dbt(manifest: str, project: str, target: str, profile: str) -> None:
+@click.option(
+    "--exposures",
+    help="Path to file where exposures will be written",
+    type=click.Path(exists=False),
+)
+def dbt(manifest: str, project: str, target: str, profile: str, exposures: str) -> None:
     """
     Sync models and metrics from DBT to Superset.
     """
+    manifest = os.path.expanduser(manifest)
     if profile is None:
         profile = os.path.expanduser("~/.dbt/profiles.yml")
 
     database = sync_database(Path(profile), project, target)
-    sync_datasets(Path(manifest), database)
+    datasets = sync_datasets(Path(manifest), database)
+    if exposures:
+        exposures = os.path.expanduser(exposures)
+        sync_dashboards(Path(exposures), datasets)
