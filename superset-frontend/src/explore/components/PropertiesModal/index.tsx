@@ -20,12 +20,14 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Form, Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
+import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { useDispatch } from 'react-redux';
 
 type PropertiesModalProps = {
   slice: Slice;
@@ -59,6 +61,7 @@ export default function PropertiesModal({
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
     null,
   );
+  const dispatch = useDispatch();
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -157,6 +160,7 @@ export default function PropertiesModal({
         id: slice.slice_id,
       };
       onSave(updatedChart);
+      dispatch(addSuccessToast(t('Chart properties updated')));
       onHide();
     } catch (res) {
       const clientError = await getClientErrorObject(res);
