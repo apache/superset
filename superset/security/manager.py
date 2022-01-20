@@ -1310,13 +1310,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         try:
             token = self.parse_jwt_guest_token(raw_token)
+            if token.get("user") is None:
+                raise ValueError("Guest token does not contain a user claim")
+            if token.get("resources") is None:
+                raise ValueError("Guest token does not contain a resources claim")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
             logger.warning("Invalid guest token", exc_info=True)
             return None
         else:
-            return self.get_guest_user_from_token(token)
+            return self.get_guest_user_from_token(cast(GuestToken, token))
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
@@ -1324,24 +1328,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def parse_jwt_guest_token(raw_token: str) -> GuestToken:
+    def parse_jwt_guest_token(raw_token: str) -> Dict[str, Any]:
         """
-        Parses and validates a guest token.
-        Raises an error if the jwt is invalid:
-        if it is not signed with our secret,
-        or if required claims are not present.
+        Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request
         :return: the same token that was passed in, tested but unchanged
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-
-        token = jwt.decode(raw_token, secret, algorithms=[algo])
-        if token.get("user") is None:
-            raise ValueError("Guest token does not contain a user claim")
-        if token.get("resources") is None:
-            raise ValueError("Guest token does not contain a resources claim")
-        return cast(GuestToken, token)
+        return jwt.decode(raw_token, secret, algorithms=[algo])
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
