@@ -1123,7 +1123,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         guest_user = self.get_current_guest_user_if_guest()
         if guest_user:
-            return [rule for rule in guest_user.rls if rule["dataset"] == dataset.id]
+            return [
+                rule
+                for rule in guest_user.rls
+                if not rule.get("dataset")
+                or str(rule.get("dataset")) == str(dataset.id)
+            ]
         return []
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:

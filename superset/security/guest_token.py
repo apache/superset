@@ -40,7 +40,7 @@ GuestTokenResources = List[GuestTokenResource]
 
 
 class GuestTokenRlsRule(TypedDict):
-    dataset: str
+    dataset: Optional[str]
     clause: str
 
 

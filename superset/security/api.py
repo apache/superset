@@ -62,7 +62,7 @@ class ResourceSchema(PermissiveSchema):
 
 
 class RlsRuleSchema(PermissiveSchema):
-    dataset = fields.Integer(required=True)  # todo make this optional when possible
+    dataset = fields.Integer()
     clause = fields.String(required=True)  # todo other options?
 
 

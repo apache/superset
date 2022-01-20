@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import pytest
@@ -24,7 +24,11 @@ from flask import g
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.security.guest_token import GuestTokenRlsRule, GuestTokenResourceType
+from superset.security.guest_token import (
+    GuestTokenRlsRule,
+    GuestTokenResourceType,
+    GuestUser,
+)
 from ..base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -210,7 +214,7 @@ class TestRowLevelSecurity(SupersetTestCase):
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
-RLS_GENDER_REGEX = re.compile(r"gender = 'girl'")
+RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
 
 
 @mock.patch.dict(
@@ -223,7 +227,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
             "clause": "name = 'Alice'",
         }
 
-    def guest_user_with_rls(self, rules: List[Any] = None):
+    def guest_user_with_rls(self, rules: Optional[List[Any]] = None) -> GuestUser:
         if rules is None:
             rules = [self.default_rls_rule()]
         return security_manager.get_guest_user_from_token(
@@ -273,3 +277,28 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
 
         self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
         self.assertRegexpMatches(sql, RLS_GENDER_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_rls_filter_for_all_datasets(self):
+        births = self.get_table(name="birth_names")
+        energy = self.get_table(name="energy_usage")
+        guest = self.guest_user_with_rls(rules=[{"clause": "name = 'Alice'"}])
+        guest.resources.append({type: "dashboard", id: energy.id})
+        g.user = guest
+        births_sql = births.get_query_str(query_obj)
+        energy_sql = energy.get_query_str(query_obj)
+
+        self.assertRegexpMatches(births_sql, RLS_ALICE_REGEX)
+        self.assertRegexpMatches(energy_sql, RLS_ALICE_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_dataset_id_can_be_string(self):
+        dataset = self.get_table(name="birth_names")
+        str_id = str(dataset.id)
+        g.user = self.guest_user_with_rls(
+            rules=[{"dataset": str_id, "clause": "name = 'Alice'"}]
+        )
+        sql = dataset.get_query_str(query_obj)
+
+        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
