@@ -25,6 +25,7 @@ from superset.utils.core import JS_MAX_INTEGER
 
 logger = logging.getLogger(__name__)
 
+
 def _convert_big_integers(val: Any) -> Any:
     """
     Cast integers larger than ``JS_MAX_INTEGER`` to strings.
@@ -45,7 +46,7 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     """
     if not dframe.columns.is_unique:
         logger.warning(
-            "DataFrame columns are not unique, some columns will be omitted.",
+            "DataFrame columns are not unique, some columns will be omitted."
         )
     columns = dframe.columns
     return list(
