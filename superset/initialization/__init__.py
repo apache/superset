@@ -119,6 +119,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
+        from superset.charts.form_data.api import ChartFormDataRestApi
         from superset.connectors.druid.views import (
             Druid,
             DruidClusterModelView,
@@ -203,18 +204,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
+        appbuilder.add_api(ChartFormDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(FilterSetRestApi)
         appbuilder.add_api(QueryRestApi)
-        appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
-        appbuilder.add_api(FilterSetRestApi)
-        appbuilder.add_api(DashboardFilterStateRestApi)
+        appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
         #

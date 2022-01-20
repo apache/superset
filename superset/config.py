@@ -577,9 +577,18 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for filters state
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "filesystem",
+    "CACHE_TYPE": "FileSystemCache",
     "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
+
+# Cache for chart form data
+CHART_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "FileSystemCache",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
