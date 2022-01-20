@@ -1112,16 +1112,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return user.roles
 
-    def get_guest_rls_filters(self, table: "BaseDatasource") -> List[GuestTokenRlsRule]:
+    def get_guest_rls_filters(
+        self, dataset: "BaseDatasource"
+    ) -> List[GuestTokenRlsRule]:
         """
-        Retrieves the row level security filters for the current user and the table,
+        Retrieves the row level security filters for the current user and the dataset,
         if the user is authenticated with a guest token.
-        :param table: The table to check against
+        :param dataset: The dataset to check against
         :return: A list of filters
         """
         guest_user = self.get_current_guest_user_if_guest()
         if guest_user:
-            return [rule for rule in guest_user.rls if rule["dataset"] == table.id]
+            return [rule for rule in guest_user.rls if rule["dataset"] == dataset.id]
         return []
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
