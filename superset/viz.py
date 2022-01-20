@@ -1908,6 +1908,39 @@ class SunburstViz(BaseViz):
         return query_obj
 
 
+class SankeyWithLoopsViz(BaseViz):
+
+    """A Sankey diagram with loops that requires a parent-child dataset"""
+
+    viz_type = "sankey_loop"
+    verbose_name = _("SankeyWithLoops")
+    is_timeseries = False
+    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
+
+    def query_obj(self) -> QueryObjectDict:
+        query_obj = super().query_obj()
+        if len(query_obj["groupby"]) != 2:
+            raise QueryObjectValidationError(
+                _("Pick exactly 2 columns as [Source / Target]")
+            )
+        query_obj["metrics"] = [self.form_data["metric"]]
+        if self.form_data.get("sort_by_metric", False):
+            query_obj["orderby"] = [(query_obj["metrics"][0], False)]
+        return query_obj
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        if df.empty:
+            return None
+        source, target = get_column_names(self.groupby)
+        (value,) = self.metric_labels
+        df.rename(
+            columns={source: "source", target: "target", value: "value"}, inplace=True,
+        )
+        df["source"] = df["source"].astype(str)
+        df["target"] = df["target"].astype(str)
+        return df.to_dict(orient="records")
+
+
 class SankeyViz(BaseViz):
 
     """A Sankey diagram that requires a parent-child dataset"""
