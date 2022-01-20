@@ -1212,6 +1212,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
+        This does not check for the required role/permission pairs,
+        it only concerns itself with entity relationships.
 
         :param dashboard: Dashboard the user wants access to
         :raises DashboardAccessDeniedError: If the user cannot access the resource
@@ -1223,14 +1225,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.views.utils import is_owner
 
         def has_rbac_access() -> bool:
-            return (
-                is_feature_enabled("DASHBOARD_RBAC")
-                and dashboard.published
-                and any(
-                    dashboard_role.id
-                    in [user_role.id for user_role in self.get_user_roles()]
-                    for dashboard_role in dashboard.roles
-                )
+            return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
+                dashboard_role.id
+                in [user_role.id for user_role in self.get_user_roles()]
+                for dashboard_role in dashboard.roles
             )
 
         if self.is_guest_user():
@@ -1241,7 +1239,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             can_access = (
                 is_user_admin()
                 or is_owner(dashboard, g.user)
-                or has_rbac_access()
+                or (dashboard.published and has_rbac_access())
                 or (not dashboard.published and not dashboard.roles)
             )
 
