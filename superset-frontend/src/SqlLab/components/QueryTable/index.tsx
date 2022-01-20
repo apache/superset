@@ -91,13 +91,12 @@ const QueryTable = ({
 
   const user = useSelector((state: RootState) => state.sqlLab.user);
 
-  // As 5 actions are required, deconstruction is used here. The aliasName is provided for clearQueryResults and removeQuery to have a difference from function name declared later. Deconstruction is not made at function parameter, bc actions are passed in as prop at ResultSet.
   const {
     queryEditorSetSql,
     cloneQueryToNewTab,
     fetchQueryResults,
-    clearQueryResults: clearQueryResultsAlias,
-    removeQuery: removeQueryAlias,
+    clearQueryResults,
+    removeQuery,
   } = actions;
 
   const data = useMemo(() => {
@@ -111,14 +110,6 @@ const QueryTable = ({
 
     const openAsyncResults = (query: Query, displayLimit: number) => {
       fetchQueryResults(query, displayLimit);
-    };
-
-    const clearQueryResults = (query: Query) => {
-      clearQueryResultsAlias(query);
-    };
-
-    const removeQuery = (query: Query) => {
-      removeQueryAlias(query);
     };
 
     const statusAttributes = {
@@ -320,11 +311,11 @@ const QueryTable = ({
     user,
     displayLimit,
     actions,
-    clearQueryResultsAlias,
+    clearQueryResults,
     cloneQueryToNewTab,
     fetchQueryResults,
     queryEditorSetSql,
-    removeQueryAlias,
+    removeQuery,
   ]);
 
   return (
