@@ -20,34 +20,34 @@ from typing import Type
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset.dashboards.filter_state.commands.create import CreateFilterStateCommand
-from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCommand
-from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
-from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
+from superset.charts.form_data.commands.create import CreateFormDataCommand
+from superset.charts.form_data.commands.delete import DeleteFormDataCommand
+from superset.charts.form_data.commands.get import GetFormDataCommand
+from superset.charts.form_data.commands.update import UpdateFormDataCommand
 from superset.extensions import event_logger
 from superset.key_value.api import KeyValueRestApi
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardFilterStateRestApi(KeyValueRestApi):
-    class_permission_name = "DashboardFilterStateRestApi"
-    resource_name = "dashboard"
-    openapi_spec_tag = "Dashboard Filter State"
+class ChartFormDataRestApi(KeyValueRestApi):
+    class_permission_name = "ChartFormDataRestApi"
+    resource_name = "chart"
+    openapi_spec_tag = "Chart Form Data"
 
-    def get_create_command(self) -> Type[CreateFilterStateCommand]:
-        return CreateFilterStateCommand
+    def get_create_command(self) -> Type[CreateFormDataCommand]:
+        return CreateFormDataCommand
 
-    def get_update_command(self) -> Type[UpdateFilterStateCommand]:
-        return UpdateFilterStateCommand
+    def get_update_command(self) -> Type[UpdateFormDataCommand]:
+        return UpdateFormDataCommand
 
-    def get_get_command(self) -> Type[GetFilterStateCommand]:
-        return GetFilterStateCommand
+    def get_get_command(self) -> Type[GetFormDataCommand]:
+        return GetFormDataCommand
 
-    def get_delete_command(self) -> Type[DeleteFilterStateCommand]:
-        return DeleteFilterStateCommand
+    def get_delete_command(self) -> Type[DeleteFormDataCommand]:
+        return DeleteFormDataCommand
 
-    @expose("/<int:pk>/filter_state", methods=["POST"])
+    @expose("/<int:pk>/form_data", methods=["POST"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -65,6 +65,11 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: pk
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: true
           requestBody:
             required: true
             content:
@@ -93,7 +98,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/form_data/<string:key>", methods=["PUT"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -115,6 +120,11 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: true
           requestBody:
             required: true
             content:
@@ -145,7 +155,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["GET"])
+    @expose("/<int(signed=True):pk>/form_data/<string:key>", methods=["GET"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -167,6 +177,11 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: true
           responses:
             200:
               description: Returns the stored value.
@@ -191,7 +206,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/form_data/<string:key>", methods=["DELETE"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -214,6 +229,11 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
               type: string
             name: key
             description: The value key.
+          - in: query
+            schema:
+              type: integer
+            name: dataset_id
+            required: true
           responses:
             200:
               description: Deleted the stored value.
