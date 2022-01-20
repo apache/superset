@@ -22,8 +22,8 @@ from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
+from superset.key_value.commands.entry import Entry
 from superset.key_value.utils import cache_key
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import login
