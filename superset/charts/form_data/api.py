@@ -69,7 +69,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: dataset_id
-            required: false
+            required: true
           requestBody:
             required: true
             content:
@@ -124,7 +124,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: dataset_id
-            required: false
+            required: true
           requestBody:
             required: true
             content:
@@ -181,7 +181,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: dataset_id
-            required: false
+            required: true
           responses:
             200:
               description: Returns the stored value.
@@ -233,7 +233,7 @@ class ChartFormDataRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: dataset_id
-            required: false
+            required: true
           responses:
             200:
               description: Deleted the stored value.

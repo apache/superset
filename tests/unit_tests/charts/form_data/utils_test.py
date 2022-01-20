@@ -93,54 +93,94 @@ def test_saved_chart_unknown_chart_id(
     mocker: MockFixture, app_context: AppContext
 ) -> None:
     from superset.charts.form_data.utils import check_access
+    from superset.connectors.sqla.models import SqlaTable
 
     with raises(ChartNotFoundError):
+        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(chart_find_by_id, return_value=None)
-        cmd_params = CommandParameters(resource_id=1, actor=User(), query_params={})
+        cmd_params = CommandParameters(
+            resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+        )
         check_access(cmd_params)
+
+
+def test_saved_chart_unauthorized_dataset(
+    mocker: MockFixture, app_context: AppContext
+) -> None:
+    from superset.charts.form_data import utils
+    from superset.connectors.sqla.models import SqlaTable
+
+    with raises(DatasetAccessDeniedError):
+        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(can_access_datasource, return_value=False)
+        cmd_params = CommandParameters(
+            resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+        )
+        utils.check_access(cmd_params)
 
 
 def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.charts.form_data.utils import check_access
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    cmd_params = CommandParameters(resource_id=1, actor=User(), query_params={})
+    cmd_params = CommandParameters(
+        resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+    )
     assert check_access(cmd_params) == True
 
 
 def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.charts.form_data.utils import check_access
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=False)
     mocker.patch(is_owner, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    cmd_params = CommandParameters(resource_id=1, actor=User(), query_params={})
+    cmd_params = CommandParameters(
+        resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+    )
     assert check_access(cmd_params) == True
 
 
 def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.charts.form_data.utils import check_access
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
+    mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+    mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=False)
     mocker.patch(is_owner, return_value=False)
     mocker.patch(can_access, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    cmd_params = CommandParameters(resource_id=1, actor=User(), query_params={})
+    cmd_params = CommandParameters(
+        resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+    )
     assert check_access(cmd_params) == True
 
 
 def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> None:
     from superset.charts.form_data.utils import check_access
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
     with raises(ChartAccessDeniedError):
+        mocker.patch(dataset_find_by_id, return_value=SqlaTable())
+        mocker.patch(can_access_datasource, return_value=True)
         mocker.patch(is_user_admin, return_value=False)
         mocker.patch(is_owner, return_value=False)
         mocker.patch(can_access, return_value=False)
         mocker.patch(chart_find_by_id, return_value=Slice())
-        cmd_params = CommandParameters(resource_id=1, actor=User(), query_params={})
+        cmd_params = CommandParameters(
+            resource_id=1, actor=User(), query_params={"dataset_id": "1"}
+        )
         check_access(cmd_params)

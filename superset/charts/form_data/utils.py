@@ -39,19 +39,24 @@ def get_dataset_id(cmd_params: CommandParameters) -> Optional[str]:
     return None
 
 
+def check_dataset_access(cmd_params: CommandParameters) -> Optional[bool]:
+    dataset_id = get_dataset_id(cmd_params)
+    if dataset_id:
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+        if dataset:
+            can_access_datasource = security_manager.can_access_datasource(dataset)
+            if can_access_datasource:
+                return True
+            raise DatasetAccessDeniedError()
+    raise DatasetNotFoundError()
+
+
 def check_access(cmd_params: CommandParameters) -> Optional[bool]:
     resource_id = cmd_params.resource_id
     actor = cmd_params.actor
+    check_dataset_access(cmd_params)
     if resource_id == 0:
-        dataset_id = get_dataset_id(cmd_params)
-        if dataset_id:
-            dataset = DatasetDAO.find_by_id(int(dataset_id))
-            if dataset:
-                can_access_datasource = security_manager.can_access_datasource(dataset)
-                if can_access_datasource:
-                    return True
-                raise DatasetAccessDeniedError()
-        raise DatasetNotFoundError()
+        return True
     chart = ChartDAO.find_by_id(resource_id)
     if chart:
         can_access_chart = (
