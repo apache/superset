@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import { t, styled, css } from '@superset-ui/core';
+import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import TableSelector from 'src/components/TableSelector';
@@ -112,9 +112,9 @@ const StyledScrollbarContainer = styled.div`
   overflow: auto;
 `;
 
-const collapseStyles = css`
+const collapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-item {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit * 3}px;
   }
   .ant-collapse-header {
     padding: 0px !important;
@@ -122,13 +122,13 @@ const collapseStyles = css`
     align-items: center;
   }
   .ant-collapse-content-box {
-    padding: 0px ${({ theme }) => theme.gridUnit * 4}px 0px 0px !important;
+    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${({ theme }) => theme.gridUnit * 2}px !important;
-    color: ${({ theme }) => theme.colors.primary.dark1} !important;
+    top: ${theme.gridUnit * 2}px !important;
+    color: ${theme.colors.primary.dark1} !important;
     &: hover {
-      color: ${({ theme }) => theme.colors.primary.dark2} !important;
+      color: ${theme.colors.primary.dark2} !important;
     }
   }
 `;
