@@ -364,16 +364,6 @@ class TestDruidFunc(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
-    def test_get_filters_keeps_values_if_not_between_in_quotes(self):
-        filtr = {"col": "A", "op": "in", "val": ["'a'b"]}
-        col = DruidColumn(column_name="A")
-        column_dict = {"A": col}
-        res = DruidDatasource.get_filters([filtr], [], column_dict)
-        self.assertEqual("'a'b", res.filter["filter"]["value"])
-
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
-    )
     def test_get_filters_keeps_trailing_spaces(self):
         filtr = {"col": "A", "op": "in", "val": ["a "]}
         col = DruidColumn(column_name="A")
