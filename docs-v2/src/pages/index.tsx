@@ -37,7 +37,7 @@ import { Databases } from '../resources/data';
 
 const { colors } = supersetTheme;
 
-const StyledMain = styled('div')`
+const StyledMain = styled('main')`
   text-align: center;
   .alert-color {
     color: ${colors.alert.base};
