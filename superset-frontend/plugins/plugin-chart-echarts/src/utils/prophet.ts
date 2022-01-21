@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TimeseriesDataRecord, NumberFormatter } from '@superset-ui/core';
+import {
+  TimeseriesDataRecord,
+  NumberFormatter,
+  DTTM_ALIAS,
+} from '@superset-ui/core';
 import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -117,7 +121,7 @@ export function rebaseTimeseriesDatum(
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data.map(row => {
-    const newRow: TimeseriesDataRecord = { __timestamp: '' };
+    const newRow: TimeseriesDataRecord = { [DTTM_ALIAS]: '' };
     keys.forEach(key => {
       const forecastContext = extractForecastSeriesContext(key);
       const lowerKey = `${forecastContext.name}${ForecastSeriesEnum.ForecastLower}`;
@@ -131,7 +135,7 @@ export function rebaseTimeseriesDatum(
         value -= row[lowerKey] as number;
       }
       const newKey =
-        key !== '__timestamp' && verboseMap[key] ? verboseMap[key] : key;
+        key !== DTTM_ALIAS && verboseMap[key] ? verboseMap[key] : key;
       newRow[newKey] = value;
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return

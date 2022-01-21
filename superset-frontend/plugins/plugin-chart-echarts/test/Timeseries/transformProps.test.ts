@@ -17,14 +17,14 @@
  * under the License.
  */
 import {
+  AnnotationSourceType,
+  AnnotationStyle,
+  AnnotationType,
   ChartProps,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   TimeseriesAnnotationLayer,
-  AnnotationStyle,
-  AnnotationType,
-  AnnotationSourceType,
 } from '@superset-ui/core';
 import transformProps from '../../src/Timeseries/transformProps';
 
@@ -35,6 +35,7 @@ describe('EchartsTimeseries transformProps', () => {
     granularity_sqla: 'ds',
     metric: 'sum__num',
     groupby: ['foo', 'bar'],
+    viz_type: 'my_viz',
   };
   const queriesData = [
     {
@@ -64,15 +65,15 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 1],
-                [new Date(599916000000), 3],
+                [599616000000, 1],
+                [599916000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 2],
-                [new Date(599916000000), 4],
+                [599616000000, 2],
+                [599916000000, 4],
               ],
               name: 'New York',
             }),
@@ -88,8 +89,8 @@ describe('EchartsTimeseries transformProps', () => {
       annotationType: AnnotationType.Formula,
       value: 'x+1',
       style: AnnotationStyle.Solid,
-      showLabel: true,
       show: true,
+      showLabel: true,
     };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
@@ -109,22 +110,22 @@ describe('EchartsTimeseries transformProps', () => {
           series: expect.arrayContaining([
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 1],
-                [new Date(599916000000), 3],
+                [599616000000, 1],
+                [599916000000, 3],
               ],
               name: 'San Francisco',
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 2],
-                [new Date(599916000000), 4],
+                [599616000000, 2],
+                [599916000000, 4],
               ],
               name: 'New York',
             }),
             expect.objectContaining({
               data: [
-                [new Date(599616000000), 599616000001],
-                [new Date(599916000000), 599916000001],
+                [599616000000, 599616000001],
+                [599916000000, 599916000001],
               ],
               name: 'My Formula',
             }),
