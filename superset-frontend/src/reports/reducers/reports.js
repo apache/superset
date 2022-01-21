@@ -18,24 +18,12 @@
  */
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { report } from 'process';
 import {
   SET_REPORT,
   ADD_REPORT,
   EDIT_REPORT,
   DELETE_REPORT,
 } from '../actions/reports';
-
-/* -- Report schema --
-reports: {
-  dashboards: {
-    [dashboardId]: {...reportObject}
-  },
-  charts: {
-    [chartId]: {...reportObject}
-  },
-}
-*/
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
@@ -79,13 +67,12 @@ export default function reportsReducer(state = {}, action) {
     [ADD_REPORT]() {
       const { result, id } = action.json;
       const report = { ...result, id };
-
       if (result.dashboard) {
         return {
           ...state,
           dashboards: {
             ...state.dashboards,
-            [report.id]: report,
+            [result.dashboard]: report,
           },
         };
       }
@@ -94,7 +81,7 @@ export default function reportsReducer(state = {}, action) {
           ...state,
           charts: {
             ...state.chart,
-            [report.id]: report,
+            [result.chart]: report,
           },
         };
       }
@@ -104,28 +91,17 @@ export default function reportsReducer(state = {}, action) {
     },
 
     [EDIT_REPORT]() {
-      // Grab first matching report by matching dashboard id
-      // FIX THESE, THEY'RE OBJECTS, NOT ARRAYS, NO FIND
-      const reportWithDashboard = action.json.result?.find(
-        report => !!report.dashboard_id,
-      );
-      // Assign the report's id
-      reportWithDashboard.id = action.json.id;
+      const report = {
+        ...action.json.result,
+        id: action.json.id,
+      };
 
-      // Grab first matching report by matching chart id
-      const reportWithChart = action.json.result?.find(
-        report => !!report.chart.id,
-      );
-      // Assign the report's id
-      reportWithChart.id = action.json.id;
-
-      // This updates the report by its type, dashboard or chart
-      if (reportWithDashboard) {
+      if (action.json.result.dashboard) {
         return {
           ...state,
           dashboards: {
             ...state.dashboards,
-            [reportWithDashboard.dashboard_id]: report,
+            [report.dashboard]: report,
           },
         };
       }
@@ -133,38 +109,37 @@ export default function reportsReducer(state = {}, action) {
         ...state,
         charts: {
           ...state.chart,
-          [reportWithChart.chart.id]: report,
+          [report.chart]: report,
         },
       };
     },
 
     [DELETE_REPORT]() {
-      // Grabs the first report with a dashboard id that
-      // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result?.find(
-        report => !!report.dashboard_id,
-      );
+      const reportWithDashboard = !!action.report.dashboard;
 
-      // This deletes the report by its type, dashboard or chart
       if (reportWithDashboard) {
+        const { dashboard } = action.report;
+        // making a shallow copy so as to not directly delete state
+        const { ...dashboardReports } = state.dashboards;
+        delete dashboardReports[dashboard];
         return {
           ...state,
           dashboards: {
-            ...state.dashboards.filter(report => report.id !== action.reportId),
+            dashboardReports,
           },
         };
       }
+
+      const { chart } = action.report;
+      // making a shallow copy so as to not directly delete state
+      const { ...chartReports } = state.charts;
+      delete chartReports[chart];
       return {
         ...state,
         charts: {
-          ...state.charts.filter(chart => chart.id !== action.reportId),
+          chartReports,
         },
       };
-
-      // state.users.filter(item => item.id !== action.payload)
-      // return {
-      //   ...state.filter(report => report.id !== action.reportId),
-      // };
     },
   };
 

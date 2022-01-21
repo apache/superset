@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
+import { usePrevious } from 'src/hooks/usePrevious';
 import { useSelector, useDispatch } from 'react-redux';
 import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -46,21 +47,17 @@ export default function HeaderReportActionsDropDown({
   chart?: ChartState;
 }) {
   const dispatch = useDispatch();
-  const report: AlertObject = useSelector<any, AlertObject>(state => {
+
+  const findReport = useSelector<any, AlertObject>(state => {
     if (dashboardId) {
       return state.reports.dashboards?.[dashboardId];
     }
     if (chart?.id) {
-      return state.reports.charts?.[chart.id];
+      return state.reports.charts?.[chart?.id];
     }
     return {};
   });
-  // const report: ReportObject = Object.values(reports).filter(report => {
-  //   if (dashboardId) {
-  //     return report.dashboards?.[dashboardId];
-  //   }
-  //   // return report.charts?.[chart?.id]
-  // })[0];
+  const report = findReport;
 
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
@@ -69,6 +66,7 @@ export default function HeaderReportActionsDropDown({
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<AlertObject | null>(null);
   const theme = useTheme();
+  const prevDashboard = usePrevious(dashboardId);
   const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
@@ -98,8 +96,18 @@ export default function HeaderReportActionsDropDown({
     return permissions[0].length > 0;
   };
 
+  const canRender = () => {
+    if (dashboardId) {
+      return prevDashboard !== dashboardId;
+    }
+    if (chart?.id) {
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
-    if (canAddReports()) {
+    if (canAddReports() && canRender()) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -158,6 +166,7 @@ export default function HeaderReportActionsDropDown({
           userEmail={user.email}
           dashboardId={dashboardId}
           chart={chart}
+          findReport={findReport}
         />
         {report ? (
           <>

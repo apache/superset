@@ -28,8 +28,6 @@ import { t, SupersetTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { addReport, editReport } from 'src/reports/actions/reports';
-import { AlertObject } from 'src/views/CRUD/alert/types';
-
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
@@ -84,11 +82,7 @@ interface ReportProps {
   userEmail: string;
   dashboardId?: number;
   chart?: ChartState;
-<<<<<<< HEAD
-  props?: any;
-=======
-  props: any;
->>>>>>> be2e1ecf6... code dry (#16358)
+  findReport: ReportObject;
 }
 
 interface ReportPayloadType {
@@ -175,6 +169,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
+  findReport,
 }) => {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
@@ -191,13 +186,11 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const [cronError, setCronError] = useState<CronError>();
   const dispatch = useDispatch();
   // Report fetch logic
-  const reports = useSelector<any, AlertObject>(state => state.reports);
-  const isEditMode = reports && Object.keys(reports).length;
+  const report = findReport;
+  const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
     if (isEditMode) {
-      const reportsIds = Object.keys(reports);
-      const report = reports[reportsIds[0]];
       setCurrentReport({
         type: ActionType.fetched,
         payload: report,
@@ -207,7 +200,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         type: ActionType.reset,
       });
     }
-  }, [reports]);
+  }, [report]);
 
   const onSave = async () => {
     // Create new Report

@@ -59,6 +59,7 @@ export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
 export type AlertObject = {
   active?: boolean;
+  creation_method: string;
   chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;
@@ -81,7 +82,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: 'PNG' | 'CSV' | 'TEXT';
+  report_format?: 'PNG' | 'CSV' | 'TEXT' | string;
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -89,6 +90,7 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  error?: string;
 };
 
 export type LogObject = {
