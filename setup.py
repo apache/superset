@@ -18,7 +18,6 @@ import io
 import json
 import os
 import subprocess
-import sys
 
 from setuptools import find_packages, setup
 
@@ -163,6 +162,8 @@ setup(
         "thumbnails": ["Pillow>=8.3.2, <9.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
+        # client SDK
+        "client": ["yarl>=1.7.2", "beautifulsoup4>=4.10.0", "requests>=2.26.0"],
     },
     python_requires="~=3.7",
     author="Apache Software Foundation",
