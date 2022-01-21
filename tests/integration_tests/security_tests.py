@@ -1161,14 +1161,22 @@ class FakeRequest:
 
 
 class TestGuestTokens(SupersetTestCase):
+    def create_guest_token(self):
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        return security_manager.create_guest_access_token(user, resources, rls)
+
     @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
     def test_create_guest_access_token(self, get_time_mock):
         now = time.time()
         get_time_mock.return_value = now  # so we know what it should =
-        user = {"any": "data"}
-        resources = [{"some": "resource"}]
 
-        token = security_manager.create_guest_access_token(user, resources)
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        token = security_manager.create_guest_access_token(user, resources, rls)
+
         # unfortunately we cannot mock time in the jwt lib
         decoded_token = jwt.decode(
             token,
@@ -1185,9 +1193,7 @@ class TestGuestTokens(SupersetTestCase):
         )
 
     def test_get_guest_user(self):
-        user = {"username": "test_guest"}
-        resources = [{"type": "dashboard", "id": 1}]
-        token = security_manager.create_guest_access_token(user, resources)
+        token = self.create_guest_token()
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
@@ -1202,9 +1208,7 @@ class TestGuestTokens(SupersetTestCase):
         get_time_mock.return_value = (
             time.time() - (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000) - 1
         )
-        user = {"username": "test_guest"}
-        resources = [{"type": "dashboard", "id": 1}]
-        token = security_manager.create_guest_access_token(user, resources)
+        token = self.create_guest_token()
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
 
