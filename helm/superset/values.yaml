@@ -357,7 +357,7 @@ postgresql:
   enabled: true
   ##
   ## The name of an existing secret that contains the postgres password.
-  existingSecret:
+  existingSecret: secret-name
   ## Name of the key containing the secret.
   existingSecretKey: postgresql-password
   ##
@@ -402,7 +402,7 @@ redis:
   usePassword: false
   ##
   ## The name of an existing secret that contains the redis password.
-  existingSecret:
+  existingSecret: secret-name
   ## Name of the key containing the secret.
   existingSecretKey: redis-password
   ##
