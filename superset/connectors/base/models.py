@@ -110,7 +110,7 @@ class BaseDatasource(
     params = Column(String(1000))
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
-    is_managed_externally = Column(Boolean, default=False)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
 
     sql: Optional[str] = None

@@ -92,7 +92,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     certified_by = Column(Text)
     certification_details = Column(Text)
-    is_managed_externally = Column(Boolean, default=False)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]

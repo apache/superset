@@ -151,7 +151,7 @@ class Database(
     encrypted_extra = Column(encrypted_field_factory.create(Text), nullable=True)
     impersonate_user = Column(Boolean, default=False)
     server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
-    is_managed_externally = Column(Boolean, default=False)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
 
     export_fields = [
