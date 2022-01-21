@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -138,6 +138,18 @@ const onlyTotalControl: ControlSetItem = {
   },
 };
 
+export const xAxisControl: ControlSetItem = {
+  name: 'x_axis',
+  config: {
+    ...sharedControls.groupby,
+    label: t('X-axis'),
+    default: null,
+    multi: false,
+    description: t('Dimension to use on x-axis.'),
+    validators: [validateNonEmpty],
+  },
+};
+
 const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
@@ -161,6 +173,11 @@ export const showValueSection: ControlSetRow[] = [
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
+];
+
+export const showValueSectionWithoutStack: ControlSetRow[] = [
+  [showValueControl],
+  [onlyTotalControl],
 ];
 
 const richTooltipControl: ControlSetItem = {

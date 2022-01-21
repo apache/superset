@@ -17,11 +17,13 @@
  * under the License.
  */
 import {
-  t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
+  ChartMetadata,
+  ChartPlugin,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
 } from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
 import controlPanel from './controlPanel';
@@ -56,9 +58,13 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
-        ),
+        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t(
+              'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
+            )
+          : t(
+              'Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
+            ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -66,7 +72,9 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Scatter Plot'),
+        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Scatter Plot')
+          : t('Time-series Scatter Plot'),
         tags: [
           t('ECharts'),
           t('Predictive'),
