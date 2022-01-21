@@ -43,11 +43,11 @@ export default function QueryAndSaveBtns(props: QueryAndSaveBtnsProps) {
     chartIsStale,
     errorMessage,
   } = props;
-  let qryButtonStyle = 'tertiary' as ButtonStyle;
+  let qryButtonStyle: ButtonStyle = 'tertiary';
   if (errorMessage) {
-    qryButtonStyle = 'danger' as ButtonStyle;
+    qryButtonStyle = 'danger';
   } else if (chartIsStale) {
-    qryButtonStyle = 'primary' as ButtonStyle;
+    qryButtonStyle = 'primary';
   }
 
   const saveButtonDisabled = errorMessage ? true : loading;
