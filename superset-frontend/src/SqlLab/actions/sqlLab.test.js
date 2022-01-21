@@ -23,7 +23,6 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
-import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { defaultQueryEditor, query } from '../fixtures';
 
@@ -93,7 +92,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(3);
+        expect(dispatch.callCount).toBe(2);
       });
     });
 
@@ -111,7 +110,6 @@ describe('async actions', () => {
       const store = mockStore({});
       const expectedActionTypes = [
         actions.QUERY_EDITOR_SAVED,
-        ADD_TOAST,
         actions.QUERY_EDITOR_SET_TITLE,
       ];
       return store.dispatch(actions.saveQuery(query)).then(() => {

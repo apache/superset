@@ -44,6 +44,9 @@ class GuestTokenRlsRule(TypedDict):
     clause: str
 
 
+GuestTokenResources = List[GuestTokenResource]
+
+
 class GuestToken(TypedDict):
     iat: float
     exp: float

@@ -167,6 +167,9 @@ export interface PostProcessingResample {
     rule: string;
     fill_value?: number | null;
     time_column: string;
+    // If AdhocColumn doesn't have a label, it will be undefined.
+    // todo: we have to give an explicit label for AdhocColumn.
+    groupby_columns?: Array<string | undefined>;
   };
 }
 

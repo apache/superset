@@ -21,8 +21,8 @@ import polyline
 from sqlalchemy import inspect, String, Text
 
 from superset import db
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import get_example_data, get_table_connector_registry
 
 

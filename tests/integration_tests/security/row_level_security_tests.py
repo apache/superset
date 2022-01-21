@@ -44,39 +44,39 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
 )
 
 
-query_obj: Dict[str, Any] = dict(
-    groupby=[],
-    metrics=None,
-    filter=[],
-    is_timeseries=False,
-    columns=["value"],
-    granularity=None,
-    from_dttm=None,
-    to_dttm=None,
-    extras={},
-)
-NAME_AB_ROLE = "NameAB"
-NAME_Q_ROLE = "NameQ"
-NAMES_A_REGEX = re.compile(r"name like 'A%'")
-NAMES_B_REGEX = re.compile(r"name like 'B%'")
-NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
-BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
-
-
 class TestRowLevelSecurity(SupersetTestCase):
     """
     Testing Row Level Security
     """
 
+    rls_entry = None
+    query_obj: Dict[str, Any] = dict(
+        groupby=[],
+        metrics=None,
+        filter=[],
+        is_timeseries=False,
+        columns=["value"],
+        granularity=None,
+        from_dttm=None,
+        to_dttm=None,
+        extras={},
+    )
+    NAME_AB_ROLE = "NameAB"
+    NAME_Q_ROLE = "NameQ"
+    NAMES_A_REGEX = re.compile(r"name like 'A%'")
+    NAMES_B_REGEX = re.compile(r"name like 'B%'")
+    NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
+    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
+
     def setUp(self):
         session = db.session
 
         # Create roles
-        security_manager.add_role(NAME_AB_ROLE)
-        security_manager.add_role(NAME_Q_ROLE)
+        self.role_ab = security_manager.add_role(self.NAME_AB_ROLE)
+        security_manager.add_role(self.NAME_Q_ROLE)
         gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(NAME_AB_ROLE))
-        gamma_user.roles.append(security_manager.find_role(NAME_Q_ROLE))
+        gamma_user.roles.append(security_manager.find_role(self.NAME_AB_ROLE))
+        gamma_user.roles.append(security_manager.find_role(self.NAME_Q_ROLE))
         self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
         session.commit()
 
@@ -150,8 +150,8 @@ class TestRowLevelSecurity(SupersetTestCase):
     def test_rls_filter_alters_energy_query(self):
         g.user = self.get_user(username="alpha")
         tbl = self.get_table(name="energy_usage")
-        sql = tbl.get_query_str(query_obj)
-        assert tbl.get_extra_cache_keys(query_obj) == [1]
+        sql = tbl.get_query_str(self.query_obj)
+        assert tbl.get_extra_cache_keys(self.query_obj) == [1]
         assert "value > 1" in sql
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -160,8 +160,8 @@ class TestRowLevelSecurity(SupersetTestCase):
             username="admin"
         )  # self.login() doesn't actually set the user
         tbl = self.get_table(name="energy_usage")
-        sql = tbl.get_query_str(query_obj)
-        assert tbl.get_extra_cache_keys(query_obj) == []
+        sql = tbl.get_query_str(self.query_obj)
+        assert tbl.get_extra_cache_keys(self.query_obj) == []
         assert "value > 1" not in sql
 
     @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
@@ -170,15 +170,15 @@ class TestRowLevelSecurity(SupersetTestCase):
             username="alpha"
         )  # self.login() doesn't actually set the user
         tbl = self.get_table(name="unicode_test")
-        sql = tbl.get_query_str(query_obj)
-        assert tbl.get_extra_cache_keys(query_obj) == [1]
+        sql = tbl.get_query_str(self.query_obj)
+        assert tbl.get_extra_cache_keys(self.query_obj) == [1]
         assert "value > 1" in sql
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_gamma_birth_names_query(self):
         g.user = self.get_user(username="gamma")
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
@@ -191,26 +191,26 @@ class TestRowLevelSecurity(SupersetTestCase):
     def test_rls_filter_alters_no_role_user_birth_names_query(self):
         g.user = self.get_user(username="NoRlsRoleUser")
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         # gamma's filters should not be present query
-        assert not NAMES_A_REGEX.search(sql)
-        assert not NAMES_B_REGEX.search(sql)
-        assert not NAMES_Q_REGEX.search(sql)
+        assert not self.NAMES_A_REGEX.search(sql)
+        assert not self.NAMES_B_REGEX.search(sql)
+        assert not self.NAMES_Q_REGEX.search(sql)
         # base query should be present
-        assert BASE_FILTER_REGEX.search(sql)
+        assert self.BASE_FILTER_REGEX.search(sql)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_doesnt_alter_admin_birth_names_query(self):
         g.user = self.get_user(username="admin")
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         # no filters are applied for admin user
-        assert not NAMES_A_REGEX.search(sql)
-        assert not NAMES_B_REGEX.search(sql)
-        assert not NAMES_Q_REGEX.search(sql)
-        assert not BASE_FILTER_REGEX.search(sql)
+        assert not self.NAMES_A_REGEX.search(sql)
+        assert not self.NAMES_B_REGEX.search(sql)
+        assert not self.NAMES_Q_REGEX.search(sql)
+        assert not self.BASE_FILTER_REGEX.search(sql)
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
@@ -221,6 +221,18 @@ RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
     "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
+    query_obj: Dict[str, Any] = dict(
+        groupby=[],
+        metrics=None,
+        filter=[],
+        is_timeseries=False,
+        columns=["value"],
+        granularity=None,
+        from_dttm=None,
+        to_dttm=None,
+        extras={},
+    )
+
     def default_rls_rule(self):
         return {
             "dataset": self.get_table(name="birth_names").id,
@@ -242,7 +254,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
     def test_rls_filter_alters_query(self):
         g.user = self.guest_user_with_rls()
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
 
@@ -257,7 +269,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
             ]
         )
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         self.assertNotRegexpMatches(sql, RLS_ALICE_REGEX)
 
@@ -273,7 +285,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
             ]
         )
         tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(query_obj)
+        sql = tbl.get_query_str(self.query_obj)
 
         self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
         self.assertRegexpMatches(sql, RLS_GENDER_REGEX)
@@ -286,8 +298,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         guest = self.guest_user_with_rls(rules=[{"clause": "name = 'Alice'"}])
         guest.resources.append({type: "dashboard", id: energy.id})
         g.user = guest
-        births_sql = births.get_query_str(query_obj)
-        energy_sql = energy.get_query_str(query_obj)
+        births_sql = births.get_query_str(self.query_obj)
+        energy_sql = energy.get_query_str(self.query_obj)
 
         self.assertRegexpMatches(births_sql, RLS_ALICE_REGEX)
         self.assertRegexpMatches(energy_sql, RLS_ALICE_REGEX)
@@ -299,6 +311,6 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         g.user = self.guest_user_with_rls(
             rules=[{"dataset": str_id, "clause": "name = 'Alice'"}]
         )
-        sql = dataset.get_query_str(query_obj)
+        sql = dataset.get_query_str(self.query_obj)
 
         self.assertRegexpMatches(sql, RLS_ALICE_REGEX)

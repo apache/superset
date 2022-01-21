@@ -14,66 +14,28 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing,
-#  software distributed under the License is distributed on an
-#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-#  KIND, either express or implied.  See the License for the
-#  specific language governing permissions and limitations
-#  under the License.
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing,
-#  software distributed under the License is distributed on an
-#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-#  KIND, either express or implied.  See the License for the
-#  specific language governing permissions and limitations
-#  under the License.
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing,
-#  software distributed under the License is distributed on an
-#  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-#  KIND, either express or implied.  See the License for the
-#  specific language governing permissions and limitations
-#  under the License.
 from __future__ import annotations
 
 from datetime import datetime
 from random import choice, randint
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, TYPE_CHECKING
 
-from tests.common.example_data_generator.base_generator import ExampleDataGenerator
-from tests.common.example_data_generator.consts import US_STATES
-from tests.common.example_data_generator.string_generator import StringGenerator
-
-NUM_GIRLS = "num_girls"
-NUM_BOYS = "num_boys"
-STATE = "state"
-NUM = "num"
-NAME = "name"
-GENDER = "gender"
-DS = "ds"
-GIRL = "girl"
-BOY = "boy"
-
-from collections import OrderedDict
-
-BIRTH_NAMES_COLUMNS = OrderedDict(
-    [
-        (DS, datetime),
-        (GENDER, str),
-        (NAME, str),
-        (NUM, int),
-        (STATE, str),
-        (NUM_BOYS, int),
-        (NUM_GIRLS, int),
-    ]
+from tests.consts.birth_names import (
+    BOY,
+    DS,
+    GENDER,
+    GIRL,
+    NAME,
+    NUM,
+    NUM_BOYS,
+    NUM_GIRLS,
+    STATE,
 )
+from tests.consts.us_states import US_STATES
+from tests.example_data.data_generator.base_generator import ExampleDataGenerator
+
+if TYPE_CHECKING:
+    from tests.example_data.data_generator.string_generator import StringGenerator
 
 
 class BirthNamesGenerator(ExampleDataGenerator):
