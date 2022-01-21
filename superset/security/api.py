@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
 import logging
-from enum import Enum
 from typing import Any, Dict
 
 from flask import request, Response
@@ -38,7 +36,7 @@ class PermissiveSchema(Schema):
     A marshmallow schema that ignores unexpected fields, instead of throwing an error.
     """
 
-    class Meta:
+    class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
 
@@ -53,8 +51,8 @@ class ResourceSchema(PermissiveSchema):
     id = fields.String(required=True)
 
     @post_load
-    def convert_enum_to_value(
-        self, data: Dict[str, Any], **kwargs: Any
+    def convert_enum_to_value(  # pylint: disable=no-self-use
+        self, data: Dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
     ) -> Dict[str, Any]:
         # we don't care about the enum, we want the value inside
         data["type"] = data["type"].value
