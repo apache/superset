@@ -25,7 +25,6 @@ import React, {
   useCallback,
   useMemo,
   useRef,
-  LegacyRef,
   RefObject,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
