@@ -41,7 +41,7 @@ import requests
 from bs4 import BeautifulSoup
 from yarl import URL
 
-from superset.utils.core import shortid
+from superset.utils.core import get_version, shortid
 
 
 class Database:
@@ -89,6 +89,7 @@ class Database:
             "X-CSRFToken": self.csrf_token,
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "User-Agent": f"Apache Superset Client ({get_version()})",
         }
 
         response = self.session.post(url, json=data, headers=headers)

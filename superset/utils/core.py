@@ -77,6 +77,7 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
+from pkg_resources import resource_filename
 from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -1788,3 +1789,22 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
+
+
+def get_version() -> str:
+    """
+    Return the current version of Superset.
+    """
+    version_info_file = resource_filename("superset", "static/version_info.json")
+    with open(version_info_file, encoding="utf-8") as fp:
+        contents = json.load(fp)
+        if "version" in contents:
+            return contents["version"]
+
+    package_json_file = resource_filename("superset", "static/assets/package.json")
+    with open(package_json_file, encoding="utf-8") as fp:
+        contents = json.load(fp)
+        if "version" in contents:
+            return contents["version"]
+
+    return "Unknown version"
