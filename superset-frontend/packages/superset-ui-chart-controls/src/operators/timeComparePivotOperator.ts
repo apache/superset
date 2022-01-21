@@ -19,10 +19,11 @@
  */
 import {
   ComparisionType,
-  PostProcessingPivot,
-  NumpyFunction,
+  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
+  NumpyFunction,
+  PostProcessingPivot,
 } from '@superset-ui/core';
 import {
   getMetricOffsetsMap,
@@ -57,7 +58,7 @@ export const timeComparePivotOperator: PostProcessingFactory<
     return {
       operation: 'pivot',
       options: {
-        index: ['__timestamp'],
+        index: [formData.x_axis || DTTM_ALIAS],
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         aggregates:
           comparisonType === ComparisionType.Values ? valuesAgg : changeAgg,
