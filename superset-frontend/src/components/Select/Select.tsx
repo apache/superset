@@ -94,7 +94,7 @@ export interface SelectProps extends PickedSelectProps {
    * the select component is located to prevent
    * dropdown movement onscroll.
    */
-  getPopupContainer?: RefObject<any>;
+  getPopupContainer?: () => RefObject<any>;
   /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.

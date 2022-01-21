@@ -26,6 +26,7 @@ import React, {
   useMemo,
   useRef,
   LegacyRef,
+  RefObject,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -166,7 +167,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
-  const parent = useRef() as LegacyRef<HTMLDivElement> | undefined;
+  const parent = useRef() as RefObject<any> | undefined;
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
   const dashboardId = useSelector<any, string>(

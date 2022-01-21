@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useCallback, useMemo, useState } from 'react';
+import React, { FC, RefObject, useCallback, useMemo, useState } from 'react';
 import { css } from '@emotion/react';
 import { DataMask, styled, t } from '@superset-ui/core';
 import {
@@ -49,6 +49,7 @@ type FilterControlsProps = {
   directPathToChild?: string[];
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  parentRef?: RefObject<any>;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
