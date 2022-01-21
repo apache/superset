@@ -22,7 +22,7 @@ import { Slice } from 'src/types/Chart';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import PropertiesModal from '.';
+import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () => ({
   slice: {
@@ -68,6 +68,7 @@ const createProps = () => ({
   show: true,
   onHide: jest.fn(),
   onSave: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
 fetchMock.get('glob:*/api/v1/chart/318', {
@@ -160,7 +161,7 @@ afterAll(() => {
   fetchMock.resetBehavior();
 });
 
-const renderModal = (props: any) =>
+const renderModal = (props: PropertiesModalProps) =>
   render(<PropertiesModal {...props} />, { useRedux: true });
 
 test('Should render null when show:false', async () => {

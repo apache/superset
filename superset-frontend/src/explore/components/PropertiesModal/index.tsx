@@ -28,7 +28,7 @@ import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
-type PropertiesModalProps = {
+export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
