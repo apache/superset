@@ -1211,3 +1211,26 @@ class TestGuestTokens(SupersetTestCase):
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         self.assertIsNone(guest_user)
+
+    def test_get_guest_user_no_user(self):
+        user = None
+        resources = [{"type": "dashboard", "id": 1}]
+        token = security_manager.create_guest_access_token(user, resources)
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNone(guest_user)
+        self.assertRaisesRegex(ValueError, "Guest token does not contain a user claim")
+
+    def test_get_guest_user_no_resource(self):
+        user = {"username": "test_guest"}
+        resources = []
+        token = security_manager.create_guest_access_token(user, resources)
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertRaisesRegex(
+            ValueError, "Guest token does not contain a resources claim"
+        )
