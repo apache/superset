@@ -27,11 +27,11 @@ type SliderControlProps = {
 };
 
 export default function SliderControl(props: SliderControlProps) {
-  const { default: defaultValue, ...rest } = props;
+  const { onChange = () => {}, default: defaultValue, ...rest } = props;
   return (
     <>
       <ControlHeader />
-      <Slider {...rest} defaultValue={defaultValue} />
+      <Slider {...rest} onChange={onChange} defaultValue={defaultValue} />
     </>
   );
 }
