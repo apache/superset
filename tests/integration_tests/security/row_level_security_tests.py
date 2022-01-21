@@ -73,10 +73,10 @@ class TestRowLevelSecurity(SupersetTestCase):
 
         # Create roles
         self.role_ab = security_manager.add_role(self.NAME_AB_ROLE)
-        security_manager.add_role(self.NAME_Q_ROLE)
+        self.role_q = security_manager.add_role(self.NAME_Q_ROLE)
         gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(self.NAME_AB_ROLE))
-        gamma_user.roles.append(security_manager.find_role(self.NAME_Q_ROLE))
+        gamma_user.roles.append(self.role_ab)
+        gamma_user.roles.append(self.role_q)
         self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
         session.commit()
 
