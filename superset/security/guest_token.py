@@ -84,4 +84,4 @@ class GuestUser(AnonymousUserMixin):
         self.last_name = user.get("last_name", "User")
         self.roles = roles
         self.resources = token["resources"]
-        self.rls = token["rls_rules"]
+        self.rls = token.get("rls_rules", [])
