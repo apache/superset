@@ -35,7 +35,7 @@ class UserSchema(Schema):
 
 
 class ResourceSchema(Schema):
-    type = fields.String(required=True)
+    type = fields.String(required=True)  # todo figure out how to make this an enum
     id = fields.String(required=True)
     rls = fields.String()
 

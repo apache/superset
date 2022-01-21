@@ -67,7 +67,8 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.security.guest_token import (
     GuestToken,
-    GuestTokenResource,
+    GuestTokenResources,
+    GuestTokenResourceType,
     GuestTokenUser,
     GuestUser,
 )
@@ -1067,11 +1068,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            should_check_dashboard_access = (
+                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                or self.is_guest_user()
+            )
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or (
-                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                    should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
                 )
             ):
@@ -1096,6 +1102,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
         return AnonymousUserMixin()
+
+    def get_user_roles(self, user: Optional[User] = None) -> List[Role]:
+        if not user:
+            user = g.user
+        if user.is_anonymous:
+            public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
+            return [self.get_public_role()] if public_role else []
+        return user.roles
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
@@ -1195,10 +1209,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
-    @staticmethod
-    def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
+    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
+        This does not check for the required role/permission pairs,
+        it only concerns itself with entity relationships.
 
         :param dashboard: Dashboard the user wants access to
         :raises DashboardAccessDeniedError: If the user cannot access the resource
@@ -1206,23 +1221,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import get_user_roles, is_user_admin
+        from superset.views.base import is_user_admin
         from superset.views.utils import is_owner
 
-        has_rbac_access = True
-
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            has_rbac_access = any(
-                dashboard_role.id in [user_role.id for user_role in get_user_roles()]
+        def has_rbac_access() -> bool:
+            return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
+                dashboard_role.id
+                in [user_role.id for user_role in self.get_user_roles()]
                 for dashboard_role in dashboard.roles
             )
 
-        can_access = (
-            is_user_admin()
-            or is_owner(dashboard, g.user)
-            or (dashboard.published and has_rbac_access)
-            or (not dashboard.published and not dashboard.roles)
-        )
+        if self.is_guest_user():
+            can_access = self.has_guest_access(
+                GuestTokenResourceType.DASHBOARD, dashboard.id
+            )
+        else:
+            can_access = (
+                is_user_admin()
+                or is_owner(dashboard, g.user)
+                or (dashboard.published and has_rbac_access())
+                or (not dashboard.published and not dashboard.roles)
+            )
 
         if not can_access:
             raise DashboardAccessDeniedError()
@@ -1255,7 +1274,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return time.time()
 
     def create_guest_access_token(
-        self, user: GuestTokenUser, resources: List[GuestTokenResource]
+        self, user: GuestTokenUser, resources: GuestTokenResources
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
@@ -1289,33 +1308,60 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         try:
             token = self.parse_jwt_guest_token(raw_token)
+            if token.get("user") is None:
+                raise ValueError("Guest token does not contain a user claim")
+            if token.get("resources") is None:
+                raise ValueError("Guest token does not contain a resources claim")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
             logger.warning("Invalid guest token", exc_info=True)
             return None
         else:
-            return self.guest_user_cls(
-                token=token,
-                roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
-            )
+            return self.get_guest_user_from_token(cast(GuestToken, token))
+
+    def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
+        return self.guest_user_cls(
+            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+        )
 
     @staticmethod
-    def parse_jwt_guest_token(raw_token: str) -> GuestToken:
+    def parse_jwt_guest_token(raw_token: str) -> Dict[str, Any]:
         """
-        Parses and validates a guest token.
-        Raises an error if the jwt is invalid:
-        if it is not signed with our secret,
-        or if required claims are not present.
+        Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request
         :return: the same token that was passed in, tested but unchanged
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
+        return jwt.decode(raw_token, secret, algorithms=[algo])
 
-        token = jwt.decode(raw_token, secret, algorithms=[algo])
-        if token.get("user") is None:
-            raise ValueError("Guest token does not contain a user claim")
-        if token.get("resources") is None:
-            raise ValueError("Guest token does not contain a resources claim")
-        return cast(GuestToken, token)
+    @staticmethod
+    def is_guest_user(user: Optional[Any] = None) -> bool:
+        # pylint: disable=import-outside-toplevel
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return False
+        if not user:
+            user = g.user
+        return hasattr(user, "is_guest_user") and user.is_guest_user
+
+    def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
+
+        if self.is_guest_user():
+            return g.user
+        return None
+
+    def has_guest_access(
+        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
+    ) -> bool:
+        user = self.get_current_guest_user_if_guest()
+        if not user:
+            return False
+
+        strid = str(resource_id)
+        for resource in user.resources:
+            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+                return True
+        return False
