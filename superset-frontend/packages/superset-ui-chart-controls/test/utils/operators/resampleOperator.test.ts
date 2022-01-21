@@ -94,9 +94,10 @@ test('should do resample on x-axis', () => {
   ).toEqual({
     operation: 'resample',
     options: {
+      fill_value: null,
+      groupby_columns: [],
       method: 'ffill',
       rule: '1D',
-      fill_value: null,
       time_column: 'ds',
     },
   });

@@ -44,6 +44,7 @@ export default function buildQuery(formData: QueryFormData) {
       pivotOperator(formData, {
         ...baseQueryObject,
         index: x_axis,
+        is_timeseries,
       });
     if (
       pivotOperatorInRuntime &&
