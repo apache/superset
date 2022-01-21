@@ -42,7 +42,7 @@ from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 

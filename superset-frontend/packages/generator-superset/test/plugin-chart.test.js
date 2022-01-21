@@ -40,6 +40,7 @@ test('generator-superset:plugin-chart:creates files', () =>
     .withOptions({ skipInstall: true })
     .then(function () {
       assert.file([
+        '.gitignore',
         'babel.config.js',
         'jest.config.js',
         'package.json',

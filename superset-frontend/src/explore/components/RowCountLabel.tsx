@@ -17,25 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { getNumberFormatter, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 
-const propTypes = {
-  rowcount: PropTypes.number,
-  limit: PropTypes.number,
-  rows: PropTypes.string,
-  suffix: PropTypes.string,
-  loading: PropTypes.bool,
+type RowCountLabelProps = {
+  rowcount: number;
+  limit?: number;
+  suffix?: string;
+  loading?: boolean;
 };
 
-const defaultProps = {
-  suffix: t('rows'),
-};
-
-export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
+export default function RowCountLabel(props: RowCountLabelProps) {
+  const { rowcount = 0, limit, suffix = t('rows'), loading } = props;
   const limitReached = rowcount === limit;
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
@@ -55,5 +50,4 @@ export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
   );
 }
 
-RowCountLabel.propTypes = propTypes;
-RowCountLabel.defaultProps = defaultProps;
+export type { RowCountLabelProps };

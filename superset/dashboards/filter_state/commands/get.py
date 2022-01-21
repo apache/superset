@@ -16,16 +16,26 @@
 # under the License.
 from typing import Optional
 
+from flask import current_app as app
+
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
 from superset.key_value.commands.get import GetKeyValueCommand
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class GetFilterStateCommand(GetKeyValueCommand):
-    def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
+    def __init__(self, cmd_params: CommandParameters) -> None:
+        super().__init__(cmd_params)
+        config = app.config["FILTER_STATE_CACHE_CONFIG"]
+        self._refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+
+    def get(self, cmd_params: CommandParameters) -> Optional[str]:
+        resource_id = cmd_params.resource_id
+        key = cache_key(resource_id, cmd_params.key)
         DashboardDAO.get_by_id_or_slug(str(resource_id))
-        entry = cache_manager.filter_state_cache.get(cache_key(resource_id, key)) or {}
-        if entry and refresh_timeout:
+        entry = cache_manager.filter_state_cache.get(key) or {}
+        if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)
         return entry.get("value")

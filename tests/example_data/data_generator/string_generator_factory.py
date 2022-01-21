@@ -16,7 +16,7 @@
 #  under the License.
 import string
 
-from tests.common.example_data_generator.string_generator import StringGenerator
+from tests.example_data.data_generator.string_generator import StringGenerator
 
 
 class StringGeneratorFactory:
