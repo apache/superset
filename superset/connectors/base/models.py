@@ -401,10 +401,6 @@ class BaseDatasource(
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                quotes_value = re.findall(r"['|\"](.*?)['|\"]", value)
-                if len(quotes_value) == 1 and quotes_value[0] == value.strip("'\""):
-                    value = value.strip("'\"")
-
                 if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
