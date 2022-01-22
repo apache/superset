@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { MouseEventHandler } from 'react';
 import Icons from 'src/components/Icons';
 import IconButton from './IconButton';
 
-const propTypes = {
-  onDelete: PropTypes.func.isRequired,
-};
+interface DeleteComponentButtonProps {
+  onDelete: MouseEventHandler<HTMLDivElement>;
+}
 
-const defaultProps = {};
-
-export default class DeleteComponentButton extends React.PureComponent {
+class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonProps> {
   render() {
     const { onDelete } = this.props;
     return (
@@ -36,5 +33,4 @@ export default class DeleteComponentButton extends React.PureComponent {
   }
 }
 
-DeleteComponentButton.propTypes = propTypes;
-DeleteComponentButton.defaultProps = defaultProps;
+export default DeleteComponentButton;
