@@ -69,6 +69,7 @@ from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
     GuestTokenResourceType,
+    GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
 )
@@ -1111,6 +1112,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return user.roles
 
+    def get_guest_rls_filters(
+        self, dataset: "BaseDatasource"
+    ) -> List[GuestTokenRlsRule]:
+        """
+        Retrieves the row level security filters for the current user and the dataset,
+        if the user is authenticated with a guest token.
+        :param dataset: The dataset to check against
+        :return: A list of filters
+        """
+        guest_user = self.get_current_guest_user_if_guest()
+        if guest_user:
+            return [
+                rule
+                for rule in guest_user.rls
+                if not rule.get("dataset")
+                or str(rule.get("dataset")) == str(dataset.id)
+            ]
+        return []
+
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
@@ -1119,7 +1139,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The table to check against
         :returns: A list of filters
         """
-        if hasattr(g, "user") and hasattr(g.user, "id"):
+        if hasattr(g, "user"):
             # pylint: disable=import-outside-toplevel
             from superset.connectors.sqla.models import (
                 RLSFilterRoles,
@@ -1127,11 +1147,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 RowLevelSecurityFilter,
             )
 
-            user_roles = (
-                self.get_session.query(assoc_user_role.c.role_id)
-                .filter(assoc_user_role.c.user_id == g.user.get_id())
-                .subquery()
-            )
+            user_roles = [role.id for role in self.get_user_roles()]
             regular_filter_roles = (
                 self.get_session.query(RLSFilterRoles.c.rls_filter_id)
                 .join(RowLevelSecurityFilter)
@@ -1274,7 +1290,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return time.time()
 
     def create_guest_access_token(
-        self, user: GuestTokenUser, resources: GuestTokenResources
+        self,
+        user: GuestTokenUser,
+        resources: GuestTokenResources,
+        rls: List[GuestTokenRlsRule],
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
@@ -1286,6 +1305,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         claims = {
             "user": user,
             "resources": resources,
+            "rls_rules": rls,
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
@@ -1312,6 +1332,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a user claim")
             if token.get("resources") is None:
                 raise ValueError("Guest token does not contain a resources claim")
+            if token.get("rls_rules") is None:
+                raise ValueError("Guest token does not contain an rls_rules claim")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.

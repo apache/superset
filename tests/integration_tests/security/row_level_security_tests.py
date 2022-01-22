@@ -16,13 +16,19 @@
 # under the License.
 # isort:skip_file
 import re
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
+from unittest import mock
 
 import pytest
 from flask import g
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.security.guest_token import (
+    GuestTokenRlsRule,
+    GuestTokenResourceType,
+    GuestUser,
+)
 from ..base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -66,11 +72,11 @@ class TestRowLevelSecurity(SupersetTestCase):
         session = db.session
 
         # Create roles
-        security_manager.add_role(self.NAME_AB_ROLE)
-        security_manager.add_role(self.NAME_Q_ROLE)
+        self.role_ab = security_manager.add_role(self.NAME_AB_ROLE)
+        self.role_q = security_manager.add_role(self.NAME_Q_ROLE)
         gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(self.NAME_AB_ROLE))
-        gamma_user.roles.append(security_manager.find_role(self.NAME_Q_ROLE))
+        gamma_user.roles.append(self.role_ab)
+        gamma_user.roles.append(self.role_q)
         self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
         session.commit()
 
@@ -205,3 +211,106 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+
+RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
+RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
+)
+class GuestTokenRowLevelSecurityTests(SupersetTestCase):
+    query_obj: Dict[str, Any] = dict(
+        groupby=[],
+        metrics=None,
+        filter=[],
+        is_timeseries=False,
+        columns=["value"],
+        granularity=None,
+        from_dttm=None,
+        to_dttm=None,
+        extras={},
+    )
+
+    def default_rls_rule(self):
+        return {
+            "dataset": self.get_table(name="birth_names").id,
+            "clause": "name = 'Alice'",
+        }
+
+    def guest_user_with_rls(self, rules: Optional[List[Any]] = None) -> GuestUser:
+        if rules is None:
+            rules = [self.default_rls_rule()]
+        return security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [{"type": GuestTokenResourceType.DASHBOARD.value}],
+                "rls_rules": rules,
+            }
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_alters_query(self):
+        g.user = self.guest_user_with_rls()
+        tbl = self.get_table(name="birth_names")
+        sql = tbl.get_query_str(self.query_obj)
+
+        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_does_not_alter_unrelated_query(self):
+        g.user = self.guest_user_with_rls(
+            rules=[
+                {
+                    "dataset": self.get_table(name="birth_names").id + 1,
+                    "clause": "name = 'Alice'",
+                }
+            ]
+        )
+        tbl = self.get_table(name="birth_names")
+        sql = tbl.get_query_str(self.query_obj)
+
+        self.assertNotRegexpMatches(sql, RLS_ALICE_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_multiple_rls_filters_are_unionized(self):
+        g.user = self.guest_user_with_rls(
+            rules=[
+                self.default_rls_rule(),
+                {
+                    "dataset": self.get_table(name="birth_names").id,
+                    "clause": "gender = 'girl'",
+                },
+            ]
+        )
+        tbl = self.get_table(name="birth_names")
+        sql = tbl.get_query_str(self.query_obj)
+
+        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
+        self.assertRegexpMatches(sql, RLS_GENDER_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_rls_filter_for_all_datasets(self):
+        births = self.get_table(name="birth_names")
+        energy = self.get_table(name="energy_usage")
+        guest = self.guest_user_with_rls(rules=[{"clause": "name = 'Alice'"}])
+        guest.resources.append({type: "dashboard", id: energy.id})
+        g.user = guest
+        births_sql = births.get_query_str(self.query_obj)
+        energy_sql = energy.get_query_str(self.query_obj)
+
+        self.assertRegexpMatches(births_sql, RLS_ALICE_REGEX)
+        self.assertRegexpMatches(energy_sql, RLS_ALICE_REGEX)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_dataset_id_can_be_string(self):
+        dataset = self.get_table(name="birth_names")
+        str_id = str(dataset.id)
+        g.user = self.guest_user_with_rls(
+            rules=[{"dataset": str_id, "clause": "name = 'Alice'"}]
+        )
+        sql = dataset.get_query_str(self.query_obj)
+
+        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
