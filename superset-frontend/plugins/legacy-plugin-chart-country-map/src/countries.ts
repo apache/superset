@@ -24,6 +24,7 @@ import brazil from './countries/brazil.geojson';
 import bulgaria from './countries/bulgaria.geojson';
 import canada from './countries/canada.geojson';
 import china from './countries/china.geojson';
+import cyprus from './countries/cyprus.geojson';
 import denmark from './countries/denmark.geojson';
 import egypt from './countries/egypt.geojson';
 import estonia from './countries/estonia.geojson';
@@ -37,17 +38,25 @@ import iran from './countries/iran.geojson';
 import italy from './countries/italy.geojson';
 import italy_regions from './countries/italy_regions.geojson';
 import japan from './countries/japan.geojson';
+import jordan from './countries/jordan.geojson';
+import kenya from './countries/kenya.geojson';
 import korea from './countries/korea.geojson';
+import kuwait from './countries/kuwait.geojson';
 import liechtenstein from './countries/liechtenstein.geojson';
+import lithuania from './countries/lithuania.geojson';
+import nigeria from './countries/nigeria.geojson';
 import norway from './countries/norway.geojson';
 import malaysia from './countries/malaysia.geojson';
-import mexico from './countries/mexico.geojson';
 import morocco from './countries/morocco.geojson';
 import myanmar from './countries/myanmar.geojson';
 import netherlands from './countries/netherlands.geojson';
+import oman from './countries/oman.geojson';
+import pakistan from './countries/pakistan.geojson';
+import philippines from './countries/philippines.geojson';
 import peru from './countries/peru.geojson';
 import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
+import qatar from './countries/qatar.geojson';
 import russia from './countries/russia.geojson';
 import saudi_arabia from './countries/saudi_arabia.geojson';
 import singapore from './countries/singapore.geojson';
@@ -58,6 +67,7 @@ import switzerland from './countries/switzerland.geojson';
 import syria from './countries/syria.geojson';
 import thailand from './countries/thailand.geojson';
 import timorleste from './countries/timorleste.geojson';
+import united_arab_emirates from './countries/united_arab_emirates.geojson';
 import uk from './countries/uk.geojson';
 import ukraine from './countries/ukraine.geojson';
 import uruguay from './countries/uruguay.geojson';
@@ -73,6 +83,7 @@ export const countries = {
   bulgaria,
   canada,
   china,
+  cyprus,
   denmark,
   egypt,
   estonia,
@@ -86,17 +97,25 @@ export const countries = {
   italy,
   italy_regions,
   japan,
+  jordan,
+  kenya,
   korea,
+  kuwait,
   liechtenstein,
+  lithuania,
   malaysia,
-  mexico,
   morocco,
   myanmar,
   netherlands,
+  nigeria,
   norway,
+  oman,
+  pakistan,
+  philippines,
   peru,
   poland,
   portugal,
+  qatar,
   russia,
   saudi_arabia,
   singapore,
@@ -107,6 +126,7 @@ export const countries = {
   syria,
   thailand,
   timorleste,
+  united_arab_emirates,
   uk,
   ukraine,
   uruguay,
