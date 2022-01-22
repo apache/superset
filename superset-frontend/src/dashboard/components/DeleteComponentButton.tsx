@@ -20,9 +20,9 @@ import React, { MouseEventHandler } from 'react';
 import Icons from 'src/components/Icons';
 import IconButton from './IconButton';
 
-interface DeleteComponentButtonProps {
+type DeleteComponentButtonProps = {
   onDelete: MouseEventHandler<HTMLDivElement>;
-}
+};
 
 class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonProps> {
   render() {
@@ -34,3 +34,4 @@ class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonPro
 }
 
 export default DeleteComponentButton;
+export { DeleteComponentButtonProps };
