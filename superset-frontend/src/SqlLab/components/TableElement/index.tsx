@@ -37,7 +37,7 @@ interface Column {
   type: string;
 }
 
-interface Table {
+export interface Table {
   id: string;
   name: string;
   partitions?: {

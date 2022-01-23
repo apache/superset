@@ -25,7 +25,7 @@ import TableSelector from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { QueryEditor } from 'src/SqlLab/types';
-import TableElement from '../TableElement';
+import TableElement, { Table } from '../TableElement';
 
 interface ISqlEditorLeftBarProps {
   actions: {
@@ -35,6 +35,12 @@ interface ISqlEditorLeftBarProps {
       dbId: number,
     ) => void;
     addTable: (queryEditor: QueryEditor, value: string, schema: string) => void;
+    setDatabases?: (arg0: any) => {};
+    addDangerToast: (msg: string) => void;
+    queryEditorSetSchema?: (schema?: string) => void;
+    queryEditorSetSchemaOptions?: () => void;
+    removeDataPreview: (table: Table) => void;
+    removeTable: (table: Table) => void;
   };
   queryEditor: QueryEditor;
   height?: number;
