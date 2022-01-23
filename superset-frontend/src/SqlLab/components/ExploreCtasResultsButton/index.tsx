@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { FC } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/core';
@@ -26,38 +25,35 @@ import Button from 'src/components/Button';
 import { exploreChart } from 'src/explore/exploreUtils';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  table: PropTypes.string.isRequired,
-  schema: PropTypes.string,
-  dbId: PropTypes.number.isRequired,
-  errorMessage: PropTypes.string,
-  templateParams: PropTypes.string,
-};
+interface IExploreCtasResultsButtonProps {
+  actions: {
+  };
+  table: string;
+  schema?: string;
+  dbId: number;
+  errorMessage?: string;
+  templateParams?: string;
+}
 
-class ExploreCtasResultsButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.visualize = this.visualize.bind(this);
-    this.onClick = this.onClick.bind(this);
-  }
-
-  onClick() {
-    this.visualize();
-  }
-
-  buildVizOptions() {
+const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
+  actions,
+  table,
+  schema,
+  dbId,
+  errorMessage,
+  templateParams,
+}) => {
+  const buildVizOptions = () => {
     return {
-      datasourceName: this.props.table,
-      schema: this.props.schema,
-      dbId: this.props.dbId,
-      templateParams: this.props.templateParams,
+      datasourceName: table,
+      schema: schema,
+      dbId: dbId,
+      templateParams: templateParams,
     };
   }
 
-  visualize() {
-    this.props.actions
-      .createCtasDatasource(this.buildVizOptions())
+  const visualize = () => {
+    actions.createCtasDatasource(buildVizOptions())
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -68,7 +64,7 @@ class ExploreCtasResultsButton extends React.PureComponent {
           all_columns: [],
           row_limit: 1000,
         };
-        this.props.actions.addInfoToast(
+        actions.addInfoToast(
           t('Creating a data source and creating a new tab'),
         );
 
@@ -76,32 +72,29 @@ class ExploreCtasResultsButton extends React.PureComponent {
         exploreChart(formData);
       })
       .catch(() => {
-        this.props.actions.addDangerToast(
-          this.props.errorMessage || t('An error occurred'),
+        actions.addDangerToast(
+          errorMessage || t('An error occurred'),
         );
       });
-  }
+  };
 
-  render() {
-    return (
-      <>
-        <Button
-          buttonSize="small"
-          onClick={this.onClick}
-          tooltip={t('Explore the result set in the data exploration view')}
-        >
-          <InfoTooltipWithTrigger
-            icon="line-chart"
-            placement="top"
-            label="explore"
-          />{' '}
-          {t('Explore')}
-        </Button>
-      </>
-    );
-  }
-}
-ExploreCtasResultsButton.propTypes = propTypes;
+  return (
+    <>
+      <Button
+        buttonSize="small"
+        onClick={visualize}
+        tooltip={t('Explore the result set in the data exploration view')}
+      >
+        <InfoTooltipWithTrigger
+          icon="line-chart"
+          placement="top"
+          label="explore"
+        />{' '}
+        {t('Explore')}
+      </Button>
+    </>
+  );
+};
 
 function mapStateToProps({ sqlLab, common }) {
   return {
