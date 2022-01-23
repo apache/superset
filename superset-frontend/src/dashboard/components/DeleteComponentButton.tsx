@@ -34,4 +34,3 @@ class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonPro
 }
 
 export default DeleteComponentButton;
-export { DeleteComponentButtonProps };
