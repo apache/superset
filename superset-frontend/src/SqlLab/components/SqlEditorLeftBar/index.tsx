@@ -31,7 +31,7 @@ interface AntdPanelProps {
   isActive?: boolean;
 }
 
-interface ISqlEditorLeftBarProps {
+interface SqlEditorLeftBarProps {
   actions: {
     queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
     queryEditorSetFunctionNames: (
@@ -83,7 +83,7 @@ const collapseStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
+const SqlEditorLeftBar: FC<SqlEditorLeftBarProps> = ({
   actions,
   database,
   height = 500,
