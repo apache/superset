@@ -30,11 +30,6 @@ import rootReducer from 'src/SqlLab/reducers';
 type RootState = ReturnType<typeof rootReducer>;
 
 interface ExploreResultsButtonProps {
-  actions: {
-    createCtasDatasource: Function;
-    addInfoToast: Function;
-    addDangerToast: Function;
-  };
   query?: Query;
   database: {
     allows_subquery?: boolean;
@@ -43,7 +38,6 @@ interface ExploreResultsButtonProps {
 }
 
 const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
-  actions,
   query = {},
   database,
   onClick,
