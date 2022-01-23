@@ -23,7 +23,8 @@ import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
-import Button from 'src/components/Button';
+import Button, { OnClickHandler } from 'src/components/Button';
+import { Query } from 'src/SqlLab/types';
 import rootReducer from 'src/SqlLab/reducers';
 
 type RootState = ReturnType<typeof rootReducer>;
@@ -34,9 +35,11 @@ interface ExploreResultsButtonProps {
     addInfoToast: Function;
     addDangerToast: Function;
   };
-  query?: object;
-  database: object;
-  onClick: Function;
+  query?: Query;
+  database: {
+    allows_subquery?: boolean;
+  };
+  onClick: OnClickHandler;
 }
 
 const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
@@ -46,20 +49,12 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   onClick,
 }) => {
   const dispatch = useDispatch();
-  const errorMessage = useSelector(
-    (state: RootState) => state.sqlLab.errorMessage,
+  const conf = useSelector(
+    (state: RootState) => state.common.conf,
   );
+  const timeout = conf ? conf.SUPERSET_WEBSERVER_TIMEOUT : null;
 
-  const getColumns = () => {
-    if (
-      query &&
-      query.results &&
-      query.results.selected_columns
-    ) {
-      return query.results.selected_columns;
-    }
-    return [];
-  };
+  const getColumns = () => query?.results?.selected_columns ?? [];
 
   const getQueryDuration = () => {
     return moment
@@ -110,7 +105,7 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
             ) +
               t(
                 'and the explore view times out at %s seconds ',
-                this.props.timeout,
+                dispatch(timeout),
               ) +
               t(
                 'following this flow will most likely lead to your query timing out. ',
