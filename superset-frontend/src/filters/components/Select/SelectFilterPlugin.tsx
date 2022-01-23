@@ -266,13 +266,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  const options = data.map(row => {
-    const [value] = groupby.map(col => row[col]);
-    return {
-      label: labelFormatter(value, datatype),
-      value,
-    };
-  });
+  const options = useMemo(() => {
+    const options: { label: string; value: DataRecordValue }[] = [];
+    data.forEach(row => {
+      const [value] = groupby.map(col => row[col]);
+      options.push({
+        label: labelFormatter(value, datatype),
+        value,
+      });
+    });
+    return options;
+  }, [data, datatype, groupby, labelFormatter]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
