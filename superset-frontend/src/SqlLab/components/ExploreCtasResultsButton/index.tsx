@@ -46,7 +46,9 @@ const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
   templateParams,
 }) => {
   const dispatch = useDispatch();
-  const errorMessage = useSelector((state: RootState) => state.sqlLab.errorMessage);
+  const errorMessage = useSelector(
+    (state: RootState) => state.sqlLab.errorMessage,
+  );
 
   const buildVizOptions = () => ({
     datasourceName: table,
