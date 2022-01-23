@@ -17,21 +17,24 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button from 'src/components/Button';
 import { exploreChart } from 'src/explore/exploreUtils';
-import * as actions from 'src/SqlLab/actions/sqlLab';
+import rootReducer from 'src/SqlLab/reducers';
+
+type RootState = ReturnType<typeof rootReducer>;
 
 interface IExploreCtasResultsButtonProps {
   actions: {
+    createCtasDatasource: Function;
+    addInfoToast: Function;
+    addDangerToast: Function;
   };
   table: string;
   schema?: string;
   dbId: number;
-  errorMessage?: string;
   templateParams?: string;
 }
 
@@ -40,20 +43,21 @@ const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
   table,
   schema,
   dbId,
-  errorMessage,
   templateParams,
 }) => {
-  const buildVizOptions = () => {
-    return {
-      datasourceName: table,
-      schema: schema,
-      dbId: dbId,
-      templateParams: templateParams,
-    };
-  }
+  const dispatch = useDispatch();
+  const errorMessage = useSelector((state: RootState) => state.sqlLab.errorMessage);
+
+  const buildVizOptions = () => ({
+    datasourceName: table,
+    schema,
+    dbId,
+    templateParams,
+  });
 
   const visualize = () => {
-    actions.createCtasDatasource(buildVizOptions())
+    actions
+      .createCtasDatasource(buildVizOptions())
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -73,7 +77,7 @@ const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
       })
       .catch(() => {
         actions.addDangerToast(
-          errorMessage || t('An error occurred'),
+          dispatch(errorMessage) || t('An error occurred'),
         );
       });
   };
@@ -96,20 +100,4 @@ const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
   );
 };
 
-function mapStateToProps({ sqlLab, common }) {
-  return {
-    errorMessage: sqlLab.errorMessage,
-    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
-  };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(ExploreCtasResultsButton);
+export default ExploreCtasResultsButton;
