@@ -16,39 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { FC } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import moment from 'moment';
-import React from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
 import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 import Button from 'src/components/Button';
-import * as actions from 'src/SqlLab/actions/sqlLab';
+import rootReducer from 'src/SqlLab/reducers';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  query: PropTypes.object,
-  errorMessage: PropTypes.string,
-  timeout: PropTypes.number,
-  database: PropTypes.object.isRequired,
-  onClick: PropTypes.func.isRequired,
-};
-const defaultProps = {
-  query: {},
-};
+type RootState = ReturnType<typeof rootReducer>;
 
-class ExploreResultsButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.getInvalidColumns = this.getInvalidColumns.bind(this);
-    this.renderInvalidColumnMessage =
-      this.renderInvalidColumnMessage.bind(this);
-  }
+interface ExploreResultsButtonProps {
+  actions: {
+    createCtasDatasource: Function;
+    addInfoToast: Function;
+    addDangerToast: Function;
+  };
+  query?: object;
+  database: object;
+  onClick: Function;
+}
 
-  getColumns() {
+const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
+  actions,
+  query = {},
+  database,
+  onClick,
+}) => {
+  const dispatch = useDispatch();
+  const errorMessage = useSelector(
+    (state: RootState) => state.sqlLab.errorMessage,
+  );
+
+  const getColumns = () => {
     const { props } = this;
     if (
       props.query &&
@@ -58,24 +60,24 @@ class ExploreResultsButton extends React.PureComponent {
       return props.query.results.selected_columns;
     }
     return [];
-  }
+  };
 
-  getQueryDuration() {
+  const getQueryDuration = () => {
     return moment
       .duration(this.props.query.endDttm - this.props.query.startDttm)
       .asSeconds();
-  }
+  };
 
-  getInvalidColumns() {
+  const getInvalidColumns = () => {
     const re1 = /__\d+$/; // duplicate column name pattern
     const re2 = /^__timestamp/i; // reserved temporal column alias
 
     return this.props.query.results.selected_columns
       .map(col => col.name)
       .filter(col => re1.test(col) || re2.test(col));
-  }
+  };
 
-  datasourceName() {
+  const datasourceName = () => {
     const { query } = this.props;
     const uniqueId = shortid.generate();
     let datasourceName = uniqueId;
@@ -84,9 +86,9 @@ class ExploreResultsButton extends React.PureComponent {
       datasourceName += `${query.tab}-${uniqueId}`;
     }
     return datasourceName;
-  }
+  };
 
-  buildVizOptions() {
+  const buildVizOptions = () => {
     const { schema, sql, dbId, templateParams } = this.props.query;
     return {
       dbId,
@@ -96,9 +98,9 @@ class ExploreResultsButton extends React.PureComponent {
       datasourceName: this.datasourceName(),
       columns: this.getColumns(),
     };
-  }
+  };
 
-  renderTimeoutWarning() {
+  const renderTimeoutWarning = () => {
     return (
       <Alert
         type="warning"
@@ -127,9 +129,9 @@ class ExploreResultsButton extends React.PureComponent {
         }
       />
     );
-  }
+  };
 
-  renderInvalidColumnMessage() {
+  const renderInvalidColumnMessage = () => {
     const invalidColumns = this.getInvalidColumns();
     if (invalidColumns.length === 0) {
       return null;
@@ -147,47 +149,26 @@ class ExploreResultsButton extends React.PureComponent {
           invalid column names.`)}
       </div>
     );
-  }
-
-  render() {
-    const allowsSubquery =
-      this.props.database && this.props.database.allows_subquery;
-    return (
-      <>
-        <Button
-          buttonSize="small"
-          onClick={this.props.onClick}
-          disabled={!allowsSubquery}
-          tooltip={t('Explore the result set in the data exploration view')}
-        >
-          <InfoTooltipWithTrigger
-            icon="line-chart"
-            placement="top"
-            label="explore"
-          />{' '}
-          {t('Explore')}
-        </Button>
-      </>
-    );
-  }
-}
-ExploreResultsButton.propTypes = propTypes;
-ExploreResultsButton.defaultProps = defaultProps;
-
-function mapStateToProps({ sqlLab, common }) {
-  return {
-    errorMessage: sqlLab.errorMessage,
-    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
-}
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
+  const allowsSubquery = this.props.database && this.props.database.allows_subquery;
+  return (
+    <>
+      <Button
+        buttonSize="small"
+        onClick={this.props.onClick}
+        disabled={!allowsSubquery}
+        tooltip={t('Explore the result set in the data exploration view')}
+      >
+        <InfoTooltipWithTrigger
+          icon="line-chart"
+          placement="top"
+          label="explore"
+        />{' '}
+        {t('Explore')}
+      </Button>
+    </>
+  );
+};
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(ExploreResultsButton);
+export default ExploreResultsButton;
