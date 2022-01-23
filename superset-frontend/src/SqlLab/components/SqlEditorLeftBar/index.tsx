@@ -16,40 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { FC } from 'react';
 import Button from 'src/components/Button';
-import { t, styled, css } from '@superset-ui/core';
+import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import TableSelector from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
+import { QueryEditor } from 'src/SqlLab/types';
 import TableElement from '../TableElement';
 
-const propTypes = {
-  queryEditor: PropTypes.object.isRequired,
-  height: PropTypes.number,
-  tables: PropTypes.array,
-  actions: PropTypes.object,
-  database: PropTypes.object,
-  offline: PropTypes.bool,
-};
-
-const defaultProps = {
-  actions: {},
-  height: 500,
-  offline: false,
-  tables: [],
-};
+interface ISqlEditorLeftBarProps {
+  actions: {
+    queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
+    queryEditorSetFunctionNames: (
+      queryEditor: QueryEditor,
+      dbId: number,
+    ) => void;
+    addTable: (queryEditor: QueryEditor, value: string, schema: string) => void;
+  };
+  queryEditor: QueryEditor;
+  height?: number;
+  tables?: any[];
+  database?: DatabaseObject;
+  offline?: boolean;
+}
 
 const StyledScrollbarContainer = styled.div`
   flex: 1 1 auto;
   overflow: auto;
 `;
 
-const collapseStyles = css`
+const collapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-item {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit * 3}px;
   }
   .ant-collapse-header {
     padding: 0px !important;
@@ -57,30 +58,30 @@ const collapseStyles = css`
     align-items: center;
   }
   .ant-collapse-content-box {
-    padding: 0px ${({ theme }) => theme.gridUnit * 4}px 0px 0px !important;
+    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${({ theme }) => theme.gridUnit * 2}px !important;
-    color: ${({ theme }) => theme.colors.primary.dark1} !important;
+    top: ${theme.gridUnit * 2}px !important;
+    color: ${theme.colors.primary.dark1} !important;
     &: hover {
-      color: ${({ theme }) => theme.colors.primary.dark2} !important;
+      color: ${theme.colors.primary.dark2} !important;
     }
   }
 `;
 
-export default function SqlEditorLeftBar({
+const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
   actions,
   database,
-  height,
+  height = 500,
   queryEditor,
-  tables: tb,
-}) {
-  const onDbChange = db => {
+  tables: tb = [],
+}) => {
+  const onDbChange = (db: DatabaseObject) => {
     actions.queryEditorSetDb(queryEditor, db.id);
     actions.queryEditorSetFunctionNames(queryEditor, db.id);
   };
 
-  const onTableChange = (tableName, schemaName) => {
+  const onTableChange = (tableName: string, schemaName: string) => {
     if (tableName && schemaName) {
       actions.addTable(queryEditor, tableName, schemaName);
     }
@@ -168,7 +169,6 @@ export default function SqlEditorLeftBar({
       )}
     </div>
   );
-}
+};
 
-SqlEditorLeftBar.propTypes = propTypes;
-SqlEditorLeftBar.defaultProps = defaultProps;
+export default SqlEditorLeftBar;
