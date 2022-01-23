@@ -26,7 +26,7 @@ import rootReducer from 'src/SqlLab/reducers';
 
 type RootState = ReturnType<typeof rootReducer>;
 
-interface IExploreCtasResultsButtonProps {
+interface ExploreCtasResultsButtonProps {
   actions: {
     createCtasDatasource: Function;
     addInfoToast: Function;
@@ -38,7 +38,7 @@ interface IExploreCtasResultsButtonProps {
   templateParams?: string;
 }
 
-const ExploreCtasResultsButton: FC<IExploreCtasResultsButtonProps> = ({
+const ExploreCtasResultsButton: FC<ExploreCtasResultsButtonProps> = ({
   actions,
   table,
   schema,
