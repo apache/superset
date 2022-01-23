@@ -27,6 +27,10 @@ import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { QueryEditor } from 'src/SqlLab/types';
 import TableElement, { Table } from '../TableElement';
 
+interface AntdPanelProps {
+  isActive?: boolean;
+}
+
 interface ISqlEditorLeftBarProps {
   actions: {
     queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
@@ -35,10 +39,14 @@ interface ISqlEditorLeftBarProps {
       dbId: number,
     ) => void;
     addTable: (queryEditor: QueryEditor, value: string, schema: string) => void;
+    collapseTable: (table: Table) => void;
+    expandTable: (table: Table) => void;
     setDatabases?: (arg0: any) => {};
     addDangerToast: (msg: string) => void;
     queryEditorSetSchema?: (schema?: string) => void;
     queryEditorSetSchemaOptions?: () => void;
+    queryEditorSetTableOptions?: (options: Array<any>) => void;
+    resetState: () => void;
     removeDataPreview: (table: Table) => void;
     removeTable: (table: Table) => void;
   };
@@ -93,7 +101,7 @@ const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
     }
   };
 
-  const onToggleTable = tables => {
+  const onToggleTable = (tables: Table[]) => {
     tb.forEach(table => {
       if (!tables.includes(table.id.toString()) && table.expanded) {
         actions.collapseTable(table);
@@ -103,7 +111,7 @@ const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
     });
   };
 
-  const renderExpandIconWithTooltip = ({ isActive }) => (
+  const renderExpandIconWithTooltip = ({ isActive }: AntdPanelProps) => (
     <IconTooltip
       css={css`
         transform: rotate(90deg);
@@ -129,7 +137,6 @@ const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
     <div className="SqlEditorLeftBar">
       <TableSelector
         database={database}
-        dbId={queryEditor.dbId}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
@@ -152,7 +159,7 @@ const SqlEditorLeftBar: FC<ISqlEditorLeftBarProps> = ({
             activeKey={tb
               .filter(({ expanded }) => expanded)
               .map(({ id }) => id)}
-            css={collapseStyles}
+            css={theme => collapseStyles(theme)}
             expandIconPosition="right"
             ghost
             onChange={onToggleTable}
