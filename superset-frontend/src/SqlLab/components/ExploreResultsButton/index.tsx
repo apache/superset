@@ -51,20 +51,19 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   );
 
   const getColumns = () => {
-    const { props } = this;
     if (
-      props.query &&
-      props.query.results &&
-      props.query.results.selected_columns
+      query &&
+      query.results &&
+      query.results.selected_columns
     ) {
-      return props.query.results.selected_columns;
+      return query.results.selected_columns;
     }
     return [];
   };
 
   const getQueryDuration = () => {
     return moment
-      .duration(this.props.query.endDttm - this.props.query.startDttm)
+      .duration(query.endDttm - query.startDttm)
       .asSeconds();
   };
 
@@ -72,13 +71,12 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
     const re1 = /__\d+$/; // duplicate column name pattern
     const re2 = /^__timestamp/i; // reserved temporal column alias
 
-    return this.props.query.results.selected_columns
+    return query.results.selected_columns
       .map(col => col.name)
       .filter(col => re1.test(col) || re2.test(col));
   };
 
   const datasourceName = () => {
-    const { query } = this.props;
     const uniqueId = shortid.generate();
     let datasourceName = uniqueId;
     if (query) {
@@ -89,14 +87,14 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   };
 
   const buildVizOptions = () => {
-    const { schema, sql, dbId, templateParams } = this.props.query;
+    const { schema, sql, dbId, templateParams } = query;
     return {
       dbId,
       schema,
       sql,
       templateParams,
-      datasourceName: this.datasourceName(),
-      columns: this.getColumns(),
+      datasourceName: datasourceName(),
+      columns: getColumns(),
     };
   };
 
@@ -108,7 +106,7 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
           <>
             {t(
               'This query took %s seconds to run, ',
-              Math.round(this.getQueryDuration()),
+              Math.round(getQueryDuration()),
             ) +
               t(
                 'and the explore view times out at %s seconds ',
@@ -132,7 +130,7 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   };
 
   const renderInvalidColumnMessage = () => {
-    const invalidColumns = this.getInvalidColumns();
+    const invalidColumns = getInvalidColumns();
     if (invalidColumns.length === 0) {
       return null;
     }
@@ -151,12 +149,12 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
     );
   };
 
-  const allowsSubquery = this.props.database && this.props.database.allows_subquery;
+  const allowsSubquery = database && database.allows_subquery;
   return (
     <>
       <Button
         buttonSize="small"
-        onClick={this.props.onClick}
+        onClick={onClick}
         disabled={!allowsSubquery}
         tooltip={t('Explore the result set in the data exploration view')}
       >
