@@ -313,6 +313,7 @@ const PropertiesModal = ({
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
+      addSuccessToast(t('Dashboard properties updated'));
       onSubmit(onSubmitProps);
       onHide();
     } else {
