@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable jsx-a11y/anchor-is-valid */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
 import React, { FC, useState, useEffect, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
@@ -263,11 +261,10 @@ const SqlEditor: FC<SqlEditorProps> = ({
   };
 
   // One layer of abstraction for easy spying in unit tests
-  const getSqlEditorHeight = () => {
-    return sqlEditorRef.current
+  const getSqlEditorHeight = () =>
+    sqlEditorRef.current
       ? sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
       : 0;
-  };
 
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.
