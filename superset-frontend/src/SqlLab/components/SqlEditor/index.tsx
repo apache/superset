@@ -23,17 +23,13 @@ import Split from 'react-split';
 import { t, styled, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
-import StyledModal from 'src/components/Modal';
+import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
-import {
-  Dropdown,
-  Menu as AntdMenu,
-  Menu,
-  Switch,
-  Input,
-} from 'src/common/components';
+import { Menu as AntdMenu, Menu, Input } from 'src/common/components';
+import { Dropdown } from 'src/components/Dropdown';
+import { Switch } from 'src/components/Switch';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { QueryEditor, Query } from 'src/SqlLab/types';
 import Icons from 'src/components/Icons';
@@ -113,7 +109,7 @@ interface SqlEditorProps {
   scheduleQueryWarning?: string;
 }
 
-const LimitSelectStyled = styled.span`
+const StyledLimitSelect = styled.span`
   .ant-dropdown-trigger {
     align-items: center;
     color: black;
@@ -636,7 +632,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
               </span>
             )}
           <span>
-            <LimitSelectStyled>
+            <StyledLimitSelect>
               <Dropdown overlay={renderQueryLimit()} trigger="click">
                 <a onClick={e => e.preventDefault()}>
                   <span>LIMIT:</span>
@@ -648,7 +644,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
                   <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
                 </a>
               </Dropdown>
-            </LimitSelectStyled>
+            </StyledLimitSelect>
           </span>
           {latestQuery && (
             <Timer
@@ -685,8 +681,8 @@ const SqlEditor: FC<SqlEditorProps> = ({
 
   const createModalPlaceHolder =
     createAs === CtasEnum.VIEW
-      ? 'Specify name to CREATE VIEW AS schema in: public'
-      : 'Specify name to CREATE TABLE AS schema in: public';
+      ? t('Specify name to CREATE VIEW AS schema in: public')
+      : t('Specify name to CREATE TABLE AS schema in: public');
 
   const leftBarStateClass = hideLeftBar
     ? 'schemaPane-exit-done'
@@ -704,7 +700,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
         </div>
       </CSSTransition>
       {queryPane()}
-      <StyledModal
+      <Modal
         visible={showCreateAsModal}
         title={t(createViewModalTitle)}
         onHide={() => setShowCreateAsModal(false)}
@@ -734,7 +730,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
       >
         <span>Name</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
-      </StyledModal>
+      </Modal>
     </div>
   );
 };
