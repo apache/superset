@@ -77,7 +77,7 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color scheme'),
-  controlSetRows: [['color_scheme', 'label_colors']],
+  controlSetRows: [['color_scheme']],
 };
 
 export const sqlaTimeSeries: ControlPanelSectionConfig = {
@@ -125,6 +125,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             label: t('Sort descending'),
             default: true,
             description: t('Whether to sort descending or ascending'),
+            visibility: ({ controls }) =>
+              Boolean(controls?.timeseries_limit_metric.value),
           },
         },
         {
@@ -216,6 +218,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
               '1 year',
               '104 weeks',
               '2 years',
+              '156 weeks',
+              '3 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +

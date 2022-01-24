@@ -29,6 +29,7 @@ const propTypes = {
   datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -100,6 +101,7 @@ class ChartRenderer extends React.Component {
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
+        nextProps.labelColors !== this.props.labelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
@@ -160,13 +162,8 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const {
-      chartAlert,
-      chartStatus,
-      vizType,
-      chartId,
-      refreshOverlayVisible,
-    } = this.props;
+    const { chartAlert, chartStatus, vizType, chartId, refreshOverlayVisible } =
+      this.props;
 
     // Skip chart rendering
     if (

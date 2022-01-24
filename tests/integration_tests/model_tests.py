@@ -22,6 +22,7 @@ from unittest import mock
 from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import pytest
@@ -35,10 +36,13 @@ from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.sql_types.base import literal_dttm_type_factory
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import load_energy_table_with_slice
+from .fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -340,6 +344,18 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
 
+    @mock.patch("superset.models.core.Database.get_sqla_engine")
+    def test_username_param(self, mocked_get_sqla_engine):
+        main_db = get_example_database()
+        main_db.impersonate_user = True
+        test_username = "test_username_param"
+
+        if main_db.backend == "mysql":
+            main_db.get_df("USE superset; SELECT 1", username=test_username)
+            mocked_get_sqla_engine.assert_called_with(
+                schema=None, user_name="test_username_param",
+            )
+
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(
@@ -518,7 +534,7 @@ class TestSqlaTableModel(SupersetTestCase):
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_data_for_slices(self):
+    def test_data_for_slices_with_no_query_context(self):
         tbl = self.get_table(name="birth_names")
         slc = (
             metadata_db.session.query(Slice)
@@ -532,13 +548,41 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["columns"]) == 1
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
         assert data_for_slices["columns"][0]["column_name"] == "gender"
-        assert set(data_for_slices["verbose_map"].keys()) == set(
-            ["__timestamp", "sum__num", "gender",]
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "gender",
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_query_context(self):
+        tbl = self.get_table(name="birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Pivot Table v2",
+            )
+            .first()
         )
+        data_for_slices = tbl.data_for_slices([slc])
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 2
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "name"
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "name",
+            "state",
+        }
 
 
 def test_literal_dttm_type_factory():
     orig_type = DateTime()
-    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
+    new_type = literal_dttm_type_factory(
+        orig_type, PostgresEngineSpec, "TIMESTAMP", db_extra={}
+    )
     assert type(new_type).__name__ == "TemporalWrapperType"
     assert str(new_type) == str(orig_type)

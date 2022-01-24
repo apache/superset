@@ -347,7 +347,7 @@ saved_queries_metadata_config: Dict[str, Any] = {
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
 database_config: Dict[str, Any] = {
-    "allow_file_upload": True,
+    "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
     "allow_run_async": False,
@@ -373,7 +373,7 @@ dataset_config: Dict[str, Any] = {
     "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": "dttm > sysdate() -10 ",
+    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
     "metrics": [
         {
             "metric_name": "count",

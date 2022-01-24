@@ -158,7 +158,7 @@ class DashboardGrid extends React.PureComponent {
             </DragDroppable>
           )}
 
-          {gridComponent.children.map((id, index) => (
+          {gridComponent?.children?.map((id, index) => (
             <DashboardComponent
               key={id}
               id={id}
@@ -176,7 +176,7 @@ class DashboardGrid extends React.PureComponent {
           ))}
 
           {/* make the area below components droppable */}
-          {editMode && gridComponent.children.length > 0 && (
+          {editMode && gridComponent?.children?.length > 0 && (
             <DragDroppable
               component={gridComponent}
               depth={depth}

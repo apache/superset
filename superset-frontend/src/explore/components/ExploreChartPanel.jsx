@@ -24,8 +24,9 @@ import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
 import {
-  getFromLocalStorage,
-  setInLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
@@ -38,6 +39,7 @@ const propTypes = {
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -50,6 +52,7 @@ const propTypes = {
   form_data: PropTypes.object,
   ownState: PropTypes.object,
   standalone: PropTypes.number,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -62,10 +65,6 @@ const GUTTER_SIZE_FACTOR = 1.25;
 const CHART_PANEL_PADDING_HORIZ = 30;
 const CHART_PANEL_PADDING_VERTICAL = 15;
 const HEADER_PADDING = 15;
-
-const STORAGE_KEYS = {
-  sizes: 'chart_split_sizes',
-};
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
@@ -125,7 +124,7 @@ const ExploreChartPanel = props => {
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
+    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
   const { slice } = props;
   const updateQueryContext = useCallback(
@@ -133,7 +132,7 @@ const ExploreChartPanel = props => {
       if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
-          force: false,
+          force: props.force,
           resultFormat: 'json',
           resultType: 'full',
           setDataMask: null,
@@ -191,7 +190,7 @@ const ExploreChartPanel = props => {
   }, [recalcPanelSizes, splitSizes]);
 
   useEffect(() => {
-    setInLocalStorage(STORAGE_KEYS.sizes, splitSizes);
+    setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
   }, [splitSizes]);
 
   const onDragEnd = sizes => {
@@ -229,6 +228,7 @@ const ExploreChartPanel = props => {
           chartId={chart.id}
           chartStatus={chart.chartStatus}
           triggerRender={props.triggerRender}
+          force={props.force}
           datasource={props.datasource}
           errorMessage={props.errorMessage}
           formData={props.form_data}
@@ -291,6 +291,7 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
+      dashboardId={props.dashboardId}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}

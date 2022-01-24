@@ -48,3 +48,16 @@ vendor/*
 # github configuration
 .github/*
 .*mdx
+
+# skip license check in superset-ui
+tmp/*
+lib/*
+esm/*
+tsconfig.tsbuildinfo
+.*ipynb
+.*yml
+.*iml
+.esprintrc
+.prettierignore
+generator-superset/*
+temporary_superset_ui/*

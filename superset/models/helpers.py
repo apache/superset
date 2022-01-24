@@ -341,7 +341,7 @@ class ImportExportMixin:
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """ object will belong to the user the current user """
+        """object will belong to the user the current user"""
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
@@ -446,6 +446,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -454,6 +456,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
 
 
 class ExtraJSONMixin:

@@ -25,7 +25,7 @@ import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -71,22 +71,17 @@ function CssTemplatesList({
     t('CSS templates'),
     addDangerToast,
   );
-  const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
-    false,
-  );
-  const [
-    currentCssTemplate,
-    setCurrentCssTemplate,
-  ] = useState<TemplateObject | null>(null);
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] =
+    useState<boolean>(false);
+  const [currentCssTemplate, setCurrentCssTemplate] =
+    useState<TemplateObject | null>(null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
 
-  const [
-    templateCurrentlyDeleting,
-    setTemplateCurrentlyDeleting,
-  ] = useState<TemplateObject | null>(null);
+  const [templateCurrentlyDeleting, setTemplateCurrentlyDeleting] =
+    useState<TemplateObject | null>(null);
 
   const handleTemplateDelete = ({ id, template_name }: TemplateObject) => {
     SupersetClient.delete({

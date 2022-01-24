@@ -30,16 +30,16 @@ const HoverStyleOverrides = styled.div`
   .hover-menu {
     opacity: 0;
     position: absolute;
-    z-index: @z-index-above-dashboard-charts;
-    font-size: @font-size-m;
+    z-index: 10;
+    font-size: ${({ theme }) => theme.typography.sizes.m};
   }
 
   .hover-menu--left {
-    width: 24px;
+    width: ${({ theme }) => theme.gridUnit * 6}px;
     top: 50%;
     transform: translate(0, -50%);
-    left: -28px;
-    padding: 8px 0;
+    left: ${({ theme }) => theme.gridUnit * -7}px;
+    padding: ${({ theme }) => theme.gridUnit * 2}px 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -47,15 +47,15 @@ const HoverStyleOverrides = styled.div`
   }
 
   .hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
-    margin-bottom: 12px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
 
   .hover-menu--top {
-    height: 24px;
-    top: -24px;
+    height: ${({ theme }) => theme.gridUnit * 6}px;
+    top: ${({ theme }) => theme.gridUnit * -6}px;
     left: 50%;
     transform: translate(-50%);
-    padding: 0 8px;
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
     display: flex;
     flex-direction: row;
     justify-content: center;

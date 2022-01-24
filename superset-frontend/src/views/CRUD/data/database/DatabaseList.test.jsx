@@ -30,7 +30,7 @@ import * as featureFlags from 'src/featureFlags';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -88,6 +88,10 @@ fetchMock.get(databaseRelatedEndpoint, {
     count: 0,
     result: [],
   },
+  sqllab_tab_states: {
+    count: 0,
+    result: [],
+  },
 });
 
 describe('DatabaseList', () => {
@@ -131,7 +135,7 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
-      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."`,
     );
 
     act(() => {

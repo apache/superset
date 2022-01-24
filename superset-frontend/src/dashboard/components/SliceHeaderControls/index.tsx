@@ -163,6 +163,7 @@ class SliceHeaderControls extends React.PureComponent<
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
+        this.props.addSuccessToast(t('Data refreshed'));
         break;
       case MENU_KEYS.CROSS_FILTER_SCOPING:
         this.setState({ showCrossFilterScopingModal: true });
@@ -250,7 +251,7 @@ class SliceHeaderControls extends React.PureComponent<
     const refreshTooltip = refreshTooltipData.map((item, index) => (
       <div key={`tooltip-${index}`}>
         {refreshTooltipData.length > 1
-          ? `${t('Query')} ${index + 1}: ${item}`
+          ? t('Query %s: %s', index + 1, item)
           : item}
       </div>
     ));

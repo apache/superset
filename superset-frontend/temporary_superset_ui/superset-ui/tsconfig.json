@@ -1,0 +1,151 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": false,
+    "jsx": "react",
+    "lib": [
+      "dom",
+      "esnext"
+    ],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "pretty": true,
+    "removeComments": false,
+    "strict": true,
+    "target": "es2015",
+    "useDefineForClassFields": false,
+    "composite": true,
+    "declarationMap": true,
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "emitDeclarationOnly": true,
+    "resolveJsonModule": true,
+    "types": ["@emotion/react/types/css-prop", "jest", "jsdom"],
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "packages/superset-ui-chart-controls"
+    },
+    {
+      "path": "packages/superset-ui-chart-controls/test"
+    },
+    {
+      "path": "packages/superset-ui-core"
+    },
+    {
+      "path": "packages/superset-ui-core/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-calendar"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-chord"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-country-map"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-event-flow"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-force-directed"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-heatmap"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-histogram"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-horizon"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-map-box"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-map-box/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-paired-t-test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-parallel-coordinates"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-partition"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-partition/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-pivot-table"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-rose"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sankey"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sankey-loop"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sunburst"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-time-table"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-treemap"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-world-map"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-big-number"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-big-number/test"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-nvd3"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-nvd3/test"
+    },
+    {
+      "path": "plugins/plugin-chart-echarts"
+    },
+    {
+      "path": "plugins/plugin-chart-echarts/test"
+    },
+    {
+      "path": "plugins/plugin-chart-table"
+    },
+    {
+      "path": "plugins/plugin-chart-table/test"
+    },
+    {
+      "path": "plugins/plugin-chart-word-cloud"
+    },
+    {
+      "path": "plugins/plugin-chart-word-cloud/test"
+    },
+    {
+      "path": "plugins/preset-chart-xy"
+    },
+    {
+      "path": "plugins/preset-chart-xy/test"
+    }
+  ]
+}

@@ -60,7 +60,7 @@ class DatabaseExtraJSONValidationError(ValidationError):
         super().__init__(
             [
                 _(
-                    "Field cannot be decoded by JSON.  %{json_error}s",
+                    "Field cannot be decoded by JSON. %(json_error)s",
                     json_error=json_error,
                 )
             ],

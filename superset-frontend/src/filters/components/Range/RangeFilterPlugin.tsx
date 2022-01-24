@@ -17,6 +17,8 @@
  * under the License.
  */
 import {
+  ensureIsArray,
+  getColumnLabel,
   getNumberFormatter,
   NumberFormats,
   styled,
@@ -28,6 +30,40 @@ import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
+import { SingleValueType } from './SingleValueType';
+
+const LIGHT_BLUE = '#99e7f0';
+const DARK_BLUE = '#6dd3e3';
+const LIGHT_GRAY = '#f5f5f5';
+const DARK_GRAY = '#e1e1e1';
+
+const StyledMinSlider = styled(Slider)<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  ${({ theme, validateStatus }) => `
+  .ant-slider-rail {
+    background-color: ${
+      validateStatus ? theme.colors[validateStatus]?.light1 : LIGHT_BLUE
+    };
+  }
+
+  .ant-slider-track {
+    background-color: ${LIGHT_GRAY};
+  }
+
+  &:hover {
+    .ant-slider-rail {
+      background-color: ${
+        validateStatus ? theme.colors[validateStatus]?.base : DARK_BLUE
+      };
+    }
+
+    .ant-slider-track {
+      background-color: ${DARK_GRAY};
+    }
+  }
+  `}
+`;
 
 const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
   ${({ theme, validateStatus }) => `
@@ -78,6 +114,9 @@ const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
 const tipFormatter = (value: number) => numberFormatter(value);
 
 const getLabel = (lower: number | null, upper: number | null): string => {
+  if (lower !== null && upper !== null && lower === upper) {
+    return `x = ${numberFormatter(lower)}`;
+  }
   if (lower !== null && upper !== null) {
     return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
   }
@@ -118,24 +157,38 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, inputRef } = formData;
-  const [col = ''] = groupby || [];
+  const { groupby, defaultValue, inputRef, enableSingleValue } = formData;
+
+  const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
+  const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
+  const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
+  const rangeValue = enableSingleValue === undefined;
+
+  const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const [value, setValue] = useState<[number, number]>(
-    defaultValue ?? [min, max],
+    defaultValue ?? [min, enableSingleExactValue ? min : max],
   );
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
+  const minIndex = 0;
+  const maxIndex = 1;
+  const minMax = value ?? [min, max];
 
   const getBounds = useCallback(
     (
       value: [number, number],
     ): { lower: number | null; upper: number | null } => {
       const [lowerRaw, upperRaw] = value;
+
+      if (enableSingleExactValue) {
+        return { lower: lowerRaw, upper: upperRaw };
+      }
+
       return {
         lower: lowerRaw > min ? lowerRaw : null,
         upper: upperRaw < max ? upperRaw : null,
       };
     },
-    [max, min],
+    [max, min, enableSingleExactValue],
   );
 
   const handleAfterChange = useCallback(
@@ -164,8 +217,34 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     if (row?.min === undefined && row?.max === undefined) {
       return;
     }
-    handleAfterChange(filterState.value ?? [min, max]);
-  }, [JSON.stringify(filterState.value), JSON.stringify(data)]);
+
+    let filterStateValue = filterState.value ?? [min, max];
+    if (enableSingleMaxValue) {
+      const filterStateMax =
+        filterStateValue[maxIndex] <= minMax[maxIndex]
+          ? filterStateValue[maxIndex]
+          : minMax[maxIndex];
+
+      filterStateValue = [min, filterStateMax];
+    } else if (enableSingleMinValue) {
+      const filterStateMin =
+        filterStateValue[minIndex] >= minMax[minIndex]
+          ? filterStateValue[minIndex]
+          : minMax[minIndex];
+
+      filterStateValue = [filterStateMin, max];
+    } else if (enableSingleExactValue) {
+      filterStateValue = [minMax[minIndex], minMax[minIndex]];
+    }
+
+    handleAfterChange(filterStateValue);
+  }, [
+    enableSingleMaxValue,
+    enableSingleMinValue,
+    enableSingleExactValue,
+    JSON.stringify(filterState.value),
+    JSON.stringify(data),
+  ]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -178,7 +257,23 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
-  const minMax = useMemo(() => value ?? [min, max], [max, min, value]);
+  useEffect(() => {
+    if (enableSingleMaxValue) {
+      handleAfterChange([min, minMax[minIndex]]);
+    }
+  }, [enableSingleMaxValue]);
+
+  useEffect(() => {
+    if (enableSingleMinValue) {
+      handleAfterChange([minMax[maxIndex], max]);
+    }
+  }, [enableSingleMinValue]);
+
+  useEffect(() => {
+    if (enableSingleExactValue) {
+      handleAfterChange([minMax[minIndex], minMax[minIndex]]);
+    }
+  }, [enableSingleExactValue]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -195,16 +290,53 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onMouseEnter={setFocusedFilter}
             onMouseLeave={unsetFocusedFilter}
           >
-            <Slider
-              range
-              min={min}
-              max={max}
-              value={minMax}
-              onAfterChange={handleAfterChange}
-              onChange={handleChange}
-              tipFormatter={tipFormatter}
-              marks={marks}
-            />
+            {enableSingleMaxValue && (
+              <Slider
+                min={min}
+                max={max}
+                value={minMax[maxIndex]}
+                tipFormatter={tipFormatter}
+                marks={marks}
+                onAfterChange={value => handleAfterChange([min, value])}
+                onChange={value => handleChange([min, value])}
+              />
+            )}
+            {enableSingleMinValue && (
+              <StyledMinSlider
+                validateStatus={filterState.validateStatus}
+                min={min}
+                max={max}
+                value={minMax[minIndex]}
+                tipFormatter={tipFormatter}
+                marks={marks}
+                onAfterChange={value => handleAfterChange([value, max])}
+                onChange={value => handleChange([value, max])}
+              />
+            )}
+            {enableSingleExactValue && (
+              <Slider
+                min={min}
+                max={max}
+                included={false}
+                value={minMax[minIndex]}
+                tipFormatter={tipFormatter}
+                marks={marks}
+                onAfterChange={value => handleAfterChange([value, value])}
+                onChange={value => handleChange([value, value])}
+              />
+            )}
+            {rangeValue && (
+              <Slider
+                range
+                min={min}
+                max={max}
+                value={minMax}
+                onAfterChange={handleAfterChange}
+                onChange={handleChange}
+                tipFormatter={tipFormatter}
+                marks={marks}
+              />
+            )}
           </Wrapper>
         </StyledFormItem>
       )}

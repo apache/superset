@@ -29,6 +29,7 @@ import { AnnotationLayerObject } from './types';
 
 interface AnnotationLayerModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   layer?: AnnotationLayerObject | null;
   onLayerAdd?: (layer?: AnnotationLayerObject) => void;
   onHide: () => void;
@@ -80,16 +81,15 @@ const LayerContainer = styled.div`
 
 const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   onLayerAdd,
   onHide,
   show,
   layer = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentLayer,
-    setCurrentLayer,
-  ] = useState<AnnotationLayerObject | null>();
+  const [currentLayer, setCurrentLayer] =
+    useState<AnnotationLayerObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = layer !== null;
 
@@ -136,6 +136,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           }
 
           hide();
+          addSuccessToast(t('Annotation template updated'));
         });
       }
     } else if (currentLayer) {
@@ -150,6 +151,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         }
 
         hide();
+        addSuccessToast(t('Annotation template created'));
       });
     }
   };

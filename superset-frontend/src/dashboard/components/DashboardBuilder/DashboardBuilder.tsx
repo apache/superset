@@ -34,7 +34,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import { useElementOnScreen } from 'src/common/hooks/useElementOnScreen';
+import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
@@ -60,6 +60,7 @@ const CLOSED_FILTER_BAR_WIDTH = 32;
 const OPEN_FILTER_BAR_WIDTH = 260;
 const FILTER_BAR_HEADER_HEIGHT = 80;
 const FILTER_BAR_TABS_HEIGHT = 46;
+const BUILDER_SIDEPANEL_WIDTH = 374;
 
 type DashboardBuilderProps = {};
 
@@ -73,8 +74,8 @@ const StyledDiv = styled.div`
   /* A row within a column has inset hover menu */
   .dragdroppable-column .dragdroppable-row .hover-menu--left {
     left: -12px;
-    background: @lightest;
-    border: 1px solid @gray-light;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 
   .dashboard-component-tabs {
@@ -85,8 +86,8 @@ const StyledDiv = styled.div`
   .dragdroppable-column .dragdroppable-column .hover-menu--top,
   .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
     top: -12px;
-    background: @lightest;
-    border: 1px solid @gray-light;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 
   /* move Tabs hover menu to top near actual Tabs */
@@ -173,6 +174,18 @@ const StyledDashboardContent = styled.div<{
       }
       return theme.gridUnit * 8;
     }}px;
+
+    ${({ editMode, theme }) =>
+      editMode &&
+      `
+      max-width: calc(100% - ${
+        BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
+      }px);
+    `}
+  }
+
+  .dashboard-builder-sidepane {
+    width: ${BUILDER_SIDEPANEL_WIDTH}px;
   }
 
   .dashboard-component-chart-holder {
@@ -222,15 +235,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-  const rootChildId = dashboardRoot.children[0];
+  const rootChildId = dashboardRoot?.children[0];
   const topLevelTabs =
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const StandaloneMode = getUrlParam(URL_PARAMS.standalone);
-  const isReport = StandaloneMode === DashboardStandaloneMode.REPORT;
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
   const hideDashboardHeader =
-    StandaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
+    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE || isReport;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -257,7 +270,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || StandaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
@@ -369,7 +382,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ) : (
               <Loading />
             )}
-            {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
+            {editMode && (
+              <BuilderComponentPane
+                isStandalone={!!standaloneMode}
+                topOffset={barTopOffset}
+              />
+            )}
           </StyledDashboardContent>
         </div>
       </StyledContent>

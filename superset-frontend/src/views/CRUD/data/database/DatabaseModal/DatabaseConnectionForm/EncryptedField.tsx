@@ -185,9 +185,9 @@ export const EncryptedField = ({
                     checked: false,
                   },
                 });
-                (document.getElementById(
-                  'selectedFile',
-                ) as HTMLInputElement).value = null as any;
+                (
+                  document.getElementById('selectedFile') as HTMLInputElement
+                ).value = null as any;
               }}
             />
           </div>

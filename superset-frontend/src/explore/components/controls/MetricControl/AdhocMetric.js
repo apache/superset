@@ -80,9 +80,9 @@ export default class AdhocMetric {
 
     this.optionName =
       adhocMetric.optionName ||
-      `metric_${Math.random()
+      `metric_${Math.random().toString(36).substring(2, 15)}_${Math.random()
         .toString(36)
-        .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
+        .substring(2, 15)}`;
   }
 
   getDefaultLabel() {
