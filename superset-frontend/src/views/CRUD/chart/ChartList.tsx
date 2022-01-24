@@ -58,8 +58,25 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
+import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -246,20 +263,26 @@ function ChartList(props: ChartListProps) {
               slice_name: sliceName,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
+              description,
             },
           },
         }: any) => (
-          <a href={url} data-test={`${sliceName}-list-chart-title`}>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={certificationDetails}
-                />{' '}
-              </>
+          <FlexRowContainer>
+            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {sliceName}
+            </a>
+            {description && (
+              <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
             )}
-            {sliceName}
-          </a>
+          </FlexRowContainer>
         ),
         Header: t('Chart'),
         accessor: 'slice_name',

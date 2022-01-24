@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
+from flask import current_app
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -26,6 +28,8 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class TrinoEngineSpec(BaseEngineSpec):
@@ -202,3 +206,42 @@ class TrinoEngineSpec(BaseEngineSpec):
             connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
 
         return extra
+
+    @staticmethod
+    def update_encrypted_extra_params(
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            auth_method = encrypted_extra.pop("auth_method", None)
+            auth_params = encrypted_extra.pop("auth_params", {})
+            if not auth_method:
+                return
+
+            connect_args = params.setdefault("connect_args", {})
+            connect_args["http_scheme"] = "https"
+            # pylint: disable=import-outside-toplevel
+            if auth_method == "basic":
+                from trino.auth import BasicAuthentication as trino_auth  # noqa
+            elif auth_method == "kerberos":
+                from trino.auth import KerberosAuthentication as trino_auth  # noqa
+            elif auth_method == "jwt":
+                from trino.auth import JWTAuthentication as trino_auth  # noqa
+            else:
+                allowed_extra_auths = current_app.config[
+                    "ALLOWED_EXTRA_AUTHENTICATIONS"
+                ].get("trino", {})
+                if auth_method in allowed_extra_auths:
+                    trino_auth = allowed_extra_auths.get(auth_method)
+                else:
+                    raise ValueError(
+                        f"For security reason, custom authentication '{auth_method}' "
+                        f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+                    )
+
+            connect_args["auth"] = trino_auth(**auth_params)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex

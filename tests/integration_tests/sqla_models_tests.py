@@ -39,9 +39,9 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
-    get_example_database,
     TemporalType,
 )
+from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
