@@ -17,40 +17,36 @@
  * under the License.
  */
 
-/* eslint-disable jsx-a11y/label-has-associated-control */
 import React from 'react';
 import { formatNumber } from '@superset-ui/core';
 
-const propTypes = {};
-const defaultProps = {};
-
 class NumberFormatValidator extends React.PureComponent {
+  state: { formatString: string; testValues: (number | null | undefined)[] } = {
+    formatString: '.3~s',
+    testValues: [
+      987654321,
+      12345.6789,
+      3000,
+      400.14,
+      70.00002,
+      1,
+      0,
+      -1,
+      -70.00002,
+      -400.14,
+      -3000,
+      -12345.6789,
+      -987654321,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      NaN,
+      null,
+      undefined,
+    ],
+  };
+
   constructor(props) {
     super(props);
-
-    this.state = {
-      formatString: '.3~s',
-      testValues: [
-        987654321,
-        12345.6789,
-        3000,
-        400.14,
-        70.00002,
-        1,
-        0,
-        -1,
-        -70.00002,
-        -400.14,
-        -3000,
-        -12345.6789,
-        -987654321,
-        Number.POSITIVE_INFINITY,
-        Number.NEGATIVE_INFINITY,
-        NaN,
-        null,
-        undefined,
-      ],
-    };
 
     this.handleFormatChange = this.handleFormatChange.bind(this);
   }
@@ -90,14 +86,17 @@ class NumberFormatValidator extends React.PureComponent {
           <div className="col-sm-8">
             <div className="form">
               <div className="form-group">
-                <label>Enter D3 format string:&nbsp;&nbsp;</label>
-                <input
-                  id="formatString"
-                  className="form-control form-control-lg"
-                  type="text"
-                  value={formatString}
-                  onChange={this.handleFormatChange}
-                />
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label>
+                  Enter D3 format string:
+                  <input
+                    id="formatString"
+                    className="form-control form-control-lg"
+                    type="text"
+                    value={formatString}
+                    onChange={this.handleFormatChange}
+                  />
+                </label>
               </div>
             </div>
           </div>
@@ -113,8 +112,8 @@ class NumberFormatValidator extends React.PureComponent {
                 </tr>
               </thead>
               <tbody>
-                {testValues.map(v => (
-                  <tr key={v}>
+                {testValues.map((v, index) => (
+                  <tr key={index}>
                     <td>
                       <code>{`${v}`}</code>
                     </td>
@@ -131,9 +130,6 @@ class NumberFormatValidator extends React.PureComponent {
     );
   }
 }
-
-NumberFormatValidator.propTypes = propTypes;
-NumberFormatValidator.defaultProps = defaultProps;
 
 export default {
   title: 'Core Packages/@superset-ui-number-format',
