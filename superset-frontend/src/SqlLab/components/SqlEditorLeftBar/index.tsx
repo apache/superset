@@ -205,9 +205,8 @@ export default function SqlEditorLeftBar({
       <StyledScrollbarContainer>
         <div
           css={css`
-            height: ${props => props.contentHeight}px;
+            height: ${tableMetaDataHeight}px;
           `}
-          contentHeight={tableMetaDataHeight}
         >
           <Collapse
             activeKey={tables
