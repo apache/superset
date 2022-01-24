@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button from 'src/components/Button';
@@ -45,7 +45,6 @@ const ExploreCtasResultsButton: FC<ExploreCtasResultsButtonProps> = ({
   dbId,
   templateParams,
 }) => {
-  const dispatch = useDispatch();
   const errorMessage = useSelector(
     (state: RootState) => state.sqlLab.errorMessage,
   );
@@ -78,9 +77,7 @@ const ExploreCtasResultsButton: FC<ExploreCtasResultsButtonProps> = ({
         exploreChart(formData);
       })
       .catch(() => {
-        actions.addDangerToast(
-          dispatch(errorMessage) || t('An error occurred'),
-        );
+        actions.addDangerToast(errorMessage || t('An error occurred'));
       });
   };
 
