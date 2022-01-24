@@ -18,6 +18,8 @@
  */
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { ToastType } from 'src/components/MessageToasts/types';
 
 export type Column = {
   name: string;
@@ -95,3 +97,29 @@ export interface QueryEditor {
     errors: SupersetError[];
   };
 }
+
+export type toastState = {
+  id: string;
+  toastType: ToastType;
+  text: string;
+  duration: number;
+  noDuplicate: boolean;
+};
+
+export type RootState = {
+  sqlLab: {
+    activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
+    alerts: any[];
+    databases: Record<string, any>;
+    offline: boolean;
+    queries: Query[];
+    queryEditors: QueryEditor[];
+    tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
+    tables: Record<string, any>[];
+    queriesLastUpdate: number;
+    user: UserWithPermissionsAndRoles;
+  };
+  localStorageUsageInKilobytes: number;
+  messageToasts: toastState[];
+  common: {};
+};

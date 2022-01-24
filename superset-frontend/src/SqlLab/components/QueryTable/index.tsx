@@ -28,14 +28,12 @@ import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import { Query } from 'src/SqlLab/types';
+import { Query, RootState } from 'src/SqlLab/types';
 import ModalTrigger from 'src/components/ModalTrigger';
-import rootReducer from 'src/SqlLab/reducers';
+import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
-
-type RootState = ReturnType<typeof rootReducer>;
 
 interface QueryTableQuery extends Omit<Query, 'state' | 'sql' | 'progress'> {
   state?: Record<string, any>;
@@ -89,7 +87,7 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector((state: RootState) => state.sqlLab.user);
+  const user = useSelector<RootState, User>(state => state.sqlLab.user);
 
   const {
     queryEditorSetSql,
@@ -140,7 +138,7 @@ const QueryTable = ({
       fetching: {
         config: {
           icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
-          label: t('fetching'),
+          label: t('Fetching'),
         },
       },
       timed_out: {
@@ -171,10 +169,8 @@ const QueryTable = ({
 
     return queries
       .map(query => {
-        // query's type is original Query; Shallow-copy of query, q's type is QueryTableQuery. So that prop, sql passed to another component will remain string, the type of original Query.
-        // qTemp is used to bring in the properties that you don't overwrite, which will be assigned to q, so that q.state/q.sql/q.progress will be later object.
-        const { state, sql, progress, ...qTemp } = query;
-        const q: QueryTableQuery = { ...qTemp };
+        const { state, sql, progress, ...rest } = query;
+        const q = rest as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
 
@@ -248,6 +244,7 @@ const QueryTable = ({
                   actions={actions}
                   height={400}
                   displayLimit={displayLimit}
+                  defaultQueryLimit={1000}
                 />
               }
               responsive
