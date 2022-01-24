@@ -32,6 +32,7 @@ from collections import OrderedDict
 from datetime import date, timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
+import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -64,17 +65,21 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = pkg_resources.resource_filename("superset", "")
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
-    DATA_DIR = os.path.join(os.path.expanduser("~"), ".superset")
+    DATA_DIR = os.path.expanduser("~/.superset")
 
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
+VERSION_INFO_FILE = pkg_resources.resource_filename(
+    "superset", "static/version_info.json"
+)
+PACKAGE_JSON_FILE = pkg_resources.resource_filename(
+    "superset", "static/assets/package.json"
+)
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
