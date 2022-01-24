@@ -359,7 +359,8 @@ def test_import_datasets_sync_argument_columns_metrics(
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"]
+        superset.cli.importexport.import_datasources,
+        ["-p", "dataset.yaml", "-s", "metrics,columns"],
     )
 
     assert response.exit_code == 0
@@ -393,7 +394,8 @@ def test_import_datasets_sync_argument_columns(
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "columns"]
+        superset.cli.importexport.import_datasources,
+        ["-p", "dataset.yaml", "-s", "columns"],
     )
 
     assert response.exit_code == 0
@@ -427,7 +429,8 @@ def test_import_datasets_sync_argument_metrics(
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "metrics"]
+        superset.cli.importexport.import_datasources,
+        ["-p", "dataset.yaml", "-s", "metrics"],
     )
 
     assert response.exit_code == 0
