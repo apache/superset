@@ -21,7 +21,7 @@ import React from 'react';
 import { formatNumber } from '@superset-ui/core';
 
 class NumberFormatValidator extends React.PureComponent {
-  state: { formatString: string; testValues: any[] } = {
+  state: { formatString: string; testValues: (number | null | undefined)[] } = {
     formatString: '.3~s',
     testValues: [
       987654321,

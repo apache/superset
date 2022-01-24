@@ -84,7 +84,7 @@ export function getTimeFormatterForGranularity(granularity?: TimeGranularity) {
 
 export function formatTime(
   formatId: string | undefined,
-  value: Date | null | undefined,
+  value: Date | number | null | undefined,
   granularity?: TimeGranularity,
 ) {
   return getTimeFormatter(formatId, granularity)(value);
