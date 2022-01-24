@@ -38,7 +38,7 @@ from typing import List, Union
 
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  # pylint: disable=E0401
 from yarl import URL
 
 from superset.utils.core import get_version, shortid
