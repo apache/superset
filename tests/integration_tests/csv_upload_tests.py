@@ -346,6 +346,9 @@ def test_import_csv(mock_event_logger):
     # make sure the new column name is reflected in the table metadata
     assert "d" in table.column_names
 
+    # ensure user is assigned as an owner
+    assert security_manager.find_user("admin") in table.owners
+
     # null values are set
     upload_csv(
         CSV_FILENAME2,
@@ -362,9 +365,6 @@ def test_import_csv(mock_event_logger):
     # make sure that john and empty string are replaced with None
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
     assert data == [("john", 1, "x"), ("paul", 2, None)]
-
-    # ensure user is assigned as an owner
-    assert security_manager.find_user("admin") in table.owners
 
 
 
@@ -475,9 +475,12 @@ def test_import_parquet(mock_event_logger):
     )
     assert success_msg_f1 in resp
 
-    # make sure only specified column name was read
     table = SupersetTestCase.get_table(name=PARQUET_UPLOAD_TABLE, schema=None)
+    # make sure only specified column name was read
     assert "b" not in table.column_names
+
+    # ensure user is assigned as an owner
+    assert security_manager.find_user("admin") in table.owners
 
     # upload again with replace mode
     resp = upload_columnar(
@@ -507,8 +510,3 @@ def test_import_parquet(mock_event_logger):
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
-
-    # ensure user is assigned as an owner
-    table = SupersetTestCase.get_table(name=PARQUET_UPLOAD_TABLE)
-    assert security_manager.find_user("admin") in table.owners
-
