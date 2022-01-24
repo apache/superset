@@ -27,7 +27,6 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.commands.exceptions import KeyValueGetFailedError
-from superset.key_value.utils import cache_key
 
 logger = logging.getLogger(__name__)
 

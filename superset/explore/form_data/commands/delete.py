@@ -28,7 +28,6 @@ from superset.key_value.commands.exceptions import (
     KeyValueAccessDeniedError,
     KeyValueDeleteFailedError,
 )
-from superset.key_value.utils import cache_key
 
 logger = logging.getLogger(__name__)
 
