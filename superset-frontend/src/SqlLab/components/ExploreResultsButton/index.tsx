@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import moment from 'moment';
 import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
@@ -42,10 +42,7 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   database,
   onClick,
 }) => {
-  const dispatch = useDispatch();
-  const conf = useSelector(
-    (state: RootState) => state.common.conf,
-  );
+  const conf = useSelector((state: RootState) => state.common.conf);
   const timeout = conf ? conf.SUPERSET_WEBSERVER_TIMEOUT : null;
 
   const getColumns = () => query?.results?.selected_columns ?? [];
@@ -97,10 +94,7 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
               'This query took %s seconds to run, ',
               Math.round(getQueryDuration()),
             ) +
-              t(
-                'and the explore view times out at %s seconds ',
-                dispatch(timeout),
-              ) +
+              t('and the explore view times out at %s seconds ', timeout) +
               t(
                 'following this flow will most likely lead to your query timing out. ',
               ) +
