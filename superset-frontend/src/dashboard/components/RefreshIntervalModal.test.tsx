@@ -133,6 +133,7 @@ const defaultRefreshIntervalModalProps = {
   refreshFrequency: 0,
   onChange: jest.fn(),
   editMode: true,
+  addSuccessToast: jest.fn(),
 };
 
 describe('RefreshIntervalModal - RTL', () => {
@@ -214,6 +215,7 @@ describe('RefreshIntervalModal - RTL', () => {
       10,
       editModeOnProps.editMode,
     );
+    expect(editModeOnProps.addSuccessToast).toHaveBeenCalled();
   });
 
   it('should show warning message', async () => {
