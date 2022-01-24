@@ -975,11 +975,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if action == "saveas" and slice_add_perm:
             ChartDAO.save(slc)
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
-            flash(msg, "info")
+            flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.overwrite(slc)
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-            flash(msg, "info")
+            flash(msg, "success")
 
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
@@ -1008,7 +1008,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 _("Chart [{}] was added to dashboard [{}]").format(
                     slc.slice_name, dash.dashboard_title
                 ),
-                "info",
+                "success",
             )
         elif new_dashboard_name:
             # Creating and adding to a new dashboard
@@ -1030,7 +1030,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 _(
                     "Dashboard [{}] just got created and chart [{}] was added " "to it"
                 ).format(dash.dashboard_title, slc.slice_name),
-                "info",
+                "success",
             )
 
         if dash and slc not in dash.slices:
