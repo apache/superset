@@ -550,26 +550,13 @@ class Header extends React.PureComponent {
           {this.state.showingPropertiesModal && (
             <PropertiesModal
               dashboardId={dashboardInfo.id}
+              dashboardInfo={dashboardInfo}
+              dashboardTitle={dashboardTitle}
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
-              onSubmit={updates => {
-                const { dashboardInfoChanged, dashboardTitleChanged } =
-                  this.props;
-                dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                });
-                setColorSchemeAndUnsavedChanges(updates.colorScheme);
-                dashboardTitleChanged(updates.title);
-                if (updates.slug) {
-                  window.history.pushState(
-                    { event: 'dashboard_properties_changed' },
-                    '',
-                    `/superset/dashboard/${updates.slug}/`,
-                  );
-                }
-              }}
+              onSubmit={handleOnPropertiesChange}
+              onlyApply
             />
           )}
 

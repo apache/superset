@@ -30,6 +30,8 @@ import ReportModal from 'src/components/ReportModal';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { fetchUISpecificReport } from 'src/reports/actions/reports';
+import { reportSelector } from 'src/views/CRUD/hooks';
+import { ReportType } from 'src/dashboard/util/constants';
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -48,16 +50,12 @@ export default function HeaderReportActionsDropDown({
 }) {
   const dispatch = useDispatch();
 
-  const findReport = useSelector<any, AlertObject>(state => {
-    if (dashboardId) {
-      return state.reports.dashboards?.[dashboardId];
-    }
-    if (chart?.id) {
-      return state.reports.charts?.[chart?.id];
-    }
-    return {};
+  const report = useSelector<any, AlertObject>(state => {
+    const resourceType = dashboardId
+      ? ReportType.DASHBOARDS
+      : ReportType.CHARTS;
+    return reportSelector(state, resourceType, dashboardId || chart?.id);
   });
-  const report = findReport;
 
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
@@ -96,18 +94,12 @@ export default function HeaderReportActionsDropDown({
     return permissions[0].length > 0;
   };
 
-  const canRender = () => {
-    if (dashboardId) {
-      return prevDashboard !== dashboardId;
-    }
-    if (chart?.id) {
-      return true;
-    }
-    return false;
-  };
+  const shouldFetch =
+    canAddReports() &&
+    !!((dashboardId && prevDashboard !== dashboardId) || chart?.id);
 
   useEffect(() => {
-    if (canAddReports() && canRender()) {
+    if (shouldFetch) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -118,19 +110,6 @@ export default function HeaderReportActionsDropDown({
       );
     }
   }, []);
-
-  useEffect(() => {
-    if (canAddReports()) {
-      dispatch(
-        fetchUISpecificReport({
-          userId: user.userId,
-          filterField: dashboardId ? 'dashboard_id' : 'chart_id',
-          creationMethod: dashboardId ? 'dashboards' : 'charts',
-          resourceId: dashboardId || chart?.id,
-        }),
-      );
-    }
-  }, [dashboardId]);
 
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
@@ -166,7 +145,6 @@ export default function HeaderReportActionsDropDown({
           userEmail={user.email}
           dashboardId={dashboardId}
           chart={chart}
-          findReport={findReport}
         />
         {report ? (
           <>

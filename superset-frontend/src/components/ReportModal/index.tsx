@@ -34,7 +34,10 @@ import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/common/components';
+import { ReportObject, NOTIFICATION_FORMATS } from 'src/views/CRUD/alert/types';
 import { ChartState } from 'src/explore/types';
+import { reportSelector } from 'src/views/CRUD/hooks';
+import { ReportType } from 'src/dashboard/util/constants';
 import {
   StyledModal,
   StyledTopSection,
@@ -52,37 +55,20 @@ import {
   StyledRadioGroup,
 } from './styles';
 
-export interface ReportObject {
-  id?: number;
-  active: boolean;
-  crontab: string;
-  dashboard?: number;
-  chart?: number;
-  description?: string;
-  log_retention: number;
-  name: string;
-  owners: number[];
-  recipients: [{ recipient_config_json: { target: string }; type: string }];
-  report_format: string;
-  timezone: string;
-  type: string;
-  validator_config_json: {} | null;
-  validator_type: string;
-  working_timeout: number;
-  creation_method: string;
-  force_screenshot: boolean;
-  error?: string;
-}
+const errorMapping = {
+  'Name must be unique': t(
+    'A report with this name exists, please enter a new name.',
+  ),
+};
 interface ReportProps {
   addReport: (report?: ReportObject) => {};
   onHide: () => void;
   onReportAdd: (report?: ReportObject) => {};
-  showModal: boolean;
+  showModal?: boolean;
   userId: number;
   userEmail: string;
   dashboardId?: number;
   chart?: ChartState;
-  findReport: ReportObject;
 }
 
 interface ReportPayloadType {
@@ -122,12 +108,6 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'table',
   'paired_ttest',
 ];
-
-const NOTIFICATION_FORMATS = {
-  TEXT: 'TEXT',
-  PNG: 'PNG',
-  CSV: 'CSV',
-};
 
 const reportReducer = (
   state: Partial<ReportObject> | null,
@@ -169,7 +149,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-  findReport,
 }) => {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
@@ -186,7 +165,12 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const [cronError, setCronError] = useState<CronError>();
   const dispatch = useDispatch();
   // Report fetch logic
-  const report = findReport;
+  const report = useSelector<any, ReportObject>(state => {
+    const resourceType = dashboardId
+      ? ReportType.DASHBOARDS
+      : ReportType.CHARTS;
+    return reportSelector(state, resourceType, dashboardId || chart?.id);
+  });
   const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
@@ -300,6 +284,13 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     </>
   );
 
+  const renderErrorMessage = () => {
+    if (currentReport?.error) {
+      return errorMapping[currentReport.error] || currentReport?.error;
+    }
+    return currentReport?.error;
+  };
+
   return (
     <StyledModal
       show={showModal}
@@ -323,7 +314,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
                 value: target.value,
               }),
           }}
-          errorMessage={currentReport?.error || ''}
+          errorMessage={renderErrorMessage() || ''}
           label="Report Name"
           data-test="report-name-test"
         />

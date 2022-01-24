@@ -18,49 +18,21 @@
  */
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {
-  SET_REPORT,
-  ADD_REPORT,
-  EDIT_REPORT,
-  DELETE_REPORT,
-} from '../actions/reports';
+import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
-      // Grabs the first report with a dashboard id that
-      // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result?.find(
-        report => !!report.dashboard_id,
-      );
-      // Grabs the first report with a chart id that
-      // matches the parameter report's chart.id
-      const reportWithChart = action.report.result?.find(
-        report => !!report.chart?.id,
-      );
+      const { report, resourceId, creationMethod } = action;
 
-      // This organizes report by its type, dashboard or chart
-      // and indexes it by the dashboard/chart id
-      if (reportWithDashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [reportWithDashboard.dashboard_id]: reportWithDashboard,
-          },
-        };
-      }
-      if (reportWithChart) {
-        return {
-          ...state,
-          charts: {
-            ...state.chart,
-            [reportWithChart.chart.id]: reportWithChart,
-          },
-        };
-      }
+      const reportObject = report.result?.find(report => !!report[resourceId]);
+
       return {
         ...state,
+        [creationMethod]: {
+          ...state[creationMethod],
+          [resourceId]: reportObject,
+        },
       };
     },
 
@@ -110,34 +82,6 @@ export default function reportsReducer(state = {}, action) {
         charts: {
           ...state.chart,
           [report.chart]: report,
-        },
-      };
-    },
-
-    [DELETE_REPORT]() {
-      const reportWithDashboard = !!action.report.dashboard;
-
-      if (reportWithDashboard) {
-        const { dashboard } = action.report;
-        // making a shallow copy so as to not directly delete state
-        const { ...dashboardReports } = state.dashboards;
-        delete dashboardReports[dashboard];
-        return {
-          ...state,
-          dashboards: {
-            dashboardReports,
-          },
-        };
-      }
-
-      const { chart } = action.report;
-      // making a shallow copy so as to not directly delete state
-      const { ...chartReports } = state.charts;
-      delete chartReports[chart];
-      return {
-        ...state,
-        charts: {
-          chartReports,
         },
       };
     },

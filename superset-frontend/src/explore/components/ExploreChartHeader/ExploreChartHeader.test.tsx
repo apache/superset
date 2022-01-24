@@ -49,11 +49,7 @@ const createProps = () => ({
     },
     chartStatus: 'rendered',
   },
-<<<<<<< HEAD
   slice: {
-=======
-  slice: ({
->>>>>>> fix(Explore): Remove changes to the properties on cancel (#17184)
     cache_timeout: null,
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
@@ -90,11 +86,7 @@ const createProps = () => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-<<<<<<< HEAD
   } as unknown as Slice,
-=======
-  } as unknown) as Slice,
->>>>>>> fix(Explore): Remove changes to the properties on cancel (#17184)
   slice_name: 'Age distribution of respondents',
   actions: {
     postChartFormData: () => null,

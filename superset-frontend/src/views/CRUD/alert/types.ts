@@ -82,7 +82,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: 'PNG' | 'CSV' | 'TEXT' | string;
+  report_format?: NOTIFICATION_FORMATS;
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -92,6 +92,33 @@ export type AlertObject = {
   working_timeout?: number;
   error?: string;
 };
+
+export enum NOTIFICATION_FORMATS {
+  TEXT = 'TEXT',
+  PNG = 'PNG',
+  CSV = 'CSV',
+}
+export interface ReportObject {
+  id?: number;
+  active: boolean;
+  crontab: string;
+  dashboard?: number;
+  chart?: number;
+  description?: string;
+  log_retention: number;
+  name: string;
+  owners: number[];
+  recipients: [{ recipient_config_json: { target: string }; type: string }];
+  report_format: string;
+  timezone: string;
+  type: string;
+  validator_config_json: {} | null;
+  validator_type: string;
+  working_timeout: number;
+  creation_method: string;
+  force_screenshot: boolean;
+  error?: string;
+}
 
 export type LogObject = {
   end_dttm: string;
