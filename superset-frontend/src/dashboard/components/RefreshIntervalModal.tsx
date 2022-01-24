@@ -49,6 +49,7 @@ const RefreshWarningContainer = styled.div`
 `;
 
 type RefreshIntervalModalProps = {
+  addSuccessToast: (msg: string) => void;
   triggerNode: JSX.Element;
   refreshFrequency: number;
   onChange: (refreshLimit: number, editMode: boolean) => void;
@@ -86,6 +87,7 @@ class RefreshIntervalModal extends React.PureComponent<
   onSave() {
     this.props.onChange(this.state.refreshFrequency, this.props.editMode);
     this.modalRef.current?.close();
+    this.props.addSuccessToast(t('Refresh interval saved'));
   }
 
   onCancel() {
