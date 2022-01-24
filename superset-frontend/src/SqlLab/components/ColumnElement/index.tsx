@@ -69,14 +69,14 @@ export type ColumnKeyTypeType = keyof typeof tooltipTitleMap;
 
 interface ColumnElementProps {
   column: {
-    name: React.ReactNode;
+    name: string;
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
   };
 }
 
 const ColumnElement: FC<ColumnElementProps> = ({ column }) => {
-  let columnName = column.name;
+  let columnName: React.ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
     columnName = <strong>{column.name}</strong>;
