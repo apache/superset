@@ -367,7 +367,6 @@ def test_import_csv(mock_event_logger):
     assert data == [("john", 1, "x"), ("paul", 2, None)]
 
 
-
 @pytest.mark.usefixtures("setup_csv_upload")
 @pytest.mark.usefixtures("create_excel_files")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
