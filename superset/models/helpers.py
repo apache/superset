@@ -341,7 +341,7 @@ class ImportExportMixin:
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """ object will belong to the user the current user """
+        """object will belong to the user the current user"""
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
