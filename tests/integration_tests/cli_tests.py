@@ -346,16 +346,20 @@ def test_import_datasets_sync_argument_columns_metrics(
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using both columns and metrics with the --sync flag
     """
-    import superset.cli
+    # pylint: disable=reimported, redefined-outer-name
+    import superset.cli.importexport  # noqa: F811
 
-    importlib.reload(superset.cli)
+    # reload to define export_datasets correctly based on the
+    # feature flags
+    importlib.reload(superset.cli.importexport)
 
+    # write YAML file
     with open("dataset.yaml", "w") as fp:
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"]
+        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "metrics,columns"]
     )
 
     assert response.exit_code == 0
@@ -376,16 +380,20 @@ def test_import_datasets_sync_argument_columns(
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using only columns with the --sync flag
     """
-    import superset.cli
+    # pylint: disable=reimported, redefined-outer-name
+    import superset.cli.importexport  # noqa: F811
 
-    importlib.reload(superset.cli)
+    # reload to define export_datasets correctly based on the
+    # feature flags
+    importlib.reload(superset.cli.importexport)
 
+    # write YAML file
     with open("dataset.yaml", "w") as fp:
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "columns"]
+        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "columns"]
     )
 
     assert response.exit_code == 0
@@ -406,16 +414,20 @@ def test_import_datasets_sync_argument_metrics(
     Test that the --sync command line argument syncs dataset in superset
     with YAML file. Using only metrics with the --sync flag
     """
-    import superset.cli
+    # pylint: disable=reimported, redefined-outer-name
+    import superset.cli.importexport  # noqa: F811
 
-    importlib.reload(superset.cli)
+    # reload to define export_datasets correctly based on the
+    # feature flags
+    importlib.reload(superset.cli.importexport)
 
+    # write YAML file
     with open("dataset.yaml", "w") as fp:
         fp.write("hello: world")
 
     runner = app.test_cli_runner()
     response = runner.invoke(
-        superset.cli.import_datasources, ["-p", "dataset.yaml", "-s", "metrics"]
+        superset.cli.importexport.import_datasources, ["-p", "dataset.yaml", "-s", "metrics"]
     )
 
     assert response.exit_code == 0
