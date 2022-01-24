@@ -28,6 +28,7 @@ import pandas as pd
 import pytest
 
 from superset.sql_parse import Table
+from superset import security_manager
 from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db
@@ -362,6 +363,10 @@ def test_import_csv(mock_event_logger):
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
     assert data == [("john", 1, "x"), ("paul", 2, None)]
 
+    # ensure user is assigned as an owner
+    assert security_manager.find_user("admin") in table.owners
+
+
 
 @pytest.mark.usefixtures("setup_csv_upload")
 @pytest.mark.usefixtures("create_excel_files")
@@ -418,6 +423,10 @@ def test_import_excel(mock_event_logger):
         .fetchall()
     )
     assert data == [(0, "john", 1), (1, "paul", 2)]
+
+    # ensure user is assigned as an owner
+    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE)
+    assert security_manager.find_user("admin") in table.owners
 
 
 @pytest.mark.usefixtures("setup_csv_upload")
@@ -498,3 +507,8 @@ def test_import_parquet(mock_event_logger):
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
+
+    # ensure user is assigned as an owner
+    table = SupersetTestCase.get_table(name=PARQUET_UPLOAD_TABLE)
+    assert security_manager.find_user("admin") in table.owners
+
