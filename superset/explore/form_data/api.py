@@ -57,6 +57,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     class_permission_name = "ExploreFormDataRestApi"
     resource_name = "explore"
     openapi_spec_tag = "Explore Form Data"
+    openapi_spec_component_schemas = (FormDataPostSchema, FormDataPutSchema)
 
     @expose("/form_data", methods=["POST"])
     @protect()
