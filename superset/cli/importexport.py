@@ -358,9 +358,12 @@ else:
             with open(path_) as file:
                 contents[path_.name] = file.read()
         try:
+        fix/superset-cli-import-datasources-s-flag
             ImportDatasetsCommand(
                 contents, sync_columns=sync_columns, sync_metrics=sync_metrics
             ).run()
+
+            ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception("Error when importing dataset")
             sys.exit(1)

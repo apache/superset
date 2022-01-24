@@ -442,6 +442,7 @@ def test_import_datasets_sync_argument_metrics(
 
 @mock.patch.dict(
     "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch(
     "superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand.run",
