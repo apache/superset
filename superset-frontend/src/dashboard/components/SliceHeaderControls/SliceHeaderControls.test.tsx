@@ -230,6 +230,7 @@ test('Should "Force refresh"', () => {
   userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
   expect(props.forceRefresh).toBeCalledTimes(1);
   expect(props.forceRefresh).toBeCalledWith(371, 26);
+  expect(props.addSuccessToast).toBeCalledTimes(1);
 });
 
 test('Should "Maximize chart"', () => {
