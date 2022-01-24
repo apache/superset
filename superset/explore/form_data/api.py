@@ -105,7 +105,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             args = CommandParameters(
                 actor=g.user,
                 dataset_id=item["dataset_id"],
-                chart_id=item.get("dataset_id"),
+                chart_id=item.get("chart_id"),
                 value=item["value"],
             )
             key = CreateFormDataCommand(args).run()
@@ -174,7 +174,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             args = CommandParameters(
                 actor=g.user,
                 dataset_id=item["dataset_id"],
-                chart_id=item.get("dataset_id"),
+                chart_id=item.get("chart_id"),
                 key=key,
                 value=item["value"],
             )
