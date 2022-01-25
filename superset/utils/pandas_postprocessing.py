@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import logging
 from decimal import Decimal
 from functools import partial
@@ -785,6 +786,7 @@ def prophet(  # pylint: disable=too-many-arguments
     yearly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,
+    index: Optional[str] = None,
 ) -> DataFrame:
     """
     Add forecasts to each series in a timeseries dataframe, along with confidence
@@ -808,8 +810,10 @@ def prophet(  # pylint: disable=too-many-arguments
     :param daily_seasonality: Should daily seasonality be applied.
            An integer value will specify Fourier order of seasonality, `None` will
            automatically detect seasonality.
+    :param index: the name of the column containing the x-axis data
     :return: DataFrame with contributions, with temporal column at beginning if present
     """
+    index = index or DTTM_ALIAS
     # validate inputs
     if not time_grain:
         raise QueryObjectValidationError(_("Time grain missing"))
@@ -826,15 +830,15 @@ def prophet(  # pylint: disable=too-many-arguments
         raise QueryObjectValidationError(
             _("Confidence interval must be between 0 and 1 (exclusive)")
         )
-    if DTTM_ALIAS not in df.columns:
+    if index not in df.columns:
         raise QueryObjectValidationError(_("DataFrame must include temporal column"))
     if len(df.columns) < 2:
         raise QueryObjectValidationError(_("DataFrame include at least one series"))
 
     target_df = DataFrame()
-    for column in [column for column in df.columns if column != DTTM_ALIAS]:
+    for column in [column for column in df.columns if column != index]:
         fit_df = _prophet_fit_and_predict(
-            df=df[[DTTM_ALIAS, column]].rename(columns={DTTM_ALIAS: "ds", column: "y"}),
+            df=df[[index, column]].rename(columns={index: "ds", column: "y"}),
             confidence_interval=confidence_interval,
             yearly_seasonality=_prophet_parse_seasonality(yearly_seasonality),
             weekly_seasonality=_prophet_parse_seasonality(weekly_seasonality),
@@ -855,7 +859,7 @@ def prophet(  # pylint: disable=too-many-arguments
             for new_column in new_columns:
                 target_df = target_df.assign(**{new_column: fit_df[new_column]})
     target_df.reset_index(level=0, inplace=True)
-    return target_df.rename(columns={"ds": DTTM_ALIAS})
+    return target_df.rename(columns={"ds": index})
 
 
 def boxplot(
@@ -958,27 +962,41 @@ def boxplot(
     return aggregate(df, groupby=groupby, aggregates=aggregates)
 
 
-def resample(
+@validate_column_args("groupby_columns")
+def resample(  # pylint: disable=too-many-arguments
     df: DataFrame,
     rule: str,
     method: str,
     time_column: str,
+    groupby_columns: Optional[Tuple[Optional[str], ...]] = None,
     fill_value: Optional[Union[float, int]] = None,
 ) -> DataFrame:
     """
-    resample a timeseries dataframe.
+    support upsampling in resample
 
     :param df: DataFrame to resample.
     :param rule: The offset string representing target conversion.
     :param method: How to fill the NaN value after resample.
     :param time_column: existing columns in DataFrame.
+    :param groupby_columns: columns except time_column in dataframe
     :param fill_value: What values do fill missing.
     :return: DataFrame after resample
     :raises QueryObjectValidationError: If the request in incorrect
     """
-    df = df.set_index(time_column)
-    if method == "asfreq" and fill_value is not None:
-        df = df.resample(rule).asfreq(fill_value=fill_value)
+
+    def _upsampling(_df: DataFrame) -> DataFrame:
+        _df = _df.set_index(time_column)
+        if method == "asfreq" and fill_value is not None:
+            return _df.resample(rule).asfreq(fill_value=fill_value)
+        return getattr(_df.resample(rule), method)()
+
+    if groupby_columns:
+        df = (
+            df.set_index(keys=list(groupby_columns))
+            .groupby(by=list(groupby_columns))
+            .apply(_upsampling)
+        )
+        df = df.reset_index().set_index(time_column).sort_index()
     else:
-        df = getattr(df.resample(rule), method)()
+        df = _upsampling(df)
     return df.reset_index()

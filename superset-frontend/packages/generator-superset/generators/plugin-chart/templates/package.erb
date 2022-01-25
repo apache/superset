@@ -1,7 +1,7 @@
 {
-  "name": "superset-plugin-chart-<%= packageName %>",
+  "name": "<%= packageName %>",
   "version": "0.1.0",
-  "description": "Superset Chart - <%= description %>",
+  "description": "<%= description %>",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,38 +9,35 @@
     "esm",
     "lib"
   ],
+  "private": true,
   "scripts": {
     "build": "npm run build-cjs && npm run build-esm && npm run ts-types",
     "build-cjs": "babel src --extensions \".ts,.tsx,.js,.jsx\" --copy-files --out-dir lib",
     "build-clean": "npm run clean && npm run build",
     "build-esm": "BABEL_OUTPUT=esm babel src --extensions \".ts,.tsx,.js,.jsx\" --copy-files --out-dir esm",
-    "clean": "rm -rf {lib,esm,tsconfig.tsbuildinfo}",
-    "dev": "webpack --mode=development --color --watch",
+    "dev": "BABEL_OUTPUT=esm babel src --extensions \".ts,.tsx,.js,.jsx\" --watch --copy-files --out-dir esm",
+    "prebuild": "rimraf {lib,esm,tsconfig.tsbuildinfo}",
+    "postbuild": "npm run test",
     "ts-types": "tsc --build",
     "test": "jest"
   },
-  "author": "Superset",
+  "author": "My Name",
   "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "peerDependencies": {
-    "react": "^16.13.1",
+    "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@superset-ui/chart-controls": "*"
+    "react": "^16.13.1"
   },
   "devDependencies": {
     "@airbnb/config-babel": "^2.0.1",
     "@babel/cli": "^7.16.0",
     "@types/jest": "^26.0.4",
-    "babel-loader": "^8.2.2",
-    "clean-webpack-plugin": "^4.0.0",
     "jest": "^26.6.3",
-    "thread-loader": "^3.0.4",
-    "ts-loader": "^9.2.5",
-    "typescript": "^4.1.2",
-    "url-loader": "^4.1.1"
+    "rimraf": "^3.0.2",
+    "typescript": "^4.1.2"
   }
 }

@@ -636,12 +636,13 @@ export function switchQueryEditor(queryEditor, displayLimit) {
             title: json.label,
             sql: json.sql,
             selectedText: null,
-            latestQueryId: json.latest_query ? json.latest_query.id : null,
+            latestQueryId: json.latest_query?.id,
             autorun: json.autorun,
             dbId: json.database_id,
             templateParams: json.template_params,
             schema: json.schema,
             queryLimit: json.query_limit,
+            remoteId: json.saved_query?.id,
             validationResult: {
               id: null,
               errors: [],
@@ -864,18 +865,37 @@ export function saveQuery(query) {
       stringify: false,
     })
       .then(result => {
+        const savedQuery = convertQueryToClient(result.json.item);
         dispatch({
           type: QUERY_EDITOR_SAVED,
           query,
-          result: convertQueryToClient(result.json.item),
+          result: savedQuery,
         });
-        dispatch(addSuccessToast(t('Your query was saved')));
         dispatch(queryEditorSetTitle(query, query.title));
+        return savedQuery;
       })
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be saved'))),
       );
 }
+
+export const addSavedQueryToTabState =
+  (queryEditor, savedQuery) => dispatch => {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.put({
+          endpoint: `/tabstateview/${queryEditor.id}`,
+          postPayload: { saved_query_id: savedQuery.remoteId },
+        })
+      : Promise.resolve();
+
+    return sync
+      .catch(() => {
+        dispatch(addDangerToast(t('Your query was not properly saved')));
+      })
+      .then(() => {
+        dispatch(addSuccessToast(t('Your query was saved')));
+      });
+  };
 
 export function updateSavedQuery(query) {
   return dispatch =>

@@ -163,6 +163,7 @@ class SliceHeaderControls extends React.PureComponent<
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
+        this.props.addSuccessToast(t('Data refreshed'));
         break;
       case MENU_KEYS.CROSS_FILTER_SCOPING:
         this.setState({ showCrossFilterScopingModal: true });

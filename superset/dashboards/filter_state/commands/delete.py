@@ -14,29 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
-from flask_appbuilder.security.sqla.models import User
-
 from superset.dashboards.dao import DashboardDAO
-from superset.dashboards.filter_state.commands.entry import Entry
 from superset.extensions import cache_manager
 from superset.key_value.commands.delete import DeleteKeyValueCommand
+from superset.key_value.commands.entry import Entry
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.utils import cache_key
 
 
 class DeleteFilterStateCommand(DeleteKeyValueCommand):
-    def delete(self, actor: User, resource_id: int, key: str) -> Optional[bool]:
+    def delete(self, cmd_params: CommandParameters) -> bool:
+        resource_id = cmd_params.resource_id
+        actor = cmd_params.actor
+        key = cache_key(resource_id, cmd_params.key)
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard:
-            entry: Entry = cache_manager.filter_state_cache.get(
-                cache_key(resource_id, key)
-            )
+            entry: Entry = cache_manager.filter_state_cache.get(key)
             if entry:
                 if entry["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
-                return cache_manager.filter_state_cache.delete(
-                    cache_key(resource_id, key)
-                )
+                return cache_manager.filter_state_cache.delete(key)
         return False

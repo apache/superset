@@ -190,6 +190,7 @@ test('should refresh the charts', async () => {
   await openDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.forceRefreshAllCharts).toHaveBeenCalledTimes(1);
+  expect(mockedProps.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
 test('should show the properties modal', async () => {
