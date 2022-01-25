@@ -513,7 +513,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu onClick={this.handleMenuClick} style={{ width: 176 }}>
+      <Menu style={{ width: 176 }}>
         <Menu.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
