@@ -31,7 +31,6 @@ x-base:
     - ./superset-frontend:/app/superset-frontend
     - superset_home:/app/superset_home
     - ./tests:/app/tests
-  
 
 version: "3.7"
 services:
