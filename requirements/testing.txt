@@ -11,6 +11,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/testing.in
+appnope==0.1.2
+    # via ipython
 astroid==2.6.6
     # via pylint
 backcall==0.2.0
