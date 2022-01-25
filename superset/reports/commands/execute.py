@@ -72,7 +72,6 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
 )
 from superset.utils.urls import get_url_path
-from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +171,6 @@ class BaseReportState:
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
-            standalone=DashboardStandaloneMode.REPORT.value,
             # force=force,  TODO (betodealmeida) implement this
             **kwargs,
         )

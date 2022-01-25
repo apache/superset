@@ -1767,7 +1767,7 @@ def test_when_tabs_are_selected_it_takes_screenshots_for_every_tabs(
     assert dashboard_screenshot_mock.call_count == 2
     for index, tab in enumerate(tabs):
         assert dashboard_screenshot_mock.call_args_list[index].args == (
-            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/?standalone=3#{tab}",
+            f"http://0.0.0.0:8080/superset/dashboard/{dashboard.id}/?#{tab}",
             f"{dashboard.digest}",
         )
     assert send_email_smtp_mock.called is True
