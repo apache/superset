@@ -67,11 +67,11 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         log_to_statsd=False,
     )
     def post(self) -> Response:
-        """Stores a new value.
+        """Stores a new form_data.
         ---
         post:
           description: >-
-            Stores a new value.
+            Stores a new form_data.
           requestBody:
             required: true
             content:
@@ -80,7 +80,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                   $ref: '#/components/schemas/FormDataPostSchema'
           responses:
             201:
-              description: The value was stored successfully.
+              description: The form_data was stored successfully.
               content:
                 application/json:
                   schema:
@@ -88,7 +88,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                     properties:
                       key:
                         type: string
-                        description: The key to retrieve the value.
+                        description: The key to retrieve the form_data.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -106,7 +106,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                 actor=g.user,
                 dataset_id=item["dataset_id"],
                 chart_id=item.get("chart_id"),
-                value=item["value"],
+                form_data=item["form_data"],
             )
             key = CreateFormDataCommand(args).run()
             return self.response(201, key=key)
@@ -129,11 +129,11 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         log_to_statsd=False,
     )
     def put(self, key: str) -> Response:
-        """Updates an existing value.
+        """Updates an existing form_data.
         ---
         put:
           description: >-
-            Updates an existing value.
+            Updates an existing form_data.
           parameters:
           - in: path
             schema:
@@ -147,7 +147,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                   $ref: '#/components/schemas/FormDataPutSchema'
           responses:
             200:
-              description: The value was stored successfully.
+              description: The form_data was stored successfully.
               content:
                 application/json:
                   schema:
@@ -176,7 +176,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                 dataset_id=item["dataset_id"],
                 chart_id=item.get("chart_id"),
                 key=key,
-                value=item["value"],
+                form_data=item["form_data"],
             )
             result = UpdateFormDataCommand(args).run()
             if not result:
@@ -201,11 +201,11 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives a value.
+        """Retrives a form_data.
         ---
         get:
           description: >-
-            Retrives a value.
+            Retrives a form_data.
           parameters:
           - in: path
             schema:
@@ -213,15 +213,15 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             name: key
           responses:
             200:
-              description: Returns the stored value.
+              description: Returns the stored form_data.
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      value:
+                      form_data:
                         type: string
-                        description: The stored value
+                        description: The stored form_data
             400:
               $ref: '#/components/responses/400'
             401:
@@ -235,10 +235,10 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         """
         try:
             args = CommandParameters(actor=g.user, key=key)
-            value = GetFormDataCommand(args).run()
-            if not value:
+            form_data = GetFormDataCommand(args).run()
+            if not form_data:
                 return self.response_404()
-            return self.response(200, value=value)
+            return self.response(200, form_data=form_data)
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
@@ -256,20 +256,20 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         log_to_statsd=False,
     )
     def delete(self, key: str) -> Response:
-        """Deletes a value.
+        """Deletes a form_data.
         ---
         delete:
           description: >-
-            Deletes a value.
+            Deletes a form_data.
           parameters:
           - in: path
             schema:
               type: string
             name: key
-            description: The value key.
+            description: The form_data key.
           responses:
             200:
-              description: Deleted the stored value.
+              description: Deleted the stored form_data.
               content:
                 application/json:
                   schema:

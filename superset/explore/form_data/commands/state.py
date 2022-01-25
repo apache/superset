@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
 from typing_extensions import TypedDict
 
 
-class Entry(TypedDict):
+class TemporaryExploreState(TypedDict):
     owner: int
     dataset_id: int
-    chart_id: int
-    value: str
+    chart_id: Optional[int]
+    form_data: str

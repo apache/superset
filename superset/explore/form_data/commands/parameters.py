@@ -26,4 +26,4 @@ class CommandParameters:
     dataset_id: int = 0
     chart_id: int = 0
     key: Optional[str] = None
-    value: Optional[str] = None
+    form_data: Optional[str] = None

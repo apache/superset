@@ -20,8 +20,8 @@ from abc import ABC
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.explore.form_data.commands.entry import Entry
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.commands.exceptions import (
@@ -44,20 +44,22 @@ class UpdateFormDataCommand(BaseCommand, ABC):
             chart_id = self._cmd_params.chart_id
             actor = self._cmd_params.actor
             key = self._cmd_params.key
-            value = self._cmd_params.value
+            form_data = self._cmd_params.form_data
             check_access(dataset_id, chart_id, actor)
-            entry: Entry = cache_manager.explore_form_data_cache.get(key)
-            if entry and value:
+            state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
+                key
+            )
+            if state and form_data:
                 user_id = actor.get_user_id()
-                if entry["owner"] != user_id:
+                if state["owner"] != user_id:
                     raise KeyValueAccessDeniedError()
-                new_entry: Entry = {
+                new_state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),
                     "dataset_id": dataset_id,
                     "chart_id": chart_id,
-                    "value": value,
+                    "form_data": form_data,
                 }
-                return cache_manager.explore_form_data_cache.set(key, new_entry)
+                return cache_manager.explore_form_data_cache.set(key, new_state)
             return False
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")

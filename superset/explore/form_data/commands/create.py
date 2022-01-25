@@ -20,8 +20,8 @@ from secrets import token_urlsafe
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.explore.form_data.commands.entry import Entry
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
@@ -38,17 +38,17 @@ class CreateFormDataCommand(BaseCommand):
             dataset_id = self._cmd_params.dataset_id
             chart_id = self._cmd_params.chart_id
             actor = self._cmd_params.actor
-            value = self._cmd_params.value
+            form_data = self._cmd_params.form_data
             check_access(dataset_id, chart_id, actor)
             key = token_urlsafe(48)
-            if value:
-                entry: Entry = {
+            if form_data:
+                state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),
                     "dataset_id": dataset_id,
                     "chart_id": chart_id,
-                    "value": value,
+                    "form_data": form_data,
                 }
-                cache_manager.explore_form_data_cache.set(key, entry)
+                cache_manager.explore_form_data_cache.set(key, state)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

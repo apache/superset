@@ -22,7 +22,7 @@ class FormDataPostSchema(Schema):
         required=True, allow_none=False, description="The dataset ID"
     )
     chart_id = fields.Integer(required=False, description="The chart ID")
-    value = fields.String(
+    form_data = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
     )
 
@@ -32,6 +32,6 @@ class FormDataPutSchema(Schema):
         required=True, allow_none=False, description="The dataset ID"
     )
     chart_id = fields.Integer(required=False, description="The chart ID")
-    value = fields.String(
+    form_data = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
     )

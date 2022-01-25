@@ -44,7 +44,9 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
     raise DatasetNotFoundError()
 
 
-def check_access(dataset_id: int, chart_id: int, actor: User) -> Optional[bool]:
+def check_access(
+    dataset_id: int, chart_id: Optional[int], actor: User
+) -> Optional[bool]:
     check_dataset_access(dataset_id)
     if not chart_id:
         return True
