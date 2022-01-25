@@ -58,9 +58,8 @@ const defaultProps = {
 };
 
 export default class TextAreaControl extends React.Component {
-  onControlChange(event) {
-    const { value } = event.target;
-    this.props.onChange(value);
+  onControlChange(value) {
+     this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
@@ -76,7 +75,6 @@ export default class TextAreaControl extends React.Component {
           style={style}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          onChange={this.props.onChange}
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
@@ -84,6 +82,7 @@ export default class TextAreaControl extends React.Component {
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
+          onChange={this.onControlChange.bind(this)}
         />
       );
     }
