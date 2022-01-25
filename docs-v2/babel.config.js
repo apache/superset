@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 module.exports = {
   presets: [require.resolve('@docusaurus/core/lib/babel/preset')],
 };

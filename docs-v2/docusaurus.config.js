@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
