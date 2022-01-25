@@ -26,7 +26,7 @@ class CacheManager:
         self._data_cache = Cache()
         self._thumbnail_cache = Cache()
         self._filter_state_cache = Cache()
-        self._chart_form_data_cache = Cache()
+        self._explore_form_data_cache = Cache()
 
     def init_app(self, app: Flask) -> None:
         self._cache.init_app(
@@ -57,11 +57,11 @@ class CacheManager:
                 **app.config["FILTER_STATE_CACHE_CONFIG"],
             },
         )
-        self._chart_form_data_cache.init_app(
+        self._explore_form_data_cache.init_app(
             app,
             {
                 "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["CHART_FORM_DATA_CACHE_CONFIG"],
+                **app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"],
             },
         )
 
@@ -82,5 +82,5 @@ class CacheManager:
         return self._filter_state_cache
 
     @property
-    def chart_form_data_cache(self) -> Cache:
-        return self._chart_form_data_cache
+    def explore_form_data_cache(self) -> Cache:
+        return self._explore_form_data_cache
