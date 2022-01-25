@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from typing import Any
+from typing import Any, Optional
 
 from flask import current_app, url_for
 
@@ -33,3 +33,12 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
     with current_app.test_request_context():
         return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+
+
+def get_screenshot_explorelink(url: Optional[str]) -> Optional[str]:
+    data = list(urllib.parse.urlsplit(url))
+    params = urllib.parse.parse_qs(data[3])
+    params["standalone"] = ["0"]
+    data[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
+    url = urllib.parse.urlunsplit(data)
+    return url
