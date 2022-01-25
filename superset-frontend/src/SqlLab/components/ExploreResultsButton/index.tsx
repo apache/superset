@@ -32,23 +32,21 @@ const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
   database,
   onClick,
 }) => {
-  const allowsSubquery = database && database.allows_subquery;
+  const allowsSubquery = database?.allows_subquery ?? false;
   return (
-    <>
-      <Button
-        buttonSize="small"
-        onClick={onClick}
-        disabled={!allowsSubquery}
-        tooltip={t('Explore the result set in the data exploration view')}
-      >
-        <InfoTooltipWithTrigger
-          icon="line-chart"
-          placement="top"
-          label="explore"
-        />{' '}
-        {t('Explore')}
-      </Button>
-    </>
+    <Button
+      buttonSize="small"
+      onClick={onClick}
+      disabled={!allowsSubquery}
+      tooltip={t('Explore the result set in the data exploration view')}
+    >
+      <InfoTooltipWithTrigger
+        icon="line-chart"
+        placement="top"
+        label="explore"
+      />{' '}
+      {t('Explore')}
+    </Button>
   );
 };
 
