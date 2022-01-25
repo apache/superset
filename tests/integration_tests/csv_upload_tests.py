@@ -424,7 +424,7 @@ def test_import_excel(mock_event_logger):
     assert data == [(0, "john", 1), (1, "paul", 2)]
 
     # ensure user is assigned as an owner
-    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE)
+    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE, schema=None)
     assert security_manager.find_user("admin") in table.owners
 
 
