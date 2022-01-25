@@ -48,6 +48,7 @@ type ExploreActionButtonsProps = {
   queriesResponse: {};
   slice: { slice_name: string };
   addDangerToast: Function;
+  addSuccessToast: Function;
 };
 
 const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
@@ -98,6 +99,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     latestQueryFormData,
     slice,
     addDangerToast,
+    addSuccessToast,
   } = props;
 
   const copyTooltipText = t('Copy chart URL to clipboard');
@@ -111,8 +113,10 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       const shortUrl = await getShortUrl();
       await copyTextToClipboard(shortUrl);
       setCopyTooltip(t('Copied to clipboard!'));
+      addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       setCopyTooltip(t('Sorry, your browser does not support copying.'));
+      addDangerToast(t('Sorry, your browser does not support copying.'));
     }
   };
 

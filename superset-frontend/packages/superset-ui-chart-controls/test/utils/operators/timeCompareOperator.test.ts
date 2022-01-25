@@ -174,3 +174,29 @@ test('time compare pivot: difference/percentage/ratio', () => {
     });
   });
 });
+
+test('time compare pivot on x-axis', () => {
+  expect(
+    timeComparePivotOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+        x_axis: 'ds',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'count(*)__1 year later': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+      columns: [],
+      index: ['ds'],
+    },
+  });
+});
