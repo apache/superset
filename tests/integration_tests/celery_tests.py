@@ -44,7 +44,8 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
-from superset.utils.core import get_example_database, backend
+from superset.utils.core import backend
+from superset.utils.database import get_example_database
 
 CELERY_SLEEP_TIME = 6
 QUERY = "SELECT name FROM birth_names LIMIT 1"

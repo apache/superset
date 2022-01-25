@@ -47,102 +47,56 @@ const StyledScrollbarContainer = styled.div`
   overflow: auto;
 `;
 
-const StyledScrollbarContent = styled.div`
-  height: ${props => props.contentHeight}px;
+const collapseStyles = css`
+  .ant-collapse-item {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  }
+  .ant-collapse-header {
+    padding: 0px !important;
+    display: flex;
+    align-items: center;
+  }
+  .ant-collapse-content-box {
+    padding: 0px ${({ theme }) => theme.gridUnit * 4}px 0px 0px !important;
+  }
+  .ant-collapse-arrow {
+    top: ${({ theme }) => theme.gridUnit * 2}px !important;
+    color: ${({ theme }) => theme.colors.primary.dark1} !important;
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.dark2} !important;
+    }
+  }
 `;
 
-export default class SqlEditorLeftBar extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.resetState = this.resetState.bind(this);
-    this.onSchemaChange = this.onSchemaChange.bind(this);
-    this.onSchemasLoad = this.onSchemasLoad.bind(this);
-    this.onTablesLoad = this.onTablesLoad.bind(this);
-    this.onDbChange = this.onDbChange.bind(this);
-    this.getDbList = this.getDbList.bind(this);
-    this.onTableChange = this.onTableChange.bind(this);
-    this.onToggleTable = this.onToggleTable.bind(this);
-  }
+export default function SqlEditorLeftBar({
+  actions,
+  database,
+  height,
+  queryEditor,
+  tables: tb,
+}) {
+  const onDbChange = db => {
+    actions.queryEditorSetDb(queryEditor, db.id);
+    actions.queryEditorSetFunctionNames(queryEditor, db.id);
+  };
 
-  onSchemaChange(schema) {
-    this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
-  }
-
-  onSchemasLoad(schemas) {
-    this.props.actions.queryEditorSetSchemaOptions(
-      this.props.queryEditor,
-      schemas,
-    );
-  }
-
-  onTablesLoad(tables) {
-    this.props.actions.queryEditorSetTableOptions(
-      this.props.queryEditor,
-      tables,
-    );
-  }
-
-  onDbChange(db) {
-    this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
-    this.props.actions.queryEditorSetFunctionNames(
-      this.props.queryEditor,
-      db.id,
-    );
-  }
-
-  onTableChange(tableName, schemaName) {
+  const onTableChange = (tableName, schemaName) => {
     if (tableName && schemaName) {
-      this.props.actions.addTable(
-        this.props.queryEditor,
-        tableName,
-        schemaName,
-      );
+      actions.addTable(queryEditor, tableName, schemaName);
     }
-  }
+  };
 
-  onToggleTable(tables) {
-    this.props.tables.forEach(table => {
+  const onToggleTable = tables => {
+    tb.forEach(table => {
       if (!tables.includes(table.id.toString()) && table.expanded) {
-        this.props.actions.collapseTable(table);
+        actions.collapseTable(table);
       } else if (tables.includes(table.id.toString()) && !table.expanded) {
-        this.props.actions.expandTable(table);
+        actions.expandTable(table);
       }
     });
-  }
+  };
 
-  getDbList(dbs) {
-    this.props.actions.setDatabases(dbs);
-  }
-
-  dbMutator(data) {
-    const options = data.result.map(db => ({
-      value: db.id,
-      label: db.database_name,
-    }));
-    this.props.actions.setDatabases(data.result);
-    if (data.result.length === 0) {
-      this.props.actions.addDangerToast(
-        t("It seems you don't have access to any database"),
-      );
-    }
-    return options;
-  }
-
-  resetState() {
-    this.props.actions.resetState();
-  }
-
-  changeTable(tableOpt) {
-    if (!tableOpt) {
-      return;
-    }
-    const schemaName = tableOpt.value.schema;
-    const tableName = tableOpt.value.table;
-    this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
-  }
-
-  renderExpandIconWithTooltip = ({ isActive }) => (
+  const renderExpandIconWithTooltip = ({ isActive }) => (
     <IconTooltip
       css={css`
         transform: rotate(90deg);
@@ -161,79 +115,59 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     </IconTooltip>
   );
 
-  render() {
-    const shouldShowReset = window.location.search === '?reset=1';
-    const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above
-    const qe = this.props.queryEditor;
-    return (
-      <div className="SqlEditorLeftBar">
-        <TableSelector
-          database={this.props.database}
-          dbId={qe.dbId}
-          getDbList={this.getDbList}
-          handleError={this.props.actions.addDangerToast}
-          onDbChange={this.onDbChange}
-          onSchemaChange={this.onSchemaChange}
-          onSchemasLoad={this.onSchemasLoad}
-          onTableChange={this.onTableChange}
-          onTablesLoad={this.onTablesLoad}
-          schema={qe.schema}
-          sqlLabMode
-        />
-        <div className="divider" />
-        <StyledScrollbarContainer>
-          <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
-            <Collapse
-              activeKey={this.props.tables
-                .filter(({ expanded }) => expanded)
-                .map(({ id }) => id)}
-              css={theme => css`
-                .ant-collapse-item {
-                  margin-bottom: ${theme.gridUnit * 3}px;
-                }
-                .ant-collapse-header {
-                  padding: 0px !important;
-                  display: flex;
-                  align-items: center;
-                }
-                .ant-collapse-content-box {
-                  padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
-                }
-                .ant-collapse-arrow {
-                  top: ${theme.gridUnit * 2}px !important;
-                  color: ${theme.colors.primary.dark1} !important;
-                  &: hover {
-                    color: ${theme.colors.primary.dark2} !important;
-                  }
-                }
-              `}
-              expandIconPosition="right"
-              ghost
-              onChange={this.onToggleTable}
-              expandIcon={this.renderExpandIconWithTooltip}
-            >
-              {this.props.tables.map(table => (
-                <TableElement
-                  table={table}
-                  key={table.id}
-                  actions={this.props.actions}
-                />
-              ))}
-            </Collapse>
-          </StyledScrollbarContent>
-        </StyledScrollbarContainer>
-        {shouldShowReset && (
-          <Button
-            buttonSize="small"
-            buttonStyle="danger"
-            onClick={this.resetState}
+  const shouldShowReset = window.location.search === '?reset=1';
+  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
+
+  return (
+    <div className="SqlEditorLeftBar">
+      <TableSelector
+        database={database}
+        dbId={queryEditor.dbId}
+        getDbList={actions.setDatabases}
+        handleError={actions.addDangerToast}
+        onDbChange={onDbChange}
+        onSchemaChange={actions.queryEditorSetSchema}
+        onSchemasLoad={actions.queryEditorSetSchemaOptions}
+        onTableChange={onTableChange}
+        onTablesLoad={actions.queryEditorSetTableOptions}
+        schema={queryEditor.schema}
+        sqlLabMode
+      />
+      <div className="divider" />
+      <StyledScrollbarContainer>
+        <div
+          css={css`
+            height: ${props => props.contentHeight}px;
+          `}
+          contentHeight={tableMetaDataHeight}
+        >
+          <Collapse
+            activeKey={tb
+              .filter(({ expanded }) => expanded)
+              .map(({ id }) => id)}
+            css={collapseStyles}
+            expandIconPosition="right"
+            ghost
+            onChange={onToggleTable}
+            expandIcon={renderExpandIconWithTooltip}
           >
-            <i className="fa fa-bomb" /> {t('Reset state')}
-          </Button>
-        )}
-      </div>
-    );
-  }
+            {tb.map(table => (
+              <TableElement table={table} key={table.id} actions={actions} />
+            ))}
+          </Collapse>
+        </div>
+      </StyledScrollbarContainer>
+      {shouldShowReset && (
+        <Button
+          buttonSize="small"
+          buttonStyle="danger"
+          onClick={actions.resetState}
+        >
+          <i className="fa fa-bomb" /> {t('Reset state')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 SqlEditorLeftBar.propTypes = propTypes;

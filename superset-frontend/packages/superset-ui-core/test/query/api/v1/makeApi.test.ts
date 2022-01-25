@@ -17,11 +17,8 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  JsonValue,
-  SupersetClientClass,
-} from '@superset-ui/core/src/connection';
-import { makeApi, SupersetApiError } from '@superset-ui/core/src/query';
+import { JsonValue, SupersetClientClass } from '@superset-ui/core';
+import { makeApi, SupersetApiError } from '../../../../src/query';
 import setupClientForTest from '../setupClientForTest';
 
 describe('makeApi()', () => {

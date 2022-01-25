@@ -41,7 +41,7 @@ import {
   PostProcessingResample,
   PostProcessingRolling,
   PostProcessingSort,
-} from '@superset-ui/core/src/query/types/PostProcessing';
+} from '@superset-ui/core';
 import { ComparisionType, RollingType, TimeGranularity } from '../../../src';
 
 const AGGREGATES_OPTION: Aggregates = {

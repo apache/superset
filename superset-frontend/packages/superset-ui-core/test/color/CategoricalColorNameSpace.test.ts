@@ -17,14 +17,17 @@
  * under the License.
  */
 
-import CategoricalColorNamespace, {
+import {
+  CategoricalScheme,
+  getCategoricalSchemeRegistry,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
+import {
   getNamespace,
   getScale,
   getColor,
   DEFAULT_NAMESPACE,
-} from '@superset-ui/core/src/color/CategoricalColorNamespace';
-import getCategoricalSchemeRegistry from '@superset-ui/core/src/color/CategoricalSchemeRegistrySingleton';
-import CategoricalScheme from '@superset-ui/core/src/color/CategoricalScheme';
+} from '../../src/color/CategoricalColorNamespace';
 
 describe('CategoricalColorNamespace', () => {
   beforeAll(() => {

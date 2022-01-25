@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import SequentialScheme from '@superset-ui/core/src/color/SequentialScheme';
+import { SequentialScheme } from '@superset-ui/core';
 
 describe('SequentialScheme', () => {
   const scheme = new SequentialScheme({

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
+import { usePrevious } from 'src/hooks/usePrevious';
 import { FilterRemoval } from './types';
-import { usePrevious } from '../../../../common/hooks/usePrevious';
 import { NativeFilterType } from '../types';
 
 /**

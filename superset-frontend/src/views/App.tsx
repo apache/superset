@@ -33,7 +33,7 @@ import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
-import Menu from 'src/components/Menu/Menu';
+import Menu from 'src/views/components/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import { theme } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';

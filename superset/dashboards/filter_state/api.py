@@ -31,9 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 class DashboardFilterStateRestApi(KeyValueRestApi):
-    class_permission_name = "FilterStateRestApi"
+    class_permission_name = "DashboardFilterStateRestApi"
     resource_name = "dashboard"
-    openapi_spec_tag = "Filter State"
+    openapi_spec_tag = "Dashboard Filter State"
 
     def get_create_command(self) -> Type[CreateFilterStateCommand]:
         return CreateFilterStateCommand
@@ -70,8 +70,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                    type: object
-                    $ref: '#/components/schemas/KeyValuePostSchema'
+                  $ref: '#/components/schemas/KeyValuePostSchema'
           responses:
             201:
               description: The value was stored successfully.
@@ -121,8 +120,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             content:
               application/json:
                 schema:
-                    type: object
-                    $ref: '#/components/schemas/KeyValuePutSchema'
+                  $ref: '#/components/schemas/KeyValuePutSchema'
           responses:
             200:
               description: The value was stored successfully.

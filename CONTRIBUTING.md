@@ -359,7 +359,7 @@ In the event a community member discovers a security flaw in Superset, it is imp
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
-- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable time frame, this would counter-indicate reverting.
 - **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
@@ -475,6 +475,20 @@ $ source venv/bin/activate
 $ python3 -m pip install -r requirements/integration.txt
 $ pip-compile-multi --no-upgrade
 ```
+
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+
+```bash
+$ pip-compile-multi -P my-package
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+
+```bash
+$ pip-compile-multi
+```
+
+This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 

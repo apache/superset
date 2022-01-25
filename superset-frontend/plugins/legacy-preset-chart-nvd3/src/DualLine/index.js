@@ -28,7 +28,7 @@ const metadata = new ChartMetadata({
     'Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.',
   ),
   name: t('Dual Line Chart'),
-  tags: [t('Legacy')],
+  tags: [t('Legacy'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });

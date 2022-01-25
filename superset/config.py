@@ -32,6 +32,7 @@ from collections import OrderedDict
 from datetime import date, timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
+import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -41,6 +42,7 @@ from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-mod
 from typing_extensions import Literal
 from werkzeug.local import LocalProxy
 
+from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -63,17 +65,21 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = pkg_resources.resource_filename("superset", "")
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
-    DATA_DIR = os.path.join(os.path.expanduser("~"), ".superset")
+    DATA_DIR = os.path.expanduser("~/.superset")
 
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
+VERSION_INFO_FILE = pkg_resources.resource_filename(
+    "superset", "static/version_info.json"
+)
+PACKAGE_JSON_FILE = pkg_resources.resource_filename(
+    "superset", "static/assets/package.json"
+)
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -160,8 +166,10 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key
-SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h"
+# Your App secret key. Make sure you override it on superset_config.py.
+# Use a strong complex alphanumeric string and use a tool to help you generate
+# a sufficiently random sequence, ex: openssl rand -base64 42"
+SECRET_KEY = CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -347,6 +355,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
+    # With Superset 2.0, we are updating the default so that the legacy datasource
+    # editor no longer shows. Currently this is set to false so that the editor
+    # option does show, but we will be depreciating it.
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": False,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
     # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
@@ -570,9 +582,18 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for filters state
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "filesystem",
+    "CACHE_TYPE": "FileSystemCache",
     "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
+
+# Cache for chart form data
+CHART_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "FileSystemCache",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
@@ -715,6 +736,7 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
+
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -865,6 +887,8 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 # The directory within the bucket specified above that will
 # contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
+
+
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
@@ -979,6 +1003,19 @@ HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 # See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
+# Allow list of custom authentications for each DB engine.
+# Example:
+# from your.module import AuthClass
+# from another.extra import auth_method
+#
+# ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {
+#     "trino": {
+#         "custom_auth": AuthClass,
+#         "another_auth_method": auth_method,
+#     },
+# }
+ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {}
+
 # Allow for javascript controls components
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
@@ -1004,6 +1041,7 @@ DASHBOARD_TEMPLATE_ID = None
 # Note that the returned uri and params are passed directly to sqlalchemy's
 # as such `create_engine(url, **params)`
 DB_CONNECTION_MUTATOR = None
+
 
 # A function that intercepts the SQL to be executed and can alter it.
 # The use case is can be around adding some sort of comment header
@@ -1164,6 +1202,11 @@ PREFERRED_DATABASES: List[str] = [
     "SQLite",
     # etc.
 ]
+# When adding a new database we try to connect to it. Depending on which parameters are
+# incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the
+# database times out. Instead of relying on the driver timeout we can specify a shorter
+# one here.
+TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
@@ -1311,8 +1354,8 @@ ENABLE_BROAD_ACTIVITY_ACCESS = True
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
+    cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
-        cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
         module = sys.modules[__name__]
         override_conf = imp.load_source("superset_config", cfg_path)
         for key in dir(override_conf):
@@ -1327,8 +1370,9 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         raise
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
-        import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        # pylint: disable=import-error,wildcard-import,unused-wildcard-import
+        import superset_config
+        from superset_config import *  # type:ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

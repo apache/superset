@@ -17,10 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import callApi from '@superset-ui/core/src/connection/callApi/callApi';
-import * as constants from '@superset-ui/core/src/connection/constants';
-import { CallApi, JsonObject } from '@superset-ui/core/src/connection/types';
-import { DEFAULT_FETCH_RETRY_OPTIONS } from '@superset-ui/core/src/connection/constants';
+import { CallApi, JsonObject } from '@superset-ui/core';
+import * as constants from '../../../src/connection/constants';
+import callApi from '../../../src/connection/callApi/callApi';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 
@@ -463,7 +462,7 @@ describe('callApi()', () => {
     let error;
     try {
       await callApi({
-        fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
+        fetchRetryOptions: constants.DEFAULT_FETCH_RETRY_OPTIONS,
         url: mockErrorUrl,
         method: 'GET',
       });
@@ -499,7 +498,7 @@ describe('callApi()', () => {
     expect.assertions(2);
     const url = mock503;
     const response = await callApi({
-      fetchRetryOptions: DEFAULT_FETCH_RETRY_OPTIONS,
+      fetchRetryOptions: constants.DEFAULT_FETCH_RETRY_OPTIONS,
       url,
       method: 'GET',
     });

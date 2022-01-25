@@ -20,15 +20,14 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
-import { promiseTimeout } from '@superset-ui/core';
-import { SuperChart } from '@superset-ui/core/src/chart';
+
+import { promiseTimeout, SuperChart } from '@superset-ui/core';
 import RealSuperChart, {
   WrapperProps,
-} from '@superset-ui/core/src/chart/components/SuperChart';
-import NoResultsComponent from '@superset-ui/core/src/chart/components/NoResultsComponent';
+} from '../../../src/chart/components/SuperChart';
+import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 import {
   ChartKeys,

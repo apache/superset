@@ -29,6 +29,7 @@ from flask_compress import Compress
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.extensions import (
     _event_logger,
     APP_DIR,
@@ -118,6 +119,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
+        from superset.charts.form_data.api import ChartFormDataRestApi
         from superset.connectors.druid.views import (
             Druid,
             DruidClusterModelView,
@@ -202,18 +204,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
+        appbuilder.add_api(ChartFormDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(FilterSetRestApi)
         appbuilder.add_api(QueryRestApi)
-        appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
-        appbuilder.add_api(FilterSetRestApi)
-        appbuilder.add_api(DashboardFilterStateRestApi)
+        appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
         #
@@ -572,12 +575,27 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
+    def check_secret_key(self) -> None:
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+            bottom_banner = 80 * "-" + "\n" + 80 * "-"
+            logger.warning(top_banner)
+            logger.warning(
+                "A Default SECRET_KEY was detected, please use superset_config.py "
+                "to override it.\n"
+                "Use a strong complex alphanumeric string and use a tool to help"
+                " you generate \n"
+                "a sufficiently random sequence, ex: openssl rand -base64 42"
+            )
+            logger.warning(bottom_banner)
+
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
         order to fully init the app
         """
         self.pre_init()
+        self.check_secret_key()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
         # Configuration of feature_flags must be done first to allow init features

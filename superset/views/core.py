@@ -975,11 +975,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if action == "saveas" and slice_add_perm:
             ChartDAO.save(slc)
             msg = _("Chart [{}] has been saved").format(slc.slice_name)
-            flash(msg, "info")
+            flash(msg, "success")
         elif action == "overwrite" and slice_overwrite_perm:
             ChartDAO.overwrite(slc)
             msg = _("Chart [{}] has been overwritten").format(slc.slice_name)
-            flash(msg, "info")
+            flash(msg, "success")
 
         # Adding slice to a dashboard if requested
         dash: Optional[Dashboard] = None
@@ -1008,7 +1008,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 _("Chart [{}] was added to dashboard [{}]").format(
                     slc.slice_name, dash.dashboard_title
                 ),
-                "info",
+                "success",
             )
         elif new_dashboard_name:
             # Creating and adding to a new dashboard
@@ -1030,7 +1030,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 _(
                     "Dashboard [{}] just got created and chart [{}] was added " "to it"
                 ).format(dash.dashboard_title, slc.slice_name),
-                "info",
+                "success",
             )
 
         if dash and slc not in dash.slices:
@@ -2014,10 +2014,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         ]
         DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
         if not user:
-            err_msg = __(
-                "Can't find User '%(name)s', please ask your admin " "to create one.",
-                name=user_name,
-            )
+            err_msg = __("Can't find user, please ask your admin to create one.")
             logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         cluster = (
@@ -2026,10 +2023,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .one_or_none()
         )
         if not cluster:
-            err_msg = __(
-                "Can't find DruidCluster with cluster_name = " "'%(name)s'",
-                name=cluster_name,
-            )
+            err_msg = __("Can't find DruidCluster")
             logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         try:
@@ -2377,7 +2371,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     def stop_query(self) -> FlaskResponse:
         client_id = request.form.get("client_id")
-
         query = db.session.query(Query).filter_by(client_id=client_id).one()
         if query.status in [
             QueryStatus.FAILED,
@@ -2385,9 +2378,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             QueryStatus.TIMED_OUT,
         ]:
             logger.warning(
-                "Query with client_id %s could not be stopped: "
-                "query already complete",
-                str(client_id),
+                "Query with client_id could not be stopped: query already complete",
             )
             return self.json_response("OK")
 
