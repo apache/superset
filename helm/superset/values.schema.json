@@ -56,7 +56,9 @@
         },
         "configOverrides": {
             "type": "object",
-            "additionalProperties": false,
+            "additionalProperties": {
+                "type": "string"
+            },
             "properties": {
                 "extend_timeout": {
                     "type": "string"
@@ -68,7 +70,9 @@
         },
         "configOverridesFiles": {
             "type": "object",
-            "additionalProperties": false,
+            "additionalProperties": {
+                "type": "string"
+            },
             "properties": {
                 "extend_timeout": {
                     "type": "string"
@@ -180,40 +184,10 @@
             ]
         },
         "resources": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "limits": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "cpu": {
-                            "type": "string"
-                        },
-                        "memory": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/resources"
         },
         "hostAliases": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "ip": {
-                        "type": "string"
-                    },
-                    "hostnames": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/hostAliases"
         },
         "supersetNode": {
             "type": "object",
@@ -278,9 +252,7 @@
                 "command",
                 "connections",
                 "env",
-                "forceReload",
-                "deploymentAnnotations",
-                "podAnnotations"
+                "forceReload"
             ]
         },
         "supersetWorker": {
@@ -305,9 +277,7 @@
             },
             "required": [
                 "command",
-                "forceReload",
-                "deploymentAnnotations",
-                "podAnnotations"
+                "forceReload"
             ]
         },
         "supersetCeleryBeat": {
@@ -336,9 +306,7 @@
             "required": [
                 "enabled",
                 "command",
-                "forceReload",
-                "deploymentAnnotations",
-                "podAnnotations"
+                "forceReload"
             ]
         },
         "init": {
@@ -395,7 +363,7 @@
                     "type": "string"
                 },
                 "podAnnotations": {
-                    "type": "object"
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
                 }
             },
             "required": [
@@ -405,8 +373,7 @@
                 "loadExamples",
                 "createAdmin",
                 "adminUser",
-                "initscript",
-                "podAnnotations"
+                "initscript"
             ]
         },
         "postgresql": {
@@ -417,10 +384,16 @@
                     "type": "boolean"
                 },
                 "existingSecret": {
-                    "type": "string"
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "existingSecretKey": {
-                    "type": "string"
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "service": {
                     "type": "object",
@@ -467,11 +440,8 @@
             },
             "required": [
                 "enabled",
-                "existingSecret",
-                "existingSecretKey",
                 "service",
                 "postgresqlUsername",
-                "postgresqlPassword",
                 "postgresqlDatabase",
                 "persistence"
             ]
@@ -487,10 +457,16 @@
                     "type": "boolean"
                 },
                 "existingSecret": {
-                    "type": "string"
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "existingSecretKey": {
-                    "type": "string"
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "password": {
                     "type": "string"
@@ -541,9 +517,6 @@
             "required": [
                 "enabled",
                 "usePassword",
-                "existingSecret",
-                "existingSecretKey",
-                "password",
                 "master",
                 "cluster"
             ]
