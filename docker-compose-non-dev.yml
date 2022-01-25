@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-
 # paste via https://docs.docker.com/compose/compose-file/compose-file-v3/#extension-fields
 x-base:
   &base
