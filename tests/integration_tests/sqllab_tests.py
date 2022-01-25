@@ -50,9 +50,8 @@ from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     backend,
     datetime_to_epoch,
-    get_example_database,
-    get_main_database,
 )
+from superset.utils.database import get_example_database, get_main_database
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME

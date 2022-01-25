@@ -17,6 +17,7 @@
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
     "@docusaurus/core": "2.0.0-beta.9",
+    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.14",
     "@docusaurus/preset-classic": "2.0.0-beta.9",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",

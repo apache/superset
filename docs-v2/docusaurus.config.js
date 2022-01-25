@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
@@ -34,6 +35,81 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
+   plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        fromExtensions: ['html', 'htm'],
+        toExtensions: ['exe', 'zip'],
+        redirects: [
+          {
+            to: '/docs/installation/installing-superset-using-docker-compose',
+            from: '/installation.html',
+          },
+          {
+            to: '/docs/intro',
+            from: '/tutorials.html',
+          },
+          {
+            to: '/docs/creating-charts-dashboards/first-dashboard',
+            from: '/admintutorial.html',
+          },
+          {
+            to: '/docs/creating-charts-dashboards/first-dashboard',
+            from: '/usertutorial.html',
+          },
+          {
+            to: '/docs/security',
+            from: '/security.html',
+          },
+          {
+            to: '/docs/installation/sql-templating',
+            from: '/sqllab.html',
+          },
+          {
+            to: '/docs/installation/sql-templating',
+            from: '/gallery.html',
+          },
+          {
+            to: '/docs/intro',
+            from: '/sqllab.html',
+          },
+          {
+            to: '/docs/databases/druid',
+            from: '/druid.html',
+          },
+          {
+            to: '/docs/miscellaneous/country-map-tools',
+            from: '/misc.html',
+          },
+          {
+            to: '/docs/miscellaneous/country-map-tools',
+            from: '/visualization.html',
+          },
+          {
+            to: '/docs/frequently-asked-questions',
+            from: '/videos.html',
+          },
+          {
+            to: '/docs/frequently-asked-questions',
+            from: '/faq.html',
+          },
+          {
+            to: '/docs/intro',
+            from: '/index.html',
+          },
+          {
+            to: '/docs/creating-charts-dashboards',
+            from: '/tutorial.html',
+          },
+          {
+            to: '/docs/installation/alerts-reports',
+            from: '/docs/installation/email-reports',
+          },
+        ],
+      },
+    ],
+  ],
 
   presets: [
     [
@@ -134,6 +210,8 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
+
+
 };
 
 module.exports = config;

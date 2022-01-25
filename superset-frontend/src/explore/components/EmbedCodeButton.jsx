@@ -96,6 +96,7 @@ export default class EmbedCodeButton extends React.Component {
               rows="4"
               readOnly
               className="form-control input-sm"
+              style={{ resize: 'vertical' }}
             />
           </div>
           <div className="col-sm-2">

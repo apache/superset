@@ -35,14 +35,9 @@ apache_superset.egg-info
 .*csv
 # Generated doc files
 env/*
-docs/README.md
 docs/.htaccess*
-docs-v2/README.md
 docs-v2/.htaccess*
-docs-v2/static/img/logo.svg
-docs-v2/static/img/undraw_docusaurus_mountain.svg
-docs-v2/static/img/undraw_docusaurus_react.svg
-docs-v2/static/img/undraw_docusaurus_tree.svg
+.nojekyll
 _build/*
 _static/*
 .buildinfo

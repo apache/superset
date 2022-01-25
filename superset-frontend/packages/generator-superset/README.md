@@ -36,12 +36,11 @@ npm install -g @superset-ui/generator-superset
 
 ## Usage
 
-Generate a new package or visualization plugin in `@superset-ui`
+Generate a new package or visualization plugin:
 
 ```bash
-cd superset-ui/packages
-mkdir superset-ui-new-package
-cd superset-ui-new-package
+mkdir /tmp/superset-plugin-chart-hello-world
+cd /tmp/superset-plugin-chart-hello-world
 yo @superset-ui/superset
 ```
 
