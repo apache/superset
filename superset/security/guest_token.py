@@ -71,7 +71,7 @@ class GuestUser(AnonymousUserMixin):
     def is_anonymous(self) -> bool:
         """
         This is set to false because lots of code assumes that
-        role = Public if user.is_anonymous == false.
+        if user.is_anonymous, then role = Public
         But guest users need to have their own role independent of Public.
         """
         return False

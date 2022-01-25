@@ -34,7 +34,7 @@ const LazyDashboardPage = lazy(
 
 const EmbeddedApp = () => (
   <Router>
-    <Route path="/superset/dashboard/:idOrSlug/embedded">
+    <Route path="/dashboard/:idOrSlug/embedded">
       <Suspense fallback={<Loading />}>
         <RootContextProviders>
           <ErrorBoundary>
