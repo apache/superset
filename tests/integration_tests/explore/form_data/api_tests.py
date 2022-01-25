@@ -23,9 +23,8 @@ from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetAccessDeniedError
+from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
-from superset.key_value.commands.entry import Entry
-from superset.key_value.utils import cache_key
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -35,7 +34,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.test_app import app
 
 key = "test-key"
-value = "test"
+form_data = "test"
 
 
 @pytest.fixture
@@ -75,171 +74,144 @@ def dataset_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
-    app.config["CHART_FORM_DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
+    app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
     cache_manager.init_app(app)
-    entry: Entry = {"owner": admin_id, "value": value}
-    cache_manager.chart_form_data_cache.set(cache_key(chart_id, key), entry)
-    cache_manager.chart_form_data_cache.set(cache_key(dataset_id, key), entry)
+    entry: TemporaryExploreState = {
+        "owner": admin_id,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": form_data,
+    }
+    cache_manager.explore_form_data_cache.set(key, entry)
 
 
 def test_post(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": form_data,
     }
-    resp = client.post(
-        f"api/v1/chart/{chart_id}/form_data?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 201
 
 
 def test_post_bad_request(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
-        "value": 1234,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": 1234,
     }
-    resp = client.post(
-        f"api/v1/chart/{chart_id}/form_data?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 400
 
 
 def test_post_access_denied(client, chart_id: int, dataset_id: int):
     login(client, "gamma")
     payload = {
-        "value": value,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": form_data,
     }
-    resp = client.post(
-        f"api/v1/chart/{chart_id}/form_data?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 404
 
 
 def test_put(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
-        "value": "new value",
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
     }
-    resp = client.put(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 200
 
 
 def test_put_bad_request(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
-        "value": 1234,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": 1234,
     }
-    resp = client.put(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 400
 
 
 def test_put_access_denied(client, chart_id: int, dataset_id: int):
     login(client, "gamma")
     payload = {
-        "value": "new value",
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
     }
-    resp = client.put(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 404
 
 
 def test_put_not_owner(client, chart_id: int, dataset_id: int):
     login(client, "gamma")
     payload = {
-        "value": "new value",
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
     }
-    resp = client.put(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}", json=payload
-    )
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 404
 
 
-def test_get_key_not_found(client, chart_id: int, dataset_id: int):
+def test_get_key_not_found(client):
     login(client, "admin")
-    resp = client.get(
-        f"api/v1/chart/{chart_id}/form_data/unknown-key?dataset_id={dataset_id}"
-    )
+    resp = client.get(f"api/v1/explore/form_data/unknown-key")
     assert resp.status_code == 404
 
 
-def test_get_chart_not_found(client, dataset_id: int):
+def test_get(client):
     login(client, "admin")
-    resp = client.get(f"api/v1/chart/-1/form_data/{key}?dataset_id={dataset_id}")
-    assert resp.status_code == 404
-
-
-def test_get(client, chart_id: int, dataset_id: int):
-    login(client, "admin")
-    resp = client.get(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}"
-    )
+    resp = client.get(f"api/v1/explore/form_data/{key}")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
-    assert value == data.get("value")
+    assert form_data == data.get("form_data")
 
 
-def test_get_access_denied(client, chart_id: int, dataset_id: int):
+def test_get_access_denied(client):
     login(client, "gamma")
-    resp = client.get(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}"
-    )
-    assert resp.status_code == 404
-
-
-def test_get_no_dataset(client):
-    login(client, "admin")
-    resp = client.get(f"api/v1/chart/0/form_data/{key}")
-    assert resp.status_code == 404
-
-
-def test_get_dataset(client, dataset_id: int):
-    login(client, "admin")
-    resp = client.get(f"api/v1/chart/0/form_data/{key}?dataset_id={dataset_id}")
-    assert resp.status_code == 200
-
-
-def test_get_dataset_not_found(client):
-    login(client, "admin")
-    resp = client.get(f"api/v1/chart/0/form_data/{key}?dataset_id=-1")
+    resp = client.get(f"api/v1/explore/form_data/{key}")
     assert resp.status_code == 404
 
 
 @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-def test_get_dataset_access_denied(mock_can_access_datasource, client, dataset_id):
+def test_get_dataset_access_denied(mock_can_access_datasource, client):
     mock_can_access_datasource.side_effect = DatasetAccessDeniedError()
     login(client, "admin")
-    resp = client.get(f"api/v1/chart/0/form_data/{key}?dataset_id={dataset_id}")
+    resp = client.get(f"api/v1/explore/form_data/{key}")
     assert resp.status_code == 403
 
 
-def test_delete(client, chart_id: int, dataset_id: int):
+def test_delete(client):
     login(client, "admin")
-    resp = client.delete(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}"
-    )
+    resp = client.delete(f"api/v1/explore/form_data/{key}")
     assert resp.status_code == 200
 
 
-def test_delete_access_denied(client, chart_id: int, dataset_id: int):
+def test_delete_access_denied(client):
     login(client, "gamma")
-    resp = client.delete(
-        f"api/v1/chart/{chart_id}/form_data/{key}?dataset_id={dataset_id}"
-    )
+    resp = client.delete(f"api/v1/explore/form_data/{key}")
     assert resp.status_code == 404
 
 
 def test_delete_not_owner(client, chart_id: int, dataset_id: int, admin_id: int):
     another_key = "another_key"
     another_owner = admin_id + 1
-    entry: Entry = {"owner": another_owner, "value": value}
-    cache_manager.chart_form_data_cache.set(cache_key(chart_id, another_key), entry)
+    entry: TemporaryExploreState = {
+        "owner": another_owner,
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": form_data,
+    }
+    cache_manager.explore_form_data_cache.set(another_key, entry)
     login(client, "admin")
-    resp = client.delete(
-        f"api/v1/chart/{chart_id}/form_data/{another_key}?dataset_id={dataset_id}"
-    )
+    resp = client.delete(f"api/v1/explore/form_data/{another_key}")
     assert resp.status_code == 403
