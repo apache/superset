@@ -27,9 +27,13 @@ import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
-import { Menu as AntdMenu, Menu, Input } from 'src/common/components';
-import { Dropdown } from 'src/components/Dropdown';
-import { Switch } from 'src/components/Switch';
+import {
+  Dropdown,
+  Menu as AntdMenu,
+  Menu,
+  Switch,
+  Input,
+} from 'src/common/components';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { QueryEditor, Query } from 'src/SqlLab/types';
 import Icons from 'src/components/Icons';
