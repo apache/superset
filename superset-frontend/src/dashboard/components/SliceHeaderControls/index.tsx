@@ -100,7 +100,7 @@ export interface SliceHeaderControlsProps {
   updatedDttm: number | null;
   isFullSize?: boolean;
   formData: object;
-  exploreUrl?: string;
+  onExploreChart: () => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
@@ -283,10 +283,11 @@ class SliceHeaderControls extends React.PureComponent<
         )}
 
         {this.props.supersetCanExplore && (
-          <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            <a href={this.props.exploreUrl} rel="noopener noreferrer">
-              {t('View chart in Explore')}
-            </a>
+          <Menu.Item
+            key={MENU_KEYS.EXPLORE_CHART}
+            onClick={this.props.onExploreChart}
+          >
+            {t('View chart in Explore')}
           </Menu.Item>
         )}
 

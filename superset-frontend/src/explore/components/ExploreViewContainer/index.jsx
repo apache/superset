@@ -21,7 +21,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, css, useTheme } from '@superset-ui/core';
+import { styled, t, css, useTheme, logging } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
@@ -37,26 +37,28 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import ExploreChartPanel from './ExploreChartPanel';
-import ConnectedControlPanelsContainer from './ControlPanelsContainer';
-import SaveModal from './SaveModal';
-import QueryAndSaveBtns from './QueryAndSaveBtns';
-import DataSourcePanel from './DatasourcePanel';
-import { getExploreLongUrl } from '../exploreUtils';
-import { areObjectsEqual } from '../../reduxUtils';
-import { getFormDataFromControls } from '../controlUtils';
-import * as exploreActions from '../actions/exploreActions';
-import * as saveModalActions from '../actions/saveModalActions';
-import * as logActions from '../../logger/actions';
+import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import ExploreChartPanel from '../ExploreChartPanel';
+import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
+import SaveModal from '../SaveModal';
+import QueryAndSaveBtns from '../QueryAndSaveBtns';
+import DataSourcePanel from '../DatasourcePanel';
+import { mountExploreUrl } from '../../exploreUtils';
+import { areObjectsEqual } from '../../../reduxUtils';
+import { getFormDataFromControls } from '../../controlUtils';
+import * as exploreActions from '../../actions/exploreActions';
+import * as saveModalActions from '../../actions/saveModalActions';
+import * as logActions from '../../../logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
-} from '../../logger/LogUtils';
+} from '../../../logger/LogUtils';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -191,7 +193,7 @@ function ExploreViewContainer(props) {
   };
 
   const addHistory = useCallback(
-    ({ isReplace = false, title } = {}) => {
+    async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,
@@ -199,28 +201,30 @@ function ExploreViewContainer(props) {
           }
         : props.form_data;
       const payload = { ...formData };
-      const longUrl = getExploreLongUrl(
-        formData,
-        props.standalone ? URL_PARAMS.standalone.name : null,
-        false,
-        {},
-        props.force,
-      );
+      const chartId = formData.slice_id || 0;
+      const datasetId = props.datasource.id;
 
       try {
+        let key;
+        let stateModifier;
         if (isReplace) {
-          window.history.replaceState(payload, title, longUrl);
+          key = await postFormData(datasetId, chartId, formData);
+          stateModifier = 'replaceState';
         } else {
-          window.history.pushState(payload, title, longUrl);
+          key = getUrlParam(URL_PARAMS.formDataKey);
+          await putFormData(datasetId, chartId, key, formData);
+          stateModifier = 'pushState';
         }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Failed at altering browser history',
-          payload,
-          title,
-          longUrl,
+        const url = mountExploreUrl(
+          props.standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+          },
+          props.force,
         );
+        window.history[stateModifier](payload, title, url);
+      } catch (e) {
+        logging.warn('Failed at altering browser history', e);
       }
     },
     [props.form_data, props.standalone, props.force],
@@ -447,7 +451,6 @@ function ExploreViewContainer(props) {
         {...props}
         errorMessage={renderErrorMessage()}
         refreshOverlayVisible={chartIsStale}
-        addHistory={addHistory}
         onQuery={onQuery}
       />
     );
