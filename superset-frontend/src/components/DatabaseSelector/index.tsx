@@ -225,7 +225,7 @@ export default function DatabaseSelector({
           }
           setSchemaOptions(options);
           setLoadingSchemas(false);
-          addSuccessToast('List refreshed');
+          if (refresh > 0) addSuccessToast('List refreshed');
         })
         .catch(() => {
           setLoadingSchemas(false);
