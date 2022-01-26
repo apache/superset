@@ -379,10 +379,12 @@ def test_import_excel(mock_event_logger):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't excel upload.")
 
+    schema = utils.get_example_default_schema()
+    full_table_name = f"{schema}.{EXCEL_UPLOAD_TABLE}" if schema else EXCEL_UPLOAD_TABLE
     test_db = get_upload_db()
 
     success_msg = (
-        f'Excel file "{EXCEL_FILENAME}" uploaded to table "{EXCEL_UPLOAD_TABLE}"'
+        f'Excel file "{EXCEL_FILENAME}" uploaded to table "{full_table_name}"'
     )
 
     # initial upload with fail mode
@@ -391,7 +393,7 @@ def test_import_excel(mock_event_logger):
     mock_event_logger.assert_called_with(
         action="successful_excel_upload",
         database=test_db.name,
-        schema=None,
+        schema=schema,
         table=EXCEL_UPLOAD_TABLE,
     )
 
@@ -415,7 +417,7 @@ def test_import_excel(mock_event_logger):
     mock_event_logger.assert_called_with(
         action="successful_excel_upload",
         database=test_db.name,
-        schema=None,
+        schema=schema,
         table=EXCEL_UPLOAD_TABLE,
     )
 
