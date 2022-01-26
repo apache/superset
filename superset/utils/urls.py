@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import urllib
-from typing import Any, Optional
+from typing import Any
 
 from flask import current_app, url_for
 
@@ -35,10 +35,16 @@ def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
         return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
 
 
-def get_screenshot_explorelink(url: Optional[str]) -> Optional[str]:
-    data = list(urllib.parse.urlsplit(url))
-    params = urllib.parse.parse_qs(data[3])
-    params["standalone"] = ["0"]
-    data[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
-    url = urllib.parse.urlunsplit(data)
-    return url
+def modify_url_query(url: str, **kwargs: Any) -> str:
+    """
+    Replace or add parameters to a URL.
+    """
+    parts = list(urllib.parse.urlsplit(url))
+    params = urllib.parse.parse_qs(parts[3])
+    for k, v in kwargs.items():
+        if not isinstance(v, list):
+            v = [v]
+        params[k] = v
+
+    parts[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
+    return urllib.parse.urlunsplit(parts)
