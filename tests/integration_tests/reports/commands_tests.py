@@ -694,9 +694,9 @@ def test_email_chart_report_schedule(
         # assert that the link sent is correct
         assert (
             '<a href="http://0.0.0.0:8080/superset/explore/?'
-            "form_data=%7B%22slice_id%22%3A+"
+            "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart.chart.id}%7D&"
-            'standalone=true&force=false">Explore in Superset</a>'
+            'standalone=0&force=false">Explore in Superset</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -737,9 +737,9 @@ def test_email_chart_report_schedule_force_screenshot(
         # assert that the link sent is correct
         assert (
             '<a href="http://0.0.0.0:8080/superset/explore/?'
-            "form_data=%7B%22slice_id%22%3A+"
+            "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_force_screenshot.chart.id}%7D&"
-            'standalone=true&force=true">Explore in Superset</a>'
+            'standalone=0&force=true">Explore in Superset</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -774,9 +774,9 @@ def test_email_chart_alert_schedule(
         # assert that the link sent is correct
         assert (
             '<a href="http://0.0.0.0:8080/superset/explore/?'
-            "form_data=%7B%22slice_id%22%3A+"
+            "form_data=%7B%22slice_id%22%3A%20"
             f"{create_alert_email_chart.chart.id}%7D&"
-            'standalone=true&force=true">Explore in Superset</a>'
+            'standalone=0&force=true">Explore in Superset</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -842,9 +842,9 @@ def test_email_chart_report_schedule_with_csv(
         # assert that the link sent is correct
         assert (
             '<a href="http://0.0.0.0:8080/superset/explore/?'
-            "form_data=%7B%22slice_id%22%3A+"
+            "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_with_csv.chart.id}%7D&"
-            'standalone=true&force=false">Explore in Superset</a>'
+            'standalone=0&force=false">Explore in Superset</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
