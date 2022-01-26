@@ -1374,15 +1374,17 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 else int(ip_range[0])
             )
             resp["formatted_value"] = str(string_value)
-        except Exception as e:
+        except (ValueError, Exception) as ex:
             resp["status"] = "invalid"
-            resp["values"].append("")
-    resp["display_value"] = ", ".join(
-        map(
-            lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
-            resp["values"],
-        )
-    )
+            resp["display_value"] = str(ex)
+            break
+        else:
+            resp["display_value"] = ", ".join(
+                map(
+                    lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+                    resp["values"],
+                )
+            )
     return resp
 
 
@@ -1453,15 +1455,17 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 else port_conversion_dict[string_value]
             )
             resp["formatted_value"] = str(string_value)
-        except Exception:
+        except (ValueError, Exception) as error:
             resp["status"] = "invalid"
-
-    resp["display_value"] = ", ".join(
-        map(
-            lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
-            resp["values"],
-        )
-    )
+            resp["display_value"] = str(error)
+            break
+        else:
+            resp["display_value"] = ", ".join(
+                map(
+                    lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+                    resp["values"],
+                )
+            )
     return resp
 
 

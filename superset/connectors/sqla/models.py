@@ -79,7 +79,7 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, BusinessTypesResponseError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -1308,8 +1308,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         }
                     )
                     if bus_resp["status"] == "invalid":
-                        raise QueryObjectValidationError(
-                            _("Busniness tpye conversion falid, please check values")
+                        raise BusinessTypesResponseError(
+                            _(bus_resp["display_value"])
                         )
 
                     where_clause_and.append(
