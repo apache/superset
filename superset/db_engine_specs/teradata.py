@@ -187,8 +187,8 @@ class ParsedQueryTeradata:
         self._extract_from_token(token_list)
 
     def set_or_update_query_limit_td(self, new_limit: int) -> str:
-        td_sel_keywords = set(["SELECT", "SEL"])
-        td_limit_keywords = set(["TOP", "SAMPLE"])
+        td_sel_keywords = {"SELECT", "SEL"}
+        td_limit_keywords = {"TOP", "SAMPLE"}
         statement = self._parsed[0]
 
         if not self._limit:
