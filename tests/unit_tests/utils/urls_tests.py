@@ -1,4 +1,4 @@
-#
+# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,14 +15,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--r base.in
-flask-cors>=2.0.0
-mysqlclient>=2.1.0
-pillow>=8.3.2,<10
-pydruid>=0.6.1,<0.7
-pyhive[hive]>=0.6.1
-psycopg2-binary==2.9.1
-tableschema
-thrift>=0.11.0,<1.0.0
-progress>=1.5,<2
-pyinstrument>=4.0.2,<5
+from superset.utils.urls import modify_url_query
+
+EXPLORE_CHART_LINK = "http://localhost:9000/superset/explore/?form_data=%7B%22slice_id%22%3A+76%7D&standalone=true&force=false"
+
+EXPLORE_DASHBOARD_LINK = "http://localhost:9000/superset/dashboard/3/?standalone=3"
+
+
+def test_convert_chart_link() -> None:
+    test_url = modify_url_query(EXPLORE_CHART_LINK, standalone="0")
+    assert (
+        test_url
+        == "http://localhost:9000/superset/explore/?form_data=%7B%22slice_id%22%3A%2076%7D&standalone=0&force=false"
+    )
+
+
+def test_convert_dashboard_link() -> None:
+    test_url = modify_url_query(EXPLORE_DASHBOARD_LINK, standalone="0")
+    assert test_url == "http://localhost:9000/superset/dashboard/3/?standalone=0"
