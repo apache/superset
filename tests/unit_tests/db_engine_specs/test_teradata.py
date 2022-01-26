@@ -15,27 +15,75 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from datetime import datetime
 
+import pytest
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
-
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
-def test_ParsedQuery_tds(app_context: AppContext) -> None:
+def test_ParsedQuery_tds_lower_limit(app_context: AppContext) -> None:
     """
     Test the custom ``ParsedQuery_td`` that calls  ``_extract_limit_from_query_td(``
 
     The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
     other dialects. and
     """
-    from uperset.db_engine_specs.teradata.TeradataEngineSpec import apply_limit_to_sql
+    from superset.db_engine_specs.teradata import TeradataEngineSpec, ParsedQueryTeradata
 
-    from superset.db_engine_specs.teradata import ParsedQuery_td, TeradataEngineSpec
-
-    sql2 = "SEL TOP 1000 * FROM My_table;"
+    sql = "SEL TOP 1000 * FROM My_table;"
     limit = 100
 
-    assert str(apply_limit_to_sql("teradata", sql2, limit, "Database")) == (
-        "SEL TOP 100 * FROM My_table "
+    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+        "SEL TOP 100 * FROM My_table"
+    )
+
+
+def test_ParsedQuery_tds_higher_limit(app_context: AppContext) -> None:
+    """
+    Test the custom ``ParsedQuery_td`` that calls  ``_extract_limit_from_query_td(``
+
+    The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
+    other dialects. and
+    """
+    from superset.db_engine_specs.teradata import TeradataEngineSpec, ParsedQueryTeradata
+
+    sql = "SEL TOP 1000 * FROM My_table;"
+    limit = 10000
+
+    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+        "SEL TOP 1000 * FROM My_table"
+    )
+
+
+def test_ParsedQuery_tds_equal_limit(app_context: AppContext) -> None:
+    """
+    Test the custom ``ParsedQuery_td`` that calls  ``_extract_limit_from_query_td(``
+
+    The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
+    other dialects. and
+    """
+    from superset.db_engine_specs.teradata import TeradataEngineSpec, ParsedQueryTeradata
+
+    sql = "SEL TOP 1000 * FROM My_table;"
+    limit = 1000
+
+    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+        "SEL TOP 1000 * FROM My_table"
+    )
+
+
+def test_ParsedQuery_tds_no_limit(app_context: AppContext) -> None:
+    """
+    Test the custom ``ParsedQuery_td`` that calls  ``_extract_limit_from_query_td(``
+
+    The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
+    other dialects. and
+    """
+    from superset.db_engine_specs.teradata import TeradataEngineSpec, ParsedQueryTeradata
+
+    sql = "SEL * FROM My_table;"
+    limit = 1000
+
+    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+        "SEL TOP 1000 * FROM My_table"
     )
