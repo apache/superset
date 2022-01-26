@@ -205,9 +205,10 @@ class ParsedQueryTeradata:
         tokens = [token for token in tokens if token]
 
         if limit_not_in_sql(str_statement, td_limit_keywords):
-            select_word = [i for i, word in enumerate(tokens) if word in td_sel_keywords][0]
-            tokens.insert(select_word + 1, "TOP")
-            tokens.insert(select_word + 2, str(final_limit))
+            selects = [i for i, word in enumerate(tokens) if word in td_sel_keywords]
+            first_select = selects[0]
+            tokens.insert(first_select + 1, "TOP")
+            tokens.insert(first_select + 2, str(final_limit))
 
         next_is_limit_token = False
         new_tokens = []
