@@ -135,7 +135,6 @@ from superset.views.base import (
     data_payload_response,
     generate_download_headers,
     get_error_msg,
-    get_user_roles,
     handle_api_exception,
     json_error_response,
     json_errors_response,
@@ -1888,7 +1887,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 f"ERROR: cannot find dashboard {dashboard_id}", status=404
             )
 
-        edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+        edit_perm = (
+            is_owner(dash, g.user) or admin_role in security_manager.get_user_roles()
+        )
         if not edit_perm:
             username = g.user.username if hasattr(g.user, "username") else "user"
             return json_error_response(
