@@ -26,6 +26,7 @@ import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
+import { User } from 'src/types/bootstrapTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
 import { NativeFiltersState } from './reducers/types';
 import { ChartState } from '../explore/types';
@@ -64,7 +65,6 @@ export type DashboardState = {
   isRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
-
 export type DashboardInfo = {
   id: number;
   common: {
@@ -104,6 +104,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  user: User;
 };
 
 /** State of dashboardLayout in redux */

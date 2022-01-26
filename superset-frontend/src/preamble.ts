@@ -30,11 +30,11 @@ if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
-let bootstrapData: any;
+// eslint-disable-next-line import/no-mutable-exports
+export let bootstrapData: any;
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-
   bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};

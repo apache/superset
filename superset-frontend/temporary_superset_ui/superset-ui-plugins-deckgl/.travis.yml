@@ -1,0 +1,24 @@
+language: node_js
+
+node_js:
+  - '14'
+
+cache:
+  - npm: true
+  - yarn: true
+
+matrix:
+  fast_finish: true
+
+install:
+  - npm install -g codecov
+  - yarn install
+
+before_script:
+  - yarn build
+
+script:
+  - yarn test
+
+after_script:
+  - codecov

@@ -17,25 +17,26 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, SupersetClient, styled, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Dropdown, Menu } from 'src/common/components';
-import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
+import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import {
   CardContainer,
   createErrorHandler,
-  shortenSQL,
   PAGE_SIZE,
+  shortenSQL,
 } from '../utils';
+import { WelcomeTable } from './types';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -283,7 +284,7 @@ const SavedQueries = ({
             name: (
               <>
                 <i className="fa fa-plus" />
-                SQL Query
+                {t('SQL Query')}
               </>
             ),
             buttonStyle: 'tertiary',
@@ -292,7 +293,7 @@ const SavedQueries = ({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               window.location.href = '/savedqueryview/list';
@@ -364,7 +365,7 @@ const SavedQueries = ({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName="SAVED_QUERIES" tab={queryFilter} />
+        <EmptyState tableName={WelcomeTable.SavedQueries} tab={queryFilter} />
       )}
     </>
   );

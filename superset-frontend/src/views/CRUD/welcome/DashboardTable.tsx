@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { filter } from 'lodash';
-import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
   DashboardTableProps,
@@ -28,22 +28,23 @@ import {
 import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
-  setInLocalStorage,
-  getFromLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
-  createErrorHandler,
   CardContainer,
+  createErrorHandler,
   PAGE_SIZE,
 } from 'src/views/CRUD/utils';
-import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 export interface FilterValue {
   col: string;
@@ -60,8 +61,11 @@ function DashboardTable({
   examples,
 }: DashboardTableProps) {
   const history = useHistory();
-  const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
+  const filterStore = getItem(
+    LocalStorageKeys.homepage_dashboard_filter,
+    TableTabTypes.EXAMPLES,
+  );
+  const defaultFilter = filterStore;
 
   const filteredExamples = filter(examples, obj => !('viz_type' in obj));
 
@@ -158,7 +162,10 @@ function DashboardTable({
       label: t('Favorite'),
       onClick: () => {
         setDashboardFilter(TableTabTypes.FAVORITE);
-        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.FAVORITE);
+        setItem(
+          LocalStorageKeys.homepage_dashboard_filter,
+          TableTabTypes.FAVORITE,
+        );
       },
     },
     {
@@ -166,7 +173,7 @@ function DashboardTable({
       label: t('Mine'),
       onClick: () => {
         setDashboardFilter(TableTabTypes.MINE);
-        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
+        setItem(LocalStorageKeys.homepage_dashboard_filter, TableTabTypes.MINE);
       },
     },
   ];
@@ -177,7 +184,10 @@ function DashboardTable({
       label: t('Examples'),
       onClick: () => {
         setDashboardFilter(TableTabTypes.EXAMPLES);
-        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.EXAMPLES);
+        setItem(
+          LocalStorageKeys.homepage_dashboard_filter,
+          TableTabTypes.EXAMPLES,
+        );
       },
     });
   }
@@ -206,7 +216,7 @@ function DashboardTable({
             name: (
               <>
                 <i className="fa fa-plus" />
-                Dashboard
+                {t('Dashboard')}
               </>
             ),
             buttonStyle: 'tertiary',
@@ -215,7 +225,7 @@ function DashboardTable({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               const target =
@@ -263,7 +273,7 @@ function DashboardTable({
         </CardContainer>
       )}
       {dashboards.length === 0 && (
-        <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
+        <EmptyState tableName={WelcomeTable.Dashboards} tab={dashboardFilter} />
       )}
       {preparingExport && <Loading />}
     </>

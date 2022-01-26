@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
+import { usePrevious } from 'src/hooks/usePrevious';
 import { FilterRemoval } from './types';
-import { usePrevious } from '../../../../common/hooks/usePrevious';
+import { NativeFilterType } from '../types';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -52,7 +53,7 @@ export const useOpenModal = (
   // add a filter on modal open
   useEffect(() => {
     if (createNewOnOpen && isOpen && !wasOpen) {
-      addFilter();
+      addFilter(NativeFilterType.NATIVE_FILTER);
     }
   }, [createNewOnOpen, isOpen, wasOpen, addFilter]);
 };

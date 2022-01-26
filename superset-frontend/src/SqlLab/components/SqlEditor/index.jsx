@@ -52,6 +52,7 @@ import {
   queryEditorSetTemplateParams,
   runQuery,
   saveQuery,
+  addSavedQueryToTabState,
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
@@ -63,6 +64,11 @@ import {
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
 } from 'src/SqlLab/constants';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
@@ -81,6 +87,14 @@ const INITIAL_SOUTH_PERCENT = 70;
 const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
+
+const appContainer = document.getElementById('app');
+const bootstrapData = JSON.parse(
+  appContainer.getAttribute('data-bootstrap') || '{}',
+);
+const validatorMap =
+  bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
+const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const LimitSelectStyled = styled.span`
   .ant-dropdown-trigger {
@@ -125,6 +139,10 @@ const StyledToolbar = styled.div`
       }
     }
   }
+
+  .limitDropdown {
+    white-space: nowrap;
+  }
 `;
 
 const propTypes = {
@@ -159,7 +177,10 @@ class SqlEditor extends React.PureComponent {
       northPercent: props.queryEditor.northPercent || INITIAL_NORTH_PERCENT,
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
-      autocompleteEnabled: true,
+      autocompleteEnabled: getItem(
+        LocalStorageKeys.sqllab__is_autocomplete_enabled,
+        true,
+      ),
       showCreateAsModal: false,
       createAs: '',
     };
@@ -172,6 +193,7 @@ class SqlEditor extends React.PureComponent {
     this.canValidateQuery = this.canValidateQuery.bind(this);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
+    this.saveQuery = this.saveQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
     this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
     this.setQueryEditorSqlWithDebounce = debounce(
@@ -180,9 +202,8 @@ class SqlEditor extends React.PureComponent {
     );
     this.queryPane = this.queryPane.bind(this);
     this.renderQueryLimit = this.renderQueryLimit.bind(this);
-    this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(
-      this,
-    );
+    this.getAceEditorAndSouthPaneHeights =
+      this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
     this.requestValidation = debounce(
       this.requestValidation.bind(this),
@@ -354,9 +375,15 @@ class SqlEditor extends React.PureComponent {
   }
 
   handleToggleAutocompleteEnabled = () => {
-    this.setState(prevState => ({
-      autocompleteEnabled: !prevState.autocompleteEnabled,
-    }));
+    this.setState(prevState => {
+      setItem(
+        LocalStorageKeys.sqllab__is_autocomplete_enabled,
+        !prevState.autocompleteEnabled,
+      );
+      return {
+        autocompleteEnabled: !prevState.autocompleteEnabled,
+      };
+    });
   };
 
   handleWindowResize() {
@@ -388,8 +415,7 @@ class SqlEditor extends React.PureComponent {
   canValidateQuery() {
     // Check whether or not we can validate the current query based on whether
     // or not the backend has a validator configured for it.
-    const validatorMap = window.featureFlags.SQL_VALIDATORS_BY_ENGINE;
-    if (this.props.database && validatorMap != null) {
+    if (this.props.database) {
       return validatorMap.hasOwnProperty(this.props.database.backend);
     }
     return false;
@@ -452,14 +478,12 @@ class SqlEditor extends React.PureComponent {
 
   queryPane() {
     const hotkeys = this.getHotkeyConfig();
-    const {
-      aceEditorHeight,
-      southPaneHeight,
-    } = this.getAceEditorAndSouthPaneHeights(
-      this.state.height,
-      this.state.northPercent,
-      this.state.southPercent,
-    );
+    const { aceEditorHeight, southPaneHeight } =
+      this.getAceEditorAndSouthPaneHeights(
+        this.state.height,
+        this.state.northPercent,
+        this.state.southPercent,
+      );
     return (
       <Split
         expandToMin
@@ -530,7 +554,7 @@ class SqlEditor extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+        {scheduledQueriesConf && (
           <Menu.Item>
             <ScheduleQueryButton
               defaultLabel={qe.title}
@@ -568,6 +592,12 @@ class SqlEditor extends React.PureComponent {
         ))}
       </AntdMenu>
     );
+  }
+
+  async saveQuery(query) {
+    const { queryEditor: qe, actions } = this.props;
+    const savedQuery = await actions.saveQuery(query);
+    actions.addSavedQueryToTabState(qe, savedQuery);
   }
 
   renderEditorBottomBar() {
@@ -608,6 +638,7 @@ class SqlEditor extends React.PureComponent {
         )}
       </Menu>
     );
+
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -646,7 +677,7 @@ class SqlEditor extends React.PureComponent {
               <Dropdown overlay={this.renderQueryLimit()} trigger="click">
                 <a onClick={e => e.preventDefault()}>
                   <span>LIMIT:</span>
-                  <span>
+                  <span className="limitDropdown">
                     {this.convertToNumWithSpaces(
                       this.props.queryEditor.queryLimit ||
                         this.props.defaultQueryLimit,
@@ -671,7 +702,7 @@ class SqlEditor extends React.PureComponent {
             <SaveQuery
               query={qe}
               defaultLabel={qe.title || qe.description}
-              onSave={this.props.actions.saveQuery}
+              onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
               saveQueryWarning={this.props.saveQueryWarning}
             />
@@ -787,6 +818,7 @@ function mapDispatchToProps(dispatch) {
       queryEditorSetTemplateParams,
       runQuery,
       saveQuery,
+      addSavedQueryToTabState,
       scheduleQuery,
       setActiveSouthPaneTab,
       updateSavedQuery,

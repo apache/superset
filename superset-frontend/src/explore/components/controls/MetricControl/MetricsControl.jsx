@@ -28,7 +28,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { usePrevious } from 'src/hooks/usePrevious';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -48,7 +48,7 @@ const propTypes = {
   isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -122,7 +122,6 @@ const MetricsControl = ({
   columns,
   savedMetrics,
   datasource,
-  datasourceType,
   ...props
 }) => {
   const [value, setValue] = useState(coerceAdhocMetrics(propsValue));
@@ -208,19 +207,20 @@ const MetricsControl = ({
     [value],
   );
 
-  const isAddNewMetricDisabled = useCallback(() => !multi && value.length > 0, [
-    multi,
-    value.length,
-  ]);
+  const isAddNewMetricDisabled = useCallback(
+    () => !multi && value.length > 0,
+    [multi, value.length],
+  );
 
   const savedMetricOptions = useMemo(
     () => getOptionsForSavedMetrics(savedMetrics, propsValue, null),
     [propsValue, savedMetrics],
   );
 
-  const newAdhocMetric = useMemo(() => new AdhocMetric({ isNew: true }), [
-    value,
-  ]);
+  const newAdhocMetric = useMemo(
+    () => new AdhocMetric({ isNew: true }),
+    [value],
+  );
   const addNewMetricPopoverTrigger = useCallback(
     trigger => {
       if (isAddNewMetricDisabled()) {
@@ -232,9 +232,8 @@ const MetricsControl = ({
           onMetricEdit={onNewMetric}
           columns={columns}
           savedMetricsOptions={savedMetricOptions}
-          datasource={datasource}
           savedMetric={emptySavedMetric}
-          datasourceType={datasourceType}
+          datasource={datasource}
         >
           {trigger}
         </AdhocMetricPopoverTrigger>
@@ -243,7 +242,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       isAddNewMetricDisabled,
       newAdhocMetric,
       onNewMetric,
@@ -274,10 +272,10 @@ const MetricsControl = ({
     setValue(coerceAdhocMetrics(propsValue));
   }, [propsValue]);
 
-  const onDropLabel = useCallback(() => handleChange(value), [
-    handleChange,
-    value,
-  ]);
+  const onDropLabel = useCallback(
+    () => handleChange(value),
+    [handleChange, value],
+  );
 
   const valueRenderer = useCallback(
     (option, index) => (
@@ -295,7 +293,6 @@ const MetricsControl = ({
           value,
           value?.[index],
         )}
-        datasourceType={datasourceType}
         onMoveLabel={moveLabel}
         onDropLabel={onDropLabel}
         multi={multi}
@@ -304,7 +301,6 @@ const MetricsControl = ({
     [
       columns,
       datasource,
-      datasourceType,
       moveLabel,
       multi,
       onDropLabel,

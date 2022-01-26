@@ -41,6 +41,7 @@ const DatabaseSelectorWrapper = styled.div`
     }
 
     .select {
+      width: calc(100% - 30px - ${theme.gridUnit}px);
       flex: 1;
     }
 
@@ -55,6 +56,15 @@ const LabelStyle = styled.div`
   flex-direction: row;
   align-items: center;
   margin-left: ${({ theme }) => theme.gridUnit - 2}px;
+
+  .backend {
+    overflow: visible;
+  }
+
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 type DatabaseValue = {
@@ -97,8 +107,10 @@ const SelectLabel = ({
   databaseName: string;
 }) => (
   <LabelStyle>
-    <Label>{backend}</Label>
-    {databaseName}
+    <Label className="backend">{backend}</Label>
+    <span className="name" title={databaseName}>
+      {databaseName}
+    </span>
   </LabelStyle>
 );
 
@@ -134,61 +146,62 @@ export default function DatabaseSelector({
   const [refresh, setRefresh] = useState(0);
 
   const loadDatabases = useMemo(
-    () => async (
-      search: string,
-      page: number,
-      pageSize: number,
-    ): Promise<{
-      data: DatabaseValue[];
-      totalCount: number;
-    }> => {
-      const queryParams = rison.encode({
-        order_columns: 'database_name',
-        order_direction: 'asc',
-        page,
-        page_size: pageSize,
-        ...(formMode || !sqlLabMode
-          ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
-          : {
-              filters: [
-                { col: 'database_name', opr: 'ct', value: search },
-                {
-                  col: 'expose_in_sqllab',
-                  opr: 'eq',
-                  value: true,
-                },
-              ],
-            }),
-      });
-      const endpoint = `/api/v1/database/?q=${queryParams}`;
-      return SupersetClient.get({ endpoint }).then(({ json }) => {
-        const { result } = json;
-        if (getDbList) {
-          getDbList(result);
-        }
-        if (result.length === 0) {
-          handleError(t("It seems you don't have access to any database"));
-        }
-        const options = result.map((row: DatabaseObject) => ({
-          label: (
-            <SelectLabel
-              backend={row.backend}
-              databaseName={row.database_name}
-            />
-          ),
-          value: row.id,
-          id: row.id,
-          database_name: row.database_name,
-          backend: row.backend,
-          allow_multi_schema_metadata_fetch:
-            row.allow_multi_schema_metadata_fetch,
-        }));
-        return {
-          data: options,
-          totalCount: options.length,
-        };
-      });
-    },
+    () =>
+      async (
+        search: string,
+        page: number,
+        pageSize: number,
+      ): Promise<{
+        data: DatabaseValue[];
+        totalCount: number;
+      }> => {
+        const queryParams = rison.encode({
+          order_columns: 'database_name',
+          order_direction: 'asc',
+          page,
+          page_size: pageSize,
+          ...(formMode || !sqlLabMode
+            ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
+            : {
+                filters: [
+                  { col: 'database_name', opr: 'ct', value: search },
+                  {
+                    col: 'expose_in_sqllab',
+                    opr: 'eq',
+                    value: true,
+                  },
+                ],
+              }),
+        });
+        const endpoint = `/api/v1/database/?q=${queryParams}`;
+        return SupersetClient.get({ endpoint }).then(({ json }) => {
+          const { result } = json;
+          if (getDbList) {
+            getDbList(result);
+          }
+          if (result.length === 0) {
+            handleError(t("It seems you don't have access to any database"));
+          }
+          const options = result.map((row: DatabaseObject) => ({
+            label: (
+              <SelectLabel
+                backend={row.backend}
+                databaseName={row.database_name}
+              />
+            ),
+            value: row.id,
+            id: row.id,
+            database_name: row.database_name,
+            backend: row.backend,
+            allow_multi_schema_metadata_fetch:
+              row.allow_multi_schema_metadata_fetch,
+          }));
+          return {
+            data: options,
+            totalCount: options.length,
+          };
+        });
+      },
     [formMode, getDbList, handleError, sqlLabMode],
   );
 

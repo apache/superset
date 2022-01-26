@@ -15,34 +15,51 @@
 # specific language governing permissions and limitations
 # under the License.
 import random
-import textwrap
 from typing import Dict, Set
 
 import pandas as pd
 import pytest
-from pandas import DataFrame
 from sqlalchemy import column, Float, String
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
-from tests.integration_tests.dashboard_utils import (
-    create_slice,
-    create_table_for_dashboard,
-)
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
+from tests.integration_tests.dashboard_utils import create_slice, create_table_metadata
 from tests.integration_tests.test_app import app
 
 misc_dash_slices: Set[str] = set()
 
 
-@pytest.fixture()
-def load_energy_table_with_slice():
-    table_name = "energy_usage"
-    df = _get_dataframe()
+ENERGY_USAGE_TBL_NAME = "energy_usage"
+
+
+@pytest.fixture(scope="session")
+def load_energy_table_data():
     with app.app_context():
-        _create_energy_table(df, table_name)
+        database = get_example_database()
+        df = _get_dataframe()
+        df.to_sql(
+            ENERGY_USAGE_TBL_NAME,
+            database.get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            index=False,
+            dtype={"source": String(255), "target": String(255), "value": Float()},
+            method="multi",
+            schema=get_example_default_schema(),
+        )
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS energy_usage")
+
+
+@pytest.fixture()
+def load_energy_table_with_slice(load_energy_table_data):
+    with app.app_context():
+        _create_energy_table()
         yield
         _cleanup()
 
@@ -52,13 +69,11 @@ def _get_dataframe():
     return pd.DataFrame.from_dict(data)
 
 
-def _create_energy_table(df: DataFrame, table_name: str):
-    database = get_example_database()
-
-    table_description = "Energy consumption"
-    schema = {"source": String(255), "target": String(255), "value": Float()}
-    table = create_table_for_dashboard(
-        df, table_name, database, schema, table_description
+def _create_energy_table():
+    table = create_table_metadata(
+        table_name=ENERGY_USAGE_TBL_NAME,
+        database=get_example_database(),
+        table_description="Energy consumption",
     )
     table.fetch_metadata()
 
@@ -96,8 +111,6 @@ def _create_and_commit_energy_slice(
 
 
 def _cleanup() -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS energy_usage")
     for slice_data in _get_energy_slices():
         slice = (
             db.session.query(Slice)
@@ -173,5 +186,6 @@ def _get_energy_slices():
                 "xscale_interval": "1",
                 "yscale_interval": "1",
             },
+            "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","having_druid":[],"where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
         },
     ]

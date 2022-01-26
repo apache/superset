@@ -122,10 +122,9 @@ describe('DatasourceEditor', () => {
     });
     expect(addBtn).toBeInTheDocument();
     userEvent.click(addBtn);
-    const newColumn = screen.getByRole('button', {
-      name: /<new column>/i,
-    });
-    expect(newColumn).toBeInTheDocument();
+    // newColumn (Column name) is the first textbox in the tab
+    const newColumn = screen.getAllByRole('textbox', { name: '' })[0];
+    expect(newColumn).toHaveValue('<new column>');
   });
 
   it('renders isSqla fields', () => {
@@ -229,5 +228,31 @@ describe('DatasourceEditor RTL', () => {
     expect(certifiedBy.value).toEqual('I am typing a new name');
     userEvent.type(certificationDetails, 'I am typing something new');
     expect(certificationDetails.value).toEqual('I am typing something new');
+  });
+  it('shows the default datetime column', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(metricButton);
+
+    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
+    expect(dsDefaultDatetimeRadio).toBeChecked();
+
+    const genderDefaultDatetimeRadio = screen.getByTestId(
+      'radio-default-dttm-gender',
+    );
+    expect(genderDefaultDatetimeRadio).not.toBeChecked();
+  });
+  it('allows choosing only temporal columns as the default datetime', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(metricButton);
+
+    const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
+    expect(dsDefaultDatetimeRadio).toBeEnabled();
+
+    const genderDefaultDatetimeRadio = screen.getByTestId(
+      'radio-default-dttm-gender',
+    );
+    expect(genderDefaultDatetimeRadio).toBeDisabled();
   });
 });

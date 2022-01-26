@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Set
@@ -29,14 +30,26 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
+
+from superset.exceptions import QueryClauseValidationException
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
+
+
+# TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
+sqlparse.keywords.SQL_REGEX.insert(
+    0,
+    (
+        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
+        sqlparse.tokens.String.Single,
+    ),
+)
 
 
 class CtasMethod(str, Enum):
@@ -133,7 +146,26 @@ class ParsedQuery:
     def is_select(self) -> bool:
         # make sure we strip comments; prevents a bug with coments in the CTE
         parsed = sqlparse.parse(self.strip_comments())
-        return parsed[0].get_type() == "SELECT"
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
 
     def is_valid_ctas(self) -> bool:
         parsed = sqlparse.parse(self.strip_comments())
@@ -150,7 +182,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
@@ -345,3 +377,23 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+
+def validate_filter_clause(clause: str) -> None:
+    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
+        raise QueryClauseValidationException("Filter clause contains comment")
+
+    statements = sqlparse.parse(clause)
+    if len(statements) != 1:
+        raise QueryClauseValidationException("Filter clause contains multiple queries")
+    open_parens = 0
+
+    for token in statements[0]:
+        if token.value in (")", "("):
+            open_parens += 1 if token.value == "(" else -1
+            if open_parens < 0:
+                raise QueryClauseValidationException(
+                    "Closing unclosed parenthesis in filter clause"
+                )
+    if open_parens > 0:
+        raise QueryClauseValidationException("Unclosed parenthesis in filter clause")

@@ -27,9 +27,10 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
+from superset import db
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import ConfigurationMethod, PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -558,15 +559,23 @@ class ImportV1DatabaseExtraSchema(Schema):
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
-        Fix ``schemas_allowed_for_file_upload`` being a string.
-
-        Due to a bug in the database modal, some databases might have been
-        saved and exported with a string for ``schemas_allowed_for_file_upload``.
+        Fixes for ``schemas_allowed_for_csv_upload``.
         """
-        schemas_allowed_for_file_upload = data.get("schemas_allowed_for_file_upload")
-        if isinstance(schemas_allowed_for_file_upload, str):
-            data["schemas_allowed_for_file_upload"] = json.loads(
-                schemas_allowed_for_file_upload
+        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
+        # changed the V1 schema. We need to support exports made after that PR and
+        # before this PR.
+        if "schemas_allowed_for_file_upload" in data:
+            data["schemas_allowed_for_csv_upload"] = data.pop(
+                "schemas_allowed_for_file_upload"
+            )
+
+        # Fix ``schemas_allowed_for_csv_upload`` being a string.
+        # Due to a bug in the database modal, some databases might have been
+        # saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
+        if isinstance(schemas_allowed_for_csv_upload, str):
+            data["schemas_allowed_for_csv_upload"] = json.loads(
+                schemas_allowed_for_csv_upload
             )
 
         return data
@@ -574,11 +583,27 @@ class ImportV1DatabaseExtraSchema(Schema):
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
-    schemas_allowed_for_file_upload = fields.List(fields.String())
+    schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
 
 
 class ImportV1DatabaseSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_allow_csv_upload(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Fix for ``allow_csv_upload`` .
+        """
+        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
+        # changed the V1 schema. We need to support exports made after that PR and
+        # before this PR.
+        if "allow_file_upload" in data:
+            data["allow_csv_upload"] = data.pop("allow_file_upload")
+
+        return data
+
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
@@ -587,7 +612,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
-    allow_file_upload = fields.Boolean()
+    allow_csv_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -596,6 +621,11 @@ class ImportV1DatabaseSchema(Schema):
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
         uri = data["sqlalchemy_uri"]
         password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:

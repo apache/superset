@@ -135,10 +135,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   };
 
   const allFilters = getAllFilters(filter);
-  const activeFilters = useMemo(() => getActiveChildren(filter) || [filter], [
-    filter,
-    getActiveChildren,
-  ]);
+  const activeFilters = useMemo(
+    () => getActiveChildren(filter) || [filter],
+    [filter, getActiveChildren],
+  );
 
   useEffect(() => {
     const focusedFilterId = currentPathToChild?.[0];

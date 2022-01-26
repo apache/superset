@@ -20,7 +20,7 @@ import React from 'react';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
-import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import CascadeFilterControl, { CascadeFilterControlProps } from '.';
 
 const createProps = (defaultsId = nativeFiltersInfo.filters.DefaultsID) => ({

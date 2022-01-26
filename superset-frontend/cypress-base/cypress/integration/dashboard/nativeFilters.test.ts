@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import qs from 'querystring';
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
@@ -93,9 +94,16 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('be.visible');
   });
   it('User can add a new native filter', () => {
-    cy.get(nativeFilters.filterFromDashboardView.expand)
-      .should('be.visible')
-      .click();
+    let filterKey: string;
+    const removeFirstChar = (search: string) =>
+      search.split('').slice(1, search.length).join('');
+    cy.wait(3000);
+    cy.location().then(loc => {
+      const queryParams = qs.parse(removeFirstChar(loc.search));
+      filterKey = queryParams.native_filters_key as string;
+      expect(typeof filterKey).eq('string');
+    });
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
@@ -117,7 +125,7 @@ describe('Nativefilters Sanity test', () => {
     cy.wait(5000);
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
-      .should('be.visible')
+      .should('be.visible', { timeout: 30000 })
       .click({ force: true });
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
@@ -130,6 +138,13 @@ describe('Nativefilters Sanity test', () => {
       .contains('Save')
       .should('be.visible')
       .click();
+    cy.wait(3000);
+    cy.location().then(loc => {
+      const queryParams = qs.parse(removeFirstChar(loc.search));
+      const newfilterKey = queryParams.native_filters_key;
+      expect(newfilterKey).not.eq(filterKey);
+    });
+    cy.wait(3000);
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
   it('User can delete a native filter', () => {
@@ -194,6 +209,143 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
     cy.get(nativeFilters.modal.container).should('not.exist');
+  });
+  it('User can undo deleting a native filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('Country name');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type('wb_health_population{enter}');
+
+    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
+    // hack for unclickable country_name
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .should('be.visible')
+      .contains('Country name');
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();
+    cy.contains('Undo?').click();
+  });
+  it('Verify setting options and tooltips for value filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.createFilterButton).should('be.visible').click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get(nativeFilters.filterConfigurationSections.collapseExpandButton)
+      .last()
+      .click();
+    [
+      'Filter has default value',
+      'Multiple select',
+      'Required',
+      'Filter is hierarchical',
+      'Default to first item',
+      'Inverse selection',
+      'Search all filter options',
+      'Pre-filter available values',
+      'Sort filter values',
+    ].forEach(el => {
+      cy.contains(el);
+    });
+    cy.get(nativeFilters.filterConfigurationSections.checkedCheckbox).contains(
+      'Multiple select',
+    );
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(0)
+      .trigger('mouseover');
+    cy.contains('Allow selecting multiple values');
+
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(1)
+      .trigger('mouseover');
+    cy.contains('User must select a value before applying the filter');
+
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(2)
+      .trigger('mouseover');
+    cy.contains(
+      'Select first item by default (when using this option, default value can’t be set)',
+    );
+
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(3)
+      .trigger('mouseover');
+    cy.contains('Exclude selected values');
+
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(4)
+      .trigger('mouseover');
+    cy.contains(
+      'By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).',
+    );
+  });
+  it("User can check 'Filter has default value'", () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.createFilterButton)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.modal.container).should('be.visible');
+
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type('wb_health_population{enter}');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .type('country_name');
+    // hack for unclickable datetime
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.contains('Filter has default value').click();
+    cy.contains('Default value is required');
+    cy.get(nativeFilters.modal.defaultValueCheck).should('be.visible');
+    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+      .last()
+      .type('United States{enter}');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
+      'United States',
+    );
+    cy.get('.line').within(() => {
+      cy.contains('United States').should('be.visible');
+    });
   });
 });
 

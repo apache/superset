@@ -126,9 +126,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
-  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] = useState<boolean>(
-    false,
-  );
+  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
+    useState<boolean>(false);
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);

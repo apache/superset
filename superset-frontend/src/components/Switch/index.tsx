@@ -27,4 +27,4 @@ const StyledSwitch = styled(BaseSwitch)`
 `;
 
 export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;
-export { SwitchProps };
+export type { SwitchProps };
