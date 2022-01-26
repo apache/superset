@@ -31,6 +31,7 @@ import {
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
@@ -182,6 +183,7 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
+  const uiConig = useUiConfig();
 
   useEffect(() => {
     function handleResize() {
@@ -196,7 +198,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone) return <></>;
+  if (standalone || uiConig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,

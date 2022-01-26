@@ -963,14 +963,28 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
-        filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
+        all_filters: List[TextClause] = []
+        filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
-                filters_grouped[filter_.group_key or filter_.id].append(clause)
-            return [or_(*clauses) for clauses in filters_grouped.values()]
+                if filter_.group_key:
+                    filter_groups[filter_.group_key].append(clause)
+                else:
+                    all_filters.append(clause)
+
+            if is_feature_enabled("EMBEDDED_SUPERSET"):
+                for rule in security_manager.get_guest_rls_filters(self):
+                    clause = self.text(
+                        f"({template_processor.process_template(rule['clause'])})"
+                    )
+                    all_filters.append(clause)
+
+            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
+            all_filters.extend(grouped_filters)
+            return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
