@@ -152,11 +152,10 @@ class ParsedQueryTeradata:
 
         tokens = tlist.tokens[:idx]
 
-        if (
-            len(tokens) in (1, 3, 5)
-            and all(imt(token, t=[Name, String]) for token in tokens[::2])
-            and all(imt(token, m=(Punctuation, ".")) for token in tokens[1::2])
-        ):
+        odd_token_number = len(tokens) in (1, 3, 5)
+        qualified_name_parts = all(imt(token, t=[Name, String]) for token in tokens[::2])
+        dot_separators = all(imt(token, m=(Punctuation, ".")) for token in tokens[1::2])
+        if odd_token_number and qualified_name_parts and dot_separators:
             return Table(*[remove_quotes(token.value) for token in tokens[::-2]])
 
         return None
