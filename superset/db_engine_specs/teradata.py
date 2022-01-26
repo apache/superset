@@ -271,7 +271,7 @@ class TeradataEngineSpec(BaseEngineSpec):
         return sql
 
 
-def limit_not_in_sql(sql, limit_words):
+def limit_not_in_sql(sql: str, limit_words: Set[str]) -> bool:
     for limit_word in limit_words:
         if limit_word in sql:
             return False
