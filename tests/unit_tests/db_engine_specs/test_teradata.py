@@ -39,12 +39,6 @@ def test_ParsedQuery_tds_lower_limit(app_context: AppContext) -> None:
 
 
 def test_ParsedQuery_tds_higher_limit(app_context: AppContext) -> None:
-    """
-    Test the custom ``ParsedQuery_td`` that calls  ``_extract_limit_from_query_td(``
-
-    The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
-    other dialects. and
-    """
     from superset.db_engine_specs.teradata import TeradataEngineSpec, ParsedQueryTeradata
 
     sql = "SEL TOP 1000 * FROM My_table;"
