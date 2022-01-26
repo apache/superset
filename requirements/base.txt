@@ -85,7 +85,7 @@ flask==1.1.4
     #   flask-openid
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==3.3.4
+flask-appbuilder==3.4.3
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
@@ -117,7 +117,7 @@ geopy==2.2.0
     # via apache-superset
 graphlib-backport==1.0.3
     # via apache-superset
-gunicorn==20.0.4
+gunicorn==20.1.0
     # via apache-superset
 holidays==0.10.3
     # via apache-superset
