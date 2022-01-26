@@ -391,6 +391,10 @@ def test_import_excel(mock_event_logger):
         table=EXCEL_UPLOAD_TABLE,
     )
 
+    # ensure user is assigned as an owner
+    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE)
+    assert security_manager.find_user("admin") in table.owners
+
     # upload again with fail mode; should fail
     fail_msg = f'Unable to upload Excel file "{EXCEL_FILENAME}" to table "{EXCEL_UPLOAD_TABLE}"'
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
@@ -422,11 +426,6 @@ def test_import_excel(mock_event_logger):
         .fetchall()
     )
     assert data == [(0, "john", 1), (1, "paul", 2)]
-
-    # ensure user is assigned as an owner
-    # Disabling the following to troubleshoot a broken test upstream
-    # table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE, schema=None)
-    # assert security_manager.find_user("admin") in table.owners
 
 
 @pytest.mark.usefixtures("setup_csv_upload")
