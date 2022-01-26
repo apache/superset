@@ -31,6 +31,10 @@ export const URL_PARAMS = {
     name: 'standalone',
     type: 'number',
   },
+  uiConfig: {
+    name: 'uiConfig',
+    type: 'number',
+  },
   preselectFilters: {
     name: 'preselect_filters',
     type: 'object',

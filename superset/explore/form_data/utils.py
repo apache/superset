@@ -16,6 +16,8 @@
 # under the License.
 from typing import Optional
 
+from flask_appbuilder.security.sqla.models import User
+
 from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
@@ -27,22 +29,13 @@ from superset.datasets.commands.exceptions import (
     DatasetNotFoundError,
 )
 from superset.datasets.dao import DatasetDAO
-from superset.key_value.commands.parameters import CommandParameters
 from superset.views.base import is_user_admin
 from superset.views.utils import is_owner
 
 
-def get_dataset_id(cmd_params: CommandParameters) -> Optional[str]:
-    query_params = cmd_params.query_params
-    if query_params:
-        return query_params.get("dataset_id")
-    return None
-
-
-def check_dataset_access(cmd_params: CommandParameters) -> Optional[bool]:
-    dataset_id = get_dataset_id(cmd_params)
+def check_dataset_access(dataset_id: int) -> Optional[bool]:
     if dataset_id:
-        dataset = DatasetDAO.find_by_id(int(dataset_id))
+        dataset = DatasetDAO.find_by_id(dataset_id)
         if dataset:
             can_access_datasource = security_manager.can_access_datasource(dataset)
             if can_access_datasource:
@@ -51,13 +44,13 @@ def check_dataset_access(cmd_params: CommandParameters) -> Optional[bool]:
     raise DatasetNotFoundError()
 
 
-def check_access(cmd_params: CommandParameters) -> Optional[bool]:
-    resource_id = cmd_params.resource_id
-    actor = cmd_params.actor
-    check_dataset_access(cmd_params)
-    if resource_id == 0:
+def check_access(
+    dataset_id: int, chart_id: Optional[int], actor: User
+) -> Optional[bool]:
+    check_dataset_access(dataset_id)
+    if not chart_id:
         return True
-    chart = ChartDAO.find_by_id(resource_id)
+    chart = ChartDAO.find_by_id(chart_id)
     if chart:
         can_access_chart = (
             is_user_admin()

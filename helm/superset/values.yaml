@@ -149,7 +149,7 @@ configOverrides: {}
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
 # Same as above but the values are files
-configOverridesFiles:
+configOverridesFiles: {}
   # extend_timeout: extend_timeout.py
   # enable_oauth: enable_oauth.py
 
