@@ -550,6 +550,29 @@ class TestDatabaseModel(SupersetTestCase):
         )
         assert result_object.df["count"][0] == 4
 
+    def test_values_in_quotes(self):
+        table = SqlaTable(
+            table_name="test_quotes_in_column",
+            sql=(
+                "SELECT '\"text in double quotes\"' as name "
+                "UNION SELECT '''text in single quotes''' "
+                "UNION SELECT 'double quotes \" in text' "
+                "UNION SELECT 'single quotes '' in text' "
+            ),
+            database=get_example_database(),
+        )
+        TableColumn(column_name="name", type="VARCHAR(255)", table=table)
+
+        rv = table.values_for_column(column_name="name", limit=10000,)
+
+        for item in [
+            '"text in double quotes"',
+            "'text in single quotes'",
+            'double quotes " in text',
+            "single quotes ' in text",
+        ]:
+            assert item in rv
+
 
 @pytest.mark.parametrize(
     "row,dimension,result",
