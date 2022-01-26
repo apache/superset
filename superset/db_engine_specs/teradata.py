@@ -15,10 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from dataclasses import dataclass  # pylint: disable=wrong-import-order
-from enum import Enum
-from typing import List, Optional, Set
-from urllib import parse
+from typing import Optional, Set
 
 import sqlparse
 from sqlparse.sql import (
@@ -37,6 +34,7 @@ from superset.sql_parse import Table
 
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
+JOIN = " JOIN"
 
 
 def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
@@ -48,7 +46,7 @@ def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
     limit = None
 
     for i in range(len(token)):
-        if any(limitword in token[i].upper() for limitword in td_limit_keywork) and len(token) - 1 > i:
+        if token[i].upper() in td_limit_keywork and len(token) - 1 > i:
             try:
                 limit = int(token[i + 1])
             except ValueError:
@@ -57,7 +55,7 @@ def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
     return limit
 
 
-class ParsedQuery_td:
+class ParsedQueryTeradata:
     def __init__(
         self, sql_statement: str, strip_comments: bool = False, uri_type: str = "None"
     ):
@@ -114,8 +112,7 @@ class ParsedQuery_td:
                 self._extract_from_token(item)
 
             if item.ttype in Keyword and (
-                item.normalized in PRECEDES_TABLE_NAME
-                or item.normalized.endswith(" JOIN")
+                item.normalized in PRECEDES_TABLE_NAME or item.normalized.endswith(JOIN)
             ):
                 table_name_preceding_token = True
                 continue
@@ -204,19 +201,25 @@ class ParsedQuery_td:
 
         str_statement = str(statement)
         str_statement = str_statement.replace("\n", " ").replace("\r", "")
+
         tokens = str_statement.rstrip().split(" ")
         tokens = [token for token in tokens if token]
 
-        next_remove_ind = False
+        if limit_not_in_sql(str_statement, td_limit_keywork):
+            tokens.insert(1, "TOP")
+            tokens.insert(2, str(final_limit))
+
+        next_is_limit_token = False
         new_tokens = []
+
         for token in tokens:
-            if any(limitword in token.upper() for limitword in td_limit_keywork):
-                next_remove_ind = True
-            elif next_remove_ind and token.isdigit():
-                next_remove_ind = False
-            else:
-                new_tokens.append(token)
-                next_remove_ind = False
+            if token.upper() in td_limit_keywork:
+                next_is_limit_token = True
+            elif next_is_limit_token:
+                if token.isdigit():
+                    token = str(final_limit)
+                    next_is_limit_token = False
+            new_tokens.append(token)
 
         result = []
         for token in new_tokens:
@@ -259,14 +262,22 @@ class TeradataEngineSpec(BaseEngineSpec):
     ) -> str:
         """
         Alters the SQL statement to apply a TOP clause
-        The function overwrites similar function in base.py because Teradata doesn't support LIMIT syntax
+        The function overwrites similar function in base.py because Teradata doesn't
+        support LIMIT syntax
         :param sql: SQL query
         :param limit: Maximum number of rows to be returned by the query
         :param database: Database instance
         :return: SQL query with limit clause
         """
 
-        parsed_query = ParsedQuery_td(sql)
+        parsed_query = ParsedQueryTeradata(sql)
         sql = parsed_query.set_or_update_query_limit_td(limit)
 
         return sql
+
+
+def limit_not_in_sql(sql, limit_words):
+    for limit_word in limit_words:
+        if limit_word in sql:
+            return False
+    return True
