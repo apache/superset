@@ -187,8 +187,8 @@ class ParsedQueryTeradata:
         self._extract_from_token(token_list)
 
     def set_or_update_query_limit_td(self, new_limit: int) -> str:
-        td_sel_keywork = set(["SELECT", "SEL"])
-        td_limit_keywork = set(["TOP", "SAMPLE"])
+        td_sel_keywords = set(["SELECT", "SEL"])
+        td_limit_keywords = set(["TOP", "SAMPLE"])
         statement = self._parsed[0]
 
         if not self._limit:
@@ -204,8 +204,8 @@ class ParsedQueryTeradata:
         tokens = str_statement.rstrip().split(" ")
         tokens = [token for token in tokens if token]
 
-        if limit_not_in_sql(str_statement, td_limit_keywork):
-            select_word = [i for i, word in enumerate(tokens) if word in td_sel_keywork][0]
+        if limit_not_in_sql(str_statement, td_limit_keywords):
+            select_word = [i for i, word in enumerate(tokens) if word in td_sel_keywords][0]
             tokens.insert(select_word + 1, "TOP")
             tokens.insert(select_word + 2, str(final_limit))
 
@@ -213,7 +213,7 @@ class ParsedQueryTeradata:
         new_tokens = []
 
         for token in tokens:
-            if token.upper() in td_limit_keywork:
+            if token.upper() in td_limit_keywords:
                 next_is_limit_token = True
             elif next_is_limit_token:
                 if token.isdigit():
