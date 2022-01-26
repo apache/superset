@@ -142,13 +142,12 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
 def upload_excel(
     filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
 ):
-
-    csv_upload_db_id = get_upload_db().id
+    excel_upload_db_id = get_upload_db().id
     schema = utils.get_example_default_schema()
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
-        "con": csv_upload_db_id,
+        "con": excel_upload_db_id,
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
