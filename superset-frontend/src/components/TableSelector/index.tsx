@@ -180,7 +180,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }, [database]);
 
   useEffect(() => {
-    console.log('hi');
     if (currentDatabase && currentSchema) {
       setLoadingTables(true);
       const encodedSchema = encodeURIComponent(currentSchema);
