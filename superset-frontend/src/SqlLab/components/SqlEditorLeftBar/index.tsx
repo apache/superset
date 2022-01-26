@@ -25,7 +25,7 @@ import TableSelector from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import TableElement from '../TableElement';
+import TableElement, { Table, TableElementProps } from '../TableElement';
 
 // const propTypes = {
 //   queryEditor: PropTypes.object.isRequired,
@@ -43,6 +43,10 @@ import TableElement from '../TableElement';
     onTablesLoad={actions.queryEditorSetTableOptions}
  */
 
+interface ExtendedTable extends Table {
+  expanded: any;
+}
+
 // anywhere there is void or any I didnt know what to put, will look into it
 
 interface actionsTypes {
@@ -58,8 +62,8 @@ interface actionsTypes {
     resetState (X)
   */
 
-  collapseTable: (table: tableType) => void;
-  expandTable: (table: tableType) => void;
+  collapseTable: (table: Table) => void;
+  expandTable: (table: Table) => void;
 
   // This came from /home/josue/superset/superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx
   addTable: (queryEditor: any, value: any, schema: any) => void;
@@ -82,10 +86,10 @@ interface actionsTypes {
 //   queryEditorSetSchema: (queryEditor: QueryEditor, schema: any) => void;
 // }
 
-type tableType = {
-  id: number;
-  expanded: boolean;
-};
+// type tableType = {
+//   id: number;
+//   expanded: boolean;
+// };
 
 type dbType = {
   id: number;
@@ -94,7 +98,7 @@ type dbType = {
 interface propTypes {
   queryEditor: QueryEditor;
   height: number;
-  tables: tableType[] | [];
+  tables: ExtendedTable[];
   actions: actionsTypes;
   database: DatabaseObject;
   offline: boolean;
@@ -152,7 +156,7 @@ export default function SqlEditorLeftBar({
   };
 
   const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: tableType) => {
+    tables.forEach((table: ExtendedTable) => {
       if (!updatedTables.includes(table.id.toString()) && table.expanded) {
         actions.collapseTable(table);
       } else if (
