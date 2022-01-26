@@ -45,7 +45,7 @@ def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
     token = [part for part in token if part]
     limit = None
 
-    for i in range(len(token)):
+    for i, _ in enumerate(token):
         if token[i].upper() in td_limit_keywork and len(token) - 1 > i:
             try:
                 limit = int(token[i + 1])
