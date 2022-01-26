@@ -64,6 +64,7 @@ from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    json_required,
     RelatedFieldFilter,
     statsd_metrics,
 )
@@ -206,6 +207,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @json_required
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -240,8 +242,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -270,6 +270,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @json_required
     def put(self, pk: int) -> Response:
         """Changes a Dataset
         ---
@@ -322,8 +323,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if "override_columns" in request.args
             else False
         )
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations

@@ -73,7 +73,11 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    json_required,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +205,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @json_required
     def post(self) -> Response:
         """Creates a new Database
         ---
@@ -237,9 +242,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -277,6 +279,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @json_required
     def put(self, pk: int) -> Response:
         """Changes a Database
         ---
@@ -320,8 +323,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -593,6 +594,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
+    @json_required
     def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
@@ -623,8 +625,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = DatabaseTestConnectionSchema().load(request.json)
         # This validates custom Schema with custom validations
@@ -985,6 +985,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
+    @json_required
     def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---
@@ -1015,9 +1016,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
-
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
         except ValidationError as ex:

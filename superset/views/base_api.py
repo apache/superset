@@ -18,7 +18,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Blueprint, g, Response
+from flask import Blueprint, g, request, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -68,6 +68,19 @@ class DistinctResultResponseSchema(Schema):
 class DistincResponseSchema(Schema):
     count = fields.Integer(description="The total number of distinct values")
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
+
+
+def json_required(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require JSON-like formatted request to the REST API
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.is_json:
+            return self.response_400(message="Request is not JSON")
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
 
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
