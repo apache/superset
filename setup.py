@@ -75,7 +75,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.4, <4.0.0",
+        "flask-appbuilder>=3.4.3, <4.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -83,7 +83,7 @@ setup(
         "flask-wtf",
         "geopy",
         "graphlib-backport",
-        "gunicorn>=20.0.2, <20.1",
+        "gunicorn>=20.1.0",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
         "itsdangerous>=1.0.0, <2.0.0",  # https://github.com/apache/superset/pull/14627
