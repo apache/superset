@@ -95,9 +95,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __("Explore in Superset")
-        url = ""
-        if self._content.url is not None:
-            url = modify_url_query(self._content.url, standalone="0")
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
