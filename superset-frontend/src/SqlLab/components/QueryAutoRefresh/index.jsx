@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -29,8 +28,9 @@ const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 10000;
 
-const QueryAutoRefresh = ({ offline, queries, queriesLastUpdate, actions }) => {
+function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
   const [offlineState, setOfflineState] = useState(offline);
+  let timer = null;
 
   const shouldCheckForQueries = () => {
     // if there are started or running queries, this method should return true
@@ -41,17 +41,6 @@ const QueryAutoRefresh = ({ offline, queries, queriesLastUpdate, actions }) => {
     return Object.values(queries).some(
       q => isQueryRunning(q) && now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
     );
-  };
-
-  const startTimer = () => {
-    if (!timer) {
-      timer = setInterval(stopwatch(), QUERY_UPDATE_FREQ);
-    }
-  };
-
-  const stopTimer = () => {
-    clearInterval(timer);
-    timer = null;
   };
 
   const stopwatch = () => {
@@ -78,23 +67,30 @@ const QueryAutoRefresh = ({ offline, queries, queriesLastUpdate, actions }) => {
     }
   };
 
-  useEffect(() => {
-    console.log('component mounted!');
-    startTimer();
-  }, []);
+  const startTimer = () => {
+    if (!timer) {
+      timer = setInterval(stopwatch(), QUERY_UPDATE_FREQ);
+    }
+  };
+
+  const stopTimer = () => {
+    clearInterval(timer);
+    timer = null;
+  };
 
   useEffect(() => {
+    startTimer();
     return () => {
       stopTimer();
     };
   }, []);
 
   useEffect(() => {
-    actions.setUserOffline(offline);
-  }, [offline]);
+    actions.setUserOffline(offlineState);
+  }, [offlineState]);
 
   return null;
-};
+}
 
 QueryAutoRefresh.propTypes = {
   offline: PropTypes.bool.isRequired,
