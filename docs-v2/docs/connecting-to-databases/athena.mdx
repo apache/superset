@@ -1,0 +1,34 @@
+---
+title: Amazon Athena
+hide_title: true
+sidebar_position: 4
+version: 1
+---
+
+## AWS Athena
+
+### PyAthenaJDBC
+
+[PyAthenaJDBC](https://pypi.org/project/PyAthenaJDBC/) is a Python DB 2.0 compliant wrapper for the
+[Amazon Athena JDBC driver](https://docs.aws.amazon.com/athena/latest/ug/connect-with-jdbc.html).
+
+The connection string for Amazon Athena is as follows:
+
+```
+awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+```
+
+Note that you'll need to escape & encode when forming the connection string like so:
+
+```
+s3://... -> s3%3A//...
+```
+
+### PyAthena
+
+You can also use [PyAthena library](https://pypi.org/project/PyAthena/) (no Java required) with the
+following connection string:
+
+```
+awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+```
