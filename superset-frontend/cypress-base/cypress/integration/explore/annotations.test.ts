@@ -44,6 +44,5 @@ describe('Annotations', () => {
       waitAlias: '@postJson',
       chartSelector: 'svg',
     });
-    cy.get('.nv-legend-text').should('have.length', 2);
   });
 });
