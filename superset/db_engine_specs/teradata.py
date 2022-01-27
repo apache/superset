@@ -124,9 +124,9 @@ class ParsedQueryTeradata:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
                 elif isinstance(item, IdentifierList):
-                    for ItemList in item.get_identifiers():
-                        if isinstance(ItemList, TokenList):
-                            self._process_tokenlist(ItemList)
+                    for item_list in item.get_identifiers():
+                        if isinstance(item_list, TokenList):
+                            self._process_tokenlist(item_list)
             elif isinstance(item, IdentifierList):
                 if any(not self._is_identifier(ItemList) for ItemList in item.tokens):
                     self._extract_from_token(item)
