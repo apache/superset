@@ -25,9 +25,9 @@ from typing import (
     cast,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
-    Tuple,
     TYPE_CHECKING,
     Union,
 )
@@ -76,6 +76,11 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseAndSchema(NamedTuple):
+    database: str
+    schema: str
 
 
 class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
@@ -237,13 +242,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return None
 
-    def unpack_perm(  # pylint: disable=no-self-use
+    def unpack_database_and_schema(  # pylint: disable=no-self-use
         self, schema_permission: str
-    ) -> Tuple[str, str]:
-        # [database_name].[schema_name]
+    ) -> DatabaseAndSchema:
+        # [database_name].[schema|table]
+
         schema_name = schema_permission.split(".")[1][1:-1]
         database_name = schema_permission.split(".")[0][1:-1]
-        return database_name, schema_name
+        return DatabaseAndSchema(database_name, schema_name)
 
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
@@ -532,7 +538,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # schema_access
         accessible_schemas = {
-            self.unpack_perm(s)[1]
+            self.unpack_database_and_schema(s).schema
             for s in self.user_view_menu_names("schema_access")
             if s.startswith(f"[{database}].")
         }

@@ -25,27 +25,22 @@ from superset.views.base import BaseFilter
 
 class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
-    def schema_access_databases(self) -> Set[str]:  # noqa pylint: disable=no-self-use
-        return {
-            security_manager.unpack_perm(vm)[0]
-            for vm in security_manager.user_view_menu_names("schema_access")
-        }
 
-    def datasource_access_databases(  # noqa pylint: disable=no-self-use
-        self,
+    def can_access_databases(  # noqa pylint: disable=no-self-use
+        self, view_menu_name: str,
     ) -> Set[str]:
         return {
-            security_manager.unpack_perm(vm)[0]
-            for vm in security_manager.user_view_menu_names("datasource_access")
+            security_manager.unpack_database_and_schema(vm).database
+            for vm in security_manager.user_view_menu_names(view_menu_name)
         }
 
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_databases():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
-        schema_access_databases = self.schema_access_databases()
+        schema_access_databases = self.can_access_databases("schema_access")
 
-        datasource_access_databases = self.datasource_access_databases()
+        datasource_access_databases = self.can_access_databases("datasource_access")
 
         return query.filter(
             or_(
