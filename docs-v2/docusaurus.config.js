@@ -201,7 +201,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()}, 
+        copyright: `Copyright © ${new Date().getFullYear()},
         The <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a>,
         Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank">License</a>. <br/>
         <small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
