@@ -45,17 +45,12 @@ interface actionsTypes {
   resetState: () => void;
 }
 
-type dbType = {
-  id: number;
-};
-
 interface SqlEditorLeftBarProps {
   queryEditor: QueryEditor;
   height?: number;
   tables?: ExtendedTable[];
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
-  offline: boolean;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -91,9 +86,9 @@ export default function SqlEditorLeftBar({
   queryEditor,
   tables = [],
 }: SqlEditorLeftBarProps) {
-  const onDbChange = (db: dbType) => {
-    actions.queryEditorSetDb(queryEditor, db.id);
-    actions.queryEditorSetFunctionNames(queryEditor, db.id);
+  const onDbChange = ({ id: dbId }: { id: number }) => {
+    actions.queryEditorSetDb(queryEditor, dbId);
+    actions.queryEditorSetFunctionNames(queryEditor, dbId);
   };
 
   const onTableChange = (tableName: string, schemaName: string) => {
