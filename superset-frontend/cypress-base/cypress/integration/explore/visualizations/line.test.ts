@@ -19,7 +19,11 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Visualization > Line', () => {
-  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+  const LINE_CHART_DEFAULTS = {
+    ...FORM_DATA_DEFAULTS,
+    viz_type: 'line',
+    show_legend: true,
+  };
 
   beforeEach(() => {
     cy.login();
