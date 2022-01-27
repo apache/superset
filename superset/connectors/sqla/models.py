@@ -1308,7 +1308,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         }
                     )
                     if bus_resp["error_message"]:
-                        raise BusinessTypesResponseError(_(bus_resp["display_value"]))
+                        raise BusinessTypesResponseError(_(bus_resp["error_message"]))
 
                     where_clause_and.append(
                         BUSINESS_TYPE_TRANSLATIONS[col_busniness_type](
