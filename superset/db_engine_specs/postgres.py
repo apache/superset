@@ -289,9 +289,12 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         :param query: Query instance
         :return: Postgres PID
         """
-        cursor.execute("SELECT pg_backend_pid()")
-        row = cursor.fetchone()
-        return row[0]
+        try:
+            cursor.execute("SELECT pg_backend_pid()")
+            row = cursor.fetchone()
+            return row[0]
+        except Exception:
+            return None
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
