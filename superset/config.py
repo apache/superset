@@ -1349,7 +1349,7 @@ from superset.utils.core import FilterOperator, FilterStringOperators
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {
         "values": [],
-        "status": "valid",
+        "error_message": "",
         "display_value": "",
         "valid_filter_operators": [
             FilterStringOperators.EQUALS,
@@ -1373,15 +1373,15 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 if ip_range[0] != ip_range[-1]
                 else int(ip_range[0])
             )
-            resp["formatted_value"] = str(string_value)
         except ValueError as ex:
-            resp["status"] = "invalid"
-            resp["display_value"] = str(ex)
+            resp["error_message"] = str(ex)
             break
         else:
             resp["display_value"] = ", ".join(
                 map(
-                    lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+                    lambda x: f"{x['start']} - {x['end']}"
+                    if isinstance(x, dict)
+                    else str(x),
                     resp["values"],
                 )
             )
@@ -1435,7 +1435,7 @@ def cidr_translate_filter_func(
 def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     resp: BusinessTypeResponse = {
         "values": [],
-        "status": "valid",
+        "error_message": "",
         "display_value": "",
         "valid_filter_operators": [
             FilterStringOperators.EQUALS,
@@ -1454,15 +1454,17 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 if string_value.isnumeric()
                 else port_conversion_dict[string_value]
             )
-            resp["formatted_value"] = str(string_value)
         except KeyError:
-            resp["status"] = "invalid"
-            resp["display_value"] = str(f"'{string_value}' does not appear to be a port name or number")
+            resp["error_message"] = str(
+                f"'{string_value}' does not appear to be a port name or number"
+            )
             break
         else:
             resp["display_value"] = ", ".join(
                 map(
-                    lambda x: f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x),
+                    lambda x: f"{x['start']} - {x['end']}"
+                    if isinstance(x, dict)
+                    else str(x),
                     resp["values"],
                 )
             )

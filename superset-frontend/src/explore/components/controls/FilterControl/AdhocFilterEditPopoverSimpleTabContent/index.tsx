@@ -132,7 +132,8 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
             subjectBusinessType: type,
             busninessTypeOperatorList: json.result.valid_filter_operators,
           });
-          validHandler(json.result.status !== 'invalid');
+          // Changed due to removal of status field
+          validHandler(!json.result.error_message);
         })
         .catch(e => {
           setBusinessTypesState({

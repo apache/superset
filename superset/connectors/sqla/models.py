@@ -79,7 +79,7 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
-from superset.exceptions import QueryObjectValidationError, BusinessTypesResponseError
+from superset.exceptions import BusinessTypesResponseError, QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -1307,10 +1307,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             "values": values,
                         }
                     )
-                    if bus_resp["status"] == "invalid":
-                        raise BusinessTypesResponseError(
-                            _(bus_resp["display_value"])
-                        )
+                    if bus_resp["error_message"]:
+                        raise BusinessTypesResponseError(_(bus_resp["display_value"]))
 
                     where_clause_and.append(
                         BUSINESS_TYPE_TRANSLATIONS[col_busniness_type](
