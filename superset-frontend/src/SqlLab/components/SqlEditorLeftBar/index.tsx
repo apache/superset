@@ -82,9 +82,9 @@ const collapseStyles = (theme: SupersetTheme) => css`
 export default function SqlEditorLeftBar({
   actions,
   database,
-  height = 500,
   queryEditor,
   tables = [],
+  height = 500,
 }: SqlEditorLeftBarProps) {
   const onDbChange = ({ id: dbId }: { id: number }) => {
     actions.queryEditorSetDb(queryEditor, dbId);
