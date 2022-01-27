@@ -1,0 +1,1 @@
+{"version":3,"file":"contributionOperator.d.ts","sourceRoot":"","sources":["../../src/operators/contributionOperator.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;GAiBG;AACH,OAAO,EAAE,0BAA0B,EAAE,MAAM,mBAAmB,CAAC;AAC/D,OAAO,EAAE,qBAAqB,EAAE,MAAM,SAAS,CAAC;AAEhD,eAAO,MAAM,oBAAoB,EAAE,qBAAqB,CACtD,0BAA0B,GAAG,SAAS,CAWvC,CAAC"}

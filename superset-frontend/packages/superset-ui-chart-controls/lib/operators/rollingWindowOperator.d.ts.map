@@ -1,0 +1,1 @@
+{"version":3,"file":"rollingWindowOperator.d.ts","sourceRoot":"","sources":["../../src/operators/rollingWindowOperator.ts"],"names":[],"mappings":"AACA;;;;;;;;;;;;;;;;;GAiBG;AACH,OAAO,EAIL,qBAAqB,EACrB,iBAAiB,EAElB,MAAM,mBAAmB,CAAC;AAM3B,OAAO,EAAE,qBAAqB,EAAE,MAAM,SAAS,CAAC;AAEhD,eAAO,MAAM,qBAAqB,EAAE,qBAAqB,CACvD,qBAAqB,GAAG,iBAAiB,GAAG,SAAS,CAyDtD,CAAC"}

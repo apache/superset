@@ -1,0 +1,1 @@
+{"version":3,"file":"transformProps.d.ts","sourceRoot":"","sources":["../../src/legacyPlugin/transformProps.ts"],"names":[],"mappings":"AAmBA,OAAO,EAAE,UAAU,EAAE,MAAM,mBAAmB,CAAC;AAC/C,OAAO,EAAE,cAAc,EAAqB,MAAM,oBAAoB,CAAC;AAgBvE,MAAM,CAAC,OAAO,UAAU,cAAc,CAAC,UAAU,EAAE,UAAU,GAAG,cAAc,CA4C7E"}

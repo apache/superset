@@ -1,0 +1,1 @@
+{"version":3,"file":"createTimeRangeFromGranularity.d.ts","sourceRoot":"","sources":["../../../src/time-format/utils/createTimeRangeFromGranularity.ts"],"names":[],"mappings":"AAmBA,OAAO,EAAE,eAAe,EAAE,MAAM,UAAU,CAAC;AA+D3C,MAAM,CAAC,OAAO,UAAU,8BAA8B,CACpD,IAAI,EAAE,IAAI,EACV,WAAW,EAAE,eAAe,EAC5B,YAAY,UAAQ,UAyBrB"}

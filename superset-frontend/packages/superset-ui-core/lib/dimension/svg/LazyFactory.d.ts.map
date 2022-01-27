@@ -1,0 +1,1 @@
+{"version":3,"file":"LazyFactory.d.ts","sourceRoot":"","sources":["../../../src/dimension/svg/LazyFactory.ts"],"names":[],"mappings":"AAmBA,MAAM,CAAC,OAAO,OAAO,WAAW,CAAC,CAAC,SAAS,WAAW,GAAG,UAAU;IACjE,OAAO,CAAC,WAAW,CAMf;IAEJ,OAAO,CAAC,SAAS,CAAU;gBAEf,SAAS,EAAE,MAAM,CAAC;IAI9B,iBAAiB,CAAC,SAAS,GAAE,WAAW,GAAG,UAA0B;IAerE,mBAAmB,CAAC,SAAS,GAAE,WAAW,GAAG,UAA0B;CAUxE"}

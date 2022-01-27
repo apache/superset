@@ -1,0 +1,25 @@
+import { DEFAULT_LEGEND_FORM_DATA } from '../types';
+export const DEFAULT_FORM_DATA = {
+    ...DEFAULT_LEGEND_FORM_DATA,
+    groupby: [],
+    rowLimit: 10,
+    minVal: 0,
+    maxVal: 100,
+    fontSize: 15,
+    numberFormat: 'SMART_NUMBER',
+    animation: true,
+    showProgress: true,
+    overlap: true,
+    roundCap: false,
+    showAxisTick: false,
+    showSplitLine: false,
+    splitNumber: 10,
+    startAngle: 225,
+    endAngle: -45,
+    showPointer: true,
+    intervals: '',
+    intervalColorIndices: '',
+    valueFormatter: '{value}',
+    emitFilter: false,
+};
+//# sourceMappingURL=types.js.map

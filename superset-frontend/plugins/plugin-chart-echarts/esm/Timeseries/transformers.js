@@ -1,0 +1,484 @@
+(function () {var enterModule = typeof reactHotLoaderGlobal !== 'undefined' ? reactHotLoaderGlobal.enterModule : undefined;enterModule && enterModule(module);})();var __signature__ = typeof reactHotLoaderGlobal !== 'undefined' ? reactHotLoaderGlobal.default.signature : function (a) {return a;}; /**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import {
+
+AnnotationOpacity,
+
+
+
+
+getTimeFormatter,
+
+isTimeseriesAnnotationResult,
+
+smartDateDetailedFormatter,
+smartDateFormatter } from
+
+
+
+'@superset-ui/core';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { extractForecastSeriesContext } from '../utils/prophet';
+import { ForecastSeriesEnum, LegendOrientation } from '../types';
+
+
+import {
+evalFormula,
+extractRecordAnnotations,
+formatAnnotationLabel,
+parseAnnotationOpacity } from
+'../utils/annotation';
+import { currentSeries, getChartPadding } from '../utils/series';
+import { OpacityEnum, TIMESERIES_CONSTANTS } from '../constants';
+
+export function transformSeries(
+series,
+colorScale,
+opts)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  const { name } = series;
+  const {
+    area,
+    filterState,
+    seriesContexts = {},
+    markerEnabled,
+    markerSize,
+    areaOpacity = 1,
+    seriesType,
+    stack,
+    yAxisIndex = 0,
+    showValue,
+    onlyTotal,
+    formatter,
+    totalStackedValues = [],
+    showValueIndexes = [],
+    richTooltip } =
+  opts;
+  const contexts = seriesContexts[name || ''] || [];
+  const hasForecast =
+  contexts.includes(ForecastSeriesEnum.ForecastTrend) ||
+  contexts.includes(ForecastSeriesEnum.ForecastLower) ||
+  contexts.includes(ForecastSeriesEnum.ForecastUpper);
+
+  const forecastSeries = extractForecastSeriesContext(name || '');
+  const isConfidenceBand =
+  forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
+  forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  const isFiltered =
+  (filterState == null ? void 0 : filterState.selectedValues) && !(filterState != null && filterState.selectedValues.includes(name));
+  const opacity = isFiltered ?
+  OpacityEnum.SemiTransparent :
+  OpacityEnum.NonTransparent;
+
+  // don't create a series if doing a stack or area chart and the result
+  // is a confidence band
+  if ((stack || area) && isConfidenceBand) return undefined;
+
+  const isObservation = forecastSeries.type === ForecastSeriesEnum.Observation;
+  const isTrend = forecastSeries.type === ForecastSeriesEnum.ForecastTrend;
+  let stackId;
+  if (isConfidenceBand) {
+    stackId = forecastSeries.name;
+  } else if (stack && isObservation) {
+    // the suffix of the observation series is '' (falsy), which disables
+    // stacking. Therefore we need to set something that is truthy.
+    stackId = 'obs';
+  } else if (stack && isTrend) {
+    stackId = forecastSeries.type;
+  }
+  let plotType;
+  if (
+  !isConfidenceBand && (
+  seriesType === 'scatter' || hasForecast && isObservation))
+  {
+    plotType = 'scatter';
+  } else if (isConfidenceBand) {
+    plotType = 'line';
+  } else {
+    plotType = seriesType === 'bar' ? 'bar' : 'line';
+  }
+  const itemStyle = {
+    color: colorScale(forecastSeries.name),
+    opacity };
+
+  let emphasis = {};
+  let showSymbol = false;
+  if (!isConfidenceBand) {
+    if (plotType === 'scatter') {
+      showSymbol = true;
+    } else if (hasForecast && isObservation) {
+      showSymbol = true;
+    } else if (plotType === 'line' && showValue) {
+      showSymbol = true;
+    } else if (plotType === 'line' && !richTooltip && !markerEnabled) {
+      // this is hack to make timeseries line chart clickable when tooltip trigger is 'item'
+      // so that the chart can emit cross-filtering
+      showSymbol = true;
+      itemStyle.opacity = 0;
+      emphasis = {
+        itemStyle: {
+          opacity: 1 } };
+
+
+    } else if (markerEnabled) {
+      showSymbol = true;
+    }
+  }
+  const lineStyle = isConfidenceBand ?
+  { opacity: OpacityEnum.Transparent } :
+  { opacity };
+  return {
+    ...series,
+    yAxisIndex,
+    name: forecastSeries.name,
+    itemStyle,
+    // @ts-ignore
+    type: plotType,
+    smooth: seriesType === 'smooth',
+    triggerLineEvent: true,
+    // @ts-ignore
+    step: ['start', 'middle', 'end'].includes(seriesType) ?
+    seriesType :
+    undefined,
+    stack: stackId,
+    lineStyle,
+    areaStyle:
+    area || forecastSeries.type === ForecastSeriesEnum.ForecastUpper ?
+    {
+      opacity: opacity * areaOpacity } :
+
+    undefined,
+    emphasis,
+    showSymbol,
+    symbolSize: markerSize,
+    label: {
+      show: !!showValue,
+      position: 'top',
+      formatter: (params) => {
+        const {
+          value: [, numericValue],
+          dataIndex,
+          seriesIndex,
+          seriesName } =
+        params;
+        const isSelectedLegend = currentSeries.legend === seriesName;
+        if (!formatter) return numericValue;
+        if (!stack || !onlyTotal || isSelectedLegend) {
+          return formatter(numericValue);
+        }
+        if (seriesIndex === showValueIndexes[dataIndex]) {
+          return formatter(totalStackedValues[dataIndex]);
+        }
+        return '';
+      } } };
+
+
+}
+
+export function transformFormulaAnnotation(
+layer,
+data,
+colorScale)
+{
+  const { name, color, opacity, width, style } = layer;
+  return {
+    name,
+    id: name,
+    itemStyle: {
+      color: color || colorScale(name) },
+
+    lineStyle: {
+      opacity: parseAnnotationOpacity(opacity),
+      type: style,
+      width },
+
+    type: 'line',
+    smooth: true,
+    data: evalFormula(layer, data),
+    symbolSize: 0 };
+
+}
+
+export function transformIntervalAnnotation(
+layer,
+data,
+annotationData,
+colorScale)
+{
+  const series = [];
+  const annotations = extractRecordAnnotations(layer, annotationData);
+  annotations.forEach((annotation) => {
+    const { name, color, opacity, showLabel } = layer;
+    const { descriptions, intervalEnd, time, title } = annotation;
+    const label = formatAnnotationLabel(name, title, descriptions);
+    const intervalData =
+
+
+    [
+    [
+    {
+      name: label,
+      xAxis: time },
+
+    {
+      xAxis: intervalEnd }]];
+
+
+
+    const intervalLabel = showLabel ?
+    {
+      show: true,
+      color: '#000000',
+      position: 'insideTop',
+      verticalAlign: 'top',
+      fontWeight: 'bold',
+      // @ts-ignore
+      emphasis: {
+        position: 'insideTop',
+        verticalAlign: 'top',
+        backgroundColor: '#ffffff' } } :
+
+
+    {
+      show: false,
+      color: '#000000',
+      // @ts-ignore
+      emphasis: {
+        fontWeight: 'bold',
+        show: true,
+        position: 'insideTop',
+        verticalAlign: 'top',
+        backgroundColor: '#ffffff' } };
+
+
+    series.push({
+      id: `Interval - ${label}`,
+      type: 'line',
+      animation: false,
+      markArea: {
+        silent: false,
+        itemStyle: {
+          color: color || colorScale(name),
+          opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
+          emphasis: {
+            opacity: 0.8 } },
+
+
+        label: intervalLabel,
+        data: intervalData } });
+
+
+  });
+  return series;
+}
+
+export function transformEventAnnotation(
+layer,
+data,
+annotationData,
+colorScale)
+{
+  const series = [];
+  const annotations = extractRecordAnnotations(layer, annotationData);
+  annotations.forEach((annotation) => {
+    const { name, color, opacity, style, width, showLabel } = layer;
+    const { descriptions, time, title } = annotation;
+    const label = formatAnnotationLabel(name, title, descriptions);
+    const eventData = [
+    {
+      name: label,
+      xAxis: time }];
+
+
+
+    const lineStyle = {
+      width,
+      type: style,
+      color: color || colorScale(name),
+      opacity: parseAnnotationOpacity(opacity),
+      emphasis: {
+        width: width ? width + 1 : width,
+        opacity: 1 } };
+
+
+
+    const eventLabel = showLabel ?
+    {
+      show: true,
+      color: '#000000',
+      position: 'insideEndTop',
+      fontWeight: 'bold',
+      formatter: (params) => params.name,
+      // @ts-ignore
+      emphasis: {
+        backgroundColor: '#ffffff' } } :
+
+
+    {
+      show: false,
+      color: '#000000',
+      position: 'insideEndTop',
+      // @ts-ignore
+      emphasis: {
+        formatter: (params) => params.name,
+        fontWeight: 'bold',
+        show: true,
+        backgroundColor: '#ffffff' } };
+
+
+
+    series.push({
+      id: `Event - ${label}`,
+      type: 'line',
+      animation: false,
+      markLine: {
+        silent: false,
+        symbol: 'none',
+        lineStyle,
+        label: eventLabel,
+        data: eventData } });
+
+
+  });
+  return series;
+}
+
+export function transformTimeseriesAnnotation(
+layer,
+markerSize,
+data,
+annotationData)
+{
+  const series = [];
+  const { hideLine, name, opacity, showMarkers, style, width } = layer;
+  const result = annotationData[name];
+  if (isTimeseriesAnnotationResult(result)) {
+    result.forEach((annotation) => {
+      const { key, values } = annotation;
+      series.push({
+        type: 'line',
+        id: key,
+        name: key,
+        data: values.map((row) => [row.x, row.y]),
+        symbolSize: showMarkers ? markerSize : 0,
+        lineStyle: {
+          opacity: parseAnnotationOpacity(opacity),
+          type: style,
+          width: hideLine ? 0 : width } });
+
+
+    });
+  }
+  return series;
+}
+
+export function getPadding(
+showLegend,
+legendOrientation,
+addYAxisTitleOffset,
+zoomable,
+margin,
+addXAxisTitleOffset,
+yAxisTitlePosition,
+yAxisTitleMargin,
+xAxisTitleMargin)
+
+
+
+
+
+{
+  const yAxisOffset = addYAxisTitleOffset ?
+  TIMESERIES_CONSTANTS.yAxisLabelTopOffset :
+  0;
+  const xAxisOffset = addXAxisTitleOffset ? xAxisTitleMargin || 0 : 0;
+  return getChartPadding(showLegend, legendOrientation, margin, {
+    top:
+    yAxisTitlePosition && yAxisTitlePosition === 'Top' ?
+    TIMESERIES_CONSTANTS.gridOffsetTop + (yAxisTitleMargin || 0) :
+    TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+    bottom: zoomable ?
+    TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset :
+    TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
+    left:
+    yAxisTitlePosition === 'Left' ?
+    TIMESERIES_CONSTANTS.gridOffsetLeft + (yAxisTitleMargin || 0) :
+    TIMESERIES_CONSTANTS.gridOffsetLeft,
+    right:
+    showLegend && legendOrientation === LegendOrientation.Right ?
+    0 :
+    TIMESERIES_CONSTANTS.gridOffsetRight });
+
+}
+
+export function getTooltipTimeFormatter(
+format)
+{
+  if (format === smartDateFormatter.id) {
+    return smartDateDetailedFormatter;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
+}
+
+export function getXAxisFormatter(
+format)
+{
+  if (format === smartDateFormatter.id || !format) {
+    return undefined;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
+};(function () {var reactHotLoader = typeof reactHotLoaderGlobal !== 'undefined' ? reactHotLoaderGlobal.default : undefined;if (!reactHotLoader) {return;}reactHotLoader.register(transformSeries, "transformSeries", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(transformFormulaAnnotation, "transformFormulaAnnotation", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(transformIntervalAnnotation, "transformIntervalAnnotation", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(transformEventAnnotation, "transformEventAnnotation", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(transformTimeseriesAnnotation, "transformTimeseriesAnnotation", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(getPadding, "getPadding", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(getTooltipTimeFormatter, "getTooltipTimeFormatter", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");reactHotLoader.register(getXAxisFormatter, "getXAxisFormatter", "/Users/evan/GitHub/superset/superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformers.ts");})();;(function () {var leaveModule = typeof reactHotLoaderGlobal !== 'undefined' ? reactHotLoaderGlobal.leaveModule : undefined;leaveModule && leaveModule(module);})();

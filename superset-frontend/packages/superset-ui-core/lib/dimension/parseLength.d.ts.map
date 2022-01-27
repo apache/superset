@@ -1,0 +1,1 @@
+{"version":3,"file":"parseLength.d.ts","sourceRoot":"","sources":["../../src/dimension/parseLength.ts"],"names":[],"mappings":"AAqBA,MAAM,CAAC,OAAO,UAAU,WAAW,CACjC,KAAK,EAAE,MAAM,GAAG,MAAM,GAEpB;IAAE,SAAS,EAAE,IAAI,CAAC;IAAC,UAAU,EAAE,MAAM,CAAA;CAAE,GACvC;IAAE,SAAS,EAAE,KAAK,CAAC;IAAC,KAAK,EAAE,MAAM,CAAA;CAAE,CAetC"}

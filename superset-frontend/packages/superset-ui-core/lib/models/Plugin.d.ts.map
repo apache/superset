@@ -1,0 +1,1 @@
+{"version":3,"file":"Plugin.d.ts","sourceRoot":"","sources":["../../src/models/Plugin.ts"],"names":[],"mappings":"AAmBA,UAAU,WAAW;IAEnB,CAAC,GAAG,EAAE,MAAM,GAAG,GAAG,CAAC;CACpB;AAED,MAAM,CAAC,OAAO,OAAO,MAAM;IACzB,MAAM,EAAE,WAAW,CAAC;;IAMpB,WAAW;IAQX,SAAS,CAAC,MAAM,EAAE,WAAW,EAAE,OAAO,UAAQ;IAM9C,QAAQ;IAIR,UAAU;CAGX"}

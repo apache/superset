@@ -1,0 +1,1 @@
+{"version":3,"file":"computeMaxFontSize.d.ts","sourceRoot":"","sources":["../../src/dimension/computeMaxFontSize.ts"],"names":[],"mappings":"AAmBA,OAAyB,EAAE,qBAAqB,EAAE,MAAM,oBAAoB,CAAC;AAkB7E,MAAM,CAAC,OAAO,UAAU,kBAAkB,CACxC,KAAK,EAAE,qBAAqB,GAAG;IAC7B,QAAQ,CAAC,EAAE,MAAM,CAAC;IAClB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,aAAa,CAAC,EAAE,MAAM,CAAC;CACxB,UAuCF"}

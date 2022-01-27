@@ -1,0 +1,1 @@
+{"version":3,"file":"types.d.ts","sourceRoot":"","sources":["../../../src/query/api/types.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;GAiBG;AACH,OAAO,EACL,aAAa,EACb,uBAAuB,EACvB,mBAAmB,EACpB,MAAM,kBAAkB,CAAC;AAE1B,MAAM,WAAW,UAAU;IACzB,MAAM,CAAC,EAAE,uBAAuB,GAAG,mBAAmB,CAAC;IACvD,aAAa,CAAC,EAAE,aAAa,CAAC;CAC/B"}

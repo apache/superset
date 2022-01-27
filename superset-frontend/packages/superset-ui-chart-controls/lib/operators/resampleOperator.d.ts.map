@@ -1,0 +1,1 @@
+{"version":3,"file":"resampleOperator.d.ts","sourceRoot":"","sources":["../../src/operators/resampleOperator.ts"],"names":[],"mappings":"AACA;;;;;;;;;;;;;;;;;GAiBG;AACH,OAAO,EAAE,sBAAsB,EAAE,MAAM,mBAAmB,CAAC;AAC3D,OAAO,EAAE,qBAAqB,EAAE,MAAM,SAAS,CAAC;AAGhD,eAAO,MAAM,gBAAgB,EAAE,qBAAqB,CAClD,sBAAsB,GAAG,SAAS,CAiBnC,CAAC"}

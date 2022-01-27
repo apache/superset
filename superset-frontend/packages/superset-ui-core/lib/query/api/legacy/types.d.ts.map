@@ -1,0 +1,1 @@
+{"version":3,"file":"types.d.ts","sourceRoot":"","sources":["../../../../src/query/api/legacy/types.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;GAiBG;AACH,OAAO,EAAE,uBAAuB,EAAE,MAAM,aAAa,CAAC;AAEtD,MAAM,WAAW,uBACf,SAAQ,IAAI,CAAC,uBAAuB,EAAE,MAAM,CAAC;IAC7C,IAAI,EAAE,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,EAAE,GAAG,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,CAAC;CAC3D;;AAED,wBAAkB"}

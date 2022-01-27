@@ -1,0 +1,1 @@
+{"version":3,"file":"extractTimegrain.d.ts","sourceRoot":"","sources":["../../src/query/extractTimegrain.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;;GAiBG;AAGH,OAAO,EAAE,aAAa,EAAE,MAAM,SAAS,CAAC;AACxC,OAAO,EAAE,eAAe,EAAE,MAAM,gBAAgB,CAAC;AAEjD,MAAM,CAAC,OAAO,UAAU,gBAAgB,CACtC,QAAQ,EAAE,aAAa,GACtB,eAAe,GAAG,SAAS,CAY7B"}

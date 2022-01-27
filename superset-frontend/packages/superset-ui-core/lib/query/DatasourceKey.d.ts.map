@@ -1,0 +1,1 @@
+{"version":3,"file":"DatasourceKey.d.ts","sourceRoot":"","sources":["../../src/query/DatasourceKey.ts"],"names":[],"mappings":"AAmBA,OAAO,EAAE,cAAc,EAAE,MAAM,oBAAoB,CAAC;AAEpD,MAAM,CAAC,OAAO,OAAO,aAAa;IAChC,QAAQ,CAAC,EAAE,EAAE,MAAM,CAAC;IAEpB,QAAQ,CAAC,IAAI,EAAE,cAAc,CAAC;gBAElB,GAAG,EAAE,MAAM;IAOhB,QAAQ;IAIR,QAAQ;;;;CAMhB"}
