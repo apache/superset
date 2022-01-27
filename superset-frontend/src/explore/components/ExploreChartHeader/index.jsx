@@ -160,31 +160,19 @@ export const ExploreChartHeader = ({
       .catch(() => {});
   };
 
-  const getSliceName = () => {
-    const title = sliceName || t('%s - untitled', tableName);
-
-    return title;
-  };
+  const getSliceName = () => sliceName || t('%s - untitled', tableName);
 
   const postChartFormData = () => {
     actions.postChartFormData(formData, true, timeout, chart.id, ownState);
   };
 
-  const openPropertiesModal = () => {
-    setIsPropertiesModalOpen(true);
-  };
+  const openPropertiesModal = () => setIsPropertiesModalOpen(true);
 
-  const closePropertiesModal = () => {
-    setIsPropertiesModalOpen(false);
-  };
+  const closePropertiesModal = () => setIsPropertiesModalOpen(false);
 
-  const showReportModal = () => {
-    setShowingReportModal(true);
-  };
+  const showReportModal = () => setShowingReportModal(true);
 
-  const hideReportModal = () => {
-    setShowingReportModal(false);
-  };
+  const hideReportModal = () => setShowingReportModal(false);
 
   const renderReportModal = () => {
     const attachedReportExists = !!Object.keys(reports).length;
@@ -267,7 +255,7 @@ export const ExploreChartHeader = ({
           </>
         )}
         <EditableTitle
-          title={getSliceName()}
+          title={getSliceName}
           canEdit={
             !slice ||
             canOverwrite ||
@@ -323,7 +311,7 @@ export const ExploreChartHeader = ({
             limit={Number(formData.row_limit) || 0}
           />
         )}
-        {chartFinished && queryResponse && queryResponse.is_cached && (
+        {chartFinished && queryResponse?.is_cached && (
           <CachedLabel
             onClick={postChartFormData}
             cachedTimestamp={queryResponse.cached_dttm}
