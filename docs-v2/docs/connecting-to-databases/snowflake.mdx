@@ -1,0 +1,31 @@
+---
+title: Snowflake
+hide_title: true
+sidebar_position: 29
+version: 1
+---
+
+## Snowflake
+
+The recommended connector library for Snowflake is
+[snowflake-sqlalchemy](https://pypi.org/project/snowflake-sqlalchemy/1.2.4/)<=1.2.4. (This version is required until Superset migrates to sqlalchemy>=1.4.0)
+
+The connection string for Snowflake looks like this:
+
+```
+snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}
+```
+
+The schema is not necessary in the connection string, as it is defined per table/query. The role and
+warehouse can be omitted if defaults are defined for the user, i.e.
+
+```
+snowflake://{user}:{password}@{account}.{region}/{database}
+```
+
+Make sure the user has privileges to access and use all required
+databases/schemas/tables/views/warehouses, as the Snowflake SQLAlchemy engine does not test for
+user/role rights during engine creation by default. However, when pressing the “Test Connection”
+button in the Create or Edit Database dialog, user/role credentials are validated by passing
+“validate_default_parameters”: True to the connect() method during engine creation. If the user/role
+is not authorized to access the database, an error is recorded in the Superset logs.
