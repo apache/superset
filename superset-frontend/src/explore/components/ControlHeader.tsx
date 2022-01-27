@@ -17,23 +17,25 @@
  * under the License.
  */
 import React, { FC, ReactNode } from 'react';
-import { t, css, useTheme, JsonObject } from '@superset-ui/core';
+import { t, css, useTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 
+type ValidationError = string;
+
 export type ControlHeaderProps = {
   name?: string;
   label?: ReactNode;
   description?: ReactNode;
-  validationErrors?: JsonObject | null;
+  validationErrors?: ValidationError[];
   renderTrigger?: boolean;
   rightNode?: ReactNode;
   leftNode?: ReactNode;
-  onClick?: () => {};
+  onClick?: () => void;
   hovered?: boolean;
-  tooltipOnClick?: () => {};
+  tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
 };
@@ -53,6 +55,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const { gridUnit, colors } = useTheme();
+
+  if (!label) {
+    return null;
+  }
 
   const renderOptionalIcons = () => {
     if (!hovered) {
@@ -93,9 +99,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       </span>
     );
   };
-  if (!label) {
-    return null;
-  }
+
   const labelClass = validationErrors?.length > 0 ? 'text-danger' : '';
 
   return (

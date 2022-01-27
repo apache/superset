@@ -52,9 +52,7 @@ export const ControlHeaderGallery = () => (
 );
 
 export const InteractiveControlHeader = (props: ControlHeaderProps) => (
-  <>
-    <ControlHeader {...props} />
-  </>
+  <ControlHeader {...props} />
 );
 
 InteractiveControlHeader.args = {
