@@ -38,6 +38,7 @@ import AdhocFilter, {
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/common/components';
 import { propertyComparator } from 'src/components/Select/Select';
+import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -346,7 +347,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         })
           .then(({ json }) => {
-            setSuggestions(json);
+            setSuggestions(
+              json.map((item: null | number | boolean | string) =>
+                optionLabel(item),
+              ),
+            );
             setLoadingComparatorSuggestions(false);
           })
           .catch(() => {
