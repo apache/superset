@@ -29,6 +29,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -77,10 +78,11 @@ def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
 
     def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
         if not request.is_json:
-            return self.response_400(message="Request is not JSON")
+            raise InvalidPayloadFormatError(message="Request is not JSON")
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
+
 
 def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     """
@@ -88,8 +90,10 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
-        if not request.mimetype == 'multipart/form-data':
-            return self.response_400(message="Request MIME type is not 'multipart/form-data'")
+        if not request.mimetype == "multipart/form-data":
+            raise InvalidPayloadFormatError(
+                message="Request MIME type is not 'multipart/form-data'"
+            )
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)

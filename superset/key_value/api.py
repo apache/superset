@@ -37,7 +37,6 @@ from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.exceptions import InvalidPayloadFormatError
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema

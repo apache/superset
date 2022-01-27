@@ -30,7 +30,6 @@ from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.exceptions import InvalidPayloadFormatError
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.delete import DeleteFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand

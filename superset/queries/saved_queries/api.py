@@ -53,7 +53,11 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.views.base_api import BaseSupersetModelRestApi, requires_form_data, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_form_data,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
