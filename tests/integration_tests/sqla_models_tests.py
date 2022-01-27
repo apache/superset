@@ -30,7 +30,8 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
@@ -477,22 +478,77 @@ class TestDatabaseModel(SupersetTestCase):
     def test_values_for_column(self):
         table = SqlaTable(
             table_name="test_null_in_column",
-            sql="SELECT 'foo' as foo UNION SELECT 'bar' UNION SELECT NULL",
+            sql=(
+                "SELECT 'foo' as foo "
+                "UNION SELECT '' "
+                "UNION SELECT NULL "
+                "UNION SELECT 'null'"
+            ),
             database=get_example_database(),
         )
         TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+        SqlMetric(metric_name="count", expression="count(*)", table=table)
 
-        with_null = table.values_for_column(
-            column_name="foo", limit=10000, contain_null=True
-        )
+        # null value, empty string and text should be retrieved
+        with_null = table.values_for_column(column_name="foo", limit=10000)
         assert None in with_null
-        assert len(with_null) == 3
+        assert len(with_null) == 4
 
-        without_null = table.values_for_column(
-            column_name="foo", limit=10000, contain_null=False
+        # null value should be replaced
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
+                "is_timeseries": False,
+            }
         )
-        assert None not in without_null
-        assert len(without_null) == 2
+        assert result_object.df["count"][0] == 1
+
+        # also accept None value
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [None], "op": "IN"}],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 1
+
+        # empty string should be replaced
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 1
+
+        # also accept "" string
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [""], "op": "IN"}],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 1
+
+        # both replaced
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [
+                    {
+                        "col": "foo",
+                        "val": [EMPTY_STRING, NULL_STRING, "null", "foo"],
+                        "op": "IN",
+                    }
+                ],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 4
 
 
 @pytest.mark.parametrize(

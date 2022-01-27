@@ -25,7 +25,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 
 from superset import is_feature_enabled, security_manager
-from superset.constants import NULL_STRING
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
@@ -406,7 +406,7 @@ class BaseDatasource(
                     return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
-                if value == "<empty string>":
+                if value == EMPTY_STRING:
                     return ""
             if target_column_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
@@ -441,9 +441,7 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
