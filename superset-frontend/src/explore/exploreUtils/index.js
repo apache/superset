@@ -35,6 +35,7 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { optionLabel } from '../../utils/common';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -374,10 +375,12 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-    const formattedComparators = comparatorArray.map(
-      val =>
-        `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
-    );
+    const formattedComparators = comparatorArray
+      .map(val => optionLabel(val))
+      .map(
+        val =>
+          `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
+      );
     if (comparatorArray.length > 0) {
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
