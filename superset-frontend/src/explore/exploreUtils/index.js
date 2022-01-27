@@ -361,7 +361,6 @@ export const useDebouncedEffect = (effect, delay, deps) => {
 };
 
 export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  console.log(operator);
   const isMulti =
     [...MULTI_OPERATORS]
       .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
