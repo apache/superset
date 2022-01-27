@@ -227,7 +227,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     isOperatorRelevant,
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
-  const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [suggestions, setSuggestions] = useState<
+    Record<'label' | 'value', any>[]
+  >([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
     useState(false);
@@ -348,9 +350,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         })
           .then(({ json }) => {
             setSuggestions(
-              json.map((item: null | number | boolean | string) =>
-                optionLabel(item),
-              ),
+              json.map((suggestion: null | number | boolean | string) => ({
+                value: suggestion,
+                label: optionLabel(suggestion),
+              })),
             );
             setLoadingComparatorSuggestions(false);
           })
@@ -407,10 +410,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
           labelText={labelText}
-          options={suggestions.map((suggestion: string) => ({
-            value: suggestion,
-            label: String(suggestion),
-          }))}
+          options={suggestions}
           {...comparatorSelectProps}
           sortComparator={propertyComparator(
             typeof suggestions[0] === 'number' ? 'value' : 'label',

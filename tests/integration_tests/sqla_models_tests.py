@@ -504,11 +504,31 @@ class TestDatabaseModel(SupersetTestCase):
         )
         assert result_object.df["count"][0] == 1
 
+        # also accept None value
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [None], "op": "IN"}],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 1
+
         # empty string should be replaced
         result_object = table.query(
             {
                 "metrics": ["count"],
                 "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
+                "is_timeseries": False,
+            }
+        )
+        assert result_object.df["count"][0] == 1
+
+        # also accept "" string
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "foo", "val": [""], "op": "IN"}],
                 "is_timeseries": False,
             }
         )
