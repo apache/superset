@@ -59,7 +59,7 @@ const defaultProps = {
 
 export default class TextAreaControl extends React.Component {
   onControlChange(value) {
-     this.props.onChange(value);
+    this.props.onChange(value);
   }
 
   renderEditor(inModal = false) {
