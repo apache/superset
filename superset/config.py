@@ -1374,7 +1374,7 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 else int(ip_range[0])
             )
             resp["formatted_value"] = str(string_value)
-        except (ValueError, Exception) as ex:
+        except ValueError as ex:
             resp["status"] = "invalid"
             resp["display_value"] = str(ex)
             break
@@ -1455,9 +1455,9 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
                 else port_conversion_dict[string_value]
             )
             resp["formatted_value"] = str(string_value)
-        except (ValueError, Exception) as error:
+        except KeyError:
             resp["status"] = "invalid"
-            resp["display_value"] = str(error)
+            resp["display_value"] = str(f"'{string_value}' does not appear to be a port name or number")
             break
         else:
             resp["display_value"] = ", ".join(
