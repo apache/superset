@@ -31,8 +31,12 @@ const options: {
     label: 'Control label',
   },
   warning: {
-    label: 'Control header',
+    label: 'Control warning',
     warning: 'Example of warning message',
+  },
+  error: {
+    label: 'Control error',
+    validationErrors: ['Something is wrong'],
   },
 };
 
