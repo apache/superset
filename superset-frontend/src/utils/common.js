@@ -24,6 +24,7 @@ import {
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
+export const EMPTY_STRING = '<empty string>';
 export const NULL_STRING = '<NULL>';
 export const TRUE_STRING = 'TRUE';
 export const FALSE_STRING = 'FALSE';
@@ -61,7 +62,7 @@ export function optionLabel(opt) {
     return NULL_STRING;
   }
   if (opt === '') {
-    return '<empty string>';
+    return EMPTY_STRING;
   }
   if (opt === true) {
     return '<true>';
