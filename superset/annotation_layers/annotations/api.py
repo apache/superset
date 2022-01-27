@@ -56,7 +56,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
+    requires_json,
     statsd_metrics,
 )
 
@@ -258,7 +258,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("post")
-    @json_required
+    @requires_json
     def post(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Creates a new Annotation
         ---
@@ -326,7 +326,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    @json_required
+    @requires_json
     def put(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int
     ) -> Response:

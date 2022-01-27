@@ -70,7 +70,7 @@ class DistincResponseSchema(Schema):
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
 
 
-def json_required(f: Callable[..., Any]) -> Callable[..., Any]:
+def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Require JSON-like formatted request to the REST API
     """

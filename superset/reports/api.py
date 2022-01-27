@@ -52,8 +52,8 @@ from superset.reports.schemas import (
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
     RelatedFieldFilter,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
@@ -276,7 +276,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @permission_name("post")
-    @json_required
+    @requires_json
     def post(self) -> Response:
         """Creates a new Report Schedule
         ---
@@ -337,7 +337,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    @json_required
+    @requires_json
     def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---

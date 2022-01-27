@@ -80,8 +80,8 @@ from superset.utils.urls import get_url_path
 from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
     RelatedFieldFilter,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
@@ -431,7 +431,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -495,7 +495,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def put(self, pk: int) -> Response:
         """Changes a Dashboard
         ---

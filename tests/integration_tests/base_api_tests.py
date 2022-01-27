@@ -29,7 +29,7 @@ import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi, json_required
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
 
@@ -161,7 +161,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         We want to make sure that non-JSON request are refused
         """
         self.login(username="admin")
-        uri = "api/v1/report/"  # endpoint decorated with @json_required
+        uri = "api/v1/report/"  # endpoint decorated with @requires_json
         rv = self.client.post(
             uri, data="a: value\nb: 1\n", content_type="application/yaml"
         )

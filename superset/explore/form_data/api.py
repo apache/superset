@@ -39,7 +39,7 @@ from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
-from superset.views.base_api import json_required
+from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def post(self) -> Response:
         """Stores a new form_data.
         ---
@@ -128,7 +128,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def put(self, key: str) -> Response:
         """Updates an existing form_data.
         ---

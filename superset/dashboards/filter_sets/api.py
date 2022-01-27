@@ -64,7 +64,7 @@ from superset.extensions import event_logger
 from superset.models.filter_set import FilterSet
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
+    requires_json,
     statsd_metrics,
 )
 
@@ -197,7 +197,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def post(self, dashboard_id: int) -> Response:
         """
             Creates a new Dashboard's Filter Set
@@ -264,7 +264,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def put(self, dashboard_id: int, pk: int) -> Response:
         """Changes a Dashboard's Filter set
         ---

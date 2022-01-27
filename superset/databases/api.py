@@ -75,7 +75,7 @@ from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
+    requires_json,
     statsd_metrics,
 )
 
@@ -205,7 +205,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def post(self) -> Response:
         """Creates a new Database
         ---
@@ -279,7 +279,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def put(self, pk: int) -> Response:
         """Changes a Database
         ---
@@ -594,7 +594,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
@@ -985,7 +985,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---

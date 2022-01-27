@@ -51,7 +51,7 @@ from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    json_required,
+    requires_json,
     statsd_metrics,
 )
 
@@ -175,7 +175,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def post(self) -> Response:
         """Creates a new Annotation Layer
         ---
@@ -240,7 +240,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    @json_required
+    @requires_json
     def put(self, pk: int) -> Response:
         """Updates an Annotation Layer
         ---
