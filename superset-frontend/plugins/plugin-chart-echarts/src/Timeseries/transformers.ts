@@ -198,7 +198,15 @@ export function transformSeries(
             opacity: opacity * areaOpacity,
           }
         : undefined,
-    emphasis,
+    emphasis: {
+      // bold on hover as required since 5.3.0 to retain backwards feature parity:
+      // https://apache.github.io/echarts-handbook/en/basics/release-note/5-3-0/#removing-the-default-bolding-emphasis-effect-in-the-line-chart
+      // TODO: should consider only adding emphasis to currently hovered series
+      lineStyle: {
+        width: 'bolder',
+      },
+      ...emphasis,
+    },
     showSymbol,
     symbolSize: markerSize,
     label: {
