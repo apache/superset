@@ -81,6 +81,7 @@ from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_form_data,
     requires_json,
     statsd_metrics,
 )
@@ -926,6 +927,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases
         ---

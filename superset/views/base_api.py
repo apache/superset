@@ -82,6 +82,18 @@ def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
 
     return functools.update_wrapper(wraps, f)
 
+def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require 'multipart/form-data' as request MIME type
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.mimetype == 'multipart/form-data':
+            return self.response_400(message="Request MIME type is not 'multipart/form-data'")
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
+
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     """

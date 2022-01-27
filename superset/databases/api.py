@@ -75,6 +75,7 @@ from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    requires_form_data,
     requires_json,
     statsd_metrics,
 )
@@ -774,6 +775,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import database(s) with associated datasets
         ---

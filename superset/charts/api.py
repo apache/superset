@@ -75,6 +75,7 @@ from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_form_data,
     requires_json,
     statsd_metrics,
 )
@@ -819,6 +820,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import chart(s) with associated datasets and databases
         ---
