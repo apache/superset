@@ -27,38 +27,16 @@ import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
-// const propTypes = {
-//   queryEditor: PropTypes.object.isRequired,
-//   height: PropTypes.number,
-//   tables: PropTypes.array,
-//   actions: PropTypes.object,
-//   database: PropTypes.object,
-//   offline: PropTypes.bool,
-// };
-
-/**
-    onSchemaChange={actions.queryEditorSetSchema}
-    onSchemasLoad={actions.queryEditorSetSchemaOptions}
-    onTableChange={onTableChange}
-    onTablesLoad={actions.queryEditorSetTableOptions}
- */
-
 interface ExtendedTable extends Table {
   expanded: any;
 }
-
-// anywhere there is void or any I didnt know what to put, will look into it
 
 interface actionsTypes {
   queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
   collapseTable: (table: Table) => void;
   expandTable: (table: Table) => void;
-
-  // This came from /home/josue/superset/superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx
   addTable: (queryEditor: any, value: any, schema: any) => void;
-
-  // utilized the typing that TableSelector used for its props, which are the same functions for these two below
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (schema?: string) => void;
@@ -66,20 +44,6 @@ interface actionsTypes {
   queryEditorSetTableOptions: (options: Array<any>) => void;
   resetState: () => void;
 }
-
-// my first attempt at actionTypes:
-// interface actionsTypes {
-//   queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
-//   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
-//   setDatabases: (databases: any) => object;
-//   addDangerToast: (text: string, options?: ToastOptions) => void;
-//   queryEditorSetSchema: (queryEditor: QueryEditor, schema: any) => void;
-// }
-
-// type tableType = {
-//   id: number;
-//   expanded: boolean;
-// };
 
 type dbType = {
   id: number;
@@ -93,13 +57,6 @@ interface SqlEditorLeftBarProps {
   database: DatabaseObject;
   offline: boolean;
 }
-
-// const defaultProps = {
-//   actions: {},
-//   height: 500,
-//   offline: false,
-//   tables: [],
-// };
 
 const StyledScrollbarContainer = styled.div`
   flex: 1 1 auto;
@@ -184,7 +141,6 @@ export default function SqlEditorLeftBar({
     <div className="SqlEditorLeftBar">
       <TableSelector
         database={database}
-        dbId={queryEditor.dbId}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
@@ -230,6 +186,3 @@ export default function SqlEditorLeftBar({
     </div>
   );
 }
-
-// SqlEditorLeftBar.propTypes = propTypes;
-// SqlEditorLeftBar.defaultProps = defaultProps;
