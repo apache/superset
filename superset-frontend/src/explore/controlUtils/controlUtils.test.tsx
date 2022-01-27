@@ -117,6 +117,15 @@ describe('controlUtils', () => {
       control = applyMapStateToPropsToControl(control, state);
       expect(control.options).toEqual([{ column_name: 'a' }]);
     });
+
+    it('applies falsy default to undefined value as expected', () => {
+      let control = getKnownControlConfig('rose_area_proportion', 'test-chart');
+      // by default, this control is unset and has a default of `false`
+      expect(control.default).toEqual(false);
+      expect(control.value).toEqual(undefined);
+      control = applyMapStateToPropsToControl(control, state);
+      expect(control.value).toEqual(false);
+    });
   });
 
   describe('getControlState', () => {

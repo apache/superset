@@ -107,7 +107,7 @@ export function applyMapStateToPropsToControl<T = ControlType>(
     }
   }
   // If no current value, set it as default
-  if (state.default && value === undefined) {
+  if (state.default !== undefined && value === undefined) {
     value = state.default;
   }
   // If a choice control went from multi=false to true, wrap value in array
