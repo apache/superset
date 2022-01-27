@@ -85,10 +85,10 @@ type dbType = {
   id: number;
 };
 
-interface propTypes {
+interface SqlEditorLeftBarProps {
   queryEditor: QueryEditor;
-  height: number;
-  tables: ExtendedTable[];
+  height?: number;
+  tables?: ExtendedTable[];
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
   offline: boolean;
@@ -133,7 +133,7 @@ export default function SqlEditorLeftBar({
   height = 500,
   queryEditor,
   tables = [],
-}: propTypes) {
+}: SqlEditorLeftBarProps) {
   const onDbChange = (db: dbType) => {
     actions.queryEditorSetDb(queryEditor, db.id);
     actions.queryEditorSetFunctionNames(queryEditor, db.id);
