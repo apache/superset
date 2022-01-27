@@ -52,16 +52,6 @@ interface ExtendedTable extends Table {
 interface actionsTypes {
   queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
-  /*
-    Need to add:
-    addTable (X)
-    collapseTable (X)
-    expandTable (X)
-    queryEditorSetSchemaOptions (X)
-    queryEditorSetTableOptions (X)
-    resetState (X)
-  */
-
   collapseTable: (table: Table) => void;
   expandTable: (table: Table) => void;
 
@@ -99,7 +89,7 @@ interface propTypes {
   queryEditor: QueryEditor;
   height: number;
   tables: ExtendedTable[];
-  actions: actionsTypes;
+  actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
   offline: boolean;
 }
