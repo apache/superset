@@ -116,10 +116,6 @@ class TestBusinessType(SupersetTestCase):
         }
 
         self.assertEqual(port_translation_func(portRequest), portResponse)
-        #I don't think we can test for the exception being raised as the function does not return the exception
-        #Instead, we might only be able to test the response to make sure it behaves as if the 
-        #exception was raised (i.e., what we are currently doing)
-        #self.assertRaises(KeyError, port_translation_func, portRequest)
 
     def test_port_translation_func_invalid_port_number(self):
         # Test to see if the port_translation_func behaves as expected when an ivalid port number is passed in
