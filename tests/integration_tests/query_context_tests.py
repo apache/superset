@@ -380,7 +380,7 @@ class TestQueryContext(SupersetTestCase):
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
             r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('abc'\)\)""",
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
             sql_text,
         )
 
