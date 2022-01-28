@@ -163,6 +163,37 @@ function useWindowSize({ delayMs = 250 } = {}) {
   return size;
 }
 
+const updateHistory = debounce(
+  async (formData, datasetId, isReplace, standalone, force, title) => {
+    const payload = { ...formData };
+    const chartId = formData.slice_id;
+
+    try {
+      let key;
+      let stateModifier;
+      if (isReplace) {
+        key = await postFormData(datasetId, formData, chartId);
+        stateModifier = 'replaceState';
+      } else {
+        key = getUrlParam(URL_PARAMS.formDataKey);
+        await putFormData(datasetId, key, formData, chartId);
+        stateModifier = 'pushState';
+      }
+      const url = mountExploreUrl(
+        standalone ? URL_PARAMS.standalone.name : null,
+        {
+          [URL_PARAMS.formDataKey.name]: key,
+        },
+        force,
+      );
+      window.history[stateModifier](payload, title, url);
+    } catch (e) {
+      logging.warn('Failed at altering browser history', e);
+    }
+  },
+  1000,
+);
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -200,34 +231,24 @@ function ExploreViewContainer(props) {
             dashboardId: props.dashboardId,
           }
         : props.form_data;
-      const payload = { ...formData };
-      const chartId = formData.slice_id;
       const datasetId = props.datasource.id;
 
-      try {
-        let key;
-        let stateModifier;
-        if (isReplace) {
-          key = await postFormData(datasetId, formData, chartId);
-          stateModifier = 'replaceState';
-        } else {
-          key = getUrlParam(URL_PARAMS.formDataKey);
-          await putFormData(datasetId, key, formData, chartId);
-          stateModifier = 'pushState';
-        }
-        const url = mountExploreUrl(
-          props.standalone ? URL_PARAMS.standalone.name : null,
-          {
-            [URL_PARAMS.formDataKey.name]: key,
-          },
-          props.force,
-        );
-        window.history[stateModifier](payload, title, url);
-      } catch (e) {
-        logging.warn('Failed at altering browser history', e);
-      }
+      updateHistory(
+        formData,
+        datasetId,
+        isReplace,
+        props.standalone,
+        props.force,
+        title,
+      );
     },
-    [props.form_data, props.standalone, props.force],
+    [
+      props.dashboardId,
+      props.form_data,
+      props.datasource.id,
+      props.standalone,
+      props.force,
+    ],
   );
 
   const handlePopstate = useCallback(() => {
@@ -335,16 +356,14 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
-  const debouncedUpdate = debounce(() => {
+  const reRenderChart = () => {
     props.actions.updateQueryFormData(
       getFormDataFromControls(props.controls),
       props.chart.id,
     );
     props.actions.renderTriggered(new Date().getTime(), props.chart.id);
     addHistory();
-  }, 1000);
-
-  const reRenderChart = useCallback(debouncedUpdate, [debouncedUpdate]);
+  };
 
   // effect to run when controls change
   useEffect(() => {
