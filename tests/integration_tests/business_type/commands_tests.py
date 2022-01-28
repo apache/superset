@@ -21,9 +21,12 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 from superset.config import cidr_func
 from superset.config import port_translation_func
+from superset.config import cidr_translate_filter_func
+from superset.config import port_translate_filter_func
 from superset.business_type.business_type_request import BusinessTypeRequest
 from superset.business_type.business_type_response import BusinessTypeResponse
-from superset.utils.core import FilterStringOperators
+from superset.utils.core import FilterOperator, FilterStringOperators
+from sqlalchemy import Column
 
 
 class TestBusinessType(SupersetTestCase):
@@ -96,7 +99,7 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(port_translation_func(portRequest), portResponse)
 
     def test_port_translation_func_invalid_port_name(self):
-        # Test to see if the port_translation_func behaves as expected when an ivalid port name is passed in
+        # Test to see if the port_translation_func behaves as expected when an invalid port name is passed in
         portRequest: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['abc']
@@ -118,7 +121,7 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(port_translation_func(portRequest), portResponse)
 
     def test_port_translation_func_invalid_port_number(self):
-        # Test to see if the port_translation_func behaves as expected when an ivalid port number is passed in
+        # Test to see if the port_translation_func behaves as expected when an invalid port number is passed in
         portRequest: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['123456789']
@@ -138,3 +141,16 @@ class TestBusinessType(SupersetTestCase):
         }
 
         self.assertEqual(port_translation_func(portRequest), portResponse)
+
+    def test_cidr_translate_filter_func(self):
+        # Test to see if the cidr_translate_filter_func behaves as expected when an IP is passed in
+        
+        inputColumn = Column('user_id')
+        inputOperation = FilterOperator.EQUALS
+        inputValues = [16843009]
+
+        #Need to update what is expected when this function runs
+        #The following line is just a placeholder
+        cidrTranslateFilterResponse = ""
+
+        self.assertEqual(cidr_translate_filter_func(inputColumn, inputOperation, inputValues), cidrTranslateFilterResponse)
