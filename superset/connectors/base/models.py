@@ -398,7 +398,7 @@ class BaseDatasource(
             ):
                 return datetime.utcfromtimestamp(value / 1000)
             if isinstance(value, str):
-                value = value.strip("\t\n'\"")
+                value = value.strip("\t\n")
 
                 if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases

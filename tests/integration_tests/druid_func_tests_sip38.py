@@ -364,7 +364,7 @@ class TestDruidFunc(SupersetTestCase):
         col = DruidColumn(column_name="A")
         column_dict = {"A": col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
-        self.assertEqual("a", res.filter["filter"]["value"])
+        self.assertEqual('"a"', res.filter["filter"]["value"])
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
