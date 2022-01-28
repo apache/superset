@@ -127,7 +127,7 @@ function SavedQueryList({
   const handleSavedQueryImport = () => {
     showImportModal(false);
     refreshData();
-    addSuccessToast('Query imported');
+    addSuccessToast(t('Query imported'));
   };
 
   const canCreate = hasPerm('can_write');

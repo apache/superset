@@ -141,7 +141,7 @@ function DashboardList(props: DashboardListProps) {
   const handleDashboardImport = () => {
     showImportModal(false);
     refreshData();
-    addSuccessToast('Dashboard imported');
+    addSuccessToast(t('Dashboard imported'));
   };
 
   const { userId } = props.user;

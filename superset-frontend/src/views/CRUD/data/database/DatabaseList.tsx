@@ -110,7 +110,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const handleDatabaseImport = () => {
     showImportModal(false);
     refreshData();
-    addSuccessToast('Database imported');
+    addSuccessToast(t('Database imported'));
   };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
