@@ -335,18 +335,16 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const reRenderChart = useCallback(
-    debounce(() => {
-      props.actions.updateQueryFormData(
-        getFormDataFromControls(props.controls),
-        props.chart.id,
-      );
-      props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-      addHistory();
-    }, 1000),
-    [addHistory, props.actions, props.chart.id, props.controls],
-  );
+  const debouncedUpdate = debounce(() => {
+    props.actions.updateQueryFormData(
+      getFormDataFromControls(props.controls),
+      props.chart.id,
+    );
+    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+    addHistory();
+  }, 1000);
+
+  const reRenderChart = useCallback(debouncedUpdate, [debouncedUpdate]);
 
   // effect to run when controls change
   useEffect(() => {
