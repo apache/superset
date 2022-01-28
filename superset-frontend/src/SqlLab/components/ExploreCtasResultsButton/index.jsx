@@ -35,6 +35,7 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
+
 const ExploreCtasResultsButton = (
   table,
   schema,
