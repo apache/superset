@@ -201,10 +201,17 @@ const config = {
           },
         ],
         copyright: `Copyright © ${new Date().getFullYear()},
-        The <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a>,
-        Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank">License</a>. <br/>
+        The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
+        Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
         <small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
-        <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small>`,
+        <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small><br />
+        <small>
+        <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+        <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
+        <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
+        <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
+        <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+        </small>`,
       },
       prism: {
         theme: lightCodeTheme,
