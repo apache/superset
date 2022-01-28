@@ -21,6 +21,7 @@ describe('Advanced analytics', () => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('GET', '/superset/explore/**').as('getExplore');
   });
 
   it('Create custom time compare', () => {
@@ -41,6 +42,7 @@ describe('Advanced analytics', () => {
     cy.get('button[data-test="run-query-button"]').click();
     cy.wait('@postJson');
     cy.reload();
+    cy.wait('@getExplore');
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',
