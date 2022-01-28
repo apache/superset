@@ -137,9 +137,11 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
 
 
 def get_form_data(  # pylint: disable=too-many-locals
-    slice_id: Optional[int] = None, use_slice_data: bool = False
+    slice_id: Optional[int] = None,
+    use_slice_data: bool = False,
+    initial_form_data: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data: Dict[str, Any] = {}
+    form_data: Dict[str, Any] = initial_form_data or {}
 
     if has_request_context():  # type: ignore
         # chart data API requests are JSON
