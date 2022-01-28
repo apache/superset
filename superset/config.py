@@ -1449,7 +1449,7 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     for val in req["values"]:
         string_value = str(val)
         try:
-            if string_value.isnumeric() and (string_value >= 1 and string_value <= 65535):
+            if string_value.isnumeric() and not 1 <= string_value <= 65535:
                 raise ValueError
             resp["values"].append(
                 [int(string_value)]
