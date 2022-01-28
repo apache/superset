@@ -54,6 +54,11 @@ jest.mock('react-resize-detector', () => ({
   useResizeDetector: () => ({ height: 100, width: 100 }),
 }));
 
+jest.mock('lodash/debounce', () => ({
+  __esModule: true,
+  default: (fuc: Function) => fuc,
+}));
+
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.put('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
