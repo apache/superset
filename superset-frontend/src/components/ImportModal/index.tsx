@@ -103,7 +103,6 @@ export interface ImportModelsModalProps {
   passwordsNeededMessage: string;
   confirmOverwriteMessage: string;
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
   onModelImport: () => void;
   show: boolean;
   onHide: () => void;
@@ -117,7 +116,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
-  addSuccessToast,
   onModelImport,
   show,
   onHide,
