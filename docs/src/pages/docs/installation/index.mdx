@@ -64,10 +64,17 @@ Then, run the following commands:
 
 ```bash
 $ docker-compose -f docker-compose-non-dev.yml pull
+$ docker-compose -f docker-compose-non-dev.yml up
 ```
 
+Alternatively, you can also run a specific version of Superset by first checking out
+the branch/tag, and then starting `docker-compose` with the `TAG` variable.
+For example, to run the 1.4.0 version, run the following commands:
+
 ```bash
-$ docker-compose -f docker-compose-non-dev.yml up
+% git checkout 1.4.0
+$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml pull
+$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml up
 ```
 
 You should see a wall of logging output from the containers being launched on your machine. Once
