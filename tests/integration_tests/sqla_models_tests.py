@@ -47,6 +47,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
@@ -475,80 +476,133 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_values_for_column(self):
+
+@pytest.fixture
+def text_column_table():
+    with app.app_context():
         table = SqlaTable(
-            table_name="test_null_in_column",
+            table_name="text_column_table",
             sql=(
                 "SELECT 'foo' as foo "
                 "UNION SELECT '' "
                 "UNION SELECT NULL "
-                "UNION SELECT 'null'"
+                "UNION SELECT 'null' "
+                "UNION SELECT '\"text in double quotes\"' "
+                "UNION SELECT '''text in single quotes''' "
+                "UNION SELECT 'double quotes \" in text' "
+                "UNION SELECT 'single quotes '' in text' "
             ),
             database=get_example_database(),
         )
         TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
         SqlMetric(metric_name="count", expression="count(*)", table=table)
+        yield table
 
-        # null value, empty string and text should be retrieved
-        with_null = table.values_for_column(column_name="foo", limit=10000)
-        assert None in with_null
-        assert len(with_null) == 4
 
-        # null value should be replaced
-        result_object = table.query(
-            {
-                "metrics": ["count"],
-                "filter": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
-                "is_timeseries": False,
-            }
-        )
-        assert result_object.df["count"][0] == 1
+def test_values_for_column_on_text_column(text_column_table):
+    # null value, empty string and text should be retrieved
+    with_null = text_column_table.values_for_column(column_name="foo", limit=10000)
+    assert None in with_null
+    assert len(with_null) == 8
 
-        # also accept None value
-        result_object = table.query(
-            {
-                "metrics": ["count"],
-                "filter": [{"col": "foo", "val": [None], "op": "IN"}],
-                "is_timeseries": False,
-            }
-        )
-        assert result_object.df["count"][0] == 1
 
-        # empty string should be replaced
-        result_object = table.query(
-            {
-                "metrics": ["count"],
-                "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
-                "is_timeseries": False,
-            }
-        )
-        assert result_object.df["count"][0] == 1
+def test_filter_on_text_column(text_column_table):
+    table = text_column_table
+    # null value should be replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
 
-        # also accept "" string
-        result_object = table.query(
-            {
-                "metrics": ["count"],
-                "filter": [{"col": "foo", "val": [""], "op": "IN"}],
-                "is_timeseries": False,
-            }
-        )
-        assert result_object.df["count"][0] == 1
+    # also accept None value
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [None], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
 
-        # both replaced
-        result_object = table.query(
-            {
-                "metrics": ["count"],
-                "filter": [
-                    {
-                        "col": "foo",
-                        "val": [EMPTY_STRING, NULL_STRING, "null", "foo"],
-                        "op": "IN",
-                    }
-                ],
-                "is_timeseries": False,
-            }
-        )
-        assert result_object.df["count"][0] == 4
+    # empty string should be replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # also accept "" string
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [""], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # both replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": [EMPTY_STRING, NULL_STRING, "null", "foo"],
+                    "op": "IN",
+                }
+            ],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 4
+
+    # should filter text in double quotes
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ['"text in double quotes"'], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text in single quotes
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ["'text in single quotes'"], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text with double quote
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ['double quotes " in text'], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text with single quote
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ["single quotes ' in text"], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
 
 
 @pytest.mark.parametrize(
