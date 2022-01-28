@@ -612,6 +612,7 @@ function ExploreViewContainer(props) {
           actions={props.actions}
           form_data={props.form_data}
           controls={props.controls}
+          chart={props.chart}
           datasource_type={props.datasource_type}
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
         />
