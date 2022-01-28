@@ -266,6 +266,7 @@ export default function transformProps(
   }, {}) as Record<string, DataRecordValue[]>;
 
   const { setDataMask = () => {} } = hooks;
+  const alignTicks = yAxisIndex !== yAxisIndexB;
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
@@ -296,6 +297,7 @@ export default function transformProps(
         name: yAxisTitle,
         nameGap: yAxisTitleMargin,
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
+        alignTicks,
       },
       {
         ...defaultYAxis,
@@ -308,6 +310,7 @@ export default function transformProps(
         axisLabel: { formatter: formatterSecondary },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
+        alignTicks,
       },
     ],
     tooltip: {

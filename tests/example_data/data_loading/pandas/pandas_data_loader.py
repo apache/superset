@@ -74,8 +74,10 @@ class PandasDataLoader(DataLoader):
         return inspect(self._db_engine).default_schema_name
 
     def _take_data_types(self, table: Table) -> Optional[Dict[str, str]]:
-        if metadata_table := table.table_metadata:
-            if types := metadata_table.types:
+        metadata_table = table.table_metadata
+        if metadata_table:
+            types = metadata_table.types
+            if types:
                 return types
         return None
 
