@@ -87,6 +87,8 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.get import GetFormDataCommand
+from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -730,7 +732,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def explore(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
-        form_data, slc = get_form_data(use_slice_data=True)
+        initial_form_data = {}
+
+        form_data_key = request.args.get("form_data_key")
+        if form_data_key:
+            parameters = CommandParameters(actor=g.user, key=form_data_key,)
+            value = GetFormDataCommand(parameters).run()
+            if value:
+                initial_form_data = json.loads(value)
+
+        form_data, slc = get_form_data(
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
+
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.

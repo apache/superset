@@ -18,7 +18,6 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { omit } from 'lodash';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -36,8 +35,6 @@ import {
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import { optionLabel } from '../../utils/common';
-
-const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
   const { slice } = explore;
@@ -91,64 +88,20 @@ export function getURIDirectory(endpointType = 'base') {
   return '/superset/explore/';
 }
 
-/**
- * This gets the url of the explore page, with all the form data included explicitly.
- * This includes any form data overrides from the dashboard.
- */
-export function getExploreLongUrl(
-  formData,
-  endpointType,
-  allowOverflow = true,
-  extraSearch = {},
-  force = false,
-) {
-  if (!formData.datasource) {
-    return null;
-  }
-
+export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
-  search.form_data = safeStringify(formData);
   if (endpointType === URL_PARAMS.standalone.name) {
     if (force) {
       search.force = '1';
     }
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
-  const url = uri.directory(directory).search(search).toString();
-  if (!allowOverflow && url.length > MAX_URL_LENGTH) {
-    const minimalFormData = {
-      datasource: formData.datasource,
-      viz_type: formData.viz_type,
-    };
-    return getExploreLongUrl(
-      minimalFormData,
-      endpointType,
-      false,
-      {
-        URL_IS_TOO_LONG_TO_SHARE: null,
-      },
-      force,
-    );
-  }
-  return url;
-}
-
-export function getExploreUrlFromDashboard(formData) {
-  // remove formData params that we don't need in the explore url.
-  // These are present when generating explore urls from the dashboard page.
-  // This should be superseded by some sort of "exploration context" system
-  // where form data and other context is referenced by id.
-  const trimmedFormData = omit(formData, [
-    'dataMask',
-    'url_params',
-    'label_colors',
-  ]);
-  return getExploreLongUrl(trimmedFormData, null, false);
+  return uri.directory(directory).search(search).toString();
 }
 
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
