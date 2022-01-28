@@ -184,7 +184,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
     ).then(result => {
       if (result) {
-        addSuccessToast(t('The import was successful'));
         clearModal();
         onModelImport();
       }
