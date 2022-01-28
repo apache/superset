@@ -103,6 +103,7 @@ export interface ImportModelsModalProps {
   passwordsNeededMessage: string;
   confirmOverwriteMessage: string;
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   onModelImport: () => void;
   show: boolean;
   onHide: () => void;
