@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
@@ -162,7 +162,7 @@ const StyledToolbar = styled.div`
   }
 `;
 
-const SqlEditor: FC<SqlEditorProps> = ({
+const SqlEditor = ({
   actions,
   database = null,
   latestQuery,
@@ -176,7 +176,7 @@ const SqlEditor: FC<SqlEditorProps> = ({
   displayLimit,
   saveQueryWarning,
   scheduleQueryWarning = null,
-}) => {
+}: SqlEditorProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const queryEditor = useSelector((state: RootState) =>
