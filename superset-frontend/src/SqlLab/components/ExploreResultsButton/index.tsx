@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React from 'react';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button, { OnClickHandler } from 'src/components/Button';
@@ -28,10 +28,10 @@ interface ExploreResultsButtonProps {
   onClick: OnClickHandler;
 }
 
-const ExploreResultsButton: FC<ExploreResultsButtonProps> = ({
+const ExploreResultsButton = ({
   database,
   onClick,
-}) => {
+}: ExploreResultsButtonProps) => {
   const allowsSubquery = database?.allows_subquery ?? false;
   return (
     <Button
