@@ -399,9 +399,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     () =>
       hasControlsTransferred ? (
         <ControlPanelAlert
-          title={t('Keep settings and filters?')}
+          title={t('Keep control settings?')}
           bodyText={t(
-            'You’ve changed the chart vizualisation. The data relevant to this chart type was maintained.',
+            "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
           )}
           primaryButtonAction={handleContinueClick}
           secondaryButtonAction={handleClearFormClick}
@@ -413,7 +413,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         <ControlPanelAlert
           title={t('No form settings were maintained')}
           bodyText={t(
-            'We were unable to maintain the filters and metrics you had applied to the previous dataset.',
+            'We were unable to carry over any controls when switching to this new dataset.',
           )}
           primaryButtonAction={handleContinueClick}
           primaryButtonText={t('Continue')}
