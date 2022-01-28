@@ -35,15 +35,15 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
-
-const ExploreCtasResultsButton = (
+function ExploreCtasResultsButton({
   table,
   schema,
   dbId,
   templateParams,
   errorMessage,
-  { createCtasDatasource, addInfoToast, addDangerToast } = actions,
-) => {
+  actions,
+}) {
+  const { createCtasDatasource, addInfoToast, addDangerToast } = actions;
   const buildVizOptions = {
     datasourceName: table,
     schema,
@@ -86,7 +86,7 @@ const ExploreCtasResultsButton = (
       {t('Explore')}
     </Button>
   );
-};
+}
 ExploreCtasResultsButton.propTypes = propTypes;
 
 const mapStateToProps = ({ sqlLab, common }) => ({
