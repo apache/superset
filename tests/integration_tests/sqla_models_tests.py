@@ -584,7 +584,7 @@ def test_filter_on_text_column(text_column_table):
     )
     assert result_object.df["count"][0] == 1
 
-    # should filter text with single quotes
+    # should filter text with double quote
     result_object = table.query(
         {
             "metrics": ["count"],
@@ -594,7 +594,7 @@ def test_filter_on_text_column(text_column_table):
     )
     assert result_object.df["count"][0] == 1
 
-    # should filter text with double quotes
+    # should filter text with single quote
     result_object = table.query(
         {
             "metrics": ["count"],
