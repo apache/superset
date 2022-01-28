@@ -117,7 +117,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
-  addSuccessToast,
   onModelImport,
   show,
   onHide,
@@ -184,7 +183,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
     ).then(result => {
       if (result) {
-        addSuccessToast(t('The import was successful'));
         clearModal();
         onModelImport();
       }
