@@ -244,8 +244,8 @@ export default class Chart extends React.Component {
     try {
       const key = await postFormData(
         this.props.datasource.id,
-        this.props.slice.id,
         this.props.formData,
+        this.props.slice.id,
       );
       const url = mountExploreUrl(null, { [URL_PARAMS.formDataKey.name]: key });
       window.open(url, '_blank', 'noreferrer');

@@ -18,31 +18,44 @@
  */
 import { SupersetClient, JsonObject } from '@superset-ui/core';
 
+type Payload = {
+  dataset_id: number;
+  form_data: string;
+  chart_id?: number;
+};
+
+const assemblePayload = (
+  datasetId: number,
+  form_data: JsonObject,
+  chartId?: number,
+) => {
+  const payload: Payload = {
+    dataset_id: datasetId,
+    form_data: JSON.stringify(form_data),
+  };
+  if (chartId) {
+    payload.chart_id = chartId;
+  }
+  return payload;
+};
+
 export const postFormData = (
   datasetId: number,
-  chartId: number,
   form_data: JsonObject,
+  chartId?: number,
 ): Promise<string> =>
   SupersetClient.post({
     endpoint: 'api/v1/explore/form_data',
-    jsonPayload: {
-      dataset_id: datasetId,
-      chart_id: chartId,
-      form_data: JSON.stringify(form_data),
-    },
+    jsonPayload: assemblePayload(datasetId, form_data, chartId),
   }).then(r => r.json.key);
 
 export const putFormData = (
   datasetId: number,
-  chartId: number,
   key: string,
   form_data: JsonObject,
+  chartId?: number,
 ): Promise<string> =>
   SupersetClient.put({
     endpoint: `api/v1/explore/form_data/${key}`,
-    jsonPayload: {
-      dataset_id: datasetId,
-      chart_id: chartId,
-      form_data: JSON.stringify(form_data),
-    },
+    jsonPayload: assemblePayload(datasetId, form_data, chartId),
   }).then(r => r.json.message);

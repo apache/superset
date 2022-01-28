@@ -201,18 +201,18 @@ function ExploreViewContainer(props) {
           }
         : props.form_data;
       const payload = { ...formData };
-      const chartId = formData.slice_id || 0;
+      const chartId = formData.slice_id;
       const datasetId = props.datasource.id;
 
       try {
         let key;
         let stateModifier;
         if (isReplace) {
-          key = await postFormData(datasetId, chartId, formData);
+          key = await postFormData(datasetId, formData, chartId);
           stateModifier = 'replaceState';
         } else {
           key = getUrlParam(URL_PARAMS.formDataKey);
-          await putFormData(datasetId, chartId, key, formData);
+          await putFormData(datasetId, key, formData, chartId);
           stateModifier = 'pushState';
         }
         const url = mountExploreUrl(
@@ -335,14 +335,18 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
-  const reRenderChart = () => {
-    props.actions.updateQueryFormData(
-      getFormDataFromControls(props.controls),
-      props.chart.id,
-    );
-    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-    addHistory();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reRenderChart = useCallback(
+    debounce(() => {
+      props.actions.updateQueryFormData(
+        getFormDataFromControls(props.controls),
+        props.chart.id,
+      );
+      props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+      addHistory();
+    }, 1000),
+    [addHistory, props.actions, props.chart.id, props.controls],
+  );
 
   // effect to run when controls change
   useEffect(() => {

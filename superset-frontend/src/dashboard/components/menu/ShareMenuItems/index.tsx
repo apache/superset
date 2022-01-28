@@ -78,8 +78,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     if (formData) {
       const key = await postFormData(
         parseInt(formData.datasource.split('_')[0], 10),
-        formData.slice_id,
         formData,
+        formData.slice_id,
       );
       return `${window.location.origin}${mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -95,7 +95,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       logging.error(error);
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
