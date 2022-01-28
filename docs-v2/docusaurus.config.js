@@ -118,8 +118,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
-          editUrl: 'https://github.com/facebook/docusaurus/edit/main/website/',
+          editUrl: 'https://github.com/apache/superset/tree/master/docs-v2',
         },
         blog: {
           showReadingTime: true,
@@ -154,9 +153,7 @@ const config = {
             position: 'left',
             label: 'Documentation',
           },
-          { to: '/gallery', label: 'Gallery', position: 'left' },
           { to: '/community', label: 'Community', position: 'left' },
-          { to: '/resources', label: 'Resources', position: 'left' },
           {
             href: 'https://github.com/apache/superset',
             label: 'GitHub',
@@ -181,15 +178,15 @@ const config = {
             items: [
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
               },
               {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
+                label: 'Slack',
+                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-uxbh5g36-AISUtHbzOXcu0BIj7kgUaw',
               },
               {
-                label: 'Twitter',
-                href: 'https://twitter.com/docusaurus',
+                label: 'Mailing List',
+                href: 'https://lists.apache.org/list.html?dev@superset.apache.org',
               },
             ],
           },
@@ -198,12 +195,23 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/apache/superset',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()},
+        The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
+        Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
+        <small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
+        <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small><br />
+        <small>
+        <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+        <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
+        <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
+        <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
+        <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+        </small>`,
       },
       prism: {
         theme: lightCodeTheme,
