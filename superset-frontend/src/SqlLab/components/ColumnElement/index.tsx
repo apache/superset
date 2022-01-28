@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React from 'react';
 import { ClassNames } from '@emotion/react';
 import { styled, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -75,7 +75,7 @@ interface ColumnElementProps {
   };
 }
 
-const ColumnElement: FC<ColumnElementProps> = ({ column }) => {
+const ColumnElement = ({ column }: ColumnElementProps) => {
   let columnName: React.ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
