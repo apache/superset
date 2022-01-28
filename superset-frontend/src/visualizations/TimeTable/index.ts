@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Table'),
@@ -45,6 +46,7 @@ export default class TimeTableChartPlugin extends ChartPlugin {
       metadata,
       transformProps,
       loadChart: () => import('./TimeTable'),
+      controlPanel,
     });
   }
 }
