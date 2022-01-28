@@ -28,7 +28,7 @@ import { DatabaseObject } from 'src/components/DatabaseSelector';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
 interface ExtendedTable extends Table {
-  expanded: any;
+  expanded: boolean;
 }
 
 interface actionsTypes {
