@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -38,13 +38,13 @@ interface ExploreCtasResultsButtonProps {
   templateParams?: string;
 }
 
-const ExploreCtasResultsButton: FC<ExploreCtasResultsButtonProps> = ({
+const ExploreCtasResultsButton = ({
   actions,
   table,
   schema,
   dbId,
   templateParams,
-}) => {
+}: ExploreCtasResultsButtonProps) => {
   const errorMessage = useSelector(
     (state: RootState) => state.sqlLab.errorMessage,
   );
