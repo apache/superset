@@ -18,8 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { bindActionCreators } from 'redux';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
   ensureIsArray,
   t,
@@ -46,10 +45,7 @@ import Loading from 'src/components/Loading';
 
 import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
-import {
-  ExploreActions,
-  exploreActions,
-} from 'src/explore/actions/exploreActions';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { ChartState } from 'src/explore/types';
 
@@ -184,8 +180,6 @@ function getState(
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const pluginContext = useContext(PluginContext);
-  const dispatch = useDispatch();
-  const actions = bindActionCreators(exploreActions, dispatch);
   const exploreState = useSelector<
     ExplorePageState,
     ExplorePageState['explore']
@@ -236,9 +230,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const resetTransferredControls = useCallback(() => {
     ensureIsArray(exploreState.controlsTransferred).forEach(controlName =>
-      actions.setControlValue(controlName, props.controls[controlName].default),
+      props.actions.setControlValue(
+        controlName,
+        props.controls[controlName].default,
+      ),
     );
-  }, [actions, exploreState.controlsTransferred, props.controls]);
+  }, [props.actions, exploreState.controlsTransferred, props.controls]);
 
   const handleClearFormClick = useCallback(() => {
     resetTransferredControls();
@@ -283,7 +280,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         key={`control-${name}`}
         name={name}
         validationErrors={validationErrors}
-        actions={actions}
+        actions={props.actions}
         {...restProps}
       />
     );
