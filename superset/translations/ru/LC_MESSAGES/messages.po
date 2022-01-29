@@ -10434,11 +10434,11 @@ msgstr "Выражение SQL"
 
 #: superset/initialization/__init__.py:331 superset/initialization/__init__.py:346
 msgid "SQL Lab"
-msgstr "Лаборатория SQL asd"
+msgstr "Лаборатория SQL"
 
 #: superset/connectors/sqla/views.py:503
 msgid "SQL Lab View"
-msgstr "Лаборатория SQL asd"
+msgstr "Лаборатория SQL"
 
 #: superset-frontend/src/SqlLab/components/App/index.jsx:91
 #, python-format
