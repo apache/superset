@@ -185,7 +185,8 @@ class SliceHeaderControls extends React.PureComponent<
         break;
       case MENU_KEYS.EXPORT_XLSX:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportCSV && this.props.exportXLSX(this.props.slice.slice_id);
+        this.props.exportXLSX &&
+          this.props.exportXLSX(this.props.slice.slice_id);
         break;
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
@@ -341,7 +342,9 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.slice.viz_type !== 'filter_box' &&
           this.props.supersetCanCSV && (
-            <Menu.Item key={MENU_KEYS.EXPORT_XLSX}>{t('Export XLSX')}</Menu.Item>
+            <Menu.Item key={MENU_KEYS.EXPORT_XLSX}>
+              {t('Export XLSX')}
+            </Menu.Item>
           )}
 
         {this.props.slice.viz_type !== 'filter_box' &&
