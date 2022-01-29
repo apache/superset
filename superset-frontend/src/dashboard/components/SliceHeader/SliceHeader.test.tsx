@@ -157,6 +157,7 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
+  exportXLSX: jest.fn(),
   formData: {},
 });
 

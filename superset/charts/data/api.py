@@ -19,7 +19,9 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
+from io import BytesIO
 
+import pandas as pd
 import simplejson
 from flask import g, make_response, request
 from flask_appbuilder.api import expose, protect
@@ -45,7 +47,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers
+from superset.views.base import CsvResponse, XLSXResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
@@ -345,7 +347,7 @@ class ChartDataRestApi(ChartRestApi):
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data, datasource)
 
-        if result_format == ChartDataResultFormat.CSV:
+        if result_format in ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
@@ -353,6 +355,19 @@ class ChartDataRestApi(ChartRestApi):
             # return the first result
             data = result["queries"][0]["data"]
             return CsvResponse(data, headers=generate_download_headers("csv"))
+
+        if result_format == ChartDataResultFormat.XLSX:
+            # Verify user has permission to export CSV file
+            if not security_manager.can_access("can_csv", "Superset"):
+                return self.response_403()
+
+            # return the first result
+            data = result["queries"][0]["data"]
+            buf = BytesIO()
+            pd.DataFrame(data).to_excel(buf, index=False)
+            buf.seek(0)
+            file_data = buf.getvalue()
+            return XLSXResponse(file_data, headers=generate_download_headers("xlsx"))
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(

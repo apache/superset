@@ -60,6 +60,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   logExploreChart = () => ({}),
   exploreUrl = '#',
   exportCSV = () => ({}),
+  exportXLSX = () => ({}),
   editMode = false,
   annotationQuery = {},
   annotationError = {},
@@ -169,6 +170,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               logExploreChart={logExploreChart}
               exploreUrl={exploreUrl}
               exportCSV={exportCSV}
+              exportXLSX={exportXLSX}
               exportFullCSV={exportFullCSV}
               supersetCanExplore={supersetCanExplore}
               supersetCanShare={supersetCanShare}

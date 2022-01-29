@@ -335,15 +335,20 @@ class QueryContextProcessor:
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
-        if self._query_context.result_format == ChartDataResultFormat.CSV:
+        result_format = self._query_context.result_format
+        if result_format in (ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX):
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            result = csv.df_to_escaped_csv(
-                df, index=include_index, **config["CSV_EXPORT"]
-            )
+            if result_format == ChartDataResultFormat.CSV:
+                result = csv.df_to_escaped_csv(
+                    df, index=include_index, **config["CSV_EXPORT"]
+                )
+            elif result_format == ChartDataResultFormat.XLSX:
+                result = df.to_dict(orient="records")
+
             return result or ""
 
         return df.to_dict(orient="records")

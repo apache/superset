@@ -61,6 +61,7 @@ describe('Chart', () => {
     addSuccessToast() {},
     addDangerToast() {},
     exportCSV() {},
+    exportXLSX() {},
     exportFullCSV() {},
     componentId: 'test',
     dashboardId: 111,
