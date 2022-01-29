@@ -26,8 +26,18 @@ import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
 
-export default class EmbedCodeButton extends React.Component {
-  constructor(props) {
+export type EmbedCodeButtonProps = {};
+
+type EmbedCodeButtonState = {
+  height: string;
+  width: string;
+};
+
+export default class EmbedCodeButton extends React.Component<
+  EmbedCodeButtonProps,
+  EmbedCodeButtonState
+> {
+  constructor(props: EmbedCodeButtonProps) {
     super(props);
     this.state = {
       height: '400',
@@ -36,7 +46,7 @@ export default class EmbedCodeButton extends React.Component {
     this.handleInputChange = this.handleInputChange.bind(this);
   }
 
-  handleInputChange(e) {
+  handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { value, name } = e.currentTarget;
     const data = {};
     data[name] = value;
@@ -68,7 +78,7 @@ export default class EmbedCodeButton extends React.Component {
               data-test="embed-code-textarea"
               name="embedCode"
               value={html}
-              rows="4"
+              rows={4}
               readOnly
               className="form-control input-sm"
               style={{ resize: 'vertical' }}

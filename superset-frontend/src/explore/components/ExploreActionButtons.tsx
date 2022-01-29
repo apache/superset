@@ -39,15 +39,15 @@ type ActionButtonProps = {
   'data-test'?: string;
 };
 
-type ExploreActionButtonsProps = {
+export type ExploreActionButtonsProps = {
   actions: { redirectSQLLab: () => void; openPropertiesModal: () => void };
   canDownloadCSV: boolean;
   chartStatus: string;
   latestQueryFormData: QueryFormData;
   queriesResponse: {};
   slice: { slice_name: string };
-  addDangerToast: Function;
-  addSuccessToast: Function;
+  addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
 };
 
 const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
