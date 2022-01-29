@@ -260,7 +260,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user = g.user
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        access_permitted = self._has_view_access(user, permission_name, view_name)
+        if not access_permitted:
+            logger.debug(f"User {user} does not has permission '{permission_name}'")
+        return access_permitted
 
     def can_access_all_queries(self) -> bool:
         """
