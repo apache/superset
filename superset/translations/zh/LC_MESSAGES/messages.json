@@ -24,7 +24,7 @@
       " expression which needs to adhere to the ": [" 表达式并基于 "],
       " source code of Superset's sandboxed parser": [""],
       "!= (Is not equal)": ["!= (不等于)"],
-      "${tableName\r\n                      .split('')\r\n                      .slice(0, tableName.length - 1)\r\n                      .join('')}\r\n                    ": [
+      "${tableName\n                      .split('')\n                      .slice(0, tableName.length - 1)\n                      .join('')}\n                    ": [
         ""
       ],
       "%(name)s.csv": [""],
@@ -622,7 +622,7 @@
       ],
       "Chart cache timeout": ["图表缓存超时"],
       "Chart changes": ["图表变化"],
-      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\r\n\r\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
+      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
         ""
       ],
       "Chart could not be created.": ["您的查询无法保存。"],
@@ -2549,12 +2549,12 @@
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
         ""
       ],
-      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\r\n\r\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
         ""
       ],
       "The color for points and clusters in RGB": ["点和簇的颜色（RGB）"],
       "The color scheme for rendering chart": ["绘制图表的配色方案"],
-      "The color scheme is determined by the related dashboard.\r\n              Edit the color scheme in the dashboard properties.": [
+      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
         ""
       ],
       "The country code standard that Superset should expect to find in the [country] column": [
@@ -2676,7 +2676,7 @@
       "The pattern of timestamp format. For strings use ": [
         "时间戳格式的模式。供字符串使用 "
       ],
-      "The periodicity over which to pivot time. Users can provide\r\n            \"Pandas\" offset alias.\r\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
+      "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
         ""
       ],
       "The pixel radius": ["像素半径"],
@@ -2832,7 +2832,7 @@
       "This chart might be incompatible with the filter (datasets don't match)": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\r\n              Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This dashboard is not published which means it will not show up in the list of dashboards. Favorite it to see it there or access it by using the URL directly.": [
@@ -2875,7 +2875,7 @@
       ],
       "This may be triggered by:": ["这可能由以下因素触发："],
       "This query took %s seconds to run, ": ["这个查询使用了 %s 秒去执行，"],
-      "This section allows you to configure how to use the slice\r\n               to generate annotations.": [
+      "This section allows you to configure how to use the slice\n               to generate annotations.": [
         ""
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
@@ -3080,7 +3080,7 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "在内部用于标识插件。应该在插件的 package.json 内被设置为包名。"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\r\n\r\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
         ""
       ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [

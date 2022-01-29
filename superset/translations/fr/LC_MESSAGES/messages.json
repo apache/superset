@@ -3260,14 +3260,14 @@
         ""
       ],
       "The chart does not exist": ["Le graphique n'existe pas"],
-      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\r\n\r\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
         ""
       ],
       "The color for points and clusters in RGB": [""],
       "The color scheme for rendering chart": [
         "Le jeu de couleur pour le rendu graphique"
       ],
-      "The color scheme is determined by the related dashboard.\r\n              Edit the color scheme in the dashboard properties.": [
+      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
         ""
       ],
       "The column was deleted or renamed in the database.": [
@@ -3434,7 +3434,7 @@
       "The pattern of timestamp format. For strings use ": [
         "Le motif du format de timestamp. Pour les chaines, utilisez "
       ],
-      "The periodicity over which to pivot time. Users can provide\r\n            \"Pandas\" offset alias.\r\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
+      "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
         ""
       ],
       "The pixel radius": [""],
@@ -3662,7 +3662,7 @@
       "This chart might be incompatible with the filter (datasets don't match)": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\r\n              Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This column must contain date/time information.": [
@@ -3969,7 +3969,7 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Utilisé en interne pour identifier le plugin. Devrait être le nom du package tiré du fichier plugin package.json"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\r\n\r\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
         ""
       ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [

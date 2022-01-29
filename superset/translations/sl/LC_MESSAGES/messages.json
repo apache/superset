@@ -3624,7 +3624,7 @@
       "The color scheme for rendering chart": [
         "Barvna shema za izris grafikona"
       ],
-      "The color scheme is determined by the related dashboard.\r\n              Edit the color scheme in the dashboard properties.": [
+      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
         ""
       ],
       "The column was deleted or renamed in the database.": [
@@ -4029,7 +4029,7 @@
       "This chart might be incompatible with the filter (datasets don't match)": [
         "Ta grafikon je lahko nekompatibilen s filtrom (podatkovni seti se ne ujemajo)"
       ],
-      "This color scheme is being overriden by custom label colors.\r\n              Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This column must contain date/time information.": [

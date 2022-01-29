@@ -677,7 +677,7 @@
       ],
       "Chart cache timeout": ["Timeout do cache do gráfico"],
       "Chart changes": ["Mudanças do gráfico"],
-      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\r\n\r\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
+      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
         ""
       ],
       "Chart could not be created.": ["Não foi possível criar o gráfico."],
@@ -2750,14 +2750,14 @@
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
         ""
       ],
-      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\r\n\r\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
         ""
       ],
       "The color for points and clusters in RGB": [""],
       "The color scheme for rendering chart": [
         "O esquema de cores para o gráfico de renderização"
       ],
-      "The color scheme is determined by the related dashboard.\r\n              Edit the color scheme in the dashboard properties.": [
+      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
         ""
       ],
       "The country code standard that Superset should expect to find in the [country] column": [
@@ -2881,7 +2881,7 @@
       "The pattern of timestamp format. For strings use ": [
         "O padrão do formato de timestamp. Para textos use "
       ],
-      "The periodicity over which to pivot time. Users can provide\r\n            \"Pandas\" offset alias.\r\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
+      "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
         ""
       ],
       "The pixel radius": [""],
@@ -3044,7 +3044,7 @@
       "This chart might be incompatible with the filter (datasets don't match)": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\r\n              Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This column must contain date/time information.": [""],
@@ -3093,7 +3093,7 @@
       "This query took %s seconds to run, ": [
         "Essa consulta executou em %s segundos, "
       ],
-      "This section allows you to configure how to use the slice\r\n               to generate annotations.": [
+      "This section allows you to configure how to use the slice\n               to generate annotations.": [
         ""
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
@@ -3314,7 +3314,7 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Usado internamente para identificar o plugin. Deve ser configurado com o nome do pacote definido no package.json do plugin"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\r\n\r\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
         ""
       ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [

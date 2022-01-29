@@ -4,7 +4,7 @@
     "superset": {
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=1; plural=0",
+        "plural_forms": "nplurals=1; plural=0;",
         "lang": "ru"
       },
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
@@ -25,11 +25,11 @@
       ],
       " expression which needs to adhere to the ": [""],
       " source code of Superset's sandboxed parser": [""],
-      " standard to ensure that the lexicographical ordering\r\n                      coincides with the chronological ordering. If the\r\n                      timestamp format does not adhere to the ISO 8601 standard\r\n                      you will need to define an expression and type for\r\n                      transforming the string into a date or timestamp. Note\r\n                      currently time zones are not supported. If time is stored\r\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\r\n                      is specified we fall back to using the optional defaults on a per\r\n                      database/column name level via the extra parameter.": [
+      " standard to ensure that the lexicographical ordering\n                      coincides with the chronological ordering. If the\n                      timestamp format does not adhere to the ISO 8601 standard\n                      you will need to define an expression and type for\n                      transforming the string into a date or timestamp. Note\n                      currently time zones are not supported. If time is stored\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n                      is specified we fall back to using the optional defaults on a per\n                      database/column name level via the extra parameter.": [
         ""
       ],
       "!= (Is not equal)": ["!= (не равно)"],
-      "${tableName\r\n                      .split('')\r\n                      .slice(0, tableName.length - 1)\r\n                      .join('')}\r\n                    ": [
+      "${tableName\n                      .split('')\n                      .slice(0, tableName.length - 1)\n                      .join('')}\n                    ": [
         ""
       ],
       "%(dialect)s cannot be used as a data source for security reasons.": [
@@ -781,7 +781,7 @@
       ],
       "Chart cache timeout": ["Тайм-аут Кэша"],
       "Chart changes": ["Изменения не сохранены"],
-      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\r\n\r\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
+      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
         ""
       ],
       "Chart could not be created.": ["График не может быть создан."],
@@ -860,7 +860,7 @@
       ],
       "Clause": ["Условие"],
       "Clear": ["Очистить"],
-      "Clear all": [""],
+      "Clear all": ["Очистить"],
       "Click the lock to make changes.": [
         "Нажмите на замок, чтобы выполнить изменения."
       ],
@@ -1004,6 +1004,8 @@
       ],
       "Copy and Paste JSON credentials": [""],
       "Copy and paste the entire service account .json file here": [""],
+      "Copy chart URL": ["Копировать ссылку на график"],
+      "Copy dashboard URL": ["Копировать ссылку на Дашборд"],
       "Copy link": ["Скопировать ссылку"],
       "Copy message": ["Предупреждающее сообщение"],
       "Copy of %s": ["Копирование %s"],
@@ -1165,6 +1167,7 @@
         "Для данного графика необходим временной ряд. Укажите столбец с датой в соответствующем поле раздела [Время]"
       ],
       "Datetime format": ["Формат Datetime"],
+      "Day": ["День"],
       "Db engine did not return all queried columns": [""],
       "December": ["Декабрь"],
       "Decimal Character": ["Десятичный символ"],
@@ -1335,12 +1338,15 @@
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "Duration in ms (66000 => 1m 6s)": [""],
       "Duration: %s": ["Продолжительность: %s"],
+      "ECharts": ["ECharts"],
       "END (EXCLUSIVE)": [""],
       "ERROR: %s": [""],
       "Edge length": [""],
       "Edge length between nodes": [""],
       "Edge symbols": [""],
+      "Edge width": ["Толщина линии"],
       "Edit": ["Редактировать"],
+      "Edit Alert": ["Редактировать уведомление"],
       "Edit Annotation": ["Аннотации"],
       "Edit Annotation Layer": ["Добавить слой аннотации"],
       "Edit CSS": ["Редактировать CSS"],
@@ -1359,6 +1365,7 @@
       "Edit Log": ["Редактировать"],
       "Edit Metric": ["Редактировать показатель"],
       "Edit Plugin": ["Редактировать плагин"],
+      "Edit Report": ["Редактировать Отчет"],
       "Edit Row level security filter": ["Править фильтр на уровне строк"],
       "Edit Saved Query": ["Изменить сохраненный запрос"],
       "Edit Table": ["Редактировать таблицу"],
@@ -1368,10 +1375,12 @@
         "Редактировать свойства слоя аннотаций"
       ],
       "Edit chart properties": ["Редактирование свойств"],
+      "Edit dashboard": ["Редактировать Дашборд"],
       "Edit dashboard properties": ["Редактировать свойства дашборда"],
       "Edit database": ["Редактировать Базу Данных"],
       "Edit dataset": ["Редактировать датасет"],
       "Edit email report": [""],
+      "Edit formatter": ["Редактировать форматирование"],
       "Edit properties": ["Редактирование свойств"],
       "Edit query": ["Редактировать запрос"],
       "Edit template": ["Загрузить шаблон"],
@@ -1419,6 +1428,7 @@
       ],
       "Enter CA_BUNDLE": [""],
       "Enter a new title for the tab": ["Введите название для таблицы"],
+      "Enter fullscreen": ["Полноэкранный режим"],
       "Entity": ["Элемент"],
       "Equal Date Sizes": [""],
       "Error Message": ["Предупреждающее сообщение"],
@@ -1433,10 +1443,13 @@
       "Estimate the cost before running a query": [
         "Спрогнозировать время до выполнения запроса"
       ],
+      "Event Names": ["Названия события"],
       "Event definition": [""],
       "Event flow": ["Event flow"],
       "Every": [""],
       "Evolution": [""],
+      "Exact": ["Учфсе"],
+      "Example": ["Пример"],
       "Example %(tableName)s will appear here": [
         "Примеры %(tableName)s появятся здесь"
       ],
@@ -1447,9 +1460,13 @@
       ],
       "Excel to Database configuration": ["Настройка CSV для БД"],
       "Exclude selected values": [""],
+      "Executed SQL": ["Выполненный SQL"],
       "Executed query": ["Выполнить выбранный запрос"],
+      "Execution ID": ["ID вызова"],
       "Execution log": ["Журнал Действий"],
+      "Exit fullscreen": ["Покинуть полноэкранный режим"],
       "Expand all": ["Развернуть всё"],
+      "Expand table preview": ["Развернуть превью таблицы"],
       "Expand tool bar": ["Показать панель инструментов"],
       "Experimental": [""],
       "Explore": ["Обзор графика"],
@@ -1460,6 +1477,7 @@
       ],
       "Export": ["Экспорт"],
       "Export CSV": ["Экпспорт CSV"],
+      "Export XLSX": ["Экспорт в XLSX"],
       "Export dashboards?": ["Экспортировать дашборд?"],
       "Export full CSV": [""],
       "Export to YAML": ["Экспорт в YAML"],
@@ -1495,7 +1513,7 @@
       "Fetch Values From": ["Извлечь значения из"],
       "Fetch Values Predicate": ["Извлечь Значения Предиката"],
       "Fetch data preview": ["Получить данные для просмотра"],
-      "Fetched %s": [""],
+      "Fetched %s": ["Загружено %s"],
       "Field cannot be decoded by JSON. %(json_error)s": [""],
       "Field cannot be decoded by JSON. %(msg)s": [""],
       "Field is required": ["Поле обязательно"],
@@ -1524,7 +1542,7 @@
       "Filters by columns": ["Фильтруемые срезы"],
       "Filters by metrics": ["Список показателей"],
       "Filters configuration": ["Изменение настроек таблицы"],
-      "Filters out of scope (%d)": [""],
+      "Filters out of scope (%d)": ["Скрытых фильтров: (%d)"],
       "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
         ""
       ],
@@ -1902,6 +1920,7 @@
       "Modified by": ["Изменено"],
       "Modified columns: %s": ["Изменённые столбцы: %s"],
       "Monday": ["Понедельник"],
+      "Month": ["Месяц"],
       "More dataset related options": ["Больше опций к датасету"],
       "Move only": [""],
       "Moves the given set of dates by a specified interval.": [""],
@@ -2294,6 +2313,7 @@
       ],
       "Python datetime string pattern": [""],
       "Python functions": ["Python функции"],
+      "Quarter": ["Квартал"],
       "Query": ["Запрос"],
       "Query %s: %s": [""],
       "Query History": ["История запросов"],
@@ -2319,6 +2339,7 @@
       "Recently edited charts, dashboards, and saved queries will appear here": [
         "Недавно изменённые графики, дашборды и сохранённые запросы"
       ],
+      "Recently modified": ["Изменено только что"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
         "Недавно просмотренные графики, дашборды и сохранённые запросы"
       ],
@@ -2406,7 +2427,7 @@
         "Не найдено состояние графика рассылки"
       ],
       "Report failed": ["Рассылка не удалась"],
-      "Report name": ["Имя Шаблона"],
+      "Report name": ["Название Отчета"],
       "Report schedule": ["Область просмотра"],
       "Report schedule unexpected error": [
         "Неожиданная ошибка графика рассылки"
@@ -2477,8 +2498,8 @@
       "SQL Copied!": ["SQL скопирован!"],
       "SQL Editor": ["Редактор SQL"],
       "SQL Expression": ["Выражение SQL"],
-      "SQL Lab": ["Лаборатория SQL asdd"],
-      "SQL Lab View": ["Лаборатория SQL asdasd"],
+      "SQL Lab": ["Лаборатория SQL asd"],
+      "SQL Lab View": ["Лаборатория SQL asd"],
       "SQL Lab uses your browser's local storage to store queries and results.\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\nTo keep SQL Lab from crashing, please delete some query tabs.\nYou can re-access these queries by using the Save feature before you delete the tab.\nNote that you will need to close other SQL Lab windows before you do this.": [
         ""
       ],
@@ -2531,7 +2552,9 @@
         "Запланировать периодическое выполнение запроса"
       ],
       "Scheduled": ["Запланировано"],
-      "Scheduled reports will be sent to your email as a PNG": [""],
+      "Scheduled reports will be sent to your email as a PNG": [
+        "Запланированные Отчеты будут отправлены на email в виде PNG"
+      ],
       "Schema": ["Схема"],
       "Schema, as used only in some databases like Postgres, Redshift and DB2": [
         "Схема, используется только в некоторых базах данных, таких как Postgres, Redshift и DB2"
@@ -2594,6 +2617,8 @@
       "Settings": ["Настройки"],
       "Settings for time series": [""],
       "Share": ["Поделиться"],
+      "Share chart by email": ["Поделиться графиком по email"],
+      "Share dashboard by email": ["Поделиться дашбордом по email"],
       "Shared query": ["Общий запрос"],
       "Sheet Name": ["Полное имя"],
       "Short description must be unique for this layer": [
@@ -2838,14 +2863,14 @@
       "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used.": [
         ""
       ],
-      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\r\n\r\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
+      "The classic. Great for showing how much of a company each investor gets, what demographics follow your blog, or what portion of the budget goes to the military industrial complex.\n\n        Pie charts can be difficult to interpret precisely. If clarity of relative proportion is important, consider using a bar or other chart type instead.": [
         ""
       ],
       "The color for points and clusters in RGB": [""],
       "The color scheme for rendering chart": [
         "Цветовая схема, применяемая для раскрашивания графика"
       ],
-      "The color scheme is determined by the related dashboard.\r\n              Edit the color scheme in the dashboard properties.": [
+      "The color scheme is determined by the related dashboard.\n              Edit the color scheme in the dashboard properties.": [
         ""
       ],
       "The country code standard that Superset should expect to find in the [country] column": [
@@ -2961,7 +2986,7 @@
         ""
       ],
       "The pattern of timestamp format. For strings use ": [""],
-      "The periodicity over which to pivot time. Users can provide\r\n            \"Pandas\" offset alias.\r\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
+      "The periodicity over which to pivot time. Users can provide\n            \"Pandas\" offset alias.\n            Click on the info bubble for more details on accepted \"freq\" expressions.": [
         ""
       ],
       "The pixel radius": [""],
@@ -3131,7 +3156,7 @@
       "This chart might be incompatible with the filter (datasets don't match)": [
         ""
       ],
-      "This color scheme is being overriden by custom label colors.\r\n              Check the JSON metadata in the Advanced settings": [
+      "This color scheme is being overriden by custom label colors.\n              Check the JSON metadata in the Advanced settings": [
         ""
       ],
       "This column must contain date/time information.": [""],
@@ -3178,7 +3203,7 @@
       "This query took %s seconds to run, ": [
         "Выполнение этого запроса заняло %s секунд, "
       ],
-      "This section allows you to configure how to use the slice\r\n               to generate annotations.": [
+      "This section allows you to configure how to use the slice\n               to generate annotations.": [
         ""
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
@@ -3403,7 +3428,7 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "Используется системой для идентификации плагина. Должно быть установлено в имя пакета, которое указано в файле package.json"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\r\n\r\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
+      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
         ""
       ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
@@ -3538,7 +3563,7 @@
       ],
       "Web": [""],
       "Wednesday": ["Среда"],
-      "Week": ["Нделя"],
+      "Week": ["Неделя"],
       "Week ending Saturday": [""],
       "Week starting Monday": [""],
       "Week starting Sunday": [""],
@@ -3829,7 +3854,7 @@
       "bolt": [""],
       "cached": [""],
       "cannot be empty": [""],
-      "cannot be used as a column name. The column name/alias \"__timestamp\"\r\n          is reserved for the main temporal expression, and column aliases ending with\r\n          double underscores followed by a numeric value (e.g. \"my_col__1\") are reserved\r\n          for deduplicating duplicate column names. Please use aliases to rename the\r\n          invalid column names.": [
+      "cannot be used as a column name. The column name/alias \"__timestamp\"\n          is reserved for the main temporal expression, and column aliases ending with\n          double underscores followed by a numeric value (e.g. \"my_col__1\") are reserved\n          for deduplicating duplicate column names. Please use aliases to rename the\n          invalid column names.": [
         ""
       ],
       "chart": ["график"],
