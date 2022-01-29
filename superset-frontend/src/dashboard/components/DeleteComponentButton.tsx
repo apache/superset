@@ -26,7 +26,7 @@ type DeleteComponentButtonProps = {
 
 class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonProps> {
   render() {
-    const { onDelete = () => {} } = this.props;
+    const { onDelete } = this.props;
     return (
       <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />
     );
