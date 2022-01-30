@@ -251,6 +251,29 @@ const PropertiesModal = ({
     return parsedRoles;
   };
 
+  const getSharedColorLabels = (
+    colorNamespace?: string,
+    colorScheme?: string,
+  ) => {
+    if (colorScheme) {
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+        colorNamespace || '',
+      );
+      const sharedColorScale = getSharedColorScale();
+      const scale = categoricalNamespace.getScale(colorScheme);
+      const colors = scale.range();
+      // reverse to prevent color conflicts
+      colors.reverse();
+      const colorMap = sharedColorScale.domain().reduce((res, name, index) => {
+        const value = name.toString();
+        const color = colors[index % colors.length];
+        return { ...res, [value]: color };
+      }, {});
+      return colorMap;
+    }
+    return undefined;
+  };
+
   const onColorSchemeChange = (
     colorScheme?: string,
     { updateMetadata = true } = {},
@@ -273,27 +296,10 @@ const PropertiesModal = ({
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
-
-      if (colorScheme) {
-        const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-          jsonMetadataObj.color_namespace || '',
-        );
-        const sharedColorScale = getSharedColorScale();
-        const scale = categoricalNamespace.getScale(colorScheme);
-        const colors = scale.range();
-        // reverse to prevent color conflicts
-        colors.reverse();
-        const colorMap = sharedColorScale
-          .domain()
-          .reduce((res, name, index) => {
-            const value = name.toString();
-            const color = colors[index % colors.length];
-            return { ...res, [value]: color };
-          }, {});
-        jsonMetadataObj.shared_label_colors = colorMap;
-      } else {
-        jsonMetadataObj.shared_label_colors = undefined;
-      }
+      jsonMetadataObj.shared_label_colors = getSharedColorLabels(
+        jsonMetadataObj.color_namespace,
+        colorScheme,
+      );
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
@@ -305,12 +311,22 @@ const PropertiesModal = ({
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
+    let currentJsonMetadata = jsonMetadata;
 
     // color scheme in json metadata has precedence over selection
-    if (jsonMetadata?.length) {
-      const metadata = JSON.parse(jsonMetadata);
+    if (currentJsonMetadata?.length) {
+      const metadata = JSON.parse(currentJsonMetadata);
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
+
+      if (metadata?.colorScheme !== colorScheme) {
+        metadata.shared_label_colors = getSharedColorLabels(
+          metadata?.color_namespace,
+          metadata?.color_scheme,
+        );
+        currentJsonMetadata = jsonStringify(metadata);
+        setJsonMetadata(currentJsonMetadata);
+      }
     }
 
     onColorSchemeChange(currentColorScheme, {
@@ -327,7 +343,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
-      jsonMetadata,
+      jsonMetadata: currentJsonMetadata,
       owners,
       colorScheme: currentColorScheme,
       colorNamespace,
@@ -346,7 +362,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
-          json_metadata: jsonMetadata || null,
+          json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:
