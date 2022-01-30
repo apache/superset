@@ -18,6 +18,7 @@
  */
 import {
   buildQueryContext,
+  DrillDown,
   ensureIsArray,
   getMetricLabel,
   QueryMode,
@@ -54,12 +55,22 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   let formDataCopy = formData;
-  // never include time in raw records mode
-  if (queryMode === QueryMode.raw) {
+
+  if (formData.drillDown && formData.groupby) {
+    const groupByLabels = formData.groupby.map(x => x.toString());
+    const ownState = options?.ownState || {};
+    ownState.drilldown ||= DrillDown.fromHierarchy(groupByLabels);
+
     formDataCopy = {
       ...formData,
-      include_time: false,
+      groupby: [DrillDown.getColumn(ownState.drilldown, groupByLabels)],
+      filters: [...formData.filters || [], ...ownState.drilldown.filters],
     };
+  }
+  
+  // never include time in raw records mode
+  if (queryMode === QueryMode.raw) {
+    formDataCopy.include_time = false;
   }
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
@@ -104,6 +115,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ownState.pageSize ?? formDataCopy.server_page_length;
       moreProps.row_offset =
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+    }
+
+    if (formDataCopy.drillDown) {
+      baseQueryObject.filters = formDataCopy.filters;
     }
 
     let queryObject = {

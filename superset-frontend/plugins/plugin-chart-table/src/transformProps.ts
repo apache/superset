@@ -19,6 +19,7 @@
 import memoizeOne from 'memoize-one';
 import {
   DataRecord,
+  DrillDown,
   extractTimegrain,
   GenericDataType,
   getMetricLabel,
@@ -40,6 +41,7 @@ import {
   TableChartProps,
   TableChartTransformedProps,
 } from './types';
+import { OwnState } from '.';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
@@ -215,6 +217,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    drillDown,
   } = formData;
   const timeGrain = extractTimegrain(formData);
 
@@ -238,6 +241,8 @@ const transformProps = (
       : undefined;
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, data) ?? [];
+
+  const ownState: OwnState = chartProps.ownState;
 
   return {
     height,
@@ -265,6 +270,8 @@ const transformProps = (
     onChangeFilter,
     columnColorFormatters,
     timeGrain,
+    drillDown,
+    ownState
   };
 };
 

@@ -30,6 +30,8 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
+  DrillDownType,
+  JsonObject,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
 
@@ -47,6 +49,8 @@ export interface DataColumnMeta {
   isNumeric?: boolean;
   config?: ColumnConfig;
 }
+
+export type OwnState = JsonObject & { drilldown?: DrillDownType };
 
 export interface TableChartData {
   records: DataRecord[];
@@ -71,6 +75,7 @@ export type TableChartFormData = QueryFormData & {
   emit_filter?: boolean;
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, ColumnConfig>;
+  drillDown: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -109,6 +114,8 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  ownState: OwnState;
+  drillDown: boolean;
 }
 
 export default {};

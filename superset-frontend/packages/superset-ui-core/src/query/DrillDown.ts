@@ -29,7 +29,7 @@ export default class DrillDown {
     };
   }
 
-  static drillDown(value: DrillDownType, selectValue: string): DrillDownType {
+  static drillDown(value: DrillDownType, selectValue: string | Object): DrillDownType {
     const idx = value.currentIdx;
     const len = value.hierarchy.length;
 
@@ -40,13 +40,16 @@ export default class DrillDown {
         filters: [],
       };
     }
+
+    const selection = (selectValue instanceof(Object)) ? selectValue[value.hierarchy[idx]] : selectValue;
+
     return {
       hierarchy: value.hierarchy,
       currentIdx: idx + 1,
       filters: value.filters.concat({
         col: value.hierarchy[idx],
         op: 'IN',
-        val: [selectValue],
+        val: [selection],
       }),
     };
   }

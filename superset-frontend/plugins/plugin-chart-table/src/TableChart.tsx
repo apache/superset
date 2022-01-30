@@ -29,6 +29,7 @@ import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import {
   DataRecord,
   DataRecordValue,
+  DrillDown,
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
@@ -188,6 +189,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
+    ownState,
+    drillDown,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -474,6 +477,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     updateExternalFormData(setDataMask, pageNumber, pageSize);
   };
 
+  const rowDrillDown = (data: D) => {
+    if (drillDown && ownState?.drilldown) {
+      const drilldown = DrillDown.drillDown(ownState.drilldown, data);
+      
+      setDataMask({
+        extraFormData: { filters: DrillDown.getFilters(drilldown, []) },
+        filterState: { value: drilldown.hierarchy },
+        ownState: { drilldown }
+      });
+    }
+  };
+
   return (
     <Styles>
       <DataTable<D>
@@ -497,6 +512,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        rowClick={rowDrillDown}
       />
     </Styles>
   );

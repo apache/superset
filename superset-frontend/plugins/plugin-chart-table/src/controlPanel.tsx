@@ -346,6 +346,23 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_DRILL_DOWN)
+        ? [
+            {
+              name: 'drillDown',
+              config: {
+                type: 'DrillDownControl',
+                default: false,
+                label: t('Enable drill down'),
+                description: t('Columns as hierarchy.'),
+                mapStateToProps: ({ form_data }) => ({
+                  chartId: form_data?.slice_id || 0,
+                  columns: form_data.groupby,
+                }),
+              },
+            },
+          ]
+        : [],
         [
           {
             name: 'show_totals',
