@@ -151,6 +151,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
+        this.props.addSuccessToast(t('Data refreshed'));
         break;
       case MENU_KEYS.EDIT_PROPERTIES:
         this.props.showPropertiesModal();
@@ -276,6 +277,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         <Menu.Divider />
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal
+            addSuccessToast={this.props.addSuccessToast}
             refreshFrequency={refreshFrequency}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}

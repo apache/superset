@@ -17,11 +17,13 @@
  * under the License.
  */
 import {
-  t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
+  ChartMetadata,
+  ChartPlugin,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
 } from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
 import controlPanel from '../controlPanel';
@@ -57,9 +59,13 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
-        ),
+        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t(
+              'Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
+            )
+          : t(
+              'Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.',
+            ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -67,7 +73,9 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Line Chart'),
+        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Line Chart')
+          : t('Time-series Line Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),

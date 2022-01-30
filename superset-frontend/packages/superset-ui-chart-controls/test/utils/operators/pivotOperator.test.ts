@@ -105,6 +105,32 @@ test('pivot by __timestamp with groupby', () => {
   });
 });
 
+test('pivot by x_axis with groupby', () => {
+  expect(
+    pivotOperator(
+      {
+        ...formData,
+        x_axis: 'baz',
+      },
+      {
+        ...queryObject,
+        columns: ['foo', 'bar'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['baz'],
+      columns: ['foo', 'bar'],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});
+
 test('timecompare in formdata', () => {
   expect(
     pivotOperator(

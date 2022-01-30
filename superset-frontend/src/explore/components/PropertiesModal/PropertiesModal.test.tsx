@@ -22,7 +22,7 @@ import { Slice } from 'src/types/Chart';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import PropertiesModal from '.';
+import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () => ({
   slice: {
@@ -68,6 +68,7 @@ const createProps = () => ({
   show: true,
   onHide: jest.fn(),
   onSave: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
 fetchMock.get('glob:*/api/v1/chart/318', {
@@ -160,10 +161,13 @@ afterAll(() => {
   fetchMock.resetBehavior();
 });
 
+const renderModal = (props: PropertiesModalProps) =>
+  render(<PropertiesModal {...props} />, { useRedux: true });
+
 test('Should render null when show:false', async () => {
   const props = createProps();
   props.show = false;
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -174,7 +178,7 @@ test('Should render null when show:false', async () => {
 
 test('Should render when show:true', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -185,7 +189,7 @@ test('Should render when show:true', async () => {
 
 test('Should have modal header', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Edit Chart Properties')).toBeVisible();
@@ -196,7 +200,7 @@ test('Should have modal header', async () => {
 
 test('"Close" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -212,7 +216,7 @@ test('"Close" button should call "onHide"', async () => {
 
 test('Should render all elements inside modal', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
     expect(screen.getAllByRole('textbox')).toHaveLength(5);
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -240,7 +244,7 @@ test('Should render all elements inside modal', async () => {
 
 test('Should have modal footer', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Cancel')).toBeVisible();
@@ -254,7 +258,7 @@ test('Should have modal footer', async () => {
 
 test('"Cancel" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -270,7 +274,7 @@ test('"Cancel" button should call "onHide"', async () => {
 
 test('"Save" button should call only "onSave"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
     expect(props.onSave).toBeCalledTimes(0);
     expect(props.onHide).toBeCalledTimes(0);
@@ -294,7 +298,7 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
       certified_by: '',
     },
   };
-  render(<PropertiesModal {...noCertifiedByProps} />);
+  renderModal(noCertifiedByProps);
 
   expect(
     screen.getByRole('textbox', { name: 'Certification details' }),

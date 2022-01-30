@@ -32,6 +32,7 @@ from collections import OrderedDict
 from datetime import date, timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
+import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -64,17 +65,21 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = pkg_resources.resource_filename("superset", "")
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
-    DATA_DIR = os.path.join(os.path.expanduser("~"), ".superset")
+    DATA_DIR = os.path.expanduser("~/.superset")
 
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = os.path.join(BASE_DIR, "static", "version_info.json")
-PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
+VERSION_INFO_FILE = pkg_resources.resource_filename(
+    "superset", "static/version_info.json"
+)
+PACKAGE_JSON_FILE = pkg_resources.resource_filename(
+    "superset", "static/assets/package.json"
+)
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -199,7 +204,11 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.data.api.data"]
+WTF_CSRF_EXEMPT_LIST = [
+    "superset.views.core.log",
+    "superset.views.core.explore_json",
+    "superset.charts.data.api.data",
+]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -401,6 +410,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
     "ROW_LEVEL_SECURITY": True,
+    "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
@@ -577,9 +587,18 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for filters state
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "filesystem",
+    "CACHE_TYPE": "FileSystemCache",
     "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    "CACHE_THRESHOLD": 0,
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+}
+
+# Cache for chart form data
+EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "FileSystemCache",
+    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
@@ -1290,6 +1309,13 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
+
+# Embedded config options
+GUEST_ROLE_NAME = "Public"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,

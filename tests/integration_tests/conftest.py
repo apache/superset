@@ -50,13 +50,13 @@ def setup_sample_data() -> Any:
     with app.app_context():
         setup_presto_if_needed()
 
-        from superset.cli import load_test_users_run
+        from superset.cli.test import load_test_users_run
 
         load_test_users_run()
 
-        from superset import examples
+        from superset.examples.css_templates import load_css_templates
 
-        examples.load_css_templates()
+        load_css_templates()
 
     yield
 

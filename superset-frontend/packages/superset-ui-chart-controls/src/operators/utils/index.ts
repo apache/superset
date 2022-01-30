@@ -19,4 +19,4 @@
  */
 export { getMetricOffsetsMap } from './getMetricOffsetsMap';
 export { isValidTimeCompare } from './isValidTimeCompare';
-export { TIME_COMPARISON_SEPARATOR, TIME_COLUMN } from './constants';
+export { TIME_COMPARISON_SEPARATOR } from './constants';

@@ -149,6 +149,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
     _filter_sets = relationship(
         "FilterSet", back_populates="dashboard", cascade="all, delete"

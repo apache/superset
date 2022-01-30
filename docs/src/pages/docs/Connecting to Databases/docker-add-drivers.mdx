@@ -62,6 +62,7 @@ docker-compose up
 The other option is to start Superset via Docker Compose is using the recipe in `docker-compose-non-dev.yml`, which will use pre-built frontend assets and skip the building of front-end assets:
 
 ```
+docker-compose -f docker-compose-non-dev.yml pull
 docker-compose -f docker-compose-non-dev.yml up
 ```
 

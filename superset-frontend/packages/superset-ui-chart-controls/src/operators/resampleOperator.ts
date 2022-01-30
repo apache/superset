@@ -18,12 +18,12 @@
  * under the License.
  */
 import {
+  DTTM_ALIAS,
   ensureIsArray,
   isPhysicalColumn,
   PostProcessingResample,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN } from './utils';
 
 export const resampleOperator: PostProcessingFactory<
   PostProcessingResample | undefined
@@ -45,7 +45,7 @@ export const resampleOperator: PostProcessingFactory<
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
-        time_column: TIME_COLUMN,
+        time_column: formData.x_axis || DTTM_ALIAS,
         groupby_columns,
       },
     };
