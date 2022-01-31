@@ -132,12 +132,12 @@ describe('processFilters', () => {
           {
             expressionType: 'SQL',
             clause: 'WHERE',
-            sqlExpression: 'tea = "jasmine"',
+            sqlExpression: "tea = 'jasmine'",
           },
           {
             expressionType: 'SQL',
             clause: 'WHERE',
-            sqlExpression: 'cup = "large"',
+            sqlExpression: "cup = 'large' -- comment",
           },
           {
             expressionType: 'SQL',
@@ -166,7 +166,7 @@ describe('processFilters', () => {
             val: '50',
           },
         ],
-        where: '(tea = "jasmine") AND (cup = "large")',
+        where: "(tea = 'jasmine') AND (cup = 'large' -- comment\n)",
       },
       filters: [
         {

@@ -62,7 +62,15 @@ export default function processFilters(
   // some filter-related fields need to go in `extras`
   extras.having = freeformHaving.map(exp => `(${exp})`).join(' AND ');
   extras.having_druid = simpleHaving;
-  extras.where = freeformWhere.map(exp => `(${exp})`).join(' AND ');
+  extras.where = freeformWhere
+    .map(exp => {
+      let clause = exp;
+      if (exp.includes('--')) {
+        clause = `${exp}\n`;
+      }
+      return `(${clause})`;
+    })
+    .join(' AND ');
 
   return {
     filters: simpleWhere,
