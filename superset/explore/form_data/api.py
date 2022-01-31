@@ -30,7 +30,6 @@ from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.exceptions import InvalidPayloadFormatError
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.delete import DeleteFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
@@ -39,6 +38,7 @@ from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self) -> Response:
         """Stores a new form_data.
         ---
@@ -98,8 +99,6 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
             args = CommandParameters(
@@ -128,6 +127,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, key: str) -> Response:
         """Updates an existing form_data.
         ---
@@ -167,8 +167,6 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
             args = CommandParameters(
