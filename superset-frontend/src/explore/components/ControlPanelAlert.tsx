@@ -21,7 +21,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 
-interface ControlPanelAlertI {
+interface ControlPanelAlertProps {
   title: string;
   bodyText: string;
   primaryButtonAction: (e: React.MouseEvent) => void;
@@ -72,7 +72,7 @@ export const ControlPanelAlert = ({
   primaryButtonText,
   secondaryButtonText,
   type = 'info',
-}: ControlPanelAlertI) => (
+}: ControlPanelAlertProps) => (
   <AlertContainer className={`alert-type-${type}`}>
     <Title>{title}</Title>
     <p>{bodyText}</p>

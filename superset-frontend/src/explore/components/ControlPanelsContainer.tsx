@@ -260,7 +260,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       // re-render, we only run this when the chart plugin explicitly ask for this.
       ...(config.mapStateToProps?.length === 3
         ? // @ts-ignore /* The typing accuses of having an extra parameter. I didn't remove it because I believe it could be an error in the types and not in the code */
-          config.mapStateToProps(exploreState, controls[name], chart)
+          config.mapStateToProps(props.exploreState, controls[name], chart)
         : // for other controls, `mapStateToProps` is already run in
           // controlUtils/getControlState.ts
           undefined),
