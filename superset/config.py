@@ -1494,13 +1494,13 @@ def port_translate_filter_func(
         if op == FilterOperator.EQUALS.value:
             return col.in_(value)
         if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value[1]
+            return col >= value[0]
         if op == FilterOperator.GREATER_THAN.value:
-            return col > value[1]
+            return col > value[0]
         if op == FilterOperator.LESS_THAN.value:
-            return col <= value[-1]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
             return col < value[-1]
+        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
+            return col <= value[-1]
         if op == FilterOperator.NOT_EQUALS.value:
             return ~col.in_(value)
 
