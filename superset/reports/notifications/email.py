@@ -106,7 +106,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 f"""<div class="image">
                     <img width="1000px" src="cid:{msgid}">
                 </div>
-                <
                 """
             )
         img_tag = "".join(img_tags)
