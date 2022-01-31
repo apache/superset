@@ -52,11 +52,6 @@ pyhive[hive]==0.6.4
     # via -r requirements/development.in
 pyinstrument==4.1.1
     # via -r requirements/development.in
-requests==2.27.1
-    # via
-    #   pydruid
-    #   tableschema
-    #   tabulator
 rfc3986==2.0.0
     # via tableschema
 s3transfer==0.5.0
