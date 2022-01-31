@@ -135,6 +135,32 @@ const createProps = () => ({
   addSuccessToast: jest.fn(),
 });
 
+const dashboardResult = {
+  json: {
+    result: {
+      dashboard_title: 'New Title',
+      slug: '/new',
+      json_metadata: '{"something":"foo"}',
+      owners: [],
+      roles: [],
+    },
+  },
+};
+
+fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
+  result: [],
+});
+
+fetchMock.get('glob:*/api/v1/dashboard/*', {
+  result: {
+    dashboard_title: 'New Title',
+    slug: '/new',
+    json_metadata: '{"something":"foo"}',
+    owners: [],
+    roles: [],
+  },
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
