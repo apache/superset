@@ -30,7 +30,7 @@ const config = {
     'Apache Superset is a modern data exploration and visualization platform',
   url: 'https://superset.apache.org',
   baseUrl: '/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
@@ -54,11 +54,11 @@ const config = {
             from: '/tutorials.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/first-dashboard',
+            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/first-dashboard',
+            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -70,15 +70,11 @@ const config = {
             from: '/sqllab.html',
           },
           {
-            to: '/docs/installation/sql-templating',
+            to: '/docs/intro',
             from: '/gallery.html',
           },
           {
-            to: '/docs/intro',
-            from: '/sqllab.html',
-          },
-          {
-            to: '/docs/databases/druid',
+            to: '/docs/connecting-to-databases/druid',
             from: '/druid.html',
           },
           {
@@ -98,11 +94,7 @@ const config = {
             from: '/faq.html',
           },
           {
-            to: '/docs/intro',
-            from: '/index.html',
-          },
-          {
-            to: '/docs/creating-charts-dashboards',
+            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
             from: '/tutorial.html',
           },
           {
