@@ -246,7 +246,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }, []);
 
   const renderControl = ({ name, config }: CustomControlItem) => {
-    const { controls, chart } = props;
+    const { controls, chart, exploreState } = props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
@@ -259,8 +259,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       // state, too. Since it's may be expensive to run mapStateToProps for every
       // re-render, we only run this when the chart plugin explicitly ask for this.
       ...(config.mapStateToProps?.length === 3
-        ? // @ts-ignore /* The typing accuses of having an extra parameter. I didn't remove it because I believe it could be an error in the types and not in the code */
-          config.mapStateToProps(props.exploreState, controls[name], chart)
+        ? config.mapStateToProps(exploreState, controls[name], chart)
         : // for other controls, `mapStateToProps` is already run in
           // controlUtils/getControlState.ts
           undefined),
