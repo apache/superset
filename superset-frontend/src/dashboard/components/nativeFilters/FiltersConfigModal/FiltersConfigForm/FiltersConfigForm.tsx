@@ -21,7 +21,6 @@ import {
   ColumnMeta,
   InfoTooltipWithTrigger,
   Metric,
-  TimeFilter,
 } from '@superset-ui/chart-controls';
 import {
   AdhocFilter,
@@ -35,6 +34,7 @@ import {
   SupersetApiError,
   SupersetClient,
   t,
+  TimeFilter,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import { isEqual } from 'lodash';

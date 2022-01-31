@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, TimeRangeEndpoint } from '@superset-ui/core';
-import { TimeFilter } from '@superset-ui/chart-controls';
+import { styled, TimeRangeEndpoint, TimeFilter } from '@superset-ui/core';
 import React, { useCallback, useEffect } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';

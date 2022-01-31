@@ -17,11 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
-import {
-  InfoTooltipWithTrigger,
-  TimeFilter,
-} from '@superset-ui/chart-controls';
+import { styled, t, useTheme, TimeFilter } from '@superset-ui/core';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Divider } from 'src/common/components';
 import Select, { propertyComparator } from 'src/components/Select/Select';
 import Icons from 'src/components/Icons';

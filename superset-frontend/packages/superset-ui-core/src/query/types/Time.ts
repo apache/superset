@@ -40,4 +40,13 @@ export type AppliedTimeExtras = Partial<
 export type TimeRangeEndpoint = 'unknown' | 'inclusive' | 'exclusive';
 export type TimeRangeEndpoints = [TimeRangeEndpoint, TimeRangeEndpoint];
 
+export type TimeFilter = {
+  timeColumn?: string;
+  timeGrain?: string;
+  timeRange: string;
+  isXAxis?: boolean;
+};
+
+export type TimeFilters = TimeFilter[];
+
 export default {};

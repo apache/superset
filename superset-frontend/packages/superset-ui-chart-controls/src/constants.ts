@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, QueryMode, DTTM_ALIAS, GenericDataType } from '@superset-ui/core';
-import { ColumnMeta, TimeFilter } from './types';
+import {
+  t,
+  QueryMode,
+  DTTM_ALIAS,
+  GenericDataType,
+  TimeFilter,
+} from '@superset-ui/core';
+import { ColumnMeta } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {

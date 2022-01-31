@@ -26,8 +26,9 @@ import {
   Datasource,
   SupersetClient,
   JsonObject,
+  TimeFilter,
 } from '@superset-ui/core';
-import { DEFAULT_DATE_FILTER, TimeFilter } from '@superset-ui/chart-controls';
+import { DEFAULT_DATE_FILTER } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
   CALENDAR_RANGE_VALUES_SET,

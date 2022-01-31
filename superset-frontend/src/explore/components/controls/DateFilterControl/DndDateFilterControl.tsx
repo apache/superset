@@ -23,13 +23,10 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   t,
-} from '@superset-ui/core';
-import {
-  ColumnMeta,
-  DEFAULT_DATE_FILTER,
   TimeFilter,
   TimeFilters,
-} from '@superset-ui/chart-controls';
+} from '@superset-ui/core';
+import { ColumnMeta, DEFAULT_DATE_FILTER } from '@superset-ui/chart-controls';
 import { noOp } from 'src/utils/common';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 import DateFilterLabel from './DateFilterLabel';

@@ -381,15 +381,6 @@ export type ColorFormatters = {
   getColorFromValue: (value: number) => string | undefined;
 }[];
 
-export type TimeFilter = {
-  timeColumn?: string;
-  timeGrain?: string;
-  timeRange: string;
-  isXAxis?: boolean;
-};
-
-export type TimeFilters = TimeFilter[];
-
 export default {};
 
 export function isColumnMeta(
