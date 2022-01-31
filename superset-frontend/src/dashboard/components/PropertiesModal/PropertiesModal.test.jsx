@@ -31,58 +31,60 @@ import Modal from 'src/components/Modal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from 'spec/fixtures/mockStore';
 
-// const dashboardResult = {
-//   json: {
-//     result: {
-//       dashboard_title: 'New Title',
-//       slug: '/new',
-//       json_metadata: '{"something":"foo"}',
-//       owners: [],
-//       roles: [],
-//     },
-//   },
-// };
+const dashboardResult = {
+  json: {
+    result: {
+      dashboard_title: 'New Title',
+      slug: '/new',
+      json_metadata: '{"something":"foo"}',
+      owners: [],
+      roles: [],
+    },
+  },
+};
 
-// fetchMock.restore();
+fetchMock.restore();
 
-// fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
-//   result: [],
-// });
+fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
+  result: [],
+});
 
-// fetchMock.get('glob:*/api/v1/dashboard/*', {
-//   result: {
-//     dashboard_title: 'New Title',
-//     slug: '/new',
-//     json_metadata: '{"something":"foo"}',
-//     owners: [],
-//     roles: [],
-//   },
-// });
+fetchMock.get('glob:*/api/v1/dashboard/*', {
+  result: {
+    dashboard_title: 'New Title',
+    slug: '/new',
+    json_metadata: '{"something":"foo"}',
+    owners: [],
+    roles: [],
+  },
+});
 
 // all these tests need to be moved to dashboard/components/PropertiesModal/PropertiesModal.test.tsx
 describe.skip('PropertiesModal', () => {
-  // afterEach(() => {
-  //   jest.restoreAllMocks();
-  //   jest.resetAllMocks();
-  // });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.resetAllMocks();
+  });
 
-  // const requiredProps = {
-  //   dashboardId: 1,
-  //   show: true,
-  //   addSuccessToast: () => {},
-  // };
+  const requiredProps = {
+    dashboardId: 1,
+    show: true,
+    addSuccessToast: () => {},
+  };
 
-  // function setup(overrideProps) {
-  //   return mount(
-  //     <Provider store={mockStore}>
-  //       <PropertiesModal {...requiredProps} {...overrideProps} />
-  //     </Provider>,
-  //     {
-  //       wrappingComponent: ThemeProvider,
-  //       wrappingComponentProps: { theme: supersetTheme },
-  //     },
-  //   );
-  // }
+  function setup(overrideProps) {
+    return mount(
+      <Provider store={mockStore}>
+        <PropertiesModal {...requiredProps} {...overrideProps} />
+      </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
+    );
+  }
+
+  //to Emily: next to convert the below color schema till line 160+
 
   describe('onColorSchemeChange', () => {
     it('sets up a default state', () => {
