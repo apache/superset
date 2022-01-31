@@ -279,7 +279,7 @@ class TestBusinessType(SupersetTestCase):
 
         inputCondition = ~(inputColumn.in_([]))
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputCondition & ((inputColumn > 33686018) & (inputColumn < 16843009)))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputCondition & (inputColumn > 33686018) & (inputColumn < 16843009))
 
         self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
