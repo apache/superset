@@ -62,7 +62,11 @@ from superset.dashboards.filter_sets.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.filter_set import FilterSet
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_json,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +197,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self, dashboard_id: int) -> Response:
         """
             Creates a new Dashboard's Filter Set
@@ -236,8 +241,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
             new_model = CreateFilterSetCommand(g.user, dashboard_id, item).run()
@@ -261,6 +264,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, dashboard_id: int, pk: int) -> Response:
         """Changes a Dashboard's Filter set
         ---
@@ -308,8 +312,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
             changed_model = UpdateFilterSetCommand(g.user, dashboard_id, pk, item).run()
