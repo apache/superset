@@ -19,3 +19,4 @@ pre-commit
 tox
 py>=1.10.0
 click==7.1.2
+typing-extensions==3.10.0.2
