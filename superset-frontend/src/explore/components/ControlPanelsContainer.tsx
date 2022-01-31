@@ -18,7 +18,6 @@
  */
 /* eslint camelcase: 0 */
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import {
   ensureIsArray,
   t,
@@ -54,9 +53,9 @@ import Control from './Control';
 import { ControlPanelAlert } from './ControlPanelAlert';
 
 export type ControlPanelsContainerProps = {
+  exploreState: ExplorePageState['explore'];
   actions: ExploreActions;
   datasource_type: DatasourceType;
-  exploreState: ExplorePageState['explore'];
   chart: ChartState;
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
@@ -180,12 +179,8 @@ function getState(
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const pluginContext = useContext(PluginContext);
-  const exploreState = useSelector<
-    ExplorePageState,
-    ExplorePageState['explore']
-  >(state => state.explore);
 
-  const prevDatasource = usePrevious(exploreState.datasource);
+  const prevDatasource = usePrevious(props.exploreState.datasource);
 
   const [expandedQuerySections, setExpandedQuerySections] = useState<string[]>(
     [],
@@ -204,12 +199,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   useEffect(() => {
     if (
       prevDatasource &&
-      (exploreState.datasource?.id !== prevDatasource.id ||
-        exploreState.datasource?.type !== prevDatasource.type)
+      (props.exploreState.datasource?.id !== prevDatasource.id ||
+        props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
       setShowDatasourceAlert(true);
     }
-  }, [exploreState.datasource, prevDatasource]);
+  }, [
+    props.exploreState.datasource?.id,
+    props.exploreState.datasource?.type,
+    prevDatasource,
+  ]);
 
   useEffect(() => {
     const {
@@ -219,7 +218,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       customizeSections: newCustomizeSections,
     } = getState(
       props.form_data.viz_type,
-      exploreState.datasource,
+      props.exploreState.datasource,
       props.datasource_type,
     );
     setExpandedQuerySections(newExpandedQuerySections);
@@ -229,13 +228,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }, [props.form_data.datasource, props.form_data.viz_type]);
 
   const resetTransferredControls = useCallback(() => {
-    ensureIsArray(exploreState.controlsTransferred).forEach(controlName =>
+    ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
       props.actions.setControlValue(
         controlName,
         props.controls[controlName].default,
       ),
     );
-  }, [props.actions, exploreState.controlsTransferred, props.controls]);
+  }, [props.actions, props.exploreState.controlsTransferred, props.controls]);
 
   const handleClearFormClick = useCallback(() => {
     resetTransferredControls();
@@ -314,7 +313,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       }),
     );
     const PanelHeader = () => (
-      <span>
+      <span data-test="collapsible-control-panel-header">
         <span>{label}</span>{' '}
         {description && (
           // label is only used in tooltip id (should probably call this prop `id`)
@@ -332,7 +331,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     return (
       <Collapse.Panel
-        data-test="collapsible-control-panel"
         css={theme => css`
           margin-bottom: 0;
           box-shadow: none;
@@ -390,7 +388,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   };
 
   const hasControlsTransferred =
-    ensureIsArray(exploreState.controlsTransferred).length > 0;
+    ensureIsArray(props.exploreState.controlsTransferred).length > 0;
 
   const DatasourceAlert = useCallback(
     () =>
@@ -417,7 +415,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           type="warning"
         />
       ),
-    [handleClearFormClick, hasControlsTransferred],
+    [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
   const controlPanelRegistry = getChartControlPanelRegistry();
