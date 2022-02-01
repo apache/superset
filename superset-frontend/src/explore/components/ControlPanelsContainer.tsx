@@ -17,7 +17,13 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   ensureIsArray,
   t,
@@ -196,6 +202,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >([]);
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (
       prevDatasource &&
@@ -203,6 +211,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
       setShowDatasourceAlert(true);
+      containerRef.current?.scrollTo(0, 0);
     }
   }, [
     props.exploreState.datasource?.id,
@@ -428,7 +437,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const showCustomizeTab = customizeSections.length > 0;
 
   return (
-    <Styles>
+    <Styles ref={containerRef}>
       <ControlPanelsTabs
         id="controlSections"
         data-test="control-tabs"
