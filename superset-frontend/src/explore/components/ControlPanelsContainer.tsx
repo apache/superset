@@ -21,6 +21,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -188,18 +189,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const prevDatasource = usePrevious(props.exploreState.datasource);
 
-  const [expandedQuerySections, setExpandedQuerySections] = useState<string[]>(
-    [],
-  );
-  const [expandedCustomizeSections, setExpandedCustomizeSections] = useState<
-    string[]
-  >([]);
-  const [querySections, setQuerySections] = useState<
-    ControlPanelSectionConfig[]
-  >([]);
-  const [customizeSections, setCustomizeSections] = useState<
-    ControlPanelSectionConfig[]
-  >([]);
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -219,22 +208,24 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     prevDatasource,
   ]);
 
-  useEffect(() => {
-    const {
-      expandedQuerySections: newExpandedQuerySections,
-      expandedCustomizeSections: newExpandedCustomizeSections,
-      querySections: newQuerySections,
-      customizeSections: newCustomizeSections,
-    } = getState(
+  const {
+    expandedQuerySections,
+    expandedCustomizeSections,
+    querySections,
+    customizeSections,
+  } = useMemo(
+    () =>
+      getState(
+        props.form_data.viz_type,
+        props.exploreState.datasource,
+        props.datasource_type,
+      ),
+    [
+      props.form_data.datasource,
       props.form_data.viz_type,
-      props.exploreState.datasource,
       props.datasource_type,
-    );
-    setExpandedQuerySections(newExpandedQuerySections);
-    setExpandedCustomizeSections(newExpandedCustomizeSections);
-    setQuerySections(newQuerySections);
-    setCustomizeSections(newCustomizeSections);
-  }, [props.form_data.datasource, props.form_data.viz_type]);
+    ],
+  );
 
   const resetTransferredControls = useCallback(() => {
     ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
@@ -446,12 +437,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         <Tabs.TabPane key="query" tab={t('Data')}>
           <Collapse
             bordered
-            activeKey={expandedQuerySections}
+            defaultActiveKey={expandedQuerySections}
             expandIconPosition="right"
-            onChange={selection => {
-              setExpandedQuerySections(ensureIsArray(selection));
-            }}
             ghost
+            key={`query-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
           >
             {showDatasourceAlert && <DatasourceAlert />}
             {querySections.map(renderControlPanelSection)}
@@ -461,12 +450,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           <Tabs.TabPane key="display" tab={t('Customize')}>
             <Collapse
               bordered
-              activeKey={expandedCustomizeSections}
+              defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
-              onChange={selection => {
-                setExpandedCustomizeSections(ensureIsArray(selection));
-              }}
               ghost
+              key={`customize-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
             >
               {customizeSections.map(renderControlPanelSection)}
             </Collapse>
