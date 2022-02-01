@@ -78,8 +78,8 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(cidr_func(cidr_request), cidr_response)
 
     def test_port_translation_func_valid_port_number(self):
-        """Test to see if the port_translation_func behaves as
-        expected when a valid port number is passed in"""
+        """Test to see if the port_translation_func behaves as expected when a valid port number
+        is passed in"""
         port_request: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['80']
@@ -101,8 +101,8 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(port_translation_func(port_request), port_response)
 
     def test_port_translation_func_valid_port_name(self):
-        """Test to see if the port_translation_func behaves as expected
-        when a valid port name is passed in"""
+        """Test to see if the port_translation_func behaves as expected when a valid port name
+        is passed in"""
         port_request: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['https']
@@ -124,8 +124,8 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(port_translation_func(port_request), port_response)
 
     def test_port_translation_func_invalid_port_name(self):
-        """Test to see if the port_translation_func behaves as expected when an
-         invalid port name is passed in"""
+        """Test to see if the port_translation_func behaves as expected when an invalid port name
+        is passed in"""
         port_request: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['abc']
@@ -147,8 +147,8 @@ class TestBusinessType(SupersetTestCase):
         self.assertEqual(port_translation_func(port_request), port_response)
 
     def test_port_translation_func_invalid_port_number(self):
-        """Test to see if the port_translation_func behaves as expected when
-        an invalid port number is passed in"""
+        """Test to see if the port_translation_func behaves as expected when an invalid port
+        number is passed in"""
         port_request: BusinessTypeRequest = {
             "business_type": "port",
             "values": ['123456789']
