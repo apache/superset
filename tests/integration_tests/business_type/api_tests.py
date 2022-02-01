@@ -22,22 +22,29 @@ import json
 from tests.integration_tests.base_tests import SupersetTestCase
 
 class TestBusinessTypeApi(SupersetTestCase):
-    resource_name = "business_type"
-    allow_browser_login = True
+    """This class includes the unit tests for the business type REST API"""
 
-    def test_get_business_type(self):
-        """
-        business_type API: Test get, expect to get a greeting
-        """
-        self.login(username="admin")
-        uri = f"api/v1/business_type/convert"
-        rv = self.get_assert_metric(uri, "info")
-        data = json.loads(rv.data.decode("utf-8"))
-        print(str(data))
-        assert rv.status_code == 200
-        #assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+    # def test_get_business_type(self):
+    #     """
+    #     business_type API: Test 'get', expect to get a greeting
+    #     """
+
+    #     self.login(username="admin")
+    #     uri = f"/api/v1/business_type/convert?q=(type:cidr,values:!(''))"
+    #     rv = self.get_assert_metric(uri, "get")
+    #     data = json.loads(rv.data.decode("utf-8"))
+
+    #     self.assertEqual(rv.status_code, 200)
 
     def test_get_types_business_type(self):
         """
-        business_type API: Test get types, expect to get a list of available business types
+        business_type API: Test 'get_types', expect to get a list of the availiable business types
         """
+
+        self.login(username="admin")
+        uri = f"/api/v1/business_type/types"
+        rv = self.get_assert_metric(uri, "get_types")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data, ['cidr', 'port'])
