@@ -569,7 +569,7 @@ Here's a list of some of the recommended packages.
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | SQL Server       | ``"apache-superset[mssql]"``                                      | ``mssql://``                                    |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
-| Teradata         | ``"apache-superset[teradata]"``                                   | ``teradata://``                                 |
+| Teradata         | ``"apache-superset[teradata]"``                                   | ``teradatasql://``                              |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | Vertica          | ``"apache-superset[vertical]"``                                   |  ``vertica+vertica_python://``                  |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
@@ -753,16 +753,17 @@ Teradata
 
 The connection string for Teradata looks like this ::
 
-    teradata://{user}:{password}@{host}
+The recommended connector library is
+[teradatasql](https://github.com/Teradata/python-driver).
+Also, see the latest on [PyPi](https://pypi.org/project/teradatasql/)
 
-*Note*: Its required to have Teradata ODBC drivers installed and environment variables configured for proper work of sqlalchemy dialect. Teradata ODBC Drivers available here: https://downloads.teradata.com/download/connectivity/odbc-driver/linux
+The connection string for Teradata looks like this:
 
-Required environment variables: ::
+```
+teradatasql://{user}:{password}@{host}
+```
 
-    export ODBCINI=/.../teradata/client/ODBC_64/odbc.ini
-    export ODBCINST=/.../teradata/client/ODBC_64/odbcinst.ini
-
-See `Teradata SQLAlchemy <https://github.com/Teradata/sqlalchemy-teradata>`_.
+See `Teradata SQL Native Python Driver <https://github.com/Teradata/python-driver>`_.
 
 Apache Drill
 ------------
