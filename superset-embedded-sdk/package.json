@@ -1,9 +1,9 @@
 {
-  "name": "@suddjian/superset-embedding-test",
-  "version": "0.10.0",
+  "name": "@superset-ui/embedded-sdk",
+  "version": "0.1.0",
   "description": "Embedded SDK for Superset",
   "access": "public",
-  "keywords": [],
+  "keywords": ["superset", "embed", "embedded", "sdk", "iframe", "dashboard", "chart", "analytics"],
 
   "files": [
     "bundle",
