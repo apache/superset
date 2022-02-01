@@ -1,0 +1,61 @@
+slice_name: Location of Current Developers
+viz_type: world_map
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '1'
+    expressionType: SIMPLE
+    filterOptionName: filter_s1jzmdwgeg_p3er4w56uy
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  country_fieldtype: name
+  datasource: 42__table
+  entity: country_live
+  granularity_sqla: time_start
+  linear_color_scheme: superset_seq_1
+  max_bubble_size: '25'
+  metric: count
+  queryFields:
+    entity: groupby
+    metric: metrics
+    secondary_metric: metrics
+  row_limit: 10000
+  secondary_metric:
+    aggregate: COUNT
+    column:
+      column_name: country_live
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1570
+      is_dttm: false
+      python_date_format: null
+      type: TEXT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: COUNT(country_live)
+    optionName: metric_980jcnefhlk_ar87s15pwro
+    sqlExpression: null
+  show_bubbles: true
+  slice_id: 3635
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: world_map
+cache_timeout: null
+uuid: 5596e0f6-78a9-465d-8325-7139c794a06a
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

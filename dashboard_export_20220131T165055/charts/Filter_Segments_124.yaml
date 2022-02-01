@@ -1,0 +1,55 @@
+slice_name: Filter Segments
+viz_type: filter_box
+params:
+  adhoc_filters: []
+  datasource: 42__table
+  date_filter: false
+  filter_configs:
+  - asc: true
+    clearable: true
+    column: ethnic_minority
+    key: -xNBqpfQo
+    label: Ethnic Minority
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: gender
+    key: 19VeBGTKf
+    label: Gender
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: developer_type
+    key: OWTb4s69T
+    label: Developer Type
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: lang_at_home
+    key: Fn-YClyhb
+    label: Language at Home
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: country_live
+    key: 2fNskRCLJ
+    label: Country live
+    multiple: true
+    searchAllOptions: false
+  granularity_sqla: time_start
+  queryFields: {}
+  slice_id: 1387
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: filter_box
+cache_timeout: null
+uuid: 6420629a-ce74-2c6b-ef7d-b2e78baa3cfe
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

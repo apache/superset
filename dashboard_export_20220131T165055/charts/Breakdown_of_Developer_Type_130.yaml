@@ -1,0 +1,34 @@
+slice_name: Breakdown of Developer Type
+viz_type: table
+params:
+  adhoc_filters: []
+  all_columns: []
+  color_pn: true
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby:
+  - developer_type
+  metrics:
+  - count
+  order_by_cols: []
+  order_desc: true
+  percent_metrics: []
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  query_mode: aggregate
+  row_limit: 10000
+  show_cell_bars: true
+  slice_id: 1384
+  table_timestamp_format: smart_date
+  time_grain_sqla: P1D
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: table
+cache_timeout: null
+uuid: b8386be8-f44e-6535-378c-2aa2ba461286
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

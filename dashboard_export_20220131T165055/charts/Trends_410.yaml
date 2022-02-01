@@ -1,0 +1,32 @@
+slice_name: Trends
+viz_type: line
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  granularity_sqla: ds
+  groupby:
+  - name
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: num
+      type: BIGINT
+    expressionType: SIMPLE
+    label: Births
+    optionName: metric_11
+  rich_tooltip: true
+  row_limit: 50000
+  show_legend: true
+  since: 100 years ago
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: now
+  viz_type: line
+cache_timeout: null
+uuid: 5279dcbd-fc7a-4a83-89cb-10a82e3fe91c
+version: 1.0.0
+dataset_uuid: 3e7cf55e-e0af-49cb-a01e-6698a1ca6cf7

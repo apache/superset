@@ -1,0 +1,32 @@
+slice_name: Girl Name Cloud
+viz_type: word_cloud
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: girl
+    expressionType: SIMPLE
+    operator: ==
+    subject: gender
+  compare_lag: '10'
+  compare_suffix: o10Y
+  granularity_sqla: ds
+  groupby: []
+  limit: '100'
+  markup_type: markdown
+  metric: sum__num
+  rotation: square
+  row_limit: 50000
+  series: name
+  since: 100 years ago
+  size_from: '10'
+  size_to: '70'
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: now
+  viz_type: word_cloud
+cache_timeout: null
+uuid: 135d8bcc-6e0d-45de-8831-7ec36c5602b2
+version: 1.0.0
+dataset_uuid: 3e7cf55e-e0af-49cb-a01e-6698a1ca6cf7

@@ -1,0 +1,40 @@
+slice_name: Top 10 Girl Name Share
+viz_type: area
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: girl
+    expressionType: SIMPLE
+    operator: ==
+    subject: gender
+  compare_lag: '10'
+  compare_suffix: o10Y
+  comparison_type: values
+  granularity_sqla: ds
+  groupby:
+  - name
+  limit: 10
+  markup_type: markdown
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: num
+      type: BIGINT
+    expressionType: SIMPLE
+    label: Births
+    optionName: metric_11
+  row_limit: 50000
+  since: 100 years ago
+  stacked_style: expand
+  time_grain_sqla: P1D
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: now
+  viz_type: area
+  x_axis_forma: smart_date
+cache_timeout: null
+uuid: 5f36ef35-ee83-438a-b6f1-39cacbfaf030
+version: 1.0.0
+dataset_uuid: 3e7cf55e-e0af-49cb-a01e-6698a1ca6cf7

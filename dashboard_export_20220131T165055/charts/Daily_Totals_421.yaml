@@ -1,0 +1,30 @@
+slice_name: Daily Totals
+viz_type: table
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  granularity_sqla: ds
+  groupby:
+  - ds
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: num
+      type: BIGINT
+    expressionType: SIMPLE
+    label: Births
+    optionName: metric_11
+  row_limit: 50000
+  since: 40 years ago
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: now
+  viz_type: table
+cache_timeout: null
+uuid: ca75b49f-4dc5-4b70-b8bd-1203752673c5
+version: 1.0.0
+dataset_uuid: 3e7cf55e-e0af-49cb-a01e-6698a1ca6cf7

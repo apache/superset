@@ -1,0 +1,120 @@
+dashboard_title: deck.gl Demo
+description: null
+css: null
+slug: deck
+uuid: e5a02a9e-f49f-4d9c-be66-5ee3bac29fb4
+position:
+  CHART-3afd9d70:
+    meta:
+      chartId: 428
+      width: 6
+      height: 50
+      uuid: 89227f72-998e-4bbe-8ad3-199d48390dab
+    type: CHART
+    id: CHART-3afd9d70
+    children: []
+  CHART-2ee7fa5e:
+    meta:
+      chartId: 429
+      width: 6
+      height: 50
+      uuid: 226e06c2-324c-4d77-a27e-d7da9796db9b
+    type: CHART
+    id: CHART-2ee7fa5e
+    children: []
+  CHART-201f7715:
+    meta:
+      chartId: 430
+      width: 6
+      height: 50
+      uuid: 9f721a60-adc2-4a57-a755-6c478ca3c17c
+    type: CHART
+    id: CHART-201f7715
+    children: []
+  CHART-d02f6c40:
+    meta:
+      chartId: 431
+      width: 6
+      height: 50
+      uuid: 94926910-7aa6-4dbf-af64-1d105e9c8479
+    type: CHART
+    id: CHART-d02f6c40
+    children: []
+  CHART-2673431d:
+    meta:
+      chartId: 432
+      width: 6
+      height: 50
+      uuid: 77afa7a1-f3eb-43a5-abc1-7a7d3200370a
+    type: CHART
+    id: CHART-2673431d
+    children: []
+  CHART-85265a60:
+    meta:
+      chartId: 433
+      width: 6
+      height: 50
+      uuid: be92d763-dbaa-4d75-9873-c123ac796d9e
+    type: CHART
+    id: CHART-85265a60
+    children: []
+  CHART-2b87513c:
+    meta:
+      chartId: 434
+      width: 6
+      height: 50
+      uuid: 67c75fbb-9825-4747-9be8-42726b56b8b3
+    type: CHART
+    id: CHART-2b87513c
+    children: []
+  GRID_ID:
+    type: GRID
+    id: GRID_ID
+    children:
+    - ROW-a7b16cb5
+    - ROW-72c218a5
+    - ROW-957ba55b
+    - ROW-af041bdd
+  HEADER_ID:
+    meta:
+      text: deck.gl Demo
+    type: HEADER
+    id: HEADER_ID
+  ROOT_ID:
+    type: ROOT
+    id: ROOT_ID
+    children:
+    - GRID_ID
+  ROW-72c218a5:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-72c218a5
+    children:
+    - CHART-d02f6c40
+    - CHART-201f7715
+  ROW-957ba55b:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-957ba55b
+    children:
+    - CHART-2673431d
+    - CHART-85265a60
+  ROW-a7b16cb5:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-a7b16cb5
+    children:
+    - CHART-3afd9d70
+    - CHART-2ee7fa5e
+  ROW-af041bdd:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-af041bdd
+    children:
+    - CHART-2b87513c
+  DASHBOARD_VERSION_KEY: v2
+version: 1.0.0

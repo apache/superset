@@ -1,0 +1,193 @@
+dashboard_title: World Bank's Data
+description: null
+css: null
+slug: world_health
+uuid: 57bd8ca6-4fc8-4290-bc57-3afd78ee8e08
+position:
+  CHART-36bfc934:
+    children: []
+    id: CHART-36bfc934
+    meta:
+      chartId: 397
+      height: 25
+      sliceName: Region Filter
+      width: 2
+      uuid: ee953223-64b6-4a00-8985-82a2a0d5441f
+    type: CHART
+  CHART-37982887:
+    children: []
+    id: CHART-37982887
+    meta:
+      chartId: 398
+      height: 25
+      sliceName: World's Population
+      width: 2
+      uuid: 5b26ae8c-5654-4b87-b618-f4953be0853f
+    type: CHART
+  CHART-17e0f8d8:
+    children: []
+    id: CHART-17e0f8d8
+    meta:
+      chartId: 399
+      height: 92
+      sliceName: Most Populated Countries
+      width: 3
+      uuid: 562d2675-1bd0-4aaa-b4b1-43f9e7c8a16d
+    type: CHART
+  CHART-2ee52f30:
+    children: []
+    id: CHART-2ee52f30
+    meta:
+      chartId: 400
+      height: 38
+      sliceName: Growth Rate
+      width: 6
+      uuid: d59fd56b-2106-42f4-b938-c7a0e8d68549
+    type: CHART
+  CHART-2d5b6871:
+    children: []
+    id: CHART-2d5b6871
+    meta:
+      chartId: 401
+      height: 52
+      sliceName: '% Rural'
+      width: 7
+      uuid: 31f8cef3-5c48-4ff2-8133-03eb5209fcfe
+    type: CHART
+  CHART-0fd0d252:
+    children: []
+    id: CHART-0fd0d252
+    meta:
+      chartId: 402
+      height: 50
+      sliceName: Life Expectancy VS Rural %
+      width: 8
+      uuid: 3bd255ed-8d48-4326-afeb-e0a0accd466a
+    type: CHART
+  CHART-97f4cb48:
+    children: []
+    id: CHART-97f4cb48
+    meta:
+      chartId: 403
+      height: 38
+      sliceName: Rural Breakdown
+      width: 3
+      uuid: c9a60da8-c036-4165-895c-0b9caec74020
+    type: CHART
+  CHART-b5e05d6f:
+    children: []
+    id: CHART-b5e05d6f
+    meta:
+      chartId: 404
+      height: 50
+      sliceName: World's Pop Growth
+      width: 4
+      uuid: 2d000220-09b2-49f2-91c2-9734ecce7d5a
+    type: CHART
+  CHART-e76e9f5f:
+    children: []
+    id: CHART-e76e9f5f
+    meta:
+      chartId: 405
+      height: 50
+      sliceName: Box plot
+      width: 4
+      uuid: a680d1cf-357e-4903-a7a1-d0a60c5080c5
+    type: CHART
+  CHART-a4808bba:
+    children: []
+    id: CHART-a4808bba
+    meta:
+      chartId: 406
+      height: 50
+      sliceName: Treemap
+      width: 8
+      uuid: 31f0b249-6011-4870-86c9-247e68b20295
+    type: CHART
+  CHART-3nc0d8sk:
+    children: []
+    id: CHART-3nc0d8sk
+    meta:
+      chartId: 407
+      height: 50
+      sliceName: Treemap
+      width: 8
+      uuid: a384d309-8830-4851-9caf-de45e6da1361
+    type: CHART
+  COLUMN-071bbbad:
+    children:
+    - ROW-1e064e3c
+    - ROW-afdefba9
+    id: COLUMN-071bbbad
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 9
+    type: COLUMN
+  COLUMN-fe3914b8:
+    children:
+    - CHART-36bfc934
+    - CHART-37982887
+    id: COLUMN-fe3914b8
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 2
+    type: COLUMN
+  GRID_ID:
+    children:
+    - ROW-46632bc2
+    - ROW-3fa26c5d
+    - ROW-812b3f13
+    id: GRID_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: World's Bank Data
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-1e064e3c:
+    children:
+    - COLUMN-fe3914b8
+    - CHART-2d5b6871
+    id: ROW-1e064e3c
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-3fa26c5d:
+    children:
+    - CHART-b5e05d6f
+    - CHART-0fd0d252
+    id: ROW-3fa26c5d
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-46632bc2:
+    children:
+    - COLUMN-071bbbad
+    - CHART-17e0f8d8
+    id: ROW-46632bc2
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-812b3f13:
+    children:
+    - CHART-a4808bba
+    - CHART-e76e9f5f
+    id: ROW-812b3f13
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-afdefba9:
+    children:
+    - CHART-2ee52f30
+    - CHART-97f4cb48
+    id: ROW-afdefba9
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  DASHBOARD_VERSION_KEY: v2
+version: 1.0.0

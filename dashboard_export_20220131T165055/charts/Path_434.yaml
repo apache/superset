@@ -1,0 +1,44 @@
+slice_name: Path
+viz_type: deck_path
+params:
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  datasource: 12__table
+  js_columns:
+  - color
+  js_data_mutator: "data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n\
+    }));"
+  js_onclick_href: ''
+  js_tooltip: ''
+  line_column: path_json
+  line_type: json
+  line_width: 150
+  mapbox_style: mapbox://styles/mapbox/light-v9
+  reverse_long_lat: false
+  row_limit: 5000
+  slice_id: 43
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    altitude: 1.5
+    bearing: 0
+    height: 1094
+    latitude: 37.73671752604488
+    longitude: -122.18885402582598
+    maxLatitude: 85.05113
+    maxPitch: 60
+    maxZoom: 20
+    minLatitude: -85.05113
+    minPitch: 0
+    minZoom: 0
+    pitch: 0
+    width: 669
+    zoom: 9.51847667620428
+  viz_type: deck_path
+cache_timeout: null
+uuid: 67c75fbb-9825-4747-9be8-42726b56b8b3
+version: 1.0.0
+dataset_uuid: 5e053cd4-54d1-4405-90e0-4a5b1bb25f90

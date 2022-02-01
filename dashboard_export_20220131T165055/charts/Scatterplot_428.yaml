@@ -1,0 +1,41 @@
+slice_name: Scatterplot
+viz_type: deck_scatter
+params:
+  color_picker:
+    a: 0.82
+    b: 3
+    g: 0
+    r: 205
+  datasource: 5__table
+  granularity_sqla: null
+  groupby: []
+  mapbox_style: mapbox://styles/mapbox/light-v9
+  max_radius: 250
+  min_radius: 1
+  multiplier: 10
+  point_radius_fixed:
+    type: metric
+    value: count
+  point_unit: square_m
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: ' : '
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  viewport:
+    bearing: -4.952916738791771
+    latitude: 37.78926922909199
+    longitude: -122.42613341901688
+    pitch: 4.750411100577438
+    zoom: 12.729132798697304
+  viz_type: deck_scatter
+cache_timeout: null
+uuid: 89227f72-998e-4bbe-8ad3-199d48390dab
+version: 1.0.0
+dataset_uuid: 7512f6bf-7586-4def-817a-cd7df5276187

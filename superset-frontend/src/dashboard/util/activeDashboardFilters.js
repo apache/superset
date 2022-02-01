@@ -71,10 +71,12 @@ export function getChartIdsInFilterScope({ filterScope }) {
     if (
       component.type === CHART_TYPE &&
       component.meta &&
-      component.meta.chartId &&
-      !immuneChartIds.includes(component.meta.chartId)
+      component.id &&
+      !immuneChartIds.includes(component.id)
     ) {
-      chartIds.push(component.meta.chartId);
+      console.log('helllo');
+      console.log(component);
+      chartIds.push(component.id);
     } else if (component.children) {
       component.children.forEach(child =>
         traverse(chartIds, allComponents[child], immuneChartIds),
@@ -100,6 +102,8 @@ export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
   allFilterBoxChartIds = Object.values(dashboardFilters).map(
     filter => filter.chartId,
   );
+
+  console.log(allFilterBoxChartIds);
 
   // clear cache
   if (!isEmpty(components)) {

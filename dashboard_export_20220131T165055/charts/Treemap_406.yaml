@@ -1,0 +1,28 @@
+slice_name: Treemap
+viz_type: treemap
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby:
+  - region
+  - country_code
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - sum__SP_POP_TOTL
+  row_limit: 50000
+  show_bubbles: true
+  since: '1960-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: now
+  viz_type: treemap
+cache_timeout: null
+uuid: 31f0b249-6011-4870-86c9-247e68b20295
+version: 1.0.0
+dataset_uuid: ccb17626-232d-47f3-ad09-0f01792aff4c

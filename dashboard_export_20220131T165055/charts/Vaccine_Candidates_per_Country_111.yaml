@@ -1,0 +1,27 @@
+slice_name: Vaccine Candidates per Country
+viz_type: treemap
+params:
+  adhoc_filters: []
+  color_scheme: presetColors
+  datasource: 69__table
+  groupby:
+  - country_name
+  label_colors: {}
+  metrics:
+  - count
+  number_format: SMART_NUMBER
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  row_limit: 10000
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  treemap_ratio: 1.618033988749895
+  url_params: {}
+  viz_type: treemap
+cache_timeout: null
+uuid: e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c
+version: 1.0.0
+dataset_uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0

@@ -1,0 +1,44 @@
+slice_name: Cross Channel Relationship
+viz_type: chord
+params:
+  adhoc_filters: []
+  color_scheme: supersetColors
+  columns: channel_2
+  datasource: 59__table
+  groupby: channel_1
+  label_colors: {}
+  metric:
+    aggregate: SUM
+    column:
+      column_name: cnt
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1777
+      is_dttm: false
+      optionName: _col_cnt
+      python_date_format: null
+      type: INT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(cnt)
+    optionName: metric_i1djbl8i2y_2vdl690dkyu
+    sqlExpression: null
+  queryFields:
+    columns: groupby
+    groupby: groupby
+    metric: metrics
+  row_limit: 1000
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  viz_type: chord
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: f2a8731b-3d8c-4d86-9d33-7c0a3e64d21c
+version: 1.0.0
+dataset_uuid: 473d6113-b44a-48d8-a6ae-e0ef7e2aebb0

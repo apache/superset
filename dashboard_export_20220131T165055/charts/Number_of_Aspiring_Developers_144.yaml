@@ -1,0 +1,32 @@
+slice_name: Number of Aspiring Developers
+viz_type: big_number_total
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '0'
+    expressionType: SIMPLE
+    filterOptionName: filter_3f8ug0vnqk1_oy0mvl0izdc
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  datasource: 42__table
+  granularity_sqla: time_start
+  header_font_size: 0.4
+  metric: count
+  queryFields:
+    metric: metrics
+  slice_id: 1363
+  subheader_font_size: 0.15
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: big_number_total
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: a0e5329f-224e-6fc8-efd2-d37d0f546ee8
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

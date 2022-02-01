@@ -1,0 +1,34 @@
+slice_name: Vehicle Sales Filter
+viz_type: filter_box
+params:
+  adhoc_filters: []
+  datasource: 23__table
+  date_filter: true
+  filter_configs:
+  - asc: true
+    clearable: true
+    column: product_line
+    key: 7oUjq15eQ
+    label: Product Line
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: deal_size
+    key: c3hO6Eub8
+    label: Deal Size
+    multiple: true
+    searchAllOptions: false
+  granularity_sqla: order_date
+  queryFields: {}
+  slice_id: 671
+  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: filter_box
+cache_timeout: null
+uuid: a5689df7-98fc-7c51-602c-ebd92dc3ec70
+version: 1.0.0
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005

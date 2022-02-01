@@ -1,0 +1,15 @@
+database_name: examples
+sqlalchemy_uri: postgresql://postgres:XXXXXXXXXX@localhost:5432/hugh
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_file_upload: false
+extra:
+  metadata_params: {}
+  engine_params: {}
+  metadata_cache_timeout: {}
+  schemas_allowed_for_file_upload: []
+uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+version: 1.0.0

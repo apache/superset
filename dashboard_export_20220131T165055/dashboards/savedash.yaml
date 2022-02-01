@@ -1,0 +1,140 @@
+dashboard_title: savedash
+description: null
+css: ''
+slug: null
+uuid: 3295bec8-64b2-4c9e-9eb4-0d3e83c09ab3
+position:
+  CHART-50JwiJxIVX:
+    children: []
+    id: CHART-50JwiJxIVX
+    meta:
+      chartId: 416
+      height: 50
+      sliceName: Top 10 Girl Name Share
+      uuid: 5f36ef35-ee83-438a-b6f1-39cacbfaf030
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-FAtabOG4lj
+    type: CHART
+  CHART-EW7jawFtkL:
+    children: []
+    id: CHART-EW7jawFtkL
+    meta:
+      chartId: 414
+      height: 50
+      sliceName: Boys
+      uuid: 29b46b35-d468-4988-915e-2b586879b76a
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-8Hf91GcAz_
+    type: CHART
+  CHART-F0Ho3Ybakr:
+    children: []
+    id: CHART-F0Ho3Ybakr
+    meta:
+      chartId: 417
+      height: 50
+      sliceName: Top 10 Boy Name Share
+      uuid: cd68b4eb-c29a-496b-900d-d1c7ab564d94
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-8Hf91GcAz_
+    type: CHART
+  CHART-F5xgmk3M1S:
+    children: []
+    id: CHART-F5xgmk3M1S
+    meta:
+      chartId: 412
+      height: 50
+      sliceName: Girls
+      uuid: b190f11e-95d9-4174-b089-874796c40f45
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-FAtabOG4lj
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children:
+    - ROW-8Hf91GcAz_
+    - ROW-FAtabOG4lj
+    id: GRID_ID
+    parents:
+    - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: savedash
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-8Hf91GcAz_:
+    children:
+    - CHART-EW7jawFtkL
+    - CHART-F0Ho3Ybakr
+    id: ROW-8Hf91GcAz_
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-FAtabOG4lj:
+    children:
+    - CHART-F5xgmk3M1S
+    - CHART-50JwiJxIVX
+    id: ROW-FAtabOG4lj
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+metadata:
+  show_native_filters: true
+  color_scheme: ''
+  refresh_frequency: 0
+  expanded_slices: {}
+  label_colors: {}
+  timed_refresh_immune_slices: []
+  default_filters: '{}'
+  chart_configuration: {}
+  native_filter_configuration:
+  - id: NATIVE_FILTER-rufBFuy42
+    controlValues:
+      multiSelect: true
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      inverseSelection: false
+      searchAllOptions: false
+    name: state_filter
+    filterType: filter_select
+    targets:
+    - column:
+        name: state
+      datasetUuid: 3e7cf55e-e0af-49cb-a01e-6698a1ca6cf7
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded:
+      - 417
+      - 412
+    type: NATIVE_FILTER
+    description: ''
+version: 1.0.0

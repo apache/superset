@@ -1,0 +1,24 @@
+slice_name: Unicode Cloud
+viz_type: word_cloud
+params:
+  granularity_sqla: dttm
+  groupby: []
+  limit: '100'
+  metric:
+    aggregate: SUM
+    column:
+      column_name: value
+    expressionType: SIMPLE
+    label: Value
+  rotation: square
+  row_limit: 50000
+  series: short_phrase
+  since: 100 years ago
+  size_from: '10'
+  size_to: '70'
+  until: now
+  viz_type: word_cloud
+cache_timeout: null
+uuid: 609e26d8-8e1e-4097-9751-931708e24ee4
+version: 1.0.0
+dataset_uuid: a6771c73-96fc-44c6-8b6e-9d303955ea48

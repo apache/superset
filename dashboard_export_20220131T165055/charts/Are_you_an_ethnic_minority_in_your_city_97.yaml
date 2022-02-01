@@ -1,0 +1,34 @@
+slice_name: Are you an ethnic minority in your city?
+viz_type: pie
+params:
+  adhoc_filters: []
+  color_scheme: supersetColors
+  datasource: 42__table
+  donut: true
+  granularity_sqla: time_start
+  groupby:
+  - ethnic_minority
+  innerRadius: 44
+  label_line: true
+  labels_outside: true
+  metric: count
+  number_format: SMART_NUMBER
+  outerRadius: 69
+  label_type: key
+  queryFields:
+    groupby: groupby
+    metric: metrics
+  row_limit: 10000
+  show_labels: true
+  show_legend: false
+  slice_id: 1383
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: pie
+cache_timeout: null
+uuid: def07750-b5c0-0b69-6228-cb2330916166
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

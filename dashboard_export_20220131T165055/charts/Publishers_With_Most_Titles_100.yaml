@@ -1,0 +1,41 @@
+slice_name: Publishers With Most Titles
+viz_type: table
+params:
+  adhoc_filters: []
+  all_columns:
+  - rank
+  - name
+  - global_sales
+  - platform
+  - genre
+  - publisher
+  - year
+  color_pn: false
+  datasource: 21__table
+  granularity_sqla: year
+  groupby: []
+  metrics:
+  - count
+  order_by_cols: []
+  order_desc: true
+  page_length: null
+  percent_metrics: []
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  query_mode: raw
+  row_limit: 10
+  show_cell_bars: false
+  slice_id: 657
+  table_timestamp_format: smart_date
+  time_grain_sqla: P1D
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: table
+cache_timeout: null
+uuid: d20b7324-3b80-24d4-37e2-3bd583b66713
+version: 1.0.0
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

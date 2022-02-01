@@ -1,0 +1,28 @@
+slice_name: Members per Channel
+viz_type: treemap
+params:
+  adhoc_filters: []
+  color_scheme: supersetColors
+  datasource: 57__table
+  groupby:
+  - channel_name
+  label_colors: {}
+  metrics:
+  - count
+  number_format: SMART_NUMBER
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  row_limit: null
+  slice_id: 2396
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  treemap_ratio: 1.618033988749895
+  url_params: {}
+  viz_type: treemap
+cache_timeout: null
+uuid: d44e416d-1647-44e4-b442-6da34b44adc4
+version: 1.0.0
+dataset_uuid: 3d9c0054-b31b-4102-92de-b1ef9f9e5e77

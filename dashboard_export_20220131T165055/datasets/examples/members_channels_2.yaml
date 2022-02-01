@@ -1,0 +1,49 @@
+table_name: members_channels_2
+main_dttm_col: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: public
+sql: SELECT c.name AS channel_name, u.name AS member_name FROM channel_members cm
+  JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+uuid: 3d9c0054-b31b-4102-92de-b1ef9f9e5e77
+metrics:
+- metric_name: count
+  verbose_name: null
+  metric_type: null
+  expression: count(*)
+  description: null
+  d3format: null
+  extra: null
+  warning_text: null
+columns:
+- column_name: channel_name
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+- column_name: member_name
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: null
+version: 1.0.0
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee

@@ -1,0 +1,218 @@
+dashboard_title: Misc Charts
+description: null
+css: null
+slug: misc_charts
+uuid: 86381873-2be1-4cd4-8f48-3d7853fc6590
+position:
+  CHART-BkeVbh8ANQ:
+    children: []
+    id: CHART-BkeVbh8ANQ
+    meta:
+      chartId: 423
+      height: 34
+      sliceName: Multi Line
+      width: 8
+      uuid: 07d67f3c-2491-4167-b678-8da67fd9654e
+    type: CHART
+  CHART-H1HYNzEANX:
+    children: []
+    id: CHART-H1HYNzEANX
+    meta:
+      chartId: 395
+      height: 50
+      sliceName: Energy Sankey
+      width: 6
+      uuid: 3d726e13-7a09-4ae9-93ab-1d2858d103ff
+    type: CHART
+  CHART-HJOYVMV0E7:
+    children: []
+    id: CHART-HJOYVMV0E7
+    meta:
+      chartId: 419
+      height: 63
+      sliceName: Mapbox Long/Lat
+      width: 6
+      uuid: 2fd3d10e-1d9c-4323-a93f-0b23ce402c40
+    type: CHART
+  CHART-S1WYNz4AVX:
+    children: []
+    id: CHART-S1WYNz4AVX
+    meta:
+      chartId: 422
+      height: 25
+      sliceName: Parallel Coordinates
+      width: 4
+      uuid: f424afbf-87e3-44d9-a0ef-28cb277e9946
+    type: CHART
+  CHART-r19KVMNCE7:
+    children: []
+    id: CHART-r19KVMNCE7
+    meta:
+      chartId: 421
+      height: 34
+      sliceName: Calendar Heatmap multiformat 0
+      width: 4
+      uuid: ca75b49f-4dc5-4b70-b8bd-1203752673c5
+    type: CHART
+  CHART-rJ4K4GV04Q:
+    children: []
+    id: CHART-rJ4K4GV04Q
+    meta:
+      chartId: 396
+      height: 63
+      sliceName: Energy Force Layout
+      width: 6
+      uuid: d6502f9d-46f7-45e2-8824-926c43c3ca79
+    type: CHART
+  CHART-rkgF4G4A4X:
+    children: []
+    id: CHART-rkgF4G4A4X
+    meta:
+      chartId: 420
+      height: 25
+      sliceName: Birth in France by department in 2016
+      width: 8
+      uuid: a020c290-8058-47d9-93fd-d059657b1954
+    type: CHART
+  CHART-rywK4GVR4X:
+    children: []
+    id: CHART-rywK4GVR4X
+    meta:
+      chartId: 407
+      height: 50
+      sliceName: Heatmap
+      width: 6
+      uuid: a384d309-8830-4851-9caf-de45e6da1361
+    type: CHART
+  COLUMN-ByUFVf40EQ:
+    children:
+    - CHART-rywK4GVR4X
+    - CHART-HJOYVMV0E7
+    id: COLUMN-ByUFVf40EQ
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 6
+    type: COLUMN
+  COLUMN-rkmYVGN04Q:
+    children:
+    - CHART-rJ4K4GV04Q
+    - CHART-H1HYNzEANX
+    id: COLUMN-rkmYVGN04Q
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 6
+    type: COLUMN
+  GRID_ID:
+    children:
+    - ROW-SytNzNA4X
+    - ROW-S1MK4M4A4X
+    - ROW-HkFFEzVRVm
+    - ROW-N-AH5YSNQP
+    id: GRID_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: Misc Charts
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-HkFFEzVRVm:
+    children:
+    - CHART-r19KVMNCE7
+    - CHART-BkeVbh8ANQ
+    id: ROW-HkFFEzVRVm
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-S1MK4M4A4X:
+    children:
+    - COLUMN-rkmYVGN04Q
+    - COLUMN-ByUFVf40EQ
+    id: ROW-S1MK4M4A4X
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-SytNzNA4X:
+    children:
+    - CHART-rkgF4G4A4X
+    - CHART-S1WYNz4AVX
+    id: ROW-SytNzNA4X
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  DASHBOARD_VERSION_KEY: v2
+  ROW-N-AH5YSNQP:
+    children:
+    - CHART-VS0OIRVC
+    - CHART-1L0D8KFA
+    - CHART-5HOOXWGW
+    - CHART-MAZORVT1
+    id: ROW-N-AH5YSNQP
+    meta:
+      '0': ROOT_ID
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    parents:
+    - ROOT_ID
+    - GRID_ID
+  CHART-VS0OIRVC:
+    children: []
+    id: CHART-VS0OIRVC
+    meta:
+      chartId: 425
+      height: 50
+      sliceName: Number of Girls
+      uuid: 148f120f-38c1-462f-ba04-cde08dbf5466
+      width: 4
+    type: CHART
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-N-AH5YSNQP
+  CHART-1L0D8KFA:
+    children: []
+    id: CHART-1L0D8KFA
+    meta:
+      chartId: 424
+      height: 50
+      sliceName: Names Sorted by Num in California
+      uuid: 2ea9b0d1-3da6-4c62-814b-5bea68f1d57a
+      width: 4
+    type: CHART
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-N-AH5YSNQP
+  CHART-5HOOXWGW:
+    children: []
+    id: CHART-5HOOXWGW
+    meta:
+      chartId: 426
+      height: 50
+      sliceName: Pivot Table
+      uuid: 62064044-9a6c-4efc-b89f-48f0a618e6c8
+      width: 4
+    type: CHART
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-N-AH5YSNQP
+  CHART-MAZORVT1:
+    children: []
+    id: CHART-MAZORVT1
+    meta:
+      chartId: 427
+      height: 50
+      sliceName: Multi Line
+      uuid: 261d1895-02c5-4bd7-ae23-92e36f9406c0
+      width: 4
+    type: CHART
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-N-AH5YSNQP
+version: 1.0.0

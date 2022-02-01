@@ -1,0 +1,35 @@
+slice_name: '% Rural'
+viz_type: world_map
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby: []
+  limit: '25'
+  markup_type: markdown
+  metric: sum__SP_RUR_TOTL_ZS
+  num_period_compare: '10'
+  row_limit: 50000
+  secondary_metric:
+    aggregate: SUM
+    column:
+      column_name: SP_RUR_TOTL
+      optionName: _col_SP_RUR_TOTL
+      type: DOUBLE
+    expressionType: SIMPLE
+    hasCustomLabel: true
+    label: Rural Population
+  show_bubbles: true
+  since: '2014-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: '2014-01-02'
+  viz_type: world_map
+cache_timeout: null
+uuid: 31f8cef3-5c48-4ff2-8133-03eb5209fcfe
+version: 1.0.0
+dataset_uuid: ccb17626-232d-47f3-ad09-0f01792aff4c

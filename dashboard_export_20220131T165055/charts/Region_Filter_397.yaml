@@ -1,0 +1,38 @@
+slice_name: Region Filter
+viz_type: filter_box
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  date_filter: false
+  entity: country_code
+  filter_configs:
+  - asc: false
+    clearable: true
+    column: region
+    key: 2s98dfu
+    metric: sum__SP_POP_TOTL
+    multiple: false
+  - asc: false
+    clearable: true
+    column: country_name
+    key: li3j2lk
+    metric: sum__SP_POP_TOTL
+    multiple: true
+  granularity_sqla: year
+  groupby: []
+  limit: '25'
+  markup_type: markdown
+  row_limit: 50000
+  show_bubbles: true
+  since: '2014-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  until: '2014-01-02'
+  viz_type: filter_box
+cache_timeout: null
+uuid: ee953223-64b6-4a00-8985-82a2a0d5441f
+version: 1.0.0
+dataset_uuid: ccb17626-232d-47f3-ad09-0f01792aff4c

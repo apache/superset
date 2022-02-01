@@ -1,0 +1,46 @@
+slice_name: Commute Time
+viz_type: treemap
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: Currently A Developer
+    expressionType: SIMPLE
+    filterOptionName: filter_fvi0jg9aii_2lekqrhy7qk
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: developer_type
+  - clause: WHERE
+    comparator: 'NULL'
+    expressionType: SIMPLE
+    filterOptionName: filter_r5execgs1q8_hbav07lele
+    isExtra: false
+    isNew: false
+    operator: '!='
+    sqlExpression: null
+    subject: communite_time
+  color_scheme: supersetColors
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby:
+  - communite_time
+  label_colors: {}
+  metrics:
+  - count
+  number_format: SMART_NUMBER
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  row_limit: null
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  treemap_ratio: 1.618033988749895
+  url_params: {}
+  viz_type: treemap
+cache_timeout: null
+uuid: 097c05c9-2dd2-481d-813d-d6c0c12b4a3d
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

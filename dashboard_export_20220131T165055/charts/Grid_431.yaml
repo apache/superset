@@ -1,0 +1,39 @@
+slice_name: Grid
+viz_type: deck_grid
+params:
+  autozoom: false
+  color_picker:
+    a: 1
+    b: 0
+    g: 255
+    r: 14
+  datasource: 5__table
+  extruded: true
+  granularity_sqla: null
+  grid_size: 120
+  groupby: []
+  mapbox_style: mapbox://styles/mapbox/satellite-streets-v9
+  point_radius: Auto
+  point_radius_fixed:
+    type: fix
+    value: 2000
+  point_radius_unit: Pixels
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: No filter
+  viewport:
+    bearing: 155.80099696026355
+    latitude: 37.7942314882596
+    longitude: -122.42066918995666
+    pitch: 53.470800300695146
+    zoom: 12.699690845482069
+  viz_type: deck_grid
+cache_timeout: null
+uuid: 94926910-7aa6-4dbf-af64-1d105e9c8479
+version: 1.0.0
+dataset_uuid: 7512f6bf-7586-4def-817a-cd7df5276187
