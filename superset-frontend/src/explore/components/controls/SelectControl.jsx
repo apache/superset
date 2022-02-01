@@ -34,6 +34,7 @@ const propTypes = {
   multi: PropTypes.bool,
   isMulti: PropTypes.bool,
   name: PropTypes.string.isRequired,
+  allowAll: PropTypes.bool,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
   value: PropTypes.oneOfType([
@@ -76,11 +77,14 @@ const defaultProps = {
   isLoading: false,
   label: null,
   multi: false,
+  allowAll: false,
   onChange: () => {},
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
 };
+
+const SELECT_ALL_STRING = 'Select all';
 
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
@@ -110,18 +114,25 @@ export default class SelectControl extends React.PureComponent {
     let onChangeVal = val;
 
     if (Array.isArray(val)) {
-      const values = val.map(v => v?.[valueKey] || v);
+      const values = val.includes(SELECT_ALL_STRING)
+        ? this.props.options
+            .filter(v => v !== SELECT_ALL_STRING)
+            .map(v => v?.[valueKey] || v)
+        : val.filter(v => v !== SELECT_ALL_STRING).map(v => v?.[valueKey] || v);
       onChangeVal = values;
     }
+
     if (typeof val === 'object' && val?.[valueKey]) {
       onChangeVal = val[valueKey];
     }
+
     this.props.onChange(onChangeVal, []);
   }
 
   getOptions(props) {
-    const { choices, optionRenderer, valueKey } = props;
+    const { choices, optionRenderer, valueKey, allowAll } = props;
     let options = [];
+
     if (props.options) {
       options = props.options.map(o => ({
         ...o,
@@ -149,12 +160,39 @@ export default class SelectControl extends React.PureComponent {
         return { value: c, label: c };
       });
     }
+
+    if (allowAll === true) {
+      if (!this.optionsIncludesSelectAll(options)) {
+        options.unshift(this.createMetaSelectAllOption());
+      }
+    } else {
+      // options = options.filter(o => !this.isMetaSelectAllOption(o));
+    }
+
     return options;
   }
 
   handleFilterOptions(text, option) {
     const { filterOption } = this.props;
     return filterOption({ data: option }, text);
+  }
+
+  isMetaSelectAllOption(o) {
+    return o.meta && o.meta === true && o.label === 'Select all';
+  }
+
+  optionsIncludesSelectAll(o) {
+    return o.findIndex(o => this.isMetaSelectAllOption(o)) >= 0;
+  }
+
+  createMetaSelectAllOption() {
+    const option = {
+      label: SELECT_ALL_STRING,
+      meta: true,
+      value: SELECT_ALL_STRING,
+    };
+    option[this.props.valueKey] = SELECT_ALL_STRING;
+    return option;
   }
 
   render() {
