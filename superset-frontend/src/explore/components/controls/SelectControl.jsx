@@ -164,7 +164,7 @@ export default class SelectControl extends React.PureComponent {
         options.unshift(this.createMetaSelectAllOption());
       }
     } else {
-      // options = options.filter(o => !this.isMetaSelectAllOption(o));
+        options = options.filter(o => !this.isMetaSelectAllOption(o));
     }
 
     return options;
