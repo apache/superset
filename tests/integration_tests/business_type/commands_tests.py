@@ -29,8 +29,8 @@ from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.utils.core import FilterOperator, FilterStringOperators
 from sqlalchemy import Column, Integer
 
+
 class TestBusinessType(SupersetTestCase):
-    resource_name = "business_type"
 
     def test_cidr_func_valid_IP(self):
         # Test to see if the cidr_func behaves as expected when a valid IP is passed in
@@ -166,224 +166,264 @@ class TestBusinessType(SupersetTestCase):
 
     def test_cidr_translate_filter_func_EQUALS(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.EQUALS
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn == inputValues[0])
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn == inputValues[0])
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_NOT_EQUALS(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the NOT_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_EQUALS
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn != inputValues[0])
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn != inputValues[0])
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_GREATER_THAN_OR_EQUALS(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the GREATER_THAN_OR_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.GREATER_THAN_OR_EQUALS
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn >= inputValues[0])
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn >= inputValues[0])
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_GREATER_THAN(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the GREATER_THAN operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.GREATER_THAN
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn > inputValues[0])
-        
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn > inputValues[0])
+
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_LESS_THAN(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the LESS_THAN operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.LESS_THAN
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn < inputValues[0])
-        
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn < inputValues[0])
+
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_LESS_THAN_OR_EQUALS(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the LESS_THAN_OR_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.LESS_THAN_OR_EQUALS
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn <= inputValues[0])
-        
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn <= inputValues[0])
+
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_IN_single(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the IN operator is used with a single IP
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.IN
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn.in_(inputValues))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn.in_(inputValues))
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_IN_double(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the IN operator is used with two IP's
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.IN
         inputValues = [{'start': 16843009, 'end': 33686018}]
 
         inputCondition = inputColumn.in_([])
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputCondition | ((inputColumn <= 33686018) & (inputColumn >= 16843009)))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputCondition | ((inputColumn <= 33686018) & (inputColumn >= 16843009)))
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_NOT_IN_single(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN operator is used with a single IP
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_IN
         inputValues = [16843009]
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(inputColumn.in_(inputValues))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(
+            inputColumn.in_(inputValues))
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_cidr_translate_filter_func_NOT_IN_double(self):
         # Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN operator is used with two IP's
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_IN
         inputValues = [{'start': 16843009, 'end': 33686018}]
 
         inputCondition = ~(inputColumn.in_([]))
 
-        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputCondition & (inputColumn > 33686018) & (inputColumn < 16843009))
+        cidrTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputCondition & (inputColumn > 33686018) & (inputColumn < 16843009))
 
-        self.assertTrue(cidr_translate_filter_func(inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
+        self.assertTrue(cidr_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(cidrTranslateFilterResponse))
 
     def test_port_translate_filter_func_EQUALS(self):
         # Test to see if the port_translate_filter_func behaves as expected when the EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.EQUALS
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_NOT_EQUALS(self):
         # Test to see if the port_translate_filter_func behaves as expected when the NOT_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_EQUALS
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_GREATER_THAN_OR_EQUALS(self):
         # Test to see if the port_translate_filter_func behaves as expected when the GREATER_THAN_OR_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.GREATER_THAN_OR_EQUALS
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn >= inputValues[0][0])
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn >= inputValues[0][0])
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_GREATER_THAN(self):
         # Test to see if the port_translate_filter_func behaves as expected when the GREATER_THAN operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.GREATER_THAN
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn > inputValues[0][0])
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn > inputValues[0][0])
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_LESS_THAN_OR_EQUALS(self):
         # Test to see if the port_translate_filter_func behaves as expected when the LESS_THAN_OR_EQUALS operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.LESS_THAN_OR_EQUALS
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn <= inputValues[0][0])
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn <= inputValues[0][0])
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_LESS_THAN(self):
         # Test to see if the port_translate_filter_func behaves as expected when the LESS_THAN operator is used
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.LESS_THAN
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn < inputValues[0][0])
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn < inputValues[0][0])
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_IN_single(self):
         # Test to see if the port_translate_filter_func behaves as expected when the IN operator is used with a single port
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.IN
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_IN_double(self):
         # Test to see if the port_translate_filter_func behaves as expected when the IN operator is used with two ports
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.IN
         inputValues = [[443, 80]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = (
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_NOT_IN_single(self):
         # Test to see if the port_translate_filter_func behaves as expected when the NOT_IN operator is used with a single port
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_IN
         inputValues = [[443]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
 
     def test_port_translate_filter_func_NOT_IN_double(self):
         # Test to see if the port_translate_filter_func behaves as expected when the NOT_IN operator is used with two ports
-        
+
         inputColumn = Column('user_ip', Integer)
         inputOperation = FilterOperator.NOT_IN
         inputValues = [[443, 80]]
 
-        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(inputColumn.in_(inputValues[0]))
+        portTranslateFilterResponse: sqlalchemy.sql.expression.BinaryExpression = ~(
+            inputColumn.in_(inputValues[0]))
 
-        self.assertTrue(port_translate_filter_func(inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
+        self.assertTrue(port_translate_filter_func(
+            inputColumn, inputOperation, inputValues).compare(portTranslateFilterResponse))
