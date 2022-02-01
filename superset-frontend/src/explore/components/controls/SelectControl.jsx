@@ -118,7 +118,7 @@ export default class SelectControl extends React.PureComponent {
         ? this.props.options
             .filter(v => v !== SELECT_ALL_STRING)
             .map(v => v?.[valueKey] || v)
-        : val.filter(v => v !== SELECT_ALL_STRING).map(v => v?.[valueKey] || v);
+        : val.map(v => v?.[valueKey] || v);
       onChangeVal = values;
     }
 
