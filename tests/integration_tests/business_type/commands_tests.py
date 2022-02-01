@@ -29,11 +29,6 @@ from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.utils.core import FilterOperator, FilterStringOperators
 from sqlalchemy import Column, Integer
 
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 class TestBusinessType(SupersetTestCase):
     resource_name = "business_type"
 
