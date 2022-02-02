@@ -22,7 +22,7 @@ const { name, version } = require('./package.json');
 
 console.log(`checking if ${name}@${version} needs releasing`);
 
-// need to build and publish the package iif the current version does not exist on npm
+// need to build and publish the package iff the current version does not exist on npm
 const needsPublishing = String(execSync(`npm view ${name}@${version} version`)) === '';
 
 if (needsPublishing) {

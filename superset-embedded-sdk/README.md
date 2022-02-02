@@ -19,7 +19,7 @@ under the License.
 
 # Superset Embedded SDK
 
-The Embed SDK allows you to embed dashboards from Superset into your own app,
+The Embedded SDK allows you to embed dashboards from Superset into your own app,
 using your app's authentication.
 
 Embedding is done by inserting an iframe, containing a Superset page, into the host application.
@@ -43,7 +43,7 @@ embedDashboard({
 });
 ```
 
-You can also load the embedded SDK from a CDN. The library will be available as `supersetEmbeddedSdk` globally:
+You can also load the Embedded SDK from a CDN. The library will be available as `supersetEmbeddedSdk` globally:
 
 ```html
 <script src="https://unpkg.com/@superset-ui/embedded-sdk"></script>

@@ -4,7 +4,6 @@
   "description": "SDK for embedding resources from Superset into your own application",
   "access": "public",
   "keywords": ["superset", "embed", "embedded", "sdk", "iframe", "dashboard", "chart", "analytics"],
-
   "files": [
     "bundle",
     "lib",
