@@ -1,4 +1,4 @@
-name: Frontend
+name: embedded-sdk-test-workflow
 
 on:
   push:
