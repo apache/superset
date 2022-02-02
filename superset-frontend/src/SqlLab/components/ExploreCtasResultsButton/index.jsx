@@ -52,7 +52,7 @@ function ExploreCtasResultsButton({
   };
 
   const visualize = () => {
-    createCtasDatasource(buildVizOptions())
+    createCtasDatasource(buildVizOptions)
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -91,7 +91,7 @@ ExploreCtasResultsButton.propTypes = propTypes;
 
 const mapStateToProps = ({ sqlLab, common }) => ({
   errorMessage: sqlLab.errorMessage,
-  timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
+  timeout: common.conf?.SUPERSET_WEBSERVER_TIMEOUT,
 });
 
 const mapDispatchToProps = dispatch => ({
