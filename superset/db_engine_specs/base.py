@@ -292,6 +292,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # But for backward compatibility, False by default
     allows_hidden_cc_in_orderby = False
 
+    # Whether allow CTE as subquery or regular CTE
+    # If True, then it will allow  in subquery ,
+    # if False it will allow as regular CTE
+    allows_cte_in_subquery = True
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
