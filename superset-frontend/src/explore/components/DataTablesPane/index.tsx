@@ -176,7 +176,7 @@ export const DataTablesPane = ({
   errorMessage?: JSX.Element;
   queriesResponse: Record<string, any>;
 }) => {
-  const [data, setData] = useState(getDefaultDataTablesState([]));
+  const [data, setData] = useState(getDefaultDataTablesState(undefined));
   const [isLoading, setIsLoading] = useState(getDefaultDataTablesState(true));
   const [columnNames, setColumnNames] = useState(getDefaultDataTablesState([]));
   const [columnTypes, setColumnTypes] = useState(getDefaultDataTablesState([]));
@@ -264,7 +264,7 @@ export const DataTablesPane = ({
           setError(prevError => ({
             ...prevError,
             [RESULT_TYPES.samples]:
-              error || message || t('Sorry, An error occurred'),
+              error || message || t('Sorry, an error occurred'),
           }));
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
@@ -286,6 +286,17 @@ export const DataTablesPane = ({
   }, [queryFormData?.datasource]);
 
   useEffect(() => {
+    if (chartStatus === 'loading' && !isLoading[RESULT_TYPES.results]) {
+      setIsLoading(prevIsLoading => ({
+        ...prevIsLoading,
+        [RESULT_TYPES.results]: true,
+      }));
+    } else if (chartStatus !== 'loading' && isLoading[RESULT_TYPES.results]) {
+      setIsLoading(prevIsLoading => ({
+        ...prevIsLoading,
+        [RESULT_TYPES.results]: false,
+      }));
+    }
     if (queriesResponse && chartStatus === 'success') {
       const { colnames, coltypes, data } = queriesResponse[0];
       setColumnNames(prevColumnNames => ({
@@ -300,9 +311,17 @@ export const DataTablesPane = ({
         ...prevData,
         [RESULT_TYPES.results]: data,
       }));
-      setIsLoading(prevIsLoading => ({
-        ...prevIsLoading,
-        [RESULT_TYPES.results]: false,
+    }
+    if (queriesResponse && chartStatus === 'failed') {
+      const { error, message } = queriesResponse[0];
+      setData(prevData => ({
+        ...prevData,
+        [RESULT_TYPES.results]: undefined,
+      }));
+      setError(prevError => ({
+        ...prevError,
+        [RESULT_TYPES.results]:
+          error || message || t('Sorry, an error occured'),
       }));
     }
   }, [queriesResponse, chartStatus]);
@@ -375,7 +394,10 @@ export const DataTablesPane = ({
                     columnNames={columnNames[RESULT_TYPES.results]}
                     columnTypes={columnTypes[RESULT_TYPES.results]}
                     filterText={filterText}
-                    error={error[RESULT_TYPES.results]}
+                    error={
+                      queriesResponse?.[0]?.error ||
+                      queriesResponse?.[0]?.message
+                    }
                     errorMessage={errorMessage}
                   />
                 </Tabs.TabPane>
