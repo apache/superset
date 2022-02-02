@@ -85,8 +85,6 @@ const defaultProps = {
   valueKey: 'value',
 };
 
-const SELECT_ALL_STRING = 'Select all';
-
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
