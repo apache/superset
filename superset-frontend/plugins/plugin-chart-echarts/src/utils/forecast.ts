@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  TimeseriesDataRecord,
-  NumberFormatter,
-  DTTM_ALIAS,
-} from '@superset-ui/core';
+import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
 import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
   ForecastSeriesEnum,
-  ProphetValue,
+  ForecastValue,
 } from '../types';
 import { sanitizeHtml } from './series';
 
@@ -55,10 +51,10 @@ export const extractForecastSeriesContexts = (
     return { ...agg, [context.name]: currentContexts };
   }, {} as { [key: string]: ForecastSeriesEnum[] });
 
-export const extractProphetValuesFromTooltipParams = (
+export const extractForecastValuesFromTooltipParams = (
   params: (CallbackDataParams & { seriesId: string })[],
-): Record<string, ProphetValue> => {
-  const values: Record<string, ProphetValue> = {};
+): Record<string, ForecastValue> => {
+  const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
@@ -68,21 +64,21 @@ export const extractProphetValuesFromTooltipParams = (
         values[context.name] = {
           marker: marker || '',
         };
-      const prophetValues = values[context.name];
+      const forecastValues = values[context.name];
       if (context.type === ForecastSeriesEnum.Observation)
-        prophetValues.observation = numericValue;
+        forecastValues.observation = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastTrend)
-        prophetValues.forecastTrend = numericValue;
+        forecastValues.forecastTrend = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastLower)
-        prophetValues.forecastLower = numericValue;
+        forecastValues.forecastLower = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastUpper)
-        prophetValues.forecastUpper = numericValue;
+        forecastValues.forecastUpper = numericValue;
     }
   });
   return values;
 };
 
-export const formatProphetTooltipSeries = ({
+export const formatForecastTooltipSeries = ({
   seriesName,
   observation,
   forecastTrend,
@@ -90,7 +86,7 @@ export const formatProphetTooltipSeries = ({
   forecastUpper,
   marker,
   formatter,
-}: ProphetValue & {
+}: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
   formatter: NumberFormatter;
@@ -113,30 +109,34 @@ export const formatProphetTooltipSeries = ({
   return `${row.trim()}`;
 };
 
-export function rebaseTimeseriesDatum(
-  data: TimeseriesDataRecord[],
+export function rebaseForecastDatum(
+  data: DataRecord[],
   verboseMap: Record<string, string> = {},
 ) {
-  const keys = data.length > 0 ? Object.keys(data[0]) : [];
+  const keys = data.length ? Object.keys(data[0]) : [];
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data.map(row => {
-    const newRow: TimeseriesDataRecord = { [DTTM_ALIAS]: '' };
+    const newRow: DataRecord = {};
     keys.forEach(key => {
       const forecastContext = extractForecastSeriesContext(key);
-      const lowerKey = `${forecastContext.name}${ForecastSeriesEnum.ForecastLower}`;
-      let value = row[key] as number;
+      const verboseKey =
+        key !== DTTM_ALIAS && verboseMap[forecastContext.name]
+          ? `${verboseMap[forecastContext.name]}${forecastContext.type}`
+          : key;
+
+      // check if key is equal to lower confidence level. If so, extract it
+      // from the upper bound
+      const lowerForecastKey = `${forecastContext.name}${ForecastSeriesEnum.ForecastLower}`;
+      let value = row[key] as number | null;
       if (
         forecastContext.type === ForecastSeriesEnum.ForecastUpper &&
-        keys.includes(lowerKey) &&
+        keys.includes(lowerForecastKey) &&
         value !== null &&
-        row[lowerKey] !== null
+        row[lowerForecastKey] !== null
       ) {
-        value -= row[lowerKey] as number;
+        value -= row[lowerForecastKey] as number;
       }
-      const newKey =
-        key !== DTTM_ALIAS && verboseMap[key] ? verboseMap[key] : key;
-      newRow[newKey] = value;
+      newRow[verboseKey] = value;
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return newRow;

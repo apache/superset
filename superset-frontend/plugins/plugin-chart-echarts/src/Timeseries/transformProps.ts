@@ -38,7 +38,7 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
 } from './types';
-import { ForecastSeriesEnum, ProphetValue } from '../types';
+import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -51,10 +51,10 @@ import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
-  extractProphetValuesFromTooltipParams,
-  formatProphetTooltipSeries,
-  rebaseTimeseriesDatum,
-} from '../utils/prophet';
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+} from '../utils/forecast';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -126,7 +126,7 @@ export default function transformProps(
     yAxisTitlePosition,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseTimeseriesDatum(data, verboseMap);
+  const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
@@ -333,19 +333,19 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[0]
           : params.value[0];
-        const prophetValue: any[] = richTooltip ? params : [params];
+        const forecastValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
-          prophetValue.sort((a, b) => b.data[1] - a.data[1]);
+          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
         const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
-        const prophetValues: Record<string, ProphetValue> =
-          extractProphetValuesFromTooltipParams(prophetValue);
+        const forecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(forecastValue);
 
-        Object.keys(prophetValues).forEach(key => {
-          const value = prophetValues[key];
-          const content = formatProphetTooltipSeries({
+        Object.keys(forecastValues).forEach(key => {
+          const value = forecastValues[key];
+          const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
             formatter,
