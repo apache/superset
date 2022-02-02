@@ -26,7 +26,7 @@ Embedding is done by inserting an iframe, containing a Superset page, into the h
 
 ## Embedding a Dashboard
 
-Using npm/yarn:
+Using npm:
 
 ```sh
 npm install --save @superset-ui/embedded-sdk
@@ -43,7 +43,7 @@ embedDashboard({
 });
 ```
 
-If you aren't using frontend build tools, you can instead use the embedded sdk's bundled form. The script will attach a global object `supersetEmbeddedSdk` to the window:
+You can also load the embedded SDK from a CDN. The library will be available as `supersetEmbeddedSdk` globally:
 
 ```html
 <script src="https://unpkg.com/@superset-ui/embedded-sdk"></script>
