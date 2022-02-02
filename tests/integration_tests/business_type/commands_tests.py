@@ -32,7 +32,7 @@ from superset.config import port_translate_filter_func
 
 class TestBusinessType(SupersetTestCase):
     """This class includes all of the unit tests for the business type functions"""
-    # To run the unit tests, use the following command in the root Superset folder:
+    # To run the unit tests below, use the following command in the root Superset folder:
     # tox -e py38 -- tests/integration_tests/business_type/commands_tests.py
 
     def test_cidr_func_valid_ip(self):
