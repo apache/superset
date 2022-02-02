@@ -13,9 +13,9 @@
   "main": "bundle/index.js",
   "module": "lib/index.js",
   "types": "dist/index.d.ts",
-
   "scripts": {
     "build": "tsc & babel src --out-dir lib --extensions '.ts,.tsx' & webpack --mode production",
+    "ci:release": "node ./release-if-necessary.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "browserslist": [
@@ -24,7 +24,6 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
-
   "devDependencies": {
     "@babel/cli": "^7.16.8",
     "@babel/core": "^7.16.12",
@@ -35,7 +34,6 @@
     "webpack": "^5.67.0",
     "webpack-cli": "^4.9.2"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apache/superset.git"
@@ -44,7 +42,6 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
-
   "license": "Apache-2.0",
   "author": "Superset"
 }
