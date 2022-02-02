@@ -38,6 +38,7 @@ from typing import (
 
 import pandas as pd
 import sqlparse
+from sqlparse.tokens import Keyword, CTE
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
@@ -667,6 +668,33 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
+
+    @classmethod
+    def get_cte_query(cls, sql) -> Optional[str]:
+        """
+        Convert the input CTE based SQL to the SQL for virtual table conversion
+
+        :param sql: SQL query
+        :return: Query with __query alias
+
+        """
+        if not cls.allows_cte_in_subquery:
+            p = sqlparse.parse(sql)[0]
+
+            # The first meaningful token for CTE will be with WITH
+            idx, tok = p.token_next(-1, skip_ws=True, skip_cm=True)
+            if not (tok and tok.ttype == CTE):
+                return None
+            idx, tok = p.token_next(idx)
+            idx = p.token_index(tok) + 1
+
+            # extract rest of the SQLs after CTE
+            remainder = u"".join(str(tok) for tok in p.tokens[idx:])
+
+            __query = "WITH " + tok.value + ", __query as ( " + remainder + ")"
+            __query = sqlparse.format(__query, reindent=True, keyword_case='upper')
+            return __query
+        return None
 
     @classmethod
     def df_to_sql(
