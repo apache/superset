@@ -19,10 +19,10 @@
 import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
 import {
   extractForecastSeriesContext,
-  extractProphetValuesFromTooltipParams,
-  formatProphetTooltipSeries,
-  rebaseTimeseriesDatum,
-} from '../../src/utils/prophet';
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+} from '../../src/utils/forecast';
 import { ForecastSeriesEnum } from '../../src/types';
 
 describe('extractForecastSeriesContext', () => {
@@ -46,14 +46,20 @@ describe('extractForecastSeriesContext', () => {
   });
 });
 
-describe('rebaseTimeseriesDatum', () => {
+describe('rebaseForecastDatum', () => {
   it('should subtract lower confidence level from upper value', () => {
     expect(
-      rebaseTimeseriesDatum([
+      rebaseForecastDatum([
         {
           __timestamp: new Date('2001-01-01'),
           abc: 10,
           abc__yhat_lower: 1,
+          abc__yhat_upper: 20,
+        },
+        {
+          __timestamp: new Date('2001-01-01'),
+          abc: 10,
+          abc__yhat_lower: -10,
           abc__yhat_upper: 20,
         },
         {
@@ -77,6 +83,12 @@ describe('rebaseTimeseriesDatum', () => {
         abc__yhat_upper: 19,
       },
       {
+        __timestamp: new Date('2001-01-01'),
+        abc: 10,
+        abc__yhat_lower: -10,
+        abc__yhat_upper: 30,
+      },
+      {
         __timestamp: new Date('2002-01-01'),
         abc: 10,
         abc__yhat_lower: null,
@@ -90,12 +102,62 @@ describe('rebaseTimeseriesDatum', () => {
       },
     ]);
   });
+
+  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
+    expect(
+      rebaseForecastDatum(
+        [
+          {
+            __timestamp: new Date('2001-01-01'),
+            abc: 10,
+            abc__yhat_lower: 1,
+            abc__yhat_upper: 20,
+          },
+          {
+            __timestamp: new Date('2002-01-01'),
+            abc: 10,
+            abc__yhat_lower: null,
+            abc__yhat_upper: 20,
+          },
+          {
+            __timestamp: new Date('2003-01-01'),
+            abc: 10,
+            abc__yhat_lower: 1,
+            abc__yhat_upper: null,
+          },
+        ],
+        {
+          abc: 'Abracadabra',
+          __timestamp: 'Time',
+        },
+      ),
+    ).toEqual([
+      {
+        __timestamp: new Date('2001-01-01'),
+        Abracadabra: 10,
+        Abracadabra__yhat_lower: 1,
+        Abracadabra__yhat_upper: 19,
+      },
+      {
+        __timestamp: new Date('2002-01-01'),
+        Abracadabra: 10,
+        Abracadabra__yhat_lower: null,
+        Abracadabra__yhat_upper: 20,
+      },
+      {
+        __timestamp: new Date('2003-01-01'),
+        Abracadabra: 10,
+        Abracadabra__yhat_lower: 1,
+        Abracadabra__yhat_upper: null,
+      },
+    ]);
+  });
 });
 
-describe('extractProphetValuesFromTooltipParams', () => {
+describe('extractForecastValuesFromTooltipParams', () => {
   it('should extract the proper data from tooltip params', () => {
     expect(
-      extractProphetValuesFromTooltipParams([
+      extractForecastValuesFromTooltipParams([
         {
           marker: '<img>',
           seriesId: 'abc',
@@ -140,10 +202,10 @@ describe('extractProphetValuesFromTooltipParams', () => {
 
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
-describe('formatProphetTooltipSeries', () => {
+describe('formatForecastTooltipSeries', () => {
   it('should generate a proper series tooltip', () => {
     expect(
-      formatProphetTooltipSeries({
+      formatForecastTooltipSeries({
         seriesName: 'abc',
         marker: '<img>',
         observation: 10.1,
@@ -151,7 +213,7 @@ describe('formatProphetTooltipSeries', () => {
       }),
     ).toEqual('<img>abc: 10');
     expect(
-      formatProphetTooltipSeries({
+      formatForecastTooltipSeries({
         seriesName: 'qwerty',
         marker: '<img>',
         observation: 10.1,
@@ -162,7 +224,7 @@ describe('formatProphetTooltipSeries', () => {
       }),
     ).toEqual('<img>qwerty: 10, ŷ = 20 (5, 12)');
     expect(
-      formatProphetTooltipSeries({
+      formatForecastTooltipSeries({
         seriesName: 'qwerty',
         marker: '<img>',
         forecastTrend: 20,
@@ -172,7 +234,7 @@ describe('formatProphetTooltipSeries', () => {
       }),
     ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
     expect(
-      formatProphetTooltipSeries({
+      formatForecastTooltipSeries({
         seriesName: 'qwerty',
         marker: '<img>',
         observation: 10.1,
@@ -182,7 +244,7 @@ describe('formatProphetTooltipSeries', () => {
       }),
     ).toEqual('<img>qwerty: 10 (6, 13)');
     expect(
-      formatProphetTooltipSeries({
+      formatForecastTooltipSeries({
         seriesName: 'qwerty',
         marker: '<img>',
         forecastLower: 7,
