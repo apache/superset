@@ -34,5 +34,5 @@ At time of writing, these tests are not written yet, because we haven't yet put 
 To publish a new version, first determine whether it will be a major/minor/patch version according to [semver rules](https://semver.org/).
 Run `npm version [major|minor|patch]`, and commit the resulting version change.
 
-Building the package and publishing to npm will be handled by github actions automatically on merge to master.
-At least, in theory. It hasn't been implemented yet as I type this.
+Building the package and publishing to npm will be handled by github actions automatically on merge to master,
+provided that the currently specified package version isn't already published.
