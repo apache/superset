@@ -8,12 +8,7 @@ on:
 jobs:
   build:
     name: Build and publish the embedded sdk if version changed
-
     runs-on: ubuntu-20.04
-
-    strategy:
-      matrix:
-        node-version: [16]
 
     steps:
       - name: Use Node.js ${{ matrix.node-version }}
