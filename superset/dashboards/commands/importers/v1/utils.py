@@ -17,7 +17,7 @@
 
 import json
 import logging
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set
 
 from flask import g
 from sqlalchemy.orm import Session
@@ -43,6 +43,10 @@ def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
             if dataset_uuid:
                 uuids.add(dataset_uuid)
     return uuids
+
+
+def find_native_filter_excluded_charts(metadata: Dict[str, Any]) -> List[int]:
+    pass
 
 
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:

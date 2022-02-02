@@ -116,6 +116,18 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 chart = import_chart(session, config, overwrite=False)
                 chart_ids[str(chart.uuid)] = chart.id
 
+        # switch out native filters excluded uuids for chart_ids
+        for file_name, config in configs.items():
+            native_filter_configuration = config.get("metadata", {}).get(
+                "native_filter_configuration"
+            )
+            if file_name.startswith("dashboards/") and native_filter_configuration:
+                for native_filter in native_filter_configuration:
+                    native_filter["scope"]["excluded"] = [
+                        chart_ids.get(chart_uuid)
+                        for chart_uuid in native_filter["scope"]["excluded"]
+                    ]
+
         # store the existing relationship between dashboards and charts
         existing_relationships = session.execute(
             select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
