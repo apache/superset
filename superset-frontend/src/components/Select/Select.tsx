@@ -251,7 +251,11 @@ const Select = ({
 
           if (found) {
             topOptions.push(opt);
-          } else if (opt.value === 'Select all') {
+          } else if (
+            opt.meta &&
+            opt.meta === true &&
+            opt.value === SELECT_ALL_STRING
+          ) {
             selectAllOption.push(opt);
           } else {
             otherOptions.push(opt);
@@ -654,3 +658,4 @@ const Select = ({
 };
 
 export default Select;
+export const SELECT_ALL_STRING = 'Select all';

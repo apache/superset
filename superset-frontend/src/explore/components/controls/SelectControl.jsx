@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { css, t } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select, SELECT_ALL_STRING } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -83,8 +83,6 @@ const defaultProps = {
   showHeader: true,
   valueKey: 'value',
 };
-
-const SELECT_ALL_STRING = 'Select all';
 
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
