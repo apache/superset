@@ -44,6 +44,8 @@ import { hasOption } from './utils';
 
 const { Option } = AntdSelect;
 
+export const SELECT_ALL_STRING = 'Select all';
+
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
 type PickedSelectProps = Pick<
@@ -658,4 +660,3 @@ const Select = ({
 };
 
 export default Select;
-export const SELECT_ALL_STRING = 'Select all';
