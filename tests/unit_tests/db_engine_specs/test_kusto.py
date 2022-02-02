@@ -20,6 +20,8 @@ from datetime import datetime
 import pytest
 from flask.ctx import AppContext
 
+from tests.unit_tests.fixtures.common import dttm
+
 
 @pytest.mark.parametrize(
     "sql,expected",
@@ -119,7 +121,7 @@ def test_kql_parse_sql(app_context: AppContext) -> None:
     ],
 )
 def test_kql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str
+    app_context: AppContext, target_type: str, expected_dttm: str, dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.
@@ -127,8 +129,6 @@ def test_kql_convert_dttm(
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
 
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    print(dttm)
     assert expected_dttm == KustoKqlEngineSpec.convert_dttm(target_type, dttm)
 
 
@@ -142,7 +142,7 @@ def test_kql_convert_dttm(
     ],
 )
 def test_sql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str
+    app_context: AppContext, target_type: str, expected_dttm: str, dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.
@@ -150,6 +150,4 @@ def test_sql_convert_dttm(
 
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec
 
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    print(dttm)
     assert expected_dttm == KustoSqlEngineSpec.convert_dttm(target_type, dttm)
