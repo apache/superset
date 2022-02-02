@@ -520,8 +520,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
-      force_screenshot:
-        shouldEnableForceScreenshot || forceScreenshot ? 'true' : 'false',
+      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
