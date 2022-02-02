@@ -50,7 +50,7 @@ import {
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
-import { extractForecastSeriesContext } from '../utils/prophet';
+import { extractForecastSeriesContext } from '../utils/forecast';
 import { ForecastSeriesEnum, LegendOrientation } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 

@@ -46,10 +46,10 @@ import {
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
-  extractProphetValuesFromTooltipParams,
-  formatProphetTooltipSeries,
-  rebaseTimeseriesDatum,
-} from '../utils/prophet';
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+} from '../utils/forecast';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -130,11 +130,11 @@ export default function transformProps(
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedDataA = rebaseTimeseriesDatum(data1, verboseMap);
+  const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
   });
-  const rebasedDataB = rebaseTimeseriesDatum(data2, verboseMap);
+  const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
   const rawSeriesB = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
   });
@@ -321,19 +321,19 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[0]
           : params.value[0];
-        const prophetValue: any[] = richTooltip ? params : [params];
+        const forecastValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
-          prophetValue.sort((a, b) => b.data[1] - a.data[1]);
+          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
         const rows: Array<string> = [`${tooltipTimeFormatter(xValue)}`];
-        const prophetValues =
-          extractProphetValuesFromTooltipParams(prophetValue);
+        const forecastValues =
+          extractForecastValuesFromTooltipParams(forecastValue);
 
-        Object.keys(prophetValues).forEach(key => {
-          const value = prophetValues[key];
-          const content = formatProphetTooltipSeries({
+        Object.keys(forecastValues).forEach(key => {
+          const value = forecastValues[key];
+          const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
             formatter: primarySeries.has(key) ? formatter : formatterSecondary,
