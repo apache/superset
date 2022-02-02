@@ -30,7 +30,7 @@ import { buildTree } from './utils';
 
 // eslint-disable-next-line import/prefer-default-export
 export function useFilterScopeTree(
-  currentChartId?: number,
+  currentChartId?: number | string,
   initiallyExcludedCharts: number[] = [],
   buildTreeLeafTitle: BuildTreeLeafTitle = label => label,
 ): {
@@ -50,11 +50,15 @@ export function useFilterScopeTree(
   };
 
   // We need to get only nodes that have charts as children or grandchildren
+  console.log(currentChartId);
+  console.log('inside use filter scope tree');
   const validNodes = useMemo(
     () =>
       Object.values(layout).reduce<string[]>((acc, cur) => {
         const { id, parents = [], type, meta } = cur;
-        if (type === CHART_TYPE && currentChartId !== meta?.chartId) {
+        console.log(id);
+        if (type === CHART_TYPE && currentChartId !== id) {
+          // change this to just id
           return [...new Set([...acc, ...parents, id])];
         }
         return acc;
