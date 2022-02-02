@@ -44,6 +44,8 @@ import { hasOption } from './utils';
 
 const { Option } = AntdSelect;
 
+export const SELECT_ALL_STRING = 'Select all';
+
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
 type PickedSelectProps = Pick<
@@ -226,6 +228,9 @@ const Select = ({
       // bringing selected options to the top of the list
       if (selectedValue !== undefined && selectedValue !== null) {
         const isLabeledValue = isAsync || labelInValue;
+        // Used to ensure select all is at the top
+        const selectAllOption: OptionsType = [];
+
         const topOptions: OptionsType = [];
         const otherOptions: OptionsType = [];
 
@@ -248,6 +253,12 @@ const Select = ({
 
           if (found) {
             topOptions.push(opt);
+          } else if (
+            opt.meta &&
+            opt.meta === true &&
+            opt.value === SELECT_ALL_STRING
+          ) {
+            selectAllOption.push(opt);
           } else {
             otherOptions.push(opt);
           }
@@ -277,8 +288,11 @@ const Select = ({
             }
           });
         }
-
-        const sortedOptions = [...topOptions, ...otherOptions];
+        const sortedOptions = [
+          ...selectAllOption,
+          ...topOptions,
+          ...otherOptions,
+        ];
         if (!isEqual(sortedOptions, selectOptions)) {
           setSelectOptions(sortedOptions);
         }
