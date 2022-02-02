@@ -126,7 +126,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   getOptions(props) {
-    const { choices, optionRenderer, valueKey, allowAll } = props;
+    const { choices, optionRenderer, valueKey, allowAll, multi } = props;
     let options = [];
 
     if (props.options) {
@@ -157,7 +157,7 @@ export default class SelectControl extends React.PureComponent {
       });
     }
 
-    if (allowAll === true) {
+    if (multi === true && allowAll === true) {
       if (!this.optionsIncludesSelectAll(options)) {
         options.unshift(this.createMetaSelectAllOption());
       }

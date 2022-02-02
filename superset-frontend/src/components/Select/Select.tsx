@@ -46,6 +46,8 @@ import { getValue, hasOption, isObject } from './utils';
 
 const { Option } = AntdSelect;
 
+export const SELECT_ALL_STRING = 'Select all';
+
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 
 type PickedSelectProps = Pick<
