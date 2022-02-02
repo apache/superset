@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { JsonObject, styled, t } from '@superset-ui/core';
+import { GenericDataType, JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import Loading from 'src/components/Loading';
@@ -43,10 +43,10 @@ const RESULT_TYPES = {
   samples: 'samples' as const,
 };
 
-const NULLISH_RESULTS_STATE = {
-  [RESULT_TYPES.results]: undefined,
-  [RESULT_TYPES.samples]: undefined,
-};
+const getDefaultDataTablesState = (value: any) => ({
+  [RESULT_TYPES.results]: value,
+  [RESULT_TYPES.samples]: value,
+});
 
 const DATA_TABLE_PAGE_SIZE = 50;
 
@@ -105,6 +105,8 @@ const Error = styled.pre`
 
 interface DataTableProps {
   columnNames: string[];
+  columnTypes: GenericDataType[] | undefined;
+  datasource: string | undefined;
   filterText: string;
   data: object[] | undefined;
   isLoading: boolean;
@@ -114,6 +116,8 @@ interface DataTableProps {
 
 const DataTable = ({
   columnNames,
+  columnTypes,
+  datasource,
   filterText,
   data,
   isLoading,
@@ -122,7 +126,7 @@ const DataTable = ({
 }: DataTableProps) => {
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
-  const columns = useTableColumns(columnNames, data);
+  const columns = useTableColumns(columnNames, columnTypes, data, datasource);
   const filteredData = useFilteredTableData(filterText, data);
 
   if (isLoading) {
@@ -172,22 +176,11 @@ export const DataTablesPane = ({
   errorMessage?: JSX.Element;
   queriesResponse: Record<string, any>;
 }) => {
-  const [data, setData] = useState<{
-    [RESULT_TYPES.results]?: Record<string, any>[];
-    [RESULT_TYPES.samples]?: Record<string, any>[];
-  }>(NULLISH_RESULTS_STATE);
-  const [isLoading, setIsLoading] = useState({
-    [RESULT_TYPES.results]: true,
-    [RESULT_TYPES.samples]: true,
-  });
-  const [columnNames, setColumnNames] = useState<{
-    [RESULT_TYPES.results]: string[];
-    [RESULT_TYPES.samples]: string[];
-  }>({
-    [RESULT_TYPES.results]: [],
-    [RESULT_TYPES.samples]: [],
-  });
-  const [error, setError] = useState(NULLISH_RESULTS_STATE);
+  const [data, setData] = useState(getDefaultDataTablesState([]));
+  const [isLoading, setIsLoading] = useState(getDefaultDataTablesState(true));
+  const [columnNames, setColumnNames] = useState(getDefaultDataTablesState([]));
+  const [columnTypes, setColumnTypes] = useState(getDefaultDataTablesState([]));
+  const [error, setError] = useState(getDefaultDataTablesState(''));
   const [filterText, setFilterText] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<string>(
     RESULT_TYPES.results,
@@ -195,7 +188,7 @@ export const DataTablesPane = ({
   const [isRequestPending, setIsRequestPending] = useState<{
     [RESULT_TYPES.results]?: boolean;
     [RESULT_TYPES.samples]?: boolean;
-  }>(NULLISH_RESULTS_STATE);
+  }>(getDefaultDataTablesState(false));
   const [panelOpen, setPanelOpen] = useState(
     getItem(LocalStorageKeys.is_datapanel_open, false),
   );
@@ -212,72 +205,74 @@ export const DataTablesPane = ({
     [data],
   );
 
-  const getData = useCallback(
-    (resultType: string) => {
-      setIsLoading(prevIsLoading => ({
-        ...prevIsLoading,
-        [resultType]: true,
-      }));
-      return getChartDataRequest({
-        formData: queryFormData,
-        resultFormat: 'json',
-        resultType,
-        ownState,
-      })
-        .then(({ json }) => {
-          // Only displaying the first query is currently supported
-          if (json.result.length > 1) {
-            const data: any[] = [];
-            json.result.forEach((item: { data: any[] }) => {
-              item.data.forEach((row, i) => {
-                if (data[i] !== undefined) {
-                  data[i] = { ...data[i], ...row };
-                } else {
-                  data[i] = row;
-                }
-              });
+  const getSamplesData = useCallback(() => {
+    setIsLoading(prevIsLoading => ({
+      ...prevIsLoading,
+      [RESULT_TYPES.samples]: true,
+    }));
+    return getChartDataRequest({
+      formData: queryFormData,
+      resultFormat: 'json',
+      resultType: 'samples',
+      ownState,
+    })
+      .then(({ json }) => {
+        // Only displaying the first query is currently supported
+        if (json.result.length > 1) {
+          const data: any[] = [];
+          json.result.forEach((item: { data: any[] }) => {
+            item.data.forEach((row, i) => {
+              if (data[i] !== undefined) {
+                data[i] = { ...data[i], ...row };
+              } else {
+                data[i] = row;
+              }
             });
-            setData(prevData => ({
-              ...prevData,
-              [resultType]: data,
-            }));
-          } else {
-            setData(prevData => ({
-              ...prevData,
-              [resultType]: json.result[0].data,
-            }));
-          }
-          const checkCols = json?.result[0]?.data?.length
-            ? Object.keys(json.result[0].data[0])
-            : null;
-          setColumnNames(prevColumnNames => ({
-            ...prevColumnNames,
-            [resultType]: json.result[0].columns || checkCols,
+          });
+          setData(prevData => ({
+            ...prevData,
+            [RESULT_TYPES.samples]: data,
+          }));
+        } else {
+          setData(prevData => ({
+            ...prevData,
+            [RESULT_TYPES.samples]: json.result[0].data,
+          }));
+        }
+        const checkCols = json?.result[0]?.data?.length
+          ? Object.keys(json.result[0].data[0])
+          : null;
+        setColumnNames(prevColumnNames => ({
+          ...prevColumnNames,
+          [RESULT_TYPES.samples]: json.result[0].columns || checkCols,
+        }));
+        setColumnTypes(prevColumnTypes => ({
+          ...prevColumnTypes,
+          [RESULT_TYPES.samples]: json.result[0].coltypes || [],
+        }));
+        setIsLoading(prevIsLoading => ({
+          ...prevIsLoading,
+          [RESULT_TYPES.samples]: false,
+        }));
+        setError(prevError => ({
+          ...prevError,
+          [RESULT_TYPES.samples]: undefined,
+        }));
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(({ error, message }) => {
+          setError(prevError => ({
+            ...prevError,
+            [RESULT_TYPES.samples]:
+              error || message || t('Sorry, An error occurred'),
           }));
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
-            [resultType]: false,
+            [RESULT_TYPES.samples]: false,
           }));
-          setError(prevError => ({
-            ...prevError,
-            [resultType]: null,
-          }));
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(({ error, message }) => {
-            setError(prevError => ({
-              ...prevError,
-              [resultType]: error || message || t('Sorry, An error occurred'),
-            }));
-            setIsLoading(prevIsLoading => ({
-              ...prevIsLoading,
-              [resultType]: false,
-            }));
-          });
         });
-    },
-    [queryFormData, columnNames],
-  );
+      });
+  }, [queryFormData, columnNames]);
 
   useEffect(() => {
     setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
@@ -286,53 +281,33 @@ export const DataTablesPane = ({
   useEffect(() => {
     setIsRequestPending(prevState => ({
       ...prevState,
-      [RESULT_TYPES.results]: true,
-    }));
-  }, [queryFormData]);
-
-  useEffect(() => {
-    setIsRequestPending(prevState => ({
-      ...prevState,
       [RESULT_TYPES.samples]: true,
     }));
-  }, [queryFormData?.adhoc_filters, queryFormData?.datasource]);
+  }, [queryFormData?.datasource]);
 
   useEffect(() => {
     if (queriesResponse && chartStatus === 'success') {
-      const { colnames } = queriesResponse[0];
+      const { colnames, coltypes, data } = queriesResponse[0];
       setColumnNames(prevColumnNames => ({
         ...prevColumnNames,
-        [RESULT_TYPES.results]: colnames ? [...colnames] : [],
+        [RESULT_TYPES.results]: colnames ?? [],
+      }));
+      setColumnTypes(prevColumnTypes => ({
+        ...prevColumnTypes,
+        [RESULT_TYPES.results]: coltypes ?? [],
+      }));
+      setData(prevData => ({
+        ...prevData,
+        [RESULT_TYPES.results]: data,
+      }));
+      setIsLoading(prevIsLoading => ({
+        ...prevIsLoading,
+        [RESULT_TYPES.results]: false,
       }));
     }
   }, [queriesResponse, chartStatus]);
 
   useEffect(() => {
-    if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
-      if (errorMessage) {
-        setIsRequestPending(prevState => ({
-          ...prevState,
-          [RESULT_TYPES.results]: false,
-        }));
-        setIsLoading(prevIsLoading => ({
-          ...prevIsLoading,
-          [RESULT_TYPES.results]: false,
-        }));
-        return;
-      }
-      if (chartStatus === 'loading') {
-        setIsLoading(prevIsLoading => ({
-          ...prevIsLoading,
-          [RESULT_TYPES.results]: true,
-        }));
-      } else {
-        setIsRequestPending(prevState => ({
-          ...prevState,
-          [RESULT_TYPES.results]: false,
-        }));
-        getData(RESULT_TYPES.results);
-      }
-    }
     if (
       panelOpen &&
       isRequestPending[RESULT_TYPES.samples] &&
@@ -342,12 +317,12 @@ export const DataTablesPane = ({
         ...prevState,
         [RESULT_TYPES.samples]: false,
       }));
-      getData(RESULT_TYPES.samples);
+      getSamplesData();
     }
   }, [
     panelOpen,
     isRequestPending,
-    getData,
+    getSamplesData,
     activeTabKey,
     chartStatus,
     errorMessage,
@@ -396,7 +371,9 @@ export const DataTablesPane = ({
                   <DataTable
                     isLoading={isLoading[RESULT_TYPES.results]}
                     data={data[RESULT_TYPES.results]}
+                    datasource={queryFormData?.datasource}
                     columnNames={columnNames[RESULT_TYPES.results]}
+                    columnTypes={columnTypes[RESULT_TYPES.results]}
                     filterText={filterText}
                     error={error[RESULT_TYPES.results]}
                     errorMessage={errorMessage}
@@ -409,7 +386,9 @@ export const DataTablesPane = ({
                   <DataTable
                     isLoading={isLoading[RESULT_TYPES.samples]}
                     data={data[RESULT_TYPES.samples]}
+                    datasource={queryFormData?.datasource}
                     columnNames={columnNames[RESULT_TYPES.samples]}
+                    columnTypes={columnTypes[RESULT_TYPES.samples]}
                     filterText={filterText}
                     error={error[RESULT_TYPES.samples]}
                     errorMessage={errorMessage}
