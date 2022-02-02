@@ -75,7 +75,7 @@ Example `POST /security/guest_token` payload:
 ```json
 {
   "user": {
-    "username": "stan_lee", // these user parameters are optional but can be useful
+    "username": "stan_lee",
     "first_name": "Stan",
     "last_name": "Lee"
   },
