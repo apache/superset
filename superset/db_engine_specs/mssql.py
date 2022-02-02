@@ -137,36 +137,6 @@ class MssqlEngineSpec(BaseEngineSpec):
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
-    @classmethod
-    def get_cte_query(cls, sql) -> Optional[str]:
-        """
-            Returns the wrapped CTE
-        """
-        if not cls.allows_cte_in_subquery:
-            p = sqlparse.parse(sql)[0]
-
-            # The first meaningful token for CTE will be with WITH
-            idx, tok = p.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (tok and tok.ttype == CTE):
-                return None
-            idx, tok = p.token_next(idx)
-            idx = p.token_index(tok) + 1
-
-            # extarct rest of the SQLs after CTE
-            remainder = u"".join(str(tok) for tok in p.tokens[idx:])
-
-            __query = "WITH " + tok.value + ", __query as ( " + remainder + ")"
-            __query = sqlparse.format(__query, reindent=True, keyword_case='upper')
-            return __query
-        return None
-
-    @classmethod
-    def test_cte_sql(cls):
-        sql = """
-        select * from currency
-        """
-        sql = cls.get_cte_prequery(sql)
-        print(sql)
 
 class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"
