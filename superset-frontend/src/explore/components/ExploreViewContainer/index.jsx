@@ -609,9 +609,11 @@ function ExploreViewContainer(props) {
           datasourceType={props.datasource_type}
         />
         <ConnectedControlPanelsContainer
+          exploreState={props.exploreState}
           actions={props.actions}
           form_data={props.form_data}
           controls={props.controls}
+          chart={props.chart}
           datasource_type={props.datasource_type}
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
         />
@@ -673,6 +675,7 @@ function mapStateToProps(state) {
     ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
     user: explore.user,
+    exploreState: explore,
     reports,
   };
 }
