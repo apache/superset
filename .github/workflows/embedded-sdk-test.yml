@@ -1,7 +1,7 @@
 name: embedded-sdk-test-workflow
 
 on:
-  push:
+  pull_request:
     paths:
       - "superset-embedded-sdk/**"
 
