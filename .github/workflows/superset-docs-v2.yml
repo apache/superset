@@ -1,0 +1,31 @@
+name: Docs v2
+
+on:
+  push:
+    paths:
+      - "docs-v2/**"
+      - .github/workflows/superset-docs-v2.yml
+  pull_request:
+    paths:
+      - "docs-v2/**"
+      - .github/workflows/superset-docs-v2.yml
+
+jobs:
+  build-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: docs-v2
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: yarn install
+        run: |
+          yarn install --immutable --immutable-cache --check-cache
+      - name: yarn build
+        run: |
+          yarn build
