@@ -4,11 +4,9 @@ on:
   push:
     paths:
       - "docs/**"
-      - .github/workflows/superset-docs.yml
   pull_request:
     paths:
       - "docs/**"
-      - .github/workflows/superset-docs.yml
 
 jobs:
   build-deploy:
