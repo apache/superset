@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/embedded-sdk",
   "version": "0.1.0-alpha.1",
-  "description": "Embedded SDK for Superset",
+  "description": "SDK for embedding resources from Superset into your own application",
   "access": "public",
   "keywords": ["superset", "embed", "embedded", "sdk", "iframe", "dashboard", "chart", "analytics"],
 
