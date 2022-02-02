@@ -226,7 +226,7 @@ const Select = ({
       // bringing selected options to the top of the list
       if (selectedValue !== undefined && selectedValue !== null) {
         const isLabeledValue = isAsync || labelInValue;
-        // Used to insure sleect all is at the top
+        // Used to ensure select all is at the top
         const selectAllOption: OptionsType = [];
 
         const topOptions: OptionsType = [];
