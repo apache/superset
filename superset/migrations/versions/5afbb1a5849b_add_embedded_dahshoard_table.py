@@ -35,7 +35,7 @@ def upgrade():
         "embedded_dashboards",
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
-        sa.Column("allow_domain_list",git, nullable=True),
+        sa.Column("allow_domain_list", sa.JSON(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column(
             "dashboard_id", sa.Integer(), sa.ForeignKey("dashboards.id"), nullable=False
