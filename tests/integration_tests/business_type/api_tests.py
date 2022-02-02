@@ -25,8 +25,10 @@ from superset.utils.core import FilterStringOperators
 
 class TestBusinessTypeApi(SupersetTestCase):
     """This class includes the unit tests for the business type REST API"""
-    # To run the unit tests below, use the following command in the root Superset folder:
+    # To run the unit tests below, use the following commands in the root Superset folder:
+    # docker-compose up
     # scripts/tests/run.sh --module tests/integration_tests/business_type/api_tests.py
+    # docker-compose down -v      (only run this last command when you are done with the unit tests)
 
     def test_get_business_type(self):
         """
@@ -67,3 +69,4 @@ class TestBusinessTypeApi(SupersetTestCase):
 
         self.assertEqual(http_response.status_code, 200)
         self.assertEqual(data, ['cidr', 'port'])
+        
