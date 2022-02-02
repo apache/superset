@@ -41,11 +41,11 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     )
     @rison()
     def get(self, **kwargs: Any) -> Response:
-        """Send a greeting
+        """Returns a BusinessTypeResponse object populated with the passed in args
         ---
         get:
           description: >-
-            Deletes multiple annotation layers in a bulk operation.
+            Returns a BusinessTypeResponse object populated with the passed in args.
           parameters:
           - in: query
             name: q
@@ -55,7 +55,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/business_type_convert_schema'
           responses:
             200:
-              description: a successful conversion has taken place
+              description: a successful return of a BusinessTypeResponse object has taken place.
               content:
                 application/json:
                   schema:
@@ -88,7 +88,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Deletes multiple annotation layers in a bulk operation.
+            Returns a list of available business types.
           parameters:
           - in: query
             name: q
@@ -98,7 +98,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/business_type_convert_schema'
           responses:
             200:
-              description: a successful conversion has taken place
+              description: a successful return of the available business types has taken place.
               content:
                 application/json:
                   schema:
