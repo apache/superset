@@ -1,0 +1,27 @@
+name: Frontend
+
+on:
+  push:
+    paths:
+      - "superset-embedded-sdk/**"
+
+jobs:
+  embedded-sdk-test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Install dependencies
+        working-directory: ./superset-embedded-sdk
+        run: npm ci
+      - name: Build the SDK
+        working-directory: ./superset-embedded-sdk
+        run: npm run build

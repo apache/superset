@@ -22,27 +22,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org/
 
-      - name: Cache npm
-        uses: actions/cache@v1
-        with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
-
-      - name: Get npm cache directory path
-        id: npm-cache-dir-path
-        run: echo "::set-output name=dir::$(npm config get cache)"
-      - name: Cache npm
-        uses: actions/cache@v1
-        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
       - name: Configure npm
         run: |
           echo "@superset-ui:registry=https://registry.npmjs.org/" > .npmrc
@@ -54,7 +33,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./superset-embedded-sdk
-        run: npm ci
+        with:
+          run: npm ci
 
       - name: Build packages
         working-directory: ./superset-embedded-sdk
