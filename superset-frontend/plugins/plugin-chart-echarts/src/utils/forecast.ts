@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, NumberFormatter } from '@superset-ui/core';
+import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
 import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -119,9 +119,10 @@ export function rebaseForecastDatum(
     const newRow: DataRecord = {};
     keys.forEach(key => {
       const forecastContext = extractForecastSeriesContext(key);
-      const verboseKey = verboseMap[forecastContext.name]
-        ? `${verboseMap[forecastContext.name]}${forecastContext.type}`
-        : key;
+      const verboseKey =
+        key !== DTTM_ALIAS && verboseMap[forecastContext.name]
+          ? `${verboseMap[forecastContext.name]}${forecastContext.type}`
+          : key;
 
       // check if key is equal to lower confidence level. If so, extract it
       // from the upper bound

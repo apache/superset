@@ -103,7 +103,7 @@ describe('rebaseForecastDatum', () => {
     ]);
   });
 
-  it('should rename all series based on verboseMap', () => {
+  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
     expect(
       rebaseForecastDatum(
         [
@@ -128,6 +128,7 @@ describe('rebaseForecastDatum', () => {
         ],
         {
           abc: 'Abracadabra',
+          __timestamp: 'Time',
         },
       ),
     ).toEqual([
