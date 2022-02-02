@@ -43,7 +43,7 @@ embedDashboard({
 });
 ```
 
-You can also load the Embedded SDK from a CDN. The library will be available as `supersetEmbeddedSdk` globally:
+You can also load the Embedded SDK from a CDN. The SDK will be available as `supersetEmbeddedSdk` globally:
 
 ```html
 <script src="https://unpkg.com/@superset-ui/embedded-sdk"></script>
