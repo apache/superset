@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@superset-ui/core';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from 'spec/helpers/testing-library';
 import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import { useTableColumns } from '.';
 
@@ -52,27 +52,33 @@ const coltypes = [
 ];
 
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(all_columns, coltypes, data));
+  const hook = renderHook(() => useTableColumns(all_columns, coltypes, data), {
+    useRedux: true,
+  });
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
       Header: 'col01',
       accessor: expect.any(Function),
+      id: 'col01',
     },
     {
       Cell: expect.any(Function),
       Header: 'col02',
       accessor: expect.any(Function),
+      id: 'col02',
     },
     {
       Cell: expect.any(Function),
       Header: asciiKey,
       accessor: expect.any(Function),
+      id: asciiKey,
     },
     {
       Cell: expect.any(Function),
       Header: unicodeKey,
       accessor: expect.any(Function),
+      id: unicodeKey,
     },
   ]);
   hook.result.current.forEach((col: JsonObject) => {
@@ -91,34 +97,40 @@ test('useTableColumns with no options', () => {
 
 test('use only the first record columns', () => {
   const newData = [data[3], data[0]];
-  const hook = renderHook(() =>
-    useTableColumns(all_columns, coltypes, newData),
+  const hook = renderHook(
+    () => useTableColumns(all_columns, coltypes, newData),
+    { useRedux: true },
   );
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
       Header: 'col01',
       accessor: expect.any(Function),
+      id: 'col01',
     },
     {
       Cell: expect.any(Function),
       Header: 'col02',
       accessor: expect.any(Function),
+      id: 'col02',
     },
     {
       Cell: expect.any(Function),
       Header: 'col03',
       accessor: expect.any(Function),
+      id: 'col03',
     },
     {
       Cell: expect.any(Function),
       Header: asciiKey,
       accessor: expect.any(Function),
+      id: asciiKey,
     },
     {
       Cell: expect.any(Function),
       Header: unicodeKey,
       accessor: expect.any(Function),
+      id: unicodeKey,
     },
   ]);
 
@@ -144,10 +156,12 @@ test('use only the first record columns', () => {
 });
 
 test('useTableColumns with options', () => {
-  const hook = renderHook(() =>
-    useTableColumns(all_columns, coltypes, data, undefined, {
-      col01: { id: 'ID' },
-    }),
+  const hook = renderHook(
+    () =>
+      useTableColumns(all_columns, coltypes, data, undefined, {
+        col01: { id: 'ID' },
+      }),
+    { useRedux: true },
   );
   expect(hook.result.current).toEqual([
     {
@@ -160,16 +174,19 @@ test('useTableColumns with options', () => {
       Cell: expect.any(Function),
       Header: 'col02',
       accessor: expect.any(Function),
+      id: 'col02',
     },
     {
       Cell: expect.any(Function),
       Header: asciiKey,
       accessor: expect.any(Function),
+      id: asciiKey,
     },
     {
       Cell: expect.any(Function),
       Header: unicodeKey,
       accessor: expect.any(Function),
+      id: unicodeKey,
     },
   ]);
   hook.result.current.forEach((col: JsonObject) => {
