@@ -6,6 +6,7 @@ from typing import Any, List
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 
 from superset import app
 from superset.business_type.business_type_response import BusinessTypeResponse
@@ -71,9 +72,24 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                         type: list
         """
         items = kwargs["rison"]
-        bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[items["type"]](
+        business_type = items.get("type")
+        if not business_type:
+            return self.response(400, message=_("Missing business type in request"))
+        values = items["values"]
+        if not values:
+            return self.response(400, message=_("Missing values in request"))
+        addon_func = BUSINESS_TYPE_ADDONS.get(business_type)
+        if not addon_func:
+            return self.response(
+                400,
+                message=_(
+                    "Invalid business type: %(business_type)s",
+                    business_type=business_type,
+                ),
+            )
+        bus_resp: BusinessTypeResponse = addon_func(
             {
-                "values": items["values"],
+                "values": values,
             }
         )
         return self.response(200, result=bus_resp)
