@@ -1,4 +1,4 @@
-name: Embedded SDK Test
+name: Embedded SDK PR Checks
 
 on:
   pull_request:
