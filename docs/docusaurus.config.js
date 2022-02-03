@@ -117,7 +117,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs-v2',
+          editUrl: 'https://github.com/apache/superset/tree/master/docs',
         },
         blog: {
           showReadingTime: true,
