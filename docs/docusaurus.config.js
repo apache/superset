@@ -101,6 +101,10 @@ const config = {
             to: '/docs/installation/alerts-reports',
             from: '/docs/installation/email-reports',
           },
+          {
+            to: '/docs/intro',
+            from: '/docs/roadmap',
+          },
         ],
       },
     ],
