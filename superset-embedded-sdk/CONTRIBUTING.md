@@ -32,6 +32,24 @@ and therefore are not easily unit-testable. We have instead opted to test the sd
 This way, the tests can assert that the sdk actually mounts the iframe and communicates with it correctly.
 
 At time of writing, these tests are not written yet, because we haven't yet put together the demo app that they will leverage.
+### Things to e2e test once we have a demo app:
+
+**happy path:**
+
+fetch valid guest token and pass it to the sdk, verify that the dashboard shows up
+
+**security:**
+
+it should fail if you pass a fake guest token
+it should fail if your guest token doesn't have permission to access this resource
+it should apply rls filters correctly
+it should not apply rls filters to a dataset that isn't included
+
+**edge cases:**
+
+what happens if superset is offline
+what happens if the superset domain is invalid or incorrect
+what happens if dashboard id doesn't exist
 
 ## Publishing
 
