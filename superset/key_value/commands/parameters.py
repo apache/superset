@@ -24,6 +24,5 @@ from flask_appbuilder.security.sqla.models import User
 class CommandParameters:
     actor: User
     resource_id: int
-    query_params: Dict[str, str]
     key: Optional[str] = None
     value: Optional[str] = None

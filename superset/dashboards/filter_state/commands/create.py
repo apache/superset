@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from secrets import token_urlsafe
+
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
 from superset.key_value.commands.create import CreateKeyValueCommand
@@ -23,13 +25,17 @@ from superset.key_value.utils import cache_key
 
 
 class CreateFilterStateCommand(CreateKeyValueCommand):
-    def create(self, cmd_params: CommandParameters) -> bool:
+    def create(self, cmd_params: CommandParameters) -> str:
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        key = cache_key(resource_id, cmd_params.key)
+        contextual_key = cache_key(actor.get_user_id(), resource_id)
+        key = cache_manager.filter_state_cache.get(contextual_key)
+        if not key:
+            key = token_urlsafe(48)
         value = cmd_params.value
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))
         if dashboard and value:
             entry: Entry = {"owner": actor.get_user_id(), "value": value}
-            return cache_manager.filter_state_cache.set(key, entry)
-        return False
+            cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
+            cache_manager.filter_state_cache.set(contextual_key, key)
+        return key

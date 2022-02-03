@@ -28,6 +28,7 @@ from superset.key_value.commands.exceptions import (
     KeyValueAccessDeniedError,
     KeyValueDeleteFailedError,
 )
+from superset.key_value.utils import cache_key
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +45,13 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 key
             )
             if state:
-                check_access(state["dataset_id"], state["chart_id"], actor)
+                dataset_id = state["dataset_id"]
+                chart_id = state["chart_id"]
+                check_access(dataset_id, chart_id, actor)
                 if state["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
+                contextual_key = cache_key(actor.get_user_id(), dataset_id, chart_id)
+                cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)
             return False
         except SQLAlchemyError as ex:
