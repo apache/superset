@@ -179,6 +179,40 @@ def test_column_datatype_to_string(
     actual = MssqlEngineSpec.column_datatype_to_string(original, mssql.dialect())
     assert actual == expected
 
+@pytest.mark.parametrize(
+    "original,expected",
+    [
+        ("with currency as\n"
+            "(\n"
+            "select 'INR' as cur\n"
+            ")\n"
+            "select * from currency\n"
+            , "WITH currency as\n"
+            "(\n"
+            "select 'INR' as cur\n"
+            "),\n"
+            "__query as (\n"
+              "select * from currency\n"
+              ")",),
+        ("SELECT 1 as cnt", None,),
+        ("select 'INR' as cur\n"
+            "union\n"
+            "select 'AUD' as cur\n"
+            "union \n"
+            "select 'USD' as cur\n", None)
+    ],
+)
+def test_cte_query_parsing(
+    app_context: AppContext, original: TypeEngine, expected: str
+) -> None:
+        from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+        actual = MssqlEngineSpec.get_cte_query(original)
+        print(original)
+        print(expected)
+        print(actual)
+        assert actual == expected
+
 
 def test_extract_errors(app_context: AppContext) -> None:
     """

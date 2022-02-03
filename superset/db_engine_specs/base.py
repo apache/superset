@@ -690,10 +690,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
             # extract rest of the SQLs after CTE
             remainder = u"".join(str(tok) for tok in p.tokens[idx:])
-
-            __query = "WITH " + tok.value + ", __query as ( " + remainder + ")"
-            __query = sqlparse.format(__query, reindent=True, keyword_case='upper')
+            __query = "WITH " + tok.value + ",\n__query as (" + remainder + ")"
             return __query
+        
         return None
 
     @classmethod
