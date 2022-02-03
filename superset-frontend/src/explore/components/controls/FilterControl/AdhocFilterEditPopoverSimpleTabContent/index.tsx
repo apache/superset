@@ -121,6 +121,7 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
 
   const fetchBusinessTypeValueCallback = useCallback(
     debounce((comp: string | string[], type: string | undefined) => {
+      if (!type) return;
       const queryParams = rison.encode({
         type,
         values: typeof comp === 'string' ? [comp] : comp,
