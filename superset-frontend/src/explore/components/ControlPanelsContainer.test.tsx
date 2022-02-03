@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { styledShallow as shallow } from 'spec/helpers/theming';
+import { render, screen } from 'spec/helpers/testing-library';
 import {
   DatasourceType,
   getChartControlPanelRegistry,
@@ -30,9 +30,7 @@ import {
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
 
-describe('ControlPanelsContainer', () => {
-  let wrapper;
-
+describe('ControlPanelsContainer2', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue('table', {
       controlPanelSections: [
@@ -96,9 +94,9 @@ describe('ControlPanelsContainer', () => {
   }
 
   it('renders ControlPanelSections', () => {
-    wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
+    render(<ControlPanelsContainer {...getDefaultProps()} />);
     expect(
-      wrapper.find('[data-test="collapsible-control-panel"]'),
-    ).toHaveLength(5);
+      screen.getAllByTestId('collapsible-control-panel-header'),
+    ).toHaveLength(4);
   });
 });
