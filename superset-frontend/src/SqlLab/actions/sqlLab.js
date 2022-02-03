@@ -775,8 +775,10 @@ export function queryEditorSetDb(queryEditor, dbId) {
 }
 
 export function queryEditorSetSchema(queryEditor, schema) {
+  console.log('queryEditor', typeof queryEditor, '---schema -->', schema)
   return function (dispatch) {
-    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+    console.log('featureflag *******', isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE))
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && typeof queryEditor === 'object'
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
           postPayload: { schema },
