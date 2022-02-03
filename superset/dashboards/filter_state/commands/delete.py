@@ -34,5 +34,7 @@ class DeleteFilterStateCommand(DeleteKeyValueCommand):
             if entry:
                 if entry["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
+                contextual_key = cache_key(actor.get_user_id(), resource_id)
+                cache_manager.filter_state_cache.delete(contextual_key)
                 return cache_manager.filter_state_cache.delete(key)
         return False
