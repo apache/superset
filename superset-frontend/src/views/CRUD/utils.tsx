@@ -35,7 +35,7 @@ import { Dashboard, Filters } from './types';
 
 // Modifies the rison encoding slightly to match the backend's
 // rison encoding/decoding. Applies globally. Code pulled from rison.js
-const fixRisonEncodeDecode = () => {
+(() => {
   const risonRef: {
     not_idchar: string;
     not_idstart: string;
@@ -60,9 +60,7 @@ const fixRisonEncodeDecode = () => {
 
   risonRef.id_ok = new RegExp(`^${idrx}$`);
   risonRef.next_id = new RegExp(idrx, 'g');
-};
-
-fixRisonEncodeDecode();
+})();
 
 const createFetchResourceMethod =
   (method: string) =>

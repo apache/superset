@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import {
   isNeedsPassword,
   isAlreadyExists,
@@ -170,4 +171,22 @@ test('does not ask for password when the import type is wrong', () => {
     ],
   };
   expect(hasTerminalValidation(error.errors)).toBe(true);
+});
+
+test('successfully modified rison to encode correctly', () => {
+  const problemCharacters = '& # ? ^ { } [ ] | " = + `';
+
+  const testObject = problemCharacters.split(' ').reduce((a, c) => {
+    // eslint-disable-next-line no-param-reassign
+    a[c] = c;
+    return a;
+  }, {});
+
+  const actualEncoding = rison.encode(testObject);
+
+  const expectedEncoding =
+    "('\"':'\"','#':'#','&':'&','+':'+','=':'=','?':'?','[':'[',']':']','^':'^','`':'`','{':'{','|':'|','}':'}')";
+
+  expect(actualEncoding).toEqual(expectedEncoding);
+  expect(rison.decode(actualEncoding)).toEqual(testObject);
 });
