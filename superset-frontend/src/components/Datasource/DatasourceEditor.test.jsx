@@ -122,10 +122,9 @@ describe('DatasourceEditor', () => {
     });
     expect(addBtn).toBeInTheDocument();
     userEvent.click(addBtn);
-    const newColumn = screen.getByRole('button', {
-      name: /<new column>/i,
-    });
-    expect(newColumn).toBeInTheDocument();
+    // newColumn (Column name) is the first textbox in the tab
+    const newColumn = screen.getAllByRole('textbox', { name: '' })[0];
+    expect(newColumn).toHaveValue('<new column>');
   });
 
   it('renders isSqla fields', () => {

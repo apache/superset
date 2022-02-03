@@ -16,30 +16,25 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.key_value.commands.exceptions import KeyValueUpdateFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand, ABC):
     def __init__(
-        self, actor: User, resource_id: int, key: str, value: str,
+        self, cmd_params: CommandParameters,
     ):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._key = key
-        self._value = value
+        self._parameters = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> bool:
         try:
-            return self.update(self._actor, self._resource_id, self._key, self._value)
+            return self.update(self._parameters)
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
@@ -48,7 +43,5 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def update(
-        self, actor: User, resource_id: int, key: str, value: str
-    ) -> Optional[bool]:
+    def update(self, cmd_params: CommandParameters) -> bool:
         ...

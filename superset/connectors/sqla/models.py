@@ -178,12 +178,7 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         raise NotImplementedError()
 
-    def values_for_column(
-        self,
-        column_name: str,
-        limit: int = 10000,
-        contain_null: bool = True,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         raise NotImplementedError()
 
 
@@ -747,12 +742,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             ) from ex
 
-    def values_for_column(
-        self,
-        column_name: str,
-        limit: int = 10000,
-        contain_null: bool = True,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -767,9 +757,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         )
         if limit:
             qry = qry.limit(limit)
-
-        if not contain_null:
-            qry = qry.where(target_col.get_sqla_col().isnot(None))
 
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
@@ -975,14 +962,28 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
-        filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
+        all_filters: List[TextClause] = []
+        filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
                 clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
-                filters_grouped[filter_.group_key or filter_.id].append(clause)
-            return [or_(*clauses) for clauses in filters_grouped.values()]
+                if filter_.group_key:
+                    filter_groups[filter_.group_key].append(clause)
+                else:
+                    all_filters.append(clause)
+
+            if is_feature_enabled("EMBEDDED_SUPERSET"):
+                for rule in security_manager.get_guest_rls_filters(self):
+                    clause = self.text(
+                        f"({template_processor.process_template(rule['clause'])})"
+                    )
+                    all_filters.append(clause)
+
+            grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
+            all_filters.extend(grouped_filters)
+            return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _(
@@ -1485,7 +1486,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                                 metrics_by_name,
                                 columns_by_name,
                             ),
-                            False,
+                            not order_desc,
                         )
                     ]
 

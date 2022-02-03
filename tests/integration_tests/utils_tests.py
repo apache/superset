@@ -54,7 +54,6 @@ from superset.utils.core import (
     get_form_data_token,
     get_iterable,
     get_email_address_list,
-    get_or_create_db,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -72,6 +71,7 @@ from superset.utils.core import (
     zlib_compress,
     zlib_decompress,
 )
+from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
 from superset.views.utils import (

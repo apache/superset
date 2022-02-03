@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { useChartOwnerNames } from 'src/common/hooks/apiResources';
+import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 

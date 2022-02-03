@@ -118,6 +118,16 @@ const StyledLabelWrapper = styled.div`
   }
 `;
 
+const StyledColumnsTabWrapper = styled.div`
+  .table > tbody > tr > td {
+    vertical-align: middle;
+  }
+
+  .ant-tag {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -978,6 +988,23 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     return (
       <div>
+        {this.allowEditSource && (
+          <EditLockContainer>
+            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+              {this.state.isEditMode ? (
+                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+              ) : (
+                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
+              )}
+            </span>
+            {!this.state.isEditMode && (
+              <div>{t('Click the lock to make changes.')}</div>
+            )}
+            {this.state.isEditMode && (
+              <div>{t('Click the lock to prevent further changes.')}</div>
+            )}
+          </EditLockContainer>
+        )}
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
@@ -1131,23 +1158,6 @@ class DatasourceEditor extends React.PureComponent {
             </Col>
           )}
         </Fieldset>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
-            )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
       </div>
     );
   }
@@ -1187,11 +1197,6 @@ class DatasourceEditor extends React.PureComponent {
         expandFieldset={
           <FormContainer>
             <Fieldset compact>
-              <Field
-                fieldKey="verbose_name"
-                label={t('Label')}
-                control={<TextControl controlId="verbose_name" />}
-              />
               <Field
                 fieldKey="description"
                 label={t('Description')}
@@ -1274,15 +1279,17 @@ class DatasourceEditor extends React.PureComponent {
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+            <TextControl canEdit value={v} onChange={onChange} />
           ),
           expression: (v, onChange) => (
-            <EditableTitle
+            <TextAreaControl
               canEdit
-              title={v}
-              onSaveTitle={onChange}
+              initialValue={v}
+              onChange={onChange}
               extraClasses={['datasource-sql-expression']}
-              multiLine
+              language="sql"
+              offerEditInModal={false}
+              minLines={5}
             />
           ),
           description: (v, onChange, label) => (
@@ -1356,7 +1363,7 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={2}
           >
-            <div>
+            <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
@@ -1381,7 +1388,7 @@ class DatasourceEditor extends React.PureComponent {
                 onDatasourceChange={this.onDatasourceChange}
               />
               {this.state.metadataLoading && <Loading />}
-            </div>
+            </StyledColumnsTabWrapper>
           </Tabs.TabPane>
           <Tabs.TabPane
             tab={
@@ -1392,25 +1399,27 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={3}
           >
-            <ColumnCollectionTable
-              columns={this.state.calculatedColumns}
-              onColumnsChange={calculatedColumns =>
-                this.setColumns({ calculatedColumns })
-              }
-              onDatasourceChange={this.onDatasourceChange}
-              datasource={datasource}
-              editableColumnName
-              showExpression
-              allowAddItem
-              allowEditDataType
-              itemGenerator={() => ({
-                column_name: '<new column>',
-                filterable: true,
-                groupby: true,
-                expression: '<enter SQL expression here>',
-                __expanded: true,
-              })}
-            />
+            <StyledColumnsTabWrapper>
+              <ColumnCollectionTable
+                columns={this.state.calculatedColumns}
+                onColumnsChange={calculatedColumns =>
+                  this.setColumns({ calculatedColumns })
+                }
+                onDatasourceChange={this.onDatasourceChange}
+                datasource={datasource}
+                editableColumnName
+                showExpression
+                allowAddItem
+                allowEditDataType
+                itemGenerator={() => ({
+                  column_name: '<new column>',
+                  filterable: true,
+                  groupby: true,
+                  expression: '<enter SQL expression here>',
+                  __expanded: true,
+                })}
+              />
+            </StyledColumnsTabWrapper>
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
             <Row gutter={16}>

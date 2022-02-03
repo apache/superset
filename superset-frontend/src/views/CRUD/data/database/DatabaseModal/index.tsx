@@ -440,6 +440,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -494,7 +495,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
-    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
+    setTestInProgress(true);
+    testDatabaseConnection(
+      connection,
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addDangerToast(errorMsg);
+      },
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addSuccessToast(errorMsg);
+      },
+    );
   };
 
   const onClose = () => {
@@ -585,6 +597,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         if (!editNewDb) {
           onClose();
+          addSuccessToast(t('Database settings updated'));
         }
       }
     } else if (db) {
@@ -603,6 +616,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // tab layout only has one step
           // so it should close immediately on save
           onClose();
+          addSuccessToast(t('Database connected'));
         }
       }
     }
@@ -1047,6 +1061,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 conf={conf}
                 testConnection={testConnection}
                 isEditMode={isEditMode}
+                testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>

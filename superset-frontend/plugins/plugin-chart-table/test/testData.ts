@@ -111,6 +111,13 @@ const basic: TableChartProps = {
           '%pct_nice': 0.00001,
           'abc.com': 'bar',
         },
+        {
+          __timestamp: null,
+          name: 'Maria',
+          sum__num: 12342,
+          '%pct_nice': 0.341,
+          'abc.com': 'baz',
+        },
       ],
     },
   ],

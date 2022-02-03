@@ -50,9 +50,8 @@ from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     backend,
     datetime_to_epoch,
-    get_example_database,
-    get_main_database,
 )
+from superset.utils.database import get_example_database, get_main_database
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
@@ -66,6 +65,7 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
+@pytest.mark.sql_json_flow
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 

@@ -25,7 +25,7 @@ import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
 import { useHistory } from 'react-router-dom';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { usePrevious } from 'src/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
@@ -216,6 +216,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
       newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
 
+      // pathname could be updated somewhere else through window.history
+      // keep react router history in sync with window history
+      history.location.pathname = window.location.pathname;
       history.replace({
         search: newParams.toString(),
       });

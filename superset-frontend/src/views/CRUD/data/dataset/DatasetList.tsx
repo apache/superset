@@ -44,7 +44,7 @@ import Loading from 'src/components/Loading';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
-} from 'src/components/Menu/SubMenu';
+} from 'src/views/components/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -147,6 +147,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const handleDatasetImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Dataset imported'));
   };
 
   const canEdit = hasPerm('can_write');

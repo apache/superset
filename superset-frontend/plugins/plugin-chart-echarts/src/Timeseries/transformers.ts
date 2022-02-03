@@ -50,7 +50,7 @@ import {
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
-import { extractForecastSeriesContext } from '../utils/prophet';
+import { extractForecastSeriesContext } from '../utils/forecast';
 import { ForecastSeriesEnum, LegendOrientation } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 
@@ -81,6 +81,7 @@ export function transformSeries(
     formatter?: NumberFormatter;
     totalStackedValues?: number[];
     showValueIndexes?: number[];
+    thresholdValues?: number[];
     richTooltip?: boolean;
   },
 ): SeriesOption | undefined {
@@ -100,6 +101,7 @@ export function transformSeries(
     formatter,
     totalStackedValues = [],
     showValueIndexes = [],
+    thresholdValues = [],
     richTooltip,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
@@ -196,7 +198,15 @@ export function transformSeries(
             opacity: opacity * areaOpacity,
           }
         : undefined,
-    emphasis,
+    emphasis: {
+      // bold on hover as required since 5.3.0 to retain backwards feature parity:
+      // https://apache.github.io/echarts-handbook/en/basics/release-note/5-3-0/#removing-the-default-bolding-emphasis-effect-in-the-line-chart
+      // TODO: should consider only adding emphasis to currently hovered series
+      lineStyle: {
+        width: 'bolder',
+      },
+      ...emphasis,
+    },
     showSymbol,
     symbolSize: markerSize,
     label: {
@@ -211,8 +221,12 @@ export function transformSeries(
         } = params;
         const isSelectedLegend = currentSeries.legend === seriesName;
         if (!formatter) return numericValue;
-        if (!stack || !onlyTotal || isSelectedLegend) {
-          return formatter(numericValue);
+        if (!stack || isSelectedLegend) return formatter(numericValue);
+        if (!onlyTotal) {
+          if (numericValue >= thresholdValues[dataIndex]) {
+            return formatter(numericValue);
+          }
+          return '';
         }
         if (seriesIndex === showValueIndexes[dataIndex]) {
           return formatter(totalStackedValues[dataIndex]);

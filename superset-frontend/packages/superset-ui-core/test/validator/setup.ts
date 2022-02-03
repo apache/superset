@@ -17,6 +17,6 @@
  * under the License.
  */
 
-import { configure as configureTranslation } from '@superset-ui/core/src';
+import { configure as configureTranslation } from '@superset-ui/core';
 
 configureTranslation();

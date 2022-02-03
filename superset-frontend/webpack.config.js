@@ -208,6 +208,7 @@ const config = {
     theme: path.join(APP_DIR, '/src/theme.ts'),
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
+    embedded: addPreamble('/src/embedded/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
@@ -282,10 +283,13 @@ const config = {
     minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
-    modules: [APP_DIR, 'node_modules', ROOT_DIR],
+    // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
+    modules: ['node_modules', APP_DIR],
     alias: {
-      // TODO: remove alias once React has been upgraaded to v. 17
-      react: path.resolve('./node_modules/react'),
+      // TODO: remove aliases once React has been upgraded to v. 17 and
+      //  AntD version conflict has been resolved
+      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
+      react: path.resolve(path.join(APP_DIR, './node_modules/react')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -411,6 +415,10 @@ const config = {
         include: ROOT_DIR,
         loader: 'js-yaml-loader',
       },
+      {
+        test: /\.geojson$/,
+        type: 'asset/resource',
+      },
     ],
   },
   externals: {
@@ -424,16 +432,9 @@ const config = {
 
 // find all the symlinked plugins and use their source code for imports
 Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
-  const srcPath = `./node_modules/${pkg}/src`;
-  const dir = relativeDir.replace('file://', '');
+  const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
+  const dir = relativeDir.replace('file:', '');
 
-  if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
-    console.log(
-      `[Superset External Plugin] Use symlink source for ${pkg} @ ${dir}`,
-    );
-    // TODO: remove alias once React has been upgraaded to v. 17
-    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
-  }
   if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);

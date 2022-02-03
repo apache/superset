@@ -19,7 +19,6 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
@@ -36,8 +35,11 @@ import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import FilterableTable, {
+  MAX_COLUMNS_FOR_TABLE,
+} from 'src/components/FilterableTable/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -560,7 +562,12 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter results')}
+              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
+              placeholder={
+                columns.length > MAX_COLUMNS_FOR_TABLE
+                  ? t('Too many columns to filter')
+                  : t('Filter results')
+              }
             />
           )}
         </ResultSetControls>
@@ -801,8 +808,8 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let progressBar;
     let trackingUrl;
+    let progressBar;
     if (query.progress > 0) {
       progressBar = (
         <ProgressBar
@@ -825,14 +832,17 @@ export default class ResultSet extends React.PureComponent<
       query && query.extra && query.extra.progress
         ? query.extra.progress
         : null;
+
     return (
       <div style={LOADING_STYLES}>
         <div>{!progressBar && <Loading position="normal" />}</div>
+        {/* show loading bar whenever progress bar is completed but needs time to render */}
+        <div>{query.progress === 100 && <Loading position="normal" />}</div>
         <QueryStateLabel query={query} />
         <div>
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
-        <div>{progressBar}</div>
+        <div>{query.progress !== 100 && progressBar}</div>
         <div>{trackingUrl}</div>
       </div>
     );

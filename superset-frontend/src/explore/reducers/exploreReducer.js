@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+import { ensureIsArray } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/chart/chartAction';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
@@ -24,6 +25,7 @@ import {
   getControlConfig,
   getFormDataFromControls,
   getControlStateFromControlConfig,
+  getControlValuesCompatibleWithDatasource,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
 
@@ -64,6 +66,7 @@ export default function exploreReducer(state = {}, action) {
       }
 
       const controls = { ...state.controls };
+      const controlsTransferred = [];
       if (
         action.datasource.id !== state.datasource.id ||
         action.datasource.type !== state.datasource.type
@@ -77,16 +80,24 @@ export default function exploreReducer(state = {}, action) {
             // for direct column select controls
             controlState.valueKey === 'column_name' ||
             // for all other controls
-            'columns' in controlState
+            'savedMetrics' in controlState ||
+            'columns' in controlState ||
+            ('options' in controlState && !Array.isArray(controlState.options))
           ) {
-            // if a control use datasource columns, reset its value to `undefined`,
-            // then `getControlsState` will pick up the default.
-            // TODO: filter out only invalid columns and keep others
             controls[controlName] = {
               ...controlState,
-              value: undefined,
             };
-            newFormData[controlName] = undefined;
+            newFormData[controlName] = getControlValuesCompatibleWithDatasource(
+              action.datasource,
+              controlState,
+              controlState.value,
+            );
+            if (
+              ensureIsArray(newFormData[controlName]).length > 0 &&
+              newFormData[controlName] !== controls[controlName].default
+            ) {
+              controlsTransferred.push(controlName);
+            }
           }
         });
       }
@@ -102,6 +113,7 @@ export default function exploreReducer(state = {}, action) {
         ...newState,
         form_data: newFormData,
         controls: getControlsState(newState, newFormData),
+        controlsTransferred,
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {

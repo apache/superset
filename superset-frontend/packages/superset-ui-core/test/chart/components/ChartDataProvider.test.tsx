@@ -19,10 +19,10 @@
 
 import React from 'react';
 import { shallow } from 'enzyme';
-import ChartClient from '@superset-ui/core/src/chart/clients/ChartClient';
+import ChartClient from '../../../src/chart/clients/ChartClient';
 import ChartDataProvider, {
-  Props,
-} from '@superset-ui/core/src/chart/components/ChartDataProvider';
+  ChartDataProviderProps,
+} from '../../../src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
 // Note: the mock implementation of these function directly affects the expected results below
@@ -50,7 +50,7 @@ const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
 );
 
 // ChartClient is now a mock
-jest.mock('@superset-ui/core/src/chart/clients/ChartClient', () =>
+jest.mock('../../../src/chart/clients/ChartClient', () =>
   jest.fn().mockImplementation(() => ({
     loadDatasource: mockLoadDatasource,
     loadFormData: mockLoadFormData,
@@ -70,12 +70,12 @@ describe('ChartDataProvider', () => {
     mockLoadQueryData.mockClear();
   });
 
-  const props: Props = {
+  const props: ChartDataProviderProps = {
     formData: { ...bigNumberFormData },
     children: () => <div />,
   };
 
-  function setup(overrideProps?: Partial<Props>) {
+  function setup(overrideProps?: Partial<ChartDataProviderProps>) {
     return shallow(<ChartDataProvider {...props} {...overrideProps} />);
   }
 

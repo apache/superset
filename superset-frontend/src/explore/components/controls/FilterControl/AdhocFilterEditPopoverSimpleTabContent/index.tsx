@@ -41,6 +41,7 @@ import AdhocFilter, {
 import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { propertyComparator } from 'src/components/Select/Select';
+import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -308,7 +309,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     isOperatorRelevant,
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
-  const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [suggestions, setSuggestions] = useState<
+    Record<'label' | 'value', any>[]
+  >([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
     useState(false);
@@ -327,7 +330,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    onComparatorChange(event.target.value);
+    const { value } = event.target;
+    setComparator(value);
+    onComparatorChange(value);
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
@@ -436,7 +441,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         })
           .then(({ json }) => {
-            setSuggestions(json);
+            setSuggestions(
+              json.map((suggestion: null | number | boolean | string) => ({
+                value: suggestion,
+                label: optionLabel(suggestion),
+              })),
+            );
             setLoadingComparatorSuggestions(false);
           })
           .catch(() => {
@@ -504,10 +514,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         <Tooltip title={businessTypesState.parsedBusniessType}>
           <SelectWithLabel
             labelText={labelText}
-            options={suggestions.map((suggestion: string) => ({
-              value: suggestion,
-              label: String(suggestion),
-            }))}
+            options={suggestions}
             {...comparatorSelectProps}
             sortComparator={propertyComparator(
               typeof suggestions[0] === 'number' ? 'value' : 'label',

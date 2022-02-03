@@ -22,10 +22,7 @@ import {
   PostProcessingResample,
   QueryFormData,
 } from '@superset-ui/core';
-import {
-  rollingWindowOperator,
-  TIME_COLUMN,
-} from '@superset-ui/chart-controls';
+import { rollingWindowOperator } from '@superset-ui/chart-controls';
 
 const TIME_GRAIN_MAP: Record<string, string> = {
   PT1S: 'S',
@@ -65,7 +62,7 @@ export default function buildQuery(formData: QueryFormData) {
             method: 'asfreq',
             rule,
             fill_value: null,
-            time_column: TIME_COLUMN,
+            time_column: DTTM_ALIAS,
           },
         };
       }

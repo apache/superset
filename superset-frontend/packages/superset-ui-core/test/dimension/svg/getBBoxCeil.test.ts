@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import getBBoxCeil from '@superset-ui/core/src/dimension/svg/getBBoxCeil';
-import createTextNode from '@superset-ui/core/src/dimension/svg/createTextNode';
+import getBBoxCeil from '../../../src/dimension/svg/getBBoxCeil';
+import createTextNode from '../../../src/dimension/svg/createTextNode';
 
 describe('getBBoxCeil(node, defaultDimension)', () => {
   describe('returns default dimension if getBBox() is not available', () => {
