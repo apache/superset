@@ -11,16 +11,11 @@ jobs:
 
     runs-on: ubuntu-20.04
 
-    strategy:
-      matrix:
-        node-version: [16]
-
     steps:
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: https://registry.npmjs.org/
+          node-version: "16"
 
       - name: Configure npm
         run: |
@@ -38,3 +33,5 @@ jobs:
       - name: Build packages
         working-directory: ./superset-embedded-sdk
         run: npm run ci:release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
