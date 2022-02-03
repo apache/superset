@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
 
