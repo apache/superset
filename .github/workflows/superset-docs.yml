@@ -23,7 +23,7 @@ jobs:
           submodules: recursive
       - name: yarn install
         run: |
-          yarn install --immutable --immutable-cache --check-cache
+          yarn install --check-cache
       - name: yarn build
         run: |
           yarn build
