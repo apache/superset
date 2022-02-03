@@ -17,7 +17,7 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Set
+from typing import Any, Callable, Dict, Set, Union
 
 from flask import g
 from sqlalchemy.orm import Session
@@ -45,8 +45,16 @@ def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
     return uuids
 
 
-def find_native_filter_excluded_charts(metadata: Dict[str, Any]) -> List[int]:
-    pass
+def convert_native_filter_excluded_charts_uuid_to_id(
+    metadata: Dict[str, Any], chart_ids: Dict[str, int]
+) -> None:
+    native_filter_configuration = metadata.get("native_filter_configuration")
+    if native_filter_configuration:
+        for native_filter in native_filter_configuration:
+            native_filter["scope"]["excluded"] = [
+                chart_ids.get(chart_uuid)
+                for chart_uuid in native_filter["scope"]["excluded"]
+            ]
 
 
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
