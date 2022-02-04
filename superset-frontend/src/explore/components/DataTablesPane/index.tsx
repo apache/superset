@@ -24,7 +24,6 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import Loading from 'src/components/Loading';
@@ -44,8 +43,7 @@ import {
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
-import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../../reducers/getInitialState';
+import { useTimeFormattedColumns } from '../useTimeFormattedColumns';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -194,27 +192,29 @@ export const DataTablesPane = ({
   const [activeTabKey, setActiveTabKey] = useState<string>(
     RESULT_TYPES.results,
   );
-  const [isRequestPending, setIsRequestPending] = useState<{
-    [RESULT_TYPES.results]?: boolean;
-    [RESULT_TYPES.samples]?: boolean;
-  }>(getDefaultDataTablesState(false));
+  const [isRequestPending, setIsRequestPending] = useState(
+    getDefaultDataTablesState(false),
+  );
   const [panelOpen, setPanelOpen] = useState(
     getItem(LocalStorageKeys.is_datapanel_open, false),
   );
-  const datasourceColumns = useSelector<ExplorePageState, ColumnMeta[]>(
-    state => state.explore.datasource?.columns,
+
+  const timeFormattedColumns = useTimeFormattedColumns(
+    queryFormData?.datasource,
   );
 
   const formattedData = useMemo(
     () => ({
       [RESULT_TYPES.results]: applyFormattingToTabularData(
         data[RESULT_TYPES.results],
+        timeFormattedColumns,
       ),
       [RESULT_TYPES.samples]: applyFormattingToTabularData(
         data[RESULT_TYPES.samples],
+        timeFormattedColumns,
       ),
     }),
-    [data],
+    [data, timeFormattedColumns],
   );
 
   const getData = useCallback(
@@ -255,25 +255,13 @@ export const DataTablesPane = ({
 
           const colNames = ensureIsArray(json.result[0].colnames);
 
-          const getColTypesFromDatasourceColumns = () =>
-            colNames
-              .map(
-                name =>
-                  datasourceColumns.find(column => column.column_name === name)
-                    ?.type_generic,
-              )
-              .filter(type => type !== undefined);
-
           setColumnNames(prevColumnNames => ({
             ...prevColumnNames,
             [resultType]: colNames,
           }));
           setColumnTypes(prevColumnTypes => ({
             ...prevColumnTypes,
-            [resultType]:
-              json.result[0].coltypes ||
-              getColTypesFromDatasourceColumns() ||
-              [],
+            [resultType]: json.result[0].coltypes || [],
           }));
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,

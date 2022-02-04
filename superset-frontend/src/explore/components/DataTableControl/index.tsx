@@ -23,12 +23,13 @@ import {
   getTimeFormatter,
   styled,
   t,
+  TimeFormats,
   useTheme,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { Input, Space } from 'src/common/components';
 import {
   BOOL_FALSE_DISPLAY,
@@ -42,11 +43,11 @@ import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import {
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
 } from 'src/explore/actions/exploreActions';
+import { useTimeFormattedColumns } from '../useTimeFormattedColumns';
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -115,8 +116,8 @@ export const RowCount = ({
 );
 
 enum FormatPickerValue {
-  formatted,
-  epoch,
+  Formatted,
+  Epoch,
 }
 
 const FormatPicker = ({
@@ -128,8 +129,8 @@ const FormatPicker = ({
 }) => (
   <Radio.Group value={value} onChange={onChange}>
     <Space direction="vertical">
-      <Radio value={FormatPickerValue.epoch}>{t('Epoch')}</Radio>
-      <Radio value={FormatPickerValue.formatted}>{t('Formatted date')}</Radio>
+      <Radio value={FormatPickerValue.Epoch}>{t('Original value')}</Radio>
+      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
     </Space>
   </Radio.Group>
 );
@@ -166,12 +167,12 @@ const DataTableTemporalHeaderCell = ({
       if (!datasourceId) {
         return;
       }
-      if (e.target.value === FormatPickerValue.epoch && isColumnTimeFormatted) {
+      if (e.target.value === FormatPickerValue.Epoch && isColumnTimeFormatted) {
         dispatch(
           unsetTimeFormattedColumn(datasourceId, timeFormattedColumnIndex),
         );
       } else if (
-        e.target.value === FormatPickerValue.formatted &&
+        e.target.value === FormatPickerValue.Formatted &&
         !isColumnTimeFormatted
       ) {
         dispatch(setTimeFormattedColumn(datasourceId, columnName));
@@ -202,8 +203,8 @@ const DataTableTemporalHeaderCell = ({
             onChange={onChange}
             value={
               isColumnTimeFormatted
-                ? FormatPickerValue.formatted
-                : FormatPickerValue.epoch
+                ? FormatPickerValue.Formatted
+                : FormatPickerValue.Epoch
             }
           />
         </FormatPickerContainer>
@@ -258,7 +259,7 @@ export const useFilteredTableData = (
   }, [data, filterText, rowsAsStrings]);
 };
 
-const timeFormatter = getTimeFormatter('%Y-%m-%d %H:%M:%S');
+const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
 export const useTableColumns = (
   colnames?: string[],
@@ -267,11 +268,7 @@ export const useTableColumns = (
   datasourceId?: string,
   moreConfigs?: { [key: string]: Partial<Column> },
 ) => {
-  const timeFormattedColumns = useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state.explore.timeFormattedColumns?.[datasourceId] ?? []
-      : [],
-  );
+  const timeFormattedColumns = useTimeFormattedColumns(datasourceId);
 
   return useMemo(
     () =>

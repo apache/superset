@@ -262,6 +262,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return {
             "data": payload["df"].to_dict(orient="records"),
             "colnames": payload["colnames"],
+            "coltypes": payload.get("coltypes"),
         }
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
@@ -625,6 +626,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
             "colnames": list(df.columns) if df is not None else None,
+            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource),
         }
 
     @staticmethod
