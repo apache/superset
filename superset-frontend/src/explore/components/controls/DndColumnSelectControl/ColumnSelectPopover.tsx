@@ -59,7 +59,6 @@ interface ColumnSelectPopoverProps {
   setLabel: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
-  isAdhocColumnsEnabled: boolean;
 }
 
 const getInitialColumnValues = (
@@ -85,7 +84,6 @@ const ColumnSelectPopover = ({
   setLabel,
   getCurrentTab,
   label,
-  isAdhocColumnsEnabled,
 }: ColumnSelectPopoverProps) => {
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
@@ -279,28 +277,27 @@ const ColumnSelectPopover = ({
             />
           </FormItem>
         </Tabs.TabPane>
-        {isAdhocColumnsEnabled && (
-          <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
-            <SQLEditor
-              value={
-                adhocColumn?.sqlExpression ||
-                selectedSimpleColumn?.column_name ||
-                selectedCalculatedColumn?.expression
-              }
-              onFocus={onSqlEditorFocus}
-              showLoadingForImport
-              onChange={onSqlExpressionChange}
-              width="100%"
-              height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
-              showGutter={false}
-              editorProps={{ $blockScrolling: true }}
-              enableLiveAutocompletion
-              className="filter-sql-editor"
-              wrapEnabled
-              ref={sqlEditorRef}
-            />
-          </Tabs.TabPane>
-        )}
+
+        <Tabs.TabPane key="sqlExpression" tab={t('Custom SQL')}>
+          <SQLEditor
+            value={
+              adhocColumn?.sqlExpression ||
+              selectedSimpleColumn?.column_name ||
+              selectedCalculatedColumn?.expression
+            }
+            onFocus={onSqlEditorFocus}
+            showLoadingForImport
+            onChange={onSqlExpressionChange}
+            width="100%"
+            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            showGutter={false}
+            editorProps={{ $blockScrolling: true }}
+            enableLiveAutocompletion
+            className="filter-sql-editor"
+            wrapEnabled
+            ref={sqlEditorRef}
+          />
+        </Tabs.TabPane>
       </Tabs>
       <div>
         <Button buttonSize="small" onClick={onResetStateAndClose} cta>
