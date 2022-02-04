@@ -17,12 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AdhocColumn,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { AdhocColumn, t } from '@superset-ui/core';
 import {
   ColumnMeta,
   isAdhocColumn,
@@ -46,8 +41,6 @@ interface ColumnSelectPopoverTriggerProps {
 
 const defaultPopoverLabel = t('My column');
 const editableTitleTab = 'sqlExpression';
-
-const isAdhocColumnsEnabled = isFeatureEnabled(FeatureFlag.UX_BETA);
 
 const ColumnSelectPopoverTrigger = ({
   columns,
@@ -109,7 +102,6 @@ const ColumnSelectPopoverTrigger = ({
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
-          isAdhocColumnsEnabled={isAdhocColumnsEnabled}
         />
       </ExplorePopoverContent>
     ),
@@ -148,7 +140,7 @@ const ColumnSelectPopoverTrigger = ({
       defaultVisible={visible}
       visible={visible}
       onVisibleChange={handleTogglePopover}
-      title={isAdhocColumnsEnabled && popoverTitle}
+      title={popoverTitle}
       destroyTooltipOnHide
     >
       {children}
