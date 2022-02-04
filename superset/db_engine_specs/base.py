@@ -38,7 +38,6 @@ from typing import (
 
 import pandas as pd
 import sqlparse
-from sqlparse.tokens import Keyword, CTE
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
@@ -55,6 +54,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
+from sqlparse.tokens import CTE, Keyword
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
@@ -670,12 +670,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.set_or_update_query_limit(limit)
 
     @classmethod
-    def get_cte_query(cls, sql) -> Optional[str]:
+    def get_cte_query(cls, sql: str) -> Optional[str]:
         """
         Convert the input CTE based SQL to the SQL for virtual table conversion
 
         :param sql: SQL query
-        :return: Query with __query alias
+        :return: CTE with the main select query aliased as `__cte`
 
         """
         if not cls.allows_cte_in_subquery:
@@ -689,10 +689,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             idx = p.token_index(tok) + 1
 
             # extract rest of the SQLs after CTE
-            remainder = u"".join(str(tok) for tok in p.tokens[idx:])
-            __query = "WITH " + tok.value + ",\n__query as (" + remainder + ")"
+            remainder = "".join(str(tok) for tok in p.tokens[idx:]).strip()
+            __query = "WITH " + tok.value + ",\n__cte AS (\n" + remainder + "\n)"
             return __query
-        
+
         return None
 
     @classmethod
