@@ -247,12 +247,21 @@ export const DataTablesPane = ({
               [resultType]: json.result[0].data,
             }));
           }
-          const checkCols = json?.result[0]?.data?.length
-            ? Object.keys(json.result[0].data[0])
-            : null;
+
+          const checkCols = json?.result.reduce(
+            (prevCols: string[], res: { data: Record<string, any>[] }) => {
+              const firstDataRow = res?.data?.[0];
+              const cols = firstDataRow ? Object.keys(firstDataRow) : [];
+              if (cols.length) {
+                return [...new Set([...prevCols, ...cols])];
+              }
+              return prevCols;
+            },
+            [],
+          );
           setColumnNames(prevColumnNames => ({
             ...prevColumnNames,
-            [resultType]: json.result[0].columns || checkCols,
+            [resultType]: checkCols,
           }));
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
