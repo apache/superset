@@ -74,7 +74,7 @@ const config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/connecting-to-databases/druid',
+            to: '/docs/databases/druid',
             from: '/druid.html',
           },
           {
@@ -102,8 +102,8 @@ const config = {
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
-            to: '/docs/creating-charts-dashboards/api',
-            from: '/docs/creating-charts-dashboards/rest-api',
+            to: '/docs/api',
+            from: '/docs/rest-api',
           },
           {
             to: '/docs/installation/alerts-reports',
