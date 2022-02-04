@@ -626,7 +626,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
             "colnames": list(df.columns) if df is not None else None,
-            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource),
+            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource)
+            if df is not None
+            else None,
         }
 
     @staticmethod
