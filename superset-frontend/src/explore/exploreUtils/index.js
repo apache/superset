@@ -286,8 +286,7 @@ export const exportChart = ({
       ownState,
     });
   }
-  console.log('PAYLOAD', payload);
-  console.log('URL', url);
+
   postForm(url, payload);
 };
 
