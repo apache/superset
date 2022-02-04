@@ -54,11 +54,11 @@ const config = {
             from: '/tutorials.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -94,8 +94,16 @@ const config = {
             from: '/faq.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/tutorial.html',
+          },
+          {
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/first-dashboard',
+          },
+          {
+            to: '/docs/creating-charts-dashboards/api',
+            from: '/docs/creating-charts-dashboards/rest-api',
           },
           {
             to: '/docs/installation/alerts-reports',
