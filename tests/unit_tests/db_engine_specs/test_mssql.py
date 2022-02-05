@@ -186,20 +186,24 @@ def test_column_datatype_to_string(
         (
             dedent(
                 """
-with currency as
-(
+with currency as (
 select 'INR' as cur
+),
+currency_2 as (
+select 'EUR' as cur
 )
-select * from currency
+select * from currency union all select * from currency_2
 """
             ),
             dedent(
-                """WITH currency as
-(
+                """WITH currency as (
 select 'INR' as cur
 ),
+currency_2 as (
+select 'EUR' as cur
+),
 __cte AS (
-select * from currency
+select * from currency union all select * from currency_2
 )"""
             ),
         ),

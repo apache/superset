@@ -77,7 +77,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
@@ -103,7 +103,6 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
-CTE_ALIAS = "__cte"
 
 
 class SqlaQuery(NamedTuple):
@@ -127,12 +126,6 @@ class MetadataResult:
     added: List[str] = field(default_factory=list)
     removed: List[str] = field(default_factory=list)
     modified: List[str] = field(default_factory=list)
-
-
-def _apply_cte(sql: str, cte: Optional[str]) -> str:
-    if cte:
-        sql = f"{cte}{sql}"
-    return sql
 
 
 class AnnotationDatasource(BaseDatasource):
@@ -570,6 +563,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def __repr__(self) -> str:
         return self.name
 
+    @staticmethod
+    def _apply_cte(sql: str, cte: Optional[str]) -> str:
+        """
+        Append a CTE before the SELECT statement if defined
+
+        :param sql: SELECT statement
+        :param cte: CTE statement
+        :return:
+        """
+        if cte:
+            sql = f"{cte}\n{sql}"
+        return sql
+
     @property
     def db_engine_spec(self) -> Type[BaseEngineSpec]:
         return self.database.db_engine_spec
@@ -762,7 +768,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         engine = self.database.get_sqla_engine()
         sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = _apply_cte(sql, cte)
+        sql = self._apply_cte(sql, cte)
         sql = self.mutate_query_from_config(sql)
 
         df = pd.read_sql_query(sql=sql, con=engine)
@@ -784,7 +790,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        sql = _apply_cte(sql, sqlaq.cte)
+        sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(

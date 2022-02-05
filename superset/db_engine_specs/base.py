@@ -54,7 +54,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
-from sqlparse.tokens import CTE, Keyword
+from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
@@ -79,6 +79,9 @@ ColumnTypeMapping = Tuple[
 ]
 
 logger = logging.getLogger()
+
+
+CTE_ALIAS = "__cte"
 
 
 class TimeGrain(NamedTuple):
@@ -679,19 +682,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            p = sqlparse.parse(sql)[0]
+            stmt = sqlparse.parse(sql)[0]
 
             # The first meaningful token for CTE will be with WITH
-            idx, tok = p.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (tok and tok.ttype == CTE):
+            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+            if not (token and token.ttype == CTE):
                 return None
-            idx, tok = p.token_next(idx)
-            idx = p.token_index(tok) + 1
+            idx, token = stmt.token_next(idx)
+            idx = stmt.token_index(token) + 1
 
             # extract rest of the SQLs after CTE
-            remainder = "".join(str(tok) for tok in p.tokens[idx:]).strip()
-            __query = "WITH " + tok.value + ",\n__cte AS (\n" + remainder + "\n)"
-            return __query
+            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
 
         return None
 

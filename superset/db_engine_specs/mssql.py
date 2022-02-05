@@ -24,8 +24,6 @@ from flask_babel import gettext as __
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.errors import SupersetErrorType
 from superset.utils import core as utils
-import sqlparse
-from sqlparse.tokens import Keyword, CTE
 
 logger = logging.getLogger(__name__)
 
