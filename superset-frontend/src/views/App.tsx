@@ -58,6 +58,11 @@ const common = { ...bootstrap.common };
 let lastLocationPathname: string;
 initFeatureFlags(bootstrap.common.feature_flags);
 
+FullStory.identify(`${user.userId}@${window.location.origin}`, {
+  displayName: `${user.lastName}, ${user.firstName}`,
+  ...user
+});
+
 const RootContextProviders: React.FC = ({ children }) => {
   const location = useLocation();
   useEffect(() => {
