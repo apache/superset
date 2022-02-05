@@ -795,17 +795,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         mock_cursor.fetchone.return_value = [
             '{"a": "b"}',
         ]
+        mock_engine = mock.Mock()
         result = PrestoEngineSpec.estimate_statement_cost(
-            "SELECT * FROM brth_names", mock_cursor
+            "SELECT * FROM brth_names", mock_cursor, mock_engine
         )
         assert result == estimate_json
 
     def test_estimate_statement_cost_invalid_syntax(self):
         mock_cursor = mock.MagicMock()
         mock_cursor.execute.side_effect = Exception()
+        mock_engine = mock.Mock()
         with self.assertRaises(Exception):
             PrestoEngineSpec.estimate_statement_cost(
-                "DROP TABLE brth_names", mock_cursor
+                "DROP TABLE brth_names", mock_cursor, mock_engine
             )
 
     def test_get_all_datasource_names(self):

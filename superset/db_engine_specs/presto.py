@@ -637,7 +637,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any, engine: Engine) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
 

@@ -176,8 +176,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         cursor.fetchone.return_value = (
             "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
         )
+        engine = mock.Mock()
         sql = "SELECT * FROM birth_names"
-        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor, engine)
         self.assertEqual(
             results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
         )
@@ -196,9 +197,10 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                             ^
             """
         )
+        engine = mock.Mock()
         sql = "DROP TABLE birth_names"
         with self.assertRaises(errors.SyntaxError):
-            PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+            PostgresEngineSpec.estimate_statement_cost(sql, cursor, engine)
 
     def test_query_cost_formatter_example_costs(self):
         """

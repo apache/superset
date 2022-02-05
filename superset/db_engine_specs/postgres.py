@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.types import String
 
 from superset.db_engine_specs.base import (
@@ -197,7 +198,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any, engine: Engine) -> Dict[str, Any]:
         sql = f"EXPLAIN {statement}"
         cursor.execute(sql)
 
