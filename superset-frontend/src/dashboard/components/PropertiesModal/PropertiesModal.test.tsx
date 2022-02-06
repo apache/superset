@@ -133,6 +133,7 @@ const createProps = () => ({
   onlyApply: false,
   onHide: jest.fn(),
   onSubmit: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
 beforeEach(() => {

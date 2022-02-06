@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
+  ControlSetItem,
   ControlSetRow,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -29,7 +30,7 @@ import { DEFAULT_FORM_DATA } from './Timeseries/types';
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
 
-const showLegendControl = {
+const showLegendControl: ControlSetItem = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',
@@ -40,7 +41,7 @@ const showLegendControl = {
   },
 };
 
-const legendMarginControl = {
+const legendMarginControl: ControlSetItem = {
   name: 'legendMargin',
   config: {
     type: 'TextControl',
@@ -54,7 +55,7 @@ const legendMarginControl = {
   },
 };
 
-const legendTypeControl = {
+const legendTypeControl: ControlSetItem = {
   name: 'legendType',
   config: {
     type: 'SelectControl',
@@ -72,7 +73,7 @@ const legendTypeControl = {
   },
 };
 
-const legendOrientationControl = {
+const legendOrientationControl: ControlSetItem = {
   name: 'legendOrientation',
   config: {
     type: 'SelectControl',
@@ -92,7 +93,7 @@ const legendOrientationControl = {
   },
 };
 
-export const legendSection = [
+export const legendSection: ControlSetRow[] = [
   [<h1 className="section-header">{t('Legend')}</h1>],
   [showLegendControl],
   [legendTypeControl],
@@ -100,7 +101,7 @@ export const legendSection = [
   [legendMarginControl],
 ];
 
-const showValueControl = {
+const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -111,7 +112,7 @@ const showValueControl = {
   },
 };
 
-const stackControl = {
+const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -122,7 +123,7 @@ const stackControl = {
   },
 };
 
-const onlyTotalControl = {
+const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',
@@ -137,7 +138,19 @@ const onlyTotalControl = {
   },
 };
 
-const percentageThresholdControl = {
+export const xAxisControl: ControlSetItem = {
+  name: 'x_axis',
+  config: {
+    ...sharedControls.groupby,
+    label: t('X-axis'),
+    default: null,
+    multi: false,
+    description: t('Dimension to use on x-axis.'),
+    validators: [validateNonEmpty],
+  },
+};
+
+const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
     type: 'TextControl',
@@ -155,14 +168,19 @@ const percentageThresholdControl = {
   },
 };
 
-export const showValueSection = [
+export const showValueSection: ControlSetRow[] = [
   [showValueControl],
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
 ];
 
-const richTooltipControl = {
+export const showValueSectionWithoutStack: ControlSetRow[] = [
+  [showValueControl],
+  [onlyTotalControl],
+];
+
+const richTooltipControl: ControlSetItem = {
   name: 'rich_tooltip',
   config: {
     type: 'CheckboxControl',
@@ -175,7 +193,7 @@ const richTooltipControl = {
   },
 };
 
-const tooltipTimeFormatControl = {
+const tooltipTimeFormatControl: ControlSetItem = {
   name: 'tooltipTimeFormat',
   config: {
     ...sharedControls.x_axis_time_format,
@@ -185,7 +203,7 @@ const tooltipTimeFormatControl = {
   },
 };
 
-const tooltipSortByMetricControl = {
+const tooltipSortByMetricControl: ControlSetItem = {
   name: 'tooltipSortByMetric',
   config: {
     type: 'CheckboxControl',

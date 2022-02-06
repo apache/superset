@@ -23,6 +23,7 @@ import pandas as pd
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
+import superset.utils.database
 from superset import app, db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.dashboard import Dashboard
@@ -46,7 +47,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
 ) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
-    database = utils.get_example_database()
+    database = superset.utils.database.get_example_database()
     engine = database.get_sqla_engine()
     schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)

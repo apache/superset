@@ -147,6 +147,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const handleDatasetImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Dataset imported'));
   };
 
   const canEdit = hasPerm('can_write');

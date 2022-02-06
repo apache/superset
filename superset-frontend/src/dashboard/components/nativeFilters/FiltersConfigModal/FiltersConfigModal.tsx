@@ -399,12 +399,12 @@ export function FiltersConfigModal({
         const didChangeFilterName =
           changes.filters &&
           Object.values(changes.filters).some(
-            (filter: any) => filter.name !== null,
+            (filter: any) => filter.name && filter.name !== null,
           );
         const didChangeSectionTitle =
           changes.filters &&
           Object.values(changes.filters).some(
-            (filter: any) => filter.title !== null,
+            (filter: any) => filter.title && filter.title !== null,
           );
         if (didChangeFilterName || didChangeSectionTitle) {
           // we only need to set this if a name/title changed

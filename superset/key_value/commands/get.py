@@ -18,28 +18,22 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from flask import current_app as app
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.key_value.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, actor: User, resource_id: int, key: str):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._key = key
+    def __init__(self, cmd_params: CommandParameters):
+        self._cmd_params = cmd_params
 
-    def run(self) -> Model:
+    def run(self) -> Optional[str]:
         try:
-            config = app.config["FILTER_STATE_CACHE_CONFIG"]
-            refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
-            return self.get(self._resource_id, self._key, refresh_timeout)
+            return self.get(self._cmd_params)
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
@@ -48,5 +42,5 @@ class GetKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
+    def get(self, cmd_params: CommandParameters) -> Optional[str]:
         ...

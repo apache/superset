@@ -30,11 +30,13 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
+import { propertyComparator } from 'src/components/Select/Select';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -278,6 +280,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return options;
   }, [data, datatype, groupby, labelFormatter]);
 
+  const sortComparator = useCallback(
+    (a: AntdLabeledValue, b: AntdLabeledValue) => {
+      const labelComparator = propertyComparator('label');
+      if (formData.sortAscending) {
+        return labelComparator(a, b);
+      }
+      return labelComparator(b, a);
+    },
+    [formData.sortAscending],
+  );
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
@@ -309,6 +322,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}
+          sortComparator={sortComparator}
         />
       </StyledFormItem>
     </FilterPluginStyle>

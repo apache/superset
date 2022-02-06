@@ -22,7 +22,6 @@ import URI from 'urijs';
 import {
   buildV1ChartDataPayload,
   getExploreUrl,
-  getExploreLongUrl,
   shouldUseLegacyApi,
   getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
@@ -35,7 +34,6 @@ describe('exploreUtils', () => {
   const formData = {
     datasource: '1__table',
   };
-  const sFormData = JSON.stringify(formData);
   function compareURI(uri1, uri2) {
     expect(uri1.toString()).toBe(uri2.toString());
   }
@@ -188,25 +186,6 @@ describe('exploreUtils', () => {
         endpointType: 'csv',
       });
       expect(csvURL).toMatch(availableDomains[0]);
-    });
-  });
-
-  describe('getExploreLongUrl', () => {
-    it('generates proper base url with form_data', () => {
-      compareURI(
-        URI(getExploreLongUrl(formData, 'base')),
-        URI('/superset/explore/').search({ form_data: sFormData }),
-      );
-    });
-
-    it('generates url with standalone', () => {
-      compareURI(
-        URI(getExploreLongUrl(formData, 'standalone')),
-        URI('/superset/explore/').search({
-          form_data: sFormData,
-          standalone: DashboardStandaloneMode.HIDE_NAV,
-        }),
-      );
     });
   });
 

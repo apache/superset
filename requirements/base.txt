@@ -283,6 +283,8 @@ werkzeug==1.0.1
     # via
     #   flask
     #   flask-jwt-extended
+wrapt==1.12.1
+    # via -r requirements/base.in
 wtforms==2.3.3
     # via
     #   flask-appbuilder
