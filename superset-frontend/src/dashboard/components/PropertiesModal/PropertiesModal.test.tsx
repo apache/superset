@@ -315,6 +315,7 @@ test('submitting with onlyApply:false', async () => {
       owners: [],
       slug: '',
       title: 'COVID Vaccine Dashboard',
+      description: 'A summary of COVID Vaccine over the world.',
     });
   });
 });
