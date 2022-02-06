@@ -98,8 +98,12 @@ const validatorMap =
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 interface SqlEditorProps {
-  actions: object;
-  database?: DatabaseObject;
+  actions: {
+    queryEditorSetSelectedText: (edit: any, text: null | string) => void;
+    queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
+    addTable: (queryEditor: any, value: any, schema: any) => void;
+  };
+  database?: DatabaseObject | null;
   latestQuery?: Query;
   tables: any[];
   editorQueries: QueryEditor[];
@@ -109,8 +113,8 @@ interface SqlEditorProps {
   defaultQueryLimit: number;
   maxRow: number;
   displayLimit: number;
-  saveQueryWarning?: string;
-  scheduleQueryWarning?: string;
+  saveQueryWarning: string | null;
+  scheduleQueryWarning?: string | null;
 }
 
 const StyledLimitSelect = styled.span`
@@ -186,8 +190,12 @@ const SqlEditor = ({
   const [height, setHeight] = useState(0);
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
-  const [northPercent, setNorthPercent] = useState(queryEditor.northPercent || INITIAL_NORTH_PERCENT);
-  const [southPercent, setSouthPercent] = useState(queryEditor.southPercent || INITIAL_SOUTH_PERCENT);
+  const [northPercent, setNorthPercent] = useState(
+    queryEditor.northPercent || INITIAL_NORTH_PERCENT,
+  );
+  const [southPercent, setSouthPercent] = useState(
+    queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
+  );
   const [sql, setSQL] = useState(queryEditor.sql);
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(
     getItem(LocalStorageKeys.sqllab__is_autocomplete_enabled, true),
