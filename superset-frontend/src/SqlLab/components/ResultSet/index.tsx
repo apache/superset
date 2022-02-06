@@ -37,6 +37,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
+import { usePrevious } from 'src/hooks/usePrevious';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable/FilterableTable';
@@ -208,33 +209,33 @@ const ResultSet = ({
   const [userDatasetOptions, setUserDatasetOptions] = useState([]);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
-  async componentDidMount() {
+  useEffect(() => {
     // only do this the first time the component is rendered/mounted
-    this.reRunQueryIfSessionTimeoutErrorOnMount();
-    const userDatasetsOwned = await this.getUserDatasets();
-    this.setState({ userDatasetOptions: userDatasetsOwned });
-  }
+    reRunQueryIfSessionTimeoutErrorOnMount();
+    (async () => {
+      const userDatasetsOwned = await getUserDatasets();
+      setUserDatasetOptions(userDatasetsOwned);
+    })();
+  }, []);
 
-  UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
-    // when new results comes in, save them locally and clear in store
+  const prevQuery = usePrevious(query);
+  useEffect(() => {
     if (
-      this.props.cache &&
-      !nextProps.query.cached &&
-      nextProps.query.results &&
-      nextProps.query.results.data &&
-      nextProps.query.results.data.length > 0
+      cache &&
+      !prevQuery?.cached &&
+      prevQuery?.results?.data &&
+      prevQuery.results.data.length > 0
     ) {
-      this.setState({ data: nextProps.query.results.data }, () =>
-        this.clearQueryResults(nextProps.query),
-      );
+      // this.setState({ data: prevQuery.results.data }, () =>
+      //   clearQueryResults(prevQuery),
+      // );
+      setData(prevQuery.results.data);
+      clearQueryResults(prevQuery);
     }
-    if (
-      nextProps.query.resultsKey &&
-      nextProps.query.resultsKey !== this.props.query.resultsKey
-    ) {
-      this.fetchResults(nextProps.query);
+    if (prevQuery && prevQuery.resultsKey !== query.resultsKey) {
+      fetchResults(prevQuery);
     }
-  }
+  }, [query]);
 
   const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
     if (alertElement) {
