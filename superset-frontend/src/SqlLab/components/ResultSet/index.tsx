@@ -86,7 +86,6 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
-  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
@@ -162,7 +161,6 @@ const updateDataset = async (
 };
 
 const ResultSet = ({
-  showControls,
   actions,
   cache = false,
   csv = true,
@@ -190,6 +188,15 @@ const ResultSet = ({
     DatasetOptionAutocomplete[]
   >([]);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
+
+  const reRunQueryIfSessionTimeoutErrorOnMount = () => {
+    if (
+      query.errorMessage &&
+      query.errorMessage.indexOf('session timed out') > 0
+    ) {
+      actions.reRunQuery(query);
+    }
+  };
 
   useEffect(() => {
     // only do this the first time the component is rendered/mounted
@@ -423,15 +430,6 @@ const ResultSet = ({
 
   const reFetchQueryResults = (query: Query) => {
     actions.reFetchQueryResults(query);
-  };
-
-  const reRunQueryIfSessionTimeoutErrorOnMount = () => {
-    if (
-      query.errorMessage &&
-      query.errorMessage.indexOf('session timed out') > 0
-    ) {
-      actions.reRunQuery(query);
-    }
   };
 
   const renderControls = () => {
