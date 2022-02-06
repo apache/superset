@@ -31,7 +31,7 @@ from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 

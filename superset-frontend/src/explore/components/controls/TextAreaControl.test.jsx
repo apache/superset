@@ -54,4 +54,12 @@ describe('TextArea', () => {
     expect(wrapper.find(TextArea)).not.toExist();
     expect(wrapper.find(TextAreaEditor)).toExist();
   });
+
+  it('calls onAreaEditorChange when entering in the AceEditor', () => {
+    const props = { ...defaultProps };
+    props.language = 'markdown';
+    wrapper = shallow(<TextAreaControl {...props} />);
+    wrapper.simulate('change', { target: { value: 'x' } });
+    expect(defaultProps.onChange.calledWith('x')).toBe(true);
+  });
 });

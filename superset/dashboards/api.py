@@ -81,6 +81,8 @@ from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_form_data,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
@@ -430,6 +432,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -466,8 +469,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -495,6 +496,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, pk: int) -> Response:
         """Changes a Dashboard
         ---
@@ -540,8 +542,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -927,6 +927,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases
         ---

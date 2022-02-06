@@ -30,6 +30,7 @@ from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
+from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +95,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             html_table = ""
 
         call_to_action = __("Explore in Superset")
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
                     <img width="1000px" src="cid:{msgid}">
                 </div>
-                <
                 """
             )
         img_tag = "".join(img_tags)
@@ -122,7 +127,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               </head>
               <body>
                 <p>{description}</p>
-                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
+                <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
               </body>

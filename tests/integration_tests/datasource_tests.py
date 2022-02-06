@@ -27,7 +27,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,

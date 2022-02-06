@@ -1029,3 +1029,70 @@ class TestPostProcessing(SupersetTestCase):
         )
         self.assertListEqual(post_df["label"].tolist(), ["x", "y", 0, 0, "z", 0, "q"])
         self.assertListEqual(post_df["y"].tolist(), [1.0, 2.0, 0, 0, 3.0, 0, 4.0])
+
+    def test_resample_with_groupby(self):
+        """
+The Dataframe contains a timestamp column, a string column and a numeric column.
+  __timestamp     city  val
+0  2022-01-13  Chicago  6.0
+1  2022-01-13       LA  5.0
+2  2022-01-13       NY  4.0
+3  2022-01-11  Chicago  3.0
+4  2022-01-11       LA  2.0
+5  2022-01-11       NY  1.0
+        """
+        df = DataFrame(
+            {
+                "__timestamp": to_datetime(
+                    [
+                        "2022-01-13",
+                        "2022-01-13",
+                        "2022-01-13",
+                        "2022-01-11",
+                        "2022-01-11",
+                        "2022-01-11",
+                    ]
+                ),
+                "city": ["Chicago", "LA", "NY", "Chicago", "LA", "NY"],
+                "val": [6.0, 5.0, 4.0, 3.0, 2.0, 1.0],
+            }
+        )
+        post_df = proc.resample(
+            df=df,
+            rule="1D",
+            method="asfreq",
+            fill_value=0,
+            time_column="__timestamp",
+            groupby_columns=("city",),
+        )
+        assert list(post_df.columns) == [
+            "__timestamp",
+            "city",
+            "val",
+        ]
+        assert [str(dt.date()) for dt in post_df["__timestamp"]] == (
+            ["2022-01-11"] * 3 + ["2022-01-12"] * 3 + ["2022-01-13"] * 3
+        )
+        assert list(post_df["val"]) == [3.0, 2.0, 1.0, 0, 0, 0, 6.0, 5.0, 4.0]
+
+        # should raise error when get a non-existent column
+        with pytest.raises(QueryObjectValidationError):
+            proc.resample(
+                df=df,
+                rule="1D",
+                method="asfreq",
+                fill_value=0,
+                time_column="__timestamp",
+                groupby_columns=("city", "unkonw_column",),
+            )
+
+        # should raise error when get a None value in groupby list
+        with pytest.raises(QueryObjectValidationError):
+            proc.resample(
+                df=df,
+                rule="1D",
+                method="asfreq",
+                fill_value=0,
+                time_column="__timestamp",
+                groupby_columns=("city", None,),
+            )

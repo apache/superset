@@ -306,10 +306,14 @@ class QueryContextProcessor:
                 # 2. rename extra query columns
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
-                # 3. set time offset for dttm column
-                offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
-                    DTTM_ALIAS
-                ] - DateOffset(**normalize_time_delta(offset))
+                # 3. set time offset for index
+                # TODO: add x-axis to QueryObject, potentially as an array for
+                #  multi-dimensional charts
+                granularity = query_object.granularity
+                index = granularity if granularity in df.columns else DTTM_ALIAS
+                offset_metrics_df[index] = offset_metrics_df[index] - DateOffset(
+                    **normalize_time_delta(offset)
+                )
 
             # df left join `offset_metrics_df`
             offset_df = df_utils.left_join_df(

@@ -27,7 +27,9 @@ from unittest import mock
 import pandas as pd
 import pytest
 
+import superset.utils.database
 from superset.sql_parse import Table
+from superset import security_manager
 from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db
@@ -61,11 +63,11 @@ def setup_csv_upload():
     with app.app_context():
         login(test_client, username="admin")
 
-        upload_db = utils.get_or_create_db(
+        upload_db = superset.utils.database.get_or_create_db(
             CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
         )
         extra = upload_db.get_extra()
-        extra["explore_database_id"] = utils.get_example_database().id
+        extra["explore_database_id"] = superset.utils.database.get_example_database().id
         upload_db.extra = json.dumps(extra)
         upload_db.allow_file_upload = True
         db.session.commit()
@@ -141,15 +143,19 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
 def upload_excel(
     filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
 ):
+    excel_upload_db_id = get_upload_db().id
+    schema = utils.get_example_default_schema()
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
-        "con": get_upload_db().id,
+        "con": excel_upload_db_id,
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
         "mangle_dupe_cols": False,
     }
+    if schema:
+        form_data["schema"] = schema
     if extra:
         form_data.update(extra)
     return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
@@ -275,7 +281,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
     assert f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"' in resp
     table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE_W_EXPLORE)
-    assert table.database_id == utils.get_example_database().id
+    assert table.database_id == superset.utils.database.get_example_database().id
 
 
 @pytest.mark.usefixtures("setup_csv_upload")
@@ -345,6 +351,9 @@ def test_import_csv(mock_event_logger):
     # make sure the new column name is reflected in the table metadata
     assert "d" in table.column_names
 
+    # ensure user is assigned as an owner
+    assert security_manager.find_user("admin") in table.owners
+
     # null values are set
     upload_csv(
         CSV_FILENAME2,
@@ -371,11 +380,11 @@ def test_import_excel(mock_event_logger):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't excel upload.")
 
+    schema = utils.get_example_default_schema()
+    full_table_name = f"{schema}.{EXCEL_UPLOAD_TABLE}" if schema else EXCEL_UPLOAD_TABLE
     test_db = get_upload_db()
 
-    success_msg = (
-        f'Excel file "{EXCEL_FILENAME}" uploaded to table "{EXCEL_UPLOAD_TABLE}"'
-    )
+    success_msg = f'Excel file "{EXCEL_FILENAME}" uploaded to table "{full_table_name}"'
 
     # initial upload with fail mode
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
@@ -383,9 +392,13 @@ def test_import_excel(mock_event_logger):
     mock_event_logger.assert_called_with(
         action="successful_excel_upload",
         database=test_db.name,
-        schema=None,
+        schema=schema,
         table=EXCEL_UPLOAD_TABLE,
     )
+
+    # ensure user is assigned as an owner
+    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE)
+    assert security_manager.find_user("admin") in table.owners
 
     # upload again with fail mode; should fail
     fail_msg = f'Unable to upload Excel file "{EXCEL_FILENAME}" to table "{EXCEL_UPLOAD_TABLE}"'
@@ -407,7 +420,7 @@ def test_import_excel(mock_event_logger):
     mock_event_logger.assert_called_with(
         action="successful_excel_upload",
         database=test_db.name,
-        schema=None,
+        schema=schema,
         table=EXCEL_UPLOAD_TABLE,
     )
 
@@ -466,9 +479,12 @@ def test_import_parquet(mock_event_logger):
     )
     assert success_msg_f1 in resp
 
-    # make sure only specified column name was read
     table = SupersetTestCase.get_table(name=PARQUET_UPLOAD_TABLE, schema=None)
+    # make sure only specified column name was read
     assert "b" not in table.column_names
+
+    # ensure user is assigned as an owner
+    assert security_manager.find_user("admin") in table.owners
 
     # upload again with replace mode
     resp = upload_columnar(

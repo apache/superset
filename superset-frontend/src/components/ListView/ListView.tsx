@@ -136,6 +136,7 @@ const bulkSelectColumnConfig = {
 const ViewModeContainer = styled.div`
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  white-space: nowrap;
   display: inline-block;
 
   .toggle-button {
