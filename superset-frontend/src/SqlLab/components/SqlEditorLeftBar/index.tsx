@@ -39,9 +39,9 @@ interface actionsTypes {
   addTable: (queryEditor: any, value: any, schema: any) => void;
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
-  queryEditorSetSchema: (schema?: string) => void;
-  queryEditorSetSchemaOptions: () => void;
-  queryEditorSetTableOptions: (options: Array<any>) => void;
+  queryEditorSetSchema: (queryEditor: any, schema?: string) => void;
+  queryEditorSetSchemaOptions: (queryEditor: any, options: Array<any>) => void;
+  queryEditorSetTableOptions: (queryEditor: any, options: Array<any>) => void;
   resetState: () => void;
 }
 
@@ -91,6 +91,18 @@ export default function SqlEditorLeftBar({
     actions.queryEditorSetFunctionNames(queryEditor, dbId);
   };
 
+  const onSchemaChange = (schema?: string) => {
+    if (schema) {
+      actions.queryEditorSetSchema(queryEditor, schema);
+    }
+  };
+
+  const onSchemasLoad = (options: Array<any>) => {
+    if (options) {
+      actions.queryEditorSetTableOptions(queryEditor, options);
+    }
+  };
+
   const onTableChange = (tableName: string, schemaName: string) => {
     if (tableName && schemaName) {
       actions.addTable(queryEditor, tableName, schemaName);
@@ -108,6 +120,12 @@ export default function SqlEditorLeftBar({
         actions.expandTable(table);
       }
     });
+  };
+
+  const onTablesLoad = (options: Array<any>) => {
+    if (options) {
+      actions.queryEditorSetTableOptions(queryEditor, options);
+    }
   };
 
   const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
@@ -139,10 +157,10 @@ export default function SqlEditorLeftBar({
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
-        onSchemaChange={actions.queryEditorSetSchema}
-        onSchemasLoad={actions.queryEditorSetSchemaOptions}
+        onSchemaChange={onSchemaChange}
+        onSchemasLoad={onSchemasLoad}
         onTableChange={onTableChange}
-        onTablesLoad={actions.queryEditorSetTableOptions}
+        onTablesLoad={onTablesLoad}
         schema={queryEditor.schema}
         sqlLabMode
       />

@@ -86,7 +86,7 @@ interface TableSelectorProps {
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
-  onSchemasLoad?: () => void;
+  onSchemasLoad?: (options: Array<any>) => void;
   onTableChange?: (tableName?: string, schema?: string) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
