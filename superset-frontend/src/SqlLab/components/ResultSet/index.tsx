@@ -411,7 +411,7 @@ const ResultSet = ({
 
   const clearQueryResults = (query: Query) => {
     actions.clearQueryResults(query);
-  }
+  };
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
@@ -422,23 +422,23 @@ const ResultSet = ({
       sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
     };
     actions.addQueryEditor(qe);
-  }
+  };
 
   const toggleExploreResultsButton = () => {
     setShowExploreResultsButton(!showExploreResultsButton);
-  }
+  };
 
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
-  }
+  };
 
   const fetchResults = (query: Query) => {
     actions.fetchQueryResults(query, displayLimit);
-  }
+  };
 
   const reFetchQueryResults = (query: Query) => {
     actions.reFetchQueryResults(query);
-  }
+  };
 
   const reRunQueryIfSessionTimeoutErrorOnMount = () => {
     if (
@@ -447,7 +447,7 @@ const ResultSet = ({
     ) {
       actions.reRunQuery(query);
     }
-  }
+  };
 
   const renderControls = () => {
     if (search || visualize || csv) {
@@ -489,19 +489,16 @@ const ResultSet = ({
           />
           <ResultSetButtons>
             {visualize && database && database.allows_virtual_table_explore && (
-                <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={query}
-                  database={database}
-                  actions={actions}
-                  onClick={handleExploreBtnClick}
-                />
-              )}
+              <ExploreResultsButton
+                // @ts-ignore Redux types are difficult to work with, ignoring for now
+                query={query}
+                database={database}
+                actions={actions}
+                onClick={handleExploreBtnClick}
+              />
+            )}
             {csv && (
-              <Button
-                buttonSize="small"
-                href={`/superset/csv/${query.id}`}
-              >
+              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -534,7 +531,7 @@ const ResultSet = ({
       );
     }
     return <div />;
-  }
+  };
 
   const onAlertClose = () => {
     setAlertIsOpen(false);
@@ -646,6 +643,7 @@ const ResultSet = ({
   if (query.state === 'stopped') {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
+
   if (query.state === 'failed') {
     return (
       <ResultSetErrorMessage>
@@ -660,6 +658,7 @@ const ResultSet = ({
       </ResultSetErrorMessage>
     );
   }
+
   if (query.state === 'success' && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
@@ -701,11 +700,9 @@ const ResultSet = ({
       </div>
     );
   }
+
   if (query.state === 'success' && query.results) {
     const { results } = query;
-    const height = alertIsOpen
-      ? this.props.height - 70
-      : this.props.height;
     let data;
     if (cache && query.cached) {
       ({ data } = this.state);
@@ -724,7 +721,7 @@ const ResultSet = ({
           <FilterableTable
             data={data}
             orderedColumnKeys={results.columns.map(col => col.name)}
-            height={height}
+            height={alertIsOpen ? height - 70 : height}
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
@@ -732,11 +729,10 @@ const ResultSet = ({
       );
     }
     if (data && data.length === 0) {
-      return (
-        <Alert type="warning" message={t('The query returned no data')} />
-      );
+      return <Alert type="warning" message={t('The query returned no data')} />;
     }
   }
+
   if (query.cached || (query.state === 'success' && !query.results)) {
     if (query.isDataPreview) {
       return (
@@ -766,16 +762,15 @@ const ResultSet = ({
       );
     }
   }
+
   let trackingUrl;
   let progressBar;
   if (query.progress > 0) {
     progressBar = (
-      <ProgressBar
-        percent={parseInt(query.progress.toFixed(0), 10)}
-        striped
-      />
+      <ProgressBar percent={parseInt(query.progress.toFixed(0), 10)} striped />
     );
   }
+
   if (query.trackingUrl) {
     trackingUrl = (
       <Button
@@ -786,10 +781,7 @@ const ResultSet = ({
       </Button>
     );
   }
-  const progressMsg =
-    query && query.extra && query.extra.progress
-      ? query.extra.progress
-      : null;
+  const progressMsg = query?.extra?.progress ? query.extra.progress : null;
 
   return (
     <div style={LOADING_STYLES}>
@@ -804,7 +796,6 @@ const ResultSet = ({
       <div>{trackingUrl}</div>
     </div>
   );
-
 };
 
 export default ResultSet;
