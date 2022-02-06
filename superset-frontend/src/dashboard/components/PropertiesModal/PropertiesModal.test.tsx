@@ -108,6 +108,7 @@ fetchMock.get('glob:*/api/v1/dashboard/26', {
       ],
       css: '',
       dashboard_title: 'COVID Vaccine Dashboard',
+      description: 'A summary of COVID Vaccine over the world.',
       id: 26,
       json_metadata: mockedJsonMetadata,
       owners: [],
@@ -302,6 +303,7 @@ test('submitting with onlyApply:false', async () => {
       owners: [],
       slug: '',
       title: 'COVID Vaccine Dashboard',
+      description: 'A summary of COVID Vaccine over the world.',
     });
   });
 });
