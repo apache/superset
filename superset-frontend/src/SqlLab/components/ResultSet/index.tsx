@@ -133,6 +133,7 @@ const ReturnedRows = styled.div`
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
+
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
@@ -198,13 +199,14 @@ const ResultSet = ({
   // }
 
   const [searchText, setSearchText] = useState('');
-  const [cachedData, setCachedData] = useState([]);
+  const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [newSaveDatasetName, setNewSaveDatasetName] = useState(getDefaultDatasetName());
-  const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(DatasetRadioState.SAVE_NEW);
+  const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(
+    DatasetRadioState.SAVE_NEW,
+  );
   const [shouldOverwriteDataSet, setShouldOverwriteDataSet] = useState(false);
   const [datasetToOverwrite, setDatasetToOverwrite] = useState({});
-  const [saveModalAutocompleteValue, setSaveModalAutocompleteValue] = useState('');
   const [userDatasetOptions, setUserDatasetOptions] = useState([]);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
@@ -443,6 +445,7 @@ const ResultSet = ({
   };
 
   const renderControls = () => {
+    const saveModalAutocompleteValue = '';
     if (search || visualize || csv) {
       let { data } = query.results;
       if (cache && query.cached) {
