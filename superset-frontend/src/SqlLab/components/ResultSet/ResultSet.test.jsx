@@ -105,51 +105,53 @@ test('renders a Table', () => {
   expect(wrapper.find(FilterableTable)).toExist();
 });
 
-// describe('componentDidMount', () => {
-//   const propsWithError = {
-//     ...mockedProps,
-//     query: { ...queries[0], errorMessage: 'Your session timed out' },
-//   };
-//   let spy;
-//   beforeEach(() => {
-//     reRunQuerySpy.resetHistory();
-//     spy = sinon.spy(ResultSet.prototype, 'componentDidMount');
-//   });
-//   afterEach(() => {
-//     spy.restore();
-//   });
-//   it('should call reRunQuery if timed out', () => {
-//     shallow(<ResultSet {...propsWithError} />);
-//     expect(reRunQuerySpy.callCount).toBe(1);
-//   });
-//
-//   it('should not call reRunQuery if no error', () => {
-//     shallow(<ResultSet {...mockedProps} />);
-//     expect(reRunQuerySpy.callCount).toBe(0);
-//   });
-// });
-//
-// describe('UNSAFE_componentWillReceiveProps', () => {
-//   const wrapper = shallow(<ResultSet {...mockedProps} />);
-//   let spy;
-//   beforeEach(() => {
-//     clearQuerySpy.resetHistory();
-//     fetchQuerySpy.resetHistory();
-//     spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
-//   });
-//   afterEach(() => {
-//     spy.restore();
-//   });
-//   it('should update cached data', () => {
-//     wrapper.setProps(newProps);
-//
-//     expect(wrapper.state().data).toEqual(newProps.query.results.data);
-//     expect(clearQuerySpy.callCount).toBe(1);
-//     expect(clearQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
-//     expect(fetchQuerySpy.callCount).toBe(1);
-//     expect(fetchQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
-//   });
-// });
+// TODO: need rewrite or delete
+describe('componentDidMount', () => {
+  const propsWithError = {
+    ...mockedProps,
+    query: { ...queries[0], errorMessage: 'Your session timed out' },
+  };
+  let spy;
+  beforeEach(() => {
+    reRunQuerySpy.resetHistory();
+    spy = sinon.spy(ResultSet.prototype, 'componentDidMount');
+  });
+  afterEach(() => {
+    spy.restore();
+  });
+  it('should call reRunQuery if timed out', () => {
+    shallow(<ResultSet {...propsWithError} />);
+    expect(reRunQuerySpy.callCount).toBe(1);
+  });
+
+  it('should not call reRunQuery if no error', () => {
+    shallow(<ResultSet {...mockedProps} />);
+    expect(reRunQuerySpy.callCount).toBe(0);
+  });
+});
+
+// TODO: need rewrite or delete
+describe('UNSAFE_componentWillReceiveProps', () => {
+  const wrapper = shallow(<ResultSet {...mockedProps} />);
+  let spy;
+  beforeEach(() => {
+    clearQuerySpy.resetHistory();
+    fetchQuerySpy.resetHistory();
+    spy = sinon.spy(ResultSet.prototype, 'UNSAFE_componentWillReceiveProps');
+  });
+  afterEach(() => {
+    spy.restore();
+  });
+  it('should update cached data', () => {
+    wrapper.setProps(newProps);
+
+    expect(wrapper.state().data).toEqual(newProps.query.results.data);
+    expect(clearQuerySpy.callCount).toBe(1);
+    expect(clearQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
+    expect(fetchQuerySpy.callCount).toBe(1);
+    expect(fetchQuerySpy.getCall(0).args[0]).toEqual(newProps.query);
+  });
+});
 
 test('should render success query', () => {
   const wrapper = shallow(<ResultSet {...mockedProps} />);
@@ -177,7 +179,7 @@ test('should render empty results', () => {
 test('should render cached query', () => {
   const wrapper = shallow(<ResultSet {...cachedQueryProps} />);
   const cachedData = [{ col1: 'a', col2: 'b' }];
-  wrapper.setState({ data: cachedData });
+  wrapper.setState({ data: cachedData }); // How to set state to Functional Component?
   const filterableTable = wrapper.find(FilterableTable);
   expect(filterableTable.props().data).toBe(cachedData);
 });
