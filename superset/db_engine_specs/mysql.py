@@ -151,7 +151,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
@@ -204,6 +206,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
         column_type_mappings: Tuple[
             Tuple[

@@ -206,7 +206,7 @@ exports.createPages = ({ actions }) => {
   });
   createRedirect({
     fromPath: '/installation.html#building-from-source',
-    toPath: '/docs/contribution',
+    toPath: '/docs/contributing/contribution-guidelines',
     isPermanent: true,
   });
   createRedirect({
@@ -311,6 +311,11 @@ exports.createPages = ({ actions }) => {
   });
   createRedirect({
     fromPath: '/usertutorial.html#filter-box',
+    toPath: '/docs/creating-charts-dashboards/exploring-data',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/usertutorial.html#native-filters',
     toPath: '/docs/creating-charts-dashboards/exploring-data',
     isPermanent: true,
   });

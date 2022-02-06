@@ -19,17 +19,16 @@
 import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { setInLocalStorage } from 'src/utils/localStorageHelpers';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 import ListViewCard from 'src/components/ListViewCard';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
   CardContainer,
   CardStyles,
   getEditedObjects,
 } from 'src/views/CRUD/utils';
-import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
@@ -58,7 +57,7 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
-enum SetTabType {
+export enum SetTabType {
   EDITED = 'Edited',
   CREATED = 'Created',
   VIEWED = 'Viewed',
@@ -120,33 +119,14 @@ const getEntityUrl = (entity: ActivityObject) => {
 };
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
-  // translation keys for last action on
-  const LAST_VIEWED = `Viewed %s`;
-  const LAST_MODIFIED = `Modified %s`;
-
-  // for Recent viewed items
-  if ('time_delta_humanized' in entity) {
-    return t(LAST_VIEWED, entity.time_delta_humanized);
-  }
-
-  if ('changed_on_delta_humanized' in entity) {
-    return t(LAST_MODIFIED, entity.changed_on_delta_humanized);
+  if ('time' in entity) {
+    return t('Viewed %s', moment(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
-  let translationKey = LAST_MODIFIED;
-  if ('time' in entity) {
-    // eslint-disable-next-line prefer-destructuring
-    time = entity.time;
-    translationKey = LAST_VIEWED;
-  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-
-  return t(
-    translationKey,
-    time == null ? UNKNOWN_TIME : moment(time).fromNow(),
-  );
+  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
 };
 
 export default function ActivityTable({
@@ -180,7 +160,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EDITED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.EDITED);
       },
     },
     {
@@ -188,7 +168,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.CREATED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.CREATED);
       },
     },
   ];
@@ -199,7 +179,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.VIEWED);
       },
     });
   }

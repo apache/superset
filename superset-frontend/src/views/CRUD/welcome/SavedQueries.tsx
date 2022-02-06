@@ -28,7 +28,7 @@ import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import {
   CardContainer,
@@ -284,7 +284,7 @@ const SavedQueries = ({
             name: (
               <>
                 <i className="fa fa-plus" />
-                SQL Query
+                {t('SQL Query')}
               </>
             ),
             buttonStyle: 'tertiary',
@@ -293,7 +293,7 @@ const SavedQueries = ({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               window.location.href = '/savedqueryview/list';

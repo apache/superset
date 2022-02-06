@@ -1,0 +1,104 @@
+---
+name: Translating
+menu: Contributing
+route: /docs/contributing/translating
+index: 8
+version: 1
+---
+
+## Translating
+
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+In Python files, we import the magic `_` function using:
+
+```python
+from flask_babel import lazy_gettext as _
+```
+
+then wrap our translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
+
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In TypeScript/JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
+
+```javascript
+import { t, tn } from "@superset-ui/translation";
+```
+
+### Enabling language selection
+
+Add the `LANGUAGES` variable to your `superset_config.py`. Having more than one
+option inside will add a language selection dropdown to the UI on the right side
+of the navigation bar.
+
+```python
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
+}
+```
+
+### Extracting new strings for translation
+
+```bash
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+```
+
+This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
+this file with the appropriate license information.
+
+### Updating language files
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+This will update language files with the new extracted strings.
+
+You can then translate the strings gathered in files located under
+`superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
+to translate the `po` file more conveniently.
+There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
+
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
+
+```bash
+npm install -g po2json
+```
+
+To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
+
+```bash
+./scripts/po2json.sh
+```
+
+If you get errors running `po2json`, you might be running the Ubuntu package with the same
+name, rather than the Node.js package (they have a different format for the arguments). If
+there is a conflict, you may need to update your `PATH` environment variable or fully qualify
+the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
+If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
+For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+
+For the translations to take effect we need to compile translation catalogs into binary MO files.
+
+```bash
+pybabel compile -d superset/translations
+```
+
+### Creating a new language dictionary
+
+To create a dictionary for a new language, run the following, where `LANGUAGE_CODE` is replaced with
+the language code for your target language, e.g. `es` (see [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html) for more details):
+
+```bash
+pip install -r superset/translations/requirements.txt
+pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
+```
+
+Then, [extract strings for the new language](#extracting-new-strings-for-translation).

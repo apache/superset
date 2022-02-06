@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t, SupersetClient } from '@superset-ui/core';
+import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
 import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
 import { chart as initChart } from 'src/chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -35,13 +35,18 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
-import { setChartConfiguration } from './dashboardInfo';
+import {
+  setChartConfiguration,
+  dashboardInfoChanged,
+  SET_CHART_CONFIG_COMPLETE,
+} from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
   addFilter,
   removeFilter,
   updateDirectPathToFilter,
 } from './dashboardFilters';
+import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -176,8 +181,6 @@ export function saveDashboardRequestSuccess(lastModifiedTime) {
 }
 
 export function saveDashboardRequest(data, id, saveType) {
-  const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
-
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
 
@@ -194,54 +197,184 @@ export function saveDashboardRequest(data, id, saveType) {
     const serializedFilters = serializeActiveFilterValues(getActiveFilters());
     // serialize filter scope for each filter field, grouped by filter id
     const serializedFilterScopes = serializeFilterScopes(dashboardFilters);
+    const {
+      certified_by,
+      certification_details,
+      css,
+      dashboard_title,
+      owners,
+      roles,
+      slug,
+    } = data;
+
+    const hasId = item => item.id !== undefined;
+
+    // making sure the data is what the backend expects
+    const cleanedData = {
+      ...data,
+      certified_by: certified_by || '',
+      certification_details:
+        certified_by && certification_details ? certification_details : '',
+      css: css || '',
+      dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
+      owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
+      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+        ? undefined
+        : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
+      slug: slug || null,
+      metadata: {
+        ...data.metadata,
+        color_namespace: data.metadata?.color_namespace || undefined,
+        color_scheme: data.metadata?.color_scheme || '',
+        expanded_slices: data.metadata?.expanded_slices || {},
+        label_colors: data.metadata?.label_colors || {},
+        refresh_frequency: data.metadata?.refresh_frequency || 0,
+        timed_refresh_immune_slices:
+          data.metadata?.timed_refresh_immune_slices || [],
+      },
+    };
+
+    const handleChartConfiguration = () => {
+      const {
+        dashboardInfo: {
+          metadata: { chart_configuration = {} },
+        },
+      } = getState();
+      const chartConfiguration = Object.values(chart_configuration).reduce(
+        (prev, next) => {
+          // If chart removed from dashboard - remove it from metadata
+          if (
+            Object.values(layout).find(
+              layoutItem => layoutItem?.meta?.chartId === next.id,
+            )
+          ) {
+            return { ...prev, [next.id]: next };
+          }
+          return prev;
+        },
+        {},
+      );
+      return chartConfiguration;
+    };
+
+    const onCopySuccess = response => {
+      const lastModifiedTime = response.json.last_modified_time;
+      if (lastModifiedTime) {
+        dispatch(saveDashboardRequestSuccess(lastModifiedTime));
+      }
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        const chartConfiguration = handleChartConfiguration();
+        dispatch(setChartConfiguration(chartConfiguration));
+      }
+      dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      return response;
+    };
+
+    const onUpdateSuccess = response => {
+      const updatedDashboard = response.json.result;
+      const lastModifiedTime = response.json.last_modified_time;
+      // synching with the backend transformations of the metadata
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        dispatch(
+          dashboardInfoChanged({
+            metadata,
+          }),
+        );
+        if (metadata.chart_configuration) {
+          dispatch({
+            type: SET_CHART_CONFIG_COMPLETE,
+            chartConfiguration: metadata.chart_configuration,
+          });
+        }
+        if (metadata.native_filter_configuration) {
+          dispatch({
+            type: SET_FILTER_CONFIG_COMPLETE,
+            filterConfig: metadata.native_filter_configuration,
+          });
+        }
+      }
+      if (lastModifiedTime) {
+        dispatch(saveDashboardRequestSuccess(lastModifiedTime));
+      }
+      // redirect to the new slug or id
+      window.history.pushState(
+        { event: 'dashboard_properties_changed' },
+        '',
+        `/superset/dashboard/${slug || id}/`,
+      );
+
+      dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      return response;
+    };
+
+    const onError = async response => {
+      const { error, message } = await getClientErrorObject(response);
+      let errorText = t('Sorry, an unknown error occured');
+
+      if (error) {
+        errorText = t(
+          'Sorry, there was an error saving this dashboard: %s',
+          error,
+        );
+      }
+      if (typeof message === 'string' && message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      dispatch(addDangerToast(errorText));
+    };
+
+    if (saveType === SAVE_TYPE_OVERWRITE) {
+      let chartConfiguration = {};
+      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        chartConfiguration = handleChartConfiguration();
+      }
+      const updatedDashboard = {
+        certified_by: cleanedData.certified_by,
+        certification_details: cleanedData.certification_details,
+        css: cleanedData.css,
+        dashboard_title: cleanedData.dashboard_title,
+        slug: cleanedData.slug,
+        owners: cleanedData.owners,
+        roles: cleanedData.roles,
+        json_metadata: safeStringify({
+          ...(cleanedData?.metadata || {}),
+          default_filters: safeStringify(serializedFilters),
+          filter_scopes: serializedFilterScopes,
+          chart_configuration: chartConfiguration,
+        }),
+      };
+
+      return SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDashboard),
+      })
+        .then(response => onUpdateSuccess(response))
+        .catch(response => onError(response));
+    }
+    // changing the data as the endpoint requires
+    const copyData = { ...cleanedData };
+    if (copyData.metadata) {
+      delete copyData.metadata;
+    }
+    const finalCopyData = {
+      ...copyData,
+      // the endpoint is expecting the metadata to be flat
+      ...(cleanedData?.metadata || {}),
+    };
     return SupersetClient.post({
-      endpoint: `/superset/${path}/${id}/`,
+      endpoint: `/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
-          ...data,
+          ...finalCopyData,
           default_filters: safeStringify(serializedFilters),
           filter_scopes: safeStringify(serializedFilterScopes),
         },
       },
     })
-      .then(response => {
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-          const {
-            dashboardInfo: {
-              metadata: { chart_configuration = {} },
-            },
-          } = getState();
-          const chartConfiguration = Object.values(chart_configuration).reduce(
-            (prev, next) => {
-              // If chart removed from dashboard - remove it from metadata
-              if (
-                Object.values(layout).find(
-                  layoutItem => layoutItem?.meta?.chartId === next.id,
-                )
-              ) {
-                return { ...prev, [next.id]: next };
-              }
-              return prev;
-            },
-            {},
-          );
-          dispatch(setChartConfiguration(chartConfiguration));
-        }
-        dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
-        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
-        return response;
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error }) =>
-          dispatch(
-            addDangerToast(
-              `${t(
-                'Sorry, there was an error saving this dashboard: ',
-              )} ${error}`,
-            ),
-          ),
-        ),
-      );
+      .then(response => onCopySuccess(response))
+      .catch(response => onError(response));
   };
 }
 

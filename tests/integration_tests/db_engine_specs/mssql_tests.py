@@ -40,7 +40,7 @@ class TestMssqlEngineSpec(TestDbEngineSpec):
                 column_spec = MssqlEngineSpec.get_column_spec(type_string)
                 if column_spec != None:
                     self.assertIsInstance(column_spec.sqla_type, type_expected)
-                    self.assertEquals(column_spec.generic_type, generic_type_expected)
+                    self.assertEqual(column_spec.generic_type, generic_type_expected)
 
         assert_type("STRING", String, GenericDataType.STRING)
         assert_type("CHAR(10)", String, GenericDataType.STRING)

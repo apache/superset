@@ -1,0 +1,97 @@
+---
+name: Pull Request Guidelines
+menu: Contributing
+route: /docs/contributing/pr-guidelines
+index: 3
+version: 1
+---
+
+## Pull Request Guidelines
+
+A philosophy we would like to strongly encourage is
+
+> Before creating a PR, create an issue.
+
+The purpose is to separate problem from possible solutions.
+
+**Bug fixes:** If you’re only fixing a small bug, it’s fine to submit a pull request right away but we highly recommend to file an issue detailing what you’re fixing. This is helpful in case we don’t accept that specific fix but want to keep track of the issue. Please keep in mind that the project maintainers reserve the rights to accept or reject incoming PRs, so it is better to separate the issue and the code to fix it from each other. In some cases, project maintainers may request you to create a separate issue from PR before proceeding.
+
+**Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a `#SIP` for the PR before proceeding.
+
+**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we require you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
+
+In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
+
+If you wish to share your work which is not ready to merge yet, create a [Draft PR](https://github.blog/2019-02-14-introducing-draft-pull-requests/). This will enable maintainers and the CI runner to prioritize mature PR's.
+
+Finally, never submit a PR that will put master branch in broken state. If the PR is part of multiple PRs to complete a large feature and cannot work on its own, you can create a feature branch and merge all related PRs into the feature branch before creating a PR from feature branch to master.
+
+### Protocol
+
+#### Authoring
+
+- Fill in all sections of the PR template.
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+
+  - `feat` (new feature)
+  - `fix` (bug fix)
+  - `docs` (changes to the documentation)
+  - `style` (formatting, missing semi colons, etc; no application logic change)
+  - `refactor` (refactoring code)
+  - `test` (adding missing tests, refactoring tests; no application logic change)
+  - `chore` (updating tasks etc; no application logic change)
+  - `perf` (performance-related change)
+  - `build` (build tooling, Docker configuration change)
+  - `ci` (test runner, Github Actions workflow changes)
+  - `other` (changes that don't correspond to the above -- should be rare!)
+  - Examples:
+    - `feat: export charts as ZIP files`
+    - `perf(api): improve API info performance`
+    - `fix(chart-api): cached-indicator always shows value is cached`
+
+- Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- If you believe your PR contributes a potentially breaking change, put a `!` after the semantic prefix but before the colon in the PR title, like so: `feat!: Added foo functionality to bar`
+- **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
+  - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
+  - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
+- **Dependencies:** Be careful about adding new dependency and avoid unnecessary dependencies.
+  - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
+  - For TypeScript/JavaScript, include new libraries in `package.json`
+- **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
+- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR.
+- **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
+- **Code coverage:** Please ensure that code coverage does not decrease.
+- Remove `[WIP]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
+- If the PR was not ready for review and inactive for > 30 days, we will close it due to inactivity. The author is welcome to re-open and update.
+
+#### Reviewing
+
+- Use constructive tone when writing reviews.
+- If there are changes required, state clearly what needs to be done before the PR can be approved.
+- If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
+- The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
+
+#### Test Environments
+
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`.
+  - Note that org membership must be public in order for this validation to function properly.
+- Feature flags may be set for a test environment by specifying the flag name (prefixed with `FEATURE_`) and value after the command.
+  - Format: `/testenv up FEATURE_<feature flag name>=true|false`
+  - Example: `/testenv up FEATURE_DASHBOARD_NATIVE_FILTERS=true`
+  - Multiple feature flags may be set in single command, separated by whitespace
+- A comment will be created by the workflow script with the address and login information for the ephemeral environment.
+- Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Test environments do not currently update automatically when new commits are added to a pull request.
+- Test environments do not currently support async workers, though this is planned.
+- Running test environments will be shutdown upon closing the pull request.
+
+#### Merging
+
+- At least one approval is required for merging a PR.
+- PR is usually left open for at least 24 hours before merging.
+- After the PR is merged, [close the corresponding issue(s)](https://help.github.com/articles/closing-issues-using-keywords/).
+
+#### Post-merge Responsibility
+
+- Project maintainers may contact the PR author if new issues are introduced by the PR.
+- Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.

@@ -156,9 +156,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           `}
         >
           <Collapse.Panel
-            header={`${t('Filters out of scope')} (${
-              filtersOutOfScope.length
-            })`}
+            header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
             key="1"
           >
             {filtersOutOfScope.map(filter => {

@@ -20,6 +20,7 @@ import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
 import {
+  AutoSizer,
   Column,
   Grid,
   ScrollSync,
@@ -58,8 +59,8 @@ function safeJsonObjectParse(
   }
 }
 
-const SCROLL_BAR_HEIGHT = 15;
 const GRID_POSITION_ADJUSTMENT = 4;
+const SCROLL_BAR_HEIGHT = 15;
 const JSON_TREE_THEME = {
   scheme: 'monokai',
   author: 'wimer hazenberg (http://www.monokai.nl)',
@@ -80,6 +81,10 @@ const JSON_TREE_THEME = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 };
+// This regex handles all possible number formats in javascript, including ints, floats,
+// exponential notation, NaN, and Infinity.
+// See https://stackoverflow.com/a/30987109 for more details
+const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
   height: 100%;
@@ -321,21 +326,35 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  // Parse any numbers from strings so they'll sort correctly
+  parseNumberFromString = (value: string | number | null) => {
+    if (typeof value === 'string') {
+      if (ONLY_NUMBER_REGEX.test(value)) {
+        return parseFloat(value);
+      }
+    }
+
+    return value;
+  };
+
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
+      const aValue = this.parseNumberFromString(a[sortBy]);
+      const bValue = this.parseNumberFromString(b[sortBy]);
+
+      // equal items sort equally
       if (aValue === bValue) {
-        // equal items sort equally
         return 0;
       }
+
+      // nulls sort after anything else
       if (aValue === null) {
-        // nulls sort after anything else
         return 1;
       }
       if (bValue === null) {
         return -1;
       }
+
       if (descending) {
         return aValue < bValue ? 1 : -1;
       }
@@ -479,39 +498,38 @@ export default class FilterableTable extends PureComponent<
     return (
       <StyledFilterableTable>
         <ScrollSync>
-          {({ onScroll, scrollTop }) => (
-            <div
-              className="filterable-table-container Table"
-              data-test="filterable-table-container"
-              ref={this.container}
-            >
-              <div className="LeftColumn">
-                <Grid
-                  cellRenderer={this.renderGridCellHeader}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={rowHeight}
-                  rowCount={1}
-                  rowHeight={rowHeight}
-                  scrollTop={scrollTop}
-                  width={this.totalTableWidth}
-                />
-              </div>
-              <div className="RightColumn">
-                <Grid
-                  cellRenderer={this.renderGridCell}
-                  columnCount={orderedColumnKeys.length}
-                  columnWidth={getColumnWidth}
-                  height={totalTableHeight - rowHeight}
-                  onScroll={onScroll}
-                  overscanColumnCount={overscanColumnCount}
-                  overscanRowCount={overscanRowCount}
-                  rowCount={this.list.length}
-                  rowHeight={rowHeight}
-                  width={this.totalTableWidth}
-                />
-              </div>
-            </div>
+          {({ onScroll, scrollLeft }) => (
+            <>
+              <AutoSizer disableHeight>
+                {({ width }) => (
+                  <div>
+                    <Grid
+                      cellRenderer={this.renderGridCellHeader}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={rowHeight}
+                      rowCount={1}
+                      rowHeight={rowHeight}
+                      scrollLeft={scrollLeft}
+                      width={width}
+                      style={{ overflow: 'hidden' }}
+                    />
+                    <Grid
+                      cellRenderer={this.renderGridCell}
+                      columnCount={orderedColumnKeys.length}
+                      columnWidth={getColumnWidth}
+                      height={totalTableHeight - rowHeight}
+                      onScroll={onScroll}
+                      overscanColumnCount={overscanColumnCount}
+                      overscanRowCount={overscanRowCount}
+                      rowCount={this.list.length}
+                      rowHeight={rowHeight}
+                      width={width}
+                    />
+                  </div>
+                )}
+              </AutoSizer>
+            </>
           )}
         </ScrollSync>
       </StyledFilterableTable>

@@ -151,10 +151,12 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
             window.location.href = favRedirects[tableName];
           }}
         >
-          See all{' '}
-          {tableName === 'SAVED_QUERIES'
-            ? t('SQL Lab queries')
-            : t(`${tableName}`)}
+          {t('See all %(tableName)s', {
+            tableName:
+              tableName === 'SAVED_QUERIES'
+                ? t('SQL Lab queries')
+                : welcomeTableLabels[tableName],
+          })}
         </Button>
       </Empty>
     </EmptyContainer>

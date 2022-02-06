@@ -35,12 +35,13 @@ from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
+from flask_appbuilder.api.manager import resolver
 
 from superset import app, appbuilder, config, security_manager
-from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
 from superset.utils.celery import session_scope
+from superset.utils.encrypt import SecretsMigrator
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -73,9 +74,7 @@ def normalize_token(token_name: str) -> str:
 
 
 @click.group(
-    cls=FlaskGroup,
-    create_app=create_app,
-    context_settings={"token_normalize_func": normalize_token},
+    cls=FlaskGroup, context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
 def superset() -> None:
@@ -860,8 +859,8 @@ def update_api_docs() -> None:
         version=api_version,
         openapi_version="3.0.2",
         info=dict(description=current_app.appbuilder.app_name),
-        plugins=[MarshmallowPlugin()],
-        servers=[{"url": "/api/{}".format(api_version)}],
+        plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
+        servers=[{"url": "http://localhost:8088"}],
     )
     for base_api in current_app.appbuilder.baseviews:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:
@@ -873,3 +872,31 @@ def update_api_docs() -> None:
             json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
     else:
         click.secho("API version not found", err=True)
+
+
+@superset.command()
+@with_appcontext
+@click.option(
+    "--previous_secret_key",
+    "-a",
+    required=False,
+    help="An optional previous secret key, if PREVIOUS_SECRET_KEY "
+    "is not set on the config",
+)
+def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
+    previous_secret_key = previous_secret_key or current_app.config.get(
+        "PREVIOUS_SECRET_KEY"
+    )
+    if previous_secret_key is None:
+        click.secho("A previous secret key must be provided", err=True)
+        sys.exit(1)
+    secrets_migrator = SecretsMigrator(previous_secret_key=previous_secret_key)
+    try:
+        secrets_migrator.run()
+    except ValueError as exc:
+        click.secho(
+            f"An error occurred, "
+            f"probably an invalid previoud secret key was provided. Error:[{exc}]",
+            err=True,
+        )
+        sys.exit(1)

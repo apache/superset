@@ -373,7 +373,7 @@ dataset_config: Dict[str, Any] = {
     "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": "dttm > sysdate() -10 ",
+    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
     "metrics": [
         {
             "metric_name": "count",

@@ -105,16 +105,6 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
-def text(clause: str) -> TextClause:
-    """
-    SQLALchemy wrapper to ensure text clauses are escaped properly
-
-    :param clause: clause potentially containing colons
-    :return: text clause with escaped colons
-    """
-    return sa.text(clause.replace(":", "\\:"))
-
-
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
     extra_cache_keys: List[Any]
@@ -265,16 +255,22 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table.db_engine_spec
 
     @property
+    def db_extra(self) -> Dict[str, Any]:
+        return self.table.database.get_extra()
+
+    @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
         if self.is_dttm:
             return GenericDataType.TEMPORAL
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
-        column_spec = db_engine_spec.get_column_spec(self.type)
+        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
             tp = self.table.get_template_processor()
@@ -301,7 +297,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         l = []
         if start_dttm:
             l.append(
-                col >= text(self.dttm_sql_literal(start_dttm, time_range_endpoints))
+                col
+                >= self.table.text(
+                    self.dttm_sql_literal(start_dttm, time_range_endpoints)
+                )
             )
         if end_dttm:
             if (
@@ -309,10 +308,13 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
                 and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
             ):
                 l.append(
-                    col < text(self.dttm_sql_literal(end_dttm, time_range_endpoints))
+                    col
+                    < self.table.text(
+                        self.dttm_sql_literal(end_dttm, time_range_endpoints)
+                    )
                 )
             else:
-                l.append(col <= text(self.dttm_sql_literal(end_dttm, None)))
+                l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm, None)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -332,7 +334,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        column_spec = self.db_engine_spec.get_column_spec(
+            self.type, db_extra=self.db_extra
+        )
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
@@ -357,7 +361,11 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        sql = (
+            self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
+            if self.type
+            else None
+        )
 
         if sql:
             return sql
@@ -370,10 +378,8 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             utils.TimeRangeEndpoint.INCLUSIVE,
             utils.TimeRangeEndpoint.EXCLUSIVE,
         ):
-            tf = (
-                self.table.database.get_extra()
-                .get("python_date_format_by_column_name", {})
-                .get(self.column_name)
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                self.column_name
             )
 
         if tf:
@@ -723,7 +729,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_fetch_values_predicate(self) -> TextClause:
         tp = self.get_template_processor()
         try:
-            return text(tp.process_template(self.fetch_values_predicate))
+            return self.text(tp.process_template(self.fetch_values_predicate))
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _(
@@ -818,7 +824,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
-        return TextAsFrom(text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        return TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
 
     def get_rendered_sql(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -960,7 +966,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = text(
+                clause = self.text(
                     f"({template_processor.process_template(filter_.clause)})"
                 )
                 filters_grouped[filter_.group_key or filter_.id].append(clause)
@@ -969,6 +975,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             ) from ex
+
+    def text(self, clause: str) -> TextClause:
+        return self.db_engine_spec.get_text_clause(clause)
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
@@ -1330,7 +1339,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                where_clause_and += [text(f"({where})")]
+                where_clause_and += [self.text(f"({where})")]
             having = extras.get("having")
             if having:
                 try:
@@ -1342,7 +1351,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                having_clause_and += [text(f"({having})")]
+                having_clause_and += [self.text(f"({having})")]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
@@ -1429,7 +1438,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             self._get_series_orderby(
                                 series_limit_metric, metrics_by_name, columns_by_name,
                             ),
-                            False,
+                            not order_desc,
                         )
                     ]
 
@@ -1523,14 +1532,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             value = value.item()
 
         column_ = columns_by_name[dimension]
+        db_extra: Dict[str, Any] = self.database.get_extra()
 
         if column_.type and column_.is_temporal and isinstance(value, str):
             sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value),
+                column_.type, dateutil.parser.parse(value), db_extra=db_extra
             )
 
             if sql:
-                value = text(sql)
+                value = self.text(sql)
 
         return value
 

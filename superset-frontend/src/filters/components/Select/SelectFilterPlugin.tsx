@@ -119,8 +119,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
 
-      const suffix =
-        inverseSelection && values?.length ? ` (${t('excluded')})` : '';
+      const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
 
       dispatchDataMask({
         type: 'filterState',

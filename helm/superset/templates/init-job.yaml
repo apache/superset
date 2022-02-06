@@ -26,7 +26,14 @@ spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
+      {{- if .Values.init.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}

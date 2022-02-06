@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 const packageConfig = require('./package');
 
 const importCoreModules = [];
@@ -25,6 +24,18 @@ Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
     importCoreModules.push(pkg);
   }
 });
+
+// ignore files in production mode
+let ignorePatterns = [];
+if (process.env.NODE_ENV === 'production') {
+  ignorePatterns = [
+    '*.test.{js,ts,jsx,tsx}',
+    'plugins/**/test/**/*',
+    'packages/**/test/**/*',
+    'packages/generator-superset/**/*',
+  ];
+}
+
 module.exports = {
   extends: [
     'airbnb',
@@ -40,16 +51,17 @@ module.exports = {
   },
   env: {
     browser: true,
+    node: true,
   },
   settings: {
     'import/resolver': {
-      webpack: {},
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
+        moduleDirectory: ['node_modules', '.'],
       },
     },
-    // Allow only core/src and core/test, avoid import modules from lib
-    'import/internal-regex': /^@superset-ui\/core\/(src|test)\/.*/,
+    // only allow import from top level of module
     'import/core-modules': importCoreModules,
     react: {
       version: 'detect',
@@ -57,24 +69,6 @@ module.exports = {
   },
   plugins: ['prettier', 'react', 'file-progress'],
   overrides: [
-    {
-      files: ['cypress-base/**/*'],
-      rules: {
-        'import/no-unresolved': 0,
-        'global-require': 0,
-      },
-    },
-    {
-      files: ['webpack*.js'],
-      env: {
-        node: true,
-      },
-      settings: {
-        'import/resolver': {
-          node: {},
-        },
-      },
-    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -124,24 +118,6 @@ module.exports = {
         'no-nested-ternary': 0,
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
-        'no-restricted-imports': [
-          'warn',
-          {
-            paths: [
-              {
-                name: 'antd',
-                message:
-                  'Please import Ant components from the index of common/components',
-              },
-              {
-                name: '@superset-ui/core',
-                importNames: ['supersetTheme'],
-                message:
-                  'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
-              },
-            ],
-          },
-        ],
         'no-shadow': 0, // re-enable up for discussion
         'no-use-before-define': 0, // disabled temporarily
         'padded-blocks': 0,
@@ -166,7 +142,6 @@ module.exports = {
       },
       settings: {
         'import/resolver': {
-          webpack: {},
           typescript: {},
         },
         react: {
@@ -175,24 +150,16 @@ module.exports = {
       },
     },
     {
-      files: ['*.stories.jsx', '*.stories.tsx'],
-      rules: {
-        // this is to keep eslint from complaining about storybook addons,
-        // since they are included as dev dependencies rather than direct dependencies.
-        'import/no-extraneous-dependencies': [
-          'error',
-          { devDependencies: true },
-        ],
-      },
-    },
-    {
       files: [
         '*.test.ts',
         '*.test.tsx',
         '*.test.js',
         '*.test.jsx',
+        '*.stories.tsx',
+        '*.stories.jsx',
         'fixtures.*',
       ],
+      excludedFiles: 'cypress-base/cypress/**/*',
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {
         'jest/globals': true,
@@ -214,26 +181,6 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
-        '@typescript-eslint/no-non-null-assertion': 0,
-        // TODO: disabled temporarily, re-enable after monorepo
-        'jest/consistent-test-it': 'error',
-        'jest/expect-expect': 0,
-        'jest/no-test-prefixes': 0,
-        'jest/valid-expect-in-promise': 0,
-        'jest/valid-expect': 0,
-        'jest/valid-title': 0,
-        'jest-dom/prefer-to-have-attribute': 0,
-        'jest-dom/prefer-to-have-text-content': 0,
-        'jest-dom/prefer-to-have-style': 0,
-      },
-    },
-    {
-      files: './packages/generator-superset/**/*.test.*',
-      env: {
-        node: true,
-      },
-      rules: {
-        'jest/expect-expect': 0,
       },
     },
   ],
@@ -275,13 +222,19 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'error',
+      'warn',
       {
         paths: [
           {
             name: 'antd',
             message:
               'Please import Ant components from the index of common/components',
+          },
+          {
+            name: '@superset-ui/core',
+            importNames: ['supersetTheme'],
+            message:
+              'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
           },
         ],
       },
@@ -307,4 +260,5 @@ module.exports = {
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
+  ignorePatterns,
 };

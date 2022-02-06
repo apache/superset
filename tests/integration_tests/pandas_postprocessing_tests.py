@@ -830,6 +830,28 @@ class TestPostProcessing(SupersetTestCase):
         assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
         assert len(df) == 9
 
+    def test_prophet_valid_zero_periods(self):
+        pytest.importorskip("prophet")
+
+        df = proc.prophet(
+            df=prophet_df, time_grain="P1M", periods=0, confidence_interval=0.9
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            DTTM_ALIAS,
+            "a__yhat",
+            "a__yhat_upper",
+            "a__yhat_lower",
+            "a",
+            "b__yhat",
+            "b__yhat_upper",
+            "b__yhat_lower",
+            "b",
+        }
+        assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
+        assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2021, 12, 31)
+        assert len(df) == 4
+
     def test_prophet_import(self):
         prophet = find_spec("prophet")
         if prophet is None:
@@ -875,7 +897,7 @@ class TestPostProcessing(SupersetTestCase):
             proc.prophet,
             df=prophet_df,
             time_grain="P1M",
-            periods=0,
+            periods=-1,
             confidence_interval=0.8,
         )
 

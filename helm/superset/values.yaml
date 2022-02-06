@@ -25,14 +25,19 @@ replicaCount: 1
 # Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
+# Create custom service account for Superset. If create: true and name is not provided, superset.fullname will be used.
+# serviceAccountName: superset
+serviceAccount:
+  create: false
+
 # Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
 bootstrapScript: |
   #!/bin/bash
   rm -rf /var/lib/apt/lists/* && \
   pip install \
-    psycopg2==2.8.5 \
-    redis==3.2.1 && \
+    psycopg2-binary==2.9.1 \
+    redis==3.5.3 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -143,6 +148,11 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION = True
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+# Same as above but the values are files
+configOverridesFiles:
+  # extend_timeout: extend_timeout.py
+  # enable_oauth: enable_oauth.py
+
 
 configMountPath: "/app/pythonpath"
 
@@ -208,7 +218,7 @@ supersetNode:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/docker-entrypoint.sh"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     redis_port: "6379"
@@ -335,6 +345,8 @@ init:
       echo "Importing database connections.... "
       superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
     fi
+  ## Annotations to be added to init job pods
+  podAnnotations: {}
 ##
 ## Configuration values for the postgresql dependency.
 ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md

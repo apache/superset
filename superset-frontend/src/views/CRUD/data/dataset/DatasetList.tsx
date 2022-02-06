@@ -44,14 +44,14 @@ import Loading from 'src/components/Loading';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
-} from 'src/components/Menu/SubMenu';
+} from 'src/views/components/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -152,7 +152,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
   const initialSort = SORT_BY;
 
@@ -254,7 +254,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             return (
               <FlexRowContainer>
                 {parsedExtra?.certification && (
-                  <CertifiedIcon
+                  <CertifiedBadge
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
                     size="l"

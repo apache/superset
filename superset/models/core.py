@@ -29,7 +29,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
-import sqlparse
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -397,11 +396,12 @@ class Database(
         sql: str,
         schema: Optional[str] = None,
         mutator: Optional[Callable[[pd.DataFrame], None]] = None,
+        username: Optional[str] = None,
     ) -> pd.DataFrame:
-        sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+        sqls = self.db_engine_spec.parse_sql(sql)
 
-        engine = self.get_sqla_engine(schema=schema)
-        username = utils.get_username()
+        engine = self.get_sqla_engine(schema=schema, user_name=username)
+        username = utils.get_username() or username
 
         def needs_conversion(df_series: pd.Series) -> bool:
             return (
