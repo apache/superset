@@ -22,7 +22,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 interface ExploreResultsButtonProps {
-  database: {
+  database?: {
     allows_subquery?: boolean;
   };
   onClick: OnClickHandler;
