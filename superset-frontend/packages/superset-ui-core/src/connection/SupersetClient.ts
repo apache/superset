@@ -20,6 +20,7 @@
 import SupersetClientClass from './SupersetClientClass';
 import { SupersetClientInterface } from './types';
 
+// this is local to this file, don't expose it
 let singletonClient: SupersetClientClass | undefined;
 
 function getInstance(): SupersetClientClass {
@@ -39,7 +40,6 @@ const SupersetClient: SupersetClientInterface = {
   reset: () => {
     singletonClient = undefined;
   },
-  getInstance,
   delete: request => getInstance().delete(request),
   get: request => getInstance().get(request),
   init: force => getInstance().init(force),

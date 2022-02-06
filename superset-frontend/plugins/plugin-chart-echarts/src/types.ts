@@ -68,7 +68,7 @@ export enum LegendType {
   Plain = 'plain',
 }
 
-export type ProphetValue = {
+export type ForecastValue = {
   marker: TooltipMarker;
   observation?: number;
   forecastTrend?: number;

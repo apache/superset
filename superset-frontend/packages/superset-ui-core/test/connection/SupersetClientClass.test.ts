@@ -328,6 +328,26 @@ describe('SupersetClientClass', () => {
       );
     });
 
+    it('uses a guest token when provided', async () => {
+      expect.assertions(1);
+
+      const client = new SupersetClientClass({
+        protocol,
+        host,
+        guestToken: 'abc123',
+        guestTokenHeaderName: 'guestTokenHeader',
+      });
+
+      await client.init();
+      await client.get({ url: mockGetUrl });
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      expect(fetchRequest.headers).toEqual(
+        expect.objectContaining({
+          guestTokenHeader: 'abc123',
+        }),
+      );
+    });
+
     describe('.get()', () => {
       it('makes a request using url or endpoint', async () => {
         expect.assertions(2);

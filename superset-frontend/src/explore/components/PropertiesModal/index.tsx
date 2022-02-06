@@ -26,14 +26,16 @@ import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
-type PropertiesModalProps = {
+export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
   permissionsError?: string;
   existingOwners?: SelectValue;
+  addSuccessToast: (msg: string) => void;
 };
 
 const FormItem = Form.Item;
@@ -46,11 +48,12 @@ const StyledHelpBlock = styled.span`
   margin-bottom: 0;
 `;
 
-export default function PropertiesModal({
+function PropertiesModal({
   slice,
   onHide,
   onSave,
   show,
+  addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
@@ -157,6 +160,7 @@ export default function PropertiesModal({
         id: slice.slice_id,
       };
       onSave(updatedChart);
+      addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
       const clientError = await getClientErrorObject(res);
@@ -308,3 +312,5 @@ export default function PropertiesModal({
     </Modal>
   );
 }
+
+export default withToasts(PropertiesModal);

@@ -52,7 +52,7 @@ beforeAll(() => {
 
 test('renders with default props', async () => {
   const props = createProps();
-  render(<TableSelector {...props} />);
+  render(<TableSelector {...props} />, { useRedux: true });
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -71,7 +71,7 @@ test('renders with default props', async () => {
 
 test('renders table options', async () => {
   const props = createProps();
-  render(<TableSelector {...props} />);
+  render(<TableSelector {...props} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type table name',
   });
@@ -86,7 +86,7 @@ test('renders table options', async () => {
 
 test('renders disabled without schema', async () => {
   const props = createProps();
-  render(<TableSelector {...props} schema={undefined} />);
+  render(<TableSelector {...props} schema={undefined} />, { useRedux: true });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type table name',
   });

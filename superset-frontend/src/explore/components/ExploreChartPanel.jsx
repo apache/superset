@@ -34,7 +34,6 @@ import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  addHistory: PropTypes.func,
   onQuery: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
@@ -288,7 +287,6 @@ const ExploreChartPanel = props => {
     <ConnectedExploreChartHeader
       ownState={props.ownState}
       actions={props.actions}
-      addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
       dashboardId={props.dashboardId}
