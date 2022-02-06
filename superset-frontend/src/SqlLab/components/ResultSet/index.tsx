@@ -219,7 +219,7 @@ const ResultSet = ({
       //   clearQueryResults(prevQuery),
       // );
       setCachedData(prevQuery.results.data);
-      clearQueryResults(prevQuery);
+      actions.clearQueryResults(prevQuery);
     }
     if (prevQuery && prevQuery.resultsKey !== query.resultsKey) {
       fetchResults(prevQuery);
@@ -404,10 +404,6 @@ const ResultSet = ({
     inputValue: string,
     option: { value: string; datasetId: number },
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
-
-  const clearQueryResults = (query: Query) => {
-    actions.clearQueryResults(query);
-  };
 
   const popSelectStar = (tempSchema: string | null, tempTable: string) => {
     const qe = {
