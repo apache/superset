@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Form, Row, Col, Input } from 'src/common/components';
+import { Form, Row, Col, Input, TextArea } from 'src/common/components';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
@@ -38,6 +38,7 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -72,6 +73,7 @@ type DashboardInfo = {
   id: number;
   title: string;
   slug: string;
+  description: string;
   certifiedBy: string;
   certificationDetails: string;
 };
@@ -145,6 +147,7 @@ const PropertiesModal = ({
         id,
         dashboard_title,
         slug,
+        description,
         certified_by,
         certification_details,
         owners,
@@ -155,6 +158,7 @@ const PropertiesModal = ({
         id,
         title: dashboard_title,
         slug: slug || '',
+        description: description || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
       };
@@ -278,7 +282,7 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
+    const { title, slug, description, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
@@ -304,6 +308,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
+      description,
       jsonMetadata,
       owners,
       colorScheme: currentColorScheme,
@@ -322,6 +327,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
+          description: description || null,
           json_metadata: jsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
@@ -531,6 +537,18 @@ const PropertiesModal = ({
             </StyledFormItem>
             <p className="help-block">
               {t('A readable URL for your dashboard')}
+            </p>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={24} md={24}>
+            <StyledFormItem label={t('Description')} name="description">
+              <TextArea
+                disabled={isLoading}
+              />
+            </StyledFormItem>
+            <p className="help-block">
+              {t('A description for your dashboard')}
             </p>
           </Col>
         </Row>
