@@ -198,8 +198,7 @@ const ResultSet = ({
   // }
 
   const [searchText, setSearchText] = useState('');
-  const [showExploreResultsButton, setShowExploreResultsButton] = useState(false);
-  const [data, setData] = useState([]);
+  const [cachedData, setCachedData] = useState([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [newSaveDatasetName, setNewSaveDatasetName] = useState(getDefaultDatasetName());
   const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(DatasetRadioState.SAVE_NEW);
@@ -229,7 +228,7 @@ const ResultSet = ({
       // this.setState({ data: prevQuery.results.data }, () =>
       //   clearQueryResults(prevQuery),
       // );
-      setData(prevQuery.results.data);
+      setCachedData(prevQuery.results.data);
       clearQueryResults(prevQuery);
     }
     if (prevQuery && prevQuery.resultsKey !== query.resultsKey) {
@@ -321,9 +320,7 @@ const ResultSet = ({
         });
       })
       .catch(() => {
-        actions.addDangerToast(
-          t('An error occurred saving dataset'),
-        );
+        actions.addDangerToast(t('An error occurred saving dataset'));
       });
 
     setShowSaveDatasetModal(false);
@@ -424,10 +421,6 @@ const ResultSet = ({
     actions.addQueryEditor(qe);
   };
 
-  const toggleExploreResultsButton = () => {
-    setShowExploreResultsButton(!showExploreResultsButton);
-  };
-
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
@@ -453,13 +446,10 @@ const ResultSet = ({
     if (search || visualize || csv) {
       let { data } = query.results;
       if (cache && query.cached) {
-        ({ data } = this.state);
+        data = cachedData;
       }
       const { columns } = query.results;
       // Added compute logic to stop user from being able to Save & Explore
-      const {
-        datasetToOverwrite,
-      } = this.state;
       const disableSaveAndExploreBtn =
         (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
           newSaveDatasetName.length === 0) ||
@@ -705,7 +695,7 @@ const ResultSet = ({
     const { results } = query;
     let data;
     if (cache && query.cached) {
-      ({ data } = this.state);
+      data = cachedData;
     } else if (results && results.data) {
       ({ data } = results);
     }
@@ -789,9 +779,7 @@ const ResultSet = ({
       {/* show loading bar whenever progress bar is completed but needs time to render */}
       <div>{query.progress === 100 && <Loading position="normal" />}</div>
       <QueryStateLabel query={query} />
-      <div>
-        {progressMsg && <Alert type="success" message={progressMsg} />}
-      </div>
+      <div>{progressMsg && <Alert type="success" message={progressMsg} />}</div>
       <div>{query.progress !== 100 && progressBar}</div>
       <div>{trackingUrl}</div>
     </div>
