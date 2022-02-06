@@ -101,20 +101,6 @@ interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
-interface ResultSetState {
-  searchText: string;
-  showExploreResultsButton: boolean;
-  data: Record<string, any>[];
-  showSaveDatasetModal: boolean;
-  newSaveDatasetName: string;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataSet: boolean;
-  datasetToOverwrite: Record<string, any>;
-  saveModalAutocompleteValue: string;
-  userDatasetOptions: DatasetOptionAutocomplete[];
-  alertIsOpen: boolean;
-}
-
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
@@ -190,24 +176,19 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
-
-  // constructor(props: ResultSetProps) {
-  //   this.handleSaveDatasetModalSearch = debounce(
-  //     this.handleSaveDatasetModalSearch.bind(this),
-  //     1000,
-  //   );
-  // }
-
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
-  const [newSaveDatasetName, setNewSaveDatasetName] = useState(getDefaultDatasetName());
   const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(
     DatasetRadioState.SAVE_NEW,
   );
   const [shouldOverwriteDataSet, setShouldOverwriteDataSet] = useState(false);
-  const [datasetToOverwrite, setDatasetToOverwrite] = useState({});
-  const [userDatasetOptions, setUserDatasetOptions] = useState([]);
+  const [datasetToOverwrite, setDatasetToOverwrite] = useState<
+    Record<string, any>
+  >({});
+  const [userDatasetOptions, setUserDatasetOptions] = useState<
+    DatasetOptionAutocomplete[]
+  >([]);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
   useEffect(() => {
@@ -248,6 +229,10 @@ const ResultSet = ({
 
   const getDefaultDatasetName = () =>
     `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+
+  const [newSaveDatasetName, setNewSaveDatasetName] = useState(
+    getDefaultDatasetName(),
+  );
 
   const handleOnChangeAutoComplete = () => {
     setDatasetToOverwrite({});
@@ -403,6 +388,11 @@ const ResultSet = ({
     setUserDatasetOptions(userDatasetsOwned);
   };
 
+  const handleSaveDatasetModalSearchWithDebounce = debounce(
+    handleSaveDatasetModalSearch,
+    1000,
+  );
+
   const handleFilterAutocompleteOption = (
     inputValue: string,
     option: { value: string; datasetId: number },
@@ -476,7 +466,9 @@ const ResultSet = ({
             handleOverwriteCancel={handleOverwriteCancel}
             handleOverwriteDataset={handleOverwriteDataset}
             handleOverwriteDatasetOption={handleOverwriteDatasetOption}
-            handleSaveDatasetModalSearch={handleSaveDatasetModalSearch}
+            handleSaveDatasetModalSearch={
+              handleSaveDatasetModalSearchWithDebounce
+            }
             filterAutocompleteOption={handleFilterAutocompleteOption}
             onChangeAutoComplete={handleOnChangeAutoComplete}
           />
