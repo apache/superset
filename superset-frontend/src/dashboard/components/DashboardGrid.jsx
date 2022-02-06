@@ -140,7 +140,11 @@ class DashboardGrid extends React.PureComponent {
     const { isResizing, rowGuideTop } = this.state;
 
     return width < 100 ? null : (
-      <div className="dashboard-grid" ref={this.setGridRef}>
+      <div
+        className="dashboard-grid"
+        data-testid="dashboard-grid"
+        ref={this.setGridRef}
+      >
         <div className="grid-content" data-test="grid-content">
           {/* make the area above components droppable */}
           {editMode && (
@@ -198,6 +202,7 @@ class DashboardGrid extends React.PureComponent {
                 <div
                   key={`grid-column-${i}`}
                   className="grid-column-guide"
+                  data-testid="grid-column-guide"
                   style={{
                     left: i * GRID_GUTTER_SIZE + i * columnWidth,
                     width: columnWidth,
