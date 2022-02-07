@@ -45,18 +45,6 @@ def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
     return uuids
 
 
-def convert_native_filter_excluded_charts_uuid_to_id(
-    metadata: Dict[str, Any], chart_ids: Dict[str, int]
-) -> None:
-    native_filter_configuration = metadata.get("native_filter_configuration")
-    if native_filter_configuration:
-        for native_filter in native_filter_configuration:
-            native_filter["scope"]["excluded"] = [
-                chart_ids.get(chart_uuid)
-                for chart_uuid in native_filter["scope"]["excluded"]
-            ]
-
-
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     return {
         child["meta"]["uuid"]: child["meta"]["chartId"]
@@ -123,6 +111,13 @@ def update_id_refs(  # pylint: disable=too-many-locals
                 if int(old_id) in id_map
             }
         )
+
+    if "native_filter_configuration" in metadata:
+        native_filter_configuration = metadata["native_filter_configuration"]
+        for native_filter in native_filter_configuration:
+            native_filter["scope"]["excluded"] = [
+                chart_ids[old_id] for old_id in native_filter["scope"]["excluded"]
+            ]
 
     # fix position
     position = fixed.get("position", {})

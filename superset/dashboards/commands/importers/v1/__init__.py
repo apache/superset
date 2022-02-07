@@ -26,7 +26,6 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
-    convert_native_filter_excluded_charts_uuid_to_id,
     find_chart_uuids,
     find_native_filter_datasets,
     import_dashboard,
@@ -116,13 +115,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(session, config, overwrite=False)
                 chart_ids[str(chart.uuid)] = chart.id
-
-        # switch out native filters excluded uuids for chart_ids
-        for file_name, config in configs.items():
-            if file_name.startswith("dashboards/"):
-                convert_native_filter_excluded_charts_uuid_to_id(
-                    config.get("metadata", {}), chart_ids
-                )
 
         # store the existing relationship between dashboards and charts
         existing_relationships = session.execute(

@@ -49,8 +49,10 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
                 "101": {"filter_name": {"immune": [102, 103]}},
                 "104": {"filter_name": {"immune": [102, 103]}},
             },
+            "native_filter_configuration": [
+                {"scope": {"excluded": ["uuid1", "uuid2"]}}
+            ],
         },
-        "native_filter_configuration": [],
     }
     chart_ids = {"uuid1": 1, "uuid2": 2}
     dataset_info: Dict[str, Dict[str, Any]] = {}  # not used
@@ -69,62 +71,8 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
                 "type": "CHART",
             },
         },
-        "metadata": {"filter_scopes": {"1": {"filter_name": {"immune": [2]}}}},
-        "native_filter_configuration": [],
-    }
-
-
-def test_convert_native_filter_excluded_charts_uuid_to_id(app_context: None,):
-    from superset.dashboards.commands.importers.v1.utils import (
-        convert_native_filter_excluded_charts_uuid_to_id,
-    )
-
-    config = {
-        "position": {
-            "CHART1": {
-                "id": "CHART1",
-                "meta": {"chartId": 101, "uuid": "uuid1",},
-                "type": "CHART",
-            },
-            "CHART2": {
-                "id": "CHART2",
-                "meta": {"chartId": 102, "uuid": "uuid2",},
-                "type": "CHART",
-            },
-        },
         "metadata": {
-            "filter_scopes": {
-                "101": {"filter_name": {"immune": [102, 103]}},
-                "104": {"filter_name": {"immune": [102, 103]}},
-            },
-            "native_filter_configuration": [
-                {"scope": {"excluded": ["uuid1", "uuid2"]}}
-            ],
-        },
-    }
-    chart_ids = {"uuid1": 1, "uuid2": 2}
-
-    metadata = cast(Dict[str, Any], config.get("metadata", {}),)
-    convert_native_filter_excluded_charts_uuid_to_id(metadata, chart_ids)
-
-    assert config == {
-        "position": {
-            "CHART1": {
-                "id": "CHART1",
-                "meta": {"chartId": 101, "uuid": "uuid1"},
-                "type": "CHART",
-            },
-            "CHART2": {
-                "id": "CHART2",
-                "meta": {"chartId": 102, "uuid": "uuid2"},
-                "type": "CHART",
-            },
-        },
-        "metadata": {
-            "filter_scopes": {
-                "101": {"filter_name": {"immune": [102, 103]}},
-                "104": {"filter_name": {"immune": [102, 103]}},
-            },
+            "filter_scopes": {"1": {"filter_name": {"immune": [2]}}},
             "native_filter_configuration": [{"scope": {"excluded": [1, 2]}}],
         },
     }
