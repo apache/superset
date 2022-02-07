@@ -26,8 +26,11 @@ Create Date: 2022-01-28 16:03:02.944080
 revision = "5afbb1a5849b"
 down_revision = "5fd49410a97a"
 
+from uuid import uuid4
+
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy_utils import UUIDType
 
 
 def upgrade():
@@ -36,7 +39,7 @@ def upgrade():
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("allow_domain_list", sa.Text(), nullable=True),
-        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("uuid", UUIDType(binary=True), default=uuid4),
         sa.Column(
             "dashboard_id", sa.Integer(), sa.ForeignKey("dashboards.id"), nullable=False
         ),
