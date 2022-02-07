@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, ReactNode } from 'react';
 import { styled, Metric, SafeMarkdown } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
-import { getMeticTooltipText } from './labelUtils';
+import { getMeticTooltipNode } from './labelUtils';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -61,10 +61,10 @@ export function MetricOption({
 
   const warningMarkdown = metric.warning_markdown || metric.warning_text;
 
-  const [tooltipText, setTooltipText] = useState(metric.metric_name);
+  const [tooltipText, setTooltipText] = useState<ReactNode>(metric.metric_name);
 
   useEffect(() => {
-    setTooltipText(getMeticTooltipText(metric, labelRef));
+    setTooltipText(getMeticTooltipNode(metric, labelRef));
   }, [labelRef, metric]);
 
   return (

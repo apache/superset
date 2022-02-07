@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
-import { getColumnLabelText, getColumnTooltipText } from './labelUtils';
+import { getColumnLabelText, getColumnTooltipNode } from './labelUtils';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -45,10 +45,10 @@ export function ColumnOption({
   const { expression, column_name, type_generic } = column;
   const hasExpression = expression && expression !== column_name;
   const type = hasExpression ? 'expression' : type_generic;
-  const [tooltipText, setTooltipText] = useState(column.column_name);
+  const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
 
   useEffect(() => {
-    setTooltipText(getColumnTooltipText(column, labelRef));
+    setTooltipText(getColumnTooltipNode(column, labelRef));
   }, [labelRef, column]);
 
   return (

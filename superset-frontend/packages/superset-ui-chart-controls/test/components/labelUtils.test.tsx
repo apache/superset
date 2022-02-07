@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+
 import {
   getColumnLabelText,
-  getColumnTooltipText,
-  getMeticTooltipText,
+  getColumnTooltipNode,
+  getMeticTooltipNode,
 } from '../../src/components/labelUtils';
 
 test("should get column name when column doesn't have verbose_name", () => {
@@ -42,10 +44,10 @@ test('should get verbose name when column have verbose_name', () => {
   ).toBe('verbose name');
 });
 
-test('should get empty string as tooltip', () => {
+test('should get null as tooltip', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getColumnTooltipText(
+    getColumnTooltipNode(
       {
         id: 123,
         column_name: 'column name',
@@ -53,13 +55,20 @@ test('should get empty string as tooltip', () => {
       },
       ref,
     ),
-  ).toBe('');
+  ).toBe(null);
 });
 
 test('should get column name as tooltip when it verbose name', () => {
+  const rvNode = (
+    <>
+      <div>column name: column name</div>
+      <div>verbose name: verbose name</div>
+    </>
+  );
+
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getColumnTooltipText(
+    getColumnTooltipNode(
       {
         id: 123,
         column_name: 'column name',
@@ -67,13 +76,13 @@ test('should get column name as tooltip when it verbose name', () => {
       },
       ref,
     ),
-  ).toBe('column name: column name');
+  ).toStrictEqual(rvNode);
 });
 
 test('should get column name as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getColumnTooltipText(
+    getColumnTooltipNode(
       {
         id: 123,
         column_name: 'long long long long column name',
@@ -85,9 +94,16 @@ test('should get column name as tooltip if it overflowed', () => {
 });
 
 test('should get verbose name as tooltip if it overflowed', () => {
+  const rvNode = (
+    <>
+      <div>column name: long long long long column name</div>
+      <div>verbose name: long long long long verbose name</div>
+    </>
+  );
+
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getColumnTooltipText(
+    getColumnTooltipNode(
       {
         id: 123,
         column_name: 'long long long long column name',
@@ -95,13 +111,13 @@ test('should get verbose name as tooltip if it overflowed', () => {
       },
       ref,
     ),
-  ).toBe('verbose name: long long long long verbose name');
+  ).toStrictEqual(rvNode);
 });
 
-test('should get empty string as tooltip in metric', () => {
+test('should get null as tooltip in metric', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getMeticTooltipText(
+    getMeticTooltipNode(
       {
         metric_name: 'count',
         label: '',
@@ -109,13 +125,20 @@ test('should get empty string as tooltip in metric', () => {
       },
       ref,
     ),
-  ).toBe('');
+  ).toBe(null);
 });
 
 test('should get metric name(sql alias) as tooltip in metric', () => {
+  const rvNode = (
+    <>
+      <div>metric name: count</div>
+      <div>verbose name: count(*)</div>
+    </>
+  );
+
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getMeticTooltipText(
+    getMeticTooltipNode(
       {
         metric_name: 'count',
         label: 'count(*)',
@@ -123,13 +146,20 @@ test('should get metric name(sql alias) as tooltip in metric', () => {
       },
       ref,
     ),
-  ).toBe('metric name: count');
+  ).toStrictEqual(rvNode);
 });
 
 test('should get verbose name as tooltip in metric if it overflowed', () => {
+  const rvNode = (
+    <>
+      <div>metric name: count</div>
+      <div>verbose name: longlonglonglonglong verbose metric</div>
+    </>
+  );
+
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getMeticTooltipText(
+    getMeticTooltipNode(
       {
         metric_name: 'count',
         label: '',
@@ -137,13 +167,13 @@ test('should get verbose name as tooltip in metric if it overflowed', () => {
       },
       ref,
     ),
-  ).toBe('verbose name: longlonglonglonglong verbose metric');
+  ).toStrictEqual(rvNode);
 });
 
 test('should get label name as tooltip in metric if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getMeticTooltipText(
+    getMeticTooltipNode(
       {
         metric_name: 'count',
         label: 'longlonglonglonglong metric label',
