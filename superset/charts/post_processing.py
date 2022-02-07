@@ -39,6 +39,7 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
+from superset.common.query_context import QueryContext
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -331,7 +332,10 @@ def apply_post_process(
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 
-    viz_type = form_data.get("viz_type","") if form_data.get("viz_type","") else result.get("viz_type","")
+    viz_type = form_data.get("viz_type", "")
+    if not viz_type:
+        viz_type = result.get("query_context", QueryContext).viz_type if result.get("query_context", QueryContext).viz_type else ""
+
     if viz_type not in post_processors:
         return result
 
@@ -352,43 +356,46 @@ def apply_post_process(
             query["rowcount"] = len(processed_df.index)
     else:
         result = post_processor(result, form_data)
-    for query in result["queries"]:
-        if query["result_format"] == ChartDataResultFormat.JSON:
-            df = pd.DataFrame.from_dict(query["data"])
-        elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(query["data"]))
-        else:
-            raise Exception(f"Result format {query['result_format']} not supported")
+    if viz_type == 'cccs_grid':
+        result = post_processor(result, form_data)
+    else:
+        for query in result["queries"]:
+            if query["result_format"] == ChartDataResultFormat.JSON:
+                df = pd.DataFrame.from_dict(query["data"])
+            elif query["result_format"] == ChartDataResultFormat.CSV:
+                df = pd.read_csv(StringIO(query["data"]))
+            else:
+                raise Exception(f"Result format {query['result_format']} not supported")
 
-        processed_df = post_processor(df, form_data, datasource)
+            processed_df = post_processor(df, form_data, datasource)
 
-        query["colnames"] = list(processed_df.columns)
-        query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
-        query["rowcount"] = len(processed_df.index)
+            query["colnames"] = list(processed_df.columns)
+            query["indexnames"] = list(processed_df.index)
+            query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
+            query["rowcount"] = len(processed_df.index)
 
-        # Flatten hierarchical columns/index since they are represented as
-        # `Tuple[str]`. Otherwise encoding to JSON later will fail because
-        # maps cannot have tuples as their keys in JSON.
-        processed_df.columns = [
-            " ".join(str(name) for name in column).strip()
-            if isinstance(column, tuple)
-            else column
-            for column in processed_df.columns
-        ]
-        processed_df.index = [
-            " ".join(str(name) for name in index).strip()
-            if isinstance(index, tuple)
-            else index
-            for index in processed_df.index
-        ]
+            # Flatten hierarchical columns/index since they are represented as
+            # `Tuple[str]`. Otherwise encoding to JSON later will fail because
+            # maps cannot have tuples as their keys in JSON.
+            processed_df.columns = [
+                " ".join(str(name) for name in column).strip()
+                if isinstance(column, tuple)
+                else column
+                for column in processed_df.columns
+            ]
+            processed_df.index = [
+                " ".join(str(name) for name in index).strip()
+                if isinstance(index, tuple)
+                else index
+                for index in processed_df.index
+            ]
 
-        if query["result_format"] == ChartDataResultFormat.JSON:
-            query["data"] = processed_df.to_dict()
-        elif query["result_format"] == ChartDataResultFormat.CSV:
-            buf = StringIO()
-            processed_df.to_csv(buf)
-            buf.seek(0)
-            query["data"] = buf.getvalue()
+            if query["result_format"] == ChartDataResultFormat.JSON:
+                query["data"] = processed_df.to_dict()
+            elif query["result_format"] == ChartDataResultFormat.CSV:
+                buf = StringIO()
+                processed_df.to_csv(buf)
+                buf.seek(0)
+                query["data"] = buf.getvalue()
 
     return result
