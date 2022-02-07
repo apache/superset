@@ -24,18 +24,20 @@ import React, {
   useRef,
 } from 'react';
 import { uniq, isEqual, sortBy, debounce } from 'lodash';
-import { t, styled, SLOW_DEBOUNCE } from '@superset-ui/core';
-import { Form } from 'src/common/components';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import { StyledModal } from 'src/components/Modal';
-import { testWithId } from 'src/utils/testUtils';
-import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import {
   Filter,
   FilterConfiguration,
   NativeFilterType,
   Divider,
-} from '../types';
+  styled,
+  SLOW_DEBOUNCE,
+  t,
+} from '@superset-ui/core';
+import { Form } from 'src/common/components';
+import ErrorBoundary from 'src/components/ErrorBoundary';
+import { StyledModal } from 'src/components/Modal';
+import { testWithId } from 'src/utils/testUtils';
+import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FiltureConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
   FilterPanels,

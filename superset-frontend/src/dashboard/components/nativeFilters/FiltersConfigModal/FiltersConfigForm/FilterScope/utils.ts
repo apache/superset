@@ -23,9 +23,8 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { t } from '@superset-ui/core';
+import { Scope, t } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
-import { Scope } from '../../../types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&

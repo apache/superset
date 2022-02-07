@@ -17,11 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { JsonObject } from '@superset-ui/core';
+import { DashboardComponentMetadata, t } from '@superset-ui/core';
 
 // TODO: POC only component can be removed after PR approved
-const ExampleComponent = ({ dashboardData }: JsonObject) => (
-  <div>We have the following keys: {Object.keys(dashboardData).join(', ')}</div>
+const ExampleComponent = ({
+  metadata,
+}: {
+  metadata: DashboardComponentMetadata;
+}) => (
+  <div>
+    {t('We have the following keys: %s', Object.keys(metadata).join(', '))}
+  </div>
 );
 
 export default ExampleComponent;

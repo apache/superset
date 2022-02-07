@@ -18,10 +18,9 @@
  */
 import { useEffect, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { t } from '@superset-ui/core';
+import { Filter, t } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
-import { Filter } from '../../types';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export

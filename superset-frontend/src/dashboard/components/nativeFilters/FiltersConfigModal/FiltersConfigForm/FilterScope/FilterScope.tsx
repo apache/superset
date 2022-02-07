@@ -18,11 +18,10 @@
  */
 
 import React, { FC, useCallback, useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { Scope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { Form, Typography } from 'src/common/components';
 import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
-import { Scope } from '../../../types';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';

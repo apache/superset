@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC, Suspense } from 'react';
-import { JsonObject, t } from '@superset-ui/core';
+import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
@@ -35,13 +35,6 @@ import DeleteComponentButton from '../DeleteComponentButton';
 import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
 import dashboardComponents from '../../../visualizations/presets/dashboardComponents';
 import { RootState } from '../../types';
-import { NativeFiltersState } from '../../reducers/types';
-import { DataMaskStateWithId } from '../../../dataMask/types';
-
-type DashboardComponentMetadata = {
-  nativeFilters: NativeFiltersState;
-  dataMask: DataMaskStateWithId;
-};
 
 type FilterSummaryType = {
   component: JsonObject;

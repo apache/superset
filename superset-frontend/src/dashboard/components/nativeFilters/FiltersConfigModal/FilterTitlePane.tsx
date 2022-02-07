@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, useTheme } from '@superset-ui/core';
+import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
 import { Dropdown, MainNav as Menu } from 'src/common/components';
-import { NativeFilterType } from '../types';
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
 

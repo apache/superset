@@ -27,9 +27,11 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  Filter,
   GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
+  NativeFilterType,
   styled,
   SupersetApiError,
   SupersetClient,
@@ -70,10 +72,6 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import {
-  Filter,
-  NativeFilterType,
-} from 'src/dashboard/components/nativeFilters/types';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
