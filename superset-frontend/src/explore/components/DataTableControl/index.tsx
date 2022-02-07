@@ -117,7 +117,7 @@ export const RowCount = ({
 
 enum FormatPickerValue {
   Formatted,
-  Epoch,
+  Original,
 }
 
 const FormatPicker = ({
@@ -129,7 +129,7 @@ const FormatPicker = ({
 }) => (
   <Radio.Group value={value} onChange={onChange}>
     <Space direction="vertical">
-      <Radio value={FormatPickerValue.Epoch}>{t('Original value')}</Radio>
+      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
       <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
     </Space>
   </Radio.Group>
@@ -167,7 +167,10 @@ const DataTableTemporalHeaderCell = ({
       if (!datasourceId) {
         return;
       }
-      if (e.target.value === FormatPickerValue.Epoch && isColumnTimeFormatted) {
+      if (
+        e.target.value === FormatPickerValue.Original &&
+        isColumnTimeFormatted
+      ) {
         dispatch(
           unsetTimeFormattedColumn(datasourceId, timeFormattedColumnIndex),
         );
@@ -204,7 +207,7 @@ const DataTableTemporalHeaderCell = ({
             value={
               isColumnTimeFormatted
                 ? FormatPickerValue.Formatted
-                : FormatPickerValue.Epoch
+                : FormatPickerValue.Original
             }
           />
         </FormatPickerContainer>

@@ -261,7 +261,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         payload = self.get_df_payload(query_obj)  # leverage caching logic
         return {
             "data": payload["df"].to_dict(orient="records"),
-            "colnames": payload["colnames"],
+            "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
         }
 

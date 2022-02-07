@@ -452,7 +452,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.json_response(
             {
                 "data": payload["df"].to_dict("records"),
-                "colnames": payload["colnames"],
+                "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
             },
         )
