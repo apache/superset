@@ -38,7 +38,7 @@ import { usePrevious } from 'src/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual, debounce } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
@@ -150,6 +150,47 @@ export interface FiltersBarProps {
   offset: number;
 }
 
+const publishDataMask = debounce(
+  async (
+    history,
+    dashboardId,
+    updateKey,
+    dataMaskSelected: DataMaskStateWithId,
+  ) => {
+    const { location } = history;
+    const { search } = location;
+    const previousParams = new URLSearchParams(search);
+    const newParams = new URLSearchParams();
+    let dataMaskKey = '';
+    previousParams.forEach((value, key) => {
+      if (key !== URL_PARAMS.nativeFilters.name) {
+        newParams.append(key, value);
+      }
+    });
+
+    const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    const dataMask = JSON.stringify(dataMaskSelected);
+    if (
+      updateKey &&
+      nativeFiltersCacheKey &&
+      (await updateFilterKey(dashboardId, dataMask, nativeFiltersCacheKey))
+    ) {
+      dataMaskKey = nativeFiltersCacheKey;
+    } else {
+      dataMaskKey = await createFilterKey(dashboardId, dataMask);
+    }
+    newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
+
+    // pathname could be updated somewhere else through window.history
+    // keep react router history in sync with window history
+    history.location.pathname = window.location.pathname;
+    history.replace({
+      search: newParams.toString(),
+    });
+  },
+  500,
+);
+
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -203,42 +244,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [dataMaskSelected, dispatch, setDataMaskSelected, tab],
   );
 
-  const publishDataMask = useCallback(
-    async (dataMaskSelected: DataMaskStateWithId) => {
-      const { location } = history;
-      const { search } = location;
-      const previousParams = new URLSearchParams(search);
-      const newParams = new URLSearchParams();
-      let dataMaskKey = '';
-      previousParams.forEach((value, key) => {
-        if (key !== URL_PARAMS.nativeFilters.name) {
-          newParams.append(key, value);
-        }
-      });
-
-      const nativeFiltersCacheKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      const dataMask = JSON.stringify(dataMaskSelected);
-      if (
-        updateKey &&
-        nativeFiltersCacheKey &&
-        (await updateFilterKey(dashboardId, dataMask, nativeFiltersCacheKey))
-      ) {
-        dataMaskKey = nativeFiltersCacheKey;
-      } else {
-        dataMaskKey = await createFilterKey(dashboardId, dataMask);
-      }
-      newParams.set(URL_PARAMS.nativeFiltersKey.name, dataMaskKey);
-
-      // pathname could be updated somewhere else through window.history
-      // keep react router history in sync with window history
-      history.location.pathname = window.location.pathname;
-      history.replace({
-        search: newParams.toString(),
-      });
-    },
-    [history, updateKey],
-  );
-
   useEffect(() => {
     if (previousFilters) {
       const updates = {};
@@ -272,9 +277,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
-    publishDataMask(dataMaskApplied);
+    publishDataMask(history, dashboardId, updateKey, dataMaskApplied);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataMaskAppliedText, publishDataMask]);
+  }, [dashboardId, dataMaskAppliedText, history, updateKey]);
 
   const handleApply = useCallback(() => {
     const filterIds = Object.keys(dataMaskSelected);
