@@ -84,6 +84,7 @@ export function transformSeries(
     thresholdValues?: number[];
     richTooltip?: boolean;
   },
+  rawSeriesB?: SeriesOption[],
 ): SeriesOption | undefined {
   const { name } = series;
   const {
@@ -147,8 +148,14 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+  const rawSeriesBHasMetric = !!(rawSeriesB || []).find(
+    (serie: SeriesOption) => serie.name === forecastSeries.name,
+  );
+  // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(forecastSeries.name),
+    color: colorScale(
+      rawSeriesBHasMetric ? `${forecastSeries.name}-A` : forecastSeries.name,
+    ),
     opacity,
   };
   let emphasis = {};
