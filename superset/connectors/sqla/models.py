@@ -103,7 +103,6 @@ config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
-BUSINESS_TYPE_TRANSLATIONS = config["BUSINESS_TYPE_TRANSLATIONS"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
@@ -1302,7 +1301,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
                         col_busniness_type
-                    ](
+                    ].translate_type(
                         {
                             "type": col_busniness_type,
                             "values": values,
@@ -1312,7 +1311,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         raise BusinessTypesResponseError(_(bus_resp["display_value"]))
 
                     where_clause_and.append(
-                        BUSINESS_TYPE_TRANSLATIONS[col_busniness_type](
+                        BUSINESS_TYPE_ADDONS[col_busniness_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
                     )

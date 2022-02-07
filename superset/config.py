@@ -51,8 +51,6 @@ from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from werkzeug.local import LocalProxy
 
-from superset.business_type.business_type_request import BusinessTypeRequest
-from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -1370,207 +1368,16 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
 
-port_conversion_dict: Dict[str, List[int]] = {
-    "http": [80],
-    "ssh": [22],
-    "https": [443],
-    "ftp": [20, 21],
-    "ftps": [989, 990],
-    "telnet": [23],
-    "telnets": [992],
-    "smtp": [25],
-    "submissions": [465],  # aka smtps, ssmtp, urd
-    "kerberos": [88],
-    "kerberos-adm": [749],
-    "pop3": [110],
-    "pop3s": [995],
-    "nntp": [119],
-    "nntps": [563],
-    "ntp": [123],
-    "snmp": [161],
-    "ldap": [389],
-    "ldaps": [636],
-    "imap2": [143],  # aka imap
-    "imaps": [993],
+# the business type key should correspond to that set in the column metadata
+from superset.business_type.business_type import BusinessType
+from superset.business_type.internet_address import internet_address
+from superset.business_type.port import port
+
+BUSINESS_TYPE_ADDONS: Dict[str, BusinessType] = {
+    "internet_address": internet_address,
+    "port": port,
 }
 
-import ipaddress
-
-from sqlalchemy import Column
-
-from superset.utils.core import FilterOperator, FilterStringOperators
-
-
-def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
-    resp: BusinessTypeResponse = {
-        "values": [],
-        "error_message": "",
-        "display_value": "",
-        "valid_filter_operators": [
-            FilterStringOperators.EQUALS,
-            FilterStringOperators.GREATER_THAN_OR_EQUAL,
-            FilterStringOperators.GREATER_THAN,
-            FilterStringOperators.IN,
-            FilterStringOperators.LESS_THAN,
-            FilterStringOperators.LESS_THAN_OR_EQUAL,
-        ],
-    }
-    for val in req["values"]:
-        string_value = str(val)
-        try:
-            ip_range = (
-                ipaddress.ip_network(int(string_value), strict=False)
-                if string_value.isnumeric()
-                else ipaddress.ip_network(string_value, strict=False)
-            )
-            resp["values"].append(
-                {"start": int(ip_range[0]), "end": int(ip_range[-1])}
-                if ip_range[0] != ip_range[-1]
-                else int(ip_range[0])
-            )
-        except ValueError as ex:
-            resp["error_message"] = str(ex)
-            break
-        else:
-            resp["display_value"] = ", ".join(
-                map(
-                    lambda x: f"{x['start']} - {x['end']}"
-                    if isinstance(x, dict)
-                    else str(x),
-                    resp["values"],
-                )
-            )
-    return resp
-
-
-# Make this return a single clause
-def cidr_translate_filter_func(
-    col: Column, op: FilterOperator, values: List[Any]
-) -> Any:
-    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
-        dict_items = [val for val in values if isinstance(val, dict)]
-        single_values = [val for val in values if not isinstance(val, dict)]
-        if op == FilterOperator.IN.value:
-            cond = col.in_(single_values)
-            for dictionary in dict_items:
-                cond = cond | (
-                    (col <= dictionary["end"]) & (col >= dictionary["start"])
-                )
-        elif op == FilterOperator.NOT_IN.value:
-            cond = ~(col.in_(single_values))
-            for dictionary in dict_items:
-                cond = cond & (col > dictionary["end"]) & (col < dictionary["start"])
-        return cond
-    if len(values) == 1:
-        value = values[0]
-        if op == FilterOperator.EQUALS.value:
-            return (
-                col == value
-                if not isinstance(value, dict)
-                else (col <= value["end"]) & (col >= value["start"])
-            )
-        if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value if not isinstance(value, dict) else col >= value["end"]
-        if op == FilterOperator.GREATER_THAN.value:
-            return col > value if not isinstance(value, dict) else col > value["end"]
-        if op == FilterOperator.LESS_THAN.value:
-            return col < value if not isinstance(value, dict) else col < value["start"]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
-            return (
-                col <= value if not isinstance(value, dict) else col <= value["start"]
-            )
-        if op == FilterOperator.NOT_EQUALS.value:
-            return (
-                col != value
-                if not isinstance(value, dict)
-                else (col > value["end"]) | (col < value["start"])
-            )
-
-
-def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
-    resp: BusinessTypeResponse = {
-        "values": [],
-        "error_message": "",
-        "display_value": "",
-        "valid_filter_operators": [
-            FilterStringOperators.EQUALS,
-            FilterStringOperators.GREATER_THAN_OR_EQUAL,
-            FilterStringOperators.GREATER_THAN,
-            FilterStringOperators.IN,
-            FilterStringOperators.LESS_THAN,
-            FilterStringOperators.LESS_THAN_OR_EQUAL,
-        ],
-    }
-    for val in req["values"]:
-        string_value = str(val)
-        try:
-            resp["values"].append(
-                [int(string_value)]
-                if string_value.isnumeric()
-                else port_conversion_dict[string_value]
-            )
-        except KeyError:
-            resp["error_message"] = str(
-                f"'{string_value}' does not appear to be a port name or number"
-            )
-            break
-        else:
-            resp["display_value"] = ", ".join(
-                map(
-                    lambda x: f"{x['start']} - {x['end']}"
-                    if isinstance(x, dict)
-                    else str(x),
-                    resp["values"],
-                )
-            )
-    return resp
-
-
-# Ports are always aa list of lists
-import itertools
-
-
-def port_translate_filter_func(
-    col: Column, op: FilterOperator, values: List[Any]
-) -> Any:
-    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
-        vals_list = itertools.chain.from_iterable(values)
-        if op == FilterOperator.IN.value:
-            cond = col.in_(vals_list)
-        elif op == FilterOperator.NOT_IN.value:
-            cond = ~(col.in_(vals_list))
-        return cond
-    if len(values) == 1:
-        value = values[0]
-        value.sort()
-        if op == FilterOperator.EQUALS.value:
-            return col.in_(value)
-        if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value[1]
-        if op == FilterOperator.GREATER_THAN.value:
-            return col > value[1]
-        if op == FilterOperator.LESS_THAN.value:
-            return col <= value[-1]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
-            return col < value[-1]
-        if op == FilterOperator.NOT_EQUALS.value:
-            return ~col.in_(value)
-
-
-# Start a project called
-
-# the business type key should correspond to that set in the column metadata
-BUSINESS_TYPE_ADDONS: Dict[
-    str, Callable[[BusinessTypeRequest], BusinessTypeResponse]
-] = {"cidr": cidr_func, "port": port_translation_func}
-
-# the business type key should correspond to that set in the column metadata
-BUSINESS_TYPE_TRANSLATIONS: Dict[
-    str, Callable[[Column, FilterOperator, Any], List[Any]]
-] = {
-    "cidr": cidr_translate_filter_func,
-    "port": port_translate_filter_func,
-}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
@@ -1598,7 +1405,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

@@ -83,7 +83,6 @@ from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 config = app.config
-BUSINESS_TYPE_TRANSLATIONS = config["BUSINESS_TYPE_TRANSLATIONS"]
 
 
 class ChartRestApi(BaseSupersetModelRestApi):

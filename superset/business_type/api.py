@@ -78,8 +78,8 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         values = items["values"]
         if not values:
             return self.response(400, message=_("Missing values in request"))
-        addon_func = BUSINESS_TYPE_ADDONS.get(business_type)
-        if not addon_func:
+        addon = BUSINESS_TYPE_ADDONS.get(business_type)
+        if not addon:
             return self.response(
                 400,
                 message=_(
@@ -87,7 +87,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                     business_type=business_type,
                 ),
             )
-        bus_resp: BusinessTypeResponse = addon_func(
+        bus_resp: BusinessTypeResponse = addon.translate_type(
             {
                 "values": values,
             }
