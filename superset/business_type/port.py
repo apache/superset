@@ -53,12 +53,15 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     for val in req["values"]:
         string_value = str(val)
         try:
+            if string_value.isnumeric():
+                if not 1 <= int(string_value) <= 65535:
+                    raise ValueError
             resp["values"].append(
                 [int(string_value)]
                 if string_value.isnumeric()
                 else port_conversion_dict[string_value]
             )
-        except KeyError:
+        except (KeyError, ValueError):
             resp["error_message"] = str(
                 f"'{string_value}' does not appear to be a port name or number"
             )
@@ -91,13 +94,13 @@ def port_translate_filter_func(
         if op == FilterOperator.EQUALS.value:
             return col.in_(value)
         if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value[1]
+            return col >= value[0]
         if op == FilterOperator.GREATER_THAN.value:
-            return col > value[1]
+            return col > value[0]
         if op == FilterOperator.LESS_THAN.value:
-            return col <= value[-1]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
             return col < value[-1]
+        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
+            return col <= value[-1]
         if op == FilterOperator.NOT_EQUALS.value:
             return ~col.in_(value)
 

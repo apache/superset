@@ -1368,11 +1368,12 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
 
-# the business type key should correspond to that set in the column metadata
+
 from superset.business_type.business_type import BusinessType
 from superset.business_type.internet_address import internet_address
 from superset.business_type.port import port
 
+# the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[str, BusinessType] = {
     "internet_address": internet_address,
     "port": port,
