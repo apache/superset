@@ -38,7 +38,6 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -544,9 +543,7 @@ const PropertiesModal = ({
         <Row>
           <Col xs={24} md={24}>
             <StyledFormItem label={t('Description')} name="description">
-              <TextArea
-                disabled={isLoading}
-              />
+              <TextArea disabled={isLoading} />
             </StyledFormItem>
             <p className="help-block">
               {t('A description for your dashboard')}
