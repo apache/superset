@@ -49,6 +49,7 @@ const propTypes = {
   ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
+  valueRenderer: PropTypes.func,
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
@@ -83,6 +84,7 @@ const defaultProps = {
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
+  promptTextCreator: label => `Create Option ${label}`,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -207,6 +209,8 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       onFocus,
       optionRenderer,
+      promptTextCreator,
+      valueRenderer,
       showHeader,
       value,
       tokenSeparators,
@@ -278,6 +282,35 @@ export default class SelectControl extends React.PureComponent {
       tokenSeparators,
     };
 
+    const deprecatedProps = {
+      autoFocus,
+      'aria-label': label,
+      clearable,
+      disabled,
+      filterOption,
+      ignoreAccents: false,
+      isLoading,
+      isMulti: this.props.isMulti || this.props.multi,
+      labelKey: 'label',
+      menuPlacement,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
+      name: `select-${name}`,
+      noResultsText: 'No results found',
+      onChange: this.onChange,
+      onFocus,
+      optionRenderer,
+      value: getValue(),
+      options: this.state.options,
+      placeholder,
+      assistiveText: '',
+      promptTextCreator,
+      selectRef: this.getSelectRef,
+      valueKey,
+      valueRenderer,
+    };
+
     return (
       <div
         css={theme => css`
@@ -292,7 +325,14 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        <Select {...selectProps} />
+        {name === 'groupby' ? (
+          <>
+            <ControlHeader {...headerProps} />
+            <DeprecatedSelect {...deprecatedProps} />
+          </>
+        ) : (
+          <Select {...selectProps} />
+        )}
       </div>
     );
   }
