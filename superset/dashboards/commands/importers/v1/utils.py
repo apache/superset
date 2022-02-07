@@ -112,13 +112,6 @@ def update_id_refs(  # pylint: disable=too-many-locals
             }
         )
 
-    if "native_filter_configuration" in metadata:
-        native_filter_configuration = metadata["native_filter_configuration"]
-        for native_filter in native_filter_configuration:
-            native_filter["scope"]["excluded"] = [
-                chart_ids[old_id] for old_id in native_filter["scope"]["excluded"]
-            ]
-
     # fix position
     position = fixed.get("position", {})
     for child in position.values():
@@ -140,6 +133,12 @@ def update_id_refs(  # pylint: disable=too-many-locals
             dataset_uuid = target.pop("datasetUuid", None)
             if dataset_uuid:
                 target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+
+        scope_excluded = native_filter.get("scope", {}).get("excluded", [])
+        if scope_excluded:
+            native_filter["scope"]["excluded"] = [
+                id_map[old_id] for old_id in native_filter["scope"]["excluded"]
+            ]
 
     return fixed
 
