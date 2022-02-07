@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,10 +17,4 @@
  * under the License.
  */
 
-import { emitFilterControl } from '@superset-ui/chart-controls';
-
-describe('isFeatureFlagEnabled', () => {
-  it('returns empty array for unset feature flag', () => {
-    expect(emitFilterControl).toHaveLength(0);
-  });
-});
+export const IFRAME_COMMS_MESSAGE_TYPE = "__embedded_comms__";
