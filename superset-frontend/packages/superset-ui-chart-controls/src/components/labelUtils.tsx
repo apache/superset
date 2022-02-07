@@ -55,7 +55,7 @@ export const getColumnTooltipNode = (
 
 type MetricType = Omit<Metric, 'id'> & { label?: string };
 
-export const getMeticTooltipNode = (
+export const getMetricTooltipNode = (
   metric: MetricType,
   labelRef?: React.RefObject<any>,
 ): ReactNode => {

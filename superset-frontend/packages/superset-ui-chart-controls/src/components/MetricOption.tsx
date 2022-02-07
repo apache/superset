@@ -22,7 +22,7 @@ import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
-import { getMeticTooltipNode } from './labelUtils';
+import { getMetricTooltipNode } from './labelUtils';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -64,7 +64,7 @@ export function MetricOption({
   const [tooltipText, setTooltipText] = useState<ReactNode>(metric.metric_name);
 
   useEffect(() => {
-    setTooltipText(getMeticTooltipNode(metric, labelRef));
+    setTooltipText(getMetricTooltipNode(metric, labelRef));
   }, [labelRef, metric]);
 
   return (

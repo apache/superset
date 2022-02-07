@@ -21,7 +21,7 @@ import React from 'react';
 import {
   getColumnLabelText,
   getColumnTooltipNode,
-  getMeticTooltipNode,
+  getMetricTooltipNode,
 } from '../../src/components/labelUtils';
 
 test("should get column name when column doesn't have verbose_name", () => {
@@ -58,7 +58,7 @@ test('should get null as tooltip', () => {
   ).toBe(null);
 });
 
-test('should get column name as tooltip when it verbose name', () => {
+test('should get column name and verbose name when it has a verbose name', () => {
   const rvNode = (
     <>
       <div>column name: column name</div>
@@ -93,7 +93,7 @@ test('should get column name as tooltip if it overflowed', () => {
   ).toBe('column name: long long long long column name');
 });
 
-test('should get verbose name as tooltip if it overflowed', () => {
+test('should get column name and verbose name as tooltip if it overflowed', () => {
   const rvNode = (
     <>
       <div>column name: long long long long column name</div>
@@ -117,7 +117,7 @@ test('should get verbose name as tooltip if it overflowed', () => {
 test('should get null as tooltip in metric', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getMeticTooltipNode(
+    getMetricTooltipNode(
       {
         metric_name: 'count',
         label: '',
@@ -128,7 +128,7 @@ test('should get null as tooltip in metric', () => {
   ).toBe(null);
 });
 
-test('should get metric name(sql alias) as tooltip in metric', () => {
+test('should get metric name and verbose name as tooltip in metric', () => {
   const rvNode = (
     <>
       <div>metric name: count</div>
@@ -138,7 +138,7 @@ test('should get metric name(sql alias) as tooltip in metric', () => {
 
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
   expect(
-    getMeticTooltipNode(
+    getMetricTooltipNode(
       {
         metric_name: 'count',
         label: 'count(*)',
@@ -149,7 +149,7 @@ test('should get metric name(sql alias) as tooltip in metric', () => {
   ).toStrictEqual(rvNode);
 });
 
-test('should get verbose name as tooltip in metric if it overflowed', () => {
+test('should get metric name and verbose name in tooltip if it overflowed', () => {
   const rvNode = (
     <>
       <div>metric name: count</div>
@@ -159,7 +159,7 @@ test('should get verbose name as tooltip in metric if it overflowed', () => {
 
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getMeticTooltipNode(
+    getMetricTooltipNode(
       {
         metric_name: 'count',
         label: '',
@@ -173,7 +173,7 @@ test('should get verbose name as tooltip in metric if it overflowed', () => {
 test('should get label name as tooltip in metric if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
   expect(
-    getMeticTooltipNode(
+    getMetricTooltipNode(
       {
         metric_name: 'count',
         label: 'longlonglonglonglong metric label',
