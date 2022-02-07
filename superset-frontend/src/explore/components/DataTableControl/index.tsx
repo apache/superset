@@ -148,14 +148,12 @@ const FormatPickerLabel = styled.span`
   text-transform: uppercase;
 `;
 
-const DataTableHeaderCell = ({
+const DataTableTemporalHeaderCell = ({
   columnName,
-  type,
   datasourceId,
   timeFormattedColumnIndex,
 }: {
   columnName: string;
-  type?: GenericDataType;
   datasourceId?: string;
   timeFormattedColumnIndex: number;
 }) => {
@@ -213,7 +211,7 @@ const DataTableHeaderCell = ({
     [datasourceId, isColumnTimeFormatted, onChange],
   );
 
-  return type === GenericDataType.TEMPORAL && datasourceId ? (
+  return datasourceId ? (
     <span>
       <Popover
         overlayClassName="column-formatting-popover"
@@ -270,7 +268,9 @@ export const useTableColumns = (
   moreConfigs?: { [key: string]: Partial<Column> },
 ) => {
   const timeFormattedColumns = useSelector<ExplorePageState, string[]>(state =>
-    datasourceId ? state.explore.timeFormattedColumns[datasourceId] ?? [] : [],
+    datasourceId
+      ? state.explore.timeFormattedColumns?.[datasourceId] ?? []
+      : [],
   );
 
   return useMemo(
@@ -287,14 +287,16 @@ export const useTableColumns = (
                 id: key,
                 accessor: row => row[key],
                 // When the key is empty, have to give a string of length greater than 0
-                Header: (
-                  <DataTableHeaderCell
-                    columnName={key}
-                    type={coltypes?.[index]}
-                    datasourceId={datasourceId}
-                    timeFormattedColumnIndex={timeFormattedColumnIndex}
-                  />
-                ),
+                Header:
+                  coltypes?.[index] === GenericDataType.TEMPORAL ? (
+                    <DataTableTemporalHeaderCell
+                      columnName={key}
+                      datasourceId={datasourceId}
+                      timeFormattedColumnIndex={timeFormattedColumnIndex}
+                    />
+                  ) : (
+                    key
+                  ),
                 Cell: ({ value }) => {
                   if (value === true) {
                     return BOOL_TRUE_DISPLAY;
