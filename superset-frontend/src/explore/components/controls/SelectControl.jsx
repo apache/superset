@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { css, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { SELECT_ALL_STRING } from 'src/components/Select/Select';
+import { Select as DeprecatedSelect } from 'src/components/Select/DeprecatedSelect';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -50,10 +51,16 @@ const propTypes = {
   ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
+  valueRenderer: PropTypes.func,
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
+  promptTextCreator: PropTypes.func,
+  menuPortalTarget: PropTypes.element,
+  menuPosition: PropTypes.string,
+  menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 
   // ControlHeader props
   label: PropTypes.string,
@@ -83,6 +90,7 @@ const defaultProps = {
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
+  promptTextCreator: label => `Create Option ${label}`,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -210,8 +218,15 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       onFocus,
       optionRenderer,
+      promptTextCreator,
+      valueRenderer,
       showHeader,
       value,
+      valueKey,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
+      menuPlacement,
       // ControlHeader props
       description,
       renderTrigger,
@@ -278,6 +293,35 @@ export default class SelectControl extends React.PureComponent {
       value: getValue(),
     };
 
+    const deprecatedProps = {
+      autoFocus,
+      'aria-label': label,
+      clearable,
+      disabled,
+      filterOption,
+      ignoreAccents: false,
+      isLoading,
+      isMulti: this.props.isMulti || this.props.multi,
+      labelKey: 'label',
+      menuPlacement,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
+      name: `select-${name}`,
+      noResultsText: 'No results found',
+      onChange: this.onChange,
+      onFocus,
+      optionRenderer,
+      value: getValue(),
+      options: this.state.options,
+      placeholder,
+      assistiveText: '',
+      promptTextCreator,
+      selectRef: this.getSelectRef,
+      valueKey,
+      valueRenderer,
+    };
+
     return (
       <div
         css={theme => css`
@@ -292,7 +336,14 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        <Select {...selectProps} />
+        {name === 'groupby' ? (
+          <>
+            <ControlHeader {...headerProps} />
+            <DeprecatedSelect {...deprecatedProps} />
+          </>
+        ) : (
+          <Select {...selectProps} />
+        )}
       </div>
     );
   }

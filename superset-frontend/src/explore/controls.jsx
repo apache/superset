@@ -125,12 +125,14 @@ const groupByControl = {
   includeTime: false,
   description: t('One or many controls to group by'),
   optionRenderer: c => <StyledColumnOption column={c} showType />,
+  valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
   filterOption: ({ data: opt }, text) =>
     (opt.column_name &&
       opt.column_name.toLowerCase().indexOf(text.toLowerCase()) >= 0) ||
     (opt.verbose_name &&
       opt.verbose_name.toLowerCase().indexOf(text.toLowerCase()) >= 0),
+  promptTextCreator: label => label,
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
