@@ -44,6 +44,12 @@ const data = [
   },
 ];
 const all_columns = ['col01', 'col02', 'col03', asciiKey, unicodeKey];
+const coltypes = [
+  GenericDataType.BOOLEAN,
+  GenericDataType.BOOLEAN,
+  GenericDataType.STRING,
+  GenericDataType.STRING,
+];
 
 test('useTableColumns with no options', () => {
   const hook = renderHook(() => useTableColumns(all_columns, coltypes, data), {
