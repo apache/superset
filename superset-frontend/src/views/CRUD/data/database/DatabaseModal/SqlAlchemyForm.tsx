@@ -19,7 +19,6 @@
 import React, { EventHandler, ChangeEvent, MouseEvent } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import SupersetText from 'src/utils/textUtils';
-// import SupersetText, { SupersetTextType, st } from 'src/utils/textUtils';
 import Button from 'src/components/Button';
 import { StyledInputContainer, wideButton } from './styles';
 
