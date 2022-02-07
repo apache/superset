@@ -32,7 +32,6 @@ from superset.dashboards.dao import DashboardDAO
 from superset.commands.export import ExportModelsCommand
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.dao import DatasetDAO
-from superset.charts.dao import ChartDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
@@ -140,12 +139,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     dataset = DatasetDAO.find_by_id(dataset_id)
                     target["datasetUuid"] = str(dataset.uuid)
                     yield from ExportDatasetsCommand([dataset_id]).run()
-
-            # grab UUID and replace with the chartIds in excluded
-            native_filter["scope"]["excluded"] = [
-                str(ChartDAO.find_by_id(chart_id).uuid)
-                for chart_id in native_filter.get("scope").get("excluded")
-            ]
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
