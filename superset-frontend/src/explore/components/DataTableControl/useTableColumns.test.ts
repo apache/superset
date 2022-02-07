@@ -45,7 +45,9 @@ const data = [
 const all_columns = ['col01', 'col02', 'col03', asciiKey, unicodeKey];
 
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(all_columns, data));
+  const hook = renderHook(() =>
+    useTableColumns(all_columns, [3, 3, 1, 1], data),
+  );
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -84,7 +86,9 @@ test('useTableColumns with no options', () => {
 
 test('use only the first record columns', () => {
   const newData = [data[3], data[0]];
-  const hook = renderHook(() => useTableColumns(all_columns, newData));
+  const hook = renderHook(() =>
+    useTableColumns(all_columns, [3, 3, 1, 1], newData),
+  );
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -136,7 +140,9 @@ test('use only the first record columns', () => {
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(all_columns, data, { col01: { id: 'ID' } }),
+    useTableColumns(all_columns, [3, 3, 1, 1], data, 'testId', {
+      col01: { id: 'ID' },
+    }),
   );
   expect(hook.result.current).toEqual([
     {
