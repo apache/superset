@@ -17,7 +17,7 @@
 
 import json
 import logging
-from typing import Any, Callable, Dict, Set, Union
+from typing import Any, Dict, Set
 
 from flask import g
 from sqlalchemy.orm import Session
