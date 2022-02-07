@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Input } from 'src/components/Input';
+import { Input, TextArea } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
@@ -607,10 +607,12 @@ const PropertiesModal = ({
         </Row>
         <Row>
           <Col xs={24} md={24}>
-            <FormItem label={t('Description')} name="description">
-              <Input type="text" disabled={isLoading} />
-              <p className="help-block">{t('A dashboard description')}</p>
-            </FormItem>
+            <StyledFormItem label={t('Description')} name="description">
+              <TextArea disabled={isLoading} />
+            </StyledFormItem>
+            <p className="help-block">
+              {t('A description for your dashboard')}
+            </p>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
