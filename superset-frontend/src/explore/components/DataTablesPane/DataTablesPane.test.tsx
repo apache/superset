@@ -131,6 +131,13 @@ test('Should copy data table content correctly', async () => {
     />,
     {
       useRedux: true,
+      initialState: {
+        explore: {
+          timeFormattedColumns: {
+            '34__table': ['__timestamp'],
+          },
+        },
+      },
     },
   );
   userEvent.click(await screen.findByText('Data'));
