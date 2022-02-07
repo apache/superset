@@ -25,6 +25,10 @@ import { RootContextProviders } from 'src/views/RootContextProviders';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 
+function log(...info: unknown[]) {
+  console.debug(`[superset]`, ...info);
+}
+
 const LazyDashboardPage = lazy(
   () =>
     import(
@@ -98,15 +102,15 @@ window.addEventListener('message', function (event) {
   try {
     validateMessageEvent(event);
   } catch (err) {
-    console.info('[superset] ignoring message', err, event);
+    log('ignoring message', err, event);
     return;
   }
 
-  console.info('[superset] received message', event);
   const hostAppPort = event.ports?.[0];
   if (hostAppPort) {
+    log('received message', event);
     hostAppPort.onmessage = function receiveMessage(event) {
-      console.info('[superset] received message event', event.data);
+      log('received message event', event.data);
       if (event.data.guestToken) {
         start(event.data.guestToken);
       }
@@ -114,4 +118,4 @@ window.addEventListener('message', function (event) {
   }
 });
 
-console.info('[superset] embed page is ready to receive messages');
+log('embed page is ready to receive messages');
