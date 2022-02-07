@@ -19,7 +19,6 @@
 import '@testing-library/jest-dom/extend-expect';
 import React, { ReactNode, ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -83,9 +82,6 @@ function createWrapper(options?: Options) {
 const customRender = (ui: ReactElement, options?: Options) =>
   render(ui, { wrapper: createWrapper(options), ...options });
 
-const customRenderHook = (callback: (props: any) => any, options?: Options) =>
-  renderHook(callback, { wrapper: createWrapper(options), ...options });
-
 export function sleep(time: number) {
   return new Promise(resolve => {
     setTimeout(resolve, time);
@@ -93,4 +89,4 @@ export function sleep(time: number) {
 }
 
 export * from '@testing-library/react';
-export { customRender as render, customRenderHook as renderHook };
+export { customRender as render };

@@ -47,7 +47,6 @@ import {
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
 } from 'src/explore/actions/exploreActions';
-import { useTimeFormattedColumns } from '../useTimeFormattedColumns';
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -269,11 +268,10 @@ export const useTableColumns = (
   coltypes?: GenericDataType[],
   data?: Record<string, any>[],
   datasourceId?: string,
+  timeFormattedColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
-) => {
-  const timeFormattedColumns = useTimeFormattedColumns(datasourceId);
-
-  return useMemo(
+) =>
+  useMemo(
     () =>
       colnames && data?.length
         ? colnames
@@ -315,4 +313,3 @@ export const useTableColumns = (
         : [],
     [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
   );
-};
