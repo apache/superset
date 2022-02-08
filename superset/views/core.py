@@ -741,9 +741,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if value:
                 initial_form_data = json.loads(value)
 
-        form_data, slc = get_form_data(
-            use_slice_data=True, initial_form_data=initial_form_data
-        )
+        if not initial_form_data:
+            slice_id = request.args.get("slice_id")
+            if slice_id:
+                initial_form_data['slice_id'] = slice_id
+
+            dataset_id = request.args.get("dataset_id")
+            if dataset_id:
+                initial_form_data['datasource'] = f"{dataset_id}__table"
+
+        form_data, slc = get_form_data(initial_form_data=initial_form_data)
 
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not

@@ -83,6 +83,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       );
       return `${window.location.origin}${mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: formData.slice_id,
       })}`;
     }
     const copyUrl = await getCopyUrl();
@@ -101,7 +102,9 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onShareByEmail() {
     try {
-      const bodyWithLink = `${emailBody}${await generateUrl()}`;
+      const bodyWithLink = `${emailBody}${encodeURIComponent(
+        await generateUrl(),
+      )}`;
       window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
     } catch (error) {
       logging.error(error);
