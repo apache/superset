@@ -18,10 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
+from io import BytesIO
 from typing import Any, Dict, Optional, TYPE_CHECKING
+from zipfile import ZipFile
 
 import simplejson
-from flask import g, make_response, request
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -49,8 +51,6 @@ from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
-    from flask import Response
-
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
@@ -350,9 +350,24 @@ class ChartDataRestApi(ChartRestApi):
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
 
-            # return the first result
-            data = result["queries"][0]["data"]
-            return CsvResponse(data, headers=generate_download_headers("csv"))
+            if len(result["queries"]) == 1:
+                # return single query results csv format
+                data = result["queries"][0]["data"]
+                return CsvResponse(data, headers=generate_download_headers("csv"))
+            else:
+                # return multi-query csv results bundled as a zip file
+                encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                buf = BytesIO()
+                with ZipFile(buf, "w") as bundle:
+                    for idx, result in enumerate(result["queries"]):
+                        with bundle.open(f"query_{idx + 1}.csv", "w") as fp:
+                            fp.write(result["data"].encode(encoding))
+                buf.seek(0)
+                return Response(
+                    buf,
+                    headers=generate_download_headers("zip"),
+                    mimetype="application/zip",
+                )
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
