@@ -85,8 +85,6 @@ def _make_decorator(
 ) -> Decorated:
     def decorator(decorated: Decorated):
         decorated_logger = _get_logger(decorated)
-        is_debug_enable = decorated_logger.isEnabledFor(logging.DEBUG)
-        is_under_info = decorated_logger.level < logging.INFO
 
         def decorator_class(clazz: Type[Any]) -> Type[Any]:
             _decorate_class_members_with_logs(clazz)
@@ -106,6 +104,8 @@ def _make_decorator(
             has_return_value = func_signature.return_annotation not in empty_and_none
             is_private = func_name.startswith(_PRIVATE_PREFIX_SYMBOL)
             full_func_name = f"{prefix_name}.{func_name}"
+            under_info = None
+            debug_enable = None
 
             @wraps(func)
             def _wrapper_func(*args, **kwargs) -> Any:
@@ -119,11 +119,24 @@ def _make_decorator(
                     decorated_logger.info(
                         f"{prefix_enter_msg}'{full_func_name}'{suffix_enter_msg}"
                     )
-                elif is_debug_enable:
+                elif _is_debug_enable():
                     _log_debug(*args, **kwargs)
 
             def _is_log_info() -> bool:
-                return not (is_under_info or is_private or is_fixture)
+                return not (_is_under_info() or is_private or is_fixture)
+
+            def _is_under_info() -> bool:
+                nonlocal under_info
+                if under_info is None:
+                    under_info = decorated_logger.getEffectiveLevel() < logging.INFO
+                return under_info
+
+            def _is_debug_enable() -> bool:
+                nonlocal debug_enable
+                if debug_enable is None:
+                    debug_enable = decorated_logger.isEnabledFor(logging.DEBUG)
+                return debug_enable
+
 
             def _log_debug(*args, **kwargs) -> None:
                 used_parameters = getcallargs(func, *args, **kwargs)
@@ -140,7 +153,7 @@ def _make_decorator(
                     )
 
             def _log_exit_of_function(return_value: Any) -> None:
-                if is_debug_enable and has_return_value:
+                if _is_debug_enable() and has_return_value:
                     decorated_logger.debug(
                         f"{prefix_out_msg}'{full_func_name}'{return_value_msg_part}"
                         f"'{return_value}'{suffix_out_msg}"
