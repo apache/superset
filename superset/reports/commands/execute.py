@@ -357,6 +357,8 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
+
+        body = self._report_schedule.content
         return NotificationContent(
             name=name,
             url=url,
@@ -364,6 +366,7 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
+            body=body,
         )
 
     def _send(

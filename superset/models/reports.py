@@ -153,6 +153,9 @@ class ReportSchedule(Model, AuditMixinNullable):
     # (Reports) When generating a screenshot, bypass the cache?
     force_screenshot = Column(Boolean, default=False)
 
+    # (Alerts/Reports) Message content in json config
+    content = Column(Text, default="{}")
+
     def __repr__(self) -> str:
         return str(self.name)
 

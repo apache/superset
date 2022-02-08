@@ -22,6 +22,13 @@ import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
 import { StyledInputContainer } from '../AlertReportModal';
+import { Editor } from 'react-draft-wysiwyg';
+import { EditorState } from 'draft-js';
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { RawDraftContentState, ContentState } from 'draft-js';
+import draftToHtml from 'draftjs-to-html';
+import htmlToDraft from 'html-to-draftjs';
+import draftToMarkDown from 'draftjs-to-markdown';
 
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
@@ -50,10 +57,35 @@ const StyledNotificationMethod = styled.div`
   }
 `;
 
+const ContentEditor = styled.div`
+  .ContentEditorClass {
+    height: 200px;
+    overflow-y: scroll;
+    border: 1px solid black;
+  }
+`;
+
+const StyledSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  margin: ${({ theme }) => theme.gridUnit * 2}px auto
+    ${({ theme }) => theme.gridUnit * 4}px auto;
+
+  h4 {
+    margin: 0;
+  }
+
+  .required {
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+    color: ${({ theme }) => theme.colors.error.base};
+  }
+`;
+
 type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
   options: NotificationMethodOption[];
+  body?: string;
 };
 
 interface NotificationMethodProps {
@@ -69,15 +101,35 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
 }) => {
-  const { method, recipients, options } = setting || {};
+  const { method, recipients, options, body } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  // const [notificationContent, setNotificationContent] = useState<RawDraftContentState>();
+
   const theme = useTheme();
 
   if (!setting) {
     return null;
   }
+
+  const getContentInitialState = (): EditorState | undefined => {
+    console.log('getting content state ', body);
+
+    if (body) {
+      console.log('initial state from db ', body);
+      const contentBlock = htmlToDraft(body);
+      console.log('content block ', contentBlock);
+      const contentState = ContentState.createFromBlockArray(
+        contentBlock.contentBlocks,
+      );
+      console.log('contentstate ', contentState);
+      const editorState = EditorState.createWithContent(contentState);
+      console.log('editor state ', editorState, typeof editorState);
+      return editorState;
+    }
+    return undefined;
+  };
 
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
@@ -106,6 +158,16 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         recipients: target.value,
       };
 
+      onUpdate(index, updatedSetting);
+    }
+  };
+
+  const onBodyChange = (event: RawDraftContentState) => {
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        body: method === 'Email' ? draftToHtml(event) : draftToMarkDown(event),
+      };
       onUpdate(index, updatedSetting);
     }
   };
@@ -147,19 +209,34 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         ) : null}
       </div>
       {method !== undefined ? (
-        <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
-          <div className="input-container">
-            <textarea
-              name="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
+        <div>
+          <StyledInputContainer>
+            <div className="control-label">{t(method)}</div>
+            <div className="input-container">
+              <textarea
+                name="recipients"
+                value={recipientValue}
+                onChange={onRecipientsChange}
+              />
+            </div>
+            <div className="helper">
+              {t('Recipients are separated by "," or ";"')}
+            </div>
+          </StyledInputContainer>
+
+          <ContentEditor>
+            <StyledSectionTitle>
+              <h4>{t('Message body')}</h4>
+            </StyledSectionTitle>
+            <Editor
+              defaultEditorState={getContentInitialState()}
+              toolbarClassName="ContentToolbarClass"
+              wrapperClassName="ContentWrapperClass"
+              editorClassName="ContentEditorClass"
+              onContentStateChange={onBodyChange}
             />
-          </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
-        </StyledInputContainer>
+          </ContentEditor>
+        </div>
       ) : null}
     </StyledNotificationMethod>
   );

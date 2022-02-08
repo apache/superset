@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { RawDraftContentState } from 'react-draft-wysiwyg';
 import Owner from 'src/types/Owner';
 
 type user = {
@@ -87,6 +88,7 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
+  content: string;
 };
 
 export type LogObject = {

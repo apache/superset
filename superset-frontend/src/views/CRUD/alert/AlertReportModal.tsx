@@ -400,6 +400,7 @@ type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
   options: NotificationMethodOption[];
+  body?: string;
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -444,12 +445,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
 
+  const [notificationContent, setNotificationContent] = useState<string>();
+
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
 
     settings.push({
       recipients: '',
       options: allowedNotificationMethods,
+      // body: undefined
     });
 
     setNotificationSettings(settings);
@@ -471,6 +475,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     if (setting.method !== undefined && notificationAddState !== 'hidden') {
       setNotificationAddState('active');
+    }
+
+    if (setting?.body) {
+      setNotificationContent(setting.body);
     }
   };
 
@@ -537,6 +545,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         contentType === 'dashboard'
           ? DEFAULT_NOTIFICATION_FORMAT
           : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      content: notificationContent || undefined,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -959,6 +968,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
+          body: resource?.content || '',
         };
       });
 
@@ -1312,7 +1322,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </div>
           <div className="column message">
             <StyledSectionTitle>
-              <h4>{t('Message content')}</h4>
+              <h4>{t('Message attachment')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
             <Radio.Group onChange={onContentTypeChange} value={contentType}>

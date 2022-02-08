@@ -114,6 +114,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "content",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -166,6 +167,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "content",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()

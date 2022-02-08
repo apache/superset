@@ -205,6 +205,7 @@ class ReportSchedulePostSchema(Schema):
     )
     extra = fields.Dict(default=None,)
     force_screenshot = fields.Boolean(default=False)
+    content = fields.String(required=False, default=None)
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
@@ -296,3 +297,4 @@ class ReportSchedulePutSchema(Schema):
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     force_screenshot = fields.Boolean(default=False)
+    content = fields.String(required=False, default=None)
