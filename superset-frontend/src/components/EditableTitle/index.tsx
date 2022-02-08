@@ -205,7 +205,7 @@ export default function EditableTitle({
           canEdit
             ? t('Click to edit')
             : noPermitTooltip ||
-            t("You don't have the rights to alter this title.")
+              t("You don't have the rights to alter this title.")
         }
       >
         {titleComponent}
@@ -236,7 +236,7 @@ export default function EditableTitle({
           <StyledCertifiedBadge
             certifiedBy={certifiedBy}
             details={certificationDetails}
-            size='xl'
+            size="xl"
           />{' '}
         </>
       )}
