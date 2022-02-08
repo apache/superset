@@ -238,17 +238,15 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_TIME_FORMATTED_COLUMN]() {
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
       const { datasourceId, columnName } = action;
+      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
+      const newTimeFormattedColumnsForDatasource = ensureIsArray(
+        newTimeFormattedColumns[datasourceId],
+      ).slice();
 
-      if (Array.isArray(newTimeFormattedColumns[action.datasourceId])) {
-        newTimeFormattedColumns[datasourceId] = [
-          ...newTimeFormattedColumns[datasourceId],
-          columnName,
-        ];
-      } else {
-        newTimeFormattedColumns[datasourceId] = [columnName];
-      }
+      newTimeFormattedColumnsForDatasource.push(columnName);
+      newTimeFormattedColumns[datasourceId] =
+        newTimeFormattedColumnsForDatasource;
       setItem(
         LocalStorageKeys.explore__data_table_time_formatted_columns,
         newTimeFormattedColumns,
@@ -256,18 +254,18 @@ export default function exploreReducer(state = {}, action) {
       return { ...state, timeFormattedColumns: newTimeFormattedColumns };
     },
     [actions.UNSET_TIME_FORMATTED_COLUMN]() {
-      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
       const { datasourceId, columnIndex } = action;
+      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
+      const newTimeFormattedColumnsForDatasource = ensureIsArray(
+        newTimeFormattedColumns[datasourceId],
+      ).slice();
 
-      if (Array.isArray(newTimeFormattedColumns[datasourceId])) {
-        newTimeFormattedColumns[datasourceId] = [
-          ...newTimeFormattedColumns[datasourceId].slice(0, columnIndex),
-          ...newTimeFormattedColumns[datasourceId].slice(columnIndex + 1),
-        ];
+      newTimeFormattedColumnsForDatasource.splice(columnIndex, 1);
+      newTimeFormattedColumns[datasourceId] =
+        newTimeFormattedColumnsForDatasource;
 
-        if (newTimeFormattedColumns[datasourceId].length === 0) {
-          delete newTimeFormattedColumns[datasourceId];
-        }
+      if (newTimeFormattedColumnsForDatasource.length === 0) {
+        delete newTimeFormattedColumns[datasourceId];
       }
       setItem(
         LocalStorageKeys.explore__data_table_time_formatted_columns,
