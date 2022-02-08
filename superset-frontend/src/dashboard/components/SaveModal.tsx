@@ -140,6 +140,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       last_modified_time: lastModifiedTime,
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
+      description: dashboardInfo.description,
       metadata: {
         ...dashboardInfo?.metadata,
         positions,
