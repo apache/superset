@@ -56,10 +56,10 @@ def log(
     *,
     prefix_enter_msg: str = _DEFAULT_ENTER_MSG_PREFIX,
     suffix_enter_msg: str = _DEFAULT_ENTER_MSG_SUFFIX,
-    with_arguments_msg_part=_DEFAULT_WITH_ARGUMENTS_MSG_PART,
+    with_arguments_msg_part: str = _DEFAULT_WITH_ARGUMENTS_MSG_PART,
     prefix_exit_msg: str = _DEFAULT_EXIT_MSG_PREFIX,
     suffix_exit_msg: str = _DEFAULT_EXIT_MSG_SUFFIX,
-    return_value_msg_part=_DEFAULT_RETURN_VALUE_MSG_PART,
+    return_value_msg_part: str = _DEFAULT_RETURN_VALUE_MSG_PART,
 ) -> Decorated:
 
     decorator: Decorated = _make_decorator(
