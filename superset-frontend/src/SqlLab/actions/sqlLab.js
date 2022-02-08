@@ -787,7 +787,11 @@ export function queryEditorSetSchema(queryEditor, schema) {
 
     return sync
       .then(() =>
-        dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor: (queryEditor || {}), schema: (schema || {}) })
+        dispatch({
+          type: QUERY_EDITOR_SET_SCHEMA,
+          queryEditor: queryEditor || {},
+          schema: schema || {},
+        }),
       )
       .catch(() =>
         dispatch(
@@ -796,7 +800,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
               'An error occurred while setting the tab schema. Please contact your administrator.',
             ),
           ),
-        )
+        ),
       );
   };
 }
