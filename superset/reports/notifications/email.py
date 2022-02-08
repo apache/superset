@@ -82,6 +82,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
         # Strip any malicious HTML from the description
         description = bleach.clean(self._content.description or "")
+        body = bleach.clean(self._content.body or "")
 
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
@@ -127,7 +128,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               </head>
               <body>
                 <p>{description}</p>
-                {self._content.body}
+                {body}
                 {html_table}
                 {img_tag}
               </body>
