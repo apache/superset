@@ -18,9 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from io import BytesIO
 from typing import Any, Dict, Optional, TYPE_CHECKING
-from zipfile import ZipFile
 
 import simplejson
 from flask import current_app, g, make_response, request, Response
@@ -46,7 +44,7 @@ from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import create_zip, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
@@ -357,14 +355,12 @@ class ChartDataRestApi(ChartRestApi):
             else:
                 # return multi-query csv results bundled as a zip file
                 encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
-                buf = BytesIO()
-                with ZipFile(buf, "w") as bundle:
-                    for idx, result in enumerate(result["queries"]):
-                        with bundle.open(f"query_{idx + 1}.csv", "w") as fp:
-                            fp.write(result["data"].encode(encoding))
-                buf.seek(0)
+                files = {
+                    f"query_{idx + 1}.csv": result["data"].encode(encoding)
+                    for idx, result in enumerate(result["queries"])
+                }
                 return Response(
-                    buf,
+                    create_zip(files),
                     headers=generate_download_headers("zip"),
                     mimetype="application/zip",
                 )

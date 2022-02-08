@@ -40,6 +40,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum, IntEnum
+from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -61,6 +62,7 @@ from typing import (
     Union,
 )
 from urllib.parse import unquote_plus
+from zipfile import ZipFile
 
 import bleach
 import markdown as md
@@ -1788,3 +1790,13 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
+
+
+def create_zip(files: Dict[str, Any]) -> BytesIO:
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        for filename, contents in files.items():
+            with bundle.open(filename, "w") as fp:
+                fp.write(contents)
+    buf.seek(0)
+    return buf
