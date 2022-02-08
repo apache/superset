@@ -57,6 +57,7 @@ const propTypes = {
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
@@ -286,6 +287,7 @@ export default class Chart extends React.Component {
       filters,
       formData,
       labelColors,
+      sharedLabelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -416,6 +418,7 @@ export default class Chart extends React.Component {
             initialValues={initialValues}
             formData={formData}
             labelColors={labelColors}
+            sharedLabelColors={sharedLabelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}

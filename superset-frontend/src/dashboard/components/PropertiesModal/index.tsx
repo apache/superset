@@ -29,8 +29,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
-  CategoricalColorNamespace,
-  getSharedColorScale,
+  sharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -171,6 +170,9 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
+      if (metadata?.shared_label_colors) {
+        delete metadata.shared_label_colors;
+      }
       setJsonMetadata(metadata ? jsonStringify(metadata) : '');
     },
     [form],
@@ -251,29 +253,6 @@ const PropertiesModal = ({
     return parsedRoles;
   };
 
-  const getSharedColorLabels = (
-    colorNamespace?: string,
-    colorScheme?: string,
-  ) => {
-    if (colorScheme) {
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        colorNamespace || '',
-      );
-      const sharedColorScale = getSharedColorScale();
-      const scale = categoricalNamespace.getScale(colorScheme);
-      const colors = scale.range();
-      // reverse to prevent color conflicts
-      colors.reverse();
-      const colorMap = sharedColorScale.domain().reduce((res, name, index) => {
-        const value = name.toString();
-        const color = colors[index % colors.length];
-        return { ...res, [value]: color };
-      }, {});
-      return colorMap;
-    }
-    return undefined;
-  };
-
   const onColorSchemeChange = (
     colorScheme?: string,
     { updateMetadata = true } = {},
@@ -296,10 +275,6 @@ const PropertiesModal = ({
     if (updateMetadata) {
       jsonMetadataObj.color_scheme = colorScheme;
       jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
-      jsonMetadataObj.shared_label_colors = getSharedColorLabels(
-        jsonMetadataObj.color_namespace,
-        colorScheme,
-      );
 
       setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
@@ -319,14 +294,16 @@ const PropertiesModal = ({
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
 
-      if (metadata?.colorScheme !== colorScheme) {
-        metadata.shared_label_colors = getSharedColorLabels(
-          metadata?.color_namespace,
-          metadata?.color_scheme,
-        );
-        currentJsonMetadata = jsonStringify(metadata);
-        setJsonMetadata(currentJsonMetadata);
+      // filter shared_label_color from user input
+      if (metadata?.shared_label_colors) {
+        delete metadata.shared_label_colors;
       }
+      const colorMap = sharedLabelColor.getColorMap(
+        metadata?.color_namespace,
+        metadata?.color_scheme,
+      );
+      metadata.shared_label_colors = colorMap;
+      currentJsonMetadata = jsonStringify(metadata);
     }
 
     onColorSchemeChange(currentColorScheme, {

@@ -17,9 +17,13 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@superset-ui/core';
+import { t, sharedLabelColor } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
-import { TABS_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
+import {
+  TABS_TYPE,
+  ROW_TYPE,
+  CHART_TYPE,
+} from 'src/dashboard/util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
@@ -30,6 +34,7 @@ import findParentId from 'src/dashboard/util/findParentId';
 import isInDifferentFilterScopes from 'src/dashboard/util/isInDifferentFilterScopes';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
+import { dashboardInfoChanged } from './dashboardInfo';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
@@ -47,17 +52,38 @@ function setUnsavedChangesAfterAction(action) {
         dispatch(result);
       }
 
+      const { dashboardLayout, dashboardState, dashboardInfo } = getState();
+
+      const { metadata, position_data } = dashboardInfo;
+      // should update shared label color if delete chart component
+      if (result.type === DELETE_COMPONENT) {
+        const component = args[2];
+        if (component?.type === CHART_TYPE) {
+          const chartId = component?.meta.chartId;
+          sharedLabelColor.removeSlice(chartId);
+          metadata.shared_label_colors = sharedLabelColor.getColorMap(
+            metadata?.color_namespace,
+            metadata?.color_scheme,
+          );
+          dispatch(
+            dashboardInfoChanged({
+              metadata,
+            }),
+          );
+        }
+      }
+
       const isComponentLevelEvent =
         result.type === UPDATE_COMPONENTS &&
         result.payload &&
         result.payload.nextComponents;
       // trigger dashboardFilters state update if dashboard layout is changed.
       if (!isComponentLevelEvent) {
-        const components = getState().dashboardLayout.present;
+        const components = dashboardLayout.present;
         dispatch(updateLayoutComponents(components));
       }
 
-      if (!getState().dashboardState.hasUnsavedChanges) {
+      if (!dashboardState.hasUnsavedChanges) {
         dispatch(setUnsavedChanges(true));
       }
     };

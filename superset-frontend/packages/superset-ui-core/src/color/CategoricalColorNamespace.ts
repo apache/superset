@@ -37,13 +37,13 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  getScale(schemeId?: string, chartId?: number) {
+  getScale(schemeId?: string, sliceId?: number) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
     return new CategoricalColorScale(
       scheme?.colors ?? [],
       this.forcedItems,
-      chartId,
+      sliceId,
     );
   }
 
@@ -97,7 +97,7 @@ export function getColor(
 export function getScale(
   scheme?: string,
   namespace?: string,
-  chartId?: number,
+  sliceId?: number,
 ) {
-  return getNamespace(namespace).getScale(scheme, chartId);
+  return getNamespace(namespace).getScale(scheme, sliceId);
 }

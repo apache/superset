@@ -22,6 +22,7 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
+import { sharedLabelColor } from './SharedLabelColor';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
@@ -38,9 +39,7 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   forcedColors: ColorsLookup;
 
-  chartId: number | undefined;
-
-  valueChartMap: Map<string, number>;
+  sliceId: number | undefined;
 
   /**
    * Constructor
@@ -51,7 +50,7 @@ class CategoricalColorScale extends ExtensibleFunction {
   constructor(
     colors: string[],
     parentForcedColors?: ColorsLookup,
-    chartId?: number,
+    sliceId?: number,
   ) {
     super((value: string) => this.getColor(value));
 
@@ -60,12 +59,13 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.scale.range(colors);
     this.parentForcedColors = parentForcedColors || {};
     this.forcedColors = {};
-    this.chartId = chartId;
-    this.valueChartMap = new Map();
+    this.sliceId = sliceId;
   }
 
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
+
+    sharedLabelColor.addSlice(cleanedValue, this.sliceId);
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
@@ -77,8 +77,6 @@ class CategoricalColorScale extends ExtensibleFunction {
     if (forcedColor) {
       return forcedColor;
     }
-
-    this.sharedColorScale(cleanedValue);
 
     return this.scale(cleanedValue);
   }
@@ -191,29 +189,6 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.scale.unknown(value);
     return this;
   }
-
-  sharedColorScale(cleanedValue: string) {
-    if (this.chartId) {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      const sharedColorScale = getSharedColorScale();
-      if (!sharedColorScale.valueChartMap.has(cleanedValue)) {
-        sharedColorScale.valueChartMap.set(cleanedValue, this.chartId);
-      } else if (
-        sharedColorScale.valueChartMap.get(cleanedValue) !== this.chartId
-      ) {
-        // only set scale color when value that are shared more than two charts
-        sharedColorScale.scale(cleanedValue);
-      }
-    }
-  }
 }
 
 export default CategoricalColorScale;
-
-let sharedColorScale: CategoricalColorScale;
-
-export function getSharedColorScale() {
-  if (sharedColorScale) return sharedColorScale;
-  sharedColorScale = new CategoricalColorScale([]);
-  return sharedColorScale;
-}

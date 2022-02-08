@@ -227,8 +227,8 @@ class ChartHolder extends React.Component {
   }
 
   handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
-    deleteComponent(id, parentId);
+    const { deleteComponent, id, parentId, component } = this.props;
+    deleteComponent(id, parentId, component);
   }
 
   handleUpdateSliceName(nextName) {

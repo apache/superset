@@ -45,6 +45,7 @@ const propTypes = {
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
   setControlValue: PropTypes.func,

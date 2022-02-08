@@ -30,6 +30,7 @@ const propTypes = {
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -102,6 +103,7 @@ class ChartRenderer extends React.Component {
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
         nextProps.labelColors !== this.props.labelColors ||
+        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
