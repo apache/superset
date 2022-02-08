@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument
 
-from typing import Any, cast, Dict
+from typing import Any, Dict
 
 
 def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
