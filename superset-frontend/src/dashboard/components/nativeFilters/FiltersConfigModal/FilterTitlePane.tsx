@@ -93,7 +93,7 @@ const FilterTitlePane: React.FC<Props> = ({
       <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
         <StyledAddBox>
           <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
-          <span>{t('Add Filters and Dividers')}</span>
+          <span>{t('Add filters and dividers')}</span>
         </StyledAddBox>
       </Dropdown>
       <div
