@@ -36,27 +36,13 @@ interface Props {
   erroredFilters: string[];
 }
 
-const StyledPlusButton = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
-
-const StyledHeader = styled.div`
-  ${({ theme }) => `
-    color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.l}px;
-    padding-top: ${theme.gridUnit * 4}px;
-    padding-right: ${theme.gridUnit * 4}px;
-    padding-left: ${theme.gridUnit * 4}px;
-    padding-bottom: ${theme.gridUnit * 2}px;
-  `}
-`;
-
 const StyledAddBox = styled.div`
   ${({ theme }) => `
   cursor: pointer;
   margin: ${theme.gridUnit * 4}px;
+  color: ${theme.colors.primary.base};
   &:hover {
-    color: ${theme.colors.primary.base};
+    color: ${theme.colors.primary.dark1};
   }
 `}
 `;
@@ -104,7 +90,12 @@ const FilterTitlePane: React.FC<Props> = ({
   );
   return (
     <TabsContainer>
-      <StyledHeader>Filters</StyledHeader>
+      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
+        <StyledAddBox>
+          <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
+          <span>{t('Add filters and dividers')}</span>
+        </StyledAddBox>
+      </Dropdown>
       <div
         css={{
           height: '100%',
@@ -124,15 +115,6 @@ const FilterTitlePane: React.FC<Props> = ({
           restoreFilter={restoreFilter}
         />
       </div>
-      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
-        <StyledAddBox>
-          <StyledPlusButton
-            data-test="new-dropdown-icon"
-            className="fa fa-plus"
-          />{' '}
-          <span>{t('Add')}</span>
-        </StyledAddBox>
-      </Dropdown>
     </TabsContainer>
   );
 };

@@ -87,10 +87,12 @@ export const useDefaultValue = (
     let tooltip = '';
     if (defaultToFirstItem) {
       tooltip = t(
-        'Default value set automatically when "Default to first item" is checked',
+        'Default value set automatically when "Select first filter value by default" is checked',
       );
     } else if (isRequired) {
-      tooltip = t('Default value must be set when "Required" is checked');
+      tooltip = t(
+        'Default value must be set when "Filter value is required" is checked',
+      );
     } else if (hasDefaultValue) {
       tooltip = t(
         'Default value must be set when "Filter has default value" is checked',

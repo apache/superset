@@ -31,7 +31,7 @@ import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 export type SelectValue = (number | string)[] | null | undefined;
 
-interface PluginFilterSelectCustomizeProps {
+export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
