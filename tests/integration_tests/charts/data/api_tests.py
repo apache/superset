@@ -70,6 +70,7 @@ ADHOC_COLUMN_FIXTURE: AdhocColumn = {
 }
 
 
+@pytest.mark.chart_data_flow
 class BaseTestChartDataApi(SupersetTestCase):
     query_context_payload_template = None
 
@@ -111,7 +112,6 @@ class BaseTestChartDataApi(SupersetTestCase):
         return name
 
 
-@pytest.mark.chart_data_flow
 class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_valid_qc__data_is_returned(self):
@@ -742,7 +742,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':qwerty:'" in result["query"]
 
 
-@pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_data_when_query_context_is_null(self):

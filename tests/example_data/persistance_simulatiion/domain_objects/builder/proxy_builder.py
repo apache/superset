@@ -14,9 +14,25 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from __future__ import annotations
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from typing import Dict, TYPE_CHECKING
+
+from .....common.logger_utils import log
+
+if TYPE_CHECKING:
+    from .... import DataName
+    from ...scenario import Scenario
+    from ..objects_wrapper import DomainObjectsWrapper
+    from . import DomainObjectsBuilder, ExampleDataBasedBuilder
+
+
+@log
+def domain_objects_proxy_builder(
+    example_data_builders: Dict[DataName, ExampleDataBasedBuilder]
+) -> DomainObjectsBuilder:
+    def _domain_objects_proxy_builder(scenario: Scenario) -> DomainObjectsWrapper:
+        domain_objects_builder = example_data_builders.get(scenario.data_name)
+        return domain_objects_builder(scenario)  # type: ignore
+
+    return _domain_objects_proxy_builder

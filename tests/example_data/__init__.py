@@ -14,3 +14,10 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from enum import Enum
+
+from .consts.birth_names import DATA_NAME as BIRTH_NAMES_DATA_NAME
+
+
+class DataName(Enum):
+    BIRTH_NAMES = BIRTH_NAMES_DATA_NAME

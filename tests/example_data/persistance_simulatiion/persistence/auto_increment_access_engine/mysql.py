@@ -14,9 +14,20 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from sqlalchemy.sql import text
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from .....common.logger_utils import log
+from ...persistence.auto_increment_access_engine import AutoIncrementEngineProvider
+
+
+@log
+class MySqlAutoIncrementProvider(AutoIncrementEngineProvider):
+    def _get_statement(self, table_name: str):
+        return text(
+            f"""
+            SELECT AUTO_INCREMENT
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = "superset"
+            AND TABLE_NAME = :table_name
+        """
+        ).bindparams(table_name=table_name)

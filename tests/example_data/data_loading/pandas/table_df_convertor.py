@@ -24,7 +24,7 @@ from tests.common.logger_utils import log
 from tests.example_data.data_loading.pandas.pandas_data_loader import TableToDfConvertor
 
 if TYPE_CHECKING:
-    from tests.example_data.data_loading.data_definitions.types import Table
+    from ...definions.data_definitions.types import Table
 
 
 @log

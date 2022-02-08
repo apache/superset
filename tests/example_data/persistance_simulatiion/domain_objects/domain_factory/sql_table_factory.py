@@ -14,9 +14,12 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from __future__ import annotations
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from .. import DomainObjectTypeNames
+from .external_id_based import ExternalIdSBasedDomainFactory
+
+
+class SqlTableFactory(ExternalIdSBasedDomainFactory):
+    def what_make(self) -> DomainObjectTypeNames:
+        return DomainObjectTypeNames.TABLE

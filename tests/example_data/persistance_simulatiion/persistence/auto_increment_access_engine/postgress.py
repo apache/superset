@@ -14,9 +14,22 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from sqlalchemy.sql import text
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from .....common.logger_utils import log
+from ...persistence.auto_increment_access_engine import AutoIncrementEngineProvider
+
+
+@log
+class PGAutoIncrementProvider(AutoIncrementEngineProvider):
+    def _get_statement(self, table_name: str):
+        return text(
+            f"""
+            SELECT last_value + increment_by
+            FROM superset.pg_catalog.pg_sequences
+            WHERE sequencename = :sequencename
+        """
+        ).bindparams(sequencename=self._get_sequence_name(table_name))
+
+    def _get_sequence_name(self, table_name: str) -> str:
+        return f"{table_name}_id_seq"

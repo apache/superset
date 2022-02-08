@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -29,8 +29,19 @@ from superset.utils.core import json_dumps_w_dates
 from superset.utils.database import get_example_database, remove_database
 from tests.integration_tests.test_app import app
 
+from ..consts import SIMULATOR_FIXTURE_SCOPE
+from ..example_data.persistance_simulatiion.persistence.domain_objects.app_context_based_persistence import (
+    AppContextBasedPersistence,
+)
+from .fixtures.birth_names_dashboard import *
+from .fixtures.factories import *
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import Database
+    from tests.example_data.persistance_simulatiion.persistence import (
+        PersistenceDomainObjectsEngine,
+    )
+
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
@@ -180,3 +191,32 @@ def with_feature_flags(**mock_feature_flags):
         return functools.update_wrapper(wrapper, test_fn)
 
     return decorate
+
+
+@pytest.fixture(scope=SIMULATOR_FIXTURE_SCOPE)
+def database_type(example_db_provider: Callable[[], Database]) -> str:
+    return example_db_provider().backend
+
+
+@pytest.fixture(scope=SIMULATOR_FIXTURE_SCOPE)
+def persistence_domain_engine() -> PersistenceDomainObjectsEngine:
+    return AppContextBasedPersistence(app, db)
+
+
+@pytest.fixture(scope=SIMULATOR_FIXTURE_SCOPE)
+def example_data_columns_supplier_factory(
+    example_db_provider: Callable[[], Database]
+) -> Callable[[str, str], Callable[[], List[Dict[str, str]]]]:
+    from superset.connectors.sqla.utils import get_physical_table_metadata
+
+    def _example_data_columns_supplier_factory(
+        table_name: str, schema_name: str
+    ) -> Callable[[], List[Dict[str, str]]]:
+        def example_data_columns_supplier() -> List[Dict[str, str]]:
+            with app.app_context():
+                example_db = example_db_provider()
+                return get_physical_table_metadata(example_db, table_name, schema_name)
+
+        return example_data_columns_supplier
+
+    return _example_data_columns_supplier_factory

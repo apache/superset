@@ -20,7 +20,9 @@ from datetime import datetime
 from random import choice, randint
 from typing import Any, Dict, Iterable, TYPE_CHECKING
 
-from tests.consts.birth_names import (
+from tests.example_data.data_generator.base_generator import ExampleDataGenerator
+
+from ...consts.birth_names import (
     BOY,
     DS,
     GENDER,
@@ -31,8 +33,7 @@ from tests.consts.birth_names import (
     NUM_GIRLS,
     STATE,
 )
-from tests.consts.us_states import US_STATES
-from tests.example_data.data_generator.base_generator import ExampleDataGenerator
+from ...consts.us_states import US_STATES
 
 if TYPE_CHECKING:
     from tests.example_data.data_generator.string_generator import StringGenerator

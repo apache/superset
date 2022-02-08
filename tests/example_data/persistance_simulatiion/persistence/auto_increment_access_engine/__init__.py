@@ -14,9 +14,27 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from abc import ABC, abstractmethod
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from sqlalchemy.engine import Engine, ResultProxy
+
+from .....common.logger_utils import log
+
+
+@log
+class AutoIncrementEngineProvider(ABC):
+    _engine: Engine
+
+    def __init__(self, engine: Engine):
+        self._engine = engine
+
+    def get(self, table_name: str):
+        execution_result: ResultProxy = self._engine.execute(
+            self._get_statement(table_name)
+        )
+        rv = execution_result.scalar()
+        return rv if rv is not None else 1
+
+    @abstractmethod
+    def _get_statement(self, table_name: str):
+        ...

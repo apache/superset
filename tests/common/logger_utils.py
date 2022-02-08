@@ -78,10 +78,10 @@ def log(
 def _make_decorator(
     prefix_enter_msg: str,
     suffix_enter_msg: str,
-    with_arguments_msg_part,
+    with_arguments_msg_part: str,
     prefix_out_msg: str,
     suffix_out_msg: str,
-    return_value_msg_part,
+    return_value_msg_part: str,
 ) -> Decorated:
     def decorator(decorated: Decorated):
         decorated_logger = _get_logger(decorated)
@@ -108,13 +108,13 @@ def _make_decorator(
             debug_enable = None
 
             @wraps(func)
-            def _wrapper_func(*args, **kwargs) -> Any:
+            def _wrapper_func(*args: Any, **kwargs: Any) -> Any:
                 _log_enter_to_function(*args, **kwargs)
                 val = func(*args, **kwargs)
                 _log_exit_of_function(val)
                 return val
 
-            def _log_enter_to_function(*args, **kwargs) -> None:
+            def _log_enter_to_function(*args: Any, **kwargs: Any) -> None:
                 if _is_log_info():
                     decorated_logger.info(
                         f"{prefix_enter_msg}'{full_func_name}'{suffix_enter_msg}"
@@ -137,7 +137,7 @@ def _make_decorator(
                     debug_enable = decorated_logger.isEnabledFor(logging.DEBUG)
                 return debug_enable
 
-            def _log_debug(*args, **kwargs) -> None:
+            def _log_debug(*args: Any, **kwargs: Any) -> None:
                 used_parameters = getcallargs(func, *args, **kwargs)
                 _SELF_PARAM in used_parameters and used_parameters.pop(_SELF_PARAM)
                 _CLS_PARAM in used_parameters and used_parameters.pop(_CLS_PARAM)

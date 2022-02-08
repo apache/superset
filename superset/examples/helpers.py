@@ -15,16 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 """Loads datasets, dashboards and slices in a new superset instance"""
+from __future__ import annotations
+
 import json
 import os
 import zlib
 from io import BytesIO
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, TYPE_CHECKING
 from urllib import request
 
 from superset import app, db
-from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.slice import Slice
+
+if TYPE_CHECKING:
+    from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
@@ -32,6 +35,8 @@ misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboa
 
 
 def get_table_connector_registry() -> Any:
+    from superset.connectors.connector_registry import ConnectorRegistry
+
     return ConnectorRegistry.sources["table"]
 
 

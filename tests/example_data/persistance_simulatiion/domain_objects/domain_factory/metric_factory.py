@@ -14,9 +14,10 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from .. import DomainObjectTypeNames
+from ..domain_factory.external_id_based import ExternalIdSBasedDomainFactory
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+
+class SqlMetricFactory(ExternalIdSBasedDomainFactory):
+    def what_make(self) -> DomainObjectTypeNames:
+        return DomainObjectTypeNames.SQL_METRIC

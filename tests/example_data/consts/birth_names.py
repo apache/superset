@@ -14,9 +14,16 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+DATA_NAME: str = "birth_names"
+TABLE_NAME = "birth_names"
+NUM_GIRLS = "num_girls"
+NUM_BOYS = "num_boys"
+STATE = "state"
+NUM = "num"
+NAME = "name"
+GENDER = "gender"
+DS = "ds"
+GIRL = "girl"
+BOY = "boy"
+SCHEMA_NAME = "superset"
+TABLE_DESCRIPTION = None

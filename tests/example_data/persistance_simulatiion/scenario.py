@@ -14,9 +14,25 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, Optional
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from .. import DataName
+
+
+class CaseType(Enum):
+    FULL_DASHBOARD = 1
+    ONLY_DASHBOARD = 2
+    FULL_SLICES = 3
+    ONLY_SLICES = 4
+    MISC_SLICES = 5
+
+
+@dataclass
+class Scenario:
+    name: Optional[str]
+    case_name: CaseType
+    data_name: DataName
+    actor: Optional[str]
+    configurations: Optional[Dict[str, Any]]

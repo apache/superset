@@ -16,20 +16,20 @@
 #  under the License.
 from sqlalchemy import DateTime, Integer, String
 
-from tests.consts.birth_names import (
+from ....common.logger_utils import log
+from ...consts.birth_names import (
     DS,
     GENDER,
     NAME,
     NUM,
     NUM_BOYS,
     NUM_GIRLS,
+    SCHEMA_NAME,
     STATE,
+    TABLE_DESCRIPTION,
     TABLE_NAME,
 )
-from tests.example_data.data_loading.data_definitions.types import (
-    TableMetaData,
-    TableMetaDataFactory,
-)
+from .types import TableMetaData, TableMetaDataFactory
 
 BIRTH_NAMES_COLUMNS = {
     DS: DateTime,
@@ -52,6 +52,7 @@ BIRTH_NAMES_COLUMNS_WITHOUT_DATETIME = {
 }
 
 
+@log
 class BirthNamesMetaDataFactory(TableMetaDataFactory):
     _datetime_type_support: bool
 
@@ -60,5 +61,12 @@ class BirthNamesMetaDataFactory(TableMetaDataFactory):
 
     def make(self) -> TableMetaData:
         if self._datetime_type_support:
-            return TableMetaData(TABLE_NAME, BIRTH_NAMES_COLUMNS.copy())
-        return TableMetaData(TABLE_NAME, BIRTH_NAMES_COLUMNS_WITHOUT_DATETIME.copy())
+            return TableMetaData(
+                TABLE_NAME, SCHEMA_NAME, TABLE_DESCRIPTION, BIRTH_NAMES_COLUMNS.copy()
+            )
+        return TableMetaData(
+            TABLE_NAME,
+            SCHEMA_NAME,
+            TABLE_DESCRIPTION,
+            BIRTH_NAMES_COLUMNS_WITHOUT_DATETIME.copy(),
+        )

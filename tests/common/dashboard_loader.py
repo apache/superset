@@ -14,9 +14,20 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from __future__ import annotations
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
+
+class DashboardLoader(ABC):
+    @abstractmethod
+    def load(self, dashboard: Dashboard):
+        ...
+
+    @abstractmethod
+    def remove(self, dashboard_id: int):
+        ...

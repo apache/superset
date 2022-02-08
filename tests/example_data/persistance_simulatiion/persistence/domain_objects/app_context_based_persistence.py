@@ -16,18 +16,35 @@
 #  under the License.
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+from .....common.logger_utils import log
+from . import PersistenceDomainObjectsEngine
+
 if TYPE_CHECKING:
-    from tests.common.example_data.data_loading.data_definitions.types import Table
+    from flask import Flask
+    from flask_sqlalchemy import SessionBase, SQLAlchemy
+
+    from ...domain_objects import SupersetDomain
 
 
-class DataLoader(ABC):
-    @abstractmethod
-    def load_table(self, table: Table) -> None:
-        ...
+@log
+class AppContextBasedPersistence(PersistenceDomainObjectsEngine):
+    _app: Flask
+    _db: SQLAlchemy
 
-    @abstractmethod
-    def remove_table(self, table_name: str) -> None:
-        ...
+    def __init__(self, app: Flask, db: SQLAlchemy) -> None:
+        self._app = app
+        self._db = db
+
+    def persist(self, domain_obj: SupersetDomain) -> None:
+        with self._app.app_context():
+            session: SessionBase = self._db.session()
+            session.add(domain_obj)
+            session.commit()
+
+    def clean(self, domain_obj: SupersetDomain) -> None:
+        with self._app.app_context():
+            session: SessionBase = self._db.session()
+            session.delete(domain_obj)
+            session.commit()

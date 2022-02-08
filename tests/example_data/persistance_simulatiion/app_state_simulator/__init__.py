@@ -14,9 +14,24 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from __future__ import annotations
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..statespecs import SimulationState, StateSpecs
+
+
+class AppStateSimulator(ABC):
+    @abstractmethod
+    def simulate(self, state_specs: StateSpecs) -> None:
+        ...
+
+    @abstractmethod
+    def get_simulation_state(self, state_specs_name: str) -> SimulationState:
+        ...
+
+    @abstractmethod
+    def clean_state(self, state_specs_name: str) -> None:
+        ...

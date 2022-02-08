@@ -14,9 +14,8 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from typing import TYPE_CHECKING
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+if TYPE_CHECKING:
+    from .domain_objects import PersistenceDomainObjectsEngine
+    from .simulation_state import PersistenceSimulationStateEngine

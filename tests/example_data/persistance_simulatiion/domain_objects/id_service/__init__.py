@@ -14,9 +14,10 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from abc import ABC, abstractmethod
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+
+class IdService(ABC):
+    @abstractmethod
+    def get_next(self) -> int:
+        ...

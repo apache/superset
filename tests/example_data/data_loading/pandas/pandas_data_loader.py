@@ -23,15 +23,14 @@ from pandas import DataFrame
 from sqlalchemy.inspection import inspect
 
 from tests.common.logger_utils import log
-from tests.example_data.data_loading.base_data_loader import DataLoader
+
+from .. import DataLoader
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-    from tests.example_data.data_loading.data_definitions.types import Table
-    from tests.example_data.data_loading.pandas.pands_data_loading_conf import (
-        PandasLoaderConfigurations,
-    )
+    from ...definions.data_definitions.types import Table
+    from ..pandas.pands_data_loading_conf import PandasLoaderConfigurations
 
 
 @log

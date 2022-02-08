@@ -14,9 +14,20 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+from __future__ import annotations
 
-from .birth_names import *
-from .builders import *
-from .data_loader import *
-from .factories import *
-from .simulator import *
+from abc import ABC, abstractmethod
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .. import DomainObjectTypeNames, SupersetDomain
+
+
+class DomainFactory(ABC):
+    @abstractmethod
+    def make(self, **kwargs: Any) -> SupersetDomain:
+        ...
+
+    @abstractmethod
+    def what_make(self) -> DomainObjectTypeNames:
+        ...

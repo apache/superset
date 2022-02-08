@@ -14,13 +14,20 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-TABLE_NAME = "birth_names"
-NUM_GIRLS = "num_girls"
-NUM_BOYS = "num_boys"
-STATE = "state"
-NUM = "num"
-NAME = "name"
-GENDER = "gender"
-DS = "ds"
-GIRL = "girl"
-BOY = "boy"
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...domain_objects import SupersetDomain
+
+
+class PersistenceDomainObjectsEngine(ABC):
+    @abstractmethod
+    def persist(self, domain_obj: SupersetDomain) -> None:
+        ...
+
+    @abstractmethod
+    def clean(self, domain_obj: SupersetDomain) -> None:
+        ...

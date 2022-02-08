@@ -14,21 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Callable, List, Optional
+from __future__ import annotations
+
+from typing import Callable, Dict, Generator, List, Optional, TYPE_CHECKING
 
 import pytest
 
 from superset import ConnectorRegistry, db
-from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
-from tests.example_data.data_loading.base_data_loader import DataLoader
-from tests.example_data.data_loading.data_definitions.types import Table
-from tests.integration_tests.dashboard_utils import create_table_metadata
-from tests.integration_tests.test_app import app
+
+from ...consts import SIMULATOR_FIXTURE_SCOPE
+from ...example_data.data_loading.data_loader import DataLoader
+from ...example_data.definions.data_definitions.types import Table
+from ..test_app import app
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+__all__ = [
+    "load_birth_names_data",
+    "load_birth_names_dashboard_with_slices",
+    "load_birth_names_dashboard_with_slices_module_scope",
+    "birth_names_columns_supplier",
+]
 
 BIRTH_NAMES_TBL_NAME = "birth_names"
 
@@ -36,7 +45,7 @@ BIRTH_NAMES_TBL_NAME = "birth_names"
 @pytest.fixture(scope="session")
 def load_birth_names_data(
     birth_names_table_factory: Callable[[], Table], data_loader: DataLoader
-):
+) -> Generator[None, None, None]:
     birth_names_table: Table = birth_names_table_factory()
     data_loader.load_table(birth_names_table)
     yield
@@ -44,15 +53,16 @@ def load_birth_names_data(
 
 
 @pytest.fixture()
-def load_birth_names_dashboard_with_slices(load_birth_names_data):
-    with app.app_context():
-        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
-        yield
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+def load_birth_names_dashboard_with_slices(
+    load_birth_names_data, simulate_birth_names_dashboard
+) -> None:
+    pass
 
 
 @pytest.fixture(scope="module")
-def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
+def load_birth_names_dashboard_with_slices_module_scope(
+    load_birth_names_data,
+) -> Generator[None, None, None]:
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
         yield
@@ -60,6 +70,7 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
 
 
 def _create_dashboards():
+
     table = _create_table(
         table_name=BIRTH_NAMES_TBL_NAME,
         database=get_example_database(),
@@ -76,8 +87,10 @@ def _create_dashboards():
 
 
 def _create_table(
-    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
+    table_name: str, database: Database, fetch_values_predicate: Optional[str] = None,
 ):
+    from tests.integration_tests.dashboard_utils import create_table_metadata
+
     table = create_table_metadata(
         table_name=table_name,
         database=database,
@@ -92,6 +105,10 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
     schema = get_example_default_schema()
 
     table_id = (
@@ -115,3 +132,10 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     for slice_id in slices_ids:
         db.session.query(Slice).filter_by(id=slice_id).delete()
     db.session.commit()
+
+
+@pytest.fixture(scope=SIMULATOR_FIXTURE_SCOPE)
+def birth_names_columns_supplier(
+    example_data_columns_supplier_factory,
+) -> Callable[[], List[Dict[str, str]]]:
+    return example_data_columns_supplier_factory("birth_names", "superset")
