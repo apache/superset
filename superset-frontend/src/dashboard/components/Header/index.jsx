@@ -365,6 +365,7 @@ class Header extends React.PureComponent {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      description: dashboardInfo.description,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace:
@@ -504,6 +505,7 @@ class Header extends React.PureComponent {
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
+        description: updates.description,
       });
       setColorSchemeAndUnsavedChanges(updates.colorScheme);
       dashboardTitleChanged(updates.title);

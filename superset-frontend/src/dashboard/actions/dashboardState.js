@@ -205,6 +205,7 @@ export function saveDashboardRequest(data, id, saveType) {
       owners,
       roles,
       slug,
+      description
     } = data;
 
     const hasId = item => item.id !== undefined;
@@ -222,6 +223,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
+      description: description || null,
       metadata: {
         ...data.metadata,
         color_namespace: data.metadata?.color_namespace || undefined,
@@ -335,6 +337,7 @@ export function saveDashboardRequest(data, id, saveType) {
         css: cleanedData.css,
         dashboard_title: cleanedData.dashboard_title,
         slug: cleanedData.slug,
+        description: cleanedData.description,
         owners: cleanedData.owners,
         roles: cleanedData.roles,
         json_metadata: safeStringify({
