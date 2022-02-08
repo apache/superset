@@ -94,6 +94,7 @@ export default class SelectControl extends React.PureComponent {
       options: this.getOptions(props),
     };
     this.onChange = this.onChange.bind(this);
+    this.onChangeDeprecated = this.onChangeDeprecated.bind(this);
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
@@ -282,16 +283,6 @@ export default class SelectControl extends React.PureComponent {
       tokenSeparators,
     };
 
-    const assistiveTextContents = inputArray => {
-      if (inputArray !== null) {
-        if (inputArray.length === 0) {
-          return '';
-        }
-        return `${inputArray.length} option(s)`;
-      }
-      return '';
-    };
-
     const deprecatedProps = {
       autoFocus,
       'aria-label': label,
@@ -308,13 +299,13 @@ export default class SelectControl extends React.PureComponent {
       menuPosition,
       name: `select-${name}`,
       noResultsText: 'No results found',
-      onChange: this.onChange,
+      onChange: this.onChangeDeprecated,
       onFocus,
       optionRenderer,
       value: getValue(),
       options: this.state.options,
       placeholder,
-      assistiveText: assistiveTextContents(value),
+      assistiveText: '',
       promptTextCreator,
       selectRef: this.getSelectRef,
       valueKey,
