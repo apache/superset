@@ -350,7 +350,7 @@ init:
   ## Node selector to be added to init job pods
   nodeSelector: {}
   ## Tolerations to be added to init job pods
-  tolerations: []  
+  tolerations: []
   ## Affinity to be added to init job pods
   affinity: {}
 ##
