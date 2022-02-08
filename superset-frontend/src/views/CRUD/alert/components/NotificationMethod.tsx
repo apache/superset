@@ -105,7 +105,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  // const [notificationContent, setNotificationContent] = useState<RawDraftContentState>();
 
   const theme = useTheme();
 
@@ -114,18 +113,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }
 
   const getContentInitialState = (): EditorState | undefined => {
-    console.log('getting content state ', body);
-
     if (body) {
-      console.log('initial state from db ', body);
       const contentBlock = htmlToDraft(body);
-      console.log('content block ', contentBlock);
       const contentState = ContentState.createFromBlockArray(
         contentBlock.contentBlocks,
       );
-      console.log('contentstate ', contentState);
       const editorState = EditorState.createWithContent(contentState);
-      console.log('editor state ', editorState, typeof editorState);
       return editorState;
     }
     return undefined;

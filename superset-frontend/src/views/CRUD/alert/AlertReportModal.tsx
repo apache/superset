@@ -453,7 +453,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     settings.push({
       recipients: '',
       options: allowedNotificationMethods,
-      // body: undefined
     });
 
     setNotificationSettings(settings);
