@@ -83,8 +83,8 @@ export function transformSeries(
     showValueIndexes?: number[];
     thresholdValues?: number[];
     richTooltip?: boolean;
+    seriesKey?: OptionName;
   },
-  additionalSeriesGroup?: SeriesOption[],
 ): SeriesOption | undefined {
   const { name } = series;
   const {
@@ -104,6 +104,7 @@ export function transformSeries(
     showValueIndexes = [],
     thresholdValues = [],
     richTooltip,
+    seriesKey,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -148,20 +149,9 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
-  // checking if the same metric name is available in the previous query
-  const metricExists = !!(additionalSeriesGroup || []).find(
-    (serie: SeriesOption) => {
-      const otherForecastedSeries = extractForecastSeriesContext(
-        serie.name || '',
-      );
-      return otherForecastedSeries.name === forecastSeries.name;
-    },
-  );
   // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(
-      metricExists ? `${forecastSeries.name} (1)` : forecastSeries.name,
-    ),
+    color: colorScale(seriesKey || forecastSeries.name),
     opacity,
   };
   let emphasis = {};
