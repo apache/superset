@@ -154,6 +154,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -184,6 +185,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -200,6 +202,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     def test_with_incorrect_result_type__400(self):
         self.query_context_payload["result_type"] = "qwerty"

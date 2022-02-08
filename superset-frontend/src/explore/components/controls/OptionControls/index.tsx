@@ -280,13 +280,7 @@ export const OptionControlLabel = ({
         labelRef.current.scrollWidth > labelRef.current.clientWidth);
 
     if (savedMetric && hasMetricName) {
-      return (
-        <StyledMetricOption
-          metric={savedMetric}
-          labelRef={labelRef}
-          showTooltip={!!shouldShowTooltip}
-        />
-      );
+      return <StyledMetricOption metric={savedMetric} labelRef={labelRef} />;
     }
     if (!shouldShowTooltip) {
       return <LabelText ref={labelRef}>{label}</LabelText>;

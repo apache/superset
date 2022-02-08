@@ -101,6 +101,10 @@ const config = {
             to: '/docs/installation/alerts-reports',
             from: '/docs/installation/email-reports',
           },
+          {
+            to: '/docs/intro',
+            from: '/docs/roadmap',
+          },
         ],
       },
     ],
@@ -113,7 +117,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs-v2',
+          editUrl: 'https://github.com/apache/superset/tree/master/docs',
         },
         blog: {
           showReadingTime: true,
