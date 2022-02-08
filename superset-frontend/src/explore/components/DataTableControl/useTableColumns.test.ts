@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@superset-ui/core';
-import { renderHook } from 'spec/helpers/testing-library';
+import { renderHook } from '@testing-library/react-hooks';
 import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import { useTableColumns } from '.';
 
@@ -52,9 +52,7 @@ const coltypes = [
 ];
 
 test('useTableColumns with no options', () => {
-  const hook = renderHook(() => useTableColumns(all_columns, coltypes, data), {
-    useRedux: true,
-  });
+  const hook = renderHook(() => useTableColumns(all_columns, coltypes, data));
   expect(hook.result.current).toEqual([
     {
       Cell: expect.any(Function),
@@ -97,9 +95,8 @@ test('useTableColumns with no options', () => {
 
 test('use only the first record columns', () => {
   const newData = [data[3], data[0]];
-  const hook = renderHook(
-    () => useTableColumns(all_columns, coltypes, newData),
-    { useRedux: true },
+  const hook = renderHook(() =>
+    useTableColumns(all_columns, coltypes, newData),
   );
   expect(hook.result.current).toEqual([
     {
@@ -156,12 +153,10 @@ test('use only the first record columns', () => {
 });
 
 test('useTableColumns with options', () => {
-  const hook = renderHook(
-    () =>
-      useTableColumns(all_columns, coltypes, data, undefined, {
-        col01: { id: 'ID' },
-      }),
-    { useRedux: true },
+  const hook = renderHook(() =>
+    useTableColumns(all_columns, coltypes, data, undefined, {
+      col01: { id: 'ID' },
+    }),
   );
   expect(hook.result.current).toEqual([
     {

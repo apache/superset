@@ -28,7 +28,7 @@ import {
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { Input, Space } from 'src/common/components';
 import {
   BOOL_FALSE_DISPLAY,
@@ -42,7 +42,6 @@ import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import {
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
@@ -266,53 +265,45 @@ export const useTableColumns = (
   data?: Record<string, any>[],
   datasourceId?: string,
   moreConfigs?: { [key: string]: Partial<Column> },
-) => {
-  const timeFormattedColumns = useSelector<ExplorePageState, string[]>(state =>
-    datasourceId
-      ? state.explore.timeFormattedColumns?.[datasourceId] ?? []
-      : [],
-  );
-
-  return useMemo(
-    () =>
-      colnames && data?.length
-        ? colnames
-            .filter((column: string) => Object.keys(data[0]).includes(column))
-            .map((key, index) => {
-              const timeFormattedColumnIndex =
-                coltypes?.[index] === GenericDataType.TEMPORAL
-                  ? timeFormattedColumns.indexOf(key)
-                  : -1;
-              return {
-                id: key,
-                accessor: row => row[key],
-                // When the key is empty, have to give a string of length greater than 0
-                Header:
-                  coltypes?.[index] === GenericDataType.TEMPORAL ? (
-                    <DataTableTemporalHeaderCell
-                      columnName={key}
-                      datasourceId={datasourceId}
-                      timeFormattedColumnIndex={timeFormattedColumnIndex}
-                    />
-                  ) : (
-                    key
-                  ),
-                Cell: ({ value }) => {
-                  if (value === true) {
-                    return BOOL_TRUE_DISPLAY;
-                  }
-                  if (value === false) {
-                    return BOOL_FALSE_DISPLAY;
-                  }
-                  if (timeFormattedColumnIndex > -1) {
-                    return timeFormatter(value);
-                  }
-                  return String(value);
-                },
-                ...moreConfigs?.[key],
-              } as Column;
-            })
-        : [],
-    [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
-  );
-};
+) =>
+  useMemo(() => {
+    const timeFormattedColumns: string[] = [];
+    return colnames && data?.length
+      ? colnames
+          .filter((column: string) => Object.keys(data[0]).includes(column))
+          .map((key, index) => {
+            const timeFormattedColumnIndex =
+              coltypes?.[index] === GenericDataType.TEMPORAL
+                ? timeFormattedColumns.indexOf(key)
+                : -1;
+            return {
+              id: key,
+              accessor: row => row[key],
+              // When the key is empty, have to give a string of length greater than 0
+              Header:
+                coltypes?.[index] === GenericDataType.TEMPORAL ? (
+                  <DataTableTemporalHeaderCell
+                    columnName={key}
+                    datasourceId={datasourceId}
+                    timeFormattedColumnIndex={timeFormattedColumnIndex}
+                  />
+                ) : (
+                  key
+                ),
+              Cell: ({ value }) => {
+                if (value === true) {
+                  return BOOL_TRUE_DISPLAY;
+                }
+                if (value === false) {
+                  return BOOL_FALSE_DISPLAY;
+                }
+                if (timeFormattedColumnIndex > -1) {
+                  return timeFormatter(value);
+                }
+                return String(value);
+              },
+              ...moreConfigs?.[key],
+            } as Column;
+          })
+      : [];
+  }, [colnames, data, coltypes, datasourceId, moreConfigs]);
