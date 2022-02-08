@@ -20,12 +20,14 @@ from typing import Optional, TYPE_CHECKING
 
 from pandas import DataFrame
 
+from tests.common.logger_utils import log
 from tests.example_data.data_loading.pandas.pandas_data_loader import TableToDfConvertor
 
 if TYPE_CHECKING:
     from tests.example_data.data_loading.data_definitions.types import Table
 
 
+@log
 class TableToDfConvertorImpl(TableToDfConvertor):
     convert_datetime_to_str: bool
     _time_format: Optional[str]
