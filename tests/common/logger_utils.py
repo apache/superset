@@ -137,7 +137,6 @@ def _make_decorator(
                     debug_enable = decorated_logger.isEnabledFor(logging.DEBUG)
                 return debug_enable
 
-
             def _log_debug(*args, **kwargs) -> None:
                 used_parameters = getcallargs(func, *args, **kwargs)
                 _SELF_PARAM in used_parameters and used_parameters.pop(_SELF_PARAM)
