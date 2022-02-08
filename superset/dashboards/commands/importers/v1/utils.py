@@ -137,7 +137,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
         scope_excluded = native_filter.get("scope", {}).get("excluded", [])
         if scope_excluded:
             native_filter["scope"]["excluded"] = [
-                id_map[old_id] for old_id in native_filter["scope"]["excluded"]
+                id_map[old_id] for old_id in scope_excluded
             ]
 
     return fixed
