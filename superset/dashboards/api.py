@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache
+from superset import app, is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -273,10 +273,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
-        return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
-            self.appbuilder.app.config["VERSION_STRING"],
-            self.appbuilder.app.config["VERSION_SHA"],
-        )
+        slug = "Superset.dashboards.api.DashboardRestApi@v"
+        return f"{slug}{app.config['VERSION_STRING']}{app.config['VERSION_SHA']}"
 
     @expose("/<id_or_slug>", methods=["GET"])
     @protect()
