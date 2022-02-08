@@ -129,6 +129,18 @@ export default class SelectControl extends React.PureComponent {
       onChangeVal = values;
     }
 
+    if (Array.isArray(val)) {
+      let values;
+      if (val.filter(v => v.value === 'Select all').length > 0) {
+        values = this.props.options
+          .filter(v => v.label !== 'Select all')
+          .map(v => v?.[valueKey] || v);
+      } else {
+        values = val.map(v => v?.[valueKey] || v);
+      }
+      onChangeVal = values;
+    }
+
     if (typeof val === 'object' && val?.[valueKey]) {
       onChangeVal = val[valueKey];
     }
