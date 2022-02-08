@@ -154,7 +154,7 @@ test('use only the first record columns', () => {
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(all_columns, coltypes, data, undefined, {
+    useTableColumns(all_columns, coltypes, data, undefined, [], {
       col01: { id: 'ID' },
     }),
   );

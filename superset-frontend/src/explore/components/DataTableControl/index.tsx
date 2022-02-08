@@ -264,46 +264,48 @@ export const useTableColumns = (
   coltypes?: GenericDataType[],
   data?: Record<string, any>[],
   datasourceId?: string,
+  timeFormattedColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
-  useMemo(() => {
-    const timeFormattedColumns: string[] = [];
-    return colnames && data?.length
-      ? colnames
-          .filter((column: string) => Object.keys(data[0]).includes(column))
-          .map((key, index) => {
-            const timeFormattedColumnIndex =
-              coltypes?.[index] === GenericDataType.TEMPORAL
-                ? timeFormattedColumns.indexOf(key)
-                : -1;
-            return {
-              id: key,
-              accessor: row => row[key],
-              // When the key is empty, have to give a string of length greater than 0
-              Header:
-                coltypes?.[index] === GenericDataType.TEMPORAL ? (
-                  <DataTableTemporalHeaderCell
-                    columnName={key}
-                    datasourceId={datasourceId}
-                    timeFormattedColumnIndex={timeFormattedColumnIndex}
-                  />
-                ) : (
-                  key
-                ),
-              Cell: ({ value }) => {
-                if (value === true) {
-                  return BOOL_TRUE_DISPLAY;
-                }
-                if (value === false) {
-                  return BOOL_FALSE_DISPLAY;
-                }
-                if (timeFormattedColumnIndex > -1) {
-                  return timeFormatter(value);
-                }
-                return String(value);
-              },
-              ...moreConfigs?.[key],
-            } as Column;
-          })
-      : [];
-  }, [colnames, data, coltypes, datasourceId, moreConfigs]);
+  useMemo(
+    () =>
+      colnames && data?.length
+        ? colnames
+            .filter((column: string) => Object.keys(data[0]).includes(column))
+            .map((key, index) => {
+              const timeFormattedColumnIndex =
+                coltypes?.[index] === GenericDataType.TEMPORAL
+                  ? timeFormattedColumns.indexOf(key)
+                  : -1;
+              return {
+                id: key,
+                accessor: row => row[key],
+                // When the key is empty, have to give a string of length greater than 0
+                Header:
+                  coltypes?.[index] === GenericDataType.TEMPORAL ? (
+                    <DataTableTemporalHeaderCell
+                      columnName={key}
+                      datasourceId={datasourceId}
+                      timeFormattedColumnIndex={timeFormattedColumnIndex}
+                    />
+                  ) : (
+                    key
+                  ),
+                Cell: ({ value }) => {
+                  if (value === true) {
+                    return BOOL_TRUE_DISPLAY;
+                  }
+                  if (value === false) {
+                    return BOOL_FALSE_DISPLAY;
+                  }
+                  if (timeFormattedColumnIndex > -1) {
+                    return timeFormatter(value);
+                  }
+                  return String(value);
+                },
+                ...moreConfigs?.[key],
+              } as Column;
+            })
+        : [],
+    [colnames, data, coltypes, timeFormattedColumns, datasourceId, moreConfigs],
+  );

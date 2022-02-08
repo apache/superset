@@ -118,6 +118,7 @@ interface DataTableProps {
   datasource: string | undefined;
   filterText: string;
   data: object[] | undefined;
+  timeFormattedColumns: string[] | undefined;
   isLoading: boolean;
   error: string | undefined;
   errorMessage: React.ReactElement | undefined;
@@ -129,13 +130,20 @@ const DataTable = ({
   datasource,
   filterText,
   data,
+  timeFormattedColumns,
   isLoading,
   error,
   errorMessage,
 }: DataTableProps) => {
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
-  const columns = useTableColumns(columnNames, columnTypes, data, datasource);
+  const columns = useTableColumns(
+    columnNames,
+    columnTypes,
+    data,
+    datasource,
+    timeFormattedColumns,
+  );
   const filteredData = useFilteredTableData(filterText, data);
 
   if (isLoading) {
@@ -203,6 +211,12 @@ export const DataTablesPane = ({
   );
   const datasourceColumns = useSelector<ExplorePageState, ColumnMeta[]>(
     state => state.explore.datasource?.columns,
+  );
+
+  const timeFormattedColumns = useSelector<ExplorePageState, string[]>(state =>
+    queryFormData?.datasource
+      ? state.explore.timeFormattedColumns?.[queryFormData.datasource] ?? []
+      : [],
   );
 
   const formattedData = useMemo(
@@ -418,6 +432,7 @@ export const DataTablesPane = ({
                     isLoading={isLoading[RESULT_TYPES.results]}
                     data={data[RESULT_TYPES.results]}
                     datasource={queryFormData?.datasource}
+                    timeFormattedColumns={timeFormattedColumns}
                     columnNames={columnNames[RESULT_TYPES.results]}
                     columnTypes={columnTypes[RESULT_TYPES.results]}
                     filterText={filterText}
@@ -433,6 +448,7 @@ export const DataTablesPane = ({
                     isLoading={isLoading[RESULT_TYPES.samples]}
                     data={data[RESULT_TYPES.samples]}
                     datasource={queryFormData?.datasource}
+                    timeFormattedColumns={timeFormattedColumns}
                     columnNames={columnNames[RESULT_TYPES.samples]}
                     columnTypes={columnTypes[RESULT_TYPES.samples]}
                     filterText={filterText}
