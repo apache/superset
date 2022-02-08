@@ -24,13 +24,8 @@ type DeleteComponentButtonProps = {
   onDelete: MouseEventHandler<HTMLDivElement>;
 };
 
-class DeleteComponentButton extends React.PureComponent<DeleteComponentButtonProps> {
-  render() {
-    const { onDelete } = this.props;
-    return (
-      <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />
-    );
-  }
-}
+const DeleteComponentButton: React.FC<DeleteComponentButtonProps> = ({
+  onDelete,
+}) => <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />;
 
 export default DeleteComponentButton;
