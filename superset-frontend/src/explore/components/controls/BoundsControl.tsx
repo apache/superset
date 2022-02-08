@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
@@ -51,13 +51,13 @@ export default function BoundsControl({
   value = [null, null],
   ...props
 }: BoundsControlProps) {
-  const [minMax, setMinMax] = React.useState<ValueType>([
+  const [minMax, setMinMax] = useState<ValueType>([
     parseNumber(value[0]),
     parseNumber(value[1]),
   ]);
   const min = value[0];
   const max = value[1];
-  const debouncedOnChange = React.useRef(debounce(onChange, 300)).current;
+  const debouncedOnChange = useRef(debounce(onChange, 300)).current;
 
   const update = (mm: ValueType) => {
     setMinMax(mm);
@@ -67,7 +67,7 @@ export default function BoundsControl({
     ]);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     setMinMax([parseNumber(min), parseNumber(max)]);
   }, [min, max]);
 
