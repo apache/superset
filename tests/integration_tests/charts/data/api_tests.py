@@ -20,8 +20,11 @@ import json
 import unittest
 import copy
 from datetime import datetime
+from io import BytesIO
 from typing import Optional
 from unittest import mock
+from zipfile import ZipFile
+
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
@@ -236,6 +239,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_empty_request_with_csv_result_format(self):
+        """
+        Chart data API: Test empty chart data with CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"] = []
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -243,6 +256,22 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["result_format"] = "csv"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
+        assert rv.mimetype == "text/csv"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_multi_query_csv_result_format(self):
+        """
+        Chart data API: Test chart data with multi-query CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"].append(
+            self.query_context_payload["queries"][0]
+        )
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        assert rv.mimetype == "application/zip"
+        zipfile = ZipFile(BytesIO(rv.data), "r")
+        assert zipfile.namelist() == ["query_1.csv", "query_2.csv"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format_when_actor_not_permitted_for_csv__403(self):
@@ -766,6 +795,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             }
         )
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.mimetype == "application/json"
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
