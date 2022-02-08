@@ -84,7 +84,7 @@ export function transformSeries(
     thresholdValues?: number[];
     richTooltip?: boolean;
   },
-  rawSeriesB?: SeriesOption[],
+  additionalSeriesGroup?: SeriesOption[],
 ): SeriesOption | undefined {
   const { name } = series;
   const {
@@ -148,13 +148,19 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
-  const rawSeriesBHasMetric = !!(rawSeriesB || []).find(
-    (serie: SeriesOption) => serie.name === forecastSeries.name,
+  // checking if the same metric name is available in the previous query
+  const metricExists = !!(additionalSeriesGroup || []).find(
+    (serie: SeriesOption) => {
+      const otherForecastedSeries = extractForecastSeriesContext(
+        serie.name || '',
+      );
+      return otherForecastedSeries.name === forecastSeries.name;
+    },
   );
   // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
     color: colorScale(
-      rawSeriesBHasMetric ? `${forecastSeries.name}-A` : forecastSeries.name,
+      metricExists ? `${forecastSeries.name} (1)` : forecastSeries.name,
     ),
     opacity,
   };

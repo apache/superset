@@ -165,37 +165,37 @@ export default function transformProps(
   );
 
   rawSeriesA.forEach(entry => {
-    const transformedSeries = transformSeries(
-      entry,
-      colorScale,
-      {
-        area,
-        markerEnabled,
-        markerSize,
-        areaOpacity: opacity,
-        seriesType,
-        showValue,
-        stack,
-        yAxisIndex,
-        filterState,
-      },
-      rawSeriesB,
-    );
+    const transformedSeries = transformSeries(entry, colorScale, {
+      area,
+      markerEnabled,
+      markerSize,
+      areaOpacity: opacity,
+      seriesType,
+      showValue,
+      stack,
+      yAxisIndex,
+      filterState,
+    });
     if (transformedSeries) series.push(transformedSeries);
   });
 
   rawSeriesB.forEach(entry => {
-    const transformedSeries = transformSeries(entry, colorScale, {
-      area: areaB,
-      markerEnabled: markerEnabledB,
-      markerSize: markerSizeB,
-      areaOpacity: opacityB,
-      seriesType: seriesTypeB,
-      showValue: showValueB,
-      stack: stackB,
-      yAxisIndex: yAxisIndexB,
-      filterState,
-    });
+    const transformedSeries = transformSeries(
+      entry,
+      colorScale,
+      {
+        area: areaB,
+        markerEnabled: markerEnabledB,
+        markerSize: markerSizeB,
+        areaOpacity: opacityB,
+        seriesType: seriesTypeB,
+        showValue: showValueB,
+        stack: stackB,
+        yAxisIndex: yAxisIndexB,
+        filterState,
+      },
+      rawSeriesA,
+    );
     if (transformedSeries) series.push(transformedSeries);
   });
 
