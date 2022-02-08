@@ -27,6 +27,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
+import DatabaseModal from '../CRUD/data/database/DatabaseModal';
+
 export const dropdownItems = [
   {
     label: t('SQL query'),
@@ -104,6 +106,18 @@ const RightMenu = ({
   const showActionDropdown = canSql || canChart || canDashboard;
   return (
     <StyledDiv align={align}>
+      <DatabaseModal
+        databaseId={null}
+        show
+        onHide={() => {
+          console.log('hide');
+        }}
+        onDatabaseAdd={() => {
+          console.log('adding');
+        }}
+        deeplinkDb={'Trino'}
+      />
+
       <Menu mode="horizontal">
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
