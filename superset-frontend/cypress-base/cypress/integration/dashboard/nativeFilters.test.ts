@@ -20,6 +20,7 @@ import qs from 'querystring';
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
+import { CHART_LIST } from '../chart_list/chart_list.helper';
 
 const getTestTitle = (
   test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
@@ -43,7 +44,8 @@ describe('Nativefilters Sanity test', () => {
     ).then(xhr => {
       const dashboards = xhr.body.result;
       const worldBankDashboard = dashboards.find(
-        d => d.dashboard_title === "World Bank's Data",
+        (d: { dashboard_title: string }) =>
+          d.dashboard_title === "World Bank's Data",
       );
       cy.visit(worldBankDashboard.url);
     });
@@ -65,7 +67,8 @@ describe('Nativefilters Sanity test', () => {
     ).then(xhr => {
       const dashboards = xhr.body.result;
       const testDashboard = dashboards.find(
-        d => d.dashboard_title === testItems.dashboard,
+        (d: { dashboard_title: string }) =>
+          d.dashboard_title === testItems.dashboard,
       );
       cy.visit(testDashboard.url);
     });
@@ -107,13 +110,14 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
-      .click()
+      .click({ force: true })
       .type('Country name');
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
-      .click()
-      .type('wb_health_population{enter}');
-
+      .click({ force: true })
+      .within(() =>
+        cy.get('input').type('wb_health_population{enter}', { force: true }),
+      );
     // Add following step to avoid flaky enter value in line 177
     cy.get(nativeFilters.filtersPanel.inputDropdown)
       .should('be.visible', { timeout: 20000 })
@@ -163,7 +167,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.createFilterButton).click({ force: true });
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
-      .click()
+      .click({ force: true })
       .type('suffix');
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
@@ -218,12 +222,14 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('be.visible');
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
-      .click()
+      .click({ force: true })
       .type('Country name');
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
-      .click()
-      .type('wb_health_population{enter}');
+      .click({ force: true })
+      .within(() =>
+        cy.get('input').type('wb_health_population{enter}', { force: true }),
+      );
 
     cy.get('.loading inline-centered css-101mkpk').should('not.exist');
     // hack for unclickable country_name
@@ -255,53 +261,42 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton).should('be.visible').click();
     cy.get(nativeFilters.modal.container).should('be.visible');
-    cy.get(nativeFilters.filterConfigurationSections.collapseExpandButton)
-      .last()
-      .click();
     [
       'Filter has default value',
-      'Multiple select',
-      'Required',
+      'Can select multiple values',
+      'Filter value is required',
       'Filter is hierarchical',
-      'Default to first item',
+      'Select first filter value by default',
       'Inverse selection',
-      'Search all filter options',
+      'Dynamically search all filter values',
       'Pre-filter available values',
       'Sort filter values',
     ].forEach(el => {
       cy.contains(el);
     });
     cy.get(nativeFilters.filterConfigurationSections.checkedCheckbox).contains(
-      'Multiple select',
+      'Can select multiple values',
     );
     cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
       .eq(0)
-      .trigger('mouseover');
-    cy.contains('Allow selecting multiple values');
-
-    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
-      .eq(1)
-      .trigger('mouseover');
+      .trigger('mouseover', { force: true });
     cy.contains('User must select a value before applying the filter');
 
     cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(1)
+      .trigger('mouseover', { force: true });
+    cy.contains('When using this option, default value can’t be set');
+
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
       .eq(2)
-      .trigger('mouseover');
-    cy.contains(
-      'Select first item by default (when using this option, default value can’t be set)',
-    );
-
-    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
-      .eq(3)
-      .trigger('mouseover');
-    cy.contains('Exclude selected values');
-
-    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
-      .eq(4)
-      .trigger('mouseover');
+      .trigger('mouseover', { force: true });
     cy.contains(
       'By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).',
     );
+    cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+      .eq(3)
+      .trigger('mouseover', { force: true });
+    cy.contains('Exclude selected values');
   });
   it("User can check 'Filter has default value'", () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
@@ -312,11 +307,13 @@ describe('Nativefilters Sanity test', () => {
 
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
-      .click()
-      .type('wb_health_population{enter}');
+      .click({ force: true })
+      .within(() =>
+        cy.get('input').type('wb_health_population{enter}', { force: true }),
+      );
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
-      .click()
+      .click({ force: true })
       .type('country_name');
     // hack for unclickable datetime
     cy.wait(5000);
