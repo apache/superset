@@ -175,13 +175,18 @@ export function FiltersConfigModal({
     buildFilterGroup(filterHierarchy),
   );
 
+  const getActiveFilterPanelKey = (filterId: string) => [
+    `${filterId}-${FilterPanels.configuration.key}`,
+    `${filterId}-${FilterPanels.settings.key}`,
+  ];
+
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
-  >(`${initialCurrentFilterId}-${FilterPanels.basic.key}`);
+  >(getActiveFilterPanelKey(initialCurrentFilterId));
 
   const onTabChange = (filterId: string) => {
     setCurrentFilterId(filterId);
-    setActiveFilterPanelKey(`${filterId}-${FilterPanels.basic.key}`);
+    setActiveFilterPanelKey(getActiveFilterPanelKey(filterId));
   };
 
   // generates a new filter id and appends it to the newFilterIds
@@ -196,7 +201,7 @@ export function FiltersConfigModal({
         { id: newFilterId, parentId: null },
       ]);
       setOrderedFilters([...orderedFilters, [newFilterId]]);
-      setActiveFilterPanelKey(`${newFilterId}-${FilterPanels.basic.key}`);
+      setActiveFilterPanelKey(getActiveFilterPanelKey(newFilterId));
     },
     [
       newFilterIds,
@@ -234,6 +239,9 @@ export function FiltersConfigModal({
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
     setErroredFilters([]);
+    if (filterIds.length > 0) {
+      setActiveFilterPanelKey(getActiveFilterPanelKey(filterIds[0]));
+    }
     if (!isSaving) {
       const initialFilterHierarchy = getInitialFilterHierarchy();
       setFilterHierarchy(initialFilterHierarchy);
@@ -464,7 +472,7 @@ export function FiltersConfigModal({
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={t('Filters configuration and scoping')}
+      title={t('Add and edit filters')}
       width="50%"
       destroyOnClose
       onCancel={handleCancel}
