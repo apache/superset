@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { Scope } from '@superset-ui/core';
+import { NativeFilterScope } from '@superset-ui/core';
 
 export type CrossFilterScopingFormType = {
-  scope: Scope;
+  scope: NativeFilterScope;
 };

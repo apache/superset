@@ -20,7 +20,7 @@ import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  Scope,
+  NativeFilterScope,
 } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
 import { ActiveFilters, Layout, LayoutItem } from '../types';
@@ -38,7 +38,7 @@ export const findAffectedCharts = ({
 }: {
   child: string;
   layout: { [key: string]: LayoutItem };
-  scope: Scope;
+  scope: NativeFilterScope;
   activeFilters: ActiveFilters;
   filterId: string;
   extraFormData: any;

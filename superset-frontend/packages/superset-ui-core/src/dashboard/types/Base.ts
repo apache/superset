@@ -24,13 +24,13 @@ export interface NativeFilterColumn {
   displayName?: string;
 }
 
-export interface Scope {
+export interface NativeFilterScope {
   rootPath: string[];
   excluded: number[];
 }
 
 /** The target of a filter is the datasource/column being filtered */
-export interface Target {
+export interface NativeFilterTarget {
   datasetId: number;
   column: NativeFilterColumn;
 
@@ -70,11 +70,11 @@ export interface Filter {
   defaultDataMask: DataMask;
   id: string; // randomly generated at filter creation
   name: string;
-  scope: Scope;
+  scope: NativeFilterScope;
   filterType: string;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
-  targets: [Partial<Target>];
+  targets: [Partial<NativeFilterTarget>];
   controlValues: {
     [key: string]: any;
   };

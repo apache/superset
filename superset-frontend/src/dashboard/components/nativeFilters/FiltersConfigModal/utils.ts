@@ -26,7 +26,7 @@ import {
   NativeFilterType,
   Divider,
   t,
-  Target,
+  NativeFilterTarget,
 } from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
@@ -156,7 +156,7 @@ export const createHandleSave =
             description: formInputs.description,
           };
         }
-        const target: Partial<Target> = {};
+        const target: Partial<NativeFilterTarget> = {};
         if (formInputs.dataset) {
           target.datasetId = formInputs.dataset.value;
         }

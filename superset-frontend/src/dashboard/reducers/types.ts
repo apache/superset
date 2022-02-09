@@ -18,7 +18,7 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { Scope, JsonObject } from '@superset-ui/core';
+import { NativeFilterScope, JsonObject } from '@superset-ui/core';
 
 export enum Scoping {
   All = 'All',
@@ -29,7 +29,7 @@ export type ChartConfiguration = {
   [chartId: number]: {
     id: number;
     crossFilters: {
-      scope: Scope;
+      scope: NativeFilterScope;
     };
   };
 };

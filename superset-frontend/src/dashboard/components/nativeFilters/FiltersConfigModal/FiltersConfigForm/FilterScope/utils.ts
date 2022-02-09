@@ -23,7 +23,7 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { Scope, t } from '@superset-ui/core';
+import { NativeFilterScope, t } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
@@ -113,7 +113,10 @@ const checkTreeItem = (
   });
 };
 
-export const getTreeCheckedItems = (scope: Scope, layout: Layout) => {
+export const getTreeCheckedItems = (
+  scope: NativeFilterScope,
+  layout: Layout,
+) => {
   const checkedItems: string[] = [];
   checkTreeItem(checkedItems, layout, [...scope.rootPath], [...scope.excluded]);
   return [...new Set(checkedItems)];
@@ -123,7 +126,7 @@ export const getTreeCheckedItems = (scope: Scope, layout: Layout) => {
 export const findFilterScope = (
   checkedKeys: string[],
   layout: Layout,
-): Scope => {
+): NativeFilterScope => {
   if (!checkedKeys.length) {
     return {
       rootPath: [],
@@ -169,14 +172,14 @@ export const findFilterScope = (
 export const getDefaultScopeValue = (
   chartId?: number,
   initiallyExcludedCharts: number[] = [],
-): Scope => ({
+): NativeFilterScope => ({
   rootPath: [DASHBOARD_ROOT_ID],
   excluded: chartId
     ? [chartId, ...initiallyExcludedCharts]
     : initiallyExcludedCharts,
 });
 
-export const isScopingAll = (scope: Scope, chartId?: number) =>
+export const isScopingAll = (scope: NativeFilterScope, chartId?: number) =>
   !scope ||
   (scope.rootPath[0] === DASHBOARD_ROOT_ID &&
     !scope.excluded.filter(item => item !== chartId).length);

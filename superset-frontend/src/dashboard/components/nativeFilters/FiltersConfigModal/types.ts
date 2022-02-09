@@ -20,11 +20,11 @@ import {
   AdhocFilter,
   DataMask,
   NativeFilterType,
-  Scope,
+  NativeFilterScope,
 } from '@superset-ui/core';
 
 export interface NativeFiltersFormItem {
-  scope: Scope;
+  scope: NativeFilterScope;
   name: string;
   filterType: string;
   dataset: {

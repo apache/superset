@@ -18,7 +18,7 @@
  */
 import React, { FC } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { Scope } from '@superset-ui/core';
+import { NativeFilterScope } from '@superset-ui/core';
 import FilterScope from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
 import { setCrossFilterFieldValues } from 'src/dashboard/components/CrossFilterScopingModal/utils';
 import { useForceUpdate } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
@@ -26,7 +26,7 @@ import { CrossFilterScopingFormType } from 'src/dashboard/components/CrossFilter
 
 type CrossFilterScopingFormProps = {
   chartId: number;
-  scope: Scope;
+  scope: NativeFilterScope;
   form: FormInstance<CrossFilterScopingFormType>;
 };
 

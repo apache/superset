@@ -18,7 +18,7 @@
  */
 
 import React, { FC, useMemo, useState } from 'react';
-import { Scope } from '@superset-ui/core';
+import { NativeFilterScope } from '@superset-ui/core';
 import { Tree } from 'src/common/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from 'src/components/Tooltip';
@@ -29,8 +29,8 @@ import { findFilterScope, getTreeCheckedItems } from './utils';
 type ScopingTreeProps = {
   forceUpdate: Function;
   updateFormValues: (values: any) => void;
-  formScope?: Scope;
-  initialScope: Scope;
+  formScope?: NativeFilterScope;
+  initialScope: NativeFilterScope;
   chartId?: number;
   initiallyExcludedCharts?: number[];
 };
