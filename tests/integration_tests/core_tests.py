@@ -163,6 +163,65 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_superset_tables_allowed(self):
+        session = db.session
+        table_name = "energy_usage"
+        role_name = "dummy_role"
+        self.logout()
+        self.login(username="gamma")
+        gamma_user = security_manager.find_user(username="gamma")
+        security_manager.add_role(role_name)
+        dummy_role = security_manager.find_role(role_name)
+        gamma_user.roles.append(dummy_role)
+
+        tbl_id = self.table_ids.get(table_name)
+        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id).first()
+        table_perm = table.perm
+
+        security_manager.add_permission_role(
+            dummy_role,
+            security_manager.find_permission_view_menu("datasource_access", table_perm),
+        )
+
+        session.commit()
+
+        example_db = utils.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
+        # cleanup
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.remove(security_manager.find_role(role_name))
+        session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_superset_tables_not_allowed_with_out_permissions(self):
+        session = db.session
+        table_name = "energy_usage"
+        role_name = "dummy_role_no_table_access"
+        self.logout()
+        self.login(username="gamma")
+        gamma_user = security_manager.find_user(username="gamma")
+        security_manager.add_role(role_name)
+        dummy_role = security_manager.find_role(role_name)
+        gamma_user.roles.append(dummy_role)
+
+        session.commit()
+
+        example_db = utils.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+        # cleanup
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.remove(security_manager.find_role(role_name))
+        session.commit()
+
     def test_get_superset_tables_substr(self):
         example_db = superset.utils.database.get_example_database()
         if example_db.backend in {"presto", "hive"}:
