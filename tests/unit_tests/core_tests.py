@@ -75,9 +75,11 @@ def test_get_metric_name_adhoc():
     assert get_metric_name(metric) == "my_col"
     metric["aggregate"] = ""
     assert get_metric_name(metric) == "my_col"
+    assert get_metric_name(metric, {"my_col": "My Irrelevant Mapping"}) == "my_col"
 
     metric = deepcopy(SQL_ADHOC_METRIC)
     assert get_metric_name(metric) == "my_sql"
+    assert get_metric_name(metric, {"my_sql": "My Irrelevant Mapping"}) == "my_sql"
     del metric["label"]
     assert get_metric_name(metric) == "SUM(my_col)"
     metric["label"] = ""

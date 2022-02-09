@@ -1240,7 +1240,6 @@ def get_column_name(
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
-    verbose_map = verbose_map or {}
     if isinstance(column, dict):
         label = column.get("label")
         if label:
@@ -1249,6 +1248,7 @@ def get_column_name(
         if expr:
             return expr
         raise ValueError("Missing label")
+    verbose_map = verbose_map or {}
     return verbose_map.get(column, column)
 
 
@@ -1264,7 +1264,6 @@ def get_metric_name(
     :return: String representation of metric
     :raises ValueError: if metric object is invalid
     """
-    verbose_map = verbose_map or {}
     if is_adhoc_metric(metric):
         label = metric.get("label")
         if label:
@@ -1281,9 +1280,10 @@ def get_metric_name(
             if column and aggregate:
                 return f"{aggregate}({column_name})"
             if column_name:
-                return verbose_map.get(column_name, column_name)
+                return column_name
         raise ValueError(__("Invalid metric object"))
 
+    verbose_map = verbose_map or {}
     return verbose_map.get(metric, metric)  # type: ignore
 
 
