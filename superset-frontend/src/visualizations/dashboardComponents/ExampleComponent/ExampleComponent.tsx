@@ -16,22 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { DashboardComponentMetadata, t } from '@superset-ui/core';
 
-export * from './models';
-export * from './utils';
-export * from './types';
-export * from './translation';
-export * from './connection';
-export * from './dashboard';
-export * from './dynamic-plugins';
-export * from './query';
-export * from './number-format';
-export * from './time-format';
-export * from './dimension';
-export * from './color';
-export * from './style';
-export * from './validator';
-export * from './chart';
-export * from './chart-composition';
-export * from './components';
-export * from './math-expression';
+// TODO: POC only component can be removed after PR approved
+const ExampleComponent = ({
+  metadata,
+}: {
+  metadata: DashboardComponentMetadata;
+}) => (
+  <div>
+    {t('We have the following keys: %s', Object.keys(metadata).join(', '))}
+  </div>
+);
+
+export default ExampleComponent;
