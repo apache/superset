@@ -239,7 +239,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm.request_loader(self.request_loader)
         return lm
 
-    def request_loader(self, request: Request):
+    def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
