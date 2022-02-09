@@ -18,7 +18,12 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  t,
+  SupersetClient,
+  sharedLabelColor,
+} from '@superset-ui/core';
 import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
 import { chart as initChart } from 'src/chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -488,6 +493,20 @@ export function removeSliceFromDashboard(id) {
 
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
+
+    const {
+      dashboardInfo: { metadata },
+    } = getState();
+    sharedLabelColor.removeSlice(id);
+    metadata.shared_label_colors = sharedLabelColor.getColorMap(
+      metadata?.color_namespace,
+      metadata?.color_scheme,
+    );
+    dispatch(
+      dashboardInfoChanged({
+        metadata,
+      }),
+    );
   };
 }
 
