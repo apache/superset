@@ -480,6 +480,21 @@ export function addSliceToDashboard(id, component) {
       if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
         dispatch(addFilter(id, component, selectedSlice.form_data));
       }
+
+      setTimeout(() => {
+        const {
+          dashboardInfo: { metadata },
+        } = getState();
+        metadata.shared_label_colors = sharedLabelColor.getColorMap(
+          metadata?.color_namespace,
+          metadata?.color_scheme,
+        );
+        dispatch(
+          dashboardInfoChanged({
+            metadata,
+          }),
+        );
+      }, 500);
     });
   };
 }
