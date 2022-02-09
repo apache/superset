@@ -44,6 +44,7 @@ from superset.utils.core import (
     get_example_default_schema,
 )
 from superset.utils.database import get_example_database
+from superset.utils.urls import get_url_host
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
@@ -1177,17 +1178,20 @@ class TestGuestTokens(SupersetTestCase):
         resources = [{"some": "resource"}]
         rls = [{"dataset": 1, "clause": "access = 1"}]
         token = security_manager.create_guest_access_token(user, resources, rls)
-
+        aud = get_url_host()
         # unfortunately we cannot mock time in the jwt lib
         decoded_token = jwt.decode(
             token,
             self.app.config["GUEST_TOKEN_JWT_SECRET"],
             algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
         )
 
         self.assertEqual(user, decoded_token["user"])
         self.assertEqual(resources, decoded_token["resources"])
         self.assertEqual(now, decoded_token["iat"])
+        self.assertEqual(aud, decoded_token["aud"])
+        self.assertEqual("guest", decoded_token["type"])
         self.assertEqual(
             now + (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000),
             decoded_token["exp"],
