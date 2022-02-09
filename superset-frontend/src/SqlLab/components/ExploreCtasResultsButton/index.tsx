@@ -45,20 +45,20 @@ const ExploreCtasResultsButton = ({
   dbId,
   templateParams,
 }: ExploreCtasResultsButtonProps) => {
+  const { createCtasDatasource, addInfoToast, addDangerToast } = actions;
   const errorMessage = useSelector(
     (state: RootState) => state.sqlLab.errorMessage,
   );
 
-  const buildVizOptions = () => ({
+  const buildVizOptions = {
     datasourceName: table,
     schema,
     dbId,
     templateParams,
-  });
+  };
 
   const visualize = () => {
-    actions
-      .createCtasDatasource(buildVizOptions())
+    createCtasDatasource(buildVizOptions)
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -69,33 +69,28 @@ const ExploreCtasResultsButton = ({
           all_columns: [],
           row_limit: 1000,
         };
-        actions.addInfoToast(
-          t('Creating a data source and creating a new tab'),
-        );
-
+        addInfoToast(t('Creating a data source and creating a new tab'));
         // open new window for data visualization
         exploreChart(formData);
       })
       .catch(() => {
-        actions.addDangerToast(errorMessage || t('An error occurred'));
+        addDangerToast(errorMessage || t('An error occurred'));
       });
   };
 
   return (
-    <>
-      <Button
-        buttonSize="small"
-        onClick={visualize}
-        tooltip={t('Explore the result set in the data exploration view')}
-      >
-        <InfoTooltipWithTrigger
-          icon="line-chart"
-          placement="top"
-          label="explore"
-        />{' '}
-        {t('Explore')}
-      </Button>
-    </>
+    <Button
+      buttonSize="small"
+      onClick={visualize}
+      tooltip={t('Explore the result set in the data exploration view')}
+    >
+      <InfoTooltipWithTrigger
+        icon="line-chart"
+        placement="top"
+        label="explore"
+      />{' '}
+      {t('Explore')}
+    </Button>
   );
 };
 
