@@ -17,10 +17,15 @@
  * under the License.
  */
 import qs from 'querystring';
-import { dashboardView, nativeFilters } from 'cypress/support/directories';
+import {
+  dashboardView,
+  nativeFilters,
+  exploreView,
+} from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
+import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
 
 const getTestTitle = (
   test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
@@ -298,12 +303,69 @@ describe('Nativefilters Sanity test', () => {
       .trigger('mouseover', { force: true });
     cy.contains('Exclude selected values');
   });
+  it('User can create a time range filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .click({ force: true });
+    cy.get('[label="Time range"]').click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .clear()
+      .type('time range');
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+    cy.get(dashboardView.salesDashboardSpecific.vehicleSalesFilterTimeRange)
+      .should('be.visible')
+      .click();
+    cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
+    cy.get('.ant-popover-content .ant-select-selector')
+      .should('be.visible')
+      .click();
+    cy.get('[label="Advanced"]').should('be.visible').click();
+    cy.get('.section-title')
+      .contains('Advanced Time Range')
+      .should('be.visible');
+    cy.get('.ant-popover-inner-content')
+      .find('[class^=ant-input]')
+      .first()
+      .type('2005-12-17');
+    cy.get(dashboardView.timeRangeModal.applyButton).click();
+    cy.get(nativeFilters.applyFilter).click();
+    cy.wait('@chart');
+    cy.url().then(u => {
+      const ur = new URL(u);
+      expect(ur.search).to.include('native_filters');
+    });
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .contains('time range')
+      .should('be.visible');
+    cy.get(nativeFilters.filterFromDashboardView.timeRangeFilterContent)
+      .contains('2005-12-17')
+      .should('be.visible');
+  });
   it("User can check 'Filter has default value'", () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton)
       .should('be.visible')
       .click({ force: true });
     cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .click({ force: true });
+    cy.get('[label="Value"]').click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click({ force: true })
+      .clear()
+      .type('country_name');
 
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
@@ -311,10 +373,109 @@ describe('Nativefilters Sanity test', () => {
       .within(() =>
         cy.get('input').type('wb_health_population{enter}', { force: true }),
       );
+    // hack for unclickable datetime
+    cy.wait(5000);
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.contains('Filter has default value').click();
+    cy.contains('Default value is required');
+    cy.get(nativeFilters.modal.defaultValueCheck).should('be.visible');
+    cy.get(nativeFilters.filtersPanel.columnEmptyInput)
+      .last()
+      .type('United States{enter}');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.filterContent).contains(
+      'United States',
+    );
+    cy.get('.line').within(() => {
+      cy.contains('United States').should('be.visible');
+    });
+  });
+  it('User can create a time range filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .click({ force: true });
+    cy.get('[label="Time range"]').click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .clear()
+      .type('time range');
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+    cy.get(dashboardView.salesDashboardSpecific.vehicleSalesFilterTimeRange)
+      .should('be.visible')
+      .click();
+    cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
+    cy.get('.ant-popover-content .ant-select-selector')
+      .should('be.visible')
+      .click();
+    cy.get('[label="Advanced"]').should('be.visible').click();
+    cy.get('.section-title')
+      .contains('Advanced Time Range')
+      .should('be.visible');
+    cy.get('.ant-popover-inner-content')
+      .find('[class^=ant-input]')
+      .first()
+      .type('2005-12-17');
+    cy.get(dashboardView.timeRangeModal.applyButton).click();
+    cy.get(nativeFilters.applyFilter).click();
+    cy.wait('@chart');
+    cy.url().then(u => {
+      const ur = new URL(u);
+      expect(ur.search).to.include('native_filters');
+    });
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .contains('time range')
+      .should('be.visible');
+    cy.get(nativeFilters.filterFromDashboardView.timeRangeFilterContent)
+      .contains('2005-12-17')
+      .should('be.visible');
+  });
+  it("User can check 'Filter has default value'", () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.createFilterButton)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .click({ force: true });
+    cy.get('[label="Value"]').click();
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
       .click({ force: true })
+      .clear()
       .type('country_name');
+
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click({ force: true })
+      .within(() =>
+        cy.get('input').type('wb_health_population{enter}', { force: true }),
+      );
+    // cy.get(nativeFilters.modal.container)
+    //   .find(nativeFilters.filtersPanel.filterName)
+    //   .click({ force: true })
+    //   .type('country_name');
     // hack for unclickable datetime
     cy.wait(5000);
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
