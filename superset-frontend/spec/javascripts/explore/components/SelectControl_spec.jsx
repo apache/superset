@@ -21,6 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Select as SelectComponent } from 'src/components';
+import { Select as DeprecatedSelect } from 'src/components/Select/DeprecatedSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -56,6 +57,18 @@ describe('SelectControl', () => {
   describe('render', () => {
     it('renders with Select by default', () => {
       expect(wrapper.find(SelectComponent)).toExist();
+    });
+
+    it('renders with DeprecatedSelect when DeprecatedSelectFlag prop set to true', () => {
+      wrapper.setProps({ deprecatedSelectFlag: true });
+      expect(wrapper.find(SelectComponent)).not.toExist();
+      expect(wrapper.find(DeprecatedSelect)).toExist();
+    });
+
+    it('renders with Select when DeprecatedSelectFlag prop set to false', () => {
+      wrapper.setProps({ deprecatedSelectFlag: false });
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(DeprecatedSelect)).not.toExist();
     });
 
     it('renders as mode multiple', () => {
