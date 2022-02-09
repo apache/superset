@@ -61,13 +61,13 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent)).toExist();
     });
 
-    it('renders with DeprecatedSelect when DeprecatedSelectFlag=true', () => {
+    it('renders with DeprecatedSelect when deprecatedSelectFlag=true', () => {
       wrapper.setProps({ deprecatedSelectFlag: true });
       expect(wrapper.find(SelectComponent)).not.toExist();
       expect(wrapper.find(DeprecatedSelect)).toExist();
     });
 
-    it('renders with Select when DeprecatedSelectFlag=false', () => {
+    it('renders with Select when deprecatedSelectFlag=false', () => {
       wrapper.setProps({ deprecatedSelectFlag: false });
       expect(wrapper.find(SelectComponent)).toExist();
       expect(wrapper.find(DeprecatedSelect)).not.toExist();
