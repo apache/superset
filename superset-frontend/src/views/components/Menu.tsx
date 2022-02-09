@@ -185,6 +185,23 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConig = useUiConfig();
 
+  const nonItemsToRender = {
+    'Upload a CSV': 'Upload a CSV',
+    'Upload a Columnar File': 'Upload a Columnar File',
+    'Upload Excel': 'Upload Excel',
+  };
+  const createPlusMenuItems = () => {
+    const list: any = [];
+    const dataMenu = menu.filter(item => item.name === 'Data');
+    if (dataMenu[0].childs) {
+      dataMenu[0]?.childs.forEach(menuItem => {
+        if (nonItemsToRender[menuItem.label]) {
+          list.push(menuItem);
+        }
+      });
+    }
+    return list;
+  };
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth <= 767) {
@@ -230,6 +247,9 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+          if (nonItemsToRender[child.label]) {
+            return null;
+          }
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
@@ -305,6 +325,7 @@ export function Menu({
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
+            menuProps={createPlusMenuItems()}
             align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}

@@ -29,6 +29,10 @@ import { NavBarProps, MenuObjectProps } from './Menu';
 
 export const dropdownItems = [
   {
+    label: t('Data'),
+    icon: 'fa-database',
+  },
+  {
     label: t('SQL query'),
     url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
@@ -78,6 +82,17 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const StyledPlusMenu = styled.div`
+   .data-menu > div {
+     .ant-menu-vertical
+       height: 28px;
+       i {
+         padding-right: 8px;
+         margin-left: 7px;
+       }
+  }
+`;
+
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
@@ -85,6 +100,7 @@ interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
+  menuProps: Array<MenuObjectProps>;
 }
 
 const RightMenu = ({
@@ -92,6 +108,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
+  menuProps,
 }: RightMenuProps) => {
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -102,6 +119,13 @@ const RightMenu = ({
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const showActionDropdown = canSql || canChart || canDashboard;
+  const menuIconAndLabel = menu => (
+    <>
+      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
+      {menu.label}
+    </>
+  );
+  console.log('menuProps', menuProps);
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
@@ -113,8 +137,25 @@ const RightMenu = ({
             }
             icon={<Icons.TriangleDown />}
           >
-            {dropdownItems.map(
-              menu =>
+            {dropdownItems.map(menu => {
+              if (menu.label === 'Data') {
+                return (
+                  <StyledPlusMenu>
+                    <SubMenu
+                      key="sub2"
+                      className="data-menu"
+                      title={menuIconAndLabel(menu)}
+                    >
+                      {menuProps.map(item => (
+                        <Menu.Item key={item.name}>
+                          <a href={item.url}> {menuIconAndLabel(item)} </a>
+                        </Menu.Item>
+                      ))}
+                    </SubMenu>
+                  </StyledPlusMenu>
+                );
+              }
+              return (
                 findPermission(menu.perm, menu.view, roles) && (
                   <Menu.Item key={menu.label}>
                     <a href={menu.url}>
@@ -125,8 +166,9 @@ const RightMenu = ({
                       {menu.label}
                     </a>
                   </Menu.Item>
-                ),
-            )}
+                )
+              );
+            })}
           </SubMenu>
         )}
         <SubMenu
