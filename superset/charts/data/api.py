@@ -241,7 +241,9 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-        return self._get_data_response(command, form_data=form_data)
+        return self._get_data_response(
+            command, form_data=form_data, datasource=query_context.datasource
+        )
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
