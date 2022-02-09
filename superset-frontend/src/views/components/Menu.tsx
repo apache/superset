@@ -195,7 +195,7 @@ export function Menu({
     const dataMenu = menu.filter(item => item.name === 'Data');
     if (dataMenu[0].childs) {
       dataMenu[0]?.childs.forEach(menuItem => {
-        if (nonItemsToRender[menuItem.label]) {
+        if (typeof menuItem !== 'string' && nonItemsToRender[menuItem.label]) {
           list.push(menuItem);
         }
       });
@@ -247,7 +247,7 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (nonItemsToRender[child.label]) {
+          if (typeof child !== 'string' && nonItemsToRender[child.label]) {
             return null;
           }
           if (typeof child === 'string' && child === '-') {
@@ -278,6 +278,15 @@ export function Menu({
           }
           .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
             border-radius: 0px;
+          }
+          .ant-menu-vertical
+            > .ant-menu-submenu.data-menu
+            > .ant-menu-submenu-title {
+            height: 28px;
+            i {
+              padding-right: 8px;
+              margin-left: 7px;
+            }
           }
         `}
       />

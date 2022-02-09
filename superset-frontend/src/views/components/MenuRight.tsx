@@ -82,17 +82,6 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const StyledPlusMenu = styled.div`
-   .data-menu > div {
-     .ant-menu-vertical
-       height: 28px;
-       i {
-         padding-right: 8px;
-         margin-left: 7px;
-       }
-  }
-`;
-
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
@@ -119,13 +108,12 @@ const RightMenu = ({
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const showActionDropdown = canSql || canChart || canDashboard;
-  const menuIconAndLabel = menu => (
+  const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
       <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
       {menu.label}
     </>
   );
-  console.log('menuProps', menuProps);
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
@@ -140,23 +128,25 @@ const RightMenu = ({
             {dropdownItems.map(menu => {
               if (menu.label === 'Data') {
                 return (
-                  <StyledPlusMenu>
-                    <SubMenu
-                      key="sub2"
-                      className="data-menu"
-                      title={menuIconAndLabel(menu)}
-                    >
-                      {menuProps.map(item => (
-                        <Menu.Item key={item.name}>
-                          <a href={item.url}> {menuIconAndLabel(item)} </a>
-                        </Menu.Item>
-                      ))}
-                    </SubMenu>
-                  </StyledPlusMenu>
+                  <SubMenu
+                    key="sub2"
+                    className="data-menu"
+                    title={menuIconAndLabel(menu as MenuObjectProps)}
+                  >
+                    {menuProps.map(item => (
+                      <Menu.Item key={item.name}>
+                        <a href={item.url}> {menuIconAndLabel(item)} </a>
+                      </Menu.Item>
+                    ))}
+                  </SubMenu>
                 );
               }
               return (
-                findPermission(menu.perm, menu.view, roles) && (
+                findPermission(
+                  menu.perm as string,
+                  menu.view as string,
+                  roles,
+                ) && (
                   <Menu.Item key={menu.label}>
                     <a href={menu.url}>
                       <i
