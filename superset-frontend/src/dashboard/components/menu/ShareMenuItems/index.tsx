@@ -19,17 +19,19 @@
 import React from 'react';
 import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
 import {
   createFilterKey,
   getFilterValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
-  url: string;
+  url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
   emailSubject: string;
@@ -37,6 +39,7 @@ interface ShareMenuItemProps {
   addDangerToast: Function;
   addSuccessToast: Function;
   dashboardId?: string;
+  formData?: { slice_id: number; datasource: string };
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -49,10 +52,11 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addDangerToast,
     addSuccessToast,
     dashboardId,
+    formData,
     ...rest
   } = props;
 
-  const getShortUrl = useUrlShortener(url);
+  const getShortUrl = useUrlShortener(url || '');
 
   async function getCopyUrl() {
     const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
@@ -70,24 +74,37 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     return `${newUrl.pathname}${newUrl.search}`;
   }
 
+  async function generateUrl() {
+    if (formData) {
+      const key = await postFormData(
+        parseInt(formData.datasource.split('_')[0], 10),
+        formData,
+        formData.slice_id,
+      );
+      return `${window.location.origin}${mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      })}`;
+    }
+    const copyUrl = await getCopyUrl();
+    return getShortUrl(copyUrl);
+  }
+
   async function onCopyLink() {
     try {
-      const copyUrl = await getCopyUrl();
-      const shortUrl = await getShortUrl(copyUrl);
-      await copyTextToClipboard(shortUrl);
+      await copyTextToClipboard(await generateUrl());
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
   async function onShareByEmail() {
     try {
-      const copyUrl = await getCopyUrl();
-      const shortUrl = await getShortUrl(copyUrl);
-      const bodyWithLink = `${emailBody}${shortUrl}`;
+      const bodyWithLink = `${emailBody}${await generateUrl()}`;
       window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
     } catch (error) {
+      logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }

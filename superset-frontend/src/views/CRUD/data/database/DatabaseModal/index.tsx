@@ -597,6 +597,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         if (!editNewDb) {
           onClose();
+          addSuccessToast(t('Database settings updated'));
         }
       }
     } else if (db) {
@@ -615,6 +616,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // tab layout only has one step
           // so it should close immediately on save
           onClose();
+          addSuccessToast(t('Database connected'));
         }
       }
     }

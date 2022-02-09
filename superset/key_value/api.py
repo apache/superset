@@ -37,10 +37,10 @@ from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.exceptions import InvalidPayloadFormatError
 from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
 from superset.key_value.commands.parameters import CommandParameters
 from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
+from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,8 @@ class KeyValueRestApi(BaseApi, ABC):
             pass
         super().add_apispec_components(api_spec)
 
+    @requires_json
     def post(self, pk: int) -> Response:
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
             args = CommandParameters(
@@ -94,9 +93,8 @@ class KeyValueRestApi(BaseApi, ABC):
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
 
+    @requires_json
     def put(self, pk: int, key: str) -> Response:
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
             args = CommandParameters(

@@ -37,7 +37,7 @@ interface Column {
   type: string;
 }
 
-interface Table {
+export interface Table {
   id: string;
   name: string;
   partitions?: {
@@ -53,7 +53,7 @@ interface Table {
   columns: Column[];
 }
 
-interface TableElementProps {
+export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;

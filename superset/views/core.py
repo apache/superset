@@ -87,6 +87,8 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.get import GetFormDataCommand
+from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -135,7 +137,6 @@ from superset.views.base import (
     data_payload_response,
     generate_download_headers,
     get_error_msg,
-    get_user_roles,
     handle_api_exception,
     json_error_response,
     json_errors_response,
@@ -731,7 +732,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def explore(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
-        form_data, slc = get_form_data(use_slice_data=True)
+        initial_form_data = {}
+
+        form_data_key = request.args.get("form_data_key")
+        if form_data_key:
+            parameters = CommandParameters(actor=g.user, key=form_data_key,)
+            value = GetFormDataCommand(parameters).run()
+            if value:
+                initial_form_data = json.loads(value)
+
+        form_data, slc = get_form_data(
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
+
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
@@ -921,9 +934,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource.raise_for_access()
         row_limit = apply_max_row_limit(config["FILTER_SELECT_ROW_LIMIT"])
         payload = json.dumps(
-            datasource.values_for_column(
-                column_name=column, limit=row_limit, contain_null=False,
-            ),
+            datasource.values_for_column(column_name=column, limit=row_limit),
             default=utils.json_int_dttm_ser,
             ignore_nan=True,
         )
@@ -1888,7 +1899,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 f"ERROR: cannot find dashboard {dashboard_id}", status=404
             )
 
-        edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
+        edit_perm = (
+            is_owner(dash, g.user) or admin_role in security_manager.get_user_roles()
+        )
         if not edit_perm:
             username = g.user.username if hasattr(g.user, "username") else "user"
             return json_error_response(

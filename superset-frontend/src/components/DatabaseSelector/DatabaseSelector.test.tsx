@@ -169,14 +169,14 @@ beforeEach(() => {
 
 test('Should render', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
 test('Refresh should work', async () => {
   const props = createProps();
 
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
 
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
@@ -211,7 +211,7 @@ test('Refresh should work', async () => {
 
 test('Should database select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -222,7 +222,7 @@ test('Should database select display options', async () => {
 
 test('Should schema select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
   });
@@ -238,7 +238,7 @@ test('Should schema select display options', async () => {
 
 test('Sends the correct db when changing the database', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -259,7 +259,7 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
   });

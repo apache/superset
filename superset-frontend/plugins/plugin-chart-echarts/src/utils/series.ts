@@ -88,9 +88,6 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'number') {
-    return numberFormatter ? numberFormatter(name) : name.toString();
-  }
   if (typeof name === 'boolean') {
     return name.toString();
   }
@@ -98,6 +95,9 @@ export function formatSeriesName(
     const d = name instanceof Date ? name : new Date(name);
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
+  }
+  if (typeof name === 'number') {
+    return numberFormatter ? numberFormatter(name) : name.toString();
   }
   return name;
 }
