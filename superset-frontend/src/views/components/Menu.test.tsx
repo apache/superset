@@ -89,6 +89,44 @@ const mockedProps = {
         url: '/dashboard/list/',
         index: 4,
       },
+      {
+        name: 'Data',
+        icon: 'fa-database',
+        label: 'Data',
+        childs: [
+          {
+            name: 'Databases',
+            icon: 'fa-database',
+            label: 'Databases',
+            url: '/databaseview/list/',
+          },
+          {
+            name: 'Datasets',
+            icon: 'fa-table',
+            label: 'Datasets',
+            url: '/tablemodelview/list/',
+          },
+          '-',
+          {
+            name: 'Upload a CSV',
+            icon: 'fa-upload',
+            label: 'Upload a CSV',
+            url: '/csvtodatabaseview/form',
+          },
+          {
+            name: 'Upload a Columnar file',
+            icon: 'fa-upload',
+            label: 'Upload a Columnar File',
+            url: '/columnartodatabaseview/form',
+          },
+          {
+            name: 'Upload Excel',
+            icon: 'fa-upload',
+            label: 'Upload Excel',
+            url: '/exceltodatabaseview/form',
+          },
+        ],
+      },
     ],
     brand: {
       path: '/superset/profile/admin/',
@@ -220,13 +258,11 @@ test('should render the dropdown items', async () => {
   render(<Menu {...notanonProps} />);
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
-  expect(await screen.findByText(dropdownItems[0].label)).toHaveAttribute(
+  // Todo: test data submenu
+  expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
-    dropdownItems[0].url,
+    dropdownItems[1].url,
   );
-  expect(
-    screen.getByTestId(`menu-item-${dropdownItems[0].label}`),
-  ).toBeInTheDocument();
   expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
     dropdownItems[1].url,

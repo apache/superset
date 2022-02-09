@@ -75,8 +75,8 @@ export interface MenuProps {
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon: string;
-  index: number;
+  icon?: string;
+  index?: number;
   url?: string;
   isFrontendRoute?: boolean;
 }
@@ -190,6 +190,7 @@ export function Menu({
     'Upload a Columnar File': 'Upload a Columnar File',
     'Upload Excel': 'Upload Excel',
   };
+
   const createPlusMenuItems = () => {
     const list: any = [];
     const dataMenu = menu.filter(item => item.name === 'Data');

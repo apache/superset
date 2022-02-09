@@ -135,7 +135,7 @@ const RightMenu = ({
                   >
                     {menuProps.map(item => (
                       <Menu.Item key={item.name}>
-                        <a href={item.url}> {menuIconAndLabel(item)} </a>
+                        <a href={item.url}> {item.label} </a>
                       </Menu.Item>
                     ))}
                   </SubMenu>
