@@ -59,7 +59,7 @@ const ExploreCtasResultsButton = ({
 
   const visualize = () => {
     createCtasDatasource(buildVizOptions)
-      .then(data => {
+      .then((data: { table_id: number }) => {
         const formData = {
           datasource: `${data.table_id}__table`,
           metrics: ['count'],
