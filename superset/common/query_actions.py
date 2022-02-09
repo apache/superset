@@ -129,7 +129,11 @@ def _get_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {"data": payload.get("data")}
+        return {
+            "data": payload.get("data"),
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+        }
     return payload
 
 
@@ -140,7 +144,7 @@ def _get_samples(
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.metrics = []
+    query_obj.metrics = None
     query_obj.post_processing = []
     query_obj.columns = [o.column_name for o in datasource.columns]
     query_obj.from_dttm = None
@@ -152,7 +156,7 @@ def _get_results(
     query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
 ) -> Dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
-    return {"data": payload.get("data"), "error": payload.get("error")}
+    return payload
 
 
 _result_type_functions: Dict[

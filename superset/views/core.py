@@ -87,6 +87,8 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.get import GetFormDataCommand
+from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -447,10 +449,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response({"data": payload["df"].to_dict("records")})
+        return self.json_response(
+            {
+                "data": payload["df"].to_dict("records"),
+                "colnames": payload.get("colnames"),
+                "coltypes": payload.get("coltypes"),
+            },
+        )
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
-        return self.json_response({"data": viz_obj.get_samples()})
+        return self.json_response(viz_obj.get_samples())
 
     @staticmethod
     def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
@@ -730,7 +738,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def explore(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
-        form_data, slc = get_form_data(use_slice_data=True)
+        initial_form_data = {}
+
+        form_data_key = request.args.get("form_data_key")
+        if form_data_key:
+            parameters = CommandParameters(actor=g.user, key=form_data_key,)
+            value = GetFormDataCommand(parameters).run()
+            if value:
+                initial_form_data = json.loads(value)
+
+        form_data, slc = get_form_data(
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
+
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.

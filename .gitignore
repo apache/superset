@@ -89,6 +89,9 @@ scripts/*.zip
 venv
 @eaDir/
 
+# PyCharm
+.run
+
 # Test data
 celery_results.sqlite
 celerybeat-schedule

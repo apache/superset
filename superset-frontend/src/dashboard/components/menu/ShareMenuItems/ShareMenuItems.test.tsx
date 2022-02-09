@@ -134,7 +134,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addSuccessToast).toBeCalledTimes(0);
     expect(props.addDangerToast).toBeCalledTimes(1);
     expect(props.addDangerToast).toBeCalledWith(
-      'Sorry, your browser does not support copying.',
+      'Sorry, something went wrong. Try again later.',
     );
   });
 });
