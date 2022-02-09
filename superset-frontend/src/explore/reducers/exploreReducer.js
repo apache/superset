@@ -28,6 +28,7 @@ import {
   getControlValuesCompatibleWithDatasource,
 } from 'src/explore/controlUtils';
 import * as actions from 'src/explore/actions/exploreActions';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -236,7 +237,44 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.slice.slice_name ?? state.sliceName,
       };
     },
+    [actions.SET_TIME_FORMATTED_COLUMN]() {
+      const { datasourceId, columnName } = action;
+      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
+      const newTimeFormattedColumnsForDatasource = ensureIsArray(
+        newTimeFormattedColumns[datasourceId],
+      ).slice();
+
+      newTimeFormattedColumnsForDatasource.push(columnName);
+      newTimeFormattedColumns[datasourceId] =
+        newTimeFormattedColumnsForDatasource;
+      setItem(
+        LocalStorageKeys.explore__data_table_time_formatted_columns,
+        newTimeFormattedColumns,
+      );
+      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
+    },
+    [actions.UNSET_TIME_FORMATTED_COLUMN]() {
+      const { datasourceId, columnIndex } = action;
+      const newTimeFormattedColumns = { ...state.timeFormattedColumns };
+      const newTimeFormattedColumnsForDatasource = ensureIsArray(
+        newTimeFormattedColumns[datasourceId],
+      ).slice();
+
+      newTimeFormattedColumnsForDatasource.splice(columnIndex, 1);
+      newTimeFormattedColumns[datasourceId] =
+        newTimeFormattedColumnsForDatasource;
+
+      if (newTimeFormattedColumnsForDatasource.length === 0) {
+        delete newTimeFormattedColumns[datasourceId];
+      }
+      setItem(
+        LocalStorageKeys.explore__data_table_time_formatted_columns,
+        newTimeFormattedColumns,
+      );
+      return { ...state, timeFormattedColumns: newTimeFormattedColumns };
+    },
   };
+
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }
