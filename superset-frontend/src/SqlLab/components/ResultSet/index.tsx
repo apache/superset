@@ -15,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
  */
 import React, { CSSProperties, useEffect, useState } from 'react';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -99,21 +98,6 @@ interface ResultSetProps {
   user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
 }
-/*  //not needed
-interface ResultSetState {
-  searchText: string;
-  showExploreResultsButton: boolean;
-  data: Record<string, any>[];
-  showSaveDatasetModal: boolean;
-  newSaveDatasetName: string;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataSet: boolean;
-  datasetToOverwrite: Record<string, any>;
-  saveModalAutocompleteValue: string;
-  userDatasetOptions: DatasetOptionAutocomplete[];
-  alertIsOpen: boolean;
-}
-*/
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
@@ -175,7 +159,6 @@ const updateDataset = async (
 };
 
 const ResultSet = ({
-  showControls,
   actions,
   cache,
   csv,
@@ -209,7 +192,7 @@ const ResultSet = ({
     Record<string, any>
   >({});
   const [saveModalAutocompleteValue, setsaveModalAutocompleteValue] =
-    useState<string>(''); //never used???
+    useState<string>(''); // never used???
   const [userDatasetOptions, setUserDatasetOptions] = useState<
     DatasetOptionAutocomplete[]
   >([]);
@@ -456,12 +439,6 @@ const ResultSet = ({
 
   const renderControls = () => {
     if (search || visualize || csv) {
-      /*
-      let { data } = this.props.query.results;
-      if (this.props.cache && this.props.query.cached) {
-        ({ data } = this.state);
-      }
-      */
       let tempData = query.results.data;
       if (cache && query.cached) {
         tempData = data;
