@@ -26,7 +26,6 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
 - [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
 - [15254](https://github.com/apache/superset/pull/15254): Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in the `config.py` file. These should now be defined as a top-level config, with the feature flag dictionary being reserved for boolean only values.
 - [17290](https://github.com/apache/superset/pull/17290): Bumps pandas to `1.3.4` and pyarrow to `5.0.0`
@@ -47,6 +46,17 @@ assists people when migrating to a new version.
 - [17589](https://github.com/apache/incubator-superset/pull/17589): It is now possible to limit access to users' recent activity data by setting the `ENABLE_BROAD_ACTIVITY_ACCESS` config flag to false, or customizing the `raise_for_user_activity_access` method in the security manager.
 - [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
 - [17882](https://github.com/apache/superset/pull/17882): introduced a key-value endpoint to store Explore form data. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `EXPLORE_FORM_DATA_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
+
+## 1.4.1
+
+### Breaking Changes
+- [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
+
+### Potential Downtime
+
+### Deprecations
+
+### Other
 
 ## 1.4.0
 
