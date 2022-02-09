@@ -50,6 +50,7 @@ const propTypes = {
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
   valueRenderer: PropTypes.func,
+  deprecatedSelectFlag: PropTypes.bool,
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
@@ -82,6 +83,7 @@ const defaultProps = {
   allowAll: false,
   onChange: () => {},
   onFocus: () => {},
+  deprecatedSelectFlag: false,
   showHeader: true,
   valueKey: 'value',
   promptTextCreator: label => `Create Option ${label}`,
@@ -326,7 +328,7 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        {name === 'groupby' ? (
+        {this.props.deprecatedSelectFlag === true ? (
           <>
             <ControlHeader {...headerProps} />
             <DeprecatedSelect {...deprecatedProps} />
