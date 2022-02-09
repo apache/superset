@@ -45,7 +45,6 @@ class DatabaseFilter(BaseFilter):
         return query.filter(
             or_(
                 self.model.perm.in_(database_perms),
-                self.model.database_name.in_(schema_access_databases),
-                self.model.database_name.in_(datasource_access_databases),
+               self.model.database_name.in_([*schema_access_databases, *datasource_access_databases]),
             )
         )
