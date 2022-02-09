@@ -20,23 +20,25 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { DataMask, FeatureFlag } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  DataMaskWithId,
+  FeatureFlag,
+  Filter,
+  FilterConfiguration,
+  Filters,
+} from '@superset-ui/core';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { isFeatureEnabled } from 'src/featureFlags';
-import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
-import {
-  Filter,
-  FilterConfiguration,
-} from '../dashboard/components/nativeFilters/types';
 import { areObjectsEqual } from '../reduxUtils';
-import { Filters } from '../dashboard/reducers/types';
 
 export function getInitialDataMask(
   id?: string | number,
