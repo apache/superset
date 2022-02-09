@@ -240,10 +240,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return lm
 
     def request_loader(self, request: Request):
+        # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return self.get_guest_user_from_request(request)
+        return None
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
