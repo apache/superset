@@ -25,6 +25,8 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import QueryAutoRefresh from 'src/SqlLab/components/QueryAutoRefresh';
 import { initialState, runningQuery } from 'src/SqlLab/fixtures';
+import fetchMock from 'fetch-mock';
+import * as Actions from 'src/SqlLab/actions/sqlLab';
 
 describe('QueryAutoRefresh', () => {
   const middlewares = [thunk];
@@ -38,19 +40,22 @@ describe('QueryAutoRefresh', () => {
   const state = {
     ...initialState,
     sqlLab,
-    setUserOffline: jest.fn(),
   };
   const store = mockStore(state);
   const setup = (overrides = {}) => (
     <ThemeProvider theme={supersetTheme}>
-      <QueryAutoRefresh {...store} {...overrides} />
+      <QueryAutoRefresh store={store} {...overrides} />
     </ThemeProvider>
   );
 
-  it('shouldCheckForQueries', () => {
-    render(setup());
+  const mockFetch = fetchMock.get('glob:*/superset/queries/*', {});
 
-    expect(state.setUserOffline).toHaveBeenCalled();
+  it('shouldCheckForQueries', () => {
+    render(setup(), {
+      useRedux: true,
+    });
+
+    expect(mockFetch.calls).toHaveBeenCalledTimes(1);
   });
 
   // const getWrapper = () =>
