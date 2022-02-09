@@ -18,7 +18,16 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  DataMaskWithId,
+  Filter,
+  NativeFilterType,
+  DataMask,
+  HandlerFunction,
+  styled,
+  t,
+} from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -28,14 +37,9 @@ import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
-import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual } from 'lodash';
 import { testWithId } from 'src/utils/testUtils';
-import {
-  Filter,
-  NativeFilterType,
-} from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';

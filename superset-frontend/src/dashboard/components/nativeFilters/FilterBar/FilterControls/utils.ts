@@ -18,11 +18,11 @@
  */
 import { debounce } from 'lodash';
 import { Dispatch } from 'react';
+import { Filter, NativeFilterType, Divider } from '@superset-ui/core';
 import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
-import { Filter, NativeFilterType, Divider } from '../../types';
 import { CascadeFilter } from '../CascadeFilters/types';
 import { mapParentFiltersToChildren } from '../utils';
 

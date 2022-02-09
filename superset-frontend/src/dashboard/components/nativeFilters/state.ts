@@ -23,7 +23,7 @@ import {
   FilterConfiguration,
   NativeFilterType,
   Divider,
-} from './types';
+} from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import { CascadeFilter } from './FilterBar/CascadeFilters/types';
