@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import session
+
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
 from superset.key_value.commands.delete import DeleteKeyValueCommand
@@ -34,7 +36,7 @@ class DeleteFilterStateCommand(DeleteKeyValueCommand):
             if entry:
                 if entry["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
-                contextual_key = cache_key(actor.get_user_id(), resource_id)
+                contextual_key = cache_key(session.get("_id"), resource_id)
                 cache_manager.filter_state_cache.delete(contextual_key)
                 return cache_manager.filter_state_cache.delete(key)
         return False

@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from secrets import token_urlsafe
 
+from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -25,7 +25,7 @@ from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.commands.exceptions import KeyValueCreateFailedError
-from superset.key_value.utils import cache_key
+from superset.key_value.utils import cache_key, random_key
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +41,10 @@ class CreateFormDataCommand(BaseCommand):
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
             check_access(dataset_id, chart_id, actor)
-            contextual_key = cache_key(actor.get_user_id(), dataset_id, chart_id)
+            contextual_key = cache_key(session.get("_id"), dataset_id, chart_id)
             key = cache_manager.explore_form_data_cache.get(contextual_key)
             if not key:
-                key = token_urlsafe(48)
+                key = random_key()
             if form_data:
                 state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),

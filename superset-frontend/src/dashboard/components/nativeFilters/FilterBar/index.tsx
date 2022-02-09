@@ -27,6 +27,7 @@ import {
   HandlerFunction,
   styled,
   t,
+  SLOW_DEBOUNCE,
 } from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -188,7 +189,7 @@ const publishDataMask = debounce(
       search: newParams.toString(),
     });
   },
-  500,
+  SLOW_DEBOUNCE,
 );
 
 const FilterBar: React.FC<FiltersBarProps> = ({

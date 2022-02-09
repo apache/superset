@@ -17,6 +17,7 @@
 import logging
 from abc import ABC
 
+from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -50,7 +51,7 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 check_access(dataset_id, chart_id, actor)
                 if state["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
-                contextual_key = cache_key(actor.get_user_id(), dataset_id, chart_id)
+                contextual_key = cache_key(session.get("_id"), dataset_id, chart_id)
                 cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)
             return False
