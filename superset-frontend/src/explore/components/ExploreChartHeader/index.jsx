@@ -28,7 +28,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
-import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
+import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
@@ -271,7 +271,7 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          <HeaderReportActionsDropdown
+          <HeaderReportDropdown
             chart={this.props.chart}
             toggleActive={this.props.toggleActive}
             deleteActiveReport={this.props.deleteActiveReport}

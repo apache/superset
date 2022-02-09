@@ -37,17 +37,19 @@ const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
 `;
 
-export default function HeaderReportActionsDropDown({
+export interface HeaderReportProps {
+  toggleActive: (data: AlertObject, isActive: boolean) => void;
+  deleteActiveReport: (data: AlertObject) => void;
+  dashboardId?: number;
+  chart?: ChartState;
+}
+
+export default function HeaderReportDropDown({
   toggleActive,
   deleteActiveReport,
   dashboardId,
   chart,
-}: {
-  toggleActive: (data: AlertObject, checked: boolean) => void;
-  deleteActiveReport: (data: AlertObject) => void;
-  dashboardId?: number;
-  chart?: ChartState;
-}) {
+}: HeaderReportProps) {
   const dispatch = useDispatch();
 
   const report = useSelector<any, AlertObject>(state => {
@@ -56,7 +58,6 @@ export default function HeaderReportActionsDropDown({
       : ReportType.CHARTS;
     return reportSelector(state, resourceType, dashboardId || chart?.id);
   });
-
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
@@ -136,59 +137,60 @@ export default function HeaderReportActionsDropDown({
   );
 
   return (
-    canAddReports() && (
-      <>
-        <ReportModal
-          userId={user.userId}
-          showModal={showModal}
-          onHide={() => setShowModal(false)}
-          userEmail={user.email}
-          dashboardId={dashboardId}
-          chart={chart}
-        />
-        {report ? (
-          <>
-            <NoAnimationDropdown
-              // ref={ref}
-              overlay={menu()}
-              trigger={['click']}
-              getPopupContainer={(triggerNode: any) =>
-                triggerNode.closest('.action-button')
-              }
+    <>
+      {canAddReports() && (
+        <>
+          <ReportModal
+            userId={user.userId}
+            showModal={showModal}
+            onHide={() => setShowModal(false)}
+            userEmail={user.email}
+            dashboardId={dashboardId}
+            chart={chart}
+          />
+          {report ? (
+            <>
+              <NoAnimationDropdown
+                overlay={menu()}
+                trigger={['click']}
+                getPopupContainer={(triggerNode: any) =>
+                  triggerNode.closest('.action-button')
+                }
+              >
+                <span role="button" className="action-button" tabIndex={0}>
+                  <Icons.Calendar />
+                </span>
+              </NoAnimationDropdown>
+              {currentReportDeleting && (
+                <DeleteModal
+                  description={t(
+                    'This action will permanently delete %s.',
+                    currentReportDeleting.name,
+                  )}
+                  onConfirm={() => {
+                    if (currentReportDeleting) {
+                      handleReportDelete(currentReportDeleting);
+                    }
+                  }}
+                  onHide={() => setCurrentReportDeleting(null)}
+                  open
+                  title={t('Delete Report?')}
+                />
+              )}
+            </>
+          ) : (
+            <span
+              role="button"
+              title={t('Schedule email report')}
+              tabIndex={0}
+              className="action-button"
+              onClick={() => setShowModal(true)}
             >
-              <span role="button" className="action-button" tabIndex={0}>
-                <Icons.Calendar />
-              </span>
-            </NoAnimationDropdown>
-            {currentReportDeleting && (
-              <DeleteModal
-                description={t(
-                  'This action will permanently delete %s.',
-                  currentReportDeleting.name,
-                )}
-                onConfirm={() => {
-                  if (currentReportDeleting) {
-                    handleReportDelete(currentReportDeleting);
-                  }
-                }}
-                onHide={() => setCurrentReportDeleting(null)}
-                open
-                title={t('Delete Report?')}
-              />
-            )}
-          </>
-        ) : (
-          <span
-            role="button"
-            title={t('Schedule email report')}
-            tabIndex={0}
-            className="action-button"
-            onClick={() => setShowModal(true)}
-          >
-            <Icons.Calendar />
-          </span>
-        )}
-      </>
-    )
+              <Icons.Calendar />
+            </span>
+          )}
+        </>
+      )}
+    </>
   );
 }
