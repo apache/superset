@@ -271,7 +271,7 @@ def pivot_table(
         df,
         rows=get_column_names(form_data.get("groupby"), verbose_map),
         columns=get_column_names(form_data.get("columns"), verbose_map),
-        metrics=get_metric_names(form_data["metrics"]),
+        metrics=get_metric_names(form_data["metrics"], verbose_map),
         aggfunc=func_map.get(form_data.get("pandas_aggfunc", "sum"), "Sum"),
         transpose_pivot=bool(form_data.get("transpose_pivot")),
         combine_metrics=bool(form_data.get("combine_metric")),
