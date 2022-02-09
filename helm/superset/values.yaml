@@ -165,6 +165,10 @@ image:
 
 imagePullSecrets: []
 
+initImage:
+  repository: busybox
+  tag: latest
+  pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
@@ -231,8 +235,8 @@ supersetNode:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -252,8 +256,8 @@ supersetWorker:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -275,8 +279,8 @@ supersetCeleryBeat:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -314,8 +318,8 @@ init:
     password: admin
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
