@@ -15,6 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
+ *
  */
 import React, { CSSProperties, useEffect, useState } from 'react';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -173,21 +174,21 @@ const updateDataset = async (
   return data.json.result;
 };
 
-export default function ResultSet({
+const ResultSet = ({
   showControls,
   actions,
-  cache = false,
-  csv = true,
-  database = {},
+  cache,
+  csv,
+  database,
   displayLimit,
   height,
   query,
-  search = true,
-  showSql = false,
-  visualize = true,
+  search,
+  showSql,
+  visualize,
   user,
   defaultQueryLimit,
-}: ResultSetProps) {
+}: ResultSetProps) => {
   const getDefaultDatasetName = () =>
     `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
@@ -214,16 +215,65 @@ export default function ResultSet({
   >([]);
   const [alertIsOpen, setalertIsOpen] = useState<boolean>(false);
 
+  const reRunQueryIfSessionTimeoutErrorOnMount = () => {
+    if (
+      query.errorMessage &&
+      query.errorMessage.indexOf('session timed out') > 0
+    ) {
+      actions.reRunQuery(query);
+    }
+  };
+
+  const getUserDatasets = async (searchText = '') => {
+    // Making sure that autocomplete input has a value before rendering the dropdown
+    // Transforming the userDatasetsOwned data for SaveModalComponent)
+    const { userId } = user;
+    if (userId) {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: searchText,
+          },
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
+
+      const response = await makeApi({
+        method: 'GET',
+        endpoint: '/api/v1/dataset',
+      })(`q=${queryParams}`);
+
+      return response.result.map(
+        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+          value: r.table_name,
+          datasetId: r.id,
+          owners: r.owners,
+        }),
+      );
+    }
+
+    return null;
+  };
+
   useEffect(() => {
-    async () => {
+    (async () => {
       reRunQueryIfSessionTimeoutErrorOnMount();
       const userDatasetsOwned = await getUserDatasets();
       setUserDatasetOptions(userDatasetsOwned);
-    };
+    })();
   }, []);
 
+  const prevQuery = usePrevious(query);
+
   useEffect(() => {
-    //without second if()
     if (
       cache &&
       query.cached &&
@@ -232,13 +282,18 @@ export default function ResultSet({
       query.results.data.length > 0
     ) {
       setData(query.results.data);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       clearQueryResults(query);
     }
-    const prevQueryResultsKey = usePrevious(query.resultsKey);
-    if (query.resultsKey && prevQueryResultsKey !== query.resultsKey) {
+    if (
+      query.resultsKey &&
+      prevQuery &&
+      query.resultsKey !== prevQuery.resultsKey
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchResults(query);
     }
-  }, [query]); //check prev prop with useprev
+  }, [query, cache]);
 
   const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
     if (alertElement) {
@@ -357,51 +412,6 @@ export default function ResultSet({
     setshowSaveDatasetModal(true);
   };
 
-  const getUserDatasets = async (searchText = '') => {
-    // Making sure that autocomplete input has a value before rendering the dropdown
-    // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const { userId } = user;
-    if (userId) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: searchText,
-          },
-          {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
-
-      const response = await makeApi({
-        method: 'GET',
-        endpoint: '/api/v1/dataset',
-      })(`q=${queryParams}`);
-
-      return response.result.map(
-        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-          value: r.table_name,
-          datasetId: r.id,
-          owners: r.owners,
-        }),
-      );
-    }
-
-    return null;
-  };
-  /* //original start
-    const handleSaveDatasetModalSearch = async (searchText: string) => {
-      const userDatasetsOwned = await getUserDatasets(searchText);
-      setUserDatasetOptions(userDatasetsOwned);
-    };
-    */ //original end
-
   const handleSaveDatasetModalSearch = debounce(async (searchText: string) => {
     const userDatasetsOwned = await getUserDatasets(searchText);
     setUserDatasetOptions(userDatasetsOwned);
@@ -427,8 +437,8 @@ export default function ResultSet({
     actions.addQueryEditor(qe);
   };
 
+  // never used ???
   const toggleExploreResultsButton = () => {
-    //never used ???
     setShowExploreResultsButton(!showExploreResultsButton);
   };
 
@@ -442,15 +452,6 @@ export default function ResultSet({
 
   const reFetchQueryResults = (query: Query) => {
     actions.reFetchQueryResults(query);
-  };
-
-  const reRunQueryIfSessionTimeoutErrorOnMount = () => {
-    if (
-      query.errorMessage &&
-      query.errorMessage.indexOf('session timed out') > 0
-    ) {
-      actions.reRunQuery(query);
-    }
   };
 
   const renderControls = () => {
@@ -513,7 +514,6 @@ export default function ResultSet({
             )}
 
             <CopyToClipboard
-              //text={prepareCopyToClipboardTabularData(data, columns)}
               text={prepareCopyToClipboardTabularData(tempData, columns)}
               wrapped={false}
               copyNode={
@@ -635,16 +635,14 @@ export default function ResultSet({
     );
   };
 
-  //render(
-  //const { query } = this.props;
-  let highlightedSql; //???
+  let highlightedSql;
   let exploreDBId = query.dbId;
   if (database && database.explore_database_id) {
     exploreDBId = database.explore_database_id;
   }
 
   if (showSql) {
-    highlightedSql = <HighlightedSql sql={query.sql} />; //???
+    highlightedSql = <HighlightedSql sql={query.sql} />;
   }
 
   if (query.state === 'stopped') {
@@ -707,19 +705,14 @@ export default function ResultSet({
   }
   if (query.state === 'success' && query.results) {
     const { results } = query;
-    height = alertIsOpen //const height = alertIsOpen //does this need to be redeclared???
-      ? height - 70
-      : height;
-    //let data;
+    const tableHeight = alertIsOpen ? height - 70 : height;
+    let tempData;
     if (cache && query.cached) {
-      //({ data } = this.state);
+      tempData = data;
     } else if (results && results.data) {
-      //({ data } = results);
-      //const tempData = results.data
-      setData(results.data);
-      //setData(tempData)
+      tempData = results.data;
     }
-    if (data && data.length > 0) {
+    if (tempData && tempData.length > 0) {
       const expandedColumns = results.expanded_columns
         ? results.expanded_columns.map(col => col.name)
         : [];
@@ -727,18 +720,18 @@ export default function ResultSet({
         <>
           {renderControls()}
           {renderRowsReturned()}
-          {highlightedSql}//???
+          {highlightedSql}
           <FilterableTable
-            data={data}
+            data={tempData}
             orderedColumnKeys={results.columns.map(col => col.name)}
-            height={height}
+            height={tableHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
           />
         </>
       );
     }
-    if (data && data.length === 0) {
+    if (tempData && tempData.length === 0) {
       return <Alert type="warning" message={t('The query returned no data')} />;
     }
   }
@@ -802,188 +795,15 @@ export default function ResultSet({
       <div>{trackingUrl}</div>
     </div>
   );
+};
 
-  //original render() start
-  /*
+ResultSet.defaultProps = {
+  cache: false,
+  csv: true,
+  database: {},
+  search: true,
+  showSql: false,
+  visualize: true,
+};
 
-  render() {
-    const { query } = this.props;
-    let sql;
-    let exploreDBId = query.dbId;
-    if (this.props.database && this.props.database.explore_database_id) {
-      exploreDBId = this.props.database.explore_database_id;
-    }
-
-    if (this.props.showSql) {
-      sql = <HighlightedSql sql={query.sql} />;
-    }
-
-    if (query.state === 'stopped') {
-      return <Alert type="warning" message={t('Query was stopped')} />;
-    }
-    if (query.state === 'failed') {
-      return (
-        <ResultSetErrorMessage>
-          <ErrorMessageWithStackTrace
-            title={t('Database error')}
-            error={query?.errors?.[0]}
-            subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-            copyText={query.errorMessage || undefined}
-            link={query.link}
-            source="sqllab"
-          />
-        </ResultSetErrorMessage>
-      );
-    }
-    if (query.state === 'success' && query.ctas) {
-      const { tempSchema, tempTable } = query;
-      let object = 'Table';
-      if (query.ctas_method === CtasEnum.VIEW) {
-        object = 'View';
-      }
-      return (
-        <div>
-          <Alert
-            type="info"
-            message={
-              <>
-                {t(object)} [
-                <strong>
-                  {tempSchema ? `${tempSchema}.` : ''}
-                  {tempTable}
-                </strong>
-                ] {t('was created')} &nbsp;
-                <ButtonGroup>
-                  <Button
-                    buttonSize="small"
-                    className="m-r-5"
-                    onClick={() => this.popSelectStar(tempSchema, tempTable)}
-                  >
-                    {t('Query in a new tab')}
-                  </Button>
-                  <ExploreCtasResultsButton
-                    // @ts-ignore Redux types are difficult to work with, ignoring for now
-                    table={tempTable}
-                    schema={tempSchema}
-                    dbId={exploreDBId}
-                    database={this.props.database}
-                    actions={this.props.actions}
-                  />
-                </ButtonGroup>
-              </>
-            }
-          />
-        </div>
-      );
-
-    }
-    if (query.state === 'success' && query.results) {
-      const { results } = query;
-      const height = this.state.alertIsOpen
-        ? this.props.height - 70
-        : this.props.height;
-      let data;
-      if (this.props.cache && query.cached) {
-        ({ data } = this.state);
-      } else if (results && results.data) {
-        ({ data } = results);
-      }
-      if (data && data.length > 0) {
-        const expandedColumns = results.expanded_columns
-          ? results.expanded_columns.map(col => col.name)
-          : [];
-        return (
-          <>
-            {this.renderControls()}
-            {this.renderRowsReturned()}
-            {sql}
-            <FilterableTable
-              data={data}
-              orderedColumnKeys={results.columns.map(col => col.name)}
-              height={height}
-              filterText={this.state.searchText}
-              expandedColumns={expandedColumns}
-            />
-          </>
-        );
-      }
-      if (data && data.length === 0) {
-        return (
-          <Alert type="warning" message={t('The query returned no data')} />
-        );
-      }
-    }
-    if (query.cached || (query.state === 'success' && !query.results)) {
-      if (query.isDataPreview) {
-        return (
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={() =>
-              this.reFetchQueryResults({
-                ...query,
-                isDataPreview: true,
-              })
-            }
-          >
-            {t('Fetch data preview')}
-          </Button>
-        );
-      }
-      if (query.resultsKey) {
-        return (
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={() => this.fetchResults(query)}
-          >
-            {t('Refetch results')}
-          </Button>
-        );
-      }
-    }
-    let trackingUrl;
-    let progressBar;
-    if (query.progress > 0) {
-      progressBar = (
-        <ProgressBar
-          percent={parseInt(query.progress.toFixed(0), 10)}
-          striped
-        />
-      );
-    }
-    if (query.trackingUrl) {
-      trackingUrl = (
-        <Button
-          buttonSize="small"
-          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
-        >
-          {t('Track job')}
-        </Button>
-      );
-    }
-    const progressMsg =
-      query && query.extra && query.extra.progress
-        ? query.extra.progress
-        : null;
-
-    return (
-      <div style={LOADING_STYLES}>
-        <div>{!progressBar && <Loading position="normal" />}</div>
-        {// show loading bar whenever progress bar is completed but needs time to render
-        //}
-        <div>{query.progress === 100 && <Loading position="normal" />}</div>
-        <QueryStateLabel query={query} />
-        <div>
-          {progressMsg && <Alert type="success" message={progressMsg} />}
-        </div>
-        <div>{query.progress !== 100 && progressBar}</div>
-        <div>{trackingUrl}</div>
-      </div>
-    );
-  }
-
-
-  */
-  //original render() end
-}
+export default ResultSet;
