@@ -83,7 +83,7 @@ extraSecretEnv: {}
   # GOOGLE_SECRET: ...
 
 extraConfigs: {}
-  # datasources-init.yaml: |
+  # import_datasources.yaml: |
   #     databases:
   #     - allow_file_upload: true
   #       allow_ctas: true
