@@ -26,4 +26,3 @@ CHANGELOG.md
 *-topo.json
 temporary_superset_ui/
 storybook-static/
-plugins/legacy-plugins-chart-histogram/src/Histogram.jsx
