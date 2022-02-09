@@ -1228,14 +1228,19 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
-def get_column_name(column: Column) -> str:
+def get_column_name(
+    column: Column, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from column
 
     :param column: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
+    verbose_map = verbose_map or {}
     if isinstance(column, dict):
         label = column.get("label")
         if label:
@@ -1243,18 +1248,23 @@ def get_column_name(column: Column) -> str:
         expr = column.get("sqlExpression")
         if expr:
             return expr
-        raise Exception("Missing label")
-    return column
+        raise ValueError("Missing label")
+    return verbose_map.get(column, column)
 
 
-def get_metric_name(metric: Metric) -> str:
+def get_metric_name(
+    metric: Metric, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from metric
 
     :param metric: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of metric
     :raises ValueError: if metric object is invalid
     """
+    verbose_map = verbose_map or {}
     if is_adhoc_metric(metric):
         label = metric.get("label")
         if label:
@@ -1271,21 +1281,36 @@ def get_metric_name(metric: Metric) -> str:
             if column and aggregate:
                 return f"{aggregate}({column_name})"
             if column_name:
-                return column_name
+                return verbose_map.get(column_name, column_name)
         raise ValueError(__("Invalid metric object"))
-    return metric  # type: ignore
+
+    return verbose_map.get(metric, metric)  # type: ignore
 
 
-def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
-    return [column for column in map(get_column_name, columns or []) if column]
+def get_column_names(
+    columns: Optional[Sequence[Column]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        column
+        for column in [get_column_name(column, verbose_map) for column in columns or []]
+        if column
+    ]
 
 
-def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+def get_metric_names(
+    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        metric
+        for metric in [get_metric_name(metric, verbose_map) for metric in metrics or []]
+        if metric
+    ]
 
 
-def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
-    metric_labels = get_metric_names(metrics)
+def get_first_metric_name(
+    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
 
 
