@@ -33,7 +33,7 @@ interface ExploreCtasResultsButtonProps {
     addDangerToast: Function;
   };
   table: string;
-  schema?: string;
+  schema?: string | null;
   dbId: number;
   templateParams?: string;
 }
