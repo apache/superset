@@ -29,7 +29,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
-  sharedLabelColor,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -298,7 +298,7 @@ const PropertiesModal = ({
       if (metadata?.shared_label_colors) {
         delete metadata.shared_label_colors;
       }
-      const colorMap = sharedLabelColor.getColorMap(
+      const colorMap = getSharedLabelColor().getColorMap(
         metadata?.color_namespace,
         metadata?.color_scheme,
       );

@@ -18,8 +18,9 @@
  */
 
 import { CategoricalColorNamespace } from '.';
+import makeSingleton from '../utils/makeSingleton';
 
-class SharedLabelColor {
+export class SharedLabelColor {
   values: string[];
 
   valueSliceMap: Record<string, number[]>;
@@ -73,6 +74,13 @@ class SharedLabelColor {
       }
     });
   }
+
+  clear() {
+    this.values = [];
+    this.valueSliceMap = {};
+  }
 }
 
-export const sharedLabelColor = new SharedLabelColor();
+const getInstance = makeSingleton(SharedLabelColor);
+
+export default getInstance;

@@ -22,7 +22,7 @@ import {
   ensureIsArray,
   t,
   SupersetClient,
-  sharedLabelColor,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
 import { chart as initChart } from 'src/chart/chartReducer';
@@ -485,7 +485,7 @@ export function addSliceToDashboard(id, component) {
         const {
           dashboardInfo: { metadata },
         } = getState();
-        metadata.shared_label_colors = sharedLabelColor.getColorMap(
+        metadata.shared_label_colors = getSharedLabelColor().getColorMap(
           metadata?.color_namespace,
           metadata?.color_scheme,
         );
@@ -512,8 +512,8 @@ export function removeSliceFromDashboard(id) {
     const {
       dashboardInfo: { metadata },
     } = getState();
-    sharedLabelColor.removeSlice(id);
-    metadata.shared_label_colors = sharedLabelColor.getColorMap(
+    getSharedLabelColor().removeSlice(id);
+    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
       metadata?.color_namespace,
       metadata?.color_scheme,
     );

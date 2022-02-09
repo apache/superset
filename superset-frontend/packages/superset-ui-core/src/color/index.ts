@@ -32,6 +32,9 @@ export * from './SequentialScheme';
 export { default as ColorSchemeRegistry } from './ColorSchemeRegistry';
 export * from './colorSchemes';
 export * from './utils';
-export * from './SharedLabelColor';
+export {
+  default as getSharedLabelColor,
+  SharedLabelColor,
+} from './SharedLabelColorSingleton';
 
 export const BRAND_COLOR = '#00A699';

@@ -22,7 +22,7 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
-import { sharedLabelColor } from './SharedLabelColor';
+import getSharedLabelColor from './SharedLabelColorSingleton';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
@@ -65,7 +65,7 @@ class CategoricalColorScale extends ExtensibleFunction {
   getColor(value?: string) {
     const cleanedValue = stringifyAndTrim(value);
 
-    sharedLabelColor.addSlice(cleanedValue, this.sliceId);
+    getSharedLabelColor().addSlice(cleanedValue, this.sliceId);
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
