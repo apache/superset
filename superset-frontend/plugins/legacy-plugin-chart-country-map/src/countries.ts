@@ -47,6 +47,7 @@ import lithuania from './countries/lithuania.geojson';
 import nigeria from './countries/nigeria.geojson';
 import norway from './countries/norway.geojson';
 import malaysia from './countries/malaysia.geojson';
+import mexico from './countries/mexico.geojson';
 import morocco from './countries/morocco.geojson';
 import myanmar from './countries/myanmar.geojson';
 import netherlands from './countries/netherlands.geojson';
@@ -104,6 +105,7 @@ export const countries = {
   liechtenstein,
   lithuania,
   malaysia,
+  mexico,
   morocco,
   myanmar,
   netherlands,

@@ -197,6 +197,7 @@ function ChartList(props: ChartListProps) {
   const handleChartImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Chart imported'));
   };
 
   const canCreate = hasPerm('can_write');

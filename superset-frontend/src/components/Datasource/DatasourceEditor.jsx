@@ -1271,7 +1271,6 @@ class DatasourceEditor extends React.PureComponent {
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
-                editableColumnName
                 columns={this.state.databaseColumns}
                 datasource={datasource}
                 onColumnsChange={databaseColumns =>
@@ -1291,25 +1290,27 @@ class DatasourceEditor extends React.PureComponent {
             }
             key={3}
           >
-            <ColumnCollectionTable
-              columns={this.state.calculatedColumns}
-              onColumnsChange={calculatedColumns =>
-                this.setColumns({ calculatedColumns })
-              }
-              onDatasourceChange={this.onDatasourceChange}
-              datasource={datasource}
-              editableColumnName
-              showExpression
-              allowAddItem
-              allowEditDataType
-              itemGenerator={() => ({
-                column_name: '<new column>',
-                filterable: true,
-                groupby: true,
-                expression: '<enter SQL expression here>',
-                __expanded: true,
-              })}
-            />
+            <StyledColumnsTabWrapper>
+              <ColumnCollectionTable
+                columns={this.state.calculatedColumns}
+                onColumnsChange={calculatedColumns =>
+                  this.setColumns({ calculatedColumns })
+                }
+                onDatasourceChange={this.onDatasourceChange}
+                datasource={datasource}
+                editableColumnName
+                showExpression
+                allowAddItem
+                allowEditDataType
+                itemGenerator={() => ({
+                  column_name: '<new column>',
+                  filterable: true,
+                  groupby: true,
+                  expression: '<enter SQL expression here>',
+                  __expanded: true,
+                })}
+              />
+            </StyledColumnsTabWrapper>
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
             <Row gutter={16}>
