@@ -167,6 +167,12 @@ const updateHistory = debounce(
   async (formData, datasetId, isReplace, standalone, force, title) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
+    const additionalParam = {};
+    if (chartId) {
+      additionalParam[URL_PARAMS.sliceId.name] = chartId;
+    } else {
+      additionalParam[URL_PARAMS.datasetId.name] = datasetId;
+    }
 
     try {
       let key;
@@ -183,6 +189,7 @@ const updateHistory = debounce(
         standalone ? URL_PARAMS.standalone.name : null,
         {
           [URL_PARAMS.formDataKey.name]: key,
+          ...additionalParam,
         },
         force,
       );
