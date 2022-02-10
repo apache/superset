@@ -107,6 +107,13 @@ const mockedProps = {
             url: '/tablemodelview/list/',
           },
           '-',
+        ],
+      },
+      {
+        name: 'Upload Data',
+        icon: 'fa-database',
+        label: 'Data',
+        childs: [
           {
             name: 'Upload a CSV',
             icon: 'fa-upload',
