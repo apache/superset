@@ -258,7 +258,7 @@ test('should render the dropdown items', async () => {
   render(<Menu {...notanonProps} />);
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
-  // Todo: test data submenu
+// todo (philip): test data submenu
   expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
     dropdownItems[1].url,
