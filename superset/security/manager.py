@@ -1341,7 +1341,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         try:
-            aud = current_app.config["GUEST_TOKEN_JWT_DECODE_AUDIENCE"] or get_url_host()
+            aud = (
+                current_app.config["GUEST_TOKEN_JWT_DECODE_AUDIENCE"] or get_url_host()
+            )
             token = self.parse_jwt_guest_token(raw_token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
