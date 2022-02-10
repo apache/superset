@@ -1019,7 +1019,7 @@ describe('DatabaseModal', () => {
   describe('DatabaseModal w/ Deeplinking Engine', () => {
     const renderAndWait = async () => {
       const mounted = act(async () => {
-        render(<DatabaseModal {...dbProps} setDBEngine={'PostgreSQL'} />, {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
           useRedux: true,
         });
       });
