@@ -19,6 +19,7 @@
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
@@ -107,14 +108,23 @@ window.addEventListener('message', function (event) {
   }
 
   const hostAppPort = event.ports?.[0];
-  if (hostAppPort) {
-    log('received message', event);
-    hostAppPort.onmessage = function receiveMessage(event) {
-      log('received message event', event.data);
-      if (event.data.guestToken) {
-        start(event.data.guestToken);
-      }
-    };
+  if (event.data.handshake === 'port transfer' && hostAppPort) {
+    log('message port received', event);
+
+    const switchboard = new Switchboard(hostAppPort, 'superset');
+
+    switchboard.defineMethod('guestToken', ({ guestToken }) => {
+      start(guestToken);
+    });
+
+    switchboard.defineMethod('getScrollSize', () => {
+      return {
+        width: document.body.scrollWidth,
+        height: document.body.scrollHeight,
+      };
+    });
+
+    switchboard.start();
   }
 });
 

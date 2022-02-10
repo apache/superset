@@ -19,6 +19,9 @@
 
 import { IFRAME_COMMS_MESSAGE_TYPE } from './const';
 
+// We can swap this out for the actual switchboard package once it gets published
+import { Switchboard } from '../../superset-frontend/packages/superset-ui-switchboard/src/switchboard';
+
 /**
  * The function to fetch a guest token from your Host App's backend server.
  * The Host App backend must supply an API endpoint
@@ -37,6 +40,15 @@ export type EmbedDashboardParams = {
   fetchGuestToken: GuestTokenFetchFn
 }
 
+export type Size = {
+  width: number, height: number
+}
+
+export type EmbeddedDashboard = {
+  getScrollSize: () => Promise<Size>
+  unmount: () => void
+}
+
 /**
  * Embeds a Superset dashboard into the page using an iframe.
  */
@@ -45,14 +57,14 @@ export async function embedDashboard({
   supersetDomain,
   mountPoint,
   fetchGuestToken
-}: EmbedDashboardParams) {
+}: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
   }
 
   log('embedding');
 
-  async function mountIframe(): Promise<MessagePort> {
+  async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
 
@@ -83,7 +95,7 @@ export async function embedDashboard({
         log('sent message channel to the iframe');
 
         // return our port from the promise
-        resolve(ourPort);
+        resolve(new Switchboard(ourPort));
       });
 
       iframe.src = `${supersetDomain}/dashboard/${id}/embedded`;
@@ -94,10 +106,10 @@ export async function embedDashboard({
 
   const [guestToken, ourPort] = await Promise.all([
     fetchGuestToken(),
-    mountIframe()
+    mountIframe(),
   ]);
 
-  ourPort.postMessage({ guestToken });
+  ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
 
   function unmount() {
@@ -105,7 +117,10 @@ export async function embedDashboard({
     mountPoint.replaceChildren();
   }
 
+  const getScrollSize = () => ourPort.get<Size>('getScrollSize');
+
   return {
-    unmount
+    getScrollSize,
+    unmount,
   };
 }
