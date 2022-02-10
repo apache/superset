@@ -16,7 +16,11 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
+from textwrap import dedent
+
+import pytest
 from flask.ctx import AppContext
+from sqlalchemy.types import TypeEngine
 
 
 def test_get_text_clause_with_colon(app_context: AppContext) -> None:
@@ -56,3 +60,42 @@ def test_parse_sql_multi_statement(app_context: AppContext) -> None:
         "SELECT foo FROM tbl1",
         "SELECT bar FROM tbl2",
     ]
+
+
+@pytest.mark.parametrize(
+    "original,expected",
+    [
+        (
+            dedent(
+                """
+with currency as
+(
+select 'INR' as cur
+)
+select * from currency
+"""
+            ),
+            None,
+        ),
+        ("SELECT 1 as cnt", None,),
+        (
+            dedent(
+                """
+select 'INR' as cur
+union
+select 'AUD' as cur
+union
+select 'USD' as cur
+"""
+            ),
+            None,
+        ),
+    ],
+)
+def test_cte_query_parsing(
+    app_context: AppContext, original: TypeEngine, expected: str
+) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    actual = BaseEngineSpec.get_cte_query(original)
+    assert actual == expected

@@ -83,6 +83,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       );
       return `${window.location.origin}${mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: formData.slice_id,
       })}`;
     }
     const copyUrl = await getCopyUrl();
@@ -101,8 +102,11 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onShareByEmail() {
     try {
-      const bodyWithLink = `${emailBody}${await generateUrl()}`;
-      window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
+      const encodedBody = encodeURIComponent(
+        `${emailBody}${await generateUrl()}`,
+      );
+      const encodedSubject = encodeURIComponent(emailSubject);
+      window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

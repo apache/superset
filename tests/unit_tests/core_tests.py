@@ -19,10 +19,13 @@ from copy import deepcopy
 import pytest
 
 from superset.utils.core import (
+    AdhocColumn,
     AdhocMetric,
     ExtraFiltersReasonType,
     ExtraFiltersTimeColumnType,
     GenericDataType,
+    get_column_name,
+    get_column_names,
     get_metric_name,
     get_metric_names,
     get_time_filter_status,
@@ -47,15 +50,23 @@ SQL_ADHOC_METRIC: AdhocMetric = {
     "label": "my_sql",
     "sqlExpression": "SUM(my_col)",
 }
+STR_COLUMN = "my_column"
+SQL_ADHOC_COLUMN: AdhocColumn = {
+    "hasCustomLabel": True,
+    "label": "My Adhoc Column",
+    "sqlExpression": "case when foo = 1 then 'foo' else 'bar' end",
+}
 
 
 def test_get_metric_name_saved_metric():
     assert get_metric_name(STR_METRIC) == "my_metric"
+    assert get_metric_name(STR_METRIC, {STR_METRIC: "My Metric"}) == "My Metric"
 
 
 def test_get_metric_name_adhoc():
     metric = deepcopy(SIMPLE_SUM_ADHOC_METRIC)
     assert get_metric_name(metric) == "my SUM"
+    assert get_metric_name(metric, {"my SUM": "My Irrelevant Mapping"}) == "my SUM"
     del metric["label"]
     assert get_metric_name(metric) == "SUM(my_col)"
     metric["label"] = ""
@@ -64,9 +75,11 @@ def test_get_metric_name_adhoc():
     assert get_metric_name(metric) == "my_col"
     metric["aggregate"] = ""
     assert get_metric_name(metric) == "my_col"
+    assert get_metric_name(metric, {"my_col": "My Irrelevant Mapping"}) == "my_col"
 
     metric = deepcopy(SQL_ADHOC_METRIC)
     assert get_metric_name(metric) == "my_sql"
+    assert get_metric_name(metric, {"my_sql": "My Irrelevant Mapping"}) == "my_sql"
     del metric["label"]
     assert get_metric_name(metric) == "SUM(my_col)"
     metric["label"] = ""
@@ -97,6 +110,46 @@ def test_get_metric_names():
     assert get_metric_names(
         [STR_METRIC, SIMPLE_SUM_ADHOC_METRIC, SQL_ADHOC_METRIC]
     ) == ["my_metric", "my SUM", "my_sql"]
+    assert get_metric_names(
+        [STR_METRIC, SIMPLE_SUM_ADHOC_METRIC, SQL_ADHOC_METRIC],
+        {STR_METRIC: "My Metric"},
+    ) == ["My Metric", "my SUM", "my_sql"]
+
+
+def test_get_column_name_physical_column():
+    assert get_column_name(STR_COLUMN) == "my_column"
+    assert get_metric_name(STR_COLUMN, {STR_COLUMN: "My Column"}) == "My Column"
+
+
+def test_get_column_name_adhoc():
+    column = deepcopy(SQL_ADHOC_COLUMN)
+    assert get_column_name(column) == "My Adhoc Column"
+    assert (
+        get_column_name(column, {"My Adhoc Column": "My Irrelevant Mapping"})
+        == "My Adhoc Column"
+    )
+    del column["label"]
+    assert get_column_name(column) == "case when foo = 1 then 'foo' else 'bar' end"
+    column["label"] = ""
+    assert get_column_name(column) == "case when foo = 1 then 'foo' else 'bar' end"
+
+
+def test_get_column_names():
+    assert get_column_names([STR_COLUMN, SQL_ADHOC_COLUMN]) == [
+        "my_column",
+        "My Adhoc Column",
+    ]
+    assert get_column_names(
+        [STR_COLUMN, SQL_ADHOC_COLUMN], {"my_column": "My Column"},
+    ) == ["My Column", "My Adhoc Column"]
+
+
+def test_get_column_name_invalid_metric():
+    column = deepcopy(SQL_ADHOC_COLUMN)
+    del column["label"]
+    del column["sqlExpression"]
+    with pytest.raises(ValueError):
+        get_column_name(column)
 
 
 def test_is_adhoc_metric():

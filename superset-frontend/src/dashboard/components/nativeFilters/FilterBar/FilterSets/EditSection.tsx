@@ -17,12 +17,11 @@
  * under the License.
  */
 import React, { FC, useMemo, useState } from 'react';
-import { HandlerFunction, styled, t } from '@superset-ui/core';
+import { DataMaskState, HandlerFunction, styled, t } from '@superset-ui/core';
 import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
-import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
 import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';

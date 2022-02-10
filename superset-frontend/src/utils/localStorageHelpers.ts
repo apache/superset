@@ -49,6 +49,7 @@ export enum LocalStorageKeys {
    * sqllab__is_autocomplete_enabled
    */
   sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
+  explore__data_table_time_formatted_columns = 'explore__data_table_time_formatted_columns',
 }
 
 export type LocalStorageValues = {
@@ -62,6 +63,7 @@ export type LocalStorageValues = {
   homepage_collapse_state: string[];
   homepage_activity_filter: SetTabType | null;
   sqllab__is_autocomplete_enabled: boolean;
+  explore__data_table_time_formatted_columns: Record<string, string[]>;
 };
 
 export function getItem<K extends LocalStorageKeys>(
