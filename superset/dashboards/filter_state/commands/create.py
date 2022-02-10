@@ -28,9 +28,10 @@ class CreateFilterStateCommand(CreateKeyValueCommand):
     def create(self, cmd_params: CommandParameters) -> str:
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
-        contextual_key = cache_key(session.get("_id"), resource_id)
+        tab_id = cmd_params.tab_id
+        contextual_key = cache_key(session.get("_id"), tab_id, resource_id)
         key = cache_manager.filter_state_cache.get(contextual_key)
-        if not key:
+        if not key or not tab_id:
             key = random_key()
         value = cmd_params.value
         dashboard = DashboardDAO.get_by_id_or_slug(str(resource_id))

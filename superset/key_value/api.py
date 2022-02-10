@@ -73,7 +73,10 @@ class KeyValueRestApi(BaseApi, ABC):
     def post(self, pk: int) -> Response:
         try:
             item = self.add_model_schema.load(request.json)
-            args = CommandParameters(actor=g.user, resource_id=pk, value=item["value"],)
+            tab_id = request.args.get("tab_id")
+            args = CommandParameters(
+                actor=g.user, resource_id=pk, value=item["value"], tab_id=tab_id
+            )
             key = self.get_create_command()(args).run()
             return self.response(201, key=key)
         except ValidationError as ex:
@@ -92,13 +95,16 @@ class KeyValueRestApi(BaseApi, ABC):
     def put(self, pk: int, key: str) -> Response:
         try:
             item = self.edit_model_schema.load(request.json)
+            tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user, resource_id=pk, key=key, value=item["value"],
+                actor=g.user,
+                resource_id=pk,
+                key=key,
+                value=item["value"],
+                tab_id=tab_id,
             )
-            result = self.get_update_command()(args).run()
-            if not result:
-                return self.response_404()
-            return self.response(200, message="Value updated successfully.")
+            key = self.get_update_command()(args).run()
+            return self.response(200, key=key)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         except (

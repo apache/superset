@@ -24,5 +24,6 @@ from flask_appbuilder.security.sqla.models import User
 class CommandParameters:
     actor: User
     resource_id: int
+    tab_id: Optional[int] = None
     key: Optional[str] = None
     value: Optional[str] = None
