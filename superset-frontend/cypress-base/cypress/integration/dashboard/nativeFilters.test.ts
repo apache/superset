@@ -21,7 +21,6 @@ import { dashboardView, nativeFilters } from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
-import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
 
 const getTestTitle = (
   test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
