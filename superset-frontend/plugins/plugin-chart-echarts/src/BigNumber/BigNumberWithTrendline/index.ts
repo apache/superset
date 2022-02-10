@@ -45,6 +45,13 @@ const metadata = new ChartMetadata({
     t('Trend'),
   ],
   thumbnail,
+  label: {
+    name: t('verified'),
+    description: t(
+      'This chart was tested and verified, so the overall experience should be stable.',
+    ),
+    weight: 2,
+  },
 });
 
 export default class BigNumberWithTrendlineChartPlugin extends ChartPlugin<

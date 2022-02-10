@@ -92,6 +92,13 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
+        label: {
+          name: t('verified'),
+          description: t(
+            'This chart was tested and verified, so the overall experience should be stable.',
+          ),
+          weight: 2,
+        },
       }),
       transformProps: barTransformProps,
     });

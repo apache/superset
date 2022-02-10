@@ -34,7 +34,7 @@ import {
   SupersetTheme,
   useTheme,
 } from '@superset-ui/core';
-import { Collapse, Input } from 'src/common/components';
+import { Collapse, Input, Tooltip } from 'src/common/components';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
@@ -309,6 +309,7 @@ const Examples = styled.div`
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+  position: relative;
 
   img {
     min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
@@ -330,6 +331,38 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
     margin-top: ${theme.gridUnit * 2}px;
     text-align: center;
   }
+`;
+
+const BetaBadge = styled.div`
+  ${({ theme }) => `
+    border: 1px solid #1985a0;
+    box-sizing: border-box;
+    border-radius: 4px;
+    background: #ffffff;
+    line-height: ${theme.gridUnit * 2.5}px;
+    color: #1985a0;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
+    text-transform: uppercase;
+    cursor: pointer;
+
+    div {
+      transform: scale(0.83,0.83);
+    }
+  `}
+`;
+
+const ThumbnailBadgeWrapper = styled.div`
+  position: absolute;
+  right: ${({ theme }) => theme.gridUnit}px;
+  top: ${({ theme }) => theme.gridUnit * 19}px;
+`;
+
+const TitleBadgeWrapper = styled.div`
+  display: inline-block !important;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 function vizSortFactor(entry: VizEntry) {
@@ -377,6 +410,13 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
+      {type.label && (
+        <ThumbnailBadgeWrapper>
+          <BetaBadge>
+            <div>{type.label.name}</div>
+          </BetaBadge>
+        </ThumbnailBadgeWrapper>
+      )}
     </div>
   );
 };
@@ -738,9 +778,23 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             <SectionTitle
               css={css`
                 grid-area: viz-name;
+                position: relative;
               `}
             >
               {selectedVizMetadata?.name}
+              {selectedVizMetadata?.label && (
+                <Tooltip
+                  id="viz-badge-tooltip"
+                  placement="top"
+                  title={selectedVizMetadata?.label.description}
+                >
+                  <TitleBadgeWrapper>
+                    <BetaBadge>
+                      <div>{selectedVizMetadata.label.name}</div>
+                    </BetaBadge>
+                  </TitleBadgeWrapper>
+                </Tooltip>
+              )}
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (

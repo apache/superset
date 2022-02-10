@@ -44,6 +44,11 @@ export interface ChartMetadataConfig {
   exampleGallery?: ExampleImage[];
   tags?: string[];
   category?: string | null;
+  label?: {
+    name: string;
+    description: string;
+    weight: number;
+  };
 }
 
 export default class ChartMetadata {
@@ -79,6 +84,12 @@ export default class ChartMetadata {
 
   category: string | null;
 
+  label?: {
+    name: string;
+    description: string;
+    weight: number;
+  };
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -96,6 +107,7 @@ export default class ChartMetadata {
       exampleGallery = [],
       tags = [],
       category = null,
+      label,
     } = config;
 
     this.name = name;
@@ -122,6 +134,7 @@ export default class ChartMetadata {
     this.exampleGallery = exampleGallery;
     this.tags = tags;
     this.category = category;
+    this.label = label;
   }
 
   canBeAnnotationType(type: string): boolean {

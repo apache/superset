@@ -54,6 +54,13 @@ export default class PivotTableChartPlugin extends ChartPlugin<
       name: t('Pivot Table v2'),
       tags: [t('Additive'), t('Report'), t('Tabular'), t('Popular')],
       thumbnail,
+      label: {
+        name: t('verified'),
+        description: t(
+          'This chart was tested and verified, so the overall experience should be stable.',
+        ),
+        weight: 2,
+      },
     });
 
     super({
