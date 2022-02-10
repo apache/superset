@@ -30,19 +30,22 @@ type EventHandler = (event: MessageEvent) => void;
 /** Matches the MessagePort api as closely as necessary (it's a small api) */
 class FakeMessagePort {
   otherPort?: FakeMessagePort;
+
   isStarted = false;
+
   queue: MessageEvent[] = [];
+
   listeners: Set<EventHandler> = new Set();
 
   dispatchEvent(event: MessageEvent) {
     if (this.isStarted) {
-      for (let listener of this.listeners) {
+      this.listeners.forEach(listener => {
         try {
           listener(event);
         } catch (err) {
           // whatever browsers do here, idk
         }
-      }
+      });
     } else {
       this.queue.push(event);
     }
@@ -64,9 +67,9 @@ class FakeMessagePort {
   start() {
     if (this.isStarted) return;
     this.isStarted = true;
-    for (let event of this.queue) {
+    this.queue.forEach(event => {
       this.dispatchEvent(event);
-    }
+    });
     this.queue = [];
   }
 
@@ -75,12 +78,14 @@ class FakeMessagePort {
   }
 
   onmessage = null;
+
   onmessageerror = null;
 }
 
 /** Matches the MessageChannel api as closely as necessary (an even smaller api than MessagePort) */
 class FakeMessageChannel {
   port1: MessagePort;
+
   port2: MessagePort;
 
   constructor() {

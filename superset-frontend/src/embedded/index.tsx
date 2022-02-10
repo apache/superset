@@ -117,12 +117,10 @@ window.addEventListener('message', function (event) {
       start(guestToken);
     });
 
-    switchboard.defineMethod('getScrollSize', () => {
-      return {
-        width: document.body.scrollWidth,
-        height: document.body.scrollHeight,
-      };
-    });
+    switchboard.defineMethod('getScrollSize', () => ({
+      width: document.body.scrollWidth,
+      height: document.body.scrollHeight,
+    }));
 
     switchboard.start();
   }

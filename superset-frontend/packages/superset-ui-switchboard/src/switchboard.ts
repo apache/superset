@@ -26,8 +26,11 @@
  */
 export class Switchboard {
   port: MessagePort;
+
   name: string;
+
   methods: Record<string, Method<any, any>> = {};
+
   // used to make unique ids
   incrementor = 1;
 
@@ -36,7 +39,7 @@ export class Switchboard {
     this.name = name;
 
     port.addEventListener('message', async event => {
-      this._log('message received', event);
+      this.log('message received', event);
       const message = event.data;
       if (isGet(message)) {
         const { method, messageId, args } = message;
@@ -90,7 +93,7 @@ export class Switchboard {
     return new Promise(resolve => {
       // In order to "call a method" on the other side of the port,
       // we will send a message with a unique id
-      const messageId = this._getNewMessageId();
+      const messageId = this.getNewMessageId();
       // attach a new listener to our port, and remove it when we get a response
       const listener = (event: MessageEvent) => {
         if (isReply(event.data) && event.data.messageId === messageId) {
@@ -126,11 +129,12 @@ export class Switchboard {
     this.port.postMessage(message);
   }
 
-  _log(...args: unknown[]) {
+  log(...args: unknown[]) {
     console.debug(`[${this.name}]`, ...args);
   }
 
-  _getNewMessageId() {
+  getNewMessageId() {
+    // eslint-disable-next-line no-plusplus
     return `m_${this.name}_${this.incrementor++}`;
   }
 }
