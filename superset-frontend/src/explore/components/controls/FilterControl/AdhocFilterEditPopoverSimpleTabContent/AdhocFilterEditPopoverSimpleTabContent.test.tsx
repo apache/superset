@@ -34,6 +34,11 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
 } from '.';
+import { fireEvent, render, screen, act } from '@testing-library/react';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { Provider } from 'react-redux';
+import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -326,5 +331,44 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
 
 describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
-  
+
+  const { props } = setup();
+  const BUSINESS_TYPE_ENDPOINT = "/api/v1/business_type/convert?q=(type:cidr,values:!(''))";
+
+  it('is valid', () => {
+    expect(
+      React.isValidElement(
+        <ThemeProvider theme={supersetTheme}>
+          <AdhocFilterEditPopoverSimpleTabContent {...props} />
+        </ThemeProvider>,
+      ),
+    ).toBe(true);
+  });
+
+  beforeEach(async () => {
+    // You need this await function in order to change state in the app. In fact you need it everytime you re-render.
+    await act(async () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <AdhocFilterEditPopoverSimpleTabContent {...props} />
+        </ThemeProvider>,
+      );
+    });
+  });
+
+  it('should not call API when column has no business type', async () => {
+
+    
+
+    const filterList = screen.getByTitle('Filter');
+    await act(async () => {
+      userEvent.type(filterList, '1.1.1.1');
+    });
+    expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT)).toHaveLength(0);
+    await act(async () => {
+      userEvent.type(filterList, '{enter}');
+    });
+    expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT)).toHaveLength(1);
+  });
+
 });
