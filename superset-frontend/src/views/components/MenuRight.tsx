@@ -27,8 +27,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-import DatabaseModal from '../CRUD/data/database/DatabaseModal';
-
 export const dropdownItems = [
   {
     label: t('SQL query'),
