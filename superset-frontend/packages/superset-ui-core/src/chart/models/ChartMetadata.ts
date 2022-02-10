@@ -47,8 +47,8 @@ export interface ChartMetadataConfig {
   label?: {
     name: string;
     description: string;
-    weight: number;
   };
+  searchWeight?: number;
 }
 
 export default class ChartMetadata {
@@ -87,8 +87,9 @@ export default class ChartMetadata {
   label?: {
     name: string;
     description: string;
-    weight: number;
   };
+
+  searchWeight: number;
 
   constructor(config: ChartMetadataConfig) {
     const {
@@ -108,6 +109,7 @@ export default class ChartMetadata {
       tags = [],
       category = null,
       label,
+      searchWeight = 0,
     } = config;
 
     this.name = name;
@@ -135,6 +137,7 @@ export default class ChartMetadata {
     this.tags = tags;
     this.category = category;
     this.label = label;
+    this.searchWeight = searchWeight;
   }
 
   canBeAnnotationType(type: string): boolean {

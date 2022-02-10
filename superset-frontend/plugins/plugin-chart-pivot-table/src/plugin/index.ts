@@ -59,8 +59,8 @@ export default class PivotTableChartPlugin extends ChartPlugin<
         description: t(
           'This chart was tested and verified, so the overall experience should be stable.',
         ),
-        weight: 2,
       },
+      searchWeight: 0.5,
     });
 
     super({

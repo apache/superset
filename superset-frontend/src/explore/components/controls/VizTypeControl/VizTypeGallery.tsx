@@ -584,7 +584,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (searchInputValue.trim() === '') {
       return [];
     }
-    return fuse.search(searchInputValue).map(result => result.item);
+    return fuse
+      .search(searchInputValue)
+      .map(result => result.item)
+      .sort(
+        (a, b) => (b.value?.searchWeight || 0) - (a.value?.searchWeight || 0),
+      );
   }, [searchInputValue, fuse]);
 
   const focusSearch = useCallback(() => {
