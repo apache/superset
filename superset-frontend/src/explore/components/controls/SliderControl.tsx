@@ -17,27 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import Slider from 'src/components/Slider';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+type SliderControlProps = {
+  onChange: (value: number) => void;
+  value: number;
+  default?: number;
 };
 
-const defaultProps = {
-  onChange: () => {},
-};
-
-export default function SliderControl(props) {
+export default function SliderControl(props: SliderControlProps) {
+  const { onChange = () => {}, default: defaultValue, ...rest } = props;
   return (
     <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
+      <ControlHeader />
+      <Slider {...rest} onChange={onChange} defaultValue={defaultValue} />
     </>
   );
 }
-
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;
