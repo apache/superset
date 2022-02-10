@@ -17,21 +17,15 @@
  * under the License.
  */
 
-export * from './models';
-export * from './utils';
-export * from './types';
-export * from './translation';
-export * from './connection';
-export * from './dashboard';
-export * from './dynamic-plugins';
-export * from './query';
-export * from './number-format';
-export * from './time-format';
-export * from './dimension';
-export * from './color';
-export * from './style';
-export * from './validator';
-export * from './chart';
-export * from './chart-composition';
-export * from './components';
-export * from './math-expression';
+/*
+  This file can be overridden from outside by custom config, it will add/delete new components to existing config in
+  superset-frontend/src/visualizations/presets/dashboardComponents.ts file
+ */
+
+// import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
+// import example from '../visualizations/dashboardComponents/ExampleComponent';
+
+export default function setupDashboardComponents() {
+  // Add custom dashboard components here. Example:
+  // dashboardComponentsRegistry.set('example', example);
+}

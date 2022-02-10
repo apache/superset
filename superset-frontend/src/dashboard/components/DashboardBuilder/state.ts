@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
+import { Filter } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useCallback, useEffect, useState, useContext } from 'react';
 import { URL_PARAMS } from 'src/constants';
@@ -27,7 +28,6 @@ import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {

@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordFilters, JsonObject } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  DataRecordFilters,
+  JsonObject,
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { ChartConfiguration, NativeFiltersState } from '../../reducers/types';
+import { ChartConfiguration } from '../../reducers/types';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
