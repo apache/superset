@@ -63,29 +63,72 @@ describe('utils/common', () => {
   describe('applyFormattingToTabularData', () => {
     it('does not mutate empty array', () => {
       const data = [];
-      expect(applyFormattingToTabularData(data)).toEqual(data);
+      expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
     it('does not mutate array without temporal column', () => {
       const data = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
-      expect(applyFormattingToTabularData(data)).toEqual(data);
+      expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
-    it('changes formatting of temporal column', () => {
+    it('changes formatting of columns selected for formatting', () => {
       const originalData = [
-        { __timestamp: null, column1: 'lorem' },
-        { __timestamp: 0, column1: 'ipsum' },
-        { __timestamp: 1594285437771, column1: 'dolor' },
-        { __timestamp: 1594285441675, column1: 'sit' },
+        {
+          __timestamp: null,
+          column1: 'lorem',
+          column2: 1590014060000,
+          column3: 1507680000000,
+        },
+        {
+          __timestamp: 0,
+          column1: 'ipsum',
+          column2: 1590075817000,
+          column3: 1513641600000,
+        },
+        {
+          __timestamp: 1594285437771,
+          column1: 'dolor',
+          column2: 1591062977000,
+          column3: 1516924800000,
+        },
+        {
+          __timestamp: 1594285441675,
+          column1: 'sit',
+          column2: 1591397351000,
+          column3: 1518566400000,
+        },
       ];
+      const timeFormattedColumns = ['__timestamp', 'column3'];
       const expectedData = [
-        { __timestamp: null, column1: 'lorem' },
-        { __timestamp: '1970-01-01 00:00:00', column1: 'ipsum' },
-        { __timestamp: '2020-07-09 09:03:57', column1: 'dolor' },
-        { __timestamp: '2020-07-09 09:04:01', column1: 'sit' },
+        {
+          __timestamp: null,
+          column1: 'lorem',
+          column2: 1590014060000,
+          column3: '2017-10-11 00:00:00',
+        },
+        {
+          __timestamp: '1970-01-01 00:00:00',
+          column1: 'ipsum',
+          column2: 1590075817000,
+          column3: '2017-12-19 00:00:00',
+        },
+        {
+          __timestamp: '2020-07-09 09:03:57',
+          column1: 'dolor',
+          column2: 1591062977000,
+          column3: '2018-01-26 00:00:00',
+        },
+        {
+          __timestamp: '2020-07-09 09:04:01',
+          column1: 'sit',
+          column2: 1591397351000,
+          column3: '2018-02-14 00:00:00',
+        },
       ];
-      expect(applyFormattingToTabularData(originalData)).toEqual(expectedData);
+      expect(
+        applyFormattingToTabularData(originalData, timeFormattedColumns),
+      ).toEqual(expectedData);
     });
   });
 });

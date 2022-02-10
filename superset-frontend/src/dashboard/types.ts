@@ -18,17 +18,17 @@
  */
 import {
   ChartProps,
+  DataMaskStateWithId,
   ExtraFormData,
   GenericDataType,
   JsonObject,
+  NativeFiltersState,
 } from '@superset-ui/core';
 import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
 import { User } from 'src/types/bootstrapTypes';
-import { DataMaskStateWithId } from '../dataMask/types';
-import { NativeFiltersState } from './reducers/types';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';

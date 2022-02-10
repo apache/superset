@@ -20,7 +20,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { debounce } from 'lodash';
 import rison from 'rison';
 import { Select } from 'src/components';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, styled, ensureIsArray } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -43,11 +43,11 @@ import { Tooltip } from 'src/components/Tooltip';
 import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<{ error: boolean }>`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const SelectWithLabel = styled(Select)<{ labelText: string }>`
+const SelectWithLabel = styled(Select)<{ labelText: string; error: boolean }>`
   .ant-select-selector::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
@@ -106,48 +106,60 @@ export interface Props {
 }
 
 export interface BusinessTypesState {
-  parsedBusniessType: string;
-  subjectBusinessType: string | undefined;
-  busninessTypeOperatorList: string[];
+  parsedBusinessType: string;
+  businessTypeOperatorList: string[];
+  errorMessage: string;
 }
+
+const INITIAL_BUSINESS_TYPES_STATE: BusinessTypesState = {
+  parsedBusinessType: '',
+  businessTypeOperatorList: [],
+  errorMessage: '',
+};
 
 const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
   const [businessTypesState, setBusinessTypesState] =
-    useState<BusinessTypesState>({
-      parsedBusniessType: '',
-      subjectBusinessType: undefined,
-      busninessTypeOperatorList: [],
-    });
+    useState<BusinessTypesState>(INITIAL_BUSINESS_TYPES_STATE);
+  const [subjectBusinessType, setSubjectBusinessType] = useState<
+    string | undefined
+  >();
 
   const fetchBusinessTypeValueCallback = useCallback(
-    debounce((comp: string | string[], type: string | undefined) => {
-      if (!type) return;
-      const queryParams = rison.encode({
-        type,
-        values: typeof comp === 'string' ? [comp] : comp,
-      });
-      const endpoint = `/api/v1/business_type/convert?q=${queryParams}`;
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          setBusinessTypesState({
-            parsedBusniessType: json.result.display_value,
-            subjectBusinessType: type,
-            busninessTypeOperatorList: json.result.valid_filter_operators,
+    (
+      comp: string | string[],
+      businessTypesState: BusinessTypesState,
+      subjectBusinessType?: string,
+    ) => {
+      const values = ensureIsArray(comp).filter(value => value !== '');
+      if (values.length === 0) {
+        setBusinessTypesState(INITIAL_BUSINESS_TYPES_STATE);
+        return;
+      }
+      debounce(() => {
+        const queryParams = rison.encode({ type: subjectBusinessType, values });
+        const endpoint = `/api/v1/business_type/convert?q=${queryParams}`;
+        SupersetClient.get({ endpoint })
+          .then(({ json }) => {
+            setBusinessTypesState({
+              parsedBusinessType: json.result.display_value,
+              businessTypeOperatorList: json.result.valid_filter_operators,
+              errorMessage: json.result.error_message,
+            });
+            // Changed due to removal of status field
+            validHandler(!json.result.error_message);
+          })
+          .catch(() => {
+            setBusinessTypesState({
+              parsedBusinessType: '',
+              businessTypeOperatorList:
+                businessTypesState.businessTypeOperatorList,
+              errorMessage: t('Failed to retrieve business types'),
+            });
+            validHandler(false);
           });
-          // Changed due to removal of status field
-          validHandler(!json.result.error_message);
-        })
-        .catch(e => {
-          setBusinessTypesState({
-            parsedBusniessType: '',
-            subjectBusinessType: type,
-            busninessTypeOperatorList:
-              businessTypesState.busninessTypeOperatorList,
-          });
-          validHandler(false);
-        });
-    }, 600),
-    [],
+      }, 600)();
+    },
+    [validHandler],
   );
 
   const fetchSubjectBusinessType = (props: Props) => {
@@ -159,15 +171,13 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
           option.optionName === props.adhocFilter.subject),
     );
     if (option && 'business_type' in option) {
-      setBusinessTypesState({
-        ...businessTypesState,
-        subjectBusinessType: option.business_type,
-      });
+      setSubjectBusinessType(option.business_type);
     }
   };
 
   return {
     businessTypesState,
+    subjectBusinessType,
     setBusinessTypesState,
     fetchBusinessTypeValueCallback,
     fetchSubjectBusinessType,
@@ -319,14 +329,15 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
 
   const {
     businessTypesState,
+    subjectBusinessType,
     fetchBusinessTypeValueCallback,
     fetchSubjectBusinessType,
   } = useBusinessTypes(props.validHandler);
-  // TODO: This does not need to exists, just use the busninessTypeOperatorList lsit
+  // TODO: This does not need to exist, just use the busninessTypeOperatorList list
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
-    businessTypesState.subjectBusinessType
+    subjectBusinessType
       ? isOperatorRelevant(operator, subject) &&
-        businessTypesState.busninessTypeOperatorList.includes(operator)
+        businessTypesState.businessTypeOperatorList.includes(operator)
       : isOperatorRelevant(operator, subject);
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -466,9 +477,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   useEffect(() => {
     fetchBusinessTypeValueCallback(
       comparator === undefined ? '' : comparator,
-      businessTypesState.subjectBusinessType,
+      businessTypesState,
+      subjectBusinessType,
     );
-  }, [businessTypesState.subjectBusinessType, comparator]);
+  }, [comparator, fetchBusinessTypeValueCallback]);
 
   useEffect(() => {
     setComparator(props.adhocFilter.comparator);
@@ -512,8 +524,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <Tooltip title={businessTypesState.parsedBusniessType}>
+        <Tooltip
+          title={
+            businessTypesState.errorMessage ||
+            businessTypesState.parsedBusinessType
+          }
+        >
           <SelectWithLabel
+            error={!!businessTypesState.errorMessage}
             labelText={labelText}
             options={suggestions}
             {...comparatorSelectProps}
@@ -523,8 +541,14 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           />
         </Tooltip>
       ) : (
-        <Tooltip title={businessTypesState.parsedBusniessType}>
+        <Tooltip
+          title={
+            businessTypesState.errorMessage ||
+            businessTypesState.parsedBusinessType
+          }
+        >
           <StyledInput
+            error={!!businessTypesState.errorMessage}
             data-test="adhoc-filter-simple-value"
             name="filter-value"
             ref={ref => {

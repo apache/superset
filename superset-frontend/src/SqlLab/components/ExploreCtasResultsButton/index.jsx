@@ -35,29 +35,24 @@ const propTypes = {
   templateParams: PropTypes.string,
 };
 
-class ExploreCtasResultsButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.visualize = this.visualize.bind(this);
-    this.onClick = this.onClick.bind(this);
-  }
+function ExploreCtasResultsButton({
+  table,
+  schema,
+  dbId,
+  templateParams,
+  errorMessage,
+  actions,
+}) {
+  const { createCtasDatasource, addInfoToast, addDangerToast } = actions;
+  const buildVizOptions = {
+    datasourceName: table,
+    schema,
+    dbId,
+    templateParams,
+  };
 
-  onClick() {
-    this.visualize();
-  }
-
-  buildVizOptions() {
-    return {
-      datasourceName: this.props.table,
-      schema: this.props.schema,
-      dbId: this.props.dbId,
-      templateParams: this.props.templateParams,
-    };
-  }
-
-  visualize() {
-    this.props.actions
-      .createCtasDatasource(this.buildVizOptions())
+  const visualize = () => {
+    createCtasDatasource(buildVizOptions)
       .then(data => {
         const formData = {
           datasource: `${data.table_id}__table`,
@@ -68,53 +63,40 @@ class ExploreCtasResultsButton extends React.PureComponent {
           all_columns: [],
           row_limit: 1000,
         };
-        this.props.actions.addInfoToast(
-          t('Creating a data source and creating a new tab'),
-        );
-
+        addInfoToast(t('Creating a data source and creating a new tab'));
         // open new window for data visualization
         exploreChart(formData);
       })
       .catch(() => {
-        this.props.actions.addDangerToast(
-          this.props.errorMessage || t('An error occurred'),
-        );
+        addDangerToast(errorMessage || t('An error occurred'));
       });
-  }
+  };
 
-  render() {
-    return (
-      <>
-        <Button
-          buttonSize="small"
-          onClick={this.onClick}
-          tooltip={t('Explore the result set in the data exploration view')}
-        >
-          <InfoTooltipWithTrigger
-            icon="line-chart"
-            placement="top"
-            label="explore"
-          />{' '}
-          {t('Explore')}
-        </Button>
-      </>
-    );
-  }
+  return (
+    <Button
+      buttonSize="small"
+      onClick={visualize}
+      tooltip={t('Explore the result set in the data exploration view')}
+    >
+      <InfoTooltipWithTrigger
+        icon="line-chart"
+        placement="top"
+        label="explore"
+      />{' '}
+      {t('Explore')}
+    </Button>
+  );
 }
 ExploreCtasResultsButton.propTypes = propTypes;
 
-function mapStateToProps({ sqlLab, common }) {
-  return {
-    errorMessage: sqlLab.errorMessage,
-    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
-  };
-}
+const mapStateToProps = ({ sqlLab, common }) => ({
+  errorMessage: sqlLab.errorMessage,
+  timeout: common.conf?.SUPERSET_WEBSERVER_TIMEOUT,
+});
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
+const mapDispatchToProps = dispatch => ({
+  actions: bindActionCreators(actions, dispatch),
+});
 
 export default connect(
   mapStateToProps,
