@@ -17,10 +17,13 @@
  * under the License.
  */
 
-import { DataMaskStateWithId } from 'src/dataMask/types';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { FilterState } from '@superset-ui/core';
-import { Filter, Divider } from '../types';
+import {
+  DataMaskStateWithId,
+  Filter,
+  FilterState,
+  Divider,
+} from '@superset-ui/core';
 
 export enum TabIds {
   AllFilters = 'allFilters',

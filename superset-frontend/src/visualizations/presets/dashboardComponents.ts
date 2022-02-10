@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMask } from '@superset-ui/core';
 
-export enum DataMaskType {
-  NativeFilters = 'nativeFilters',
-  CrossFilters = 'crossFilters',
-}
+/*
+  Preset dashboard components (in addition to basic components like row, column, chart, etc...)
+ */
 
-export type DataMaskState = { [id: string]: DataMask };
+import DashboardComponentsRegistry from '../dashboardComponents/DashboardComponentsRegistry';
 
-export type DataMaskWithId = { id: string } & DataMask;
-export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
+const dashboardComponents = DashboardComponentsRegistry([
+  // Here can be added default dashboard components
+]);
+
+export default dashboardComponents;

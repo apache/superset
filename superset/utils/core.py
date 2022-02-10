@@ -40,6 +40,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum, IntEnum
+from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -61,6 +62,7 @@ from typing import (
     Union,
 )
 from urllib.parse import unquote_plus
+from zipfile import ZipFile
 
 import bleach
 import markdown as md
@@ -1226,11 +1228,15 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     return isinstance(column, dict)
 
 
-def get_column_name(column: Column) -> str:
+def get_column_name(
+    column: Column, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from column
 
     :param column: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
@@ -1241,15 +1247,20 @@ def get_column_name(column: Column) -> str:
         expr = column.get("sqlExpression")
         if expr:
             return expr
-        raise Exception("Missing label")
-    return column
+        raise ValueError("Missing label")
+    verbose_map = verbose_map or {}
+    return verbose_map.get(column, column)
 
 
-def get_metric_name(metric: Metric) -> str:
+def get_metric_name(
+    metric: Metric, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from metric
 
     :param metric: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of metric
     :raises ValueError: if metric object is invalid
     """
@@ -1271,19 +1282,35 @@ def get_metric_name(metric: Metric) -> str:
             if column_name:
                 return column_name
         raise ValueError(__("Invalid metric object"))
-    return metric  # type: ignore
+
+    verbose_map = verbose_map or {}
+    return verbose_map.get(metric, metric)  # type: ignore
 
 
-def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
-    return [column for column in map(get_column_name, columns or []) if column]
+def get_column_names(
+    columns: Optional[Sequence[Column]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        column
+        for column in [get_column_name(column, verbose_map) for column in columns or []]
+        if column
+    ]
 
 
-def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+def get_metric_names(
+    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        metric
+        for metric in [get_metric_name(metric, verbose_map) for metric in metrics or []]
+        if metric
+    ]
 
 
-def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
-    metric_labels = get_metric_names(metrics)
+def get_first_metric_name(
+    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
 
 
@@ -1788,3 +1815,13 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
+
+
+def create_zip(files: Dict[str, Any]) -> BytesIO:
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        for filename, contents in files.items():
+            with bundle.open(filename, "w") as fp:
+                fp.write(contents)
+    buf.seek(0)
+    return buf

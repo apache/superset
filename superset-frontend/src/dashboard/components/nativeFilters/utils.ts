@@ -17,21 +17,21 @@
  * under the License.
  */
 import {
-  ExtraFormData,
-  QueryFormData,
-  getChartMetadataRegistry,
+  AdhocFilter,
   Behavior,
+  DataMaskStateWithId,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
-  AdhocFilter,
+  ExtraFormData,
   FeatureFlag,
+  Filter,
+  getChartMetadataRegistry,
+  QueryFormData,
 } from '@superset-ui/core';
 import { Charts, DashboardLayout } from 'src/dashboard/types';
 import { RefObject } from 'react';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
-import { Filter } from './types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
