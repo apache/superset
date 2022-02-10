@@ -113,6 +113,10 @@ const config = {
             to: '/docs/intro',
             from: '/docs/roadmap',
           },
+          {
+            to: '/docs/contributing/contributing-page',
+            from: '/docs/contributing/contribution-guidelines',
+          },
         ],
       },
     ],
