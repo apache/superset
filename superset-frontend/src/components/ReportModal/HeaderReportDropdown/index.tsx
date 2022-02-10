@@ -82,6 +82,7 @@ export default function HeaderReportDropDown({
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
     }
+
     if (!user?.userId) {
       // this is in the case that there is an anonymous user.
       return false;
@@ -94,7 +95,6 @@ export default function HeaderReportDropDown({
     );
     return permissions[0].length > 0;
   };
-
   const shouldFetch =
     canAddReports() &&
     !!((dashboardId && prevDashboard !== dashboardId) || chart?.id);
@@ -135,7 +135,6 @@ export default function HeaderReportDropDown({
       </Menu.Item>
     </Menu>
   );
-
   return (
     <>
       {canAddReports() && (

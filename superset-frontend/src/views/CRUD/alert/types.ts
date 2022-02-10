@@ -59,7 +59,7 @@ export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
 export type AlertObject = {
   active?: boolean;
-  creation_method: string;
+  creation_method?: string;
   chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;

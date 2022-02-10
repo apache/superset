@@ -29,7 +29,6 @@ import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
-import user from 'src/SqlLab/reducers/user';
 import localStorageUsageInKilobytes from 'src/SqlLab/reducers/localStorageUsage';
 import reports from 'src/reports/reducers/reports';
 
@@ -55,7 +54,6 @@ export default {
   explore,
   sqlLab,
   localStorageUsageInKilobytes,
-  user,
   reports,
   common: () => common,
 };

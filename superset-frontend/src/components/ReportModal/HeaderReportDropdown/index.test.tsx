@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import * as featureFlags from 'src/featureFlags';
 import { FeatureFlag } from '@superset-ui/core';
 import HeaderReportDropdown, { HeaderReportProps } from '.';
@@ -32,31 +32,35 @@ const createProps = () => ({
 });
 
 const stateWithOnlyUser = {
-  user: {
-    email: 'admin@test.com',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    createdOn: '2022-01-12T10:17:37.801361',
-    roles: { Admin: [['menu_access', 'Manage']] },
-    userId: 1,
-    username: 'admin',
+  explore: {
+    user: {
+      email: 'admin@test.com',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      createdOn: '2022-01-12T10:17:37.801361',
+      roles: { Admin: [['menu_access', 'Manage']] },
+      userId: 1,
+      username: 'admin',
+    },
   },
   reports: {},
 };
 
 const stateWithUserAndReport = {
-  user: {
-    email: 'admin@test.com',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    createdOn: '2022-01-12T10:17:37.801361',
-    roles: { Admin: [['menu_access', 'Manage']] },
-    userId: 1,
-    username: 'admin',
+  explore: {
+    user: {
+      email: 'admin@test.com',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      createdOn: '2022-01-12T10:17:37.801361',
+      roles: { Admin: [['menu_access', 'Manage']] },
+      userId: 1,
+      username: 'admin',
+    },
   },
   reports: {
     dashboards: {
@@ -109,13 +113,17 @@ describe('Header Report Dropdown', () => {
 
   it('renders correctly', () => {
     const mockedProps = createProps();
-    setup(mockedProps, stateWithUserAndReport);
+    act(() => {
+      setup(mockedProps, stateWithUserAndReport);
+    });
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
   it('renders the dropdown correctly', () => {
     const mockedProps = createProps();
-    setup(mockedProps, stateWithUserAndReport);
+    act(() => {
+      setup(mockedProps, stateWithUserAndReport);
+    });
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
     expect(screen.getByText('Email reports active')).toBeInTheDocument();
@@ -125,7 +133,9 @@ describe('Header Report Dropdown', () => {
 
   it('opens an edit modal', () => {
     const mockedProps = createProps();
-    setup(mockedProps, stateWithUserAndReport);
+    act(() => {
+      setup(mockedProps, stateWithUserAndReport);
+    });
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
     const editModal = screen.getByText('Edit email report');
@@ -135,7 +145,9 @@ describe('Header Report Dropdown', () => {
 
   it('opens a delete modal', () => {
     const mockedProps = createProps();
-    setup(mockedProps, stateWithUserAndReport);
+    act(() => {
+      setup(mockedProps, stateWithUserAndReport);
+    });
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
     const deleteModal = screen.getByText('Delete email report');
@@ -145,7 +157,9 @@ describe('Header Report Dropdown', () => {
 
   it('renders a new report modal if there is no report', () => {
     const mockedProps = createProps();
-    setup(mockedProps, stateWithOnlyUser);
+    act(() => {
+      setup(mockedProps, stateWithOnlyUser);
+    });
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
     expect(screen.getByText('New Email Report')).toBeInTheDocument();

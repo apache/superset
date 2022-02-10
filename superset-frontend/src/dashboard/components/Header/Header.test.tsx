@@ -108,10 +108,7 @@ const redoProps = {
   redoLength: 1,
 };
 
-const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
-
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-fetchMock.get(REPORT_ENDPOINT, {});
 
 function setup(props: HeaderProps, initialState = {}) {
   return render(

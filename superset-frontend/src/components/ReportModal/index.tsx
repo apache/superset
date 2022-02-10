@@ -22,7 +22,6 @@ import React, {
   useCallback,
   useReducer,
   Reducer,
-  FunctionComponent,
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
@@ -141,7 +140,7 @@ const reportReducer = (
   }
 };
 
-const ReportModal: FunctionComponent<ReportProps> = ({
+function ReportModal({
   onReportAdd,
   onHide,
   showModal = false,
@@ -149,7 +148,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   chart,
   userId,
   userEmail,
-}) => {
+}: ReportProps) {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
   const defaultNotificationFormat =
@@ -379,6 +378,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       </StyledBottomSection>
     </StyledModal>
   );
-};
+}
 
 export default withToasts(ReportModal);

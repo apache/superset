@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
