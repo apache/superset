@@ -226,6 +226,9 @@
                         "redis_host": {
                             "type": "string"
                         },
+                        "redis_password": {
+                            "type": "string"
+                        },
                         "redis_port": {
                             "type": "string"
                         },
@@ -476,23 +479,28 @@
                 "enabled": {
                     "type": "boolean"
                 },
-                "usePassword": {
-                    "type": "boolean"
-                },
-                "existingSecret": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecretKey": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "password": {
+                "architecture": {
                     "type": "string"
+                },
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "existingSecret": {
+                            "type": "string"
+                        },
+                        "existingSecretKey": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "enabled"
+                    ]
                 },
                 "master": {
                     "type": "object",
@@ -539,9 +547,8 @@
             },
             "required": [
                 "enabled",
-                "usePassword",
-                "master",
-                "cluster"
+                "architecture",
+                "master"
             ]
         },
         "nodeSelector": {
