@@ -23,6 +23,7 @@ import { shallow } from 'enzyme';
 import { Select as SelectComponent } from 'src/components';
 import { Select as DeprecatedSelect } from 'src/components/Select/DeprecatedSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 const defaultProps = {
@@ -59,16 +60,18 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent)).toExist();
     });
 
-    it('renders with DeprecatedSelect when deprecatedSelectFlag=true', () => {
+    it('renders with DeprecatedSelect & ControlHeader when deprecatedSelectFlag=true', () => {
       wrapper.setProps({ deprecatedSelectFlag: true });
       expect(wrapper.find(SelectComponent)).not.toExist();
       expect(wrapper.find(DeprecatedSelect)).toExist();
+      expect(wrapper.find(ControlHeader)).toExist();
     });
 
     it('renders with Select when deprecatedSelectFlag=false', () => {
       wrapper.setProps({ deprecatedSelectFlag: false });
       expect(wrapper.find(SelectComponent)).toExist();
       expect(wrapper.find(DeprecatedSelect)).not.toExist();
+      expect(wrapper.find(ControlHeader)).not.toExist();
     });
 
     it('renders as mode multiple', () => {
