@@ -135,7 +135,7 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
-  deeplinkDb: string | undefined; // if included goto step 2 with engine already set
+  setDBEngine: string | undefined; // if included goto step 2 with engine already set
 }
 
 enum ActionType {
@@ -429,9 +429,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onHide,
   show,
   databaseId,
-  deeplinkDb,
+  setDBEngine,
 }) => {
-  console.log(deeplinkDb);
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -855,9 +854,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setLoading(false);
     }
 
-    if (deeplinkDb && availableDbs) {
+    if (availableDbs && setDBEngine) {
       // set model if passed into props
-      setDatabaseModel(deeplinkDb);
+      setDatabaseModel(setDBEngine);
     }
   }, [availableDbs]);
 

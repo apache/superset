@@ -106,18 +106,6 @@ const RightMenu = ({
   const showActionDropdown = canSql || canChart || canDashboard;
   return (
     <StyledDiv align={align}>
-      <DatabaseModal
-        databaseId={null}
-        show
-        onHide={() => {
-          console.log('hide');
-        }}
-        onDatabaseAdd={() => {
-          console.log('adding');
-        }}
-        deeplinkDb={'Trino'}
-      />
-
       <Menu mode="horizontal">
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
