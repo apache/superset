@@ -277,9 +277,8 @@ function ColumnCollectionTable({
                 fieldKey="business_type"
                 label={t('Business type')}
                 control={
-                  <TextControl
+                  <BusinessTypeSelector
                     controlId="business_type"
-                    placeholder={t('Business type')}
                   />
                 }
               />
@@ -554,6 +553,31 @@ function OwnersSelector({ datasource, onChange }) {
       options={loadOptions}
       onChange={onChange}
       header={<FormLabel>{t('Owners')}</FormLabel>}
+      allowClear
+    />
+  );
+}
+
+const BusinessTypeSelector = ({ datasource, onChange }) => {
+  const loadOptions = useCallback(() => {
+    return SupersetClient.get({
+      endpoint: '/api/v1/business_type/types',
+    }).then(response => ({
+      data: response.json.result.map(item => ({
+        value: item,
+        label: item,
+      })),
+      totalCount: response.json.result.count,
+    }));
+  }, []);
+
+  return (
+    <Select
+      ariaLabel={t('Select owners')}
+      mode="single"
+      controlId="business_type"
+      name="business_type"
+      options={loadOptions}
       allowClear
     />
   );
