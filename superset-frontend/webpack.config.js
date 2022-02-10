@@ -344,6 +344,9 @@ const config = {
         ],
         use: [babelLoader],
       },
+      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
+      // see https://github.com/gaearon/react-hot-loader/issues/1311
+      // TODO: refactor recurseReactClone
       {
         test: /\.js$/,
         include: /node_modules\/react-dom/,
