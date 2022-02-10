@@ -984,7 +984,7 @@ class TestCore(SupersetTestCase):
             sql=commented_query,
             database=get_example_database(),
         )
-        rendered_query = str(table.get_from_clause())
+        rendered_query = str(table.get_from_clause()[0])
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_datasource(self):
