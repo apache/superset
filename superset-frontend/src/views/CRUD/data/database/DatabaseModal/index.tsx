@@ -658,7 +658,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         },
       });
     } else {
-      console.log(availableDbs);
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
