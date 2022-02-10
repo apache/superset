@@ -23,15 +23,21 @@ import React, {
   useState,
   useRef,
 } from 'react';
-import { styled, t, DataMask, css, SupersetTheme } from '@superset-ui/core';
+import {
+  css,
+  DataMask,
+  DataMaskStateWithId,
+  Filter,
+  styled,
+  SupersetTheme,
+  t,
+} from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
 
 interface CascadePopoverProps {
   dataMaskSelected: DataMaskStateWithId;

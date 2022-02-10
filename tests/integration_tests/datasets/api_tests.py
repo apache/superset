@@ -219,8 +219,10 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response["count"] == 0
-        assert response["result"] == []
+
+        assert response["count"] == 1
+        main_db = get_main_database()
+        assert filter(lambda x: x.text == main_db, response["result"]) != []
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_dataset_item(self):

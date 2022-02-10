@@ -16,14 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMask } from '@superset-ui/core';
+import React from 'react';
+import BoundsControl, { BoundsControlProps } from './BoundsControl';
 
-export enum DataMaskType {
-  NativeFilters = 'nativeFilters',
-  CrossFilters = 'crossFilters',
-}
+export default {
+  title: 'BoundsControl',
+  component: BoundsControl,
+};
 
-export type DataMaskState = { [id: string]: DataMask };
+export const InteractiveBoundsControl = (
+  args: BoundsControlProps & { initialMin: number; initialMax: number },
+) => {
+  const { initialMin, initialMax, ...props } = args;
 
-export type DataMaskWithId = { id: string } & DataMask;
-export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
+  return (
+    <>
+      <BoundsControl {...props} value={[initialMin, initialMax]} />
+    </>
+  );
+};
+
+InteractiveBoundsControl.args = {
+  initialMin: 0,
+  initialMax: 50,
+};
+
+InteractiveBoundsControl.argTypes = {
+  onChange: { action: 'onChange' },
+};
+
+InteractiveBoundsControl.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

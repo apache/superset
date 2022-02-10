@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { usePrevious } from 'src/hooks/usePrevious';
+import { NativeFilterType } from '@superset-ui/core';
 import { FilterRemoval } from './types';
-import { NativeFilterType } from '../types';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one

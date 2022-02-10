@@ -159,7 +159,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   await waitFor(() => {
     expect(props.addDangerToast).toBeCalledTimes(0);
     expect(window.location.href).toBe(
-      'mailto:?Subject=Superset dashboard COVID Vaccine Dashboard%20&Body=Check out this dashboard: http://localhost:8088/r/3',
+      'mailto:?Subject=Superset%20dashboard%20COVID%20Vaccine%20Dashboard%20&Body=Check%20out%20this%20dashboard%3A%20http%3A%2F%2Flocalhost%3A8088%2Fr%2F3',
     );
   });
 });

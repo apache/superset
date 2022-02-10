@@ -20,19 +20,17 @@
 import { useSelector } from 'react-redux';
 import { filter, keyBy } from 'lodash';
 import {
-  Filters,
-  FilterSets as FilterSetsType,
-} from 'src/dashboard/reducers/types';
-import {
   DataMaskState,
   DataMaskStateWithId,
   DataMaskWithId,
-} from 'src/dataMask/types';
+  Filter,
+  Filters,
+  FilterSets as FilterSetsType,
+} from '@superset-ui/core';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 
 export const useFilterSets = () =>
