@@ -234,14 +234,14 @@ const config: ControlPanelConfig = {
                 state: ControlPanelState,
                 controlState: ControlState,
               ) => {
-                //const { controls } = state;
+                const { controls } = state;
                 const originalMapStateToProps =
                   sharedControls?.columns?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                // @ts-ignore
                 newState.externalValidationErrors =
-                  //isRawMode({ controls }) &&
+                  // @ts-ignore
+                  isRawMode({ controls }) &&
                   ensureIsArray(controlState.value).length === 0
                     ? [t('must have a value')]
                     : [];

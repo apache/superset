@@ -107,6 +107,7 @@ class QueryContext:
         self.result_type = result_type or ChartDataResultType.FULL
         self.result_format = result_format or ChartDataResultFormat.JSON
         self.queries = [QueryObject(self, **query_obj) for query_obj in queries]
+        self.viz_type = viz_type
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
