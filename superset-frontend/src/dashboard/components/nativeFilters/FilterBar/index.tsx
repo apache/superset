@@ -29,13 +29,7 @@ import {
   t,
   SLOW_DEBOUNCE,
 } from '@superset-ui/core';
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BroadcastChannel } from 'broadcast-channel';
 import cx from 'classnames';
