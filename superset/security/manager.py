@@ -1309,6 +1309,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+        aud = current_app.config["GUEST_TOKEN_JWT_DECODE_AUDIENCE"] or get_url_host()
 
         # calculate expiration time
         now = self._get_current_epoch_time()
@@ -1320,7 +1321,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
-            "aud": get_url_host(),
+            "aud": aud,
             "type": "guest",
         }
         token = jwt.encode(claims, secret, algorithm=algo)
@@ -1340,6 +1341,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         try:
+            aud = current_app.config["GUEST_TOKEN_JWT_DECODE_AUDIENCE"] or get_url_host()
             token = self.parse_jwt_guest_token(raw_token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
@@ -1349,7 +1351,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("aud") is None:
                 raise ValueError("Guest token does not contain an aud claim")
-            if token.get("aud") != get_url_host():
+            if token.get("aud") != aud:
                 raise ValueError("Guest token does not match the aud claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
@@ -1375,7 +1377,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        return jwt.decode(raw_token, secret, algorithms=[algo], audience=get_url_host())
+        aud = current_app.config["GUEST_TOKEN_JWT_DECODE_AUDIENCE"] or get_url_host()
+        return jwt.decode(raw_token, secret, algorithms=[algo], audience=aud)
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
