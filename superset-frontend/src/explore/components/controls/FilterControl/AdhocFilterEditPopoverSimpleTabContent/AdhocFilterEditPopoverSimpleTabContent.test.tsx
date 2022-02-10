@@ -55,8 +55,9 @@ const simpleMultiAdhocFilter = new AdhocFilter({
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: { type: 'VARCHAR(255)', column_name: 'source' },
+  column: { type: 'VARCHAR(255)', column_name: 'source', id: 5},
   aggregate: AGGREGATES.SUM,
+  label: 'test-AdhocMetric',
 });
 
 const simpleCustomFilter = new AdhocFilter({
@@ -76,6 +77,7 @@ const options = [
 
 function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
+  const validHandler = sinon.spy();
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
@@ -88,6 +90,7 @@ function setup(overrides?: Record<string, any>) {
     },
     partitionColumn: 'test',
     ...overrides,
+    validHandler,
   };
   const wrapper = shallow(
     <AdhocFilterEditPopoverSimpleTabContent {...props} />,
@@ -319,4 +322,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expect(props.onChange.lastCall.args[0].comparator).toBe(null);
     });
   });
+});
+
+
+describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
+  
 });
