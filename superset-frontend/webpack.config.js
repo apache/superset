@@ -345,6 +345,11 @@ const config = {
         use: [babelLoader],
       },
       {
+        test: /\.js$/,
+        include: /node_modules\/react-dom/,
+        use: ['react-hot-loader/webpack'],
+      },
+      {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
