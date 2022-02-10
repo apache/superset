@@ -331,7 +331,7 @@ export const nativeFilters = {
     filterName: dataTestLocator('filters-config-modal__name-input'),
     datasetName: dataTestLocator('filters-config-modal__datasource-input'),
     filterInfoInput: '.ant-select-selection-search-input',
-    filterTypeItem:".ant-select-selection-item",
+    filterTypeItem: '.ant-select-selection-item',
     inputDropdown: '.ant-select-item-option-content',
     columnEmptyInput: '.ant-select-selection-placeholder',
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
