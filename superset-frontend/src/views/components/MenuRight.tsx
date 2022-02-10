@@ -89,7 +89,7 @@ interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
-  menuProps: Array<MenuObjectProps>;
+  menuUploadlinks: Array<MenuObjectProps>;
 }
 
 const RightMenu = ({
@@ -97,7 +97,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-  menuProps,
+  menuUploadlinks,
 }: RightMenuProps) => {
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -133,7 +133,7 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu as MenuObjectProps)}
                   >
-                    {menuProps.map(item => (
+                    {menuUploadlinks.map(item => (
                       <Menu.Item key={item.name}>
                         <a href={item.url}> {item.label} </a>
                       </Menu.Item>

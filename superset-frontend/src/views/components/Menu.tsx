@@ -185,24 +185,11 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConig = useUiConfig();
 
-  const nonItemsToRender = {
-    'Upload a CSV': 'Upload a CSV',
-    'Upload a Columnar File': 'Upload a Columnar File',
-    'Upload Excel': 'Upload Excel',
-  };
+  const getUploadMenulinks: MenuObjectProps[] =
+    menu &&
+    (menu?.filter(item => item.name === 'Upload Data')[0]
+      .childs as MenuObjectProps[]);
 
-  const createPlusMenuItems = () => {
-    const list: any = [];
-    const dataMenu = menu.filter(item => item.name === 'Data');
-    if (dataMenu[0].childs) {
-      dataMenu[0]?.childs.forEach(menuItem => {
-        if (typeof menuItem !== 'string' && nonItemsToRender[menuItem.label]) {
-          list.push(menuItem);
-        }
-      });
-    }
-    return list;
-  };
   useEffect(() => {
     function handleResize() {
       if (window.innerWidth <= 767) {
@@ -248,9 +235,6 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child !== 'string' && nonItemsToRender[child.label]) {
-            return null;
-          }
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
@@ -314,6 +298,7 @@ export function Menu({
             className="main-nav"
           >
             {menu.map(item => {
+              if (item.name === 'Upload Data') return null;
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
@@ -335,7 +320,7 @@ export function Menu({
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
-            menuProps={createPlusMenuItems()}
+            menuUploadlinks={getUploadMenulinks}
             align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}

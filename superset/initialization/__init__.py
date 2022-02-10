@@ -372,8 +372,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Upload a CSV"),
             href="/csvtodatabaseview/form",
             icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
+            category="Upload Data",
+            category_label=__("Upload Data"),
             category_icon="fa-wrench",
             cond=lambda: bool(
                 self.config["CSV_EXTENSIONS"].intersection(
@@ -386,8 +386,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Upload a Columnar File"),
             href="/columnartodatabaseview/form",
             icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
+            category="Upload Data",
+            category_label=__("Upload Data"),
             category_icon="fa-wrench",
             cond=lambda: bool(
                 self.config["COLUMNAR_EXTENSIONS"].intersection(
@@ -403,8 +403,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 label=__("Upload Excel"),
                 href="/exceltodatabaseview/form",
                 icon="fa-upload",
-                category="Data",
-                category_label=__("Data"),
+                category="Upload Data",
+                category_label=__("Upload Data"),
                 category_icon="fa-wrench",
                 cond=lambda: bool(
                     self.config["EXCEL_EXTENSIONS"].intersection(
