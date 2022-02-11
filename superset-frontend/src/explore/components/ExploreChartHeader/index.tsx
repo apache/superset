@@ -27,7 +27,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import ReportModal from 'src/components/ReportModal';
+// import ReportModal from 'src/components/ReportModal';
 import {
   fetchUISpecificReport,
   toggleActive,
@@ -46,7 +46,6 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { QueryFormData } from 'packages/superset-ui-core/src/query/types/QueryFormData';
-import Chart from 'src/types/Chart';
 import ExploreActionButtons from '../ExploreActionButtons';
 import RowCountLabel from '../RowCountLabel';
 
@@ -64,6 +63,7 @@ interface ChartObject {
   latestQueryFormData: object;
   queriesResponse: Record<string, any>[];
   sliceFormData: QueryFormData;
+  form_data: object;
 }
 
 interface Slice {
@@ -98,7 +98,7 @@ interface ExploreChartHeaderProps {
     chartId: number,
   ) => {};
   reports: object;
-  sliceUpdated: (slice: Slice) => void;
+  sliceUpdated: (chart: Slice) => void;
   toggleActive: (data: AlertObject, checked: boolean) => void;
   user?: UserWithPermissionsAndRoles;
 }
@@ -177,7 +177,7 @@ export const ExploreChartHeader = ({
 
   const showReportModal = () => setShowingReportModal(true);
 
-  const hideReportModal = () => setShowingReportModal(false);
+  // const hideReportModal = () => setShowingReportModal(false);
 
   const renderReportModal = () => {
     const attachedReportExists = !!Object.keys(reports).length;
@@ -254,14 +254,7 @@ export const ExploreChartHeader = ({
     if (dashboardId) {
       fetchChartDashboardData();
     }
-  }, [
-    canAddReports,
-    fetchUISpecificReport,
-    user?.userId,
-    chart.id,
-    dashboardId,
-    slice?.slice_id,
-  ]);
+  }, []);
 
   const {
     chartStatus,
@@ -356,7 +349,7 @@ export const ExploreChartHeader = ({
           status={CHART_STATUS_MAP[chartStatus]}
         />
         {canAddReports() && renderReportModal()}
-        <ReportModal
+        {/* <ReportModal
           show={showingReportModal}
           onHide={hideReportModal}
           props={{
@@ -365,7 +358,7 @@ export const ExploreChartHeader = ({
             chart,
             creationMethod: 'charts',
           }}
-        />
+        /> */}
         <ExploreActionButtons
           actions={{
             ...actions,
