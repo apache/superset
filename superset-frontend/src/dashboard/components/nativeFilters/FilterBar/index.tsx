@@ -31,7 +31,6 @@ import {
 } from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BroadcastChannel } from 'broadcast-channel';
 import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
@@ -47,6 +46,7 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { EmptyStateSmall } from 'src/components/EmptyState';
+import { useTabId } from 'src/hooks/useTabId';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -152,11 +152,6 @@ export interface FiltersBarProps {
   offset: number;
 }
 
-interface TabIdChannelMessage {
-  type: 'REQUESTING_TAB_ID' | 'TAB_ID_DENIED';
-  tabId: string;
-}
-
 const publishDataMask = debounce(
   async (
     history,
@@ -204,12 +199,6 @@ const publishDataMask = debounce(
   SLOW_DEBOUNCE,
 );
 
-// TODO: We are using broadcast-channel to support Safari.
-// The native BroadcastChannel API will be supported in Safari version 15.4.
-// After that, we should remove this dependency and use the native API.
-// TODO: Move the channel declaration to a shared space when working on Explore
-const channel = new BroadcastChannel<TabIdChannelMessage>('tab_id_channel');
-
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -225,7 +214,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     useImmer<DataMaskStateWithId>(dataMaskApplied);
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
-  const [tabId, setTabId] = useState<string>();
+  const tabId = useTabId();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
@@ -238,43 +227,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-
-  useEffect(() => {
-    const updateTabId = () => {
-      const lastTabId = window.localStorage.getItem('last_tab_id');
-      const newTabId = String(
-        lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
-      );
-      window.sessionStorage.setItem('tab_id', newTabId);
-      window.localStorage.setItem('last_tab_id', newTabId);
-      setTabId(newTabId);
-    };
-
-    const storedTabId = window.sessionStorage.getItem('tab_id');
-    if (storedTabId) {
-      channel.postMessage({
-        type: 'REQUESTING_TAB_ID',
-        tabId: storedTabId,
-      });
-      setTabId(storedTabId);
-    } else {
-      updateTabId();
-    }
-
-    channel.onmessage = messageEvent => {
-      if (messageEvent.tabId === tabId) {
-        if (messageEvent.type === 'REQUESTING_TAB_ID') {
-          const message: TabIdChannelMessage = {
-            type: 'TAB_ID_DENIED',
-            tabId: messageEvent.tabId,
-          };
-          channel.postMessage(message);
-        } else if (messageEvent.type === 'TAB_ID_DENIED') {
-          updateTabId();
-        }
-      }
-    };
-  }, [tabId]);
 
   const handleFilterSelectionChange = useCallback(
     (
