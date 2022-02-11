@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { Empty } from 'src/common/components';
 import Button from 'src/components/Button';
 
@@ -60,6 +60,8 @@ const EmptyStateContainer = styled.div`
     }
   `}
 `;
+
+const TextContainer = styled.div``;
 
 const Title = styled.p`
   ${({ theme }) => css`
@@ -137,13 +139,21 @@ export const EmptyStateBig = ({
 }: EmptyStateProps) => (
   <EmptyStateContainer>
     <ImageContainer image={image} size={EmptyStateSize.Big} />
-    <BigTitle>{title}</BigTitle>
-    {description && <BigDescription>{description}</BigDescription>}
-    {buttonAction && buttonText && (
-      <ActionButton buttonStyle="primary" onClick={buttonAction}>
-        {buttonText}
-      </ActionButton>
-    )}
+    <TextContainer
+      css={(theme: SupersetTheme) =>
+        css`
+          max-width: ${theme.gridUnit * 150}px;
+        `
+      }
+    >
+      <BigTitle>{title}</BigTitle>
+      {description && <BigDescription>{description}</BigDescription>}
+      {buttonAction && buttonText && (
+        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+          {buttonText}
+        </ActionButton>
+      )}
+    </TextContainer>
   </EmptyStateContainer>
 );
 
@@ -156,13 +166,21 @@ export const EmptyStateMedium = ({
 }: EmptyStateProps) => (
   <EmptyStateContainer>
     <ImageContainer image={image} size={EmptyStateSize.Medium} />
-    <Title>{title}</Title>
-    {description && <Description>{description}</Description>}
-    {buttonText && buttonAction && (
-      <ActionButton buttonStyle="primary" onClick={buttonAction}>
-        {buttonText}
-      </ActionButton>
-    )}
+    <TextContainer
+      css={(theme: SupersetTheme) =>
+        css`
+          max-width: ${theme.gridUnit * 100}px;
+        `
+      }
+    >
+      <Title>{title}</Title>
+      {description && <Description>{description}</Description>}
+      {buttonText && buttonAction && (
+        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+          {buttonText}
+        </ActionButton>
+      )}
+    </TextContainer>
   </EmptyStateContainer>
 );
 
@@ -173,7 +191,15 @@ export const EmptyStateSmall = ({
 }: EmptyStateSmallProps) => (
   <EmptyStateContainer>
     <ImageContainer image={image} size={EmptyStateSize.Small} />
-    <Title>{title}</Title>
-    {description && <SmallDescription>{description}</SmallDescription>}
+    <TextContainer
+      css={(theme: SupersetTheme) =>
+        css`
+          max-width: ${theme.gridUnit * 75}px;
+        `
+      }
+    >
+      <Title>{title}</Title>
+      {description && <SmallDescription>{description}</SmallDescription>}
+    </TextContainer>
   </EmptyStateContainer>
 );
