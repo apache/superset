@@ -1341,9 +1341,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         try:
-            aud = (
-                current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
-            )
             token = self.parse_jwt_guest_token(raw_token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
@@ -1351,10 +1348,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a resources claim")
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
-            if token.get("aud") is None:
-                raise ValueError("Guest token does not contain an aud claim")
-            if token.get("aud") != aud:
-                raise ValueError("Guest token does not match the aud claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
         except Exception:  # pylint: disable=broad-except
