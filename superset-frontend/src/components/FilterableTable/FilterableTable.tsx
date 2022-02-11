@@ -296,30 +296,31 @@ export default class FilterableTable extends PureComponent<
     sortBy: string;
     sortDirection: SortDirectionType;
   }) {
-    this.setState(
-      ({
-        sortBy: prevSortBy,
-        sortDirection: prevSortDirection,
-        displayedList: prevDisplayedList,
-      }) => {
-        const shouldClearSort =
-          prevSortDirection === SortDirection.DESC && prevSortBy === sortBy;
-        if (shouldClearSort)
-          return {
-            sortBy: undefined,
-            sortDirection: undefined,
-            displayedList: [...this.list],
-          };
+    let updatedState: FilterableTableState;
 
-        return {
-          sortBy,
-          sortDirection,
-          displayedList: prevDisplayedList.sort(
-            this.sortResults(sortBy, sortDirection === SortDirection.DESC),
-          ),
-        };
-      },
-    );
+    const shouldClearSort =
+      this.state.sortDirection === SortDirection.DESC &&
+      this.state.sortBy === sortBy;
+
+    if (shouldClearSort) {
+      updatedState = {
+        ...this.state,
+        sortBy: undefined,
+        sortDirection: undefined,
+        displayedList: [...this.list],
+      };
+    } else {
+      updatedState = {
+        ...this.state,
+        sortBy,
+        sortDirection,
+        displayedList: [...this.list].sort(
+          this.sortResults(sortBy, sortDirection === SortDirection.DESC),
+        ),
+      };
+    }
+
+    this.setState(updatedState);
   }
 
   fitTableToWidthIfNeeded() {
