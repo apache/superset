@@ -333,7 +333,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 `;
 
-const BetaBadge = styled.div`
+const HighlightLabel = styled.div`
   ${({ theme }) => `
     border: 1px solid ${theme.colors.primary.dark1};
     box-sizing: border-box;
@@ -341,8 +341,8 @@ const BetaBadge = styled.div`
     background: ${theme.colors.grayscale.light5};
     line-height: ${theme.gridUnit * 2.5}px;
     color: ${theme.colors.primary.dark1};
-    font-size: 12px;
-    font-weight: 500;
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-align: center;
     padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
     text-transform: uppercase;
@@ -354,13 +354,13 @@ const BetaBadge = styled.div`
   `}
 `;
 
-const ThumbnailBadgeWrapper = styled.div`
+const ThumbnailLabelWrapper = styled.div`
   position: absolute;
   right: ${({ theme }) => theme.gridUnit}px;
   top: ${({ theme }) => theme.gridUnit * 19}px;
 `;
 
-const TitleBadgeWrapper = styled.div`
+const TitleLabelWrapper = styled.div`
   display: inline-block !important;
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
@@ -411,11 +411,11 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
         {type.name}
       </div>
       {type.label && (
-        <ThumbnailBadgeWrapper>
-          <BetaBadge>
+        <ThumbnailLabelWrapper>
+          <HighlightLabel>
             <div>{type.label.name}</div>
-          </BetaBadge>
-        </ThumbnailBadgeWrapper>
+          </HighlightLabel>
+        </ThumbnailLabelWrapper>
       )}
     </div>
   );
@@ -793,11 +793,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                   placement="top"
                   title={selectedVizMetadata?.label.description}
                 >
-                  <TitleBadgeWrapper>
-                    <BetaBadge>
+                  <TitleLabelWrapper>
+                    <HighlightLabel>
                       <div>{selectedVizMetadata.label.name}</div>
-                    </BetaBadge>
-                  </TitleBadgeWrapper>
+                    </HighlightLabel>
+                  </TitleLabelWrapper>
                 </Tooltip>
               )}
             </SectionTitle>
