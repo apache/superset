@@ -42,7 +42,7 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
       subjectBusinessType?: string,
     ) => {
       const values = ensureIsArray(comp).filter(value => value !== '');
-      if (values.length === 0) {
+      if (values.length === 0 || !subjectBusinessType) {
         setBusinessTypesState(INITIAL_BUSINESS_TYPES_STATE);
         return;
       }
