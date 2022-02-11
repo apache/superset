@@ -29,7 +29,8 @@ function logError(...args) {
   console.error('[embedded-sdk-release]', ...args);
 }
 
-(async () => {log(`checking if ${name}@${version} needs releasing`);
+(async () => {
+  log(`checking if ${name}@${version} needs releasing`);
 
   const packageUrl = `https://registry.npmjs.org/${name}/${version}`;
   // npm commands output a bunch of garbage in the edge cases,

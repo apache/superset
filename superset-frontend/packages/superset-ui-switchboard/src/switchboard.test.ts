@@ -229,7 +229,7 @@ describe('comms', () => {
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       theirs.start();
-      expect(ours.get('fakemethod')).rejects.toThrow(
+      await expect(ours.get('fakemethod')).rejects.toThrow(
         '[theirs] Method "fakemethod" is not defined',
       );
     });
@@ -244,7 +244,7 @@ describe('comms', () => {
       theirs.start();
 
       console.error = jest.fn(); // will be restored by the afterEach
-      expect(ours.get('failing')).rejects.toThrow(
+      await expect(ours.get('failing')).rejects.toThrow(
         '[theirs] Method "failing" threw an error',
       );
     });
