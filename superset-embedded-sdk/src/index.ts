@@ -38,6 +38,8 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
+  /** Are we in debug mode? */
+  debug?: boolean
 }
 
 export type Size = {
@@ -56,10 +58,13 @@ export async function embedDashboard({
   id,
   supersetDomain,
   mountPoint,
-  fetchGuestToken
+  fetchGuestToken,
+  debug = false
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
-    console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
+    if (debug) {
+      console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
+    }
   }
 
   log('embedding');
@@ -95,7 +100,7 @@ export async function embedDashboard({
         log('sent message channel to the iframe');
 
         // return our port from the promise
-        resolve(new Switchboard(ourPort));
+        resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
       iframe.src = `${supersetDomain}/dashboard/${id}/embedded`;

@@ -17,11 +17,17 @@
  * under the License.
  */
 
+export type Params = {
+  port: MessagePort;
+  name?: string;
+  debug?: boolean;
+};
+
 /**
- * A utility for communications between an iframe and its parent, used with embedded Superset.
+ * A utility for communications between an iframe and its parent, used by the Superset embedded SDK.
  * This builds useful patterns on top of the basic functionality offered by MessageChannel.
  *
- * You instantiate a Switchboard in both windows, passing in their corresponding MessagePorts.
+ * Both windows instantiate a Switchboard, passing in their MessagePorts.
  * Calling methods on the switchboard causes messages to be sent through the channel.
  */
 export class Switchboard {
@@ -29,51 +35,73 @@ export class Switchboard {
 
   name: string;
 
-  methods: Record<string, Method<any, any>> = {};
+  methods: Record<string, Method<any, unknown>> = {};
 
   // used to make unique ids
   incrementor = 1;
 
-  constructor(port: MessagePort, name = 'superset-comms') {
+  debugMode: boolean;
+
+  constructor({ port, name = 'switchboard', debug = false }: Params) {
     this.port = port;
     this.name = name;
+    this.debugMode = debug;
 
     port.addEventListener('message', async event => {
       this.log('message received', event);
       const message = event.data;
       if (isGet(message)) {
-        const { method, messageId, args } = message;
         // find the method, call it, and reply with the result
-        const executor = this.methods[method];
-        const result = await executor(args);
-        const reply: ReplyMessage = {
-          switchboardAction: Actions.REPLY,
-          messageId,
-          result,
-        };
-        this.port.postMessage(reply);
+        this.port.postMessage(await this.getMethodResult(message));
       } else if (isEmit(message)) {
         const { method, args } = message;
-        // find the method and call it
-        // should this multicast? Maybe
+        // Find the method and call it, but no result necessary.
+        // Should this multicast to a set of listeners?
+        // Maybe, but that requires writing a bunch more code
+        // and I haven't found a need for it yet.
         const executor = this.methods[method];
-        executor(args);
+        if (executor) {
+          executor(args);
+        }
       }
     });
+  }
+
+  private async getMethodResult({
+    messageId,
+    method,
+    args,
+  }: GetMessage): Promise<ReplyMessage | ErrorMessage> {
+    const executor = this.methods[method];
+    if (executor == null) {
+      return <ErrorMessage>{
+        switchboardAction: Actions.ERROR,
+        messageId,
+        error: `[${this.name}] Method "${method}" is not defined`,
+      };
+    }
+    try {
+      const result = await executor(args);
+      return <ReplyMessage>{
+        switchboardAction: Actions.REPLY,
+        messageId,
+        result,
+      };
+    } catch (err) {
+      this.logError(err);
+      return <ErrorMessage>{
+        switchboardAction: Actions.ERROR,
+        messageId,
+        error: `[${this.name}] Method "${method}" threw an error`,
+      };
+    }
   }
 
   /**
    * Defines a method that can be "called" from the other side by sending an event.
    */
-  defineMethod<A = any, R = any>(name: string, executor: Method<A, R>) {
-    this.methods[name] = executor;
-  }
-
-  /**
-   * Starts receiving events. Incoming events will be stored in a queue until this is called.
-   */
-  start() {
-    this.port.start();
+  defineMethod<A = any, R = any>(methodName: string, executor: Method<A, R>) {
+    this.methods[methodName] = executor;
   }
 
   /**
@@ -90,15 +118,19 @@ export class Switchboard {
    * @returns whatever is returned from the method
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       // In order to "call a method" on the other side of the port,
       // we will send a message with a unique id
       const messageId = this.getNewMessageId();
       // attach a new listener to our port, and remove it when we get a response
       const listener = (event: MessageEvent) => {
-        if (isReply(event.data) && event.data.messageId === messageId) {
-          this.port.removeEventListener('message', listener);
-          resolve(event.data.result);
+        const message = event.data;
+        if (message.messageId !== messageId) return;
+        this.port.removeEventListener('message', listener);
+        if (isReply(message)) {
+          resolve(message.result);
+        } else if (isError(message)) {
+          reject(new Error(message.error));
         }
       };
       this.port.addEventListener('message', listener);
@@ -129,23 +161,34 @@ export class Switchboard {
     this.port.postMessage(message);
   }
 
-  log(...args: unknown[]) {
-    console.debug(`[${this.name}]`, ...args);
+  start() {
+    this.port.start();
   }
 
-  getNewMessageId() {
+  private log(...args: unknown[]) {
+    if (this.debugMode) {
+      console.debug(`[${this.name}]`, ...args);
+    }
+  }
+
+  private logError(...args: unknown[]) {
+    console.error(`[${this.name}]`, ...args);
+  }
+
+  private getNewMessageId() {
     // eslint-disable-next-line no-plusplus
     return `m_${this.name}_${this.incrementor++}`;
   }
 }
 
-type Method<A extends {}, R> = (args: A) => R;
+type Method<A extends {}, R> = (args: A) => R | Promise<R>;
 
 // Each message we send on the channel specifies an action we want the other side to perform.
 enum Actions {
   GET = 'get',
   REPLY = 'reply',
   EMIT = 'emit',
+  ERROR = 'error',
 }
 
 // helper types/functions for making sure wires don't get crossed
@@ -183,4 +226,14 @@ interface EmitMessage<T = any> extends Message {
 
 function isEmit(message: Message): message is EmitMessage {
   return message.switchboardAction === Actions.EMIT;
+}
+
+interface ErrorMessage extends Message {
+  switchboardAction: Actions.ERROR;
+  messageId: string;
+  error: string;
+}
+
+function isError(message: Message): message is ErrorMessage {
+  return message.switchboardAction === Actions.ERROR;
 }

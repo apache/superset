@@ -107,11 +107,15 @@ window.addEventListener('message', function (event) {
     return;
   }
 
-  const hostAppPort = event.ports?.[0];
-  if (event.data.handshake === 'port transfer' && hostAppPort) {
+  const port = event.ports?.[0];
+  if (event.data.handshake === 'port transfer' && port) {
     log('message port received', event);
 
-    const switchboard = new Switchboard(hostAppPort, 'superset');
+    const switchboard = new Switchboard({
+      port,
+      name: 'superset',
+      debug: process.env.WEBPACK_MODE === 'development',
+    });
 
     switchboard.defineMethod('guestToken', ({ guestToken }) => {
       start(guestToken);

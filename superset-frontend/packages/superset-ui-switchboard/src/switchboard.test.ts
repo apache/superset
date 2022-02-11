@@ -43,7 +43,9 @@ class FakeMessagePort {
         try {
           listener(event);
         } catch (err) {
-          // whatever browsers do here, idk
+          if (typeof this.onmessageerror === 'function') {
+            this.onmessageerror(err);
+          }
         }
       });
     } else {
@@ -77,9 +79,9 @@ class FakeMessagePort {
     this.isStarted = false;
   }
 
-  onmessage = null;
+  onmessage: EventHandler | null = null; // not implemented, requires some kinda proxy thingy to mock correctly
 
-  onmessageerror = null;
+  onmessageerror: ((err: any) => void) | null = null;
 }
 
 /** Matches the MessageChannel api as closely as necessary (an even smaller api than MessagePort) */
@@ -99,16 +101,29 @@ class FakeMessageChannel {
 }
 
 describe('comms', () => {
+  let originalConsoleDebug: any = null;
+  let originalConsoleError: any = null;
+
   beforeAll(() => {
     global.MessageChannel = FakeMessageChannel; // yolo
-    console.debug = () => {}; // silencio bruno
+    originalConsoleDebug = console.debug;
+    originalConsoleError = console.error;
+  });
+
+  beforeEach(() => {
+    console.debug = jest.fn(); // silencio bruno
+  });
+
+  afterEach(() => {
+    console.debug = originalConsoleDebug;
+    console.error = originalConsoleError;
   });
 
   describe('emit', () => {
     it('triggers the method', async () => {
       const channel = new MessageChannel();
-      const ours = new Switchboard(channel.port1, 'ours');
-      const theirs = new Switchboard(channel.port2, 'theirs');
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       const handler = jest.fn();
 
       theirs.defineMethod('someEvent', handler);
@@ -118,13 +133,24 @@ describe('comms', () => {
 
       expect(handler).toHaveBeenCalledWith(42);
     });
+
+    it('handles a missing method', async () => {
+      const channel = new MessageChannel();
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
+      theirs.start();
+      channel.port2.onmessageerror = jest.fn();
+      ours.emit('fakemethod');
+      await new Promise(setImmediate);
+      expect(channel.port2.onmessageerror).not.toHaveBeenCalled();
+    });
   });
 
   describe('get', () => {
     it('returns the value', async () => {
       const channel = new MessageChannel();
-      const ours = new Switchboard(channel.port1, 'ours');
-      const theirs = new Switchboard(channel.port2, 'theirs');
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       theirs.defineMethod('theirMethod', ({ x }: { x: number }) =>
         Promise.resolve(x + 42),
       );
@@ -135,10 +161,33 @@ describe('comms', () => {
       expect(value).toEqual(43);
     });
 
+    it('removes the listener after', async () => {
+      const channel = new MessageChannel();
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
+      theirs.defineMethod('theirMethod', () => Promise.resolve(420));
+      theirs.start();
+
+      expect((channel.port1 as FakeMessagePort).listeners).toHaveProperty(
+        'size',
+        1,
+      );
+      const promise = ours.get('theirMethod');
+      expect((channel.port1 as FakeMessagePort).listeners).toHaveProperty(
+        'size',
+        2,
+      );
+      await promise;
+      expect((channel.port1 as FakeMessagePort).listeners).toHaveProperty(
+        'size',
+        1,
+      );
+    });
+
     it('can handle one way concurrency', async () => {
       const channel = new MessageChannel();
-      const ours = new Switchboard(channel.port1, 'ours');
-      const theirs = new Switchboard(channel.port2, 'theirs');
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       theirs.defineMethod('theirMethod', () => Promise.resolve(42));
       theirs.defineMethod(
         'theirMethod2',
@@ -157,8 +206,8 @@ describe('comms', () => {
 
     it('can handle two way concurrency', async () => {
       const channel = new MessageChannel();
-      const ours = new Switchboard(channel.port1, 'ours');
-      const theirs = new Switchboard(channel.port2, 'theirs');
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
       theirs.defineMethod('theirMethod', () => Promise.resolve(42));
       ours.defineMethod(
         'ourMethod',
@@ -174,5 +223,65 @@ describe('comms', () => {
       expect(value1).toEqual(42);
       expect(value2).toEqual(420);
     });
+
+    it('handles when the method is not defined', async () => {
+      const channel = new MessageChannel();
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
+      theirs.start();
+      expect(ours.get('fakemethod')).rejects.toThrow(
+        '[theirs] Method "fakemethod" is not defined',
+      );
+    });
+
+    it('handles when the method throws', async () => {
+      const channel = new MessageChannel();
+      const ours = new Switchboard({ port: channel.port1, name: 'ours' });
+      const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
+      theirs.defineMethod('failing', () => {
+        throw new Error('i dont feel like writing a clever message here');
+      });
+      theirs.start();
+
+      console.error = jest.fn(); // will be restored by the afterEach
+      expect(ours.get('failing')).rejects.toThrow(
+        '[theirs] Method "failing" threw an error',
+      );
+    });
+  });
+
+  it('logs in debug mode', async () => {
+    const { port1, port2 } = new MessageChannel();
+    const ours = new Switchboard({
+      port: port1,
+      name: 'ours',
+      debug: true,
+    });
+    const theirs = new Switchboard({
+      port: port2,
+      name: 'theirs',
+      debug: true,
+    });
+    theirs.defineMethod('blah', () => {});
+    theirs.start();
+    await ours.emit('blah');
+    expect(console.debug).toHaveBeenCalledTimes(1);
+    expect((console.debug as any).mock.calls[0][0]).toBe('[theirs]');
+  });
+
+  it('does not log outside debug mode', async () => {
+    const { port1, port2 } = new MessageChannel();
+    const ours = new Switchboard({
+      port: port1,
+      name: 'ours',
+    });
+    const theirs = new Switchboard({
+      port: port2,
+      name: 'theirs',
+    });
+    theirs.defineMethod('blah', () => {});
+    theirs.start();
+    await ours.emit('blah');
+    expect(console.debug).toHaveBeenCalledTimes(0);
   });
 });
