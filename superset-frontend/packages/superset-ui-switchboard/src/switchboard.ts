@@ -185,7 +185,7 @@ export class Switchboard {
 
 type Method<A extends {}, R> = (args: A) => R | Promise<R>;
 
-// Each message we send on the channel specifies an action we want the other side to perform.
+// Each message we send on the channel specifies an action we want the other side to cooperate with.
 enum Actions {
   GET = 'get',
   REPLY = 'reply',
