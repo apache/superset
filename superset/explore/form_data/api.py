@@ -189,8 +189,10 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                 key=key,
                 form_data=item["form_data"],
             )
-            key = UpdateFormDataCommand(args).run()
-            return self.response(200, key=key)
+            result = UpdateFormDataCommand(args).run()
+            if not result:
+                return self.response_404()
+            return self.response(200, key=result)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         except (

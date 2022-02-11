@@ -52,7 +52,9 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 if state["owner"] != actor.get_user_id():
                     raise KeyValueAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
-                contextual_key = cache_key(session.get("_id"), tab_id, dataset_id, chart_id)
+                contextual_key = cache_key(
+                    session.get("_id"), tab_id, dataset_id, chart_id
+                )
                 cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)
             return False

@@ -155,6 +155,7 @@ def test_post_different_key_for_different_context(
     second_key = data.get("key")
     assert first_key != second_key
 
+
 def test_post_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
@@ -171,7 +172,9 @@ def test_post_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
     assert first_key == second_key
 
 
-def test_post_different_key_for_different_tab_id(client, chart_id: int, dataset_id: int):
+def test_post_different_key_for_different_tab_id(
+    client, chart_id: int, dataset_id: int
+):
     login(client, "admin")
     payload = {
         "dataset_id": dataset_id,
@@ -212,6 +215,7 @@ def test_put(client, chart_id: int, dataset_id: int):
     }
     resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 200
+
 
 def test_put_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
     login(client, "admin")

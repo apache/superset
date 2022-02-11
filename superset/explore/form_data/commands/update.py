@@ -19,7 +19,6 @@ from abc import ABC
 from typing import Optional
 
 from flask import session
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -60,7 +59,9 @@ class UpdateFormDataCommand(BaseCommand, ABC):
 
                 # Generate a new key if tab_id changes or equals 0
                 tab_id = self._cmd_params.tab_id
-                contextual_key = cache_key(session.get("_id"), tab_id, dataset_id, chart_id)
+                contextual_key = cache_key(
+                    session.get("_id"), tab_id, dataset_id, chart_id
+                )
                 key = cache_manager.explore_form_data_cache.get(contextual_key)
                 if not key or not tab_id:
                     key = random_key()
