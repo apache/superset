@@ -26,8 +26,12 @@ import { RootContextProviders } from 'src/views/RootContextProviders';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 
+const debugMode = process.env.WEBPACK_MODE === 'development';
+
 function log(...info: unknown[]) {
-  console.debug(`[superset]`, ...info);
+  if (debugMode) {
+    console.debug(`[superset]`, ...info);
+  }
 }
 
 const LazyDashboardPage = lazy(
@@ -114,7 +118,7 @@ window.addEventListener('message', function (event) {
     const switchboard = new Switchboard({
       port,
       name: 'superset',
-      debug: process.env.WEBPACK_MODE === 'development',
+      debug: debugMode,
     });
 
     switchboard.defineMethod('guestToken', ({ guestToken }) => {
