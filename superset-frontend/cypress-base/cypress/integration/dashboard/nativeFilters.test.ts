@@ -17,7 +17,11 @@
  * under the License.
  */
 import qs from 'querystring';
-import { dashboardView, nativeFilters, exploreView } from 'cypress/support/directories';
+import {
+  dashboardView,
+  nativeFilters,
+  exploreView,
+} from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
@@ -400,7 +404,7 @@ describe('Nativefilters Sanity test', () => {
     });
 
     // clean up the default setting
-    cy.get(nativeFilters.filterFromDashboardView.expand).click({force:true});
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
     cy.contains('Filter has default value').click();
     cy.get(nativeFilters.modal.footer)
@@ -448,8 +452,10 @@ describe('Nativefilters Sanity test', () => {
       cy.get(exploreView.saveModal.chartNameInput).type(
         `${testItems.chart}{enter}`,
       );
-      cy.get(exploreView.saveModal.dashboardNameInput)
-        .type(`${testItems.dashboard}{enter}`, { delay: 100, force: true },);
+      cy.get(exploreView.saveModal.dashboardNameInput).type(
+        `${testItems.dashboard}{enter}`,
+        { delay: 100, force: true },
+      );
       cy.get(exploreView.saveModal.saveAndGoToDashboard).click();
     });
 
@@ -459,7 +465,7 @@ describe('Nativefilters Sanity test', () => {
       .click();
     cy.get(nativeFilters.filtersPanel.filterTypeInput)
       .find(nativeFilters.filtersPanel.filterTypeItem)
-      .click({force:true});
+      .click({ force: true });
     cy.get('[label="Time grain"]').click();
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
