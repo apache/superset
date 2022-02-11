@@ -33,12 +33,21 @@ import {
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
+  Props,
 } from '.';
-import { fireEvent, render, screen, act } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  act,
+  waitFor,
+} from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { isValid } from 'shortid';
+import { AnyArray } from 'immer/dist/internal';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -47,6 +56,15 @@ const simpleAdhocFilter = new AdhocFilter({
   operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
   comparator: '10',
   clause: CLAUSES.WHERE,
+});
+
+const businessTestAdhocFilterTest = new AdhocFilter({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
+  subject: 'businessType',
+  operatorId: null,
+  operator: null,
+  comparator: null,
+  clause: null,
 });
 
 const simpleMultiAdhocFilter = new AdhocFilter({
@@ -60,7 +78,7 @@ const simpleMultiAdhocFilter = new AdhocFilter({
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: { type: 'VARCHAR(255)', column_name: 'source', id: 5},
+  column: { type: 'VARCHAR(255)', column_name: 'source', id: 5 },
   aggregate: AGGREGATES.SUM,
   label: 'test-AdhocMetric',
 });
@@ -79,6 +97,26 @@ const options = [
   { saved_metric_name: 'my_custom_metric', id: 4 },
   sumValueAdhocMetric,
 ];
+
+const getBusinessTypeTestProps = (overrides?: Record<string, any>) => {
+  const onChange = sinon.spy();
+  const validHandler = sinon.spy();
+  const props = {
+    adhocFilter: businessTestAdhocFilterTest,
+    onChange,
+    options: [{ type: 'DOUBLE', column_name: 'businessType', id: 5 }],
+    datasource: {
+      id: 'test-id',
+      columns: [],
+      type: 'postgres',
+      filter_select: false,
+    },
+    partitionColumn: 'test',
+    ...overrides,
+    validHandler,
+  };
+  return props;
+};
 
 function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
@@ -329,24 +367,32 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   });
 });
 
+const BUSINESS_TYPE_ENDPOINT_VALID =
+  'glob:*/api/v1/business_type/convert?q=(type:type,values:!(v))';
+const BUSINESS_TYPE_ENDPOINT_INVALID =
+  'glob:*/api/v1/business_type/convert?q=(type:type,values:!(e))';
+fetchMock.get(BUSINESS_TYPE_ENDPOINT_VALID, {
+    result: {
+      display_value: 'VALID',
+      error_message: '',
+      valid_filter_operators: [Operators.EQUALS],
+      values: ['VALID'],
+    },
+  },
+);
+fetchMock.get(BUSINESS_TYPE_ENDPOINT_INVALID, {
+    result: {
+      display_value: '',
+      error_message: 'error',
+      valid_filter_operators: [],
+      values: [],
+    },
+  },
+);
 
 describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
-
-  const { props } = setup();
-  const BUSINESS_TYPE_ENDPOINT = "/api/v1/business_type/convert?q=(type:cidr,values:!(''))";
-
-  it('is valid', () => {
-    expect(
-      React.isValidElement(
-        <ThemeProvider theme={supersetTheme}>
-          <AdhocFilterEditPopoverSimpleTabContent {...props} />
-        </ThemeProvider>,
-      ),
-    ).toBe(true);
-  });
-
-  beforeEach(async () => {
-    // You need this await function in order to change state in the app. In fact you need it everytime you re-render.
+  
+  const setupFilter = async (props: Props) => {
     await act(async () => {
       render(
         <ThemeProvider theme={supersetTheme}>
@@ -354,21 +400,100 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
         </ThemeProvider>,
       );
     });
-  });
-
+  }
+  
   it('should not call API when column has no business type', async () => {
+    const props = getBusinessTypeTestProps();
 
-    
+    await setupFilter(props);
 
-    const filterList = screen.getByTitle('Filter');
+    fetchMock.resetHistory();
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
     await act(async () => {
-      userEvent.type(filterList, '1.1.1.1');
+      userEvent.type(filterValueField, 'v');
     });
-    expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT)).toHaveLength(0);
+
     await act(async () => {
-      userEvent.type(filterList, '{enter}');
+      userEvent.type(filterValueField, '{enter}');
     });
-    expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT)).toHaveLength(1);
+
+    // When the column is not a business type,
+    // the business type endpoint should not be called
+    await waitFor(() =>
+      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+    );
   });
 
+  it('should call API when column has business type', async () => {
+    const props = getBusinessTypeTestProps({
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'businessType',
+          id: 5,
+          business_type: 'type',
+        },
+      ],
+    });
+
+    await setupFilter(props);
+
+    fetchMock.resetHistory();
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'v');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is a business type,
+    // the business type endpoint should be called
+    await waitFor(() =>
+      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    );
+    expect(props.validHandler.lastCall.args[0]).toBe(true)
+  });
+
+  it('save button should be disabled if error message from API is returned', async () => {
+    const props = getBusinessTypeTestProps({
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'businessType',
+          id: 5,
+          business_type: 'type',
+        },
+      ],
+    });
+
+    await setupFilter(props);
+
+    fetchMock.resetHistory();
+
+    const filterValueField = screen.getByPlaceholderText(
+      'Filter value (case sensitive)',
+    );
+    await act(async () => {
+      userEvent.type(filterValueField, 'e');
+    });
+
+    await act(async () => {
+      userEvent.type(filterValueField, '{enter}');
+    });
+
+    // When the column is a business type but an error response is given by the endpoint,
+    // the save button should be disabled
+    await waitFor(() =>
+      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
+    );
+    expect(props.validHandler.lastCall.args[0]).toBe(false)
+  });
 });

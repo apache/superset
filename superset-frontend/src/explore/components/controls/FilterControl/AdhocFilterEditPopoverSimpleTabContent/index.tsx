@@ -117,7 +117,7 @@ const INITIAL_BUSINESS_TYPES_STATE: BusinessTypesState = {
   errorMessage: '',
 };
 
-const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
+export const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
   const [businessTypesState, setBusinessTypesState] =
     useState<BusinessTypesState>(INITIAL_BUSINESS_TYPES_STATE);
   const [subjectBusinessType, setSubjectBusinessType] = useState<
@@ -131,7 +131,7 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
       subjectBusinessType?: string,
     ) => {
       const values = ensureIsArray(comp).filter(value => value !== '');
-      if (values.length === 0) {
+      if (values.length === 0 || !subjectBusinessType) {
         setBusinessTypesState(INITIAL_BUSINESS_TYPES_STATE);
         return;
       }
@@ -493,6 +493,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
+        data-test="select-element"
         options={columns.map(column => ({
           value:
             ('column_name' in column && column.column_name) ||
