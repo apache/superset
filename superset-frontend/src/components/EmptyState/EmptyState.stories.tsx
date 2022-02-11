@@ -39,8 +39,8 @@ export const SmallEmptyState = () => (
 export const MediumEmptyState = () => (
   <EmptyStateMedium
     image={<ChartImage />}
-    title="Small empty state"
-    description="This is an example of a small empty state"
+    title="Medium empty state"
+    description="This is an example of a medium empty state"
   />
 );
 
