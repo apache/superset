@@ -54,6 +54,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
+from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
@@ -78,6 +79,9 @@ ColumnTypeMapping = Tuple[
 ]
 
 logger = logging.getLogger()
+
+
+CTE_ALIAS = "__cte"
 
 
 class TimeGrain(NamedTuple):
@@ -291,6 +295,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the True is safely for most database
     # But for backward compatibility, False by default
     allows_hidden_cc_in_orderby = False
+
+    # Whether allow CTE as subquery or regular CTE
+    # If True, then it will allow  in subquery ,
+    # if False it will allow as regular CTE
+    allows_cte_in_subquery = True
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -662,6 +671,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
+
+    @classmethod
+    def get_cte_query(cls, sql: str) -> Optional[str]:
+        """
+        Convert the input CTE based SQL to the SQL for virtual table conversion
+
+        :param sql: SQL query
+        :return: CTE with the main select query aliased as `__cte`
+
+        """
+        if not cls.allows_cte_in_subquery:
+            stmt = sqlparse.parse(sql)[0]
+
+            # The first meaningful token for CTE will be with WITH
+            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+            if not (token and token.ttype == CTE):
+                return None
+            idx, token = stmt.token_next(idx)
+            idx = stmt.token_index(token) + 1
+
+            # extract rest of the SQLs after CTE
+            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+
+        return None
 
     @classmethod
     def df_to_sql(

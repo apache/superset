@@ -17,27 +17,38 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import BoundsControl, { BoundsControlProps } from './BoundsControl';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+export default {
+  title: 'BoundsControl',
+  component: BoundsControl,
 };
 
-const defaultProps = {
-  onChange: () => {},
-};
+export const InteractiveBoundsControl = (
+  args: BoundsControlProps & { initialMin: number; initialMax: number },
+) => {
+  const { initialMin, initialMax, ...props } = args;
 
-export default function SliderControl(props) {
   return (
     <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
+      <BoundsControl {...props} value={[initialMin, initialMax]} />
     </>
   );
-}
+};
 
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;
+InteractiveBoundsControl.args = {
+  initialMin: 0,
+  initialMax: 50,
+};
+
+InteractiveBoundsControl.argTypes = {
+  onChange: { action: 'onChange' },
+};
+
+InteractiveBoundsControl.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

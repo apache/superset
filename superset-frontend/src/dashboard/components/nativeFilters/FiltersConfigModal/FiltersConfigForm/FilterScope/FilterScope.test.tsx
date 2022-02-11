@@ -43,7 +43,7 @@ describe('FilterScope', () => {
     save,
     removedFilters: {},
     handleActiveFilterPanelChange: jest.fn(),
-    activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.basic.key}`,
+    activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
     isActive: true,
   };
 

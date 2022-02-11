@@ -100,7 +100,7 @@ test('remove filter', async () => {
 test('add filter', async () => {
   defaultRender();
   // First trash icon
-  const addButton = screen.getByText('Add')!;
+  const addButton = screen.getByText('Add filters and dividers')!;
   fireEvent.mouseOver(addButton);
   const addFilterButton = await screen.findByText('Filter');
 
@@ -118,7 +118,7 @@ test('add filter', async () => {
 
 test('add divider', async () => {
   defaultRender();
-  const addButton = screen.getByText('Add')!;
+  const addButton = screen.getByText('Add filters and dividers')!;
   fireEvent.mouseOver(addButton);
   const addFilterButton = await screen.findByText('Divider');
   await act(async () => {
