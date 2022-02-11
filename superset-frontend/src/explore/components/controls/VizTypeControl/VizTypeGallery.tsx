@@ -335,7 +335,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
 
 const BetaBadge = styled.div`
   ${({ theme }) => `
-    border: 1px solid #1985a0;
+    border: 1px solid ${theme.colors.primary.dark1};
     box-sizing: border-box;
     border-radius: 4px;
     background: ${theme.colors.grayscale.light5};
