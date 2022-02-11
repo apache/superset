@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
-
+import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
@@ -328,9 +328,11 @@ function ExploreViewContainer(props) {
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
   });
 
-  useEffect(() => {
-    addHistory({ isReplace: true });
-  }, [addHistory, tabId]);
+  useChangeEffect(tabId, (previous, current) => {
+    if (current) {
+      addHistory({ isReplace: true });
+    }
+  });
 
   const previousHandlePopstate = usePrevious(handlePopstate);
   useEffect(() => {
