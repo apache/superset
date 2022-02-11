@@ -42,7 +42,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ template "superset.name" . }}-init-db
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion ) }}"
         {{- if or .Values.extraEnv .Values.extraEnvRaw }}
         env:
           {{- range $key, $value := .Values.extraEnv }}

@@ -96,7 +96,8 @@
                     "type": "string"
                 },
                 "tag": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Defaults to version match to Chart.appVersion"
                 },
                 "pullPolicy": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
@@ -104,7 +105,6 @@
             },
             "required": [
                 "repository",
-                "tag",
                 "pullPolicy"
             ]
         },
@@ -168,9 +168,6 @@
                 },
                 "pathType": {
                     "type": "string"
-                },
-                "ingressClassName": {
-                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.networking.v1.IngressSpec/properties/ingressClassName"
                 },
                 "hosts": {
                     "type": "array",

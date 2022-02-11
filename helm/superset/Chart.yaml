@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 apiVersion: v2
-appVersion: "1.0"
+appVersion: "1.4.1"
 description: Apache Superset is a modern, enterprise-ready business intelligence web application
 name: superset
 maintainers:

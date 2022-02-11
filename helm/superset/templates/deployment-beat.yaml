@@ -67,7 +67,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion ) }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
           env:

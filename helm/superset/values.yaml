@@ -160,7 +160,7 @@ extraConfigMountPath: "/app/configs"
 
 image:
   repository: apache/superset
-  tag: latest
+  # tag: "v{{ $.Chart.AppVersion }}"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
