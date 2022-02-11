@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
@@ -29,133 +28,151 @@ import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { Query, RootState } from 'src/SqlLab/types';
+import ModalTrigger from 'src/components/ModalTrigger';
+import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
-import ModalTrigger from '../../../components/ModalTrigger';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
-const propTypes = {
-  columns: PropTypes.array,
-  actions: PropTypes.object,
-  queries: PropTypes.array,
-  onUserClicked: PropTypes.func,
-  onDbClicked: PropTypes.func,
-  displayLimit: PropTypes.number.isRequired,
-};
-const defaultProps = {
-  columns: ['started', 'duration', 'rows'],
-  queries: [],
-  onUserClicked: () => {},
-  onDbClicked: () => {},
-};
+interface QueryTableQuery extends Omit<Query, 'state' | 'sql' | 'progress'> {
+  state?: Record<string, any>;
+  sql?: Record<string, any>;
+  progress?: Record<string, any>;
+}
 
-const openQuery = id => {
+interface QueryTableProps {
+  columns?: string[];
+  actions: {
+    queryEditorSetSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
+  };
+  queries?: Query[];
+  onUserClicked?: Function;
+  onDbClicked?: Function;
+  displayLimit: number;
+}
+
+const openQuery = (id: number) => {
   const url = `/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
 
-const QueryTable = props => {
+const QueryTable = ({
+  columns = ['started', 'duration', 'rows'],
+  actions,
+  queries = [],
+  onUserClicked = () => undefined,
+  onDbClicked = () => undefined,
+  displayLimit,
+}: QueryTableProps) => {
   const theme = useTheme();
-  const statusAttributes = {
-    success: {
-      config: {
-        icon: <Icons.Check iconColor={theme.colors.success.base} />,
-        label: t('Success'),
-      },
-    },
-    failed: {
-      config: {
-        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
-        label: t('Failed'),
-      },
-    },
-    stopped: {
-      config: {
-        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
-        label: t('Failed'),
-      },
-    },
-    running: {
-      config: {
-        icon: <Icons.Running iconColor={theme.colors.primary.base} />,
-        label: t('Running'),
-      },
-    },
-    fetching: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
-        label: t('fetching'),
-      },
-    },
-    timed_out: {
-      config: {
-        icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
-        label: t('Offline'),
-      },
-    },
-    scheduled: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
-        label: t('Scheduled'),
-      },
-    },
-    pending: {
-      config: {
-        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
-        label: t('Scheduled'),
-      },
-    },
-    error: {
-      config: {
-        icon: <Icons.Error iconColor={theme.colors.error.base} />,
-        label: t('Unknown Status'),
-      },
-    },
-  };
 
-  const setHeaders = column => {
+  const setHeaders = (column: string) => {
     if (column === 'sql') {
       return column.toUpperCase();
     }
     return column.charAt(0).toUpperCase().concat(column.slice(1));
   };
-  const columns = useMemo(
+  const columnsOfTable = useMemo(
     () =>
-      props.columns.map(column => ({
+      columns.map(column => ({
         accessor: column,
         Header: () => setHeaders(column),
         disableSortBy: true,
       })),
-    [props.columns],
+    [columns],
   );
 
-  const user = useSelector(({ sqlLab: { user } }) => user);
+  const user = useSelector<RootState, User>(state => state.sqlLab.user);
+
+  const {
+    queryEditorSetSql,
+    cloneQueryToNewTab,
+    fetchQueryResults,
+    clearQueryResults,
+    removeQuery,
+  } = actions;
 
   const data = useMemo(() => {
-    const restoreSql = query => {
-      props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
+    const restoreSql = (query: Query) => {
+      queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
     };
 
-    const openQueryInNewTab = query => {
-      props.actions.cloneQueryToNewTab(query, true);
+    const openQueryInNewTab = (query: Query) => {
+      cloneQueryToNewTab(query, true);
     };
 
-    const openAsyncResults = (query, displayLimit) => {
-      props.actions.fetchQueryResults(query, displayLimit);
+    const openAsyncResults = (query: Query, displayLimit: number) => {
+      fetchQueryResults(query, displayLimit);
     };
 
-    const clearQueryResults = query => {
-      props.actions.clearQueryResults(query);
+    const statusAttributes = {
+      success: {
+        config: {
+          icon: <Icons.Check iconColor={theme.colors.success.base} />,
+          label: t('Success'),
+        },
+      },
+      failed: {
+        config: {
+          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          label: t('Failed'),
+        },
+      },
+      stopped: {
+        config: {
+          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          label: t('Failed'),
+        },
+      },
+      running: {
+        config: {
+          icon: <Icons.Running iconColor={theme.colors.primary.base} />,
+          label: t('Running'),
+        },
+      },
+      fetching: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
+          label: t('Fetching'),
+        },
+      },
+      timed_out: {
+        config: {
+          icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
+          label: t('Offline'),
+        },
+      },
+      scheduled: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          label: t('Scheduled'),
+        },
+      },
+      pending: {
+        config: {
+          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          label: t('Scheduled'),
+        },
+      },
+      error: {
+        config: {
+          icon: <Icons.Error iconColor={theme.colors.error.base} />,
+          label: t('Unknown Status'),
+        },
+      },
     };
 
-    const removeQuery = query => {
-      props.actions.removeQuery(query);
-    };
-
-    return props.queries
+    return queries
       .map(query => {
-        const q = { ...query };
-        const status = statusAttributes[q.state] || statusAttributes.error;
+        const { state, sql, progress, ...rest } = query;
+        const q = rest as QueryTableQuery;
+
+        const status = statusAttributes[state] || statusAttributes.error;
 
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
@@ -172,7 +189,7 @@ const QueryTable = props => {
           <Button
             buttonSize="small"
             buttonStyle="link"
-            onClick={() => props.onUserClicked(q.userId)}
+            onClick={() => onUserClicked(q.userId)}
           >
             {q.user}
           </Button>
@@ -181,7 +198,7 @@ const QueryTable = props => {
           <Button
             buttonSize="small"
             buttonStyle="link"
-            onClick={() => props.onDbClicked(q.dbId)}
+            onClick={() => onDbClicked(q.dbId)}
           >
             {q.db}
           </Button>
@@ -200,7 +217,7 @@ const QueryTable = props => {
         q.sql = (
           <Card css={[StaticPosition]}>
             <HighlightedSql
-              sql={q.sql}
+              sql={sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
@@ -217,16 +234,17 @@ const QueryTable = props => {
                 </Label>
               }
               modalTitle={t('Data preview')}
-              beforeOpen={() => openAsyncResults(query, props.displayLimit)}
+              beforeOpen={() => openAsyncResults(query, displayLimit)}
               onExit={() => clearQueryResults(query)}
               modalBody={
                 <ResultSet
                   showSql
                   user={user}
                   query={query}
-                  actions={props.actions}
+                  actions={actions}
                   height={400}
-                  displayLimit={props.displayLimit}
+                  displayLimit={displayLimit}
+                  defaultQueryLimit={1000}
                 />
               }
               responsive
@@ -240,17 +258,14 @@ const QueryTable = props => {
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
         q.progress =
-          q.state === 'success' ? (
+          state === 'success' ? (
             <ProgressBar
-              percent={parseInt(q.progress.toFixed(0), 10)}
+              percent={parseInt(progress.toFixed(0), 10)}
               striped
               showInfo={false}
             />
           ) : (
-            <ProgressBar
-              percent={parseInt(q.progress.toFixed(0), 10)}
-              striped
-            />
+            <ProgressBar percent={parseInt(progress.toFixed(0), 10)} striped />
           );
         q.state = (
           <Tooltip title={status.config.label} placement="bottom">
@@ -266,35 +281,44 @@ const QueryTable = props => {
               )}
               placement="top"
             >
-              <Icons.Edit iconSize="small" />
+              <Icons.Edit iconSize="s" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
             >
-              <Icons.PlusCircleOutlined
-                iconSize="x-small"
-                css={verticalAlign}
-              />
+              <Icons.PlusCircleOutlined iconSize="xs" css={verticalAlign} />
             </StyledTooltip>
             <StyledTooltip
               tooltip={t('Remove query from log')}
               onClick={() => removeQuery(query)}
             >
-              <Icons.Trash iconSize="x-small" />
+              <Icons.Trash iconSize="xs" />
             </StyledTooltip>
           </div>
         );
         return q;
       })
       .reverse();
-  }, [props]);
+  }, [
+    queries,
+    onUserClicked,
+    onDbClicked,
+    user,
+    displayLimit,
+    actions,
+    clearQueryResults,
+    cloneQueryToNewTab,
+    fetchQueryResults,
+    queryEditorSetSql,
+    removeQuery,
+  ]);
 
   return (
     <div className="QueryTable">
       <TableView
-        columns={columns}
+        columns={columnsOfTable}
         data={data}
         className="table-condensed"
         pageSize={50}
@@ -302,8 +326,5 @@ const QueryTable = props => {
     </div>
   );
 };
-
-QueryTable.propTypes = propTypes;
-QueryTable.defaultProps = defaultProps;
 
 export default QueryTable;
