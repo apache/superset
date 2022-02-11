@@ -404,7 +404,18 @@ const config = {
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
         issuer: /\.([jt])sx?$/,
-        use: ['@svgr/webpack'],
+        use: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              svgoConfig: {
+                plugins: {
+                  removeViewBox: false,
+                },
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.(jpg|gif)$/,
