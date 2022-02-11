@@ -340,6 +340,9 @@ const config = {
         exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
           new RegExp(`${APP_DIR}/(src|.storybook|plugins|packages)`),
+          ...['./src', './.storybook', './plugins', './packages'].map(p =>
+            path.resolve(__dirname, p),
+          ), // redundant but required for windows
           /@encodable/,
         ],
         use: [babelLoader],
