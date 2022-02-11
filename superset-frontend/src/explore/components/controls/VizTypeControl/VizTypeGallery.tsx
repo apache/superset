@@ -340,7 +340,7 @@ const BetaBadge = styled.div`
     border-radius: ${theme.gridUnit}px;
     background: ${theme.colors.grayscale.light5};
     line-height: ${theme.gridUnit * 2.5}px;
-    color: #1985a0;
+    color: ${theme.colors.primary.dark1};
     font-size: 12px;
     font-weight: 500;
     text-align: center;
