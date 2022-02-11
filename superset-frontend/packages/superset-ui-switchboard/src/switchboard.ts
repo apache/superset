@@ -108,13 +108,15 @@ export class Switchboard {
    * Calls a method registered on the other side, and returns the result.
    *
    * How this is accomplished:
-   * This switchboard sends a "get" message over the channel describing what method to call with optional arguments.
+   * This switchboard sends a "get" message over the channel describing which method to call with which arguments.
    * The other side's switchboard finds a method with that name, and calls it with the arguments.
-   * It then packages up the returned value into a second "reply" message, and sends it back to us across the channel.
-   * This switchboard has attached a listener on the channel, which will resolve the promise when the reply is detected.
+   * It then packages up the returned value into a "reply" message, sending it back to us across the channel.
+   * This switchboard has attached a listener on the channel, which will resolve with the result when a reply is detected.
+   *
+   * Instead of an arguments list, arguments are supplied as a map.
    *
    * @param method the name of the method to call
-   * @param args arguments that will be supplied. Must be serializable.
+   * @param args arguments that will be supplied. Must be serializable, no functions or other nonense.
    * @returns whatever is returned from the method
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {
