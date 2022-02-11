@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useCallback } from 'react';
-import { debounce } from 'lodash';
-import rison from 'rison';
+import React, { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { t, SupersetClient, styled, ensureIsArray } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -42,6 +40,7 @@ import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
+import useBusinessTypes from './useBusinessTypes';
 
 const StyledInput = styled(Input)<{ error: boolean }>`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -110,79 +109,6 @@ export interface BusinessTypesState {
   businessTypeOperatorList: string[];
   errorMessage: string;
 }
-
-const INITIAL_BUSINESS_TYPES_STATE: BusinessTypesState = {
-  parsedBusinessType: '',
-  businessTypeOperatorList: [],
-  errorMessage: '',
-};
-
-const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
-  const [businessTypesState, setBusinessTypesState] =
-    useState<BusinessTypesState>(INITIAL_BUSINESS_TYPES_STATE);
-  const [subjectBusinessType, setSubjectBusinessType] = useState<
-    string | undefined
-  >();
-
-  const fetchBusinessTypeValueCallback = useCallback(
-    (
-      comp: string | string[],
-      businessTypesState: BusinessTypesState,
-      subjectBusinessType?: string,
-    ) => {
-      const values = ensureIsArray(comp).filter(value => value !== '');
-      if (values.length === 0) {
-        setBusinessTypesState(INITIAL_BUSINESS_TYPES_STATE);
-        return;
-      }
-      debounce(() => {
-        const queryParams = rison.encode({ type: subjectBusinessType, values });
-        const endpoint = `/api/v1/business_type/convert?q=${queryParams}`;
-        SupersetClient.get({ endpoint })
-          .then(({ json }) => {
-            setBusinessTypesState({
-              parsedBusinessType: json.result.display_value,
-              businessTypeOperatorList: json.result.valid_filter_operators,
-              errorMessage: json.result.error_message,
-            });
-            // Changed due to removal of status field
-            validHandler(!json.result.error_message);
-          })
-          .catch(() => {
-            setBusinessTypesState({
-              parsedBusinessType: '',
-              businessTypeOperatorList:
-                businessTypesState.businessTypeOperatorList,
-              errorMessage: t('Failed to retrieve business types'),
-            });
-            validHandler(false);
-          });
-      }, 600)();
-    },
-    [validHandler],
-  );
-
-  const fetchSubjectBusinessType = (props: Props) => {
-    const option = props.options.find(
-      option =>
-        ('column_name' in option &&
-          option.column_name === props.adhocFilter.subject) ||
-        ('optionName' in option &&
-          option.optionName === props.adhocFilter.subject),
-    );
-    if (option && 'business_type' in option) {
-      setSubjectBusinessType(option.business_type);
-    }
-  };
-
-  return {
-    businessTypesState,
-    subjectBusinessType,
-    setBusinessTypesState,
-    fetchBusinessTypeValueCallback,
-    fetchSubjectBusinessType,
-  };
-};
 
 export const useSimpleTabFilterProps = (props: Props) => {
   const isOperatorRelevant = (operator: Operators, subject: string) => {
