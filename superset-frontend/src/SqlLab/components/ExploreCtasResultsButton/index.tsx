@@ -22,9 +22,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button from 'src/components/Button';
 import { exploreChart } from 'src/explore/exploreUtils';
-import rootReducer from 'src/SqlLab/reducers';
-
-type RootState = ReturnType<typeof rootReducer>;
+import { RootState } from 'src/SqlLab/types';
 
 interface ExploreCtasResultsButtonProps {
   actions: {
