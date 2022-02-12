@@ -1245,3 +1245,57 @@ class TestGuestTokens(SupersetTestCase):
         self.assertRaisesRegex(
             ValueError, "Guest token does not contain a resources claim"
         )
+
+    def test_get_guest_user_not_guest_type(self):
+        now = time.time()
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        aud = get_url_host()
+
+        claims = {
+            "user": user,
+            "resources": resources,
+            "rls_rules": [],
+            # standard jwt claims:
+            "aud": aud,
+            "iat": now,  # issued at
+            "type": "not_guest",
+        }
+        token = jwt.encode(
+            claims,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
+        )
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNone(guest_user)
+        self.assertRaisesRegex(ValueError, "This is not a guest token.")
+
+    def test_get_guest_user_bad_audience(self):
+        now = time.time()
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        aud = get_url_host()
+
+        claims = {
+            "user": user,
+            "resources": resources,
+            "rls_rules": [],
+            # standard jwt claims:
+            "aud": "bad_audience",
+            "iat": now,  # issued at
+            "type": "guest",
+        }
+        token = jwt.encode(
+            claims,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
+        )
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")
+        self.assertIsNone(guest_user)
