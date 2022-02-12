@@ -22,7 +22,7 @@
   "module": "lib/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc & babel src --out-dir lib --extensions '.ts,.tsx' & webpack --mode production",
+    "build": "tsc ; babel src --out-dir lib --extensions '.ts,.tsx' ; webpack --mode production",
     "ci:release": "node ./release-if-necessary.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
