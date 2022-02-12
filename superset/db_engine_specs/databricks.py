@@ -27,6 +27,20 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine_name = "Databricks Interactive Cluster"
     driver = "pyhive"
     _show_functions_column = "function"
+    
+    _time_grain_expressions = {
+        None: "{col}",
+        "PT1S": "date_trunc('second', {col})",
+        "PT1M": "date_trunc('minute', {col})",
+        "PT1H": "date_trunc('hour', {col})",
+        "P1D": "date_trunc('day', {col})",
+        "P1W": "date_trunc('week', {col})",
+        "P1M": "date_trunc('month', {col})",
+        "P3M": "date_trunc('quarter', {col})",
+        "P1Y": "date_trunc('year', {col})",
+        "P1W/1970-01-03T00:00:00Z": "date_trunc('week', {col} + interval '1 day') + interval '5 days'",
+        "1969-12-28T00:00:00Z/P1W": "date_trunc('week', {col} + interval '1 day') - interval '1 day'",
+    }
 
 
 class DatabricksODBCEngineSpec(BaseEngineSpec):
@@ -37,7 +51,7 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     # the syntax for the ODBC engine is identical to the Hive one, so
     # we can reuse the expressions from `HiveEngineSpec`
     # pylint: disable=protected-access
-    _time_grain_expressions = HiveEngineSpec._time_grain_expressions
+    _time_grain_expressions = DatabricksHiveEngineSpec._time_grain_expressions
 
     @classmethod
     def convert_dttm(
