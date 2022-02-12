@@ -214,10 +214,20 @@ export default class SupersetClientClass {
 
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
-    console.log('GetUrl:', [host, cleanHost, this.host]);
-    return `${this.protocol}//${cleanHost}/${
+
+    const res_url = `${this.protocol}//${cleanHost}/${
       endpoint[0] === '/' ? endpoint.slice(1) : endpoint
     }`;
+    console.log('GetUrl:', [
+      host,
+      cleanHost,
+      this.host,
+      this.protocol,
+      window.location.protocol,
+      res_url,
+      cleanHost,
+    ]);
+    return res_url;
   }
 
   redirectUnauthorized() {
