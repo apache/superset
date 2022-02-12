@@ -18,11 +18,10 @@
  */
 
 import React, { FC, useCallback, useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { NativeFilterScope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { Form, Typography } from 'src/common/components';
 import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
-import { Scope } from '../../../types';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';
@@ -30,9 +29,9 @@ import { getDefaultScopeValue, isScopingAll } from './utils';
 type FilterScopeProps = {
   pathToFormValue?: string[];
   updateFormValues: (values: any) => void;
-  formFilterScope?: Scope;
+  formFilterScope?: NativeFilterScope;
   forceUpdate: Function;
-  filterScope?: Scope;
+  filterScope?: NativeFilterScope;
   formScopingType?: ScopingType;
   chartId?: number;
   initiallyExcludedCharts?: number[];

@@ -16,28 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-};
+/*
+  Preset dashboard components (in addition to basic components like row, column, chart, etc...)
+ */
 
-const defaultProps = {
-  onChange: () => {},
-};
+import DashboardComponentsRegistry from '../dashboardComponents/DashboardComponentsRegistry';
 
-export default function SliderControl(props) {
-  return (
-    <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
-    </>
-  );
-}
+const dashboardComponents = DashboardComponentsRegistry([
+  // Here can be added default dashboard components
+]);
 
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;
+export default dashboardComponents;

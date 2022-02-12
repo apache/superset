@@ -17,24 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Icons from 'src/components/Icons';
-import IconButton from './IconButton';
+import { DashboardComponentMetadata, t } from '@superset-ui/core';
 
-const propTypes = {
-  onDelete: PropTypes.func.isRequired,
-};
+// TODO: POC only component can be removed after PR approved
+const ExampleComponent = ({
+  metadata,
+}: {
+  metadata: DashboardComponentMetadata;
+}) => (
+  <div>
+    {t('We have the following keys: %s', Object.keys(metadata).join(', '))}
+  </div>
+);
 
-const defaultProps = {};
-
-export default class DeleteComponentButton extends React.PureComponent {
-  render() {
-    const { onDelete } = this.props;
-    return (
-      <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />
-    );
-  }
-}
-
-DeleteComponentButton.propTypes = propTypes;
-DeleteComponentButton.defaultProps = defaultProps;
+export default ExampleComponent;

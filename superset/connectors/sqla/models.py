@@ -77,7 +77,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
     BaseTemplateProcessor,
@@ -107,6 +107,7 @@ VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
+    cte: Optional[str]
     extra_cache_keys: List[Any]
     labels_expected: List[str]
     prequeries: List[str]
@@ -562,6 +563,19 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def __repr__(self) -> str:
         return self.name
 
+    @staticmethod
+    def _apply_cte(sql: str, cte: Optional[str]) -> str:
+        """
+        Append a CTE before the SELECT statement if defined
+
+        :param sql: SELECT statement
+        :param cte: CTE statement
+        :return:
+        """
+        if cte:
+            sql = f"{cte}\n{sql}"
+        return sql
+
     @property
     def db_engine_spec(self) -> Type[BaseEngineSpec]:
         return self.database.db_engine_spec
@@ -743,12 +757,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
         tp = self.get_template_processor()
+        tbl, cte = self.get_from_clause(tp)
 
-        qry = (
-            select([target_col.get_sqla_col()])
-            .select_from(self.get_from_clause(tp))
-            .distinct()
-        )
+        qry = select([target_col.get_sqla_col()]).select_from(tbl).distinct()
         if limit:
             qry = qry.limit(limit)
 
@@ -756,7 +767,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             qry = qry.where(self.get_fetch_values_predicate())
 
         engine = self.database.get_sqla_engine()
-        sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
+        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+        sql = self._apply_cte(sql, cte)
         sql = self.mutate_query_from_config(sql)
 
         df = pd.read_sql_query(sql=sql, con=engine)
@@ -778,6 +790,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
+        sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -800,13 +813,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> Union[TableClause, Alias]:
+    ) -> Tuple[Union[TableClause, Alias], Optional[str]]:
         """
         Return where to select the columns and metrics from. Either a physical table
-        or a virtual table with it's own subquery.
+        or a virtual table with it's own subquery. If the FROM is referencing a
+        CTE, the CTE is returned as the second value in the return tuple.
         """
         if not self.is_virtual:
-            return self.get_sqla_table()
+            return self.get_sqla_table(), None
 
         from_sql = self.get_rendered_sql(template_processor)
         parsed_query = ParsedQuery(from_sql)
@@ -817,7 +831,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )
-        return TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+
+        cte = self.db_engine_spec.get_cte_query(from_sql)
+        from_clause = (
+            table(CTE_ALIAS)
+            if cte
+            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        )
+
+        return from_clause, cte
 
     def get_rendered_sql(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -1224,7 +1246,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         qry = sa.select(select_exprs)
 
-        tbl = self.get_from_clause(template_processor)
+        tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
@@ -1491,6 +1513,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
+            cte=cte,
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
             sqla_query=qry,
