@@ -18,18 +18,25 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskState,
+  DataMaskWithId,
+  Filter,
+  Filters,
+  FilterSet,
+  HandlerFunction,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { DataMaskState, DataMaskWithId } from 'src/dataMask/types';
 import {
   createFilterSet,
   deleteFilterSet,
   updateFilterSet,
 } from 'src/dashboard/actions/nativeFilters';
-import { Filters, FilterSet } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet } from './utils';
-import { Filter } from '../../types';
 import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';

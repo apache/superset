@@ -24,7 +24,13 @@ import QueryTable from 'src/SqlLab/components/QueryTable';
 
 interface QueryHistoryProps {
   queries: Query[];
-  actions: Record<string, unknown>;
+  actions: {
+    queryEditorSetSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
+  };
   displayLimit: number;
 }
 

@@ -449,10 +449,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response({"data": payload["df"].to_dict("records")})
+        return self.json_response(
+            {
+                "data": payload["df"].to_dict("records"),
+                "colnames": payload.get("colnames"),
+                "coltypes": payload.get("coltypes"),
+            },
+        )
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
-        return self.json_response({"data": viz_obj.get_samples()})
+        return self.json_response(viz_obj.get_samples())
 
     @staticmethod
     def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
@@ -740,6 +746,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             value = GetFormDataCommand(parameters).run()
             if value:
                 initial_form_data = json.loads(value)
+
+        if not initial_form_data:
+            slice_id = request.args.get("slice_id")
+            dataset_id = request.args.get("dataset_id")
+            if slice_id:
+                initial_form_data["slice_id"] = slice_id
+                flash(_("Form data not found in cache, reverting to chart metadata."))
+            elif dataset_id:
+                initial_form_data["datasource"] = f"{dataset_id}__table"
+                flash(_("Form data not found in cache, reverting to dataset metadata."))
 
         form_data, slc = get_form_data(
             use_slice_data=True, initial_form_data=initial_form_data

@@ -167,6 +167,12 @@ const updateHistory = debounce(
   async (formData, datasetId, isReplace, standalone, force, title) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
+    const additionalParam = {};
+    if (chartId) {
+      additionalParam[URL_PARAMS.sliceId.name] = chartId;
+    } else {
+      additionalParam[URL_PARAMS.datasetId.name] = datasetId;
+    }
 
     try {
       let key;
@@ -183,6 +189,7 @@ const updateHistory = debounce(
         standalone ? URL_PARAMS.standalone.name : null,
         {
           [URL_PARAMS.formDataKey.name]: key,
+          ...additionalParam,
         },
         force,
       );
@@ -210,6 +217,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
 
   const theme = useTheme();
   const width = `${windowSize.width}px`;
@@ -526,9 +534,10 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        onResizeStop={(evt, direction, ref, d) =>
-          setSidebarWidths(LocalStorageKeys.datasource_width, d)
-        }
+        onResizeStop={(evt, direction, ref, d) => {
+          setShouldForceUpdate(d?.width);
+          setSidebarWidths(LocalStorageKeys.datasource_width, d);
+        }}
         defaultSize={{
           width: getSidebarWidths(LocalStorageKeys.datasource_width),
           height: '100%',
@@ -559,6 +568,7 @@ function ExploreViewContainer(props) {
           datasource={props.datasource}
           controls={props.controls}
           actions={props.actions}
+          shouldForceUpdate={shouldForceUpdate}
         />
       </Resizable>
       {isCollapsed ? (
