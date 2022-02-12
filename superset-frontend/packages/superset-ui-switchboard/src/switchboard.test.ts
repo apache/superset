@@ -267,7 +267,7 @@ describe('comms', () => {
       });
       port2.start();
 
-      expect(ours.get('someMethod')).rejects.toThrowError(
+      await expect(ours.get('someMethod')).rejects.toThrowError(
         'Unexpected response message',
       );
     });
