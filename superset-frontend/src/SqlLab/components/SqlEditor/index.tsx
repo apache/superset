@@ -19,11 +19,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
+// @ts-ignore
 import Split from 'react-split';
 import { t, styled, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
+// @ts-ignore
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
@@ -78,6 +80,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import { Table, TableElementProps } from '../TableElement';
 
 type RootState = ReturnType<typeof rootReducer>;
 
@@ -91,18 +94,35 @@ const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
-  appContainer.getAttribute('data-bootstrap') || '{}',
+  appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
+interface actionsTypes {
+  queryEditorSetDb: (queryEditor: QueryEditor, dbId: number) => void;
+  queryEditorSetSelectedText: (edit: any, text: null | string) => void;
+  queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
+  collapseTable: (table: Table) => void;
+  expandTable: (table: Table) => void;
+  addTable: (queryEditor: any, value: any, schema: any) => void;
+  setDatabases: (arg0: any) => {};
+  addDangerToast: (msg: string) => void;
+  queryEditorSetSchema: (schema?: string) => void;
+  queryEditorSetSchemaOptions: () => void;
+  queryEditorSetTableOptions: (options: Array<any>) => void;
+  resetState: () => void;
+  queryEditorSetSql: Function;
+  cloneQueryToNewTab: Function;
+  fetchQueryResults: Function;
+  clearQueryResults: Function;
+  removeQuery: Function;
+  setActiveSouthPaneTab: Function;
+}
+
 interface SqlEditorProps {
-  actions: {
-    queryEditorSetSelectedText: (edit: any, text: null | string) => void;
-    queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
-    addTable: (queryEditor: any, value: any, schema: any) => void;
-  };
+  actions: actionsTypes & TableElementProps['actions'];
   database?: DatabaseObject | null;
   latestQuery?: Query;
   tables: any[];
