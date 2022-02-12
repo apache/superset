@@ -131,8 +131,11 @@ export class Switchboard {
         this.port.removeEventListener('message', listener);
         if (isReply(message)) {
           resolve(message.result);
-        } else if (isError(message)) {
-          reject(new Error(message.error));
+        } else {
+          const errStr = isError(message)
+            ? message.error
+            : 'Unexpected response message';
+          reject(new Error(errStr));
         }
       };
       this.port.addEventListener('message', listener);

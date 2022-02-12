@@ -119,6 +119,13 @@ describe('comms', () => {
     console.error = originalConsoleError;
   });
 
+  it('constructs with defaults', () => {
+    const sb = new Switchboard({ port: new MessageChannel().port1 });
+    expect(sb).not.toBeNull();
+    expect(sb).toHaveProperty('name');
+    expect(sb).toHaveProperty('debugMode');
+  });
+
   describe('emit', () => {
     it('triggers the method', async () => {
       const channel = new MessageChannel();
@@ -246,6 +253,22 @@ describe('comms', () => {
       console.error = jest.fn(); // will be restored by the afterEach
       await expect(ours.get('failing')).rejects.toThrow(
         '[theirs] Method "failing" threw an error',
+      );
+    });
+
+    it('handles receiving an unexpected non-reply, non-error response', async () => {
+      const { port1, port2 } = new MessageChannel();
+      const ours = new Switchboard({ port: port1, name: 'ours' });
+      // This test is required for 100% coverage. But there's no way to set up these conditions
+      // within the switchboard interface, so we gotta hack together the ports directly.
+      port2.addEventListener('message', event => {
+        const { messageId } = event.data;
+        port1.dispatchEvent({ data: { messageId } } as MessageEvent);
+      });
+      port2.start();
+
+      expect(ours.get('someMethod')).rejects.toThrowError(
+        'Unexpected response message',
       );
     });
   });
