@@ -787,7 +787,11 @@ export function queryEditorSetSchema(queryEditor, schema) {
 
     return sync
       .then(() =>
-        dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema }),
+        dispatch({
+          type: QUERY_EDITOR_SET_SCHEMA,
+          queryEditor: queryEditor || {},
+          schema: schema || {},
+        }),
       )
       .catch(() =>
         dispatch(

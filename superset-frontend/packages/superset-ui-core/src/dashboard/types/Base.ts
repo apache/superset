@@ -19,20 +19,20 @@
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
 
-export interface Column {
+export interface NativeFilterColumn {
   name: string;
   displayName?: string;
 }
 
-export interface Scope {
+export interface NativeFilterScope {
   rootPath: string[];
   excluded: number[];
 }
 
 /** The target of a filter is the datasource/column being filtered */
-export interface Target {
+export interface NativeFilterTarget {
   datasetId: number;
-  column: Column;
+  column: NativeFilterColumn;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector
@@ -44,16 +44,37 @@ export enum NativeFilterType {
   DIVIDER = 'DIVIDER',
 }
 
+export enum DataMaskType {
+  NativeFilters = 'nativeFilters',
+  CrossFilters = 'crossFilters',
+}
+
+export type DataMaskState = { [id: string]: DataMask };
+
+export type DataMaskWithId = { id: string } & DataMask;
+export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
+
+export type FilterSet = {
+  id: number;
+  name: string;
+  nativeFilters: Filters;
+  dataMask: DataMaskStateWithId;
+};
+
+export type FilterSets = {
+  [filtersSetId: string]: FilterSet;
+};
+
 export interface Filter {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
   id: string; // randomly generated at filter creation
   name: string;
-  scope: Scope;
+  scope: NativeFilterScope;
   filterType: string;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
-  targets: [Partial<Target>];
+  targets: [Partial<NativeFilterTarget>];
   controlValues: {
     [key: string]: any;
   };
@@ -70,6 +91,7 @@ export interface Filter {
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
 }
+
 export interface Divider {
   id: string;
   title: string;
@@ -78,3 +100,18 @@ export interface Divider {
 }
 
 export type FilterConfiguration = Array<Filter | Divider>;
+
+export type Filters = {
+  [filterId: string]: Filter;
+};
+
+export type NativeFiltersState = {
+  filters: Filters;
+  filterSets: FilterSets;
+  focusedFilterId?: string;
+};
+
+export type DashboardComponentMetadata = {
+  nativeFilters: NativeFiltersState;
+  dataMask: DataMaskStateWithId;
+};

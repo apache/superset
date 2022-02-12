@@ -28,6 +28,7 @@ const reduxState = {
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
     controls: { datasource: { value: '1__table' } },
     datasource: {
+      id: 1,
       type: 'table',
       columns: [{ is_dttm: false }],
       metrics: [{ id: 1, metric_name: 'count' }],
@@ -65,7 +66,7 @@ fetchMock.get('glob:*/api/v1/explore/form_data*', {});
 
 const renderWithRouter = (withKey?: boolean) => {
   const path = '/superset/explore/';
-  const search = withKey ? `?form_data_key=${key}` : '';
+  const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>
       <Route path={path}>
@@ -82,7 +83,12 @@ test('generates a new form_data param when none is available', async () => {
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
-    expect.stringMatching('form_data'),
+    expect.stringMatching('form_data_key'),
+  );
+  expect(replaceState).toHaveBeenCalledWith(
+    expect.anything(),
+    undefined,
+    expect.stringMatching('dataset_id'),
   );
   replaceState.mockRestore();
 });
@@ -95,6 +101,11 @@ test('generates a different form_data param when one is provided and is mounting
     expect.anything(),
     undefined,
     expect.stringMatching(key),
+  );
+  expect(replaceState).toHaveBeenCalledWith(
+    expect.anything(),
+    undefined,
+    expect.stringMatching('dataset_id'),
   );
   replaceState.mockRestore();
 });

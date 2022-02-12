@@ -467,12 +467,9 @@ const ResultSet = ({
             onChangeAutoComplete={handleOnChangeAutoComplete}
           />
           <ResultSetButtons>
-            {visualize && database && database.allows_virtual_table_explore && (
+            {visualize && database?.allows_virtual_table_explore && (
               <ExploreResultsButton
-                // @ts-ignore Redux types are difficult to work with, ignoring for now
-                query={query}
                 database={database}
-                actions={actions}
                 onClick={handleExploreBtnClick}
               />
             )}
@@ -669,7 +666,6 @@ const ResultSet = ({
                   table={tempTable}
                   schema={tempSchema}
                   dbId={exploreDBId}
-                  database={database}
                   actions={actions}
                 />
               </ButtonGroup>

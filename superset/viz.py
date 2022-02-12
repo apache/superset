@@ -244,7 +244,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             )
         return df
 
-    def get_samples(self) -> List[Dict[str, Any]]:
+    def get_samples(self) -> Dict[str, Any]:
         query_obj = self.query_obj()
         query_obj.update(
             {
@@ -258,8 +258,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "to_dttm": None,
             }
         )
-        df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
-        return df.to_dict(orient="records")
+        payload = self.get_df_payload(query_obj)  # leverage caching logic
+        return {
+            "data": payload["df"].to_dict(orient="records"),
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+        }
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
         """Returns a pandas dataframe based on the query object"""
@@ -621,6 +625,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
+            "colnames": list(df.columns) if df is not None else None,
+            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource)
+            if df is not None
+            else None,
         }
 
     @staticmethod

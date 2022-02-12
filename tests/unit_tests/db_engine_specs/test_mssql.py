@@ -180,6 +180,57 @@ def test_column_datatype_to_string(
     assert actual == expected
 
 
+@pytest.mark.parametrize(
+    "original,expected",
+    [
+        (
+            dedent(
+                """
+with currency as (
+select 'INR' as cur
+),
+currency_2 as (
+select 'EUR' as cur
+)
+select * from currency union all select * from currency_2
+"""
+            ),
+            dedent(
+                """WITH currency as (
+select 'INR' as cur
+),
+currency_2 as (
+select 'EUR' as cur
+),
+__cte AS (
+select * from currency union all select * from currency_2
+)"""
+            ),
+        ),
+        ("SELECT 1 as cnt", None,),
+        (
+            dedent(
+                """
+select 'INR' as cur
+union
+select 'AUD' as cur
+union
+select 'USD' as cur
+"""
+            ),
+            None,
+        ),
+    ],
+)
+def test_cte_query_parsing(
+    app_context: AppContext, original: TypeEngine, expected: str
+) -> None:
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    actual = MssqlEngineSpec.get_cte_query(original)
+    assert actual == expected
+
+
 def test_extract_errors(app_context: AppContext) -> None:
     """
     Test that custom error messages are extracted correctly.

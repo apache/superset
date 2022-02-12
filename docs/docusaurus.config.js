@@ -54,11 +54,11 @@ const config = {
             from: '/tutorials.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -74,7 +74,7 @@ const config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/connecting-to-databases/druid',
+            to: '/docs/databases/druid',
             from: '/druid.html',
           },
           {
@@ -94,8 +94,16 @@ const config = {
             from: '/faq.html',
           },
           {
-            to: '/docs/Creating Charts and Dashboards/creating-your-first-dashboard',
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
             from: '/tutorial.html',
+          },
+          {
+            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/first-dashboard',
+          },
+          {
+            to: '/docs/api',
+            from: '/docs/rest-api',
           },
           {
             to: '/docs/installation/alerts-reports',
@@ -104,6 +112,10 @@ const config = {
           {
             to: '/docs/intro',
             from: '/docs/roadmap',
+          },
+          {
+            to: '/docs/contributing/contributing-page',
+            from: '/docs/contributing/contribution-guidelines',
           },
         ],
       },
