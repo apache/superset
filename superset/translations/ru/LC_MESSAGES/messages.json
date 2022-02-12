@@ -4,20 +4,20 @@
     "superset": {
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=1; plural=0;",
+        "plural_forms": "nplurals=1; plural=0",
         "lang": "ru"
       },
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
-        "\n            <b><a href=“%(url)s”>Исследовать в Superset</a></b><p></p>\n            <img src=“cid:%(msgid)s”>\n            "
+        "\n            <b><a href=“%(url)s”>Исследовать в MedBI</a></b><p></p>\n            <img src=“cid:%(msgid)s”>\n            "
       ],
       "\n            Error: %(text)s\n            ": [
         "\n            Ошибка: %(text)s\n            "
       ],
       "\n        *%(name)s*\n\n        <%(url)s|Explore in Superset>\n        ": [
-        "\n        *%(name)s*\n\n        <%(url)s|Исследовать в Superset>\n        "
+        "\n        *%(name)s*\n\n        <%(url)s|Исследовать в MedBI>\n        "
       ],
       "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
-        "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в Superset>\n        "
+        "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в MedBI>\n        "
       ],
       " (excluded)": [" (исключено)"],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
@@ -113,7 +113,7 @@
       "< (Smaller than)": ["< (меньше чем)"],
       "<= (Smaller or equal)": ["<= (меньше или равно)"],
       "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>": [
-        "<b><a href=“%(url)s”>Исследовать в Superset</a></b><p></p>"
+        "<b><a href=“%(url)s”>Исследовать в MedBI</a></b><p></p>"
       ],
       "== (Is equal)": ["== (равно)"],
       "> (Larger than)": ["> (больше чем)"],
@@ -191,7 +191,7 @@
       "Action Log": ["Журнал Действий"],
       "Actions": ["Действия"],
       "Active": ["Действия"],
-      "Actual time range": [""],
+      "Actual time range": ["Выбранный дипазон"],
       "Adaptative formating": ["Адаптивное форматирование"],
       "Add": ["Добавить"],
       "Add Alert": ["Добавить оповещение"],
@@ -499,7 +499,7 @@
         "Произошла ошибка при обновлении значения."
       ],
       "An unknown error occurred. Please contact your Superset administrator": [
-        "Произошла неизвестная ошибка. Пожалуйста, свяжитесь с администратором Superset"
+        "Произошла неизвестная ошибка. Пожалуйста, свяжитесь с администратором MedBI"
       ],
       "Anchor to": ["Привязать к"],
       "Angle at which to end progress axis": [""],
@@ -650,6 +650,7 @@
         ""
       ],
       "Box Plot": ["Box Plot"],
+      "Breakdowns": ["Поломки"],
       "Broker Endpoint": ["Адрес брокера"],
       "Broker Host": ["Хост брокера"],
       "Broker Password": ["Пароль брокера"],
@@ -737,7 +738,9 @@
       "Cell Radius": [""],
       "Cell content": ["Созданный контент"],
       "Certification details": ["Детали сертификации"],
-      "Certified by": ["Изменено"],
+      "Certified": ["Сертифицировано"],
+      "Certified By": ["Сертифицировано"],
+      "Certified by": ["Сертифицировано"],
       "Certified by %s": ["Сертифицирован: %s"],
       "Change dataset": ["Выберите источник данных"],
       "Change order of columns.": [""],
@@ -760,6 +763,9 @@
       ],
       "Changing this dataset is forbidden": [
         "Изменение этого датасета запрещено"
+      ],
+      "Changing this dataset is forbidden.": [
+        "Изменение этого датасета запрещено."
       ],
       "Changing this report is forbidden": ["Изменение этого отчёта запрещено"],
       "Character to interpret as decimal point.": [
@@ -832,6 +838,7 @@
       "Choose a metric for left axis": ["Выберите показатель для левой оси"],
       "Choose a metric for right axis": ["Выберите показатель для правой оси"],
       "Choose a number format": ["Выберите формат чисел"],
+      "Choose a source": ["Выберите источник данных"],
       "Choose a source and a target": ["Выберите источник данных и цель"],
       "Choose a target": ["Выберите цель"],
       "Choose chart type": ["Выберите тип графика"],
@@ -886,16 +893,17 @@
       "Cluster": ["Кластер"],
       "Cluster Name": ["Имя кластера"],
       "Cluster label aggregator": [""],
-      "Clustering Radius": [""],
+      "Clustering Radius": ["Радиус кластеризации"],
       "Code": ["Редактор"],
       "Collapse all": ["Свернуть всё"],
       "Collapse table preview": ["Убрать предпросмотр таблицы"],
       "Color": ["Цвет"],
-      "Color +/-": [""],
+      "Color +/-": ["Цвет +/-"],
       "Color Metric": ["Цвет показателя"],
       "Color Scheme": ["Цветовая схема"],
       "Color Steps": ["Количество шагов в палитре"],
       "Color metric": ["Цвет показателя"],
+      "Color of the target location": ["Цвет целевой локации"],
       "Color scheme": ["Цветовая схема"],
       "Color will be rendered based on a ratio of the cell against the sum of across this criteria": [
         ""
@@ -970,14 +978,21 @@
       "Compute the contribution to the total": [
         "Вычислить вклад в общую сумму (долю). Установите формат показателя в проценты"
       ],
+      "Condition": ["Условие"],
       "Conditional formatting": ["Условное форматирование"],
+      "Confidence interval": ["Доверительный интервал"],
       "Confidence interval must be between 0 and 1 (exclusive)": [
         "Доверительный интервал должен быть между 0 и 1 (исключая)"
       ],
-      "Configuration": ["Доля"],
+      "Configuration": ["Конфигурация"],
+      "Configure Advanced Time Range ": [
+        "Сконфигурировать расширенный диапазон времени"
+      ],
       "Configure Time Range: Last...": ["Последние…"],
       "Configure Time Range: Previous...": ["Предыдущие…"],
-      "Configure custom time range": ["Изменить параметры шаблона"],
+      "Configure custom time range": [
+        "Настроить пользовательский диапазон времени"
+      ],
       "Configure filter scopes": ["Настроить области действия фильтра"],
       "Configure the basics of your Annotation Layer.": [
         "Настройте слой аннотации."
@@ -986,7 +1001,11 @@
         "Настройте наложение здесь."
       ],
       "Confirm save": ["Подтвердить сохранение"],
-      "Connect Google Sheets as tables to this database": [""],
+      "Connect": ["Подключение"],
+      "Connect Google Sheets as tables to this database": [
+        "Подключиться к Google-таблице как к таблице этой базы данных"
+      ],
+      "Connect a database": ["Подключиться к базе данных"],
       "Connect this database using the dynamic form instead": [""],
       "Connect this database with a SQLAlchemy URI string instead": [""],
       "Connection": ["Тестовое соединение"],
@@ -1053,8 +1072,9 @@
       "Creator": ["Автор"],
       "Crontab": [""],
       "Cross-filter scoping": [""],
+      "Custom": ["Настроить"],
       "Custom Plugin": ["Пользовательский плагин"],
-      "Custom Plugins": ["Пользовательское условие WHERE"],
+      "Custom Plugins": ["Пользовательские плагины"],
       "Custom SQL": ["Через SQL"],
       "Custom SQL ad-hoc filters are not available for the native Druid connector": [
         ""
@@ -1065,6 +1085,7 @@
       "Custom SQL ad-hoc metrics are not enabled for this dataset": [""],
       "Custom time filter plugin": [""],
       "Customize": ["Настроить"],
+      "Customize Metrics": ["Настроить показатели"],
       "D3 Format": ["Формат D3"],
       "D3 format": ["Формат D3"],
       "D3 format syntax: https://github.com/d3/d3-format": [""],
@@ -1111,10 +1132,10 @@
       ],
       "Database": ["База данных"],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": [
-        "Схема “%(schema_name)s” в базе данных “%(database_name)s” не разрешена для загрузки CSV. Пожалуйста, свяжитесь с администратором Superset."
+        "Схема “%(schema_name)s” в базе данных “%(database_name)s” не разрешена для загрузки CSV. Пожалуйста, свяжитесь с администратором MedBI."
       ],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
-        "Схема “%(schema_name)s” в базе данных “%(database_name)s” не разрешена для загрузок Excel-файлов. Пожалуйста, свяжитесь с администратором Superset."
+        "Схема “%(schema_name)s” в базе данных “%(database_name)s” не разрешена для загрузок Excel-файлов. Пожалуйста, свяжитесь с администратором MedBI."
       ],
       "Database URL": ["URL базы данных"],
       "Database could not be created.": ["База данных не может быть создана."],
@@ -1147,6 +1168,7 @@
       "Dataset could not be deleted.": ["Датасет не может быть удалён."],
       "Dataset could not be updated.": ["Датасет не может быть обновлён."],
       "Dataset does not exist": ["Источник данных %(name)s уже существует"],
+      "Dataset is required": ["Требуется датасет"],
       "Dataset name": ["Наименование датасета"],
       "Dataset parameters are invalid.": [
         "Параметры датасета недействительны."
@@ -1157,6 +1179,9 @@
       "Datasets": ["Датасеты"],
       "Datasource": ["Источник данных"],
       "Datasource Name": ["Имя источника данных"],
+      "Datasource id not found: %(id)s": [
+        "Id источника данных не найдено: %(id)s"
+      ],
       "Datasource type is required when datasource_id is given": [
         "Тип источника данных обязателен, если задан ID"
       ],
@@ -1168,6 +1193,7 @@
       ],
       "Datetime format": ["Формат Datetime"],
       "Day": ["День"],
+      "Days %s": ["Дней %s"],
       "Db engine did not return all queried columns": [""],
       "December": ["Декабрь"],
       "Decimal Character": ["Десятичный символ"],
@@ -1186,12 +1212,15 @@
       "Default URL to redirect to when accessing from the dataset list page": [
         "URL по-умолчанию, на который будет выполнен редирект при доступе из страницы со списком датасетов"
       ],
+      "Default Value": ["Значение по умолчаню"],
+      "Default datetime": ["Время и дата по умолчанию"],
       "Default latitude": [""],
       "Default longitude": [""],
       "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space": [
         ""
       ],
       "Default to first item": [""],
+      "Default value is required": ["Требуется значение по умолчанию"],
       "Default value must be set when \"Filter has default value\" is checked": [
         ""
       ],
@@ -1339,7 +1368,7 @@
       "Duration in ms (66000 => 1m 6s)": [""],
       "Duration: %s": ["Продолжительность: %s"],
       "ECharts": ["ECharts"],
-      "END (EXCLUSIVE)": [""],
+      "END (EXCLUSIVE)": ["КОНЕЦ (ИСКЛЮЧАЯ ДАТУ)"],
       "ERROR: %s": [""],
       "Edge length": [""],
       "Edge length between nodes": [""],
@@ -1385,7 +1414,7 @@
       "Edit query": ["Редактировать запрос"],
       "Edit template": ["Загрузить шаблон"],
       "Edit template parameters": ["Изменить параметры шаблона"],
-      "Edit time range": ["Изменить параметры шаблона"],
+      "Edit time range": ["Изменить диапазон времени"],
       "Edited": ["Редактировано"],
       "Editing 1 filter:": [""],
       "Editing filter set:": [""],
@@ -1407,7 +1436,7 @@
       "Empty query?": ["Пустой запрос?"],
       "Enable Filter Select": ["Включить выбор фильтра"],
       "Enable data zooming controls": [""],
-      "Enable forecast": [""],
+      "Enable forecast": ["Включить прогноз"],
       "Enable forecasting": [""],
       "Enable graph roaming": [""],
       "Enable node dragging": [""],
@@ -1418,6 +1447,10 @@
       ],
       "End": ["Конец"],
       "End Time": ["Время окончания"],
+      "End angle": ["Конечный угол"],
+      "End date excluded from time range": [
+        "Дата окончания исключена из диапазона времени"
+      ],
       "End date must be after start date": [
         "Невозможно выбрать дату [from], которая позже текущего дня"
       ],
@@ -1476,7 +1509,7 @@
         "Исследовать набор данных"
       ],
       "Export": ["Экспорт"],
-      "Export CSV": ["Экпспорт CSV"],
+      "Export CSV": ["Экспорт в CSV"],
       "Export XLSX": ["Экспорт в XLSX"],
       "Export dashboards?": ["Экспортировать дашборд?"],
       "Export full CSV": [""],
@@ -1502,7 +1535,7 @@
       "Fail": ["Ошибка"],
       "Failed": ["Ошибка"],
       "Failed at retrieving results": ["Невозможно выполнить запрос"],
-      "Failed at stopping query. %s": [""],
+      "Failed at stopping query. %s": ["Невозможно остановить запрос. %s"],
       "Failed to start remote query on a worker.": [""],
       "Failed to verify select options: %s": [
         "Ошибка при проверке опций выбора: %s"
@@ -1532,6 +1565,7 @@
       "Filter name": ["Значение фильтра"],
       "Filter results": ["Результаты поиска"],
       "Filter sets (%(filterSetCount)d)": [""],
+      "Filter type": ["Тип фильтра"],
       "Filter value (case sensitive)": [
         "Фильтровать значения (зависит от регистра)"
       ],
@@ -1539,6 +1573,7 @@
       "Filter your charts": ["Фильтровать графики"],
       "Filterable": ["Фильтруемый"],
       "Filters": ["Фильтры"],
+      "Filters (%d)": ["Фильтры (%d)"],
       "Filters by columns": ["Фильтруемые срезы"],
       "Filters by metrics": ["Список показателей"],
       "Filters configuration": ["Изменение настроек таблицы"],
@@ -1546,14 +1581,15 @@
       "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
         ""
       ],
-      "Finish": [""],
+      "Finish": ["Конец"],
       "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates": [
         ""
       ],
+      "Fixed Color": ["Фиксированный цвет"],
       "Fixed color": ["Фиксированный цвет"],
       "Fixed point radius": [""],
       "Flow": [""],
-      "Font size": [""],
+      "Font size": ["Размер шрифта"],
       "Font size for axis labels, detail value and other text elements": [""],
       "Font size for the biggest value in the list": [""],
       "Font size for the smallest value in the list": [""],
@@ -1570,14 +1606,20 @@
       "Force refresh schema list": ["Принудительное обновление данных"],
       "Force refresh table list": ["Принудительное обновление данных"],
       "Force-directed Graph": [""],
-      "Formatted CSV attached in email": [""],
+      "Forecast periods": ["Период прогнозирования"],
+      "Formattable": ["Форматируемый"],
+      "Formatted CSV attached in email": [
+        "Отформатированный CSV вложен в email"
+      ],
       "Found invalid orderby options": [""],
       "Fraction digits": [""],
+      "Frequency": ["Частота"],
       "Friction between nodes": [""],
       "Friday": ["Пятница"],
       "From date cannot be larger than to date": [
         "Невозможно выбрать дату [from], которая позже текущего дня"
       ],
+      "Funnel Chart": ["График \"Воронка\""],
       "Further customize how to display each column": [""],
       "Further customize how to display each metric": [""],
       "General": [""],
@@ -1589,6 +1631,9 @@
       "Grace period": ["Период"],
       "Graph layout": [""],
       "Gravity": [""],
+      "Grid": ["Сетка"],
+      "Grid Size": ["Размер сетки"],
+      "Group By": ["Группировать по"],
       "Group By filter plugin": [""],
       "Group By' and 'Columns' can't overlap": [
         "Нельзя использовать один и тот же срез в двух полях"
@@ -1606,12 +1651,15 @@
       "Height": ["Высота"],
       "Hide layer": ["Скрыть слой"],
       "Hide tool bar": ["Скрыть панель инструментов"],
+      "Hierarchy": ["Иерархия"],
       "Histogram": ["Histogram"],
       "Home": ["Главная"],
       "Horizon Charts": ["Horizon Charts"],
       "Horizontal alignment": [""],
       "Host": [""],
       "Hostname or IP address": [""],
+      "Hour": ["Час"],
+      "Hours %s": ["Часов %s"],
       "Hours offset": ["Смещение часов"],
       "How do you want to enter service account credentials?": [""],
       "How long to keep the logs around for this alert": [
@@ -1622,6 +1670,7 @@
       "Huge": [""],
       "ISO 3166-2 Codes": [""],
       "ISO 8601": ["ISO 8601"],
+      "Id": ["Идентификатор:"],
       "Id of root node of the tree.": [""],
       "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Если вы используете Presto, все запросы в SQL-Редакторе будут выполняться от авторизованного пользователя, который должен иметь разрешение на их выполнение. <br/> Если включен Hive, то запросы будут выполняться через техническую учетную запись, но ассоциировать зарегистрированного пользователя можно через свойство hive.server2.proxy.user."
@@ -1753,9 +1802,11 @@
       "Label for your query": ["Метка для вашего запроса"],
       "Label threshold": [""],
       "Labelling": [""],
+      "Labels": ["Метки"],
       "Labels for the marker lines": [""],
       "Labels for the markers": [""],
       "Labels for the ranges": [""],
+      "Last": ["Последний"],
       "Last Changed": ["Последнее изменение"],
       "Last Modified": ["Изменено"],
       "Last Updated %s": [""],
@@ -1900,7 +1951,7 @@
       "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
         ""
       ],
-      "Midnight": [""],
+      "Midnight": ["Полночь"],
       "Min": ["Минимум"],
       "Min periods": ["HIde Periods"],
       "Mine": ["Мои"],
@@ -1915,12 +1966,16 @@
       "Minimum value for label to be displayed on graph.": [""],
       "Minimum value on the gauge axis": [""],
       "Minor Split Line": [""],
+      "Minute": ["Минута"],
+      "Minutes %s": ["Минут %s"],
       "Mixed Time-Series": [""],
       "Modified": ["Изменено"],
+      "Modified %s": ["Изменено %s"],
       "Modified by": ["Изменено"],
       "Modified columns: %s": ["Изменённые столбцы: %s"],
       "Monday": ["Понедельник"],
       "Month": ["Месяц"],
+      "Months %s": ["Месяцев %s"],
       "More dataset related options": ["Больше опций к датасету"],
       "Move only": [""],
       "Moves the given set of dates by a specified interval.": [""],
@@ -1934,6 +1989,7 @@
       "Multiple formats accepted, look the geopy.points Python library for more details": [
         "Для уточнения форматов и получения более подробной информации, посмотрите Python-библиотеку geopy.points"
       ],
+      "Multiple select": ["Множественный выбор"],
       "Multiple selections allowed, otherwise filter is limited to a single value": [
         "Разрешён множественный выбор, иначе можно выбрать только одно значение фильтра"
       ],
@@ -1978,18 +2034,22 @@
       "No annotation layers yet": ["Слои аннотаций"],
       "No annotation yet": ["Пока нет аннотаций"],
       "No charts": ["Переместить график"],
+      "No columns": ["Без столбцов"],
+      "No compatible columns found": ["Не найдены совместимые дашборды"],
       "No dashboards": ["Нет дашбордов"],
-      "No data": ["Метаданные"],
+      "No data": ["Нет данных"],
       "No data after filtering or data is NULL for the latest time record": [
-        ""
+        "Нет данных после фильтрации или данные содержат NULL для последней записи времени"
       ],
       "No data in file": ["Нет данных в файле"],
+      "No description available.": ["Описание недоступно"],
       "No favorite charts yet, go click on stars!": [
         "В избранном нет графиков. Нажмите звёздочку для добавления!"
       ],
       "No favorite dashboards yet, go click on stars!": [
         "В избранном нет дашбордов. Нажмите звёздочку для добавления!"
       ],
+      "No filter": ["Без фильтров"],
       "No filter is selected.": ["Не выбраны фильтры."],
       "No query history yet...": ["История запросов пуста…"],
       "No records found": ["Записи не найдены"],
@@ -2003,6 +2063,7 @@
       "No such column found. To filter on a metric, try the Custom SQL tab.": [
         "Такой столбец не найден. Чтобы фильтровать по показателю, попробуйте вкладку Через SQL."
       ],
+      "No time columns": ["Нет столбца с временем"],
       "Node label position": [""],
       "None": [""],
       "None -> Arrow": [""],
@@ -2015,8 +2076,9 @@
       "Nothing triggered": ["Ничего не сработало"],
       "Notification method": ["Добавить слой аннотации"],
       "November": ["Ноябрь"],
+      "Now": ["Сейчас"],
       "Null or Empty": ["Null или пусто"],
-      "Null values": ["Значение фильтра"],
+      "Null values": ["Пустые значения"],
       "Number of buckets to group data": [""],
       "Number of decimal digits to round numbers to": [""],
       "Number of decimal places with which to display lift values": [""],
@@ -2028,6 +2090,7 @@
       "Number of split segments on the axis": [""],
       "Number of steps to take between ticks when displaying the X scale": [""],
       "Number of steps to take between ticks when displaying the Y scale": [""],
+      "Numerical range": ["Числовой диапазон"],
       "OCT": ["ОКТ"],
       "OK": [""],
       "OVERWRITE": ["OVERWRITE"],
@@ -2036,7 +2099,7 @@
       "Offset": ["Смещение"],
       "On Grace": [""],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        "После срабатывания оповещения, как долго Superset не должен надоедать снова."
+        "После срабатывания оповещения, как долго MedBI не должен надоедать снова."
       ],
       "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
         ""
@@ -2108,7 +2171,7 @@
         ""
       ],
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
-        "Работа с базой данных в асинхронном режиме означает, что запросы исполняются на удалённых воркерах, а не на веб-сервере Superset. Это подразумевает, что у вас установка с воркерами Celery. Обратитесь к документации по настройке за дополнительной информацией."
+        "Работа с базой данных в асинхронном режиме означает, что запросы исполняются на удалённых воркерах, а не на веб-сервере MedBI. Это подразумевает, что у вас установка с воркерами Celery. Обратитесь к документации по настройке за дополнительной информацией."
       ],
       "Operator undefined for aggregator: %(name)s": [""],
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
@@ -2178,7 +2241,7 @@
       "Person or group that has certified this metric": [
         "Лицо или группа, которые сертифицировали данный показатель"
       ],
-      "Physical": [""],
+      "Physical": ["Физический"],
       "Physical (table or view)": ["Физический (таблица или представление)"],
       "Physical dataset": ["Физический датасет"],
       "Pick a dimension from which categorical colors are defined": [""],
@@ -2288,10 +2351,14 @@
       "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
         "Предикат применяется при получении значений для компонента - «Фильтр». Поддерживает синтаксис jinja. Применяется только в том случае, если включен параметр «Включить Онлайн Фильтр»."
       ],
+      "Predictive": ["Предиктивный"],
+      "Predictive Analytics": ["Предиктивный анализ"],
       "Prefix metric name with slice name": [""],
-      "Preview": ["Предпросмотр %s"],
+      "Preview": ["Предпросмотр"],
       "Preview: `%s`": ["Предпросмотр %s"],
-      "Previous": ["Предпросмотр %s"],
+      "Previous": ["Предшествующие периоды"],
+      "Primary": ["Первичный"],
+      "Primary Metric": ["Первичный показатель"],
       "Primary or secondary y-axis": [""],
       "Primary y-axis format": [""],
       "Profile": ["Профиль"],
@@ -2311,15 +2378,21 @@
       "Put your code here": [
         "Введите произвольный текст в формате html или markdown"
       ],
+      "Python Functions": ["Функции Python"],
       "Python datetime string pattern": [""],
       "Python functions": ["Python функции"],
       "Quarter": ["Квартал"],
+      "Quarters %s": ["Кварталов %s"],
       "Query": ["Запрос"],
-      "Query %s: %s": [""],
+      "Query %s: %s": ["Запрос %s: %s"],
+      "Query A": ["Запрос A"],
+      "Query B": ["Запрос B"],
       "Query History": ["История запросов"],
       "Query history": ["История запросов"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
-      "Query is too complex and takes too long to run.": [""],
+      "Query is too complex and takes too long to run.": [
+        "Запрос слишком сложен из занимает слишком много времени"
+      ],
       "Query name": ["Имя запроса"],
       "Query preview": ["Предпросмотр данных"],
       "Query search string": ["Поиск запросов"],
@@ -2370,7 +2443,7 @@
       "Refresh Metadata": ["Обновить метаданные"],
       "Refresh column metadata": ["Обновить метаданные столбцов"],
       "Refresh dashboard": ["Обновить дашборд"],
-      "Refresh frequency": ["Частота"],
+      "Refresh frequency": ["Частота обновления"],
       "Refresh interval": ["Интервал обновления"],
       "Refresh the default values": [""],
       "Refreshed metadata from cluster [{}]": [
@@ -2380,9 +2453,12 @@
       "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         ""
       ],
+      "Relational": ["Относительный"],
       "Relationships between community channels": [""],
+      "Relative Date/Time": ["Относительные Дата/Время"],
+      "Relative period": ["Относительный период"],
       "Relative quantity": ["Относительное количество"],
-      "Remind me in 24 hours": [""],
+      "Remind me in 24 hours": ["Напомнить мне через 24 часа"],
       "Remove": [""],
       "Remove invalid filters": [""],
       "Remove item": [""],
@@ -2508,7 +2584,7 @@
       "SQL query": ["SQL-запрос"],
       "SQLAlchemy URI": ["SQLAlchemy URI"],
       "SSL Mode \"require\" will be used.": [""],
-      "START (INCLUSIVE)": [""],
+      "START (INCLUSIVE)": ["НАЧАЛО (ВКЛЮЧАЯ ДАТУ)"],
       "SUN": ["ВС"],
       "Sankey": ["Sankey"],
       "Sankey Diagram": [""],
@@ -2568,20 +2644,29 @@
       "Search...": ["Поиск…"],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
+      "Seconds %s": ["Секунд %s"],
       "Secure Extra": ["Безопасность"],
       "Secure extra": ["Безопасность"],
       "Security": ["Безопасность"],
       "Security & Access": ["Безопасность и Доступ"],
+      "See all %(tableName)s": ["Исследовать все %(tableName)s"],
       "See less": ["Скрыть подробности"],
       "See more": ["Подробности"],
       "See table schema": ["Выберите схему (%s)"],
       "Select ...": ["Выбрать …"],
+      "Select Delivery Method": ["Выбрать метод доставки"],
+      "Select Viz Type": ["Выбрать тип визуализации"],
       "Select a CSV file to be uploaded to a database.": [
         "Выберите файл CSV, который будет загружен в БД."
       ],
-      "Select a Excel file to be uploaded to a database.": [
-        "Выберите файл CSV, который будет загружен в БД."
+      "Select a Columnar file to be uploaded to a database.": [
+        "Выберите столбцовый файл для загрузки в базу данных."
       ],
+      "Select a Excel file to be uploaded to a database.": [
+        "Выберите файл Excel, который будет загружен в БД."
+      ],
+      "Select a column": ["Выберите колонку"],
+      "Select a dashboard": ["Выберете дашборд"],
       "Select a visualization type": ["Выберите тип визуализации"],
       "Select any columns for metadata inspection": [""],
       "Select database or type database name": [""],
@@ -2647,10 +2732,11 @@
       "Show Druid Metric": ["Показать Druid Метрики"],
       "Show Druid granularity dropdown": [""],
       "Show Druid time origin": ["Показать Druid Метрики"],
-      "Show Less...": [""],
+      "Show Less...": ["Свернуть"],
       "Show Log": ["Показать итоги"],
       "Show Markers": [""],
       "Show Metric": ["Показать показатель"],
+      "Show Metric Names": ["Показать наименования метрик"],
       "Show Observation": [""],
       "Show Row level security filter": ["Показать фильтр на уровне строк"],
       "Show SQL time column": ["Показать колонку Druid"],
@@ -2743,10 +2829,11 @@
       ],
       "Sort descending": ["Сортировать"],
       "Sort metric": ["Показатель для сортировки"],
+      "Sort type": ["Тип сортировки"],
       "Source": ["Источник"],
       "Source SQL": ["Источник SQL"],
       "Spatial": [""],
-      "Specific Date/Time": [""],
+      "Specific Date/Time": ["Конкретные Дата/Время"],
       "Specify a schema (if database flavor supports this).": [
         "Укажите схему (если это поддерживается базой данных)."
       ],
@@ -2756,6 +2843,7 @@
       "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
         ""
       ],
+      "Split number": ["Разделить номер"],
       "Stack series": [""],
       "Stack series on top of each other": [""],
       "Stacked": [""],
@@ -2792,9 +2880,10 @@
       "Suffix to apply after the percentage display": [""],
       "Sum of values over specified period": [""],
       "Sunburst": ["Sunburst"],
+      "Sunburst Chart": [""],
       "Sunday": ["Воскресенье"],
       "Superset chart": ["График Superset"],
-      "Superset dashboard": ["Дашборд Superset"],
+      "Superset dashboard": ["Дашборд MedBI"],
       "Survey Responses": [""],
       "Swap Groups and Columns": [""],
       "Swap rows and columns": [""],
@@ -2991,7 +3080,7 @@
       ],
       "The pixel radius": [""],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
-        "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
+        "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей MedBI, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
       ],
       "The provided `rows` argument is not a valid integer.": [""],
       "The query associated with the results was deleted.": [""],
@@ -3043,7 +3132,7 @@
         "Интервал времени, в границах которого строится график. Обратите внимание, что для определения диапазона времени, вы можете использовать естественный язык. Например, можно указать словосочетания - «10 seconds», «1 day» или «56 weeks»"
       ],
       "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
-        "Гранулярность для визуализации. С помощью этого применяются преобразования к столбцу с датой/временем и определяет новую гранулярность (минута, день, год, и т.п.). Доступные опции определены в исходном коде Superset для каждого типа движка БД."
+        "Гранулярность для визуализации. С помощью этого применяются преобразования к столбцу с датой/временем и определяет новую гранулярность (минута, день, год, и т.п.). Доступные опции определены в исходном коде MedBI для каждого типа движка БД."
       ],
       "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
         ""
@@ -3279,11 +3368,15 @@
         ""
       ],
       "Timeout error": ["Тайм-аут"],
-      "Timezone": [""],
+      "Timestamp format": ["Формат временной метки"],
+      "Timezone": ["Часовой пояс"],
       "Timezone offset (in hours) for this datasource": [
         "Смещение часового пояса (в часах) для этого источника данных"
       ],
+      "Timezone selector": ["Выбор часового пояса"],
       "Title": ["Заголовок"],
+      "Title Column": ["Заголовок столбца"],
+      "Title is required": ["Заголовок обязателен"],
       "Title or Slug": ["Заголовок"],
       "To filter on a metric, use Custom SQL tab.": [
         "Фильтр на показателе, используйте вкладку Через SQL."
@@ -3568,7 +3661,7 @@
       "Week starting Monday": [""],
       "Week starting Sunday": [""],
       "Week_ending Sunday": [""],
-      "Weeks %s": ["Неель %s"],
+      "Weeks %s": ["Недель %s"],
       "Weight": ["Вес"],
       "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
         "Возникла проблема при загрузке результатов. Для запросов установлен тайм-аут %s секунд."
@@ -3594,7 +3687,7 @@
         ""
       ],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
-        "Когда указан SQL, источник данных работает как представление. Superset будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
+        "Когда указан SQL, источник данных работает как представление. MedBI будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
       ],
       "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
         ""
@@ -3912,7 +4005,11 @@
       "json isn't valid": ["json не валиден"],
       "key a-z": [""],
       "key z-a": [""],
-      "last quarter": [""],
+      "last day": ["последний день"],
+      "last month": ["последний месяц"],
+      "last quarter": ["последний квартал"],
+      "last week": ["последняя неделя"],
+      "last year": ["последний год"],
       "latest partition:": ["последний раздел:"],
       "log": ["журнал"],
       "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile.": [
@@ -3931,15 +4028,19 @@
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         "процентили должны быть списками из кортежами из двух числовых значений, в которых первое значение меньше второго"
       ],
-      "previous calendar month": [""],
-      "previous calendar week": [""],
-      "previous calendar year": [""],
+      "previous calendar month": ["предшествующий календарный месяц"],
+      "previous calendar week": ["предшествующая календарная неделя"],
+      "previous calendar year": ["предшествующий календарный год"],
+      "published": ["О\nпубликованные"],
+      "queries": ["запросы"],
       "query": ["запрос"],
       "reboot": [""],
+      "recents": ["последние"],
       "report": ["рассылка"],
       "reports": ["рассылки"],
       "rows": ["строк"],
       "rows retrieved": ["строк получено"],
+      "saved queries": ["сохраненные запросы"],
       "search.num_records": [""],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
