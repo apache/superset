@@ -366,3 +366,79 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         }
         sql = table.get_query_str(query_obj)
         assert "ORDER BY gender_cc ASC" in sql
+
+    @mock.patch("google.cloud.bigquery.Client")
+    @mock.patch(
+        "google.oauth2.service_account.Credentials.from_service_account_info",
+        mock.Mock(),
+    )
+    def test_estimate_statement_cost_select_star(self, mocked_client_class):
+        mocked_client = mocked_client_class.return_value
+        mocked_client.query.return_value = mock.Mock()
+        mocked_client.query.return_value.total_bytes_processed = 123
+        cursor = mock.Mock()
+        engine = mock.Mock()
+        sql = "SELECT * FROM `some-project.database.table`"
+        results = BigQueryEngineSpec.estimate_statement_cost(sql, cursor, engine)
+        mocked_client.query.assert_called_once()
+        args = mocked_client.query.call_args.args
+        self.assertEqual(args[0], sql)
+        self.assertEqual(args[1].dry_run, True)
+        self.assertEqual(
+            results, {"Total bytes processed": 123},
+        )
+
+    @mock.patch("google.cloud.bigquery.Client")
+    @mock.patch(
+        "google.oauth2.service_account.Credentials.from_service_account_info",
+        mock.Mock(),
+    )
+    def test_estimate_statement_invalid_syntax(self, mocked_client_class):
+        from google.api_core.exceptions import BadRequest
+
+        cursor = mock.Mock()
+        mocked_client = mocked_client_class.return_value
+        mocked_client.query.side_effect = BadRequest(
+            """
+            POST https://bigquery.googleapis.com/bigquery/v2/projects/xxx/jobs?
+            prettyPrint=false: Table name "birth_names" missing dataset while no def
+            ault dataset is set in the request.
+
+            (job ID: xxx)
+
+            -----Query Job SQL Follows-----
+
+                |    .    |    .    |
+               1:DROP TABLE birth_names
+                |    .    |    .    |
+            """
+        )
+        engine = mock.Mock()
+        sql = "DROP TABLE birth_names"
+        with self.assertRaises(BadRequest):
+            BigQueryEngineSpec.estimate_statement_cost(sql, cursor, engine)
+
+    def test_query_cost_formatter_example_costs(self):
+        raw_cost = [
+            {"Total bytes processed": 123, "Some other column": 123,},
+            {"Total bytes processed": 1024, "Some other column": "abcde",},
+            {"Total bytes processed": 1024 * 1024 + 1024 * 512,},
+            {"Total bytes processed": 1024 ** 3,},
+            {"Total bytes processed": 1024 ** 4,},
+            {"Total bytes processed": 1024 ** 5,},
+            {"Total bytes processed": 1024 ** 6,},
+        ]
+        result = BigQueryEngineSpec.query_cost_formatter(raw_cost)
+        self.assertEqual(
+            result,
+            [
+                {"Total bytes processed": "123.0 B", "Some other column": "123",},
+                {"Total bytes processed": "1.0 KiB", "Some other column": "abcde",},
+                {"Total bytes processed": "1.5 MiB",},
+                {"Total bytes processed": "1.0 GiB",},
+                {"Total bytes processed": "1.0 TiB",},
+                {"Total bytes processed": "1.0 PiB",},
+                # Petabyte is the largest unit, but larger values can be handled
+                {"Total bytes processed": "1024.0 PiB",},
+            ],
+        )
