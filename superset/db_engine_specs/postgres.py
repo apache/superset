@@ -198,7 +198,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any, engine: Engine) -> Dict[str, Any]:
+    def estimate_statement_cost(
+        cls, statement: str, cursor: Any, engine: Engine
+    ) -> Dict[str, Any]:
         sql = f"EXPLAIN {statement}"
         cursor.execute(sql)
 

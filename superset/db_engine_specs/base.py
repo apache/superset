@@ -1025,7 +1025,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any, engine: Engine) -> Dict[str, Any]:
+    def estimate_statement_cost(
+        cls, statement: str, cursor: Any, engine: Engine
+    ) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
@@ -1096,7 +1098,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 processed_statement = cls.process_statement(
                     statement, database, user_name
                 )
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor, engine))
+                costs.append(
+                    cls.estimate_statement_cost(processed_statement, cursor, engine)
+                )
         return costs
 
     @classmethod

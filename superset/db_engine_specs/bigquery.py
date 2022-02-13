@@ -24,6 +24,8 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
+from google.cloud import bigquery
+from google.oauth2 import service_account
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column
@@ -184,6 +186,49 @@ class BigQueryEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+        return True
+
+    @classmethod
+    def estimate_statement_cost(
+        cls, statement: str, cursor: Any, engine: Engine
+    ) -> Dict[str, Any]:
+        creds = engine.dialect.credentials_info
+        credentials = service_account.Credentials.from_service_account_info(creds)
+        client = bigquery.Client(credentials=credentials)
+        dry_run_result = client.query(
+            statement, bigquery.job.QueryJobConfig(dry_run=True)
+        )
+
+        return {
+            "Total bytes processed": dry_run_result.total_bytes_processed,
+        }
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        def format_bytes_str(raw_bytes: int) -> str:
+            if not isinstance(raw_bytes, int):
+                return str(raw_bytes)
+            units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+            index = 0
+            bytes = float(raw_bytes)
+            while bytes >= 1024 and index < len(units) - 1:
+                bytes /= 1024
+                index += 1
+
+            return "{:.1f}".format(bytes) + f" {units[index]}"
+
+        return [
+            {
+                k: format_bytes_str(v) if k == "Total bytes processed" else str(v)
+                for k, v in row.items()
+            }
+            for row in raw_cost
+        ]
 
     @classmethod
     def convert_dttm(
