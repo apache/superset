@@ -238,6 +238,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         const currentTargets = currentFilter.targets;
         const currentDataMask = currentFilter.defaultDataMask;
         const previousFilter = previousFilters?.[currentFilter.id];
+        if (!previousFilter) {
+          return;
+        }
         const previousType = previousFilter?.filterType;
         const previousTargets = previousFilter?.targets;
         const previousDataMask = previousFilter?.defaultDataMask;
