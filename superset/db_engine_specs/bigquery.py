@@ -24,8 +24,6 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from google.cloud import bigquery
-from google.oauth2 import service_account
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column
@@ -195,6 +193,17 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def estimate_statement_cost(
         cls, statement: str, cursor: Any, engine: Engine
     ) -> Dict[str, Any]:
+        try:
+            # pylint: disable=import-outside-toplevel
+            from google.cloud import bigquery
+            from google.oauth2 import service_account
+        except ImportError as ex:
+            raise Exception(
+                "Could not import libraries `google.cloud` or `google.oauth2`, "
+                "which are required to be installed in your environment in order "
+                "to estimate cost"
+            ) from ex
+
         creds = engine.dialect.credentials_info
         credentials = service_account.Credentials.from_service_account_info(creds)
         client = bigquery.Client(credentials=credentials)
