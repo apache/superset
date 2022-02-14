@@ -134,7 +134,7 @@ const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 100;
 `;
 
@@ -164,7 +164,7 @@ const StyledDashboardContent = styled.div<{
 
   .grid-container {
     /* without this, the grid will not get smaller upon toggling the builder panel on */
-    width: 0px;
+    width: 0;
     flex: 1;
     position: relative;
     margin-top: ${({ theme }) => theme.gridUnit * 6}px;

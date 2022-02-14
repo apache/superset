@@ -29,18 +29,18 @@ export enum EmptyStateSize {
 }
 
 export interface EmptyStateSmallProps {
-  title: string | ReactNode;
-  description?: string | ReactNode;
-  image: string | ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  image: ReactNode;
 }
 
 export interface EmptyStateProps extends EmptyStateSmallProps {
-  buttonText?: string | ReactNode;
+  buttonText?: ReactNode;
   buttonAction?: React.MouseEventHandler<HTMLElement>;
 }
 
 export interface ImageContainerProps {
-  image: string | ReactNode;
+  image: ReactNode;
   size: EmptyStateSize;
 }
 
