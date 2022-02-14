@@ -172,12 +172,7 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
-  const getDefaultDatasetName = () =>
-    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-
   const [searchText, setSearchText] = useState<string>('');
-  const [showExploreResultsButton, setShowExploreResultsButton] =
-    useState<boolean>(false);
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [showSaveDatasetModal, setshowSaveDatasetModal] =
     useState<boolean>(false);
@@ -191,12 +186,44 @@ const ResultSet = ({
   const [datasetToOverwrite, setdatasetToOverwrite] = useState<
     Record<string, any>
   >({});
-  const [saveModalAutocompleteValue, setsaveModalAutocompleteValue] =
-    useState<string>(''); // never used???
   const [userDatasetOptions, setUserDatasetOptions] = useState<
     DatasetOptionAutocomplete[]
   >([]);
   const [alertIsOpen, setalertIsOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    (async () => {
+      reRunQueryIfSessionTimeoutErrorOnMount();
+      const userDatasetsOwned = await getUserDatasets();
+      setUserDatasetOptions(userDatasetsOwned);
+    })();
+  }, []);
+
+  const prevQuery = usePrevious(query);
+
+  useEffect(() => {
+    if (
+      cache &&
+      query.cached &&
+      query.results &&
+      query.results.data &&
+      query.results.data.length > 0
+    ) {
+      setData(query.results.data);
+      clearQueryResults(query);
+    }
+    if (
+      query.resultsKey &&
+      prevQuery &&
+      query.resultsKey !== prevQuery.resultsKey
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      fetchResults(query);
+    }
+  }, [query, cache]);
+
+  const getDefaultDatasetName = () =>
+    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
   const reRunQueryIfSessionTimeoutErrorOnMount = () => {
     if (
@@ -245,38 +272,6 @@ const ResultSet = ({
 
     return null;
   };
-
-  useEffect(() => {
-    (async () => {
-      reRunQueryIfSessionTimeoutErrorOnMount();
-      const userDatasetsOwned = await getUserDatasets();
-      setUserDatasetOptions(userDatasetsOwned);
-    })();
-  }, []);
-
-  const prevQuery = usePrevious(query);
-
-  useEffect(() => {
-    if (
-      cache &&
-      query.cached &&
-      query.results &&
-      query.results.data &&
-      query.results.data.length > 0
-    ) {
-      setData(query.results.data);
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      clearQueryResults(query);
-    }
-    if (
-      query.resultsKey &&
-      prevQuery &&
-      query.resultsKey !== prevQuery.resultsKey
-    ) {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      fetchResults(query);
-    }
-  }, [query, cache]);
 
   const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
     if (alertElement) {
@@ -420,11 +415,6 @@ const ResultSet = ({
     actions.addQueryEditor(qe);
   };
 
-  // never used ???
-  const toggleExploreResultsButton = () => {
-    setShowExploreResultsButton(!showExploreResultsButton);
-  };
-
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
   };
@@ -451,8 +441,7 @@ const ResultSet = ({
         (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
           newSaveDatasetName.length === 0) ||
         (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
-          Object.keys(datasetToOverwrite).length === 0 &&
-          saveModalAutocompleteValue.length === 0);
+          Object.keys(datasetToOverwrite).length === 0);
 
       return (
         <ResultSetControls>
