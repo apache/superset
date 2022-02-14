@@ -70,7 +70,11 @@ CHART_DATA_URI = "api/v1/chart/business_type"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(SupersetTestCase):
+class TestBusinessTypeApi(SupersetTestCase):
+    """
+    Test the Business Type API to ensure it works as intended when different values and type
+    combinations are passed to it
+    """
     resource_name = "business_type"
 
     @mock.patch(
@@ -79,34 +83,34 @@ class TestChartApi(SupersetTestCase):
     )
     def test_info_security_chart(self):
         """
-        Chart API: Test info security
+        Business Type API: Test info security
         """
         self.login(username="admin")
         uri = f"api/v1/business_type/types"
-        rv = self.client.get(uri)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
+        responseValue = self.client.get(uri)
+        data = json.loads(responseValue.data.decode("utf-8"))
+        assert responseValue.status_code == 200
         assert data == {"result": ["type"]}
 
     def test_types_convert_bad_request_no_vals(self):
         """
-        Chart API: Test info security
+        Business Type API: Test request to see if it behaves as expected when no values are passed
         """
         self.login(username="admin")
         arguments = {"type": "type", "values": []}
         uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
+        responseValue = self.client.get(uri)
+        assert responseValue.status_code == 400
 
     def test_types_convert_bad_request_no_type(self):
         """
-        Chart API: Test info security
+        Business Type API: Test request to see if it behaves as expected when no type is passed
         """
         self.login(username="admin")
         arguments = {"type": "", "values": [1]}
         uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
+        responseValue = self.client.get(uri)
+        assert responseValue.status_code == 400
 
     @mock.patch(
         "superset.business_type.api.BUSINESS_TYPE_ADDONS",
@@ -114,13 +118,14 @@ class TestChartApi(SupersetTestCase):
     )
     def test_types_convert_bad_request_type_not_found(self):
         """
-        Chart API: Test info security
+        Business Type API: Test request to see if it behaves as expected when passed in type is
+        not found/not valid
         """
         self.login(username="admin")
         arguments = {"type": "not_found", "values": [1]}
         uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
+        responseValue = self.client.get(uri)
+        assert responseValue.status_code == 400
 
     @mock.patch(
         "superset.business_type.api.BUSINESS_TYPE_ADDONS",
@@ -128,12 +133,13 @@ class TestChartApi(SupersetTestCase):
     )
     def test_types_convert_request(self):
         """
-        Chart API: Test info security
+        Business Type API: Test request to see if it behaves as expected when a valid type
+        and valid values are passed in
         """
         self.login(username="admin")
         arguments = {"type": "type", "values": [1]}
         uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
+        responseValue = self.client.get(uri)
+        assert responseValue.status_code == 200
+        data = json.loads(responseValue.data.decode("utf-8"))
         assert data == {"result": target_resp}
