@@ -74,3 +74,11 @@ g.$ = jQuery(g.window);
 
 configureTranslation();
 setupSupersetClient();
+
+// The useTabId hook depends on BroadcastChannel which is monked patched by broadcast-channel.
+// Jest has a memory leak problem when dealing with monkey-patches for native modules.
+// See https://chanind.github.io/javascript/2019/10/12/jest-tests-memory-leak.html and
+// https://github.com/facebook/jest/issues/6814 for more information.
+jest.mock('src/hooks/useTabId', () => ({
+  useTabId: () => 1,
+}));
