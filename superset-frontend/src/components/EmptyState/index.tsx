@@ -35,7 +35,7 @@ export interface EmptyStateSmallProps {
 }
 
 export interface EmptyStateProps extends EmptyStateSmallProps {
-  buttonText?: string;
+  buttonText?: string | ReactNode;
   buttonAction?: React.MouseEventHandler<HTMLElement>;
 }
 
@@ -103,6 +103,7 @@ const SmallDescription = styled(Description)`
 const ActionButton = styled(Button)`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit * 4}px;
+    z-index: 1;
   `}
 `;
 
