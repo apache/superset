@@ -404,30 +404,27 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
+    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
       fetchSubjectBusinessType(props);
     }
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
+    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
       fetchBusinessTypeValueCallback(
         comparator === undefined ? '' : comparator,
         businessTypesState,
         subjectBusinessType,
-      );    
+      );
     }
-
-  }, [comparator, fetchBusinessTypeValueCallback]);
+  }, [comparator, subjectBusinessType, fetchBusinessTypeValueCallback]);
 
   useEffect(() => {
-    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
+    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
       setComparator(props.adhocFilter.comparator);
     }
-
   }, [props.adhocFilter.comparator]);
 
- 
   return (
     <>
       <Select
