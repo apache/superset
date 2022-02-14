@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
@@ -26,6 +26,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
+import DatabaseModal from '../CRUD/data/database/DatabaseModal';
 
 export const dropdownItems = [
   {
@@ -102,6 +103,7 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   // if user has any of these roles the dropdown will appear
   const canSql = findPermission('can_sqllab', 'Superset', roles);
@@ -116,7 +118,14 @@ const RightMenu = ({
   );
   return (
     <StyledDiv align={align}>
-      <Menu mode="horizontal">
+      <DatabaseModal onHide={() => setShowModal(false)} show={showModal} />
+      <Menu
+        selectable={false}
+        mode="horizontal"
+        onClick={itemClicked => {
+          if (itemClicked.key === 'connectDB') setShowModal(true);
+        }}
+      >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -133,6 +142,9 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu as MenuObjectProps)}
                   >
+                    <Menu.Item key="connectDB">Connect Database</Menu.Item>
+                    <Menu.Divider />
+                    {/* add divider here */}
                     {menuUploadlinks.map(item => (
                       <Menu.Item key={item.name}>
                         <a href={item.url}> {item.label} </a>
