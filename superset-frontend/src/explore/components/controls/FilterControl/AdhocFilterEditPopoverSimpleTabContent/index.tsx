@@ -368,59 +368,66 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const labelText =
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
 
-  if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
-    useEffect(() => {
-      const refreshComparatorSuggestions = () => {
-        const { datasource } = props;
-        const col = props.adhocFilter.subject;
-        const having = props.adhocFilter.clause === CLAUSES.HAVING;
+  useEffect(() => {
+    const refreshComparatorSuggestions = () => {
+      const { datasource } = props;
+      const col = props.adhocFilter.subject;
+      const having = props.adhocFilter.clause === CLAUSES.HAVING;
 
-        if (col && datasource && datasource.filter_select && !having) {
-          const controller = new AbortController();
-          const { signal } = controller;
-          if (loadingComparatorSuggestions) {
-            controller.abort();
-          }
-          setLoadingComparatorSuggestions(true);
-          SupersetClient.get({
-            signal,
-            endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-          })
-            .then(({ json }) => {
-              setSuggestions(
-                json.map((suggestion: null | number | boolean | string) => ({
-                  value: suggestion,
-                  label: optionLabel(suggestion),
-                })),
-              );
-              setLoadingComparatorSuggestions(false);
-            })
-            .catch(() => {
-              setSuggestions([]);
-              setLoadingComparatorSuggestions(false);
-            });
+      if (col && datasource && datasource.filter_select && !having) {
+        const controller = new AbortController();
+        const { signal } = controller;
+        if (loadingComparatorSuggestions) {
+          controller.abort();
         }
-      };
-      refreshComparatorSuggestions();
-    }, [props.adhocFilter.subject]);
+        setLoadingComparatorSuggestions(true);
+        SupersetClient.get({
+          signal,
+          endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
+        })
+          .then(({ json }) => {
+            setSuggestions(
+              json.map((suggestion: null | number | boolean | string) => ({
+                value: suggestion,
+                label: optionLabel(suggestion),
+              })),
+            );
+            setLoadingComparatorSuggestions(false);
+          })
+          .catch(() => {
+            setSuggestions([]);
+            setLoadingComparatorSuggestions(false);
+          });
+      }
+    };
+    refreshComparatorSuggestions();
+  }, [props.adhocFilter.subject]);
 
-    useEffect(() => {
+  useEffect(() => {
+    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
       fetchSubjectBusinessType(props);
-    }, [props.adhocFilter.subject]);
+    }
+  }, [props.adhocFilter.subject]);
 
-    useEffect(() => {
+  useEffect(() => {
+    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
       fetchBusinessTypeValueCallback(
         comparator === undefined ? '' : comparator,
         businessTypesState,
         subjectBusinessType,
-      );
-    }, [comparator, fetchBusinessTypeValueCallback]);
+      );    
+    }
 
-    useEffect(() => {
+  }, [comparator, fetchBusinessTypeValueCallback]);
+
+  useEffect(() => {
+    if ( isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ) {
       setComparator(props.adhocFilter.comparator);
-    }, [props.adhocFilter.comparator]);
-  }
+    }
 
+  }, [props.adhocFilter.comparator]);
+
+ 
   return (
     <>
       <Select
