@@ -33,7 +33,6 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
 
@@ -202,9 +201,9 @@ export function Menu({
   const theme = useTheme();
   const filteredMenu = menu.filter(item => item.name !== 'Upload Data');
 
-  const getUploadMenulinks: MenuObjectProps = menu.find(
+  const getUploadMenulinks: MenuObjectProps[] = menu.find(
     item => item.name === 'Upload Data',
-  )?.childs as unknown as MenuObjectProps;
+  )?.childs as unknown as MenuObjectProps[];
 
   useEffect(() => {
     function handleResize() {
