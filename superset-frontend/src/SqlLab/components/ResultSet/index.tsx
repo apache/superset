@@ -177,7 +177,7 @@ const ResultSet = ({
   const [showSaveDatasetModal, setshowSaveDatasetModal] =
     useState<boolean>(false);
   const [newSaveDatasetName, setnewSaveDatasetName] = useState<string>(
-    getDefaultDatasetName(),
+    `${query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`,
   );
   const [saveDatasetRadioBtnState, setsaveDatasetRadioBtnState] =
     useState<number>(DatasetRadioState.SAVE_NEW);
