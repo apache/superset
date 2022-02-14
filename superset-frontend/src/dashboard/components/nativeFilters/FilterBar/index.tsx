@@ -134,7 +134,7 @@ const StyledTabs = styled(Tabs)`
     flex: 1;
   }
 
-  & .ant-tabs-nav-operations {
+  & > .ant-tabs-nav .ant-tabs-nav-operations {
     display: none;
   }
 `;
