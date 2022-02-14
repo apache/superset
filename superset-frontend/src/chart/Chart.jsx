@@ -18,17 +18,17 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import Alert from 'src/components/Alert';
 import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
-import ErrorBoundary from '../components/ErrorBoundary';
+import { EmptyStateBig } from 'src/components/EmptyState';
+import ErrorBoundary from 'src/components/ErrorBoundary';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -95,6 +95,10 @@ const Styles = styled.div`
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+
+  .slice_container {
+    height: ${p => p.height}px;
   }
 `;
 
@@ -248,11 +252,20 @@ class Chart extends React.PureComponent {
     }
 
     if (errorMessage) {
+      const description = isFeatureEnabled(
+        FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+      )
+        ? t(
+            'Drag and drop values into highlighted field(s) on the left control panel and run query',
+          )
+        : t(
+            'Select values in highlighted field(s) on the left control panel and run query',
+          );
       return (
-        <Alert
-          data-test="alert-warning"
-          message={errorMessage}
-          type="warning"
+        <EmptyStateBig
+          title={t('Add required control values to preview chart')}
+          description={description}
+          image="chart.svg"
         />
       );
     }
