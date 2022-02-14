@@ -65,6 +65,10 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: pk
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
@@ -93,7 +97,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["PUT"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -115,6 +119,10 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
@@ -129,9 +137,9 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
                   schema:
                     type: object
                     properties:
-                      message:
+                      key:
                         type: string
-                        description: The result of the operation
+                        description: The key to retrieve the value.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -145,7 +153,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["GET"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["GET"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -191,7 +199,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["DELETE"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
