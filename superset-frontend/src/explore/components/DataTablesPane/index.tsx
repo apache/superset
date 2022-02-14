@@ -155,12 +155,11 @@ const DataTable = ({
   }
   if (data) {
     if (data.length === 0) {
-      return (
-        <EmptyStateMedium
-          image="document.svg"
-          title={t(`No ${type} were returned for this query`)}
-        />
-      );
+      const title =
+        type === 'samples'
+          ? t('No samples were returned for this query')
+          : t('No results were returned for this query');
+      return <EmptyStateMedium image="document.svg" title={title} />;
     }
     return (
       <TableView
@@ -177,12 +176,11 @@ const DataTable = ({
     );
   }
   if (errorMessage) {
-    return (
-      <EmptyStateMedium
-        image="document.svg"
-        title={t(`Run a query to display ${type}`)}
-      />
-    );
+    const title =
+      type === 'samples'
+        ? t('Run a query to display samples')
+        : t('Run a query to display results');
+    return <EmptyStateMedium image="document.svg" title={title} />;
   }
   return null;
 };
