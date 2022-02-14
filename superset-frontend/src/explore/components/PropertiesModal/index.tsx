@@ -279,7 +279,7 @@ function PropertiesModal({
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
             <FormItem>
-              <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
+              <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
                 <Input />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
