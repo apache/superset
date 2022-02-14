@@ -1261,7 +1261,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         where_clause_and = []
         having_clause_and = []
-        # THIS IS WERE THE FILTER REPLACE IS
         for flt in filter:  # type: ignore
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
@@ -1304,8 +1303,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
-                # TODO: This should be handeled more elegantly
-                # Refactor this (filter) to handle business types better a
+                    
                 eq = (
                     self.filter_values_handler(
                         values=val,

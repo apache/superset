@@ -1,15 +1,15 @@
 """
-A docstring
+Business type request class
 """
 
-from typing import Any, List, TypedDict, Union
+from typing import List, TypedDict, Union
 
 from superset.typing import FilterValues
 
 
 class BusinessTypeRequest(TypedDict):
     """
-    A docstring
+    Business type request
     """
 
     business_type: str

@@ -1,6 +1,5 @@
 import ipaddress
-from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, List
 
 from sqlalchemy import Column
 
@@ -11,6 +10,9 @@ from superset.utils.core import FilterOperator, FilterStringOperators
 
 
 def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    """
+    Convert a passed in BusinessTypeRequest to a BusinessTypeResponse
+    """
     resp: BusinessTypeResponse = {
         "values": [],
         "error_message": "",
@@ -56,6 +58,9 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 def cidr_translate_filter_func(
     col: Column, op: FilterOperator, values: List[Any]
 ) -> Any:
+    """
+    Convert a passed in column, FilterOperator and list of values into an sqlalchemy expression
+    """
     if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
         dict_items = [val for val in values if isinstance(val, dict)]
         single_values = [val for val in values if not isinstance(val, dict)]
@@ -97,7 +102,7 @@ def cidr_translate_filter_func(
 
 
 internet_address: BusinessType = BusinessType(
-    verbose_name="internet adress",
+    verbose_name="internet address",
     description="represents both an ip and cidr range",
     valid_data_types=["int"],
     translate_filter=cidr_translate_filter_func,
