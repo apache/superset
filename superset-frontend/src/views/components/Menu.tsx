@@ -33,6 +33,7 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
+import { ConsoleSqlOutlined } from '@ant-design/icons';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
 
@@ -74,7 +75,7 @@ export interface MenuProps {
 
 interface MenuObjectChildProps {
   label: string;
-  name?: string;
+  name: string;
   icon?: string;
   index?: number;
   url?: string;
@@ -199,10 +200,11 @@ export function Menu({
   const screens = useBreakpoint();
   const uiConig = useUiConfig();
   const theme = useTheme();
+  const filteredMenu = menu.filter(item => item.name !== 'Upload Data');
 
-  const getUploadMenulinks: MenuObjectProps[] = menu?.filter(
+  const getUploadMenulinks: MenuObjectProps = menu.find(
     item => item.name === 'Upload Data',
-  )[0].childs as MenuObjectProps[];
+  )?.childs as unknown as MenuObjectProps;
 
   useEffect(() => {
     function handleResize() {
@@ -293,7 +295,7 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map(item => {
+            {filteredMenu.map(item => {
               if (item.name === 'Upload Data') return null;
               const props = {
                 ...item,
