@@ -85,6 +85,7 @@ from superset.jinja_context import (
     ExtraCache,
     get_template_processor,
 )
+from superset.extensions import feature_flag_manager
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
@@ -98,6 +99,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
+
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1317,7 +1319,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         is_list_target=is_list_target,
                     )
                 )
-                if col_busniness_type != "":
+                if col_busniness_type != "" and feature_flag_manager.is_feature_enabled("ENABLE_BUSINESS_TYPES"):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
                         col_busniness_type
