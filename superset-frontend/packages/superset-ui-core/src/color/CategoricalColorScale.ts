@@ -46,7 +46,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
   constructor(colors: string[], parentForcedColors?: ColorsLookup) {
-    super((value: string, sliceId: number) => this.getColor(value, sliceId));
+    super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
