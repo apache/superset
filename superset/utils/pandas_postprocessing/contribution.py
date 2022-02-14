@@ -21,9 +21,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.core import (
-    PostProcessingContributionOrientation,
-)
+from superset.utils.core import PostProcessingContributionOrientation
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 

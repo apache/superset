@@ -21,9 +21,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame, Series
 
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.core import (
-    PostProcessingBoxplotWhiskerType,
-)
+from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing.aggregate import aggregate
 
 

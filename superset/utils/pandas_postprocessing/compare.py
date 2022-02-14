@@ -22,9 +22,7 @@ from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.core import (
-    TIME_COMPARISION,
-)
+from superset.utils.core import TIME_COMPARISION
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
