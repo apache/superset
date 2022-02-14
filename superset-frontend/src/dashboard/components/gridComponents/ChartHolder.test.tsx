@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { waitFor } from '@testing-library/react';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
