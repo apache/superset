@@ -103,6 +103,7 @@ export default function transformProps(
     showLabels,
     showLegend,
     emitFilter,
+    sliceId,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_FUNNEL_FORM_DATA,
@@ -130,11 +131,7 @@ export default function transformProps(
 
   const { setDataMask = () => {} } = hooks;
 
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData: FunnelSeriesOption[] = data.map(datum => {
@@ -149,7 +146,7 @@ export default function transformProps(
       value: datum[metricLabel],
       name,
       itemStyle: {
-        color: colorFn(name),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,

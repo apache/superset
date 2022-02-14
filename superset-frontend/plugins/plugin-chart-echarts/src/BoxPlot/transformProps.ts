@@ -62,12 +62,9 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   } = formData as BoxPlotQueryFormData;
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -101,9 +98,9 @@ export default function transformProps(
             datum[`${metric}__outliers`],
           ],
           itemStyle: {
-            color: colorFn(groupbyLabel),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel),
+            borderColor: colorFn(groupbyLabel, sliceId),
           },
         };
       });
@@ -141,7 +138,7 @@ export default function transformProps(
             },
           },
           itemStyle: {
-            color: colorFn(groupbyLabel),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,

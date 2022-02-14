@@ -127,16 +127,13 @@ export default function transformProps(
     showUpperLabels,
     dashboardId,
     emitFilter,
+    sliceId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
   };
 
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
     formatLabel({
@@ -227,7 +224,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${child.name}`),
+        color: colorFn(`${child.name}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },

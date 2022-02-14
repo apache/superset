@@ -109,6 +109,7 @@ export default function transformProps(
     showLegend,
     showLabelsThreshold,
     emitFilter,
+    sliceId,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -144,11 +145,7 @@ export default function transformProps(
 
   const { setDataMask = () => {} } = hooks;
 
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
 
   const transformedData: PieSeriesOption[] = data.map(datum => {
@@ -166,7 +163,7 @@ export default function transformProps(
       value: datum[metricLabel],
       name,
       itemStyle: {
-        color: colorFn(name),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,

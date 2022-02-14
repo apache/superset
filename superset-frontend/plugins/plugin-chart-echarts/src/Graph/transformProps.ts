@@ -184,14 +184,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     baseEdgeWidth,
     baseNodeSize,
     edgeSymbol,
+    sliceId,
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
   const metricLabel = getMetricLabel(metric);
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
@@ -268,7 +265,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c) },
+        itemStyle: { color: colorFn(c, sliceId) },
       })),
       layout,
       force: {

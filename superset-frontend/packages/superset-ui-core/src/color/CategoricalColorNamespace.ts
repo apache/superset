@@ -37,14 +37,10 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  getScale(schemeId?: string, sliceId?: number) {
+  getScale(schemeId?: string) {
     const id = schemeId ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
-    return new CategoricalColorScale(
-      scheme?.colors ?? [],
-      this.forcedItems,
-      sliceId,
-    );
+    return new CategoricalColorScale(scheme?.colors ?? [], this.forcedItems);
   }
 
   /**
@@ -94,10 +90,6 @@ export function getColor(
   Returns a new scale instance within the same namespace.
   Especially useful when a chart is booting for the first time
 */
-export function getScale(
-  scheme?: string,
-  namespace?: string,
-  sliceId?: number,
-) {
-  return getNamespace(namespace).getScale(scheme, sliceId);
+export function getScale(scheme?: string, namespace?: string) {
+  return getNamespace(namespace).getScale(scheme);
 }

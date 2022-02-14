@@ -124,12 +124,9 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const colorScale = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
   const rawSeries = extractSeries(rebasedData, {
@@ -200,6 +197,7 @@ export default function transformProps(
       showValueIndexes,
       thresholdValues,
       richTooltip,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -219,7 +217,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -227,11 +227,18 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(

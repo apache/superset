@@ -27,7 +27,7 @@ import getSharedLabelColor from './SharedLabelColorSingleton';
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
 interface CategoricalColorScale {
-  (x: { toString(): string }): string;
+  (x: { toString(): string }, y?: number): string;
 }
 
 class CategoricalColorScale extends ExtensibleFunction {
@@ -47,25 +47,20 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(
-    colors: string[],
-    parentForcedColors?: ColorsLookup,
-    sliceId?: number,
-  ) {
-    super((value: string) => this.getColor(value));
+  constructor(colors: string[], parentForcedColors?: ColorsLookup) {
+    super((value: string, sliceId: number) => this.getColor(value, sliceId));
 
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
     this.parentForcedColors = parentForcedColors || {};
     this.forcedColors = {};
-    this.sliceId = sliceId;
   }
 
-  getColor(value?: string) {
+  getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
 
-    getSharedLabelColor().addSlice(cleanedValue, this.sliceId);
+    getSharedLabelColor().addSlice(cleanedValue, sliceId);
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];

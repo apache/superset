@@ -107,14 +107,11 @@ export default function transformProps(
     intervalColorIndices,
     valueFormatter,
     emitFilter,
+    sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const numberFormatter = getNumberFormatter(numberFormat);
-  const colorFn = CategoricalColorNamespace.getScale(
-    colorScheme as string,
-    undefined,
-    formData.sliceId,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const normalizer = maxVal;
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const axisLabels = range(minVal, maxVal, (maxVal - minVal) / splitNumber);
@@ -151,7 +148,7 @@ export default function transformProps(
         value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
         name,
         itemStyle: {
-          color: colorFn(index),
+          color: colorFn(index, sliceId),
         },
         title: {
           offsetCenter: [
@@ -179,7 +176,7 @@ export default function transformProps(
         item = {
           ...item,
           itemStyle: {
-            color: colorFn(index),
+            color: colorFn(index, sliceId),
             opacity: OpacityEnum.SemiTransparent,
           },
           detail: {

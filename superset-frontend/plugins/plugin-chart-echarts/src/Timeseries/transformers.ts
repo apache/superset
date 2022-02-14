@@ -83,6 +83,7 @@ export function transformSeries(
     showValueIndexes?: number[];
     thresholdValues?: number[];
     richTooltip?: boolean;
+    sliceId?: number;
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -103,6 +104,7 @@ export function transformSeries(
     showValueIndexes = [],
     thresholdValues = [],
     richTooltip,
+    sliceId,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -148,7 +150,7 @@ export function transformSeries(
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
   const itemStyle = {
-    color: colorScale(forecastSeries.name),
+    color: colorScale(forecastSeries.name, sliceId),
     opacity,
   };
   let emphasis = {};
@@ -241,13 +243,14 @@ export function transformFormulaAnnotation(
   layer: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
   colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption {
   const { name, color, opacity, width, style } = layer;
   return {
     name,
     id: name,
     itemStyle: {
-      color: color || colorScale(name),
+      color: color || colorScale(name, sliceId),
     },
     lineStyle: {
       opacity: parseAnnotationOpacity(opacity),
@@ -266,6 +269,7 @@ export function transformIntervalAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -320,7 +324,7 @@ export function transformIntervalAnnotation(
       markArea: {
         silent: false,
         itemStyle: {
-          color: color || colorScale(name),
+          color: color || colorScale(name, sliceId),
           opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
           emphasis: {
             opacity: 0.8,
@@ -339,6 +343,7 @@ export function transformEventAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
+  sliceId?: number,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -356,7 +361,7 @@ export function transformEventAnnotation(
     const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
       width,
       type: style as ZRLineType,
-      color: color || colorScale(name),
+      color: color || colorScale(name, sliceId),
       opacity: parseAnnotationOpacity(opacity),
       emphasis: {
         width: width ? width + 1 : width,

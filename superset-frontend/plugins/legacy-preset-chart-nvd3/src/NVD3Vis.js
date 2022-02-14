@@ -670,8 +670,10 @@ function nvd3Vis(element, props) {
         generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
       );
     } else if (vizType !== 'bullet') {
-      const colorFn = getScale(colorScheme, undefined, sliceId);
-      chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
+      const colorFn = getScale(colorScheme);
+      chart.color(
+        d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
+      );
     }
 
     if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {
