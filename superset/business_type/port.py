@@ -82,7 +82,7 @@ def port_translate_filter_func(
     col: Column, op: FilterOperator, values: List[Any]
 ) -> Any:
     """
-    Convert a passed in column, FilterOperator and list of values into asqlalchemy expression
+    Convert a passed in column, FilterOperator and list of values into an sqlalchemy expression
     """
     if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
         vals_list = itertools.chain.from_iterable(values)

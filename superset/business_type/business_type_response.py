@@ -14,5 +14,5 @@ class BusinessTypeResponse(TypedDict, total=False):
 
     error_message: Optional[str]
     values: List[Any]  # parsed value (can be any value)
-    display_value: str  # The string representation of the parsed vlaues
+    display_value: str  # The string representation of the parsed values
     valid_filter_operators: List[FilterStringOperators]
