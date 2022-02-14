@@ -342,7 +342,7 @@ export const nativeFilters = {
     expand: dataTestLocator('filter-bar__expand-button'),
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
-    filterContent: '.ant-select-selection-item-content',
+    filterContent: '.ant-select-selection-item',
     createFilterButton: dataTestLocator('create-filter'),
     timeRangeFilterContent: dataTestLocator('time-range-trigger'),
   },
@@ -465,7 +465,7 @@ export const exploreView = {
   saveModal: {
     modal: '.ant-modal-content',
     chartNameInput: dataTestLocator('new-chart-name'),
-    dashboardNameInput: '#dashboard-creatable-select',
+    dashboardNameInput: '.ant-select-selection-search-input',
     addToDashboardInput: dataTestLocator(
       'save-chart-modal-select-dashboard-form',
     ),

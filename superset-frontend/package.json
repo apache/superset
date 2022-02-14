@@ -108,6 +108,7 @@
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/preset-chart-xy": "file:./plugins/preset-chart-xy",
+    "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
     "antd": "^4.9.4",

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,13 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
 
-type AntdIconType = IconComponentProps;
-type IconType = AntdIconType & {
-  iconColor?: string;
-  twoToneColor?: string;
-  iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
-};
-
-export default IconType;
+export * from './switchboard';

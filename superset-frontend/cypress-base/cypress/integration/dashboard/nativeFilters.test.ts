@@ -17,10 +17,15 @@
  * under the License.
  */
 import qs from 'querystring';
-import { dashboardView, nativeFilters } from 'cypress/support/directories';
+import {
+  dashboardView,
+  nativeFilters,
+  exploreView,
+} from 'cypress/support/directories';
 import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
+import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
 
 const getTestTitle = (
   test: Mocha.Suite = (Cypress as any).mocha.getRunner().suite.ctx.test,
@@ -346,6 +351,7 @@ describe('Nativefilters Sanity test', () => {
       .contains('2005-12-17')
       .should('be.visible');
   });
+
   it("User can check 'Filter has default value'", () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
     cy.get(nativeFilters.createFilterButton)
@@ -396,6 +402,104 @@ describe('Nativefilters Sanity test', () => {
     cy.get('.line').within(() => {
       cy.contains('United States').should('be.visible');
     });
+
+    // clean up the default setting
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
+    cy.contains('Filter has default value').click();
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click({ force: true });
+  });
+
+  it('User can create a time grain filter', () => {
+    const VIZ_DEFAULTS = {
+      ...FORM_DATA_DEFAULTS,
+      viz_type: 'echarts_timeseries',
+      datasource: '3__table',
+      granularity_sqla: 'purpose__last_set',
+      time_range_endpoints: ['inclusive', 'exclusive'],
+      time_grain_sqla: 'P1D',
+      time_range: 'No filter',
+      metrics: ['count'],
+      comparison_type: 'values',
+      forecastPeriods: 10,
+      forecastInterval: 0.8,
+      x_axis_title_margin: 15,
+      y_axis_title_margin: 15,
+      y_axis_title_position: 'Left',
+      color_scheme: 'supersetColors',
+      seriesType: 'line',
+      only_total: true,
+      opacity: 0.2,
+      markerSize: 6,
+      legendType: 'scroll',
+      legendOrientation: 'top',
+      x_axis_time_format: 'smart_date',
+      rich_tooltip: true,
+      tooltipTimeFormat: 'smart_date',
+      y_axis_format: 'SMART_NUMBER',
+    };
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+    });
+    cy.get(exploreView.controlPanel.runButton).should('be.visible', {
+      timeout: 10000,
+    });
+    cy.get(exploreView.controlPanel.saveQuery).click();
+    cy.get(exploreView.saveModal.modal).within(() => {
+      cy.get(exploreView.saveModal.chartNameInput).type(
+        `${testItems.chart}{enter}`,
+      );
+      cy.get(exploreView.saveModal.dashboardNameInput).type(
+        `${testItems.dashboard}{enter}`,
+        { delay: 100, force: true },
+      );
+      cy.get(exploreView.saveModal.saveAndGoToDashboard).click();
+    });
+
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .click({ force: true });
+    cy.get('[label="Time grain"]').click();
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click()
+      .clear()
+      .type('time grain');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click()
+      .type('wb_health_population');
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get('[label="wb_health_population"]').click();
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+    cy.get(nativeFilters.modal.container).should('not.exist');
+    cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
+      .should('be.visible', { timeout: 10000 })
+      .click()
+      .type('Month{enter}');
+    cy.get(nativeFilters.applyFilter).click();
+    cy.wait('@chart');
+    cy.url().then(u => {
+      const ur = new URL(u);
+      expect(ur.search).to.include('native_filters');
+    });
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .contains('time grain')
+      .should('be.visible');
+    cy.get(nativeFilters.filterFromDashboardView.filterContent)
+      .contains('Month')
+      .should('be.visible');
   });
 });
 

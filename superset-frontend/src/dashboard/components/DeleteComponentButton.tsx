@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
+import React, { MouseEventHandler } from 'react';
+import Icons from 'src/components/Icons';
+import IconButton from './IconButton';
 
-type AntdIconType = IconComponentProps;
-type IconType = AntdIconType & {
-  iconColor?: string;
-  twoToneColor?: string;
-  iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
+type DeleteComponentButtonProps = {
+  onDelete: MouseEventHandler<HTMLDivElement>;
 };
 
-export default IconType;
+const DeleteComponentButton: React.FC<DeleteComponentButtonProps> = ({
+  onDelete,
+}) => <IconButton onClick={onDelete} icon={<Icons.Trash iconSize="xl" />} />;
+
+export default DeleteComponentButton;
