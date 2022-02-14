@@ -35,11 +35,9 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   scale: ScaleOrdinal<{ toString(): string }, string>;
 
-  parentForcedColors: ColorsLookup;
+  parentForcedColors?: ColorsLookup;
 
   forcedColors: ColorsLookup;
-
-  sliceId: number | undefined;
 
   /**
    * Constructor
@@ -53,7 +51,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
-    this.parentForcedColors = parentForcedColors || {};
+    this.parentForcedColors = parentForcedColors;
     this.forcedColors = {};
   }
 
