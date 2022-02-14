@@ -224,12 +224,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 return str(raw_bytes)
             units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
             index = 0
-            bytes = float(raw_bytes)
-            while bytes >= 1024 and index < len(units) - 1:
-                bytes /= 1024
+            bytes_float = float(raw_bytes)
+            while bytes_float >= 1024 and index < len(units) - 1:
+                bytes_float /= 1024
                 index += 1
 
-            return "{:.1f}".format(bytes) + f" {units[index]}"
+            return "{:.1f}".format(bytes_float) + f" {units[index]}"
 
         return [
             {
