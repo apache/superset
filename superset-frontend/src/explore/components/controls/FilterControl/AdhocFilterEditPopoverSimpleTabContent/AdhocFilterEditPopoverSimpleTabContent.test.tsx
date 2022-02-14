@@ -372,26 +372,23 @@ const BUSINESS_TYPE_ENDPOINT_VALID =
 const BUSINESS_TYPE_ENDPOINT_INVALID =
   'glob:*/api/v1/business_type/convert?q=(type:type,values:!(e))';
 fetchMock.get(BUSINESS_TYPE_ENDPOINT_VALID, {
-    result: {
-      display_value: 'VALID',
-      error_message: '',
-      valid_filter_operators: [Operators.EQUALS],
-      values: ['VALID'],
-    },
+  result: {
+    display_value: 'VALID',
+    error_message: '',
+    valid_filter_operators: [Operators.EQUALS],
+    values: ['VALID'],
   },
-);
+});
 fetchMock.get(BUSINESS_TYPE_ENDPOINT_INVALID, {
-    result: {
-      display_value: '',
-      error_message: 'error',
-      valid_filter_operators: [],
-      values: [],
-    },
+  result: {
+    display_value: '',
+    error_message: 'error',
+    valid_filter_operators: [],
+    values: [],
   },
-);
+});
 
 describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
-  
   const setupFilter = async (props: Props) => {
     await act(async () => {
       render(
@@ -400,8 +397,8 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
         </ThemeProvider>,
       );
     });
-  }
-  
+  };
+
   it('should not call API when column has no business type', async () => {
     fetchMock.resetHistory();
 
@@ -459,7 +456,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     await waitFor(() =>
       expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
     );
-    expect(props.validHandler.lastCall.args[0]).toBe(true)
+    expect(props.validHandler.lastCall.args[0]).toBe(true);
   });
 
   it('save button should be disabled if error message from API is returned', async () => {
@@ -494,7 +491,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     await waitFor(() =>
       expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
     );
-    expect(props.validHandler.lastCall.args[0]).toBe(false)
+    expect(props.validHandler.lastCall.args[0]).toBe(false);
   });
 
   it('business type operator list should update after API response', async () => {
@@ -529,16 +526,14 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     await waitFor(() =>
       expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
     );
-    expect(props.validHandler.lastCall.args[0]).toBe(true)
+    expect(props.validHandler.lastCall.args[0]).toBe(true);
 
-    const operatorValueField = screen.getByText(
-      '1 operator(s)',
-    );
+    const operatorValueField = screen.getByText('1 operator(s)');
 
     await act(async () => {
       userEvent.type(operatorValueField, '{enter}');
     });
 
-    expect(screen.getByText("equals")).toExist;
+    expect(screen.getByText('equals')).toExist;
   });
 });

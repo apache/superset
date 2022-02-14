@@ -103,7 +103,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       width: POPOVER_INITIAL_WIDTH,
       height: POPOVER_INITIAL_HEIGHT,
       activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
-      isSimpleTabValid: false,
+      isSimpleTabValid: true,
     };
 
     this.popoverContentRef = React.createRef();

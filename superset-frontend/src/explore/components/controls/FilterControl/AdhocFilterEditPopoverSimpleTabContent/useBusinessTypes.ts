@@ -83,6 +83,8 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
     );
     if (option && 'business_type' in option) {
       setSubjectBusinessType(option.business_type);
+    } else {
+      props.validHandler(true);
     }
   };
 

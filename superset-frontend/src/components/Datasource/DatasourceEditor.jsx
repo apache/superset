@@ -278,9 +278,9 @@ function ColumnCollectionTable({
                 label={t('Business type')}
                 control={
                   <TextControl
-                  controlId="business_type"
-                  placeholder={t('Business type')}
-                />
+                    controlId="business_type"
+                    placeholder={t('Business type')}
+                  />
                 }
               />
             ) : (
