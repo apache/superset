@@ -37,6 +37,7 @@ interface ColumnSelectPopoverTriggerProps {
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
   children: React.ReactNode;
+  isTemporal?: boolean;
 }
 
 const defaultPopoverLabel = t('My column');
@@ -48,6 +49,7 @@ const ColumnSelectPopoverTrigger = ({
   onColumnEdit,
   isControlledComponent,
   children,
+  isTemporal,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
@@ -102,6 +104,7 @@ const ColumnSelectPopoverTrigger = ({
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
+          isTemporal={isTemporal}
         />
       </ExplorePopoverContent>
     ),
@@ -110,6 +113,7 @@ const ColumnSelectPopoverTrigger = ({
       editedColumn,
       getCurrentTab,
       handleClosePopover,
+      isTemporal,
       onColumnEdit,
       popoverLabel,
     ],

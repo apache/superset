@@ -44,6 +44,7 @@ import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -57,6 +58,7 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { RootState } from '../../../types';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
@@ -135,6 +137,10 @@ const StyledTabs = styled(Tabs)`
   }
 `;
 
+const FilterBarEmptyStateContainer = styled.div`
+  margin-top: ${({ theme }) => theme.gridUnit * 8}px;
+`;
+
 export interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
@@ -167,6 +173,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterValues = Object.values<Filter>(filters);
   const dashboardId = useSelector<any, string>(
     ({ dashboardInfo }) => dashboardInfo?.id,
+  );
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
   const handleFilterSelectionChange = useCallback(
@@ -382,11 +391,26 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           </StyledTabs>
         ) : (
           <div css={tabPaneStyle}>
-            <FilterControls
-              dataMaskSelected={dataMaskSelected}
-              directPathToChild={directPathToChild}
-              onFilterSelectionChange={handleFilterSelectionChange}
-            />
+            {filterValues.length === 0 ? (
+              <FilterBarEmptyStateContainer>
+                <EmptyStateSmall
+                  title={t('No filters are currently added')}
+                  image="filter.svg"
+                  description={
+                    canEdit &&
+                    t(
+                      'Click the pencil icon above to add a filter to the dashboard',
+                    )
+                  }
+                />
+              </FilterBarEmptyStateContainer>
+            ) : (
+              <FilterControls
+                dataMaskSelected={dataMaskSelected}
+                directPathToChild={directPathToChild}
+                onFilterSelectionChange={handleFilterSelectionChange}
+              />
+            )}
           </div>
         )}
       </Bar>
