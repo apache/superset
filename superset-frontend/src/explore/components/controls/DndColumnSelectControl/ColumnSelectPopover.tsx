@@ -270,7 +270,7 @@ const ColumnSelectPopover = ({
               image="empty.svg"
               title={
                 isTemporal
-                  ? t('No time columns found')
+                  ? t('No temporal columns found')
                   : t('No saved expressions found')
               }
               description={
@@ -289,7 +289,7 @@ const ColumnSelectPopover = ({
           {isTemporal && simpleColumns.length === 0 ? (
             <EmptyStateSmall
               image="empty.svg"
-              title={t('No time columns found')}
+              title={t('No temporal columns found')}
               description={t(
                 'Mark a column as temporal in "Edit datasource" modal',
               )}
