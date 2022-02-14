@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any, Dict, List
+
 from pandas import DataFrame
 
 from superset.utils.pandas_postprocessing.utils import (
-    validate_column_args,
     _get_aggregate_funcs,
+    validate_column_args,
 )
 
 
@@ -43,5 +44,3 @@ def aggregate(
     else:
         df_groupby = df.groupby(lambda _: True)
     return df_groupby.agg(**aggregate_funcs).reset_index(drop=not groupby)
-
-
