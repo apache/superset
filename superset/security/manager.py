@@ -26,9 +26,9 @@ from typing import (
     cast,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
-    Tuple,
     TYPE_CHECKING,
     Union,
 )
@@ -74,6 +74,7 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
+from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -86,6 +87,11 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseAndSchema(NamedTuple):
+    database: str
+    schema: str
 
 
 class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
@@ -235,13 +241,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     guest_user_cls = GuestUser
 
     def create_login_manager(self, app: Flask) -> LoginManager:
+        lm = super().create_login_manager(app)
+        lm.request_loader(self.request_loader)
+        return lm
+
+    def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
-        lm = super().create_login_manager(app)
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            lm.request_loader(self.get_guest_user_from_request)
-        return lm
+            return self.get_guest_user_from_request(request)
+        return None
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -259,13 +269,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return None
 
-    def unpack_schema_perm(  # pylint: disable=no-self-use
+    def unpack_database_and_schema(  # pylint: disable=no-self-use
         self, schema_permission: str
-    ) -> Tuple[str, str]:
-        # [database_name].[schema_name]
+    ) -> DatabaseAndSchema:
+        # [database_name].[schema|table]
+
         schema_name = schema_permission.split(".")[1][1:-1]
         database_name = schema_permission.split(".")[0][1:-1]
-        return database_name, schema_name
+        return DatabaseAndSchema(database_name, schema_name)
 
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
@@ -554,7 +565,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # schema_access
         accessible_schemas = {
-            self.unpack_schema_perm(s)[1]
+            self.unpack_database_and_schema(s).schema
             for s in self.user_view_menu_names("schema_access")
             if s.startswith(f"[{database}].")
         }
@@ -604,7 +615,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         if schema:
             names = {d.table_name for d in user_datasources if d.schema == schema}
-            return [d for d in datasource_names if d in names]
+            return [d for d in datasource_names if d.table in names]
 
         full_names = {d.full_name for d in user_datasources}
         return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
@@ -1298,6 +1309,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
+        aud = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
 
         # calculate expiration time
         now = self._get_current_epoch_time()
@@ -1309,6 +1321,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
+            "aud": aud,
+            "type": "guest",
         }
         token = jwt.encode(claims, secret, algorithm=algo)
         return token
@@ -1334,6 +1348,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a resources claim")
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
+            if token.get("type") != "guest":
+                raise ValueError("This is not a guest token.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -1356,7 +1372,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        return jwt.decode(raw_token, secret, algorithms=[algo])
+        aud = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        return jwt.decode(raw_token, secret, algorithms=[algo], audience=aud)
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:

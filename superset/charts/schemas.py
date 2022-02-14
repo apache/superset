@@ -598,7 +598,10 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         description="Aggregate expressions. Metrics can be passed as both "
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
-        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. "
+        "When metrics is undefined or null, the query is executed without a groupby. "
+        "However, when metrics is an array (length >= 0), a groupby clause is added to "
+        "the query.",
         allow_none=True,
     )
 

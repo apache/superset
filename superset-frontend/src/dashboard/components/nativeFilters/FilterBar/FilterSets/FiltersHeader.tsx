@@ -17,16 +17,20 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  DataMaskState,
+  FilterSet,
+  NativeFilterType,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Collapse, Typography, Tooltip } from 'src/common/components';
-import { DataMaskState } from 'src/dataMask/types';
 import Icons from 'src/components/Icons';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
 import { useFilters } from '../state';
 import { getFilterBarTestId } from '../index';
-import { NativeFilterType } from '../../types';
 
 const FilterHeader = styled.div`
   display: flex;

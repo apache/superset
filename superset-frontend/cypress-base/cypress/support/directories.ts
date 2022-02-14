@@ -335,15 +335,20 @@ export const nativeFilters = {
     columnEmptyInput: '.ant-select-selection-placeholder',
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
     fieldInput: dataTestLocator('field-input'),
+    filterTypeItem: '.ant-select-selection-item',
   },
   filterFromDashboardView: {
+    filterValueInput: '[class="ant-select-selection-search-input"]',
     expand: dataTestLocator('filter-bar__expand-button'),
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
-    filterContent: '.ant-select-selection-item-content',
+    filterContent: '.ant-select-selection-item',
+    createFilterButton: dataTestLocator('create-filter'),
+    timeRangeFilterContent: dataTestLocator('time-range-trigger'),
   },
   createFilterButton: dataTestLocator('filter-bar__create-filter'),
   removeFilter: '[aria-label="remove"]',
+  silentLoading: '.loading inline-centered css-101mkpk',
   filterConfigurationSections: {
     collapseExpandButton: '.ant-collapse-arrow',
     checkedCheckbox: '.ant-checkbox-wrapper-checked',
@@ -460,13 +465,14 @@ export const exploreView = {
   saveModal: {
     modal: '.ant-modal-content',
     chartNameInput: dataTestLocator('new-chart-name'),
-    dashboardNameInput: '#dashboard-creatable-select',
+    dashboardNameInput: '.ant-select-selection-search-input',
     addToDashboardInput: dataTestLocator(
       'save-chart-modal-select-dashboard-form',
     ),
     saveButton: dataTestLocator('btn-modal-save'),
     saveAsCircle: dataTestLocator('saveas-radio'),
     overwriteCircle: dataTestLocator('save-overwrite-radio'),
+    saveAndGoToDashboard: '#btn_modal_save_goto_dash',
   },
   controlPanel: {
     panel: dataTestLocator('control-tabs'),
