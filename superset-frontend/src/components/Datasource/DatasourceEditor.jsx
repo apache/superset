@@ -276,11 +276,7 @@ function ColumnCollectionTable({
               <Field
                 fieldKey="business_type"
                 label={t('Business type')}
-                control={
-                  <BusinessTypeSelector
-                    controlId="business_type"
-                  />
-                }
+                control={<BusinessTypeSelector controlId="business_type" />}
               />
             ) : (
               <></>
@@ -581,7 +577,7 @@ const BusinessTypeSelector = ({ datasource, onChange }) => {
       allowClear
     />
   );
-}
+};
 
 class DatasourceEditor extends React.PureComponent {
   constructor(props) {
