@@ -135,6 +135,7 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
+  dbEngine: string | undefined; // if included goto step 2 with engine already set
 }
 
 enum ActionType {
@@ -428,6 +429,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onHide,
   show,
   databaseId,
+  dbEngine,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -849,6 +851,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (isLoading) {
       setLoading(false);
+    }
+
+    if (availableDbs && dbEngine) {
+      // set model if passed into props
+      setDatabaseModel(dbEngine);
     }
   }, [availableDbs]);
 

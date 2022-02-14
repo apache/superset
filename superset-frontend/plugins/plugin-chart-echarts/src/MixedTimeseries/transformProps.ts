@@ -176,10 +176,12 @@ export default function transformProps(
       stack,
       yAxisIndex,
       filterState,
+      seriesKey: entry.name,
       sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
+
   rawSeriesB.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area: areaB,
@@ -191,6 +193,9 @@ export default function transformProps(
       stack: stackB,
       yAxisIndex: yAxisIndexB,
       filterState,
+      seriesKey: primarySeries.has(entry.name as string)
+        ? `${entry.name} (1)`
+        : entry.name,
       sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);

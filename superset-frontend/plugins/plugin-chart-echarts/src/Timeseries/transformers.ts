@@ -83,6 +83,7 @@ export function transformSeries(
     showValueIndexes?: number[];
     thresholdValues?: number[];
     richTooltip?: boolean;
+    seriesKey?: OptionName;
     sliceId?: number;
   },
 ): SeriesOption | undefined {
@@ -104,6 +105,7 @@ export function transformSeries(
     showValueIndexes = [],
     thresholdValues = [],
     richTooltip,
+    seriesKey,
     sliceId,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
@@ -149,8 +151,9 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+  // forcing the colorScale to return a different color for same metrics across different queries
   const itemStyle = {
-    color: colorScale(forecastSeries.name, sliceId),
+    color: colorScale(seriesKey || forecastSeries.name, sliceId),
     opacity,
   };
   let emphasis = {};
