@@ -14,6 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Dict
+
+from pandas import DataFrame
+
+from superset.utils.pandas_postprocessing.utils import validate_column_args
+
 
 @validate_column_args("columns")
 def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
@@ -27,4 +33,3 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     :raises QueryObjectValidationError: If the request in incorrect
     """
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
-

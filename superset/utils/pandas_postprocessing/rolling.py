@@ -14,6 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Dict, Optional, Union
+
+from flask_babel import gettext as _
+from pandas import DataFrame
+
+from superset.exceptions import QueryObjectValidationError
+from superset.utils.pandas_postprocessing.utils import (
+    _append_columns,
+    _flatten_column_after_pivot,
+    DENYLIST_ROLLING_FUNCTIONS,
+    validate_column_args,
+)
+
 
 @validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments

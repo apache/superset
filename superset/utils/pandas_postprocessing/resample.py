@@ -14,6 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional, Tuple, Union
+
+from pandas import DataFrame
+
+from superset.utils.pandas_postprocessing.utils import validate_column_args
+
 
 @validate_column_args("groupby_columns")
 def resample(  # pylint: disable=too-many-arguments
@@ -46,8 +52,8 @@ def resample(  # pylint: disable=too-many-arguments
     if groupby_columns:
         df = (
             df.set_index(keys=list(groupby_columns))
-                .groupby(by=list(groupby_columns))
-                .apply(_upsampling)
+            .groupby(by=list(groupby_columns))
+            .apply(_upsampling)
         )
         df = df.reset_index().set_index(time_column).sort_index()
     else:

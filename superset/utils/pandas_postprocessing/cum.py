@@ -20,7 +20,12 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.pandas_postprocessing.utils import validate_column_args
+from superset.utils.pandas_postprocessing.utils import (
+    _append_columns,
+    _flatten_column_after_pivot,
+    ALLOWLIST_CUMULATIVE_FUNCTIONS,
+    validate_column_args,
+)
 
 
 @validate_column_args("columns")

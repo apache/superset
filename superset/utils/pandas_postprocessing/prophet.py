@@ -14,6 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+from typing import Optional, Union
+
+from flask_babel import gettext as _
+from pandas import DataFrame
+
+from superset.exceptions import QueryObjectValidationError
+from superset.utils.core import DTTM_ALIAS
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
 
 def _prophet_parse_seasonality(
     input_value: Optional[Union[bool, int]]

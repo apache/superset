@@ -14,6 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Dict, List, Optional
+
+from flask_babel import gettext as _
+from pandas import DataFrame
+
+from superset.constants import NULL_STRING, PandasAxis
+from superset.exceptions import QueryObjectValidationError
+from superset.utils.pandas_postprocessing.utils import (
+    _flatten_column_after_pivot,
+    _get_aggregate_funcs,
+    validate_column_args,
+)
+
 
 @validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments,too-many-locals

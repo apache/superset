@@ -14,26 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from decimal import Decimal
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Tuple, Union
 
-import geohash as geohash_lib
 import numpy as np
-import pandas as pd
 from flask_babel import gettext as _
-from geopy.point import Point
-from pandas import DataFrame, NamedAgg, Series, Timestamp
+from pandas import DataFrame, NamedAgg, Timestamp
 
-from superset.constants import NULL_STRING, PandasAxis, PandasPostprocessingCompare
 from superset.exceptions import QueryObjectValidationError
-from superset.utils.core import (
-    DTTM_ALIAS,
-    PostProcessingBoxplotWhiskerType,
-    PostProcessingContributionOrientation,
-    TIME_COMPARISION,
-)
 
 NUMPY_FUNCTIONS = {
     "average": np.average,
@@ -211,5 +199,3 @@ def _append_columns(
     return base_df.assign(
         **{target: append_df[source] for source, target in columns.items()}
     )
-
-
