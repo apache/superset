@@ -9,7 +9,7 @@ from superset.utils.core import FilterStringOperators
 
 class BusinessTypeResponse(TypedDict, total=False):
     """
-    A docstring
+    Business type response
     """
 
     error_message: Optional[str]

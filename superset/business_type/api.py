@@ -22,7 +22,10 @@ BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
 
 class BusinessTypeRestApi(BaseSupersetModelRestApi):
     """
-    Placeholder until we work out everything this class is going to do.
+    Business Type Rest API
+    -Will return available business types when the /types endpoint is accessed
+    -Will return a BusinessTypeResponse object when the /convert endpoint is accessed
+    and is passed in valid arguments
     """
 
     datamodel = SQLAInterface(SqlaTable)
