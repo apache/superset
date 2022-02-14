@@ -1,8 +1,8 @@
 """
-A docstring
+Business type response class
 """
 
-from typing import Any, List, Literal, Optional, TypedDict
+from typing import Any, List, Optional, TypedDict
 
 from superset.utils.core import FilterStringOperators
 

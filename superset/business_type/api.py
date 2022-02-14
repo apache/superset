@@ -1,7 +1,7 @@
 """
 API For Business Type REST requests
 """
-from typing import Any, List
+from typing import Any
 
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, rison
@@ -13,7 +13,6 @@ from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.business_type.schemas import business_type_convert_schema
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import event_logger
-from superset.utils.core import FilterOperator
 from superset.views.base_api import BaseSupersetModelRestApi
 
 config = app.config

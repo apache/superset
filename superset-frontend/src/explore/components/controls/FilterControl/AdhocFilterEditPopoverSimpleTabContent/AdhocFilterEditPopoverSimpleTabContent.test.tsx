@@ -36,18 +36,14 @@ import AdhocFilterEditPopoverSimpleTabContent, {
   Props,
 } from '.';
 import {
-  fireEvent,
   render,
   screen,
   act,
   waitFor,
 } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { isValid } from 'shortid';
-import { AnyArray } from 'immer/dist/internal';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

@@ -1,9 +1,6 @@
-import imp
 import itertools
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List
 
-from numpy import vectorize
 from sqlalchemy import Column
 
 from superset.business_type.business_type import BusinessType
@@ -37,6 +34,9 @@ port_conversion_dict: Dict[str, List[int]] = {
 
 
 def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+    """
+    Convert a passed in BusinessTypeRequest to a BusinessTypeResponse
+    """
     resp: BusinessTypeResponse = {
         "values": [],
         "error_message": "",
@@ -81,6 +81,9 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 def port_translate_filter_func(
     col: Column, op: FilterOperator, values: List[Any]
 ) -> Any:
+    """
+    Convert a passed in column, FilterOperator and list of values into asqlalchemy expression
+    """
     if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
         vals_list = itertools.chain.from_iterable(values)
         if op == FilterOperator.IN.value:
