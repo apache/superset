@@ -151,7 +151,7 @@ describe('Nativefilters Sanity test', () => {
     cy.location().then(loc => {
       const queryParams = qs.parse(removeFirstChar(loc.search));
       const newfilterKey = queryParams.native_filters_key;
-      expect(newfilterKey).not.eq(filterKey);
+      expect(newfilterKey).eq(filterKey);
     });
     cy.wait(3000);
     cy.get(nativeFilters.modal.container).should('not.exist');
