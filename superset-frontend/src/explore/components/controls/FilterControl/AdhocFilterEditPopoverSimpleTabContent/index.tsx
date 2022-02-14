@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { Select } from 'src/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
+import { Select } from 'src/components';
+import FormItem from 'src/components/Form/FormItem';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -42,11 +43,17 @@ import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 import useBusinessTypes from './useBusinessTypes';
 
-const StyledInput = styled(Input)<{ error: boolean }>`
+const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const SelectWithLabel = styled(Select)<{ labelText: string; error: boolean }>`
+export const StyledFormItem = styled(FormItem)`
+  &.ant-row.ant-form-item {
+    margin: 0;
+  }
+`;
+
+const SelectWithLabel = styled(Select)<{ labelText: string }>`
   .ant-select-selector::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
@@ -450,46 +457,48 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...operatorSelectProps}
         sortComparator={propertyComparator('order')}
       />
-      {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <Tooltip
-          title={
-            businessTypesState.errorMessage ||
-            businessTypesState.parsedBusinessType
-          }
-        >
-          <SelectWithLabel
-            error={!!businessTypesState.errorMessage}
-            labelText={labelText}
-            options={suggestions}
-            {...comparatorSelectProps}
-            sortComparator={propertyComparator(
-              typeof suggestions[0] === 'number' ? 'value' : 'label',
-            )}
-          />
-        </Tooltip>
-      ) : (
-        <Tooltip
-          title={
-            businessTypesState.errorMessage ||
-            businessTypesState.parsedBusinessType
-          }
-        >
-          <StyledInput
-            error={!!businessTypesState.errorMessage}
-            data-test="adhoc-filter-simple-value"
-            name="filter-value"
-            ref={ref => {
-              if (ref && shouldFocusComparator) {
-                ref.focus();
-              }
-            }}
-            onChange={onInputComparatorChange}
-            value={comparator}
-            placeholder={t('Filter value (case sensitive)')}
-            disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
-          />
-        </Tooltip>
-      )}
+      <StyledFormItem
+        validateStatus={businessTypesState.errorMessage ? 'error' : 'success'}
+      >
+        {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
+          <Tooltip
+            title={
+              businessTypesState.errorMessage ||
+              businessTypesState.parsedBusinessType
+            }
+          >
+            <SelectWithLabel
+              labelText={labelText}
+              options={suggestions}
+              {...comparatorSelectProps}
+              sortComparator={propertyComparator(
+                typeof suggestions[0] === 'number' ? 'value' : 'label',
+              )}
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip
+            title={
+              businessTypesState.errorMessage ||
+              businessTypesState.parsedBusinessType
+            }
+          >
+            <StyledInput
+              data-test="adhoc-filter-simple-value"
+              name="filter-value"
+              ref={ref => {
+                if (ref && shouldFocusComparator) {
+                  ref.focus();
+                }
+              }}
+              onChange={onInputComparatorChange}
+              value={comparator}
+              placeholder={t('Filter value (case sensitive)')}
+              disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
+            />
+          </Tooltip>
+        )}
+      </StyledFormItem>
     </>
   );
 };
