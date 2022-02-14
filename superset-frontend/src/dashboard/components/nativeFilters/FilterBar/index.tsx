@@ -133,6 +133,10 @@ const StyledTabs = styled(Tabs)`
     margin: 0;
     flex: 1;
   }
+
+  & .ant-tabs-nav-operations {
+    display: none;
+  }
 `;
 
 export interface FiltersBarProps {
