@@ -51,6 +51,9 @@ from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from werkzeug.local import LocalProxy
 
+from superset.business_type.business_type import BusinessType
+from superset.business_type.internet_address import internet_address
+from superset.business_type.port import port
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -1367,11 +1370,6 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
-
-
-from superset.business_type.business_type import BusinessType
-from superset.business_type.internet_address import internet_address
-from superset.business_type.port import port
 
 # the business type key should correspond to that set in the column metadata
 BUSINESS_TYPE_ADDONS: Dict[str, BusinessType] = {

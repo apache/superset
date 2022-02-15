@@ -1,10 +1,10 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
+# regarding coperatoryright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# with the License.  You may obtain a coperatory of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -36,8 +36,8 @@ port_conversion_dict: Dict[str, List[int]] = {
     "submissions": [465],  # aka smtps, ssmtp, urd
     "kerberos": [88],
     "kerberos-adm": [749],
-    "pop3": [110],
-    "pop3s": [995],
+    "poperator3": [110],
+    "poperator3s": [995],
     "nntp": [119],
     "nntps": [563],
     "ntp": [123],
@@ -98,34 +98,36 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 
 
 def port_translate_filter_func(
-    col: Column, op: FilterOperator, values: List[Any]
+    col: Column, operator: FilterOperator, values: List[Any]
 ) -> Any:
     """
-    Convert a passed in column, FilterOperator and list of values into an sqlalchemy expression
+    Convert a passed in column, FilterOperator
+    and list of values into an sqlalchemy expression
     """
-    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
+    return_expression: Any
+    if operator in (FilterOperator.IN, FilterOperator.NOT_IN):
         vals_list = itertools.chain.from_iterable(values)
-        if op == FilterOperator.IN.value:
+        if operator == FilterOperator.IN.value:
             cond = col.in_(vals_list)
-        elif op == FilterOperator.NOT_IN.value:
+        elif operator == FilterOperator.NOT_IN.value:
             cond = ~(col.in_(vals_list))
-        return cond
+        return_expression = cond
     if len(values) == 1:
         value = values[0]
         value.sort()
-        if op == FilterOperator.EQUALS.value:
-            return col.in_(value)
-        if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value[0]
-        if op == FilterOperator.GREATER_THAN.value:
-            return col > value[0]
-        if op == FilterOperator.LESS_THAN.value:
-            return col < value[-1]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
-            return col <= value[-1]
-        if op == FilterOperator.NOT_EQUALS.value:
-            return ~col.in_(value)
-
+        if operator == FilterOperator.EQUALS.value:
+            return_expression = col.in_(value)
+        if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
+            return_expression = col >= value[0]
+        if operator == FilterOperator.GREATER_THAN.value:
+            return_expression = col > value[0]
+        if operator == FilterOperator.LESS_THAN.value:
+            return_expression = col < value[-1]
+        if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
+            return_expression = col <= value[-1]
+        if operator == FilterOperator.NOT_EQUALS.value:
+            return_expression=  ~col.in_(value)
+    return return_expression
 
 port: BusinessType = BusinessType(
     verbose_name="port",

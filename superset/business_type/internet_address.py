@@ -1,10 +1,10 @@
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
+# regarding coperatoryright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# with the License.  You may obtain a coperatory of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -75,50 +75,66 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
 
 # Make this return a single clause
 def cidr_translate_filter_func(
-    col: Column, op: FilterOperator, values: List[Any]
+    col: Column, operator: FilterOperator, values: List[Any]
 ) -> Any:
     """
-    Convert a passed in column, FilterOperator and list of values into an sqlalchemy expression
+    Convert a passed in column, FilterOperator and
+    list of values into an sqlalchemy expression
     """
-    if op == FilterOperator.IN or op == FilterOperator.NOT_IN:
+    return_expression: Any
+    if operator in (FilterOperator.IN, FilterOperator.NOT_IN):
         dict_items = [val for val in values if isinstance(val, dict)]
         single_values = [val for val in values if not isinstance(val, dict)]
-        if op == FilterOperator.IN.value:
+        if operator == FilterOperator.IN.value:
             cond = col.in_(single_values)
             for dictionary in dict_items:
                 cond = cond | (
                     (col <= dictionary["end"]) & (col >= dictionary["start"])
                 )
-        elif op == FilterOperator.NOT_IN.value:
+        elif operator == FilterOperator.NOT_IN.value:
             cond = ~(col.in_(single_values))
             for dictionary in dict_items:
                 cond = cond & (col > dictionary["end"]) & (col < dictionary["start"])
-        return cond
+        return_expression = cond
     if len(values) == 1:
         value = values[0]
-        if op == FilterOperator.EQUALS.value:
-            return (
+        if operator == FilterOperator.EQUALS.value:
+            return_expression = (
                 col == value
                 if not isinstance(value, dict)
                 else (col <= value["end"]) & (col >= value["start"])
             )
-        if op == FilterOperator.GREATER_THAN_OR_EQUALS.value:
-            return col >= value if not isinstance(value, dict) else col >= value["end"]
-        if op == FilterOperator.GREATER_THAN.value:
-            return col > value if not isinstance(value, dict) else col > value["end"]
-        if op == FilterOperator.LESS_THAN.value:
-            return col < value if not isinstance(value, dict) else col < value["start"]
-        if op == FilterOperator.LESS_THAN_OR_EQUALS.value:
-            return (
-                col <= value if not isinstance(value, dict) else col <= value["start"]
+        if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
+            return_expression = (
+                col >= value
+                if not isinstance(value, dict)
+                else col >= value["end"]
             )
-        if op == FilterOperator.NOT_EQUALS.value:
-            return (
+        if operator == FilterOperator.GREATER_THAN.value:
+            return_expression = (
+                col > value
+                if not isinstance(value, dict)
+                else col > value["end"]
+            )
+        if operator == FilterOperator.LESS_THAN.value:
+            return_expression = (
+                col < value
+                if not isinstance(value, dict)
+                else col < value["start"]
+            )
+        if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
+            return_expression = (
+                col <= value
+                if not isinstance(value, dict)
+                else col <= value["start"]
+            )
+        if operator == FilterOperator.NOT_EQUALS.value:
+            return_expression = (
                 col != value
                 if not isinstance(value, dict)
                 else (col > value["end"]) | (col < value["start"])
             )
-
+    return return_expression
 
 internet_address: BusinessType = BusinessType(
     verbose_name="internet address",
