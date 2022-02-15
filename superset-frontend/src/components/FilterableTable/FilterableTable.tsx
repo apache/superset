@@ -224,12 +224,12 @@ const FilterableTable = ({
     getWidthsForColumns(),
   );
 
-  const [totalTableWidth] = useState(
+  const totalTableWidth = useRef(
     orderedColumnKeys
       .map(key => widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next),
   );
-  const [totalTableHeight] = useState(height);
+  const totalTableHeight = useRef(height);
 
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
@@ -285,9 +285,9 @@ const FilterableTable = ({
 
   const fitTableToWidthIfNeeded = () => {
     const containerWidth = container.current?.clientWidth ?? 0;
-    if (totalTableWidth < containerWidth) {
+    if (totalTableWidth.current < containerWidth) {
       // fit table width if content doesn't fill the width of the container
-      totalTableWidth = containerWidth;
+      totalTableWidth.current = containerWidth;
     }
     setFitted(true);
   };
@@ -470,10 +470,13 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
-    if (container.current && totalTableWidth > container.current.clientWidth) {
+    if (
+      container.current &&
+      totalTableWidth.current > container.current.clientWidth
+    ) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      totalTableHeight -= SCROLL_BAR_HEIGHT;
+      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
     }
 
     const getColumnWidth = ({ index }: { index: number }) =>
@@ -503,7 +506,7 @@ const FilterableTable = ({
                       cellRenderer={renderGridCell}
                       columnCount={orderedColumnKeys.length}
                       columnWidth={getColumnWidth}
-                      height={totalTableHeight - rowHeight}
+                      height={totalTableHeight.current - rowHeight}
                       onScroll={onScroll}
                       overscanColumnCount={overscanColumnCount}
                       overscanRowCount={overscanRowCount}
@@ -547,10 +550,13 @@ const FilterableTable = ({
       );
     }
 
-    if (container.current && totalTableWidth > container.current.clientWidth) {
+    if (
+      container.current &&
+      totalTableWidth.current > container.current.clientWidth
+    ) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      totalTableHeight -= SCROLL_BAR_HEIGHT;
+      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
     }
 
     const rowGetter = ({ index }: { index: number }) =>
@@ -564,7 +570,7 @@ const FilterableTable = ({
           <Table
             ref="Table"
             headerHeight={headerHeight}
-            height={totalTableHeight}
+            height={totalTableHeight.current}
             overscanRowCount={overscanRowCount}
             rowClassName={rowClassName}
             rowHeight={rowHeight}
@@ -573,7 +579,7 @@ const FilterableTable = ({
             sort={sort}
             sortBy={sortByState}
             sortDirection={sortDirectionState}
-            width={totalTableWidth}
+            width={totalTableWidth.current}
           >
             {orderedColumnKeys.map(columnKey => (
               <Column
