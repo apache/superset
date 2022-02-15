@@ -373,3 +373,44 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
     screen.getByRole('textbox', { name: 'Certification details' }),
   ).toHaveValue('');
 });
+
+// no need to break the nest, just copy and paste and change setup methods
+// double check is the spyon method coorespond with left
+// use screen.logTestingPlaygroundURL()
+
+describe('onColorSchemeChange', () => {
+  it('sets up a default state', () => {
+    const props = createProps();
+    const changeColorSchemeProps = {
+      ...props,
+      colorScheme: 'SUPERSET_DEFAULT',
+    };
+    render(<PropertiesModal {...changeColorSchemeProps} />, {
+      useRedux: true,
+    });
+    expect(spyColorSchemeControlWrapper).toBeCalledWith(
+      expect.objectContaining({
+        colorScheme: 'SUPERSET_DEFAULT',
+      }),
+      {},
+    );
+  });
+
+  // describe('with a valid color scheme as an arg', () => {
+  //   describe('without metadata', () => {
+  //     const props = createProps();
+  //     const changeColorSchemeProps = {
+  //       ...props,
+  //       colorScheme: 'SUPERSET_DEFAULT',
+  //     };
+  //     render(<PropertiesModal {...changeColorSchemeProps} />, {
+  //       useRedux: true,
+  //     });
+  //     it('updates the color scheme in the metadata', () => {
+  //       expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
+  //         '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
+  //       );
+  //     });
+  //   });
+  // });
+});

@@ -84,7 +84,7 @@ describe.skip('PropertiesModal', () => {
     );
   }
 
-  //to Emily: next to convert the below color schema till line 160+
+  // to Emily 1/31: next to convert the below color schema till line 160+
 
   describe('onColorSchemeChange', () => {
     it('sets up a default state', () => {
