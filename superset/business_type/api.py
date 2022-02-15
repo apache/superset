@@ -66,12 +66,22 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                     properties:
                       status:
                         type: string
-                      value:
-                        type: object
+                      values:
+                        type: array
                       formatted_value:
                         type: string
+                      error_message:
+                        type: string  
                       valid_filter_operators:
-                        type: list
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
         items = kwargs["rison"]
         business_type = items.get("type")
@@ -107,13 +117,6 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         get:
           description: >-
             Returns a list of available business types.
-          parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/business_type_convert_schema'
           responses:
             200:
               description: a successful return of the available business types has taken place.
@@ -122,14 +125,16 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
-                      status:
-                        type: string
-                      value:
-                        type: object
-                      formatted_value:
-                        type: string
-                      valid_filter_operators:
-                        type: list
+                      result:
+                        type: array
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
 
         return self.response(200, result=list(BUSINESS_TYPE_ADDONS.keys()))
