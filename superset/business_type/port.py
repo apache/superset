@@ -38,7 +38,7 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
     Convert a passed in BusinessTypeRequest to a BusinessTypeResponse
     """
     resp: BusinessTypeResponse = {
-        "values": [['']],
+        "values": [],
         "error_message": "",
         "display_value": "",
         "valid_filter_operators": [
@@ -50,8 +50,8 @@ def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
             FilterStringOperators.LESS_THAN_OR_EQUAL,
         ],
     }
-    print(req["values"])
     if req["values"] == ['']:
+        resp["values"].append([''])
         return resp
     for val in req["values"]:
         string_value = str(val)
