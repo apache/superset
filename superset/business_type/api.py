@@ -71,7 +71,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                       formatted_value:
                         type: string
                       error_message:
-                        type: string  
+                        type: string
                       valid_filter_operators:
                         type: string
             400:
@@ -100,9 +100,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
                 ),
             )
         bus_resp: BusinessTypeResponse = addon.translate_type(
-            {
-                "values": values,
-            }
+            {"values": values,}
         )
         return self.response(200, result=bus_resp)
 

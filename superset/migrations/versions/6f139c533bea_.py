@@ -30,21 +30,9 @@ down_revision = "5afbb1a5849b"
 
 def upgrade():
     with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "business_type",
-                sa.VARCHAR(255),
-                nullable=True,
-            )
-        )
+        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
     with op.batch_alter_table("columns") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "business_type",
-                sa.VARCHAR(255),
-                nullable=True,
-            )
-        )
+        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
 
 
 def downgrade():

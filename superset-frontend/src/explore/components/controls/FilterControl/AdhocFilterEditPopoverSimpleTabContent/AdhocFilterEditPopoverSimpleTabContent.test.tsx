@@ -397,7 +397,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ENABLE_BUSINESS_TYPES,);
+        (featureFlag: FeatureFlag) =>
+          featureFlag === FeatureFlag.ENABLE_BUSINESS_TYPES,
+      );
   });
 
   afterAll(() => {

@@ -74,11 +74,11 @@ class TestBusinessTypeApi(SupersetTestCase):
     """
     Test the Business Type API to ensure it works as intended
     """
+
     resource_name = "business_type"
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS",
-        {"type": 1},
+        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": 1},
     )
     def test_types_type_request(self):
         """
@@ -112,8 +112,7 @@ class TestBusinessTypeApi(SupersetTestCase):
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS",
-        {"type": 1},
+        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": 1},
     )
     def test_types_convert_bad_request_type_not_found(self):
         """
@@ -127,8 +126,7 @@ class TestBusinessTypeApi(SupersetTestCase):
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS",
-        {"type": test_type},
+        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": test_type},
     )
     def test_types_convert_request(self):
         """

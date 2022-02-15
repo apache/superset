@@ -80,12 +80,12 @@ from superset.connectors.sqla.utils import (
 )
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import BusinessTypesResponseError, QueryObjectValidationError
+from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
     get_template_processor,
 )
-from superset.extensions import feature_flag_manager
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
@@ -99,7 +99,6 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
-
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -697,9 +696,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database,
-            table_name=self.table_name,
-            schema_name=self.schema,
+            database=self.database, table_name=self.table_name, schema_name=self.schema,
         )
 
     @property
@@ -1009,10 +1006,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
-                    msg=ex.message,
-                )
+                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             ) from ex
 
     def text(self, clause: str) -> TextClause:
@@ -1305,7 +1299,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
-                    
+
                 eq = (
                     self.filter_values_handler(
                         values=val,
@@ -1319,15 +1313,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         is_list_target=is_list_target,
                     )
                 )
-                if col_busniness_type != "" and feature_flag_manager.is_feature_enabled("ENABLE_BUSINESS_TYPES"):
+                if (
+                    col_busniness_type != ""
+                    and feature_flag_manager.is_feature_enabled("ENABLE_BUSINESS_TYPES")
+                ):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
                         col_busniness_type
                     ].translate_type(
-                        {
-                            "type": col_busniness_type,
-                            "values": values,
-                        }
+                        {"type": col_busniness_type, "values": values,}
                     )
                     if bus_resp["error_message"]:
                         raise BusinessTypesResponseError(_(bus_resp["error_message"]))
@@ -1502,9 +1496,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
+                                series_limit_metric, metrics_by_name, columns_by_name,
                             ),
                             not order_desc,
                         )
@@ -1580,10 +1572,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self,
-        row: pd.Series,
-        dimension: str,
-        columns_by_name: Dict[str, TableColumn],
+        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1628,9 +1617,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row,
-                    dimension,
-                    columns_by_name,
+                    row, dimension, columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)

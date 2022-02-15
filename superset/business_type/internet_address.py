@@ -26,8 +26,8 @@ def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
             FilterStringOperators.LESS_THAN_OR_EQUAL,
         ],
     }
-    if req["values"] == ['']:
-        resp["values"].append('')
+    if req["values"] == [""]:
+        resp["values"].append("")
         return resp
     for val in req["values"]:
         string_value = str(val)
