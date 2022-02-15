@@ -284,6 +284,7 @@ function nvd3Vis(element, props) {
     onBrushEnd = NOOP,
     onError = NOOP,
     orderBars,
+    orderDesc,
     pieLabelType,
     rangeLabels,
     ranges,
@@ -314,6 +315,8 @@ function nvd3Vis(element, props) {
     yField,
     yIsLogScale,
   } = props;
+
+  console.log('PROPS', props);
 
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
@@ -431,6 +434,43 @@ function nvd3Vis(element, props) {
         chart.xAxis.showMaxMin(false);
 
         chart.stacked(isBarStacked);
+
+        if (isBarStacked && orderDesc) {
+          console.log('IF ORDER DESC', orderDesc);
+        }
+
+        // eslint-disable-next-line no-case-declarations
+        const values = {};
+
+        data.forEach(d => {
+          d.values.forEach(value => {
+            if (!values[value.x]) {
+              values[value.x] = value.y;
+            } else {
+              values[value.x] += value.y;
+            }
+          });
+        });
+
+        // eslint-disable-next-line no-case-declarations
+        const sortedValues = Object.keys(values).sort(function (a, b) {
+          return values[b] - values[a];
+        });
+
+        if (orderDesc) {
+          data.forEach(d => {
+            d.values.sort((a, b) =>
+              sortedValues.indexOf(a.x) < sortedValues.indexOf(b.x) ? -1 : 1,
+            );
+          });
+        } else {
+          data.forEach(d => {
+            d.values.sort((a, b) =>
+              sortedValues.indexOf(b.x) < sortedValues.indexOf(a.x) ? -1 : 1,
+            );
+          });
+        }
+
         if (orderBars) {
           data.forEach(d => {
             d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
