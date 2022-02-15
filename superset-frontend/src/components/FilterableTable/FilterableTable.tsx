@@ -149,7 +149,10 @@ const FilterableTable = ({
     SortDirectionType | undefined
   >(undefined);
   const [fitted, setFitted] = useState(false);
-  const [displayedList, setDisplayedList] = useState<Datum[]>([...list]);
+  const [displayedList, setDisplayedList] = useState<Datum[]>(() => {
+    list = formatTableData(data);
+    return [...list];
+  });
   // constructor(props: FilterableTableProps) {
   //   super(props);
   //   this.list = this.formatTableData(props.data);
@@ -178,6 +181,21 @@ const FilterableTable = ({
   // }
   useState(() => {
     list = formatTableData(data);
+
+    // columns that have complex type and were expanded into sub columns
+    complexColumns = orderedColumnKeys.reduce(
+      (obj, key) => ({
+        ...obj,
+        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
+      }),
+      {},
+    );
+
+    widthsForColumnsByKey = getWidthsForColumns();
+    totalTableWidth = orderedColumnKeys
+      .map(key => widthsForColumnsByKey[key])
+      .reduce((curr, next) => curr + next);
+    totalTableHeight = height;
   });
 
   useEffect(() => {
@@ -237,7 +255,7 @@ const FilterableTable = ({
     } else {
       truncated = '';
     }
-    return this.complexColumns[columnKey] ? truncated : content;
+    return complexColumns[columnKey] ? truncated : content;
   };
 
   const hasMatch = (text: string, row: Datum) => {
@@ -479,12 +497,9 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
-    let { height } = this.props;
-    let totalTableHeight = height;
     if (container.current && totalTableWidth > container.current.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      height -= SCROLL_BAR_HEIGHT;
       totalTableHeight -= SCROLL_BAR_HEIGHT;
     }
 
@@ -559,12 +574,9 @@ const FilterableTable = ({
       );
     }
 
-    let { height } = this.props;
-    let totalTableHeight = height;
     if (container.current && totalTableWidth > container.current.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
-      height -= SCROLL_BAR_HEIGHT;
       totalTableHeight -= SCROLL_BAR_HEIGHT;
     }
 
