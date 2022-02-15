@@ -1320,3 +1320,4 @@ class TestGuestTokens(SupersetTestCase):
         app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
         self.assertEqual("cool_code", decoded_token["aud"])
         self.assertEqual("guest", decoded_token["type"])
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None
