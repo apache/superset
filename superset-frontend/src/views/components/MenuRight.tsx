@@ -152,7 +152,7 @@ const RightMenu = ({
       <DatabaseModal
         onHide={() => setShowModal(false)}
         show={showModal}
-        setEngine={engine}
+        dbEngine={engine}
       />
       <Menu
         selectable={false}
@@ -161,7 +161,7 @@ const RightMenu = ({
           if (itemClicked.key === 'connectDB') setShowModal(true);
           if (itemClicked.key === 'connectGSheets') {
             setShowModal(true);
-            setEngine('GSheets');
+            setEngine('Google Sheets');
           }
         }}
       >
