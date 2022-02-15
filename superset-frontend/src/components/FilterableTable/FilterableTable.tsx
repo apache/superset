@@ -137,7 +137,12 @@ const FilterableTable = ({
       return newRow;
     });
 
-  const list = formatTableData(data);
+  let list: Datum[];
+  let complexColumns: Record<string, boolean>;
+  let widthsForColumnsByKey: Record<string, number>;
+  let totalTableWidth: number;
+  let totalTableHeight: number;
+  let container: React.RefObject<HTMLDivElement>;
 
   const [sortByState, setSortByState] = useState<string | undefined>(undefined);
   const [sortDirectionState, setSortDirectionState] = useState<
@@ -145,18 +150,6 @@ const FilterableTable = ({
   >(undefined);
   const [fitted, setFitted] = useState(false);
   const [displayedList, setDisplayedList] = useState<Datum[]>([...list]);
-  // list: Datum[];
-  //
-  // complexColumns: Record<string, boolean>;
-  //
-  // widthsForColumnsByKey: Record<string, number>;
-  //
-  // totalTableWidth: number;
-  //
-  // totalTableHeight: number;
-  //
-  // container: React.RefObject<HTMLDivElement>;
-  //
   // constructor(props: FilterableTableProps) {
   //   super(props);
   //   this.list = this.formatTableData(props.data);
@@ -183,10 +176,13 @@ const FilterableTable = ({
   //
   //   this.container = React.createRef();
   // }
-  //
-  // componentDidMount() {
-  //   this.fitTableToWidthIfNeeded();
-  // }
+  useState(() => {
+    list = formatTableData(data);
+  });
+
+  useEffect(() => {
+    fitTableToWidthIfNeeded();
+  }, []);
 
   const getDatum = (list: Datum[], index: number) => list[index % list.length];
 
@@ -195,8 +191,8 @@ const FilterableTable = ({
     const widthsByColumnKey = {};
     const cellContent = ([] as string[]).concat(
       ...orderedColumnKeys.map(key => {
-        const cellContentList = this.list.map((data: Datum) =>
-          this.getCellContent({ cellData: data[key], columnKey: key }),
+        const cellContentList = list.map((data: Datum) =>
+          getCellContent({ cellData: data[key], columnKey: key }),
         );
         cellContentList.push(key);
         return cellContentList;
@@ -297,10 +293,10 @@ const FilterableTable = ({
   };
 
   const fitTableToWidthIfNeeded = () => {
-    const containerWidth = this.container.current?.clientWidth ?? 0;
-    if (this.totalTableWidth < containerWidth) {
+    const containerWidth = container.current?.clientWidth ?? 0;
+    if (totalTableWidth < containerWidth) {
       // fit table width if content doesn't fill the width of the container
-      this.totalTableWidth = containerWidth;
+      totalTableWidth = containerWidth;
     }
     setFitted(true);
   };
@@ -333,8 +329,8 @@ const FilterableTable = ({
     return value;
   };
 
-  const sortResults = (sortBy: string, descending: boolean) => {
-    return (a: Datum, b: Datum) => {
+  const sortResults =
+    (sortBy: string, descending: boolean) => (a: Datum, b: Datum) => {
       const aValue = parseNumberFromString(a[sortBy]);
       const bValue = parseNumberFromString(b[sortBy]);
 
@@ -356,7 +352,6 @@ const FilterableTable = ({
       }
       return aValue < bValue ? -1 : 1;
     };
-  };
 
   const sortGrid = (label: string) => {
     sort({
@@ -436,7 +431,9 @@ const FilterableTable = ({
           onClick={() => sortGrid(label)}
         >
           {label}
-          {sortBy === label && <SortIndicator sortDirection={sortDirection} />}
+          {sortByState === label && (
+            <SortIndicator sortDirection={sortDirectionState} />
+          )}
         </div>
       </Tooltip>
     );
@@ -484,10 +481,7 @@ const FilterableTable = ({
   const renderGrid = () => {
     let { height } = this.props;
     let totalTableHeight = height;
-    if (
-      this.container.current &&
-      this.totalTableWidth > this.container.current.clientWidth
-    ) {
+    if (container.current && totalTableWidth > container.current.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
       height -= SCROLL_BAR_HEIGHT;
@@ -495,7 +489,7 @@ const FilterableTable = ({
     }
 
     const getColumnWidth = ({ index }: { index: number }) =>
-      this.widthsForColumnsByKey[orderedColumnKeys[index]];
+      widthsForColumnsByKey[orderedColumnKeys[index]];
 
     // fix height of filterable table
     return (
@@ -567,10 +561,7 @@ const FilterableTable = ({
 
     let { height } = this.props;
     let totalTableHeight = height;
-    if (
-      this.container.current &&
-      this.totalTableWidth > this.container.current.clientWidth
-    ) {
+    if (container.current && totalTableWidth > container.current.clientWidth) {
       // exclude the height of the horizontal scroll bar from the height of the table
       // and the height of the table container if the content overflows
       height -= SCROLL_BAR_HEIGHT;
@@ -582,7 +573,7 @@ const FilterableTable = ({
     return (
       <StyledFilterableTable
         className="filterable-table-container"
-        ref={this.container}
+        ref={container}
       >
         {fitted && (
           <Table
@@ -597,7 +588,7 @@ const FilterableTable = ({
             sort={sort}
             sortBy={sortByState}
             sortDirection={sortDirectionState}
-            width={this.totalTableWidth}
+            width={totalTableWidth}
           >
             {orderedColumnKeys.map(columnKey => (
               <Column
@@ -607,7 +598,7 @@ const FilterableTable = ({
                 dataKey={columnKey}
                 disableSort={false}
                 headerRenderer={renderTableHeader}
-                width={this.widthsForColumnsByKey[columnKey]}
+                width={widthsForColumnsByKey[columnKey]}
                 label={columnKey}
                 key={columnKey}
               />
