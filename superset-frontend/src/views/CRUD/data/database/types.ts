@@ -21,18 +21,41 @@ type DatabaseUser = {
   last_name: string;
 };
 
+export type CatalogObject = {
+  name: string;
+  value: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   id?: number;
   database_name: string;
+  name: string; // synonym to database_name
   sqlalchemy_uri?: string;
   backend?: string;
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
-  parameters?: { database_name?: string };
+  parameters?: {
+    database_name?: string;
+    host?: string;
+    port?: number;
+    database?: string;
+    username?: string;
+    password?: string;
+    encryption?: boolean;
+    credentials_info?: string;
+    service_account_info?: string;
+    query?: Record<string, string>;
+    catalog?: Record<string, string>;
+    properties?: Record<string, any>;
+    warehouse?: string;
+    role?: string;
+    account?: string;
+  };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
+  paramProperties?: Record<string, any>;
 
   // Performance
   cache_timeout?: string;
@@ -49,10 +72,31 @@ export type DatabaseObject = {
   // Security
   encrypted_extra?: string;
   server_cert?: string;
+  allow_file_upload?: boolean;
+  impersonate_user?: boolean;
+  parameters_schema?: Record<string, any>;
 
   // Extra
-  impersonate_user?: boolean;
-  allow_csv_upload?: boolean;
+  extra_json?: {
+    engine_params?: {
+      catalog: Record<any, any> | string;
+    };
+    metadata_params?: {} | string;
+    metadata_cache_timeout?: {
+      schema_cache_timeout?: number; // in Performance
+      table_cache_timeout?: number; // in Performance
+    }; // No field, holds schema and table timeout
+    allows_virtual_table_explore?: boolean; // in SQL Lab
+    schemas_allowed_for_file_upload?: string[]; // in Security
+    cancel_query_on_windows_unload?: boolean; // in Performance
+
+    version?: string;
+    cost_estimate_enabled?: boolean; // in SQL Lab
+  };
+
+  // Temporary storage
+  catalog?: Array<CatalogObject>;
+  query_input?: string;
   extra?: string;
 };
 
@@ -85,6 +129,16 @@ export type DatabaseForm = {
         type: string;
       };
       username: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      credentials_info: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      service_account_info: {
         description: string;
         nullable: boolean;
         type: string;

@@ -97,7 +97,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_list_schema)
     def get_list(  # pylint: disable=arguments-differ
-        self, pk: int, **kwargs: Dict[str, Any]
+        self, pk: int, **kwargs: Any
     ) -> Response:
         """Get a list of report schedule logs
         ---
@@ -158,7 +158,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_item_schema)
     def get(  # pylint: disable=arguments-differ
-        self, pk: int, log_id: int, **kwargs: Dict[str, Any]
+        self, pk: int, log_id: int, **kwargs: Any
     ) -> Response:
         """Get a report schedule log
         ---

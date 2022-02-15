@@ -20,6 +20,7 @@ import '@testing-library/jest-dom/extend-expect';
 import React, { ReactNode, ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
@@ -32,13 +33,20 @@ type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
   useQueryParams?: boolean;
+  useRouter?: boolean;
   initialState?: {};
   reducers?: {};
 };
 
 function createWrapper(options?: Options) {
-  const { useDnd, useRedux, useQueryParams, initialState, reducers } =
-    options || {};
+  const {
+    useDnd,
+    useRedux,
+    useQueryParams,
+    useRouter,
+    initialState,
+    reducers,
+  } = options || {};
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
@@ -61,6 +69,10 @@ function createWrapper(options?: Options) {
 
     if (useQueryParams) {
       result = <QueryParamProvider>{result}</QueryParamProvider>;
+    }
+
+    if (useRouter) {
+      result = <BrowserRouter>{result}</BrowserRouter>;
     }
 
     return result;

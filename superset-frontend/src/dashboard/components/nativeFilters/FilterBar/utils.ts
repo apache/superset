@@ -17,20 +17,26 @@
  * under the License.
  */
 
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../types';
+import { areObjectsEqual } from 'src/reduxUtils';
+import {
+  DataMaskStateWithId,
+  Filter,
+  FilterState,
+  Divider,
+} from '@superset-ui/core';
 
 export enum TabIds {
   AllFilters = 'allFilters',
   FilterSets = 'filterSets',
 }
 
-export function mapParentFiltersToChildren(
-  filters: Filter[],
-): { [id: string]: Filter[] } {
+export function mapParentFiltersToChildren(filters: Array<Filter | Divider>): {
+  [id: string]: Filter[];
+} {
   const cascadeChildren = {};
   filters.forEach(filter => {
-    const [parentId] = filter.cascadeParentIds || [];
+    const [parentId] =
+      ('cascadeParentIds' in filter && filter.cascadeParentIds) || [];
     if (parentId) {
       if (!cascadeChildren[parentId]) {
         cascadeChildren[parentId] = [];
@@ -46,3 +52,38 @@ export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
     (prev, next) => ({ ...prev, [next.id]: next.extraFormData }),
     {},
   );
+
+export const checkIsMissingRequiredValue = (
+  filter: Filter,
+  filterState?: FilterState,
+) => {
+  const value = filterState?.value;
+  // TODO: this property should be unhardcoded
+  return (
+    filter.controlValues?.enableEmptyFilter &&
+    (value === null || value === undefined)
+  );
+};
+
+export const checkIsApplyDisabled = (
+  dataMaskSelected: DataMaskStateWithId,
+  dataMaskApplied: DataMaskStateWithId,
+  filters: Filter[],
+) => {
+  const dataSelectedValues = Object.values(dataMaskSelected);
+  const dataAppliedValues = Object.values(dataMaskApplied);
+  return (
+    areObjectsEqual(
+      getOnlyExtraFormData(dataMaskSelected),
+      getOnlyExtraFormData(dataMaskApplied),
+      { ignoreUndefined: true },
+    ) ||
+    dataSelectedValues.length !== dataAppliedValues.length ||
+    filters.some(filter =>
+      checkIsMissingRequiredValue(
+        filter,
+        dataMaskSelected?.[filter?.id]?.filterState,
+      ),
+    )
+  );
+};

@@ -16,15 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { JsonObject } from '@superset-ui/core';
 import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 
-export default function getDashboardUrl(
-  pathname: string,
+export default function getDashboardUrl({
+  pathname,
   filters = {},
   hash = '',
-  standalone?: number | null,
-) {
+  standalone,
+}: {
+  pathname: string;
+  filters: JsonObject;
+  hash: string;
+  standalone?: number | null;
+}) {
   const newSearchParams = new URLSearchParams();
 
   // convert flattened { [id_column]: values } object
@@ -37,8 +44,14 @@ export default function getDashboardUrl(
   if (standalone) {
     newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
   }
+  const dataMaskKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+  if (dataMaskKey) {
+    newSearchParams.set(
+      URL_PARAMS.nativeFiltersKey.name,
+      dataMaskKey as string,
+    );
+  }
 
   const hashSection = hash ? `#${hash}` : '';
-
   return `${pathname}?${newSearchParams.toString()}${hashSection}`;
 }

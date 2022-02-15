@@ -44,6 +44,7 @@ spec:
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
+        checksum/configOverridesFiles: {{ .Values.configOverridesFiles | toYaml | sha256sum }}
         {{ if .Values.supersetCeleryBeat.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
@@ -61,6 +62,9 @@ spec:
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
       {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases: {{ toYaml . | nindent 6 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -69,19 +73,27 @@ spec:
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
-          {{ if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
             {{- end }}
-          {{- end }}
+            {{- if .Values.extraEnvRaw }}
+            {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- end }}
           envFrom:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
           volumeMounts:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
@@ -104,4 +116,7 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+      {{- with .Values.extraVolumes }}
+      {{- tpl (toYaml .) $ | nindent 8 -}}
+      {{- end }}
 {{- end -}}

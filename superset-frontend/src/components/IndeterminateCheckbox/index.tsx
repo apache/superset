@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export interface IndeterminateCheckboxProps {
   indeterminate: boolean;
@@ -35,8 +35,18 @@ const CheckboxLabel = styled.label`
   margin-bottom: 0;
 `;
 
-const IconWithColor = styled(Icon)`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+const CheckboxHalf = styled(Icons.CheckboxHalf)`
+  color: ${({ theme }) => theme.colors.primary.base};
+  cursor: pointer;
+`;
+
+const CheckboxOff = styled(Icons.CheckboxOff)`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  cursor: pointer;
+`;
+
+const CheckboxOn = styled(Icons.CheckboxOn)`
+  color: ${({ theme }) => theme.colors.primary.base};
   cursor: pointer;
 `;
 
@@ -57,7 +67,7 @@ const InputContainer = styled.div`
   position: relative;
 `;
 
-const IndeterminateCheckbox = React.forwardRef(
+const IndeterminateCheckbox = forwardRef(
   (
     {
       indeterminate,
@@ -69,19 +79,19 @@ const IndeterminateCheckbox = React.forwardRef(
     }: IndeterminateCheckboxProps,
     ref: React.MutableRefObject<any>,
   ) => {
-    const defaultRef = React.useRef<HTMLInputElement>();
+    const defaultRef = useRef<HTMLInputElement>();
     const resolvedRef = ref || defaultRef;
 
-    React.useEffect(() => {
+    useEffect(() => {
       resolvedRef.current.indeterminate = indeterminate;
     }, [resolvedRef, indeterminate]);
 
     return (
       <>
         <InputContainer>
-          {indeterminate && <IconWithColor name="checkbox-half" />}
-          {!indeterminate && checked && <IconWithColor name="checkbox-on" />}
-          {!indeterminate && !checked && <Icon name="checkbox-off" />}
+          {indeterminate && <CheckboxHalf />}
+          {!indeterminate && checked && <CheckboxOn />}
+          {!indeterminate && !checked && <CheckboxOff />}
           <HiddenInput
             name={id}
             id={id}

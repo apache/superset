@@ -16,20 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { setInLocalStorage } from 'src/utils/localStorageHelpers';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
-import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
+import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import {
+  CardContainer,
+  CardStyles,
+  getEditedObjects,
+} from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
-import { ActivityData } from './Welcome';
+import Icons from 'src/components/Icons';
+
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 /**
  * Return result from /superset/recent_activity/{user_id}
@@ -51,6 +57,12 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
+export enum SetTabType {
+  EDITED = 'Edited',
+  CREATED = 'Created',
+  VIEWED = 'Viewed',
+  EXAMPLE = 'Examples',
+}
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */
@@ -68,33 +80,13 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
+  loadedCount: number;
 }
 
-const ActivityContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  margin-top: ${({ theme }) => theme.gridUnit * -4}px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  .ant-card-meta-avatar {
-    margin-top: ${({ theme }) => theme.gridUnit * 3}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  .ant-card-meta-title {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  ${mq[3]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  }
-  ${mq[2]} {
-    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
-  }
-  ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
+const Styles = styled.div`
+  .recentCards {
+    max-height: none;
+    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
   }
 `;
 
@@ -108,16 +100,16 @@ const getEntityTitle = (entity: ActivityObject) => {
   return entity.item_title || UNTITLED;
 };
 
-const getEntityIconName = (entity: ActivityObject) => {
-  if ('sql' in entity) return 'sql';
+const getEntityIcon = (entity: ActivityObject) => {
+  if ('sql' in entity) return <Icons.Sql />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return 'nav-dashboard';
+    return <Icons.NavDashboard />;
   }
   if (url?.includes('explore')) {
-    return 'nav-charts';
+    return <Icons.NavCharts />;
   }
-  return '';
+  return null;
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
@@ -127,33 +119,14 @@ const getEntityUrl = (entity: ActivityObject) => {
 };
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
-  // translation keys for last action on
-  const LAST_VIEWED = `Last viewed %s`;
-  const LAST_MODIFIED = `Last modified %s`;
-
-  // for Recent viewed items
-  if ('time_delta_humanized' in entity) {
-    return t(LAST_VIEWED, entity.time_delta_humanized);
-  }
-
-  if ('changed_on_delta_humanized' in entity) {
-    return t(LAST_MODIFIED, entity.changed_on_delta_humanized);
+  if ('time' in entity) {
+    return t('Viewed %s', moment(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
-  let translationKey = LAST_MODIFIED;
-  if ('time' in entity) {
-    // eslint-disable-next-line prefer-destructuring
-    time = entity.time;
-    translationKey = LAST_VIEWED;
-  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-
-  return t(
-    translationKey,
-    time == null ? UNKNOWN_TIME : moment(time).fromNow(),
-  );
+  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
 };
 
 export default function ActivityTable({
@@ -161,19 +134,10 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
+  loadedCount,
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
-
-  useEffect(() => {
-    if (activeChild === 'Edited') {
-      setLoadingState(true);
-      getEditedObjects(user.userId).then(r => {
-        setEditedObjs([...r.editedChart, ...r.editedDash]);
-        setLoadingState(false);
-      });
-    }
-  }, []);
 
   const getEditedCards = () => {
     setLoadingState(true);
@@ -182,14 +146,21 @@ export default function ActivityTable({
       setLoadingState(false);
     });
   };
+
+  useEffect(() => {
+    if (activeChild === 'Edited') {
+      setLoadingState(true);
+      getEditedCards();
+    }
+  }, [activeChild]);
+
   const tabs = [
     {
       name: 'Edited',
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage('activity', { activity: 'Edited' });
-        getEditedCards();
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.EDITED);
       },
     },
     {
@@ -197,7 +168,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage('activity', { activity: 'Created' });
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.CREATED);
       },
     },
   ];
@@ -208,20 +179,10 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage('activity', { activity: 'Viewed' });
-      },
-    });
-  } else {
-    tabs.unshift({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setActiveChild('Examples');
-        setInLocalStorage('activity', { activity: 'Examples' });
+        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.VIEWED);
       },
     });
   }
-
   const renderActivity = () =>
     (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
       (entity: ActivityObject) => {
@@ -239,29 +200,30 @@ export default function ActivityTable({
               url={url}
               title={getEntityTitle(entity)}
               description={lastActionOn}
-              avatar={getEntityIconName(entity)}
+              avatar={getEntityIcon(entity)}
               actions={null}
             />
           </CardStyles>
         );
       },
     );
-  if (loadingState && !editedObjs) {
-    return <Loading position="inline" />;
+
+  const doneFetching = loadedCount < 3;
+
+  if ((loadingState && !editedObjs) || doneFetching) {
+    return <LoadingCards />;
   }
   return (
-    <>
-      <SubMenu
-        activeChild={activeChild}
-        // eslint-disable-next-line react/no-children-prop
-        tabs={tabs}
-      />
+    <Styles>
+      <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
       (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
-        <ActivityContainer>{renderActivity()}</ActivityContainer>
+        <CardContainer className="recentCards">
+          {renderActivity()}
+        </CardContainer>
       ) : (
-        <EmptyState tableName="RECENTS" tab={activeChild} />
+        <EmptyState tableName={WelcomeTable.Recents} tab={activeChild} />
       )}
-    </>
+    </Styles>
   );
 }

@@ -17,16 +17,20 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { styled, t } from '@superset-ui/core';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  Filter,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import React, { FC } from 'react';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { getInitialDataMask } from 'src/dataMask/reducer';
-import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { getFilterBarTestId } from '..';
 import { RootState } from '../../../../types';
 
@@ -49,8 +53,7 @@ const ActionButtons = styled.div`
   align-items: center;
   grid-gap: 10px;
   grid-template-columns: 1fr 1fr;
-  ${({ theme }) =>
-    `padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px`};
+  ${({ theme }) => `padding: 0 ${theme.gridUnit * 2}px`};
 
   .btn {
     flex: 1;
@@ -61,10 +64,15 @@ const HeaderButton = styled(Button)`
   padding: 0;
 `;
 
+const Wrapper = styled.div`
+  padding: ${({ theme }) => theme.gridUnit}px
+    ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
-  setDataMaskSelected: (arg0: (draft: DataMaskState) => void) => void;
+  onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
@@ -72,25 +80,21 @@ type HeaderProps = {
 
 const Header: FC<HeaderProps> = ({
   onApply,
+  onClearAll,
   isApplyDisabled,
   dataMaskSelected,
   dataMaskApplied,
-  setDataMaskSelected,
   toggleFiltersBar,
 }) => {
+  const theme = useTheme();
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-
-  const handleClearAll = () => {
-    filterValues.forEach(filter => {
-      setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialDataMask(filter.id);
-      });
-    });
-  };
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
@@ -99,12 +103,18 @@ const Header: FC<HeaderProps> = ({
   );
 
   return (
-    <>
+    <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
         {canEdit && (
-          <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
-            <Icon name="edit" data-test="create-filter" />
+          <FilterConfigurationLink
+            dashboardId={dashboardId}
+            createNewOnOpen={filterValues.length === 0}
+          >
+            <Icons.Edit
+              data-test="create-filter"
+              iconColor={theme.colors.grayscale.base}
+            />
           </FilterConfigurationLink>
         )}
         <HeaderButton
@@ -113,15 +123,16 @@ const Header: FC<HeaderProps> = ({
           buttonSize="xsmall"
           onClick={() => toggleFiltersBar(false)}
         >
-          <Icon name="expand" />
+          <Icons.Expand iconColor={theme.colors.grayscale.base} />
         </HeaderButton>
       </TitleArea>
-      <ActionButtons>
+      <ActionButtons className="filter-action-buttons">
         <Button
           disabled={isClearAllDisabled}
           buttonStyle="tertiary"
           buttonSize="small"
-          onClick={handleClearAll}
+          className="filter-clear-all-button"
+          onClick={onClearAll}
           {...getFilterBarTestId('clear-button')}
         >
           {t('Clear all')}
@@ -131,13 +142,14 @@ const Header: FC<HeaderProps> = ({
           buttonStyle="primary"
           htmlType="submit"
           buttonSize="small"
+          className="filter-apply-button"
           onClick={onApply}
           {...getFilterBarTestId('apply-button')}
         >
           {t('Apply')}
         </Button>
       </ActionButtons>
-    </>
+    </Wrapper>
   );
 };
 

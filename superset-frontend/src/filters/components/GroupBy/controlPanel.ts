@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -27,6 +31,23 @@ const config: ControlPanelConfig = {
     // @ts-ignore
     sections.legacyRegularTime,
     {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Columns to show',
+              multiple: true,
+              required: false,
+            },
+          },
+        ],
+      ],
+    },
+    {
       label: t('UI Configuration'),
       expanded: true,
       controlSetRows: [
@@ -35,12 +56,25 @@ const config: ControlPanelConfig = {
             name: 'multiSelect',
             config: {
               type: 'CheckboxControl',
-              label: t('Multiple select'),
+              label: t('Can select multiple values'),
               default: multiSelect,
               affectsDataMask: true,
               resetConfig: true,
               renderTrigger: true,
-              description: t('Allow selecting multiple values'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'enableEmptyFilter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Filter value is required'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'User must select a value before applying the filter',
+              ),
             },
           },
         ],

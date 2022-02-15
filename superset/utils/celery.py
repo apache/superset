@@ -15,9 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from contextlib import contextmanager
 from typing import Iterator
 
-from contextlib2 import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker

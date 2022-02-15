@@ -17,53 +17,36 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Here's the source to the documentation hosted at
-<a href="https://superset.apache.org">superset.apache.org</a>
+# Website
 
-The site runs on the Gatsby framework and uses docz for it's
-`Documentation` subsection.
+This website is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator.
 
-## Getting Started
+### Installation
 
-```bash
-cd docs/
-npm install
-npm run start
-# navigate to localhost:8000`
+```
+$ yarn
 ```
 
-## To Publish
+### Local Development
 
-Github Actions CI automatically publishes the site after changes are
-merged to master.
-
-To manually publish, the static site that Gatsby generates needs to be pushed
-to the `asf-site` branch on the
-[apache/superset-site](https://github.com/apache/superset-site/)
-repository. No need to PR here, simply `git push`.
-
-```bash
-# Get in the docs/ folder in the main repo
-cd ~/repos/superset/docs
-# have Gatsby build the static website, this puts in under `docs/public`
-npm run build
-
-# go to the docs repo
-cd ~/repos/superset-site
-# checkout the proper branch
-git checkout asf-site
-
-# BE CAREFUL WITH THIS COMMAND
-# wipe the content of the repo
-rm -rf *
-
-# copy the static site here
-cp -r ~/repos/superset/docs/public/ ./
-
-# git push
-git add .
-git commit -m "relevant commit msg"
-git push origin asf-site
-
-# SUCCESS - it should take minutes to take effect on superset.apache.org
 ```
+$ yarn start
+```
+
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+
+### Build
+
+```
+$ yarn build
+```
+
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
+
+### Deployment
+
+```
+$ GIT_USER=<Your GitHub username> USE_SSH=true yarn deploy
+```
+
+If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.

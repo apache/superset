@@ -32,8 +32,10 @@ from sqlalchemy_utils import UUIDType
 
 
 def upgrade():
-    op.add_column("report_execution_log", sa.Column("uuid", UUIDType(binary=True)))
+    with op.batch_alter_table("report_execution_log") as batch_op:
+        batch_op.add_column(sa.Column("uuid", UUIDType(binary=True)))
 
 
 def downgrade():
-    op.drop_column("report_execution_log", "execution_id")
+    with op.batch_alter_table("report_execution_log") as batch_op:
+        batch_op.drop_column("uuid")

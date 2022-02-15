@@ -20,25 +20,34 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { DataMask, FeatureFlag } from '@superset-ui/core';
+import {
+  DataMask,
+  DataMaskStateWithId,
+  DataMaskWithId,
+  FeatureFlag,
+  Filter,
+  FilterConfiguration,
+  Filters,
+} from '@superset-ui/core';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { isFeatureEnabled } from 'src/featureFlags';
-import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
+  CLEAR_DATA_MASK_STATE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
-import {
-  Filter,
-  FilterConfiguration,
-} from '../dashboard/components/nativeFilters/types';
 import { areObjectsEqual } from '../reduxUtils';
-import { Filters } from '../dashboard/reducers/types';
 
-export function getInitialDataMask(id?: string): DataMask;
-export function getInitialDataMask(id: string): DataMaskWithId {
+export function getInitialDataMask(
+  id?: string | number,
+  moreProps?: DataMask,
+): DataMask;
+export function getInitialDataMask(
+  id: string | number,
+  moreProps: DataMask = {},
+): DataMaskWithId {
   let otherProps = {};
   if (id) {
     otherProps = {
@@ -48,10 +57,9 @@ export function getInitialDataMask(id: string): DataMaskWithId {
   return {
     ...otherProps,
     extraFormData: {},
-    filterState: {
-      value: undefined,
-    },
+    filterState: {},
     ownState: {},
+    ...moreProps,
   } as DataMaskWithId;
 }
 
@@ -59,15 +67,16 @@ function fillNativeFilters(
   filterConfig: FilterConfiguration,
   mergedDataMask: DataMaskStateWithId,
   draftDataMask: DataMaskStateWithId,
+  initialDataMask?: DataMaskStateWithId,
   currentFilters?: Filters,
 ) {
   filterConfig.forEach((filter: Filter) => {
+    const dataMask = initialDataMask || {};
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...draftDataMask[filter.id], // keep local filter data
+      ...dataMask[filter.id],
     };
-    // if we came from filters config modal and particular filters changed take it's dataMask
     if (
       currentFilters &&
       !areObjectsEqual(
@@ -95,6 +104,8 @@ const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
     const cleanState = {};
     switch (action.type) {
+      case CLEAR_DATA_MASK_STATE:
+        return cleanState;
       case UPDATE_DATA_MASK:
         draft[action.filterId] = {
           ...getInitialDataMask(action.filterId),
@@ -121,6 +132,8 @@ const dataMaskReducer = produce(
             [],
           cleanState,
           draft,
+          // @ts-ignore
+          action.data.dataMask,
         );
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:

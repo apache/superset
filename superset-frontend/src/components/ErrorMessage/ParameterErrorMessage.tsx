@@ -56,7 +56,7 @@ function ParameterErrorMessage({
   source = 'sqllab',
   subtitle,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
-  const { extra, level, message } = error;
+  const { extra = { issue_codes: [] }, level, message } = error;
 
   const triggerMessage = tn(
     'This was triggered by:',
@@ -99,9 +99,10 @@ function ParameterErrorMessage({
         )}
         {triggerMessage}
         <br />
-        {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
-          .reduce((prev, curr) => [prev, <br />, curr])}
+        {extra.issue_codes.length > 0 &&
+          extra.issue_codes
+            .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+            .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
     </>
   );

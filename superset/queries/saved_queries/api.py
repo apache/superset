@@ -53,7 +53,11 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_form_data,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +241,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"saved_query_export_{timestamp}"
@@ -254,12 +259,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
+        response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
             attachment_filename=filename,
         )
+        if token:
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/import/", methods=["POST"])
     @protect()
@@ -268,6 +276,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import Saved Queries with associated databases
         ---
@@ -284,7 +293,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                       type: string
                       format: binary
                     passwords:
-                      description: JSON map of passwords for each file
+                      description: >-
+                        JSON map of passwords for each featured database in the
+                        ZIP file. If the ZIP includes a database config in the path
+                        `databases/MyDatabase.yaml`, the password should be provided
+                        in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
                       description: overwrite existing saved queries?

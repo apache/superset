@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -34,7 +34,7 @@ class DremioEngineSpec(BaseEngineSpec):
         "P1D": "DATE_TRUNC('day', {col})",
         "P1W": "DATE_TRUNC('week', {col})",
         "P1M": "DATE_TRUNC('month', {col})",
-        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P3M": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
@@ -43,7 +43,9 @@ class DremioEngineSpec(BaseEngineSpec):
         return "TO_DATE({col})"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"

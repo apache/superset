@@ -32,9 +32,9 @@ export const formatTimeRange = (
 ) => {
   const splitDateRange = timeRange.split(SEPARATOR);
   if (splitDateRange.length === 1) return timeRange;
-  const formattedEndpoints = (
-    endpoints || ['unknown', 'unknown']
-  ).map((endpoint: string) => (endpoint === 'inclusive' ? '≤' : '<'));
+  const formattedEndpoints = (endpoints || ['unknown', 'unknown']).map(
+    (endpoint: string) => (endpoint === 'inclusive' ? '≤' : '<'),
+  );
 
   return `${formatDateEndpoint(splitDateRange[0], true)} ${
     formattedEndpoints[0]

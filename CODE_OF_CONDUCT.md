@@ -106,7 +106,7 @@ This statement thanks the following, on which it draws for content and inspirati
 
 # Slack Community Guidelines
 
-If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ), please adhere to the following rules:
+If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-uxbh5g36-AISUtHbzOXcu0BIj7kgUaw), please adhere to the following rules:
 
 **1. Treat everyone in the community with respect.**
 

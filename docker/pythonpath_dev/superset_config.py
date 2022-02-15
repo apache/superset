@@ -23,6 +23,7 @@
 import logging
 import os
 from datetime import timedelta
+from typing import Optional
 
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
@@ -30,7 +31,7 @@ from celery.schedules import crontab
 logger = logging.getLogger()
 
 
-def get_env_variable(var_name, default=None):
+def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
     """Get the environment variable or raise exception."""
     try:
         return os.environ[var_name]
@@ -63,8 +64,8 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
 
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
-REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
-REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", 1)
+REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "0")
+REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 

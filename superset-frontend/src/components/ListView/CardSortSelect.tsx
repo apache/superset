@@ -16,24 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { styled, withTheme, SupersetThemeProps, t } from '@superset-ui/core';
-import { PartialThemeConfig, Select } from 'src/components/Select';
+import React, { useState, useMemo } from 'react';
+import { styled, t } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { FormLabel } from 'src/components/Form';
+import { SELECT_WIDTH } from './utils';
 import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
-import { filterSelectStyles } from './utils';
-
-const SortTitle = styled.label`
-  font-weight: bold;
-  line-height: 27px;
-  margin: 0 0.4em 0 0;
-`;
 
 const SortContainer = styled.div`
   display: inline-flex;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding-top: ${({ theme }) => theme.gridUnit}px;
+  align-items: center;
   text-align: left;
+  width: ${SELECT_WIDTH}px;
 `;
+
 interface CardViewSelectSortProps {
   onChange: (conf: FetchDataConfig) => any;
   options: Array<CardSortSelectOption>;
@@ -41,43 +38,6 @@ interface CardViewSelectSortProps {
   pageIndex: number;
   pageSize: number;
 }
-
-interface StyledSelectProps {
-  onChange: (value: CardSortSelectOption) => void;
-  options: CardSortSelectOption[];
-  selectStyles: any;
-  theme: SupersetThemeProps['theme'];
-  value: CardSortSelectOption;
-}
-
-function StyledSelect({
-  onChange,
-  options,
-  selectStyles,
-  theme,
-  value,
-}: StyledSelectProps) {
-  const filterSelectTheme: PartialThemeConfig = {
-    spacing: {
-      baseUnit: 1,
-      fontSize: theme.typography.sizes.s,
-      minWidth: '5em',
-    },
-  };
-  return (
-    <Select
-      data-test="card-sort-select"
-      clearable={false}
-      onChange={onChange}
-      options={options}
-      stylesConfig={selectStyles}
-      themeConfig={filterSelectTheme}
-      value={value}
-    />
-  );
-}
-
-const StyledCardSortSelect = withTheme(StyledSelect);
 
 export const CardSortSelect = ({
   initialSort,
@@ -87,25 +47,45 @@ export const CardSortSelect = ({
   pageSize,
 }: CardViewSelectSortProps) => {
   const defaultSort =
-    initialSort && options.find(({ id }) => id === initialSort[0].id);
-  const [selectedOption, setSelectedOption] = useState<CardSortSelectOption>(
-    defaultSort || options[0],
+    (initialSort && options.find(({ id }) => id === initialSort[0].id)) ||
+    options[0];
+
+  const [value, setValue] = useState({
+    label: defaultSort.label,
+    value: defaultSort.value,
+  });
+
+  const formattedOptions = useMemo(
+    () => options.map(option => ({ label: option.label, value: option.value })),
+    [options],
   );
 
-  const handleOnChange = (selected: CardSortSelectOption) => {
-    setSelectedOption(selected);
-    const sortBy = [{ id: selected.id, desc: selected.desc }];
-    onChange({ pageIndex, pageSize, sortBy, filters: [] });
+  const handleOnChange = (selected: { label: string; value: string }) => {
+    setValue(selected);
+    const originalOption = options.find(
+      ({ value }) => value === selected.value,
+    );
+    if (originalOption) {
+      const sortBy = [
+        {
+          id: originalOption.id,
+          desc: originalOption.desc,
+        },
+      ];
+      onChange({ pageIndex, pageSize, sortBy, filters: [] });
+    }
   };
 
   return (
     <SortContainer>
-      <SortTitle>{t('Sort:')}</SortTitle>
-      <StyledCardSortSelect
+      <Select
+        ariaLabel={t('Sort')}
+        header={<FormLabel>{t('Sort')}</FormLabel>}
+        labelInValue
         onChange={(value: CardSortSelectOption) => handleOnChange(value)}
-        options={options}
-        selectStyles={filterSelectStyles}
-        value={selectedOption}
+        options={formattedOptions}
+        showSearch
+        value={value}
       />
     </SortContainer>
   );

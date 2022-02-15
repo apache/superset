@@ -20,12 +20,13 @@ import { t, styled } from '@superset-ui/core';
 import React, { useEffect } from 'react';
 import { Empty } from 'src/common/components';
 import Alert from 'src/components/Alert';
-import { ReactComponent as EmptyImage } from 'images/empty.svg';
+import EmptyImage from 'src/assets/images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+import Pagination from 'src/components/Pagination';
+import TableCollection from 'src/components/TableCollection';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -50,13 +51,11 @@ const ListViewStyles = styled.div`
       display: flex;
       padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
-      .header-left {
+      & .controls {
         display: flex;
-        flex: 5;
-      }
-      .header-right {
-        flex: 1;
-        text-align: right;
+        flex-wrap: wrap;
+        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
+        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
 
@@ -136,13 +135,15 @@ const bulkSelectColumnConfig = {
 
 const ViewModeContainer = styled.div`
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  white-space: nowrap;
   display: inline-block;
 
   .toggle-button {
     display: inline-block;
     border-radius: ${({ theme }) => theme.gridUnit / 2}px;
     padding: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: 0;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
 
     &:first-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -182,7 +183,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'card' })}
     >
-      <Icon name="card-view" />
+      <Icons.CardView />
     </div>
     <div
       role="button"
@@ -193,7 +194,7 @@ const ViewModeToggle = ({
       }}
       className={cx('toggle-button', { active: mode === 'table' })}
     >
-      <Icon name="list-view" />
+      <Icons.ListView />
     </div>
   </ViewModeContainer>
 );
@@ -221,6 +222,7 @@ export interface ListViewProps<T extends object = any> {
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
+  showThumbnails?: boolean;
   emptyState?: {
     message?: string;
     slot?: React.ReactNode;
@@ -242,6 +244,7 @@ function ListView<T extends object = any>({
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
+  showThumbnails,
   cardSortSelectOptions,
   defaultViewMode = 'card',
   highlightRowId,
@@ -299,10 +302,10 @@ function ListView<T extends object = any>({
     <ListViewStyles>
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
-          <div className="header-left">
-            {cardViewEnabled && (
-              <ViewModeToggle mode={viewMode} setMode={setViewMode} />
-            )}
+          {cardViewEnabled && (
+            <ViewModeToggle mode={viewMode} setMode={setViewMode} />
+          )}
+          <div className="controls">
             {filterable && (
               <FilterControls
                 filters={filters}
@@ -310,8 +313,6 @@ function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
-          </div>
-          <div className="header-right">
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}
@@ -376,6 +377,7 @@ function ListView<T extends object = any>({
               renderCard={renderCard}
               rows={rows}
               loading={loading}
+              showThumbnails={showThumbnails}
             />
           )}
           {viewMode === 'table' && (

@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Dict, Set
 
+from flask import g
 from sqlalchemy.orm import Session
 
 from superset.models.dashboard import Dashboard
@@ -33,6 +34,17 @@ def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
     return set(build_uuid_to_id_map(position))
 
 
+def find_native_filter_datasets(metadata: Dict[str, Any]) -> Set[str]:
+    uuids: Set[str] = set()
+    for native_filter in metadata.get("native_filter_configuration", []):
+        targets = native_filter.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.get("datasetUuid")
+            if dataset_uuid:
+                uuids.add(dataset_uuid)
+    return uuids
+
+
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     return {
         child["meta"]["uuid"]: child["meta"]["chartId"]
@@ -45,7 +57,11 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
     }
 
 
-def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[str, Any]:
+def update_id_refs(  # pylint: disable=too-many-locals
+    config: Dict[str, Any],
+    chart_ids: Dict[str, int],
+    dataset_info: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
@@ -68,13 +84,16 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
         metadata["filter_scopes"] = {
             str(id_map[int(old_id)]): columns
             for old_id, columns in metadata["filter_scopes"].items()
+            if int(old_id) in id_map
         }
 
         # now update columns to use new IDs:
         for columns in metadata["filter_scopes"].values():
             for attributes in columns.values():
                 attributes["immune"] = [
-                    id_map[old_id] for old_id in attributes["immune"]
+                    id_map[old_id]
+                    for old_id in attributes["immune"]
+                    if old_id in id_map
                 ]
 
     if "expanded_slices" in metadata:
@@ -89,6 +108,7 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
             {
                 str(id_map[int(old_id)]): value
                 for old_id, value in default_filters.items()
+                if int(old_id) in id_map
             }
         )
 
@@ -102,6 +122,23 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
             and child["meta"]["uuid"] in chart_ids
         ):
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
+
+    # fix native filter references
+    native_filter_configuration = fixed.get("metadata", {}).get(
+        "native_filter_configuration", []
+    )
+    for native_filter in native_filter_configuration:
+        targets = native_filter.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.pop("datasetUuid", None)
+            if dataset_uuid:
+                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+
+        scope_excluded = native_filter.get("scope", {}).get("excluded", [])
+        if scope_excluded:
+            native_filter["scope"]["excluded"] = [
+                id_map[old_id] for old_id in scope_excluded
+            ]
 
     return fixed
 
@@ -128,5 +165,8 @@ def import_dashboard(
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
     if dashboard.id is None:
         session.flush()
+
+    if hasattr(g, "user") and g.user:
+        dashboard.owners.append(g.user)
 
     return dashboard

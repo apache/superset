@@ -17,21 +17,21 @@
  * under the License.
  */
 import {
-  ExtraFormData,
-  QueryFormData,
-  getChartMetadataRegistry,
+  AdhocFilter,
   Behavior,
+  DataMaskStateWithId,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
-  AdhocFilter,
+  ExtraFormData,
   FeatureFlag,
+  Filter,
+  getChartMetadataRegistry,
+  QueryFormData,
 } from '@superset-ui/core';
 import { Charts, DashboardLayout } from 'src/dashboard/types';
 import { RefObject } from 'react';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
-import { Filter } from './types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
@@ -46,6 +46,8 @@ export const getFormData = ({
   sortMetric,
   adhoc_filters,
   time_range,
+  granularity_sqla,
+  type,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -74,7 +76,7 @@ export const getFormData = ({
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
-    granularity_sqla: 'ds',
+    granularity_sqla,
     metrics: ['count'],
     row_limit: 1000,
     showSearch: true,
@@ -82,8 +84,10 @@ export const getFormData = ({
     time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: extractUrlParams('regular'),
+    inView: true,
     viz_type: filterType,
     inputRef,
+    type,
   };
 };
 

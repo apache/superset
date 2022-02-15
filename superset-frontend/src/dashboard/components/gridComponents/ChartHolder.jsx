@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
+import { useSelector, connect } from 'react-redux';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
@@ -30,13 +31,13 @@ import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 
 import {
-  GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
 } from '../../util/constants';
 
 const CHART_MARGIN = 32;
@@ -47,12 +48,14 @@ const propTypes = {
   dashboardId: PropTypes.number.isRequired,
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
+  getComponentById: PropTypes.func.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
   focusedFilterScope: PropTypes.object,
+  fullSizeChartId: PropTypes.oneOf([PropTypes.number, null]),
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -65,12 +68,28 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  setFullSizeChartId: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
   directPathToChild: [],
   directPathLastUpdated: 0,
 };
+
+/**
+ * Selects the chart scope of the filter input that has focus.
+ *
+ * @returns {{chartId: number, scope: { scope: string[], immune: string[] }} | null }
+ * the scope of the currently focused filter, if any
+ */
+function selectFocusedFilterScope(dashboardState, dashboardFilters) {
+  if (!dashboardState.focusedFilterField) return null;
+  const { chartId, column } = dashboardState.focusedFilterField;
+  return {
+    chartId,
+    scope: dashboardFilters[chartId].scopes[column],
+  };
+}
 
 /**
  * Renders any styles necessary to highlight the chart's relationship to the focused filter.
@@ -85,11 +104,20 @@ const defaultProps = {
  * If ChartHolder were a function component, this could be implemented as a hook instead.
  */
 const FilterFocusHighlight = React.forwardRef(
-  ({ chartId, focusedFilterScope, nativeFilters, ...otherProps }, ref) => {
+  ({ chartId, ...otherProps }, ref) => {
     const theme = useTheme();
+
+    const nativeFilters = useSelector(state => state.nativeFilters);
+    const dashboardState = useSelector(state => state.dashboardState);
+    const dashboardFilters = useSelector(state => state.dashboardFilters);
+    const focusedFilterScope = selectFocusedFilterScope(
+      dashboardState,
+      dashboardFilters,
+    );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
-    if (!(focusedFilterScope || focusedNativeFilterId))
+    if (!(focusedFilterScope || focusedNativeFilterId)) {
       return <div ref={ref} {...otherProps} />;
+    }
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container
@@ -100,15 +128,13 @@ const FilterFocusHighlight = React.forwardRef(
     const focusedChartStyles = {
       borderColor: theme.colors.primary.light2,
       opacity: 1,
-      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${
-        theme.colors.primary.light2
-      }`,
+      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
       pointerEvents: 'auto',
     };
 
     if (focusedNativeFilterId) {
       if (
-        nativeFilters.filters[focusedNativeFilterId].chartsInScope.includes(
+        nativeFilters.filters[focusedNativeFilterId]?.chartsInScope?.includes(
           chartId,
         )
       ) {
@@ -142,10 +168,8 @@ class ChartHolder extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     const { component, directPathToChild, directPathLastUpdated } = props;
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+    const { label: columnName, chart: chartComponentId } =
+      getChartAndLabelComponentIdFromPath(directPathToChild);
 
     if (
       directPathLastUpdated !== state.directPathLastUpdated &&
@@ -167,7 +191,6 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
-      isFullSize: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -222,7 +245,10 @@ class ChartHolder extends React.Component {
   }
 
   handleToggleFullSize() {
-    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
+    const { component, fullSizeChartId, setFullSizeChartId } = this.props;
+    const { chartId } = component.meta;
+    const isFullSize = fullSizeChartId === chartId;
+    setFullSizeChartId(isFullSize ? null : chartId);
   }
 
   render() {
@@ -241,20 +267,28 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
       dashboardId,
-      focusedFilterScope,
-      nativeFilters,
+      fullSizeChartId,
+      getComponentById = () => undefined,
     } = this.props;
 
+    const { chartId } = component.meta;
+    const isFullSize = fullSizeChartId === chartId;
+
     // inherit the size of parent columns
-    const widthMultiple =
-      parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+    const columnParentWidth = getComponentById(
+      parentComponent.parents?.find(parent => parent.startsWith(COLUMN_TYPE)),
+    )?.meta?.width;
+    let widthMultiple = component.meta.width || GRID_MIN_COLUMN_COUNT;
+    if (parentComponent.type === COLUMN_TYPE) {
+      widthMultiple = parentComponent.meta.width || GRID_MIN_COLUMN_COUNT;
+    } else if (columnParentWidth && widthMultiple > columnParentWidth) {
+      widthMultiple = columnParentWidth;
+    }
 
     let chartWidth = 0;
     let chartHeight = 0;
 
-    if (this.state.isFullSize) {
+    if (isFullSize) {
       chartWidth = window.innerWidth - CHART_MARGIN;
       chartHeight = window.innerHeight - CHART_MARGIN;
     } else {
@@ -267,8 +301,6 @@ class ChartHolder extends React.Component {
         component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
     }
-
-    const { chartId } = component.meta;
 
     return (
       <DragDroppable
@@ -300,15 +332,13 @@ class ChartHolder extends React.Component {
           >
             <FilterFocusHighlight
               chartId={chartId}
-              focusedFilterScope={focusedFilterScope}
-              nativeFilters={nativeFilters}
               ref={dragSourceRef}
               data-test="dashboard-component-chart-holder"
               className={cx(
                 'dashboard-component',
                 'dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
-                this.state.isFullSize && 'full-size',
+                isFullSize && 'full-size',
               )}
             >
               {!editMode && (
@@ -333,7 +363,7 @@ class ChartHolder extends React.Component {
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
-                isFullSize={this.state.isFullSize}
+                isFullSize={isFullSize}
               />
               {editMode && (
                 <HoverMenu position="top">
@@ -357,4 +387,10 @@ class ChartHolder extends React.Component {
 ChartHolder.propTypes = propTypes;
 ChartHolder.defaultProps = defaultProps;
 
-export default ChartHolder;
+function mapStateToProps(state) {
+  return {
+    directPathToChild: state.dashboardState.directPathToChild,
+    directPathLastUpdated: state.dashboardState.directPathLastUpdated,
+  };
+}
+export default connect(mapStateToProps)(ChartHolder);

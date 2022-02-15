@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
 import Popover from 'src/components/Popover';
@@ -25,13 +24,7 @@ import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getShortUrl } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
-
-const propTypes = {
-  latestQueryFormData: PropTypes.object.isRequired,
-};
 
 export default class EmbedCodeButton extends React.Component {
   constructor(props) {
@@ -39,24 +32,8 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
-      shortUrlId: 0,
     };
     this.handleInputChange = this.handleInputChange.bind(this);
-    this.getCopyUrl = this.getCopyUrl.bind(this);
-    this.onShortUrlSuccess = this.onShortUrlSuccess.bind(this);
-  }
-
-  onShortUrlSuccess(shortUrl) {
-    const shortUrlId = shortUrl.substring(shortUrl.indexOf('/r/') + 3);
-    this.setState(() => ({
-      shortUrlId,
-    }));
-  }
-
-  getCopyUrl() {
-    return getShortUrl(getExploreLongUrl(this.props.latestQueryFormData))
-      .then(this.onShortUrlSuccess)
-      .catch(this.props.addDangerToast);
   }
 
   handleInputChange(e) {
@@ -67,9 +44,7 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   generateEmbedHTML() {
-    const srcLink = `${window.location.origin + getURIDirectory()}?r=${
-      this.state.shortUrlId
-    }&${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
+    const srcLink = `${window.location.href}&${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -96,6 +71,7 @@ export default class EmbedCodeButton extends React.Component {
               rows="4"
               readOnly
               className="form-control input-sm"
+              style={{ resize: 'vertical' }}
             />
           </div>
           <div className="col-sm-2">
@@ -149,7 +125,6 @@ export default class EmbedCodeButton extends React.Component {
       <Popover
         trigger="click"
         placement="left"
-        onClick={this.getCopyUrl}
         content={this.renderPopoverContent()}
       >
         <Tooltip
@@ -170,5 +145,3 @@ export default class EmbedCodeButton extends React.Component {
     );
   }
 }
-
-EmbedCodeButton.propTypes = propTypes;

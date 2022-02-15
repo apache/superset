@@ -16,58 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { hot } from 'react-hot-loader/root';
-import { Provider as ReduxProvider } from 'react-redux';
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { QueryParamProvider } from 'use-query-params';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  useLocation,
+} from 'react-router-dom';
 import { initFeatureFlags } from 'src/featureFlags';
-import { ThemeProvider } from '@superset-ui/core';
-import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
-import Menu from 'src/components/Menu/Menu';
-import FlashProvider from 'src/components/FlashProvider';
-import { theme } from 'src/preamble';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
-import setupPlugins from 'src/setup/setupPlugins';
+import Menu from 'src/views/components/Menu';
+import { bootstrapData } from 'src/preamble';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
-import { store } from './store';
+import { Logger } from 'src/logger/LogUtils';
+import { RootContextProviders } from './RootContextProviders';
 
 setupApp();
-setupPlugins();
 
-const container = document.getElementById('app');
-const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
-const user = { ...bootstrap.user };
-const menu = { ...bootstrap.common.menu_data };
-const common = { ...bootstrap.common };
-initFeatureFlags(bootstrap.common.feature_flags);
+const user = { ...bootstrapData.user };
+const menu = { ...bootstrapData.common.menu_data };
+let lastLocationPathname: string;
+initFeatureFlags(bootstrapData.common.feature_flags);
 
-const RootContextProviders: React.FC = ({ children }) => (
-  <ThemeProvider theme={theme}>
-    <ReduxProvider store={store}>
-      <DndProvider backend={HTML5Backend}>
-        <FlashProvider messages={common.flash_messages}>
-          <DynamicPluginProvider>
-            <QueryParamProvider
-              ReactRouterRoute={Route}
-              stringifyOptions={{ encode: false }}
-            >
-              {children}
-            </QueryParamProvider>
-          </DynamicPluginProvider>
-        </FlashProvider>
-      </DndProvider>
-    </ReduxProvider>
-  </ThemeProvider>
-);
+const LocationPathnameLogger = () => {
+  const location = useLocation();
+  useEffect(() => {
+    // reset performance logger timer start point to avoid soft navigation
+    // cause dashboard perf measurement problem
+    if (lastLocationPathname && lastLocationPathname !== location.pathname) {
+      Logger.markTimeOrigin();
+    }
+    lastLocationPathname = location.pathname;
+  }, [location.pathname]);
+  return <></>;
+};
 
 const App = () => (
   <Router>
+    <LocationPathnameLogger />
     <RootContextProviders>
       <Menu data={menu} isFrontendRoute={isFrontendRoute} />
       <Switch>
@@ -81,7 +71,7 @@ const App = () => (
           </Route>
         ))}
       </Switch>
-      <ToastPresenter />
+      <ToastContainer />
     </RootContextProviders>
   </Router>
 );

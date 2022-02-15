@@ -142,7 +142,7 @@ describe('ChartList', () => {
   });
 
   it('renders a table view', async () => {
-    wrapper.find('[data-test="list-view"]').first().simulate('click');
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('table')).toExist();
   });
@@ -190,7 +190,7 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Chart" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
+    const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
 
     await screen.findByRole('tooltip');

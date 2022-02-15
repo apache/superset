@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import React from 'react';
+import { Filter, NativeFilterType } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import { FormInstance } from 'src/common/components';
-import { getControlItems, setNativeFilterFieldValues } from './utils';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
+import { getControlItems, setNativeFilterFieldValues } from './utils';
 
 jest.mock('./utils', () => ({
   getControlItems: jest.fn(),
@@ -51,7 +51,6 @@ const formMock: FormInstance = {
 const filterMock: Filter = {
   cascadeParentIds: [],
   defaultDataMask: {},
-  isInstant: false,
   id: 'mock',
   name: 'mock',
   scope: {
@@ -61,9 +60,12 @@ const filterMock: Filter = {
   filterType: '',
   targets: [{}],
   controlValues: {},
+  type: NativeFilterType.NATIVE_FILTER,
+  description: '',
 };
 
 const createProps: () => ControlItemsProps = () => ({
+  datasetId: 1,
   disabled: false,
   forceUpdate: jest.fn(),
   form: formMock,
@@ -77,6 +79,7 @@ const createControlItems = () => [
   false,
   {},
   { name: 'name_1', config: { renderTrigger: true, resetConfig: true } },
+  { name: 'groupby', config: { multiple: true, required: false } },
 ];
 
 beforeEach(() => {
@@ -87,7 +90,10 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
-    <>{Object.values(controlItemsMap).map(value => value.element)}</>,
+    // @ts-ignore
+    <>
+      {Object.values(controlItemsMap.controlItems).map(value => value.element)}
+    </>,
   );
 }
 
@@ -111,6 +117,16 @@ test('Should render null when has no "formFilter.filterType" is falsy value', ()
 test('Should render null empty when "getControlItems" return []', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([]);
+  const controlItemsMap = getControlItemsMap(props);
+  const { container } = renderControlItems(controlItemsMap);
+  expect(container.children).toHaveLength(0);
+});
+
+test('Should render null empty when "getControlItems" return enableSingleValue', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    { name: 'enableSingleValue', config: { renderTrigger: true } },
+  ]);
   const controlItemsMap = getControlItemsMap(props);
   const { container } = renderControlItems(controlItemsMap);
   expect(container.children).toHaveLength(0);

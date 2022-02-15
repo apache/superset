@@ -72,9 +72,9 @@ describe('DashboardTable', () => {
   it('render a submenu with clickable tabs and buttons', async () => {
     expect(wrapper.find('SubMenu')).toExist();
     expect(wrapper.find('li.no-router')).toHaveLength(2);
-    expect(wrapper.find('Button')).toHaveLength(4);
+    expect(wrapper.find('Button')).toHaveLength(6);
     act(() => {
-      const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
+      const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
       if (handler) {
         handler({} as any);
       }

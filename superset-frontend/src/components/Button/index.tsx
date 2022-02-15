@@ -62,6 +62,8 @@ export interface ButtonProps {
   href?: string;
   htmlType?: 'button' | 'submit' | 'reset';
   cta?: boolean;
+  loading?: boolean | { delay?: number | undefined } | undefined;
+  showMarginRight?: boolean;
 }
 
 export default function Button(props: ButtonProps) {
@@ -75,6 +77,7 @@ export default function Button(props: ButtonProps) {
     cta,
     children,
     href,
+    showMarginRight = true,
     ...restProps
   } = props;
 
@@ -153,8 +156,8 @@ export default function Button(props: ButtonProps) {
   } else {
     renderedChildren = Children.toArray(children);
   }
-
-  const firstChildMargin = renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
+  const firstChildMargin =
+    showMarginRight && renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
 
   const button = (
     <AntdButton
@@ -221,7 +224,9 @@ export default function Button(props: ButtonProps) {
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {button}
+        {/* this ternary wraps the button in a span so that the tooltip shows up
+        when the button is disabled.  */}
+        {disabled ? <span>{button}</span> : button}
       </Tooltip>
     );
   }

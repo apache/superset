@@ -19,15 +19,11 @@
 describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/filter/table/*/name').as('filterValues');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
-  });
-
-  xit('Should not load mathjs when not needed', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 0);
   });
 
   let numScripts = 0;
@@ -56,7 +52,7 @@ describe('AdhocFilters', () => {
   });
 
   xit('Set simple adhoc filter', () => {
-    cy.get('[data-test=adhoc-filter-simple-value] .Select__control').click();
+    cy.get('[aria-label="Comparator option"] .Select__control').click();
     cy.get('[data-test=adhoc-filter-simple-value] input[type=text]')
       .focus()
       .type('Jack{enter}', { delay: 20 });

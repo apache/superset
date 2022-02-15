@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
-from superset.utils.core import QueryStatus
+from superset.common.db_query_status import QueryStatus
 
 logger = logging.getLogger(__name__)
 
@@ -341,7 +341,7 @@ class ImportExportMixin:
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """ object will belong to the user the current user """
+        """object will belong to the user the current user"""
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
@@ -442,16 +442,22 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         df: pd.DataFrame,
         query: str,
         duration: timedelta,
+        applied_template_filters: Optional[List[str]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
         self.query = query
         self.duration = duration
+        self.applied_template_filters = applied_template_filters or []
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
 
 
 class ExtraJSONMixin:
@@ -476,3 +482,31 @@ class ExtraJSONMixin:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+
+class CertificationMixin:
+    """Mixin to add extra certification fields"""
+
+    extra = sa.Column(sa.Text, default="{}")
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")

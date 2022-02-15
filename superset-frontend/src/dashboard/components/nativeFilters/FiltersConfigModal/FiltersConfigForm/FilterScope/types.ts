@@ -17,7 +17,9 @@
  * under the License.
  */
 
-export enum Scoping {
+import { ReactNode } from 'react';
+
+export enum ScopingType {
   all,
   specific,
 }
@@ -26,5 +28,11 @@ export enum Scoping {
 export type TreeItem = {
   children: TreeItem[];
   key: string;
-  title: string;
+  title: ReactNode;
 };
+
+export type BuildTreeLeafTitle = (
+  label: string,
+  hasTooltip: boolean,
+  tooltipTitle?: string,
+) => ReactNode;

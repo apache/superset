@@ -47,7 +47,7 @@ class DeleteReportScheduleCommand(BaseCommand):
             report_schedule = ReportScheduleDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ReportScheduleDeleteFailedError()
+            raise ReportScheduleDeleteFailedError() from ex
         return report_schedule
 
     def validate(self) -> None:
@@ -59,5 +59,5 @@ class DeleteReportScheduleCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise ReportScheduleForbiddenError()
+        except SupersetSecurityException as ex:
+            raise ReportScheduleForbiddenError() from ex

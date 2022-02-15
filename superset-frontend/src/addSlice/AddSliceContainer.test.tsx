@@ -19,19 +19,18 @@
 import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
+import { Select } from 'src/components';
 import AddSliceContainer, {
   AddSliceContainerProps,
   AddSliceContainerState,
 } from 'src/addSlice/AddSliceContainer';
-import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
+import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { act } from 'spec/helpers/testing-library';
 
-const defaultProps = {
-  datasources: [
-    { label: 'my first table', value: '1__table' },
-    { label: 'another great table', value: '2__table' },
-  ],
+const datasource = {
+  value: '1',
+  label: 'table',
 };
 
 describe('AddSliceContainer', () => {
@@ -41,21 +40,19 @@ describe('AddSliceContainer', () => {
     AddSliceContainer
   >;
 
-  beforeEach(() => {
-    wrapper = mount(<AddSliceContainer {...defaultProps} />) as ReactWrapper<
+  beforeEach(async () => {
+    wrapper = mount(<AddSliceContainer />) as ReactWrapper<
       AddSliceContainerProps,
       AddSliceContainerState,
       AddSliceContainer
     >;
-  });
-
-  it('uses table as default visType', () => {
-    expect(wrapper.state().visType).toBe('table');
+    // suppress a warning caused by some unusual async behavior in Icon
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   });
 
   it('renders a select and a VizTypeControl', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(VizTypeControl)).toExist();
+    expect(wrapper.find(VizTypeGallery)).toExist();
   });
 
   it('renders a button', () => {
@@ -68,12 +65,10 @@ describe('AddSliceContainer', () => {
     ).toHaveLength(1);
   });
 
-  it('renders an enabled button if datasource is selected', () => {
-    const datasourceValue = defaultProps.datasources[0].value;
+  it('renders an enabled button if datasource and viz type is selected', () => {
     wrapper.setState({
-      datasourceValue,
-      datasourceId: datasourceValue.split('__')[0],
-      datasourceType: datasourceValue.split('__')[1],
+      datasource,
+      visType: 'table',
     });
     expect(
       wrapper.find(Button).find({ disabled: true }).hostNodes(),
@@ -81,14 +76,12 @@ describe('AddSliceContainer', () => {
   });
 
   it('formats explore url', () => {
-    const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
-      datasourceValue,
-      datasourceId: datasourceValue.split('__')[0],
-      datasourceType: datasourceValue.split('__')[1],
+      datasource,
+      visType: 'table',
     });
     const formattedUrl =
-      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221__table%22%7D';
+      '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221%22%7D';
     expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
   });
 });

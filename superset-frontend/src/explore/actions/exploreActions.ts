@@ -25,7 +25,10 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { addDangerToast, toastActions } from 'src/messageToasts/actions';
+import {
+  addDangerToast,
+  toastActions,
+} from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
@@ -70,7 +73,7 @@ export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId: string) {
   return function (dispatch: Dispatch) {
     SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
+      endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count/`,
     }).then(({ json }) => {
       if (json.count > 0) {
         dispatch(toggleFaveStar(true));
@@ -137,6 +140,30 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
+export const SET_TIME_FORMATTED_COLUMN = 'SET_TIME_FORMATTED_COLUMN';
+export function setTimeFormattedColumn(
+  datasourceId: string,
+  columnName: string,
+) {
+  return {
+    type: SET_TIME_FORMATTED_COLUMN,
+    datasourceId,
+    columnName,
+  };
+}
+
+export const UNSET_TIME_FORMATTED_COLUMN = 'UNSET_TIME_FORMATTED_COLUMN';
+export function unsetTimeFormattedColumn(
+  datasourceId: string,
+  columnIndex: number,
+) {
+  return {
+    type: UNSET_TIME_FORMATTED_COLUMN,
+    datasourceId,
+    columnIndex,
+  };
+}
+
 export const exploreActions = {
   ...toastActions,
   setDatasourceType,
@@ -152,6 +179,8 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
+  setTimeFormattedColumn,
+  unsetTimeFormattedColumn,
 };
 
 export type ExploreActions = typeof exploreActions;

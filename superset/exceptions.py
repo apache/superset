@@ -28,24 +28,62 @@ class SupersetException(Exception):
     message = ""
 
     def __init__(
-        self, message: str = "", exception: Optional[Exception] = None,
+        self,
+        message: str = "",
+        exception: Optional[Exception] = None,
+        error_type: Optional[SupersetErrorType] = None,
     ) -> None:
         if message:
             self.message = message
         self._exception = exception
+        self._error_type = error_type
         super().__init__(self.message)
 
     @property
     def exception(self) -> Optional[Exception]:
         return self._exception
 
+    @property
+    def error_type(self) -> Optional[SupersetErrorType]:
+        return self._error_type
+
+    def to_dict(self) -> Dict[str, Any]:
+        rv = {}
+        if hasattr(self, "message"):
+            rv["message"] = self.message
+        if self.error_type:
+            rv["error_type"] = self.error_type
+        if self.exception is not None and hasattr(self.exception, "to_dict"):
+            rv = {**rv, **self.exception.to_dict()}  # type: ignore
+        return rv
+
 
 class SupersetErrorException(SupersetException):
     """Exceptions with a single SupersetErrorType associated with them"""
 
-    def __init__(self, error: SupersetError) -> None:
+    def __init__(self, error: SupersetError, status: Optional[int] = None) -> None:
         super().__init__(error.message)
         self.error = error
+        if status is not None:
+            self.status = status
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.error.to_dict()
+
+
+class SupersetGenericErrorException(SupersetErrorException):
+    """Exceptions that are too generic to have their own type"""
+
+    def __init__(self, message: str, status: Optional[int] = None) -> None:
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+        if status is not None:
+            self.status = status
 
 
 class SupersetErrorFromParamsException(SupersetErrorException):
@@ -68,9 +106,13 @@ class SupersetErrorFromParamsException(SupersetErrorException):
 class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
-    def __init__(self, errors: List[SupersetError]) -> None:
+    def __init__(
+        self, errors: List[SupersetError], status: Optional[int] = None
+    ) -> None:
         super().__init__(str(errors))
         self.errors = errors
+        if status is not None:
+            self.status = status
 
 
 class SupersetTimeoutException(SupersetErrorFromParamsException):
@@ -97,16 +139,17 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
     def __init__(
         self,
         message: str,
+        error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
         extra: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR, message, level, extra,
+            error, message, level, extra,
         )
 
 
 class SupersetSecurityException(SupersetErrorException):
-    status = 401
+    status = 403
 
     def __init__(
         self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
@@ -151,6 +194,10 @@ class CacheLoadError(SupersetException):
     status = 404
 
 
+class QueryClauseValidationException(SupersetException):
+    status = 400
+
+
 class DashboardImportException(SupersetException):
     pass
 
@@ -167,7 +214,6 @@ class InvalidPayloadFormatError(SupersetErrorException):
             message=message,
             error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
             level=ErrorLevel.ERROR,
-            extra={},
         )
         super().__init__(error)
 
@@ -188,3 +234,7 @@ class InvalidPayloadSchemaError(SupersetErrorException):
             extra={"messages": error.messages},
         )
         super().__init__(error)
+
+
+class SupersetCancelQueryException(SupersetException):
+    status = 422

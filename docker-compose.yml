@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apache/superset:latest-dev
+x-superset-image: &superset-image apache/superset:${TAG:-latest-dev}
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
@@ -102,7 +102,7 @@ services:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-node:
-    image: node:14
+    image: node:16
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file: docker/.env
@@ -118,6 +118,9 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
+    # Bump memory limit if processing selenium / thumbails on superset-worker
+    # mem_limit: 2038m
+    # mem_reservation: 128M
 
   superset-worker-beat:
     image: *superset-image

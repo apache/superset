@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Callable, Dict, Match, Optional, Pattern, Tuple, Union
+from typing import Any, Dict, Optional, Pattern, Tuple
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -33,10 +33,14 @@ from sqlalchemy.dialects.mysql import (
     TINYTEXT,
 )
 from sqlalchemy.engine.url import URL
-from sqlalchemy.types import TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    ColumnTypeMapping,
+)
 from superset.errors import SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -52,6 +56,11 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 )
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
+SYNTAX_ERROR_REGEX = re.compile(
+    "check the manual that corresponds to your MySQL server "
+    "version for the right syntax to use near '(?P<server_error>.*)"
+)
+
 
 class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "mysql"
@@ -64,14 +73,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     )
     encryption_parameters = {"ssl": "1"}
 
-    column_type_mappings: Tuple[
-        Tuple[
-            Pattern[str],
-            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-            GenericDataType,
-        ],
-        ...,
-    ] = (
+    column_type_mappings = (
         (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
         (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
         (
@@ -103,7 +105,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "P1D": "DATE({col})",
         "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P0.25Y": "MAKEDATE(YEAR({col}), 1) "
+        "P3M": "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
         "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
         "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
@@ -134,10 +136,20 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
         ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                'Please check your query for syntax errors near "%(server_error)s". '
+                "Then, try running your query again."
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
@@ -157,6 +169,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_datatype(cls, type_code: Any) -> Optional[str]:
         if not cls.type_code_map:
             # only import and store if needed at least once
+            # pylint: disable=import-outside-toplevel
             import MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE
@@ -186,19 +199,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return message
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(native_type)
         if column_spec:
@@ -207,3 +214,34 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get MySQL connection ID that will be used to cancel all other running
+        queries in the same connection.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: MySQL Connection ID
+        """
+        cursor.execute("SELECT CONNECTION_ID()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: MySQL Connection ID
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(f"KILL CONNECTION {cancel_query_id}")
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

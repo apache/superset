@@ -27,14 +27,16 @@ import ShareMenuItems from '.';
 
 const spy = jest.spyOn(copyTextToClipboard, 'default');
 
+const DASHBOARD_ID = '26';
 const createProps = () => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
-  url: '/superset/dashboard/26/?preselect_filters=%7B%7D',
+  url: `/superset/dashboard/${DASHBOARD_ID}/?preselect_filters=%7B%7D`,
   copyMenuItemTitle: 'Copy dashboard URL',
   emailMenuItemTitle: 'Share dashboard by email',
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
+  dashboardId: DASHBOARD_ID,
 });
 
 const { location } = window;
@@ -132,7 +134,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addSuccessToast).toBeCalledTimes(0);
     expect(props.addDangerToast).toBeCalledTimes(1);
     expect(props.addDangerToast).toBeCalledWith(
-      'Sorry, your browser does not support copying.',
+      'Sorry, something went wrong. Try again later.',
     );
   });
 });
@@ -157,7 +159,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   await waitFor(() => {
     expect(props.addDangerToast).toBeCalledTimes(0);
     expect(window.location.href).toBe(
-      'mailto:?Subject=Superset dashboard COVID Vaccine Dashboard%20&Body=Check out this dashboard: http://localhost:8088/r/3',
+      'mailto:?Subject=Superset%20dashboard%20COVID%20Vaccine%20Dashboard%20&Body=Check%20out%20this%20dashboard%3A%20http%3A%2F%2Flocalhost%3A8088%2Fr%2F3',
     );
   });
 });

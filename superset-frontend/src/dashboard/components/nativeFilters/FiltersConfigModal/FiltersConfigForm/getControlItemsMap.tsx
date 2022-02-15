@@ -23,15 +23,29 @@ import {
 import React from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
+import {
+  Filter,
+  getChartControlPanelRegistry,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem } from 'src/components/Form';
-import { getControlItems, setNativeFilterFieldValues } from './utils';
+import {
+  doesColumnMatchFilterType,
+  getControlItems,
+  setNativeFilterFieldValues,
+} from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
-import { StyledRowFormItem } from './FiltersConfigForm';
-import { Filter } from '../../types';
+import {
+  StyledFormItem,
+  StyledLabel,
+  StyledRowFormItem,
+} from './FiltersConfigForm';
+import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
+  datasetId: number;
   disabled: boolean;
   forceUpdate: Function;
   form: FormInstance<NativeFiltersForm>;
@@ -39,6 +53,7 @@ export interface ControlItemsProps {
   filterType: string;
   filterToEdit?: Filter;
   formFilter?: NativeFiltersFormItem;
+  removed?: boolean;
 }
 
 const CleanFormItem = styled(FormItem)`
@@ -46,6 +61,7 @@ const CleanFormItem = styled(FormItem)`
 `;
 
 export default function getControlItemsMap({
+  datasetId,
   disabled,
   forceUpdate,
   form,
@@ -53,20 +69,88 @@ export default function getControlItemsMap({
   filterType,
   filterToEdit,
   formFilter,
+  removed,
 }: ControlItemsProps) {
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
     getControlItems(controlPanelRegistry.get(filterType)) ?? [];
-  const map: Record<
+  const mapControlItems: Record<
+    string,
+    { element: React.ReactNode; checked: boolean }
+  > = {};
+  const mapMainControlItems: Record<
     string,
     { element: React.ReactNode; checked: boolean }
   > = {};
 
   controlItems
     .filter(
+      (mainControlItem: CustomControlItem) =>
+        mainControlItem?.name === 'groupby',
+    )
+    .forEach(mainControlItem => {
+      const initialValue =
+        filterToEdit?.controlValues?.[mainControlItem.name] ??
+        mainControlItem?.config?.default;
+      const initColumn = filterToEdit?.targets[0]?.column?.name;
+
+      const element = (
+        <>
+          <CleanFormItem
+            name={['filters', filterId, 'requiredFirst', mainControlItem.name]}
+            hidden
+            initialValue={
+              mainControlItem?.config?.requiredFirst &&
+              filterToEdit?.requiredFirst
+            }
+          />
+          <StyledFormItem
+            // don't show the column select unless we have a dataset
+            name={['filters', filterId, 'column']}
+            initialValue={initColumn}
+            label={
+              <StyledLabel>
+                {mainControlItem.config?.label || t('Column')}
+              </StyledLabel>
+            }
+            rules={[
+              {
+                required: mainControlItem.config?.required && !removed, // TODO: need to move ColumnSelect settings to controlPanel for all filters
+                message: t('Column is required'),
+              },
+            ]}
+            data-test="field-input"
+          >
+            <ColumnSelect
+              mode={mainControlItem.config?.multiple && 'multiple'}
+              form={form}
+              filterId={filterId}
+              datasetId={datasetId}
+              filterValues={column =>
+                doesColumnMatchFilterType(formFilter?.filterType || '', column)
+              }
+              onChange={() => {
+                // We need reset default value when when column changed
+                setNativeFilterFieldValues(form, filterId, {
+                  defaultDataMask: null,
+                });
+                forceUpdate();
+              }}
+            />
+          </StyledFormItem>
+        </>
+      );
+      mapMainControlItems[mainControlItem.name] = {
+        element,
+        checked: initialValue,
+      };
+    });
+  controlItems
+    .filter(
       (controlItem: CustomControlItem) =>
         controlItem?.config?.renderTrigger &&
-        controlItem.name !== 'sortAscending',
+        controlItem.name !== 'sortAscending' &&
+        controlItem.name !== 'enableSingleValue',
     )
     .forEach(controlItem => {
       const initialValue =
@@ -116,7 +200,7 @@ export default function getControlItemsMap({
                   forceUpdate();
                 }}
               >
-                {controlItem.config.label}{' '}
+                {controlItem.config.label}&nbsp;
                 {controlItem.config.description && (
                   <InfoTooltipWithTrigger
                     placement="top"
@@ -129,7 +213,10 @@ export default function getControlItemsMap({
           </Tooltip>
         </>
       );
-      map[controlItem.name] = { element, checked: initialValue };
+      mapControlItems[controlItem.name] = { element, checked: initialValue };
     });
-  return map;
+  return {
+    controlItems: mapControlItems,
+    mainControlItems: mapMainControlItems,
+  };
 }

@@ -41,7 +41,7 @@ function DatabaseErrorMessage({
 
   const isVisualization = ['dashboard', 'explore'].includes(source);
 
-  const body = (
+  const body = extra && (
     <>
       <p>
         {t('This may be triggered by:')}
@@ -75,13 +75,19 @@ function DatabaseErrorMessage({
     </>
   );
 
-  const copyText = `${message}
-${t('This may be triggered by:')}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
+  const copyText =
+    extra && extra.issue_codes
+      ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
+          message,
+          issues: extra.issue_codes
+            .map(issueCode => issueCode.message)
+            .join('\n'),
+        })
+      : message;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name || t('DB engine'))}
+      title={t('%s Error', (extra && extra.engine_name) || t('DB engine'))}
       subtitle={subtitle}
       level={level}
       source={source}

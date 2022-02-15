@@ -29,50 +29,46 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { ColumnObject } from 'src/views/CRUD/data/dataset/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DatasourceModal from 'src/datasource/DatasourceModal';
+import { DatasourceModal } from 'src/components/Datasource';
 import DeleteModal from 'src/components/DeleteModal';
+import handleResourceExport from 'src/utils/export';
 import ListView, {
   ListViewProps,
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
-} from 'src/components/Menu/SubMenu';
+} from 'src/views/components/SubMenu';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
-import CertifiedIcon from 'src/components/CertifiedIcon';
+import CertifiedBadge from 'src/components/CertifiedBadge';
+import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
-
-const PAGE_SIZE = 25;
-const PASSWORDS_NEEDED_MESSAGE = t(
-  'The passwords for the databases below are needed in order to ' +
-    'import them together with the datasets. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
-);
-const CONFIRM_OVERWRITE_MESSAGE = t(
-  'You are importing one or more datasets that already exist. ' +
-    'Overwriting might cause you to lose some of your work. Are you ' +
-    'sure you want to overwrite?',
-);
+import {
+  PAGE_SIZE,
+  SORT_BY,
+  PASSWORDS_NEEDED_MESSAGE,
+  CONFIRM_OVERWRITE_MESSAGE,
+} from './constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
 
-  > svg {
+  svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
@@ -103,6 +99,8 @@ interface DatasetListProps {
   addSuccessToast: (msg: string) => void;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 
@@ -124,21 +122,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     refreshData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
-  const [datasetAddModalOpen, setDatasetAddModalOpen] = useState<boolean>(
-    false,
-  );
+  const [datasetAddModalOpen, setDatasetAddModalOpen] =
+    useState<boolean>(false);
 
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     (Dataset & { chart_count: number; dashboard_count: number }) | null
   >(null);
 
-  const [
-    datasetCurrentlyEditing,
-    setDatasetCurrentlyEditing,
-  ] = useState<Dataset | null>(null);
+  const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
+    useState<Dataset | null>(null);
 
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -151,14 +147,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const handleDatasetImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Dataset imported'));
   };
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = SORT_BY;
 
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
@@ -166,8 +163,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
-          const owners = json.result.owners.map((owner: any) => owner.id);
-          setDatasetCurrentlyEditing({ ...json.result, owners });
+          const addCertificationFields = json.result.columns.map(
+            (column: ColumnObject) => {
+              const {
+                certification: { details = '', certified_by = '' } = {},
+              } = JSON.parse(column.extra || '{}') || {};
+              return {
+                ...column,
+                certification_details: details || '',
+                certified_by: certified_by || '',
+                is_certified: details || certified_by,
+              };
+            },
+          );
+          // eslint-disable-next-line no-param-reassign
+          json.result.columns = [...addCertificationFields];
+          setDatasetCurrentlyEditing(json.result);
         })
         .catch(() => {
           addDangerToast(
@@ -233,6 +244,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: {
               extra,
               table_name: datasetTitle,
+              description,
               explore_url: exploreURL,
             },
           },
@@ -243,17 +255,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             return (
               <FlexRowContainer>
                 {parsedExtra?.certification && (
-                  <CertifiedIcon
+                  <CertifiedBadge
                     certifiedBy={parsedExtra.certification.certified_by}
                     details={parsedExtra.certification.details}
+                    size="l"
                   />
                 )}
                 {parsedExtra?.warning_markdown && (
                   <WarningIconWithTooltip
                     warningMarkdown={parsedExtra.warning_markdown}
+                    size="l"
                   />
                 )}
                 {titleLink}
+                {description && (
+                  <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
+                )}
               </FlexRowContainer>
             );
           } catch {
@@ -412,7 +429,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               errMsg,
             ),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
@@ -492,22 +509,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       onClick: () => setDatasetAddModalOpen(true),
       buttonStyle: 'primary',
     });
-  }
 
-  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-    buttonArr.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import datasets')}
-          placement="bottomRight"
-        >
-          <Icons.Import data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openDatasetImportModal,
-    });
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      buttonArr.push({
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import datasets')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: openDatasetImportModal,
+      });
+    }
   }
 
   menuData.buttons = buttonArr;
@@ -555,12 +572,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) =>
-    window.location.assign(
-      `/api/v1/dataset/export/?q=${rison.encode(
-        datasetsToExport.map(({ id }) => id),
-      )}`,
-    );
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    const ids = datasetsToExport.map(({ id }) => id);
+    handleResourceExport('dataset', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   return (
     <>
@@ -690,6 +708,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 };

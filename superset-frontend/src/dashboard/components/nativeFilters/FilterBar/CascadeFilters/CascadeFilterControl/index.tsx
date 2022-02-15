@@ -16,34 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styled, DataMask } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import React, { RefObject } from 'react';
+import {
+  DataMaskStateWithId,
+  Filter,
+  styled,
+  DataMask,
+} from '@superset-ui/core';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 
 export interface CascadeFilterControlProps {
   dataMaskSelected?: DataMaskStateWithId;
   filter: CascadeFilter;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  parentRef?: RefObject<any>;
 }
 
-const StyledCascadeChildrenList = styled.ul`
-  list-style-type: none;
-  & > * {
-    list-style-type: none;
-  }
-`;
-
-const StyledFilterControlBox = styled.div`
+const StyledDiv = styled.div`
   display: flex;
-`;
-
-const StyledCaretIcon = styled(Icon)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
 `;
 
 const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
@@ -51,30 +49,28 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
   directPathToChild,
   onFilterSelectionChange,
+  parentRef,
 }) => (
   <>
-    <StyledFilterControlBox>
-      <StyledCaretIcon name="caret-down" />
-      <FilterControl
-        dataMaskSelected={dataMaskSelected}
-        filter={filter}
-        directPathToChild={directPathToChild}
-        onFilterSelectionChange={onFilterSelectionChange}
-      />
-    </StyledFilterControlBox>
-
-    <StyledCascadeChildrenList>
+    <FilterControl
+      dataMaskSelected={dataMaskSelected}
+      filter={filter}
+      directPathToChild={directPathToChild}
+      parentRef={parentRef}
+      showOverflow
+      onFilterSelectionChange={onFilterSelectionChange}
+    />
+    <StyledDiv>
       {filter.cascadeChildren?.map(childFilter => (
-        <li key={childFilter.id}>
-          <CascadeFilterControl
-            dataMaskSelected={dataMaskSelected}
-            filter={childFilter}
-            directPathToChild={directPathToChild}
-            onFilterSelectionChange={onFilterSelectionChange}
-          />
-        </li>
+        <CascadeFilterControl
+          key={childFilter.id}
+          dataMaskSelected={dataMaskSelected}
+          filter={childFilter}
+          directPathToChild={directPathToChild}
+          onFilterSelectionChange={onFilterSelectionChange}
+        />
       ))}
-    </StyledCascadeChildrenList>
+    </StyledDiv>
   </>
 );
 
