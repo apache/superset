@@ -20,7 +20,7 @@ API For Business Type REST requests
 from typing import Any
 
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, rison
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
@@ -55,6 +55,8 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     }
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
+    @protect()
+    @safe
     @expose("/convert", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
@@ -122,6 +124,8 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, result=bus_resp)
 
+    @protect()
+    @safe
     @expose("/types", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
