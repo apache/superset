@@ -1424,7 +1424,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
             qry = qry.where(and_(*where_clause_and))
-            print(qry.where)
         qry = qry.having(and_(*having_clause_and))
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
