@@ -2837,6 +2837,12 @@
             "minLength": 1,
             "type": "string"
           },
+          "business_type": {
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "uuid": {
             "nullable": true,
             "type": "string"
@@ -3831,6 +3837,12 @@
           },
           "type": {
             "maxLength": 32,
+            "nullable": true,
+            "type": "string"
+          },
+          "business_type": {
+            "maxLength": 255,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },

@@ -189,7 +189,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
         "extra",
     ]
-    edit_columns = edit_columns + ["columns.business_type"]
     openapi_spec_tag = "Datasets"
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
