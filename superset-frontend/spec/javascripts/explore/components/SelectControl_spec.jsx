@@ -98,15 +98,42 @@ describe('SelectControl', () => {
         multi: true,
         allowAll: true,
         choices: expectedValues,
+        options: expectedValues,
         name: 'row_limit',
         label: 'Row Limit',
         valueKey: 'value',
         onChange: sinon.spy(),
       };
       wrapper.setProps(selectAllProps);
-      wrapper.instance().onChange([{ meta: true, value: 'Select all' }]);
-      expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
+      wrapper.instance().onChange(['Select all']);
+      expect(selectAllProps.onChange.calledWith(expectedValues, [])).toBe(true);
     });
+
+    it('returns all options on Deprecated select all', () => {
+      const expectedValues = ['one', 'two'];
+      const selectAllProps = {
+        multi: true,
+        allowAll: true,
+        deprecatedSelectFlag: true,
+        choices: expectedValues,
+        options: expectedValues,
+        name: 'row_limit',
+        label: 'Row Limit',
+        valueKey: 'value',
+        onChange: sinon.spy(),
+      };
+      wrapper.setProps(selectAllProps);
+      wrapper.instance().onChangeDeprecated([
+        {
+          label: 'Select all',
+          meta: true,
+          value: 'Select all',
+          column_name: 'Select all',
+        },
+      ]);
+      expect(selectAllProps.onChange.calledWith(expectedValues, [])).toBe(true);
+    });
+
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {
