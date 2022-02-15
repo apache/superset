@@ -55,6 +55,10 @@ export const URL_PARAMS = {
     name: 'show_filters',
     type: 'boolean',
   },
+  expandFilters: {
+    name: 'expand_filters',
+    type: 'boolean',
+  },
   formDataKey: {
     name: 'form_data_key',
     type: 'string',
