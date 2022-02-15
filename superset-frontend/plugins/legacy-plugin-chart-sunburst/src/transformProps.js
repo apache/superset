@@ -18,7 +18,8 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData, datasource } = chartProps;
-  const { colorScheme, linearColorScheme, metric, secondaryMetric } = formData;
+  const { colorScheme, linearColorScheme, metric, secondaryMetric, sliceId } =
+    formData;
 
   const returnProps = {
     width,
@@ -27,6 +28,7 @@ export default function transformProps(chartProps) {
     colorScheme,
     linearColorScheme,
     metrics: [metric, secondaryMetric],
+    sliceId,
   };
 
   if (datasource && datasource.metrics) {

@@ -170,6 +170,7 @@ function Sunburst(element, props) {
     linearColorScheme,
     metrics,
     numberFormat,
+    sliceId,
   } = props;
   const responsiveClass = getResponsiveContainerClass(width);
   const isSmallWidth = responsiveClass === 's';
@@ -287,7 +288,7 @@ function Sunburst(element, props) {
       .attr('points', breadcrumbPoints)
       .style('fill', d =>
         colorByCategory
-          ? categoricalColorScale(d.name)
+          ? categoricalColorScale(d.name, sliceId)
           : linearColorScale(d.m2 / d.m1),
       );
 
@@ -300,7 +301,7 @@ function Sunburst(element, props) {
         // Make text white or black based on the lightness of the background
         const col = d3.hsl(
           colorByCategory
-            ? categoricalColorScale(d.name)
+            ? categoricalColorScale(d.name, sliceId)
             : linearColorScale(d.m2 / d.m1),
         );
 
@@ -507,7 +508,7 @@ function Sunburst(element, props) {
       .attr('fill-rule', 'evenodd')
       .style('fill', d =>
         colorByCategory
-          ? categoricalColorScale(d.name)
+          ? categoricalColorScale(d.name, sliceId)
           : linearColorScale(d.m2 / d.m1),
       )
       .style('opacity', 1)
