@@ -126,8 +126,9 @@ def port_translate_filter_func(
         if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
             return_expression = col <= value[-1]
         if operator == FilterOperator.NOT_EQUALS.value:
-            return_expression=  ~col.in_(value)
+            return_expression = ~col.in_(value)
     return return_expression
+
 
 port: BusinessType = BusinessType(
     verbose_name="port",

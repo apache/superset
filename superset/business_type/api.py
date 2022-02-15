@@ -14,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-API For Business Type REST requests
-"""
 from typing import Any
 
 from flask.wrappers import Response
@@ -73,7 +70,8 @@ class BusinessTypeRestApi(BaseApi):
                   $ref: '#/components/schemas/business_type_convert_schema'
           responses:
             200:
-              description: BusinessTypeResponse object has been returned.
+              description: >-
+                BusinessTypeResponse object has been returned.
               content:
                 application/json:
                   schema:
@@ -135,8 +133,9 @@ class BusinessTypeRestApi(BaseApi):
             Returns a list of available business types.
           responses:
             200:
-              description: a successful return of the available
-              business types has taken place.
+              description: >-
+                a successful return of the available
+                business types has taken place.
               content:
                 application/json:
                   schema:

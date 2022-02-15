@@ -106,27 +106,19 @@ def cidr_translate_filter_func(
             )
         if operator == FilterOperator.GREATER_THAN_OR_EQUALS.value:
             return_expression = (
-                col >= value
-                if not isinstance(value, dict)
-                else col >= value["end"]
+                col >= value if not isinstance(value, dict) else col >= value["end"]
             )
         if operator == FilterOperator.GREATER_THAN.value:
             return_expression = (
-                col > value
-                if not isinstance(value, dict)
-                else col > value["end"]
+                col > value if not isinstance(value, dict) else col > value["end"]
             )
         if operator == FilterOperator.LESS_THAN.value:
             return_expression = (
-                col < value
-                if not isinstance(value, dict)
-                else col < value["start"]
+                col < value if not isinstance(value, dict) else col < value["start"]
             )
         if operator == FilterOperator.LESS_THAN_OR_EQUALS.value:
             return_expression = (
-                col <= value
-                if not isinstance(value, dict)
-                else col <= value["start"]
+                col <= value if not isinstance(value, dict) else col <= value["start"]
             )
         if operator == FilterOperator.NOT_EQUALS.value:
             return_expression = (
@@ -135,6 +127,7 @@ def cidr_translate_filter_func(
                 else (col > value["end"]) | (col < value["start"])
             )
     return return_expression
+
 
 internet_address: BusinessType = BusinessType(
     verbose_name="internet address",
