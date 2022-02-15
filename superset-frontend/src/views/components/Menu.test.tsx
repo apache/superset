@@ -109,31 +109,6 @@ const mockedProps = {
           '-',
         ],
       },
-      {
-        name: 'Upload Data',
-        icon: 'fa-database',
-        label: 'Data',
-        childs: [
-          {
-            name: 'Upload a CSV',
-            icon: 'fa-upload',
-            label: 'Upload a CSV',
-            url: '/csvtodatabaseview/form',
-          },
-          {
-            name: 'Upload a Columnar file',
-            icon: 'fa-upload',
-            label: 'Upload a Columnar File',
-            url: '/columnartodatabaseview/form',
-          },
-          {
-            name: 'Upload Excel',
-            icon: 'fa-upload',
-            label: 'Upload Excel',
-            url: '/exceltodatabaseview/form',
-          },
-        ],
-      },
     ],
     brand: {
       path: '/superset/profile/admin/',
@@ -187,6 +162,11 @@ const mockedProps = {
         ],
       },
     ],
+    allowedExtensions: {
+      columnar_extensions: true,
+      csv_extensions: true,
+      excel_extensions: true,
+    },
   },
 };
 
