@@ -68,6 +68,11 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
+    allowedExtensions: {
+      columnar_extensions: boolean;
+      csv_extensions: boolean;
+      excel_extensions: boolean;
+    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }
@@ -192,7 +197,7 @@ const { SubMenu } = DropdownMenu;
 const { useBreakpoint } = Grid;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings },
+  data: { menu, brand, navbar_right: navbarRight, settings, allowedExtensions },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
@@ -200,10 +205,6 @@ export function Menu({
   const uiConig = useUiConfig();
   const theme = useTheme();
   const filteredMenu = menu.filter(item => item.name !== 'Upload Data');
-
-  const getUploadMenulinks: MenuObjectProps[] = menu.find(
-    item => item.name === 'Upload Data',
-  )?.childs as unknown as MenuObjectProps[];
 
   useEffect(() => {
     function handleResize() {
@@ -295,7 +296,6 @@ export function Menu({
             className="main-nav"
           >
             {filteredMenu.map(item => {
-              if (item.name === 'Upload Data') return null;
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
@@ -317,7 +317,7 @@ export function Menu({
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
-            menuUploadlinks={getUploadMenulinks}
+            allowedExtensions={allowedExtensions}
             align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}

@@ -32,6 +32,26 @@ export const dropdownItems = [
   {
     label: t('Data'),
     icon: 'fa-database',
+    childs: [
+      {
+        icon: 'fa-upload',
+        label: 'Upload a CSV',
+        name: 'Upload a CSV',
+        url: '/csvtodatabaseview/form',
+      },
+      {
+        icon: 'fa-upload',
+        label: 'Upload a Columnar File',
+        name: 'Upload a Columnar file',
+        url: '/columnartodatabaseview/form',
+      },
+      {
+        icon: 'fa-upload',
+        label: 'Upload Excel',
+        name: 'Upload Excel',
+        url: '/exceltodatabaseview/form',
+      },
+    ],
   },
   {
     label: t('SQL query'),
@@ -90,7 +110,11 @@ interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
-  menuUploadlinks: Array<MenuObjectProps>;
+  allowedExtensions: {
+    columnar_extensions: boolean;
+    csv_extensions: boolean;
+    excel_extensions: boolean;
+  };
 }
 
 const RightMenu = ({
@@ -98,7 +122,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-  menuUploadlinks,
+  allowedExtensions,
 }: RightMenuProps) => {
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -142,14 +166,24 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu as MenuObjectProps)}
                   >
-                    <Menu.Item key="connectDB">Connect Database</Menu.Item>
-                    <Menu.Divider />
-                    {/* add divider here */}
-                    {menuUploadlinks.map(item => (
-                      <Menu.Item key={item.name}>
-                        <a href={item.url}> {item.label} </a>
+                    {allowedExtensions?.csv_extensions && (
+                      <Menu.Item key="Upload a CSV">
+                        <a href="/csvtodatabaseview/form"> Upload a CSV </a>
                       </Menu.Item>
-                    ))}
+                    )}
+                    {allowedExtensions?.columnar_extensions && (
+                      <Menu.Item key="Upload a Columnar File">
+                        <a href="/columnartodatabaseview/form">
+                          {' '}
+                          Upload a Columnar File{' '}
+                        </a>
+                      </Menu.Item>
+                    )}
+                    {allowedExtensions?.excel_extensions && (
+                      <Menu.Item key="Upload Excel">
+                        <a href="/exceltodatabaseview/form"> Upload Excel </a>
+                      </Menu.Item>
+                    )}
                   </SubMenu>
                 );
               }
