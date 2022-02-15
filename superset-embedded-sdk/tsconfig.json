@@ -3,6 +3,8 @@
     // syntax rules
     "strict": true,
 
+    "moduleResolution": "node",
+
     // environment
     "target": "es6",
     "lib": ["DOM", "ESNext"],
