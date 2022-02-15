@@ -131,6 +131,12 @@ const FilterableTable = ({
   striped = true,
   expandedColumns = [],
 }: FilterableTableProps) => {
+  const list = formatTableData(data);
+
+  const [sortBy, setSortBy] = useState('');
+  const [sortDirection, setSortDirection] = useState<SortDirectionType>('');
+  const [fitted, setFitted] = useState(false);
+  const [displayedList, setDisplayedList] = useState<Datum[]>([...list]);
   // list: Datum[];
   //
   // complexColumns: Record<string, boolean>;
@@ -200,10 +206,7 @@ const FilterableTable = ({
       // Javascript function
       widthsByColumnKey[key] =
         colWidths
-          .slice(
-            index * (this.list.length + 1),
-            (index + 1) * (this.list.length + 1),
-          )
+          .slice(index * (list.length + 1), (index + 1) * (list.length + 1))
           .reduce((a, b) => Math.max(a, b)) + PADDING;
     });
 
@@ -233,8 +236,8 @@ const FilterableTable = ({
     return this.complexColumns[columnKey] ? truncated : content;
   };
 
-  const formatTableData = (data: Record<string, unknown>[]): Datum[] => {
-    return data.map(row => {
+  const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
+    data.map(row => {
       const newRow = {};
       Object.entries(row).forEach(([key, val]) => {
         if (['string', 'number'].indexOf(typeof val) >= 0) {
@@ -245,7 +248,6 @@ const FilterableTable = ({
       });
       return newRow;
     });
-  };
 
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
@@ -292,15 +294,15 @@ const FilterableTable = ({
         ...this.state,
         sortBy: undefined,
         sortDirection: undefined,
-        displayedList: [...this.list],
+        displayedList: [...list],
       };
     } else {
       updatedState = {
         ...this.state,
         sortBy,
         sortDirection,
-        displayedList: [...this.list].sort(
-          this.sortResults(sortBy, sortDirection === SortDirection.DESC),
+        displayedList: [...list].sort(
+          sortResults(sortBy, sortDirection === SortDirection.DESC),
         ),
       };
     }
@@ -448,7 +450,7 @@ const FilterableTable = ({
           className={`${className} grid-cell grid-header-cell`}
           role="columnheader"
           tabIndex={columnIndex}
-          onClick={() => this.sortGrid(label)}
+          onClick={() => sortGrid(label)}
         >
           {label}
           {this.state.sortBy === label && (
@@ -485,7 +487,7 @@ const FilterableTable = ({
               ? style.top - GRID_POSITION_ADJUSTMENT
               : style.top,
         }}
-        className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
+        className={`grid-cell ${rowClassName({ index: rowIndex })}`}
       >
         <div css={{ width: 'inherit' }}>{content}</div>
       </div>
@@ -496,7 +498,7 @@ const FilterableTable = ({
       return addJsonModal(cellNode, jsonObject, cellData);
     }
     return cellNode;
-  }
+  };
 
   const renderGrid = () => {
     let { height } = this.props;
@@ -542,7 +544,7 @@ const FilterableTable = ({
                       onScroll={onScroll}
                       overscanColumnCount={overscanColumnCount}
                       overscanRowCount={overscanRowCount}
-                      rowCount={this.list.length}
+                      rowCount={list.length}
                       rowHeight={rowHeight}
                       width={width}
                     />
@@ -580,7 +582,7 @@ const FilterableTable = ({
     // filter list
     if (filterText) {
       sortedAndFilteredList = sortedAndFilteredList.filter((row: Datum) =>
-        this.hasMatch(filterText, row),
+        hasMatch(filterText, row),
       );
     }
 
@@ -609,7 +611,7 @@ const FilterableTable = ({
             headerHeight={headerHeight}
             height={totalTableHeight}
             overscanRowCount={overscanRowCount}
-            rowClassName={this.rowClassName}
+            rowClassName={rowClassName}
             rowHeight={rowHeight}
             rowGetter={rowGetter}
             rowCount={sortedAndFilteredList.length}
