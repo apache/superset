@@ -332,8 +332,9 @@ export function runQuery(query) {
       expand_data: true,
     };
 
+    const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: '/superset/sql_json/',
+      endpoint: `/superset/sql_json/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'text',
