@@ -40,9 +40,9 @@ export default styled.div`
   }
   th svg {
     color: ${({ theme: { colors } }) => colors.grayscale.light2};
-    position: relative;
+    position: absolute;
     vertical-align: middle;
-    margin: 0 ${({ theme: { gridUnit } }) => gridUnit}px;
+    margin: ${({ theme: { gridUnit } }) => `${gridUnit / 2}px ${gridUnit}px`};
   }
   th.is-sorted svg {
     color: ${({ theme: { colors } }) => colors.grayscale.base};
