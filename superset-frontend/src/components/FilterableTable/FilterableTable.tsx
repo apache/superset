@@ -131,6 +131,19 @@ const FilterableTable = ({
   striped = true,
   expandedColumns = [],
 }: FilterableTableProps) => {
+  const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
+    data.map(row => {
+      const newRow = {};
+      Object.entries(row).forEach(([key, val]) => {
+        if (['string', 'number'].indexOf(typeof val) >= 0) {
+          newRow[key] = val;
+        } else {
+          newRow[key] = val === null ? null : JSONbig.stringify(val);
+        }
+      });
+      return newRow;
+    });
+
   const list = formatTableData(data);
 
   const [sortBy, setSortBy] = useState('');
@@ -236,19 +249,6 @@ const FilterableTable = ({
     return this.complexColumns[columnKey] ? truncated : content;
   };
 
-  const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
-    data.map(row => {
-      const newRow = {};
-      Object.entries(row).forEach(([key, val]) => {
-        if (['string', 'number'].indexOf(typeof val) >= 0) {
-          newRow[key] = val;
-        } else {
-          newRow[key] = val === null ? null : JSONbig.stringify(val);
-        }
-      });
-      return newRow;
-    });
-
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
     Object.keys(row).forEach(key => {
@@ -316,27 +316,25 @@ const FilterableTable = ({
       // fit table width if content doesn't fill the width of the container
       this.totalTableWidth = containerWidth;
     }
-    this.setState({ fitted: true });
+    setFitted(true);
   };
 
   const addJsonModal = (
     node: React.ReactNode,
     jsonObject: Record<string, unknown> | unknown[],
     jsonString: CellDataType,
-  ) => {
-    return (
-      <ModalTrigger
-        modalBody={<JSONTree data={jsonObject} theme={JSON_TREE_THEME} />}
-        modalFooter={
-          <Button>
-            <CopyToClipboard shouldShowText={false} text={jsonString} />
-          </Button>
-        }
-        modalTitle={t('Cell content')}
-        triggerNode={node}
-      />
-    );
-  };
+  ) => (
+    <ModalTrigger
+      modalBody={<JSONTree data={jsonObject} theme={JSON_TREE_THEME} />}
+      modalFooter={
+        <Button>
+          <CopyToClipboard shouldShowText={false} text={jsonString} />
+        </Button>
+      }
+      modalTitle={t('Cell content')}
+      triggerNode={node}
+    />
+  );
 
   // Parse any numbers from strings so they'll sort correctly
   const parseNumberFromString = (value: string | number | null) => {
@@ -453,9 +451,7 @@ const FilterableTable = ({
           onClick={() => sortGrid(label)}
         >
           {label}
-          {this.state.sortBy === label && (
-            <SortIndicator sortDirection={this.state.sortDirection} />
-          )}
+          {sortBy === label && <SortIndicator sortDirection={sortDirection} />}
         </div>
       </Tooltip>
     );
@@ -473,7 +469,7 @@ const FilterableTable = ({
     style: React.CSSProperties;
   }) => {
     const columnKey = orderedColumnKeys[columnIndex];
-    const cellData = this.state.displayedList[rowIndex][columnKey];
+    const cellData = displayedList[rowIndex][columnKey];
     const cellText = getCellContent({ cellData, columnKey });
     const content =
       cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
@@ -576,9 +572,7 @@ const FilterableTable = ({
   };
 
   const renderTable = () => {
-    const { sortBy, sortDirection } = this.state;
-
-    let sortedAndFilteredList = this.state.displayedList;
+    let sortedAndFilteredList = displayedList;
     // filter list
     if (filterText) {
       sortedAndFilteredList = sortedAndFilteredList.filter((row: Datum) =>
@@ -605,7 +599,7 @@ const FilterableTable = ({
         className="filterable-table-container"
         ref={this.container}
       >
-        {this.state.fitted && (
+        {fitted && (
           <Table
             ref="Table"
             headerHeight={headerHeight}
