@@ -16,11 +16,11 @@
 # under the License.
 from typing import Any
 
+from flask import current_app as app
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset import app
 from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.business_type.schemas import business_type_convert_schema
 from superset.extensions import event_logger
