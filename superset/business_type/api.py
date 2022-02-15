@@ -41,6 +41,7 @@ class BusinessTypeRestApi(BaseApi):
     -Will return a BusinessTypeResponse object when the /convert endpoint is accessed
     and is passed in valid arguments
     """
+
     allow_browser_login = True
     include_route_methods = {"get", "get_types"}
     resource_name = "business_type"
@@ -49,7 +50,6 @@ class BusinessTypeRestApi(BaseApi):
     apispec_parameter_schemas = {
         "business_type_convert_schema": business_type_convert_schema,
     }
-
 
     @protect()
     @safe

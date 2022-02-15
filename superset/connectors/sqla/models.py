@@ -1299,13 +1299,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
-                
+
                 eq = self.filter_values_handler(
                     values=val,
                     target_column_type=target_type,
                     is_list_target=is_list_target,
                 )
-                
+
                 if (
                     col_busniness_type != ""
                     and feature_flag_manager.is_feature_enabled("ENABLE_BUSINESS_TYPES")
