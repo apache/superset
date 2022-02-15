@@ -33,8 +33,8 @@ import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { Dashboard, Filters } from './types';
 
-// Modifies the rison encoding slightly to match the backend's
-// rison encoding/decoding. Applies globally. Code pulled from rison.js
+// Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
+// Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
 (() => {
   const risonRef: {
     not_idchar: string;

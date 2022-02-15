@@ -176,17 +176,13 @@ test('does not ask for password when the import type is wrong', () => {
 test('successfully modified rison to encode correctly', () => {
   const problemCharacters = '& # ? ^ { } [ ] | " = + `';
 
-  const testObject = problemCharacters.split(' ').reduce((a, c) => {
-    // eslint-disable-next-line no-param-reassign
-    a[c] = c;
-    return a;
-  }, {});
+  problemCharacters.split(' ').forEach(char => {
+    const testObject = { test: char };
 
-  const actualEncoding = rison.encode(testObject);
+    const actualEncoding = rison.encode(testObject);
+    const expectedEncoding = `(test:'${char}')`; // Ex: (test:'&')
 
-  const expectedEncoding =
-    "('\"':'\"','#':'#','&':'&','+':'+','=':'=','?':'?','[':'[',']':']','^':'^','`':'`','{':'{','|':'|','}':'}')";
-
-  expect(actualEncoding).toEqual(expectedEncoding);
-  expect(rison.decode(actualEncoding)).toEqual(testObject);
+    expect(actualEncoding).toEqual(expectedEncoding);
+    expect(rison.decode(actualEncoding)).toEqual(testObject);
+  });
 });
