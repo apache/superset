@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import {
   isNeedsPassword,
   isAlreadyExists,
@@ -170,4 +171,18 @@ test('does not ask for password when the import type is wrong', () => {
     ],
   };
   expect(hasTerminalValidation(error.errors)).toBe(true);
+});
+
+test('successfully modified rison to encode correctly', () => {
+  const problemCharacters = '& # ? ^ { } [ ] | " = + `';
+
+  problemCharacters.split(' ').forEach(char => {
+    const testObject = { test: char };
+
+    const actualEncoding = rison.encode(testObject);
+    const expectedEncoding = `(test:'${char}')`; // Ex: (test:'&')
+
+    expect(actualEncoding).toEqual(expectedEncoding);
+    expect(rison.decode(actualEncoding)).toEqual(testObject);
+  });
 });
