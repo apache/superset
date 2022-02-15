@@ -170,10 +170,11 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      if (metadata?.shared_label_colors) {
-        delete metadata.shared_label_colors;
+      const metaDataCopy = { ...metadata };
+      if (metaDataCopy?.shared_label_colors) {
+        delete metaDataCopy.shared_label_colors;
       }
-      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
+      setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
   );

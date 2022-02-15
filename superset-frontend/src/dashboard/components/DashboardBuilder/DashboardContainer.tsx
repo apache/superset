@@ -107,7 +107,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [JSON.stringify(filterScopes), JSON.stringify(dashboardLayout), dispatch]);
+  }, [JSON.stringify(filterScopes), dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
