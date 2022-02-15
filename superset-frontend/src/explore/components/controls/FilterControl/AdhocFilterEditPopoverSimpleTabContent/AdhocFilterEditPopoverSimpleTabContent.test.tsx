@@ -37,6 +37,8 @@ import AdhocFilterEditPopoverSimpleTabContent, {
 } from '.';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
+import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
@@ -389,6 +391,18 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       );
     });
   };
+
+  let isFeatureEnabledMock: any;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(
+        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ENABLE_BUSINESS_TYPES,);
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
+  });
 
   it('should not call API when column has no business type', async () => {
     fetchMock.resetHistory();
