@@ -287,15 +287,27 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
 
+def apply_cte(
+    database: Database, sql: str
+) -> str:
+    # Use the Basengine function to parse the SQL for CTE
+    sql = database.db_engine_spec.get_cte_query(sql)
+    return sql
+
+
 def apply_limit_if_exists(
     database: Database, increased_limit: Optional[int], query: Query, sql: str
 ) -> str:
     if query.limit and increased_limit:
         # We are fetching one more than the requested limit in order
-        # to test whether there are more rows than the limit.
+        # to test whether there are more rows than the limit. According to the DB
+        # Engine support it will choose top or limit parse
         # Later, the extra row will be dropped before sending
         # the results back to the user.
-        sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
+        if database.db_engine_spec.allow_limit_clause:
+            sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
+        else:
+            sql = database.apply_top_to_sql(sql, increased_limit, force=True)
     return sql
 
 

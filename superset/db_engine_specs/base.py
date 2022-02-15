@@ -300,6 +300,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then it will allow  in subquery ,
     # if False it will allow as regular CTE
     allows_cte_in_subquery = True
+    # Whether allow LIMIT clause in the SQL
+    # If True, then the database engine is allowed for LIMIT clause
+    # If False, then the database engine is allowed for TOP clause
+    allow_limit_clause = True
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -648,6 +652,57 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             sql = parsed_query.set_or_update_query_limit(limit, force=force)
 
         return sql
+
+    @classmethod
+    def apply_top_to_sql(
+        cls, sql: str, _limit: int, database: str = "Database", force: bool = False
+    ) -> str:
+        """
+        Alters the SQL statement to apply a TOP clause
+        :param _limit: Maximum number of rows to be returned by the query
+        :param sql: SQL query
+        :param database: Database instance
+        :return: SQL query with top clause
+        """
+        sql_statement = sqlparse.format(sql, strip_comments=True)
+        query_limit: Optional[int] = sql_parse._extract_top_from_query(sql_statement)
+        td_sel_keywords = {"SELECT"}
+        td_top_keywords = {"TOP"}
+        if not _limit:
+            final_limit = query_limit
+        elif int(query_limit or 0) < _limit and query_limit is not None:
+            final_limit = query_limit
+        else:
+            final_limit = _limit
+        str_statement = str(sql_statement)
+        str_statement = str_statement.replace("\n", " ").replace("\r", "")
+
+        tokens = str_statement.rstrip().split(" ")
+        tokens = [token for token in tokens if token]
+        if cls.top_not_in_sql(str_statement, td_top_keywords):
+            selects = [i for i, word in enumerate(tokens) if word.upper() in td_sel_keywords]
+            first_select = selects[0]
+            tokens.insert(first_select + 1, "TOP")
+            tokens.insert(first_select + 2, str(final_limit))
+
+        next_is_limit_token = False
+        new_tokens = []
+
+        for token in tokens:
+            if token in td_top_keywords:
+                next_is_limit_token = True
+            elif next_is_limit_token:
+                if token.isdigit():
+                    token = str(final_limit)
+                    next_is_limit_token = False
+            new_tokens.append(token)
+        return " ".join(new_tokens)
+
+    def top_not_in_sql(sql: str, top_words: Set[str]) -> bool:
+        for top_word in top_words:
+            if top_word in sql:
+                return False
+        return True
 
     @classmethod
     def get_limit_from_sql(cls, sql: str) -> Optional[int]:

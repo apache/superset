@@ -77,6 +77,29 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
                 return int(token.value)
     return None
 
+def _extract_top_from_query(statement: TokenList) -> Optional[int]:
+    """
+    Extract top clause value from SQL statement.
+
+    :param statement: SQL statement
+    :return: top value extracted from query, None if no top value present in statement
+    """
+
+    td_top_keyword = {"TOP"}
+    str_statement = str(statement)
+    str_statement = str_statement.replace("\n", " ").replace("\r", "")
+    token = str_statement.rstrip().split(" ")
+    token = [part for part in token if part]
+    top = None
+    for i, _ in enumerate(token):
+        if token[i].upper() in td_top_keyword and len(token) - 1 > i:
+            try:
+                top = int(token[i + 1])
+            except ValueError:
+                top = None
+            break
+    return top
+
 
 def strip_comments_from_sql(statement: str) -> str:
     """
