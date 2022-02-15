@@ -533,16 +533,14 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     await waitFor(() =>
       expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
     );
-    expect(props.validHandler.lastCall.args[0]).toBe(true)
+    expect(props.validHandler.lastCall.args[0]).toBe(true);
 
-    const operatorValueField = screen.getByText(
-      '1 operator(s)',
-    );
+    const operatorValueField = screen.getByText('1 operator(s)');
 
     await act(async () => {
       userEvent.type(operatorValueField, '{enter}');
     });
 
-    expect(screen.getByText("equals")).toBeTruthy();
+    expect(screen.getByText('equals')).toBeTruthy();
   });
 });
