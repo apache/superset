@@ -103,13 +103,13 @@ interface FilterableTableProps {
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
-  filterText: string;
-  headerHeight: number;
-  overscanColumnCount: number;
-  overscanRowCount: number;
-  rowHeight: number;
-  striped: boolean;
-  expandedColumns: string[];
+  filterText?: string;
+  headerHeight?: number;
+  overscanColumnCount?: number;
+  overscanRowCount?: number;
+  rowHeight?: number;
+  striped?: boolean;
+  expandedColumns?: string[];
 }
 
 const FilterableTable = ({
@@ -155,30 +155,34 @@ const FilterableTable = ({
     return [...list];
   });
 
-  useState(() => {
-    list = formatTableData(data);
-
-    // columns that have complex type and were expanded into sub columns
-    complexColumns = orderedColumnKeys.reduce(
-      (obj, key) => ({
-        ...obj,
-        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
-      }),
-      {},
-    );
-
-    widthsForColumnsByKey = getWidthsForColumns();
-    totalTableWidth = orderedColumnKeys
-      .map(key => widthsForColumnsByKey[key])
-      .reduce((curr, next) => curr + next);
-    totalTableHeight = height;
-  });
-
   useEffect(() => {
     fitTableToWidthIfNeeded();
   }, []);
 
   const getDatum = (list: Datum[], index: number) => list[index % list.length];
+
+  const getCellContent = ({
+    cellData,
+    columnKey,
+  }: {
+    cellData: CellDataType;
+    columnKey: string;
+  }) => {
+    if (cellData === null) {
+      return 'NULL';
+    }
+    const content = String(cellData);
+    const firstCharacter = content.substring(0, 1);
+    let truncated;
+    if (firstCharacter === '[') {
+      truncated = '[…]';
+    } else if (firstCharacter === '{') {
+      truncated = '{…}';
+    } else {
+      truncated = '';
+    }
+    return complexColumns[columnKey] ? truncated : content;
+  };
 
   const getWidthsForColumns = () => {
     const PADDING = 50; // accounts for cell padding and width of sorting icon
@@ -211,28 +215,24 @@ const FilterableTable = ({
     return widthsByColumnKey;
   };
 
-  const getCellContent = ({
-    cellData,
-    columnKey,
-  }: {
-    cellData: CellDataType;
-    columnKey: string;
-  }) => {
-    if (cellData === null) {
-      return 'NULL';
-    }
-    const content = String(cellData);
-    const firstCharacter = content.substring(0, 1);
-    let truncated;
-    if (firstCharacter === '[') {
-      truncated = '[…]';
-    } else if (firstCharacter === '{') {
-      truncated = '{…}';
-    } else {
-      truncated = '';
-    }
-    return complexColumns[columnKey] ? truncated : content;
-  };
+  useState(() => {
+    list = formatTableData(data);
+
+    // columns that have complex type and were expanded into sub columns
+    complexColumns = orderedColumnKeys.reduce(
+      (obj, key) => ({
+        ...obj,
+        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
+      }),
+      {},
+    );
+
+    widthsForColumnsByKey = getWidthsForColumns();
+    totalTableWidth = orderedColumnKeys
+      .map(key => widthsForColumnsByKey[key])
+      .reduce((curr, next) => curr + next);
+    totalTableHeight = height;
+  });
 
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
