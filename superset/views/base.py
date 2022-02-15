@@ -360,8 +360,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     available_specs = get_available_engine_specs()
-    if GSheetsEngineSpec in available_specs:
-        print("gsheets is installed")
+    if available_specs[GSheetsEngineSpec]:
         frontend_config["SHOW_GLOBAL_GSHEETS"] = True
     else:
         frontend_config["SHOW_GLOBAL_GSHEETS"] = False

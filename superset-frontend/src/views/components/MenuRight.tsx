@@ -128,6 +128,7 @@ const RightMenu = ({
     state => state.user,
   );
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [engine, setEngine] = useState<string>(null);
 
   const appContainer = document.getElementById('app');
   const bootstrapData = JSON.parse(
@@ -148,7 +149,11 @@ const RightMenu = ({
   );
   return (
     <StyledDiv align={align}>
-      <DatabaseModal onHide={() => setShowModal(false)} show={showModal} />
+      <DatabaseModal
+        onHide={() => setShowModal(false)}
+        show={showModal}
+        setEngine={engine}
+      />
       <Menu
         selectable={false}
         mode="horizontal"
@@ -156,6 +161,7 @@ const RightMenu = ({
           if (itemClicked.key === 'connectDB') setShowModal(true);
           if (itemClicked.key === 'connectGSheets') {
             setShowModal(true);
+            setEngine('GSheets');
           }
         }}
       >
@@ -181,6 +187,7 @@ const RightMenu = ({
                         Connect Google Sheet
                       </Menu.Item>
                     )}
+                    <Menu.Divider />
                     {allowedExtensions?.csv_extensions && (
                       <Menu.Item key="Upload a CSV">
                         <a href="/csvtodatabaseview/form"> Upload a CSV </a>
