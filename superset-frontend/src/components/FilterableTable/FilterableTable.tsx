@@ -17,7 +17,7 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import JSONTree from 'react-json-tree';
 import {
   AutoSizer,
@@ -142,7 +142,8 @@ const FilterableTable = ({
   let widthsForColumnsByKey: Record<string, number>;
   let totalTableWidth: number;
   let totalTableHeight: number;
-  let container: React.RefObject<HTMLDivElement>;
+
+  const container = useRef<HTMLDivElement>(null);
 
   const [sortByState, setSortByState] = useState<string | undefined>(undefined);
   const [sortDirectionState, setSortDirectionState] = useState<
@@ -153,32 +154,7 @@ const FilterableTable = ({
     list = formatTableData(data);
     return [...list];
   });
-  // constructor(props: FilterableTableProps) {
-  //   super(props);
-  //   this.list = this.formatTableData(props.data);
-  //
-  //   // columns that have complex type and were expanded into sub columns
-  //   this.complexColumns = props.orderedColumnKeys.reduce(
-  //     (obj, key) => ({
-  //       ...obj,
-  //       [key]: props.expandedColumns.some(name => name.startsWith(`${key}.`)),
-  //     }),
-  //     {},
-  //   );
-  //
-  //   this.widthsForColumnsByKey = this.getWidthsForColumns();
-  //   this.totalTableWidth = props.orderedColumnKeys
-  //     .map(key => this.widthsForColumnsByKey[key])
-  //     .reduce((curr, next) => curr + next);
-  //   this.totalTableHeight = props.height;
-  //
-  //   this.state = {
-  //     fitted: false,
-  //     displayedList: [...this.list],
-  //   };
-  //
-  //   this.container = React.createRef();
-  // }
+
   useState(() => {
     list = formatTableData(data);
 
