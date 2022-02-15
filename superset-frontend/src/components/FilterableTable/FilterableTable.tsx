@@ -137,11 +137,7 @@ const FilterableTable = ({
       return newRow;
     });
 
-  let list: Datum[];
-  let complexColumns: Record<string, boolean>;
-  let widthsForColumnsByKey: Record<string, number>;
-  let totalTableWidth: number;
-  let totalTableHeight: number;
+  const [list] = useState<Datum[]>(formatTableData(data));
 
   const container = useRef<HTMLDivElement>(null);
 
@@ -150,10 +146,9 @@ const FilterableTable = ({
     SortDirectionType | undefined
   >(undefined);
   const [fitted, setFitted] = useState(false);
-  const [displayedList, setDisplayedList] = useState<Datum[]>(() => {
-    list = formatTableData(data);
-    return [...list];
-  });
+  const [displayedList, setDisplayedList] = useState<Datum[]>(
+    formatTableData(data),
+  );
 
   useEffect(() => {
     fitTableToWidthIfNeeded();
@@ -215,24 +210,26 @@ const FilterableTable = ({
     return widthsByColumnKey;
   };
 
-  useState(() => {
-    list = formatTableData(data);
-
-    // columns that have complex type and were expanded into sub columns
-    complexColumns = orderedColumnKeys.reduce(
+  // columns that have complex type and were expanded into sub columns
+  const [complexColumns] = useState<Record<string, boolean>>(
+    orderedColumnKeys.reduce(
       (obj, key) => ({
         ...obj,
         [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
       }),
       {},
-    );
+    ),
+  );
+  const [widthsForColumnsByKey] = useState<Record<string, number>>(
+    getWidthsForColumns(),
+  );
 
-    widthsForColumnsByKey = getWidthsForColumns();
-    totalTableWidth = orderedColumnKeys
+  const [totalTableWidth] = useState(
+    orderedColumnKeys
       .map(key => widthsForColumnsByKey[key])
-      .reduce((curr, next) => curr + next);
-    totalTableHeight = height;
-  });
+      .reduce((curr, next) => curr + next),
+  );
+  const [totalTableHeight] = useState(height);
 
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
