@@ -20,8 +20,7 @@ API For Business Type REST requests
 from typing import Any
 
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, protect, rison, safe
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
 from superset import app
@@ -30,21 +29,18 @@ from superset.business_type.schemas import business_type_convert_schema
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
-from superset.views.base_api import BaseSupersetModelRestApi
 
 config = app.config
 BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
 
 
-class BusinessTypeRestApi(BaseSupersetModelRestApi):
+class BusinessTypeRestApi(BaseApi):
     """
     Business Type Rest API
     -Will return available business types when the /types endpoint is accessed
     -Will return a BusinessTypeResponse object when the /convert endpoint is accessed
     and is passed in valid arguments
     """
-
-    datamodel = SQLAInterface(SqlaTable)
     allow_browser_login = True
     include_route_methods = {"get", "get_types"}
     resource_name = "business_type"
@@ -53,11 +49,12 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "business_type_convert_schema": business_type_convert_schema,
     }
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
 
     @protect()
     @safe
     @expose("/convert", methods=["GET"])
+    @permission_name("get")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
@@ -127,6 +124,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @expose("/types", methods=["GET"])
+    @permission_name("get")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
