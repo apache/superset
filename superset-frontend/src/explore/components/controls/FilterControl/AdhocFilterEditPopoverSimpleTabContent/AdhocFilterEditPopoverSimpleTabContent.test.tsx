@@ -31,16 +31,16 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import { supersetTheme, FeatureFlag, ThemeProvider } from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
+import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
+
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
   Props,
 } from '.';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import * as featureFlags from 'src/featureFlags';
-import { FeatureFlag } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import fetchMock from 'fetch-mock';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -499,48 +499,5 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(false);
-  });
-
-  it('business type operator list should update after API response', async () => {
-    fetchMock.resetHistory();
-
-    const props = getBusinessTypeTestProps({
-      options: [
-        {
-          type: 'DOUBLE',
-          column_name: 'businessType',
-          id: 5,
-          business_type: 'type',
-        },
-      ],
-    });
-
-    await setupFilter(props);
-
-    const filterValueField = screen.getByPlaceholderText(
-      'Filter value (case sensitive)',
-    );
-    await act(async () => {
-      userEvent.type(filterValueField, 'v');
-    });
-
-    await act(async () => {
-      userEvent.type(filterValueField, '{enter}');
-    });
-
-    // When the column is a business type,
-    // the business type endpoint should be called
-    await waitFor(() =>
-      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
-    );
-    expect(props.validHandler.lastCall.args[0]).toBe(true);
-
-    const operatorValueField = screen.getByText('1 operator(s)');
-
-    await act(async () => {
-      userEvent.type(operatorValueField, '{enter}');
-    });
-
-    expect(screen.getByText('equals')).toExist;
   });
 });

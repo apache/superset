@@ -28,6 +28,7 @@ from superset import app
 from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.business_type.schemas import business_type_convert_schema
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetModelRestApi
 
@@ -44,7 +45,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     """
 
     datamodel = SQLAInterface(SqlaTable)
-
+    allow_browser_login = True
     include_route_methods = {"get", "get_types"}
     resource_name = "business_type"
 
@@ -52,6 +53,7 @@ class BusinessTypeRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "business_type_convert_schema": business_type_convert_schema,
     }
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     @expose("/convert", methods=["GET"])
     @event_logger.log_this_with_context(

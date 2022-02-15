@@ -41,8 +41,9 @@ import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
-import useBusinessTypes from './useBusinessTypes';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import useBusinessTypes from './useBusinessTypes';
+
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
