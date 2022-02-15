@@ -26,8 +26,6 @@ from flask_babel import lazy_gettext as _
 from superset import app
 from superset.business_type.business_type_response import BusinessTypeResponse
 from superset.business_type.schemas import business_type_convert_schema
-from superset.connectors.sqla.models import SqlaTable
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
 
 config = app.config
@@ -75,7 +73,7 @@ class BusinessTypeRestApi(BaseApi):
                   $ref: '#/components/schemas/business_type_convert_schema'
           responses:
             200:
-              description: a successful return of a BusinessTypeResponse object has taken place.
+              description: BusinessTypeResponse object has been returned.
               content:
                 application/json:
                   schema:
@@ -129,7 +127,7 @@ class BusinessTypeRestApi(BaseApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
-    def get_types(self, **kwargs: Any) -> Response:
+    def get_types(self) -> Response:
         """Returns a list of available business types
         ---
         get:
@@ -137,7 +135,8 @@ class BusinessTypeRestApi(BaseApi):
             Returns a list of available business types.
           responses:
             200:
-              description: a successful return of the available business types has taken place.
+              description: a successful return of the available
+              business types has taken place.
               content:
                 application/json:
                   schema:
