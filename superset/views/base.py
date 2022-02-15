@@ -356,6 +356,16 @@ def common_bootstrap_payload() -> Dict[str, Any]:
             ReportRecipientType.EMAIL,
         ]
 
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    available_specs = get_available_engine_specs()
+    if GSheetsEngineSpec in available_specs:
+        print("gsheets is installed")
+        frontend_config["SHOW_GLOBAL_GSHEETS"] = True
+    else:
+        frontend_config["SHOW_GLOBAL_GSHEETS"] = False
+
     bootstrap_data = {
         "flash_messages": messages,
         "conf": frontend_config,

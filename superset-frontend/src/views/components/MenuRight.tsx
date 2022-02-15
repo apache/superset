@@ -129,6 +129,12 @@ const RightMenu = ({
   );
   const [showModal, setShowModal] = useState<boolean>(false);
 
+  const appContainer = document.getElementById('app');
+  const bootstrapData = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const { SHOW_GLOBAL_GSHEETS } = bootstrapData.common.conf;
+
   // if user has any of these roles the dropdown will appear
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
@@ -148,6 +154,9 @@ const RightMenu = ({
         mode="horizontal"
         onClick={itemClicked => {
           if (itemClicked.key === 'connectDB') setShowModal(true);
+          if (itemClicked.key === 'connectGSheets') {
+            setShowModal(true);
+          }
         }}
       >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
@@ -166,6 +175,12 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu as MenuObjectProps)}
                   >
+                    <Menu.Item key="connectDB">Connect Database</Menu.Item>
+                    {SHOW_GLOBAL_GSHEETS && (
+                      <Menu.Item key="connectGSheets">
+                        Connect Google Sheet
+                      </Menu.Item>
+                    )}
                     {allowedExtensions?.csv_extensions && (
                       <Menu.Item key="Upload a CSV">
                         <a href="/csvtodatabaseview/form"> Upload a CSV </a>
