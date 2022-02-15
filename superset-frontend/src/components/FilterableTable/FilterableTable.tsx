@@ -112,13 +112,6 @@ interface FilterableTableProps {
   expandedColumns: string[];
 }
 
-interface FilterableTableState {
-  sortBy?: string;
-  sortDirection?: SortDirectionType;
-  fitted: boolean;
-  displayedList: Datum[];
-}
-
 const FilterableTable = ({
   orderedColumnKeys,
   data,
@@ -146,8 +139,10 @@ const FilterableTable = ({
 
   const list = formatTableData(data);
 
-  const [sortBy, setSortBy] = useState('');
-  const [sortDirection, setSortDirection] = useState<SortDirectionType>('');
+  const [sortByState, setSortByState] = useState<string | undefined>(undefined);
+  const [sortDirectionState, setSortDirectionState] = useState<
+    SortDirectionType | undefined
+  >(undefined);
   const [fitted, setFitted] = useState(false);
   const [displayedList, setDisplayedList] = useState<Datum[]>([...list]);
   // list: Datum[];
@@ -283,31 +278,22 @@ const FilterableTable = ({
     sortBy: string;
     sortDirection: SortDirectionType;
   }) => {
-    let updatedState: FilterableTableState;
-
     const shouldClearSort =
-      this.state.sortDirection === SortDirection.DESC &&
-      this.state.sortBy === sortBy;
+      sortDirection === SortDirection.DESC && sortByState === sortBy;
 
     if (shouldClearSort) {
-      updatedState = {
-        ...this.state,
-        sortBy: undefined,
-        sortDirection: undefined,
-        displayedList: [...list],
-      };
+      setSortByState(undefined);
+      setSortDirectionState(undefined);
+      setDisplayedList([...list]);
     } else {
-      updatedState = {
-        ...this.state,
-        sortBy,
-        sortDirection,
-        displayedList: [...list].sort(
+      setSortByState(sortBy);
+      setSortDirectionState(sortDirection);
+      setDisplayedList(
+        [...list].sort(
           sortResults(sortBy, sortDirection === SortDirection.DESC),
         ),
-      };
+      );
     }
-
-    this.setState(updatedState);
   };
 
   const fitTableToWidthIfNeeded = () => {
@@ -376,8 +362,7 @@ const FilterableTable = ({
     sort({
       sortBy: label,
       sortDirection:
-        this.state.sortDirection === SortDirection.DESC ||
-        this.state.sortBy !== label
+        sortDirectionState === SortDirection.DESC || sortByState !== label
           ? SortDirection.ASC
           : SortDirection.DESC,
     });
@@ -610,8 +595,8 @@ const FilterableTable = ({
             rowGetter={rowGetter}
             rowCount={sortedAndFilteredList.length}
             sort={sort}
-            sortBy={sortBy}
-            sortDirection={sortDirection}
+            sortBy={sortByState}
+            sortDirection={sortDirectionState}
             width={this.totalTableWidth}
           >
             {orderedColumnKeys.map(columnKey => (
