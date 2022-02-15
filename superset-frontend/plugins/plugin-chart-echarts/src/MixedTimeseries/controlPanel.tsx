@@ -17,11 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import {
+  AdhocFilter,
+  ensureIsArray,
+  isSimpleAdhocFilter,
+  t,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
+  ControlPanelState,
   ControlSetRow,
+  ControlState,
   emitFilterControl,
   sections,
   sharedControls,
@@ -51,6 +58,44 @@ const {
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
+function createAdhocFilterControl(name: string) {
+  if (name === 'adhoc_filters') {
+    return [
+      {
+        name,
+        config: sharedControls.adhoc_filters,
+      },
+    ];
+  }
+  return [
+    {
+      name,
+      config: {
+        ...sharedControls.adhoc_filters,
+        mapStateToProps: (
+          state: ControlPanelState,
+          controlState: ControlState,
+        ) => {
+          const props =
+            sharedControls.adhoc_filters.mapStateToProps?.(
+              state,
+              controlState,
+            ) || {};
+          // add temporary filters to adhoc_filters_b
+          props.value = [
+            ...ensureIsArray(state.controls.adhoc_filters.value).filter(
+              (filter: AdhocFilter) =>
+                isSimpleAdhocFilter(filter) && filter.isExtra,
+            ),
+            ...ensureIsArray(controlState.value),
+          ];
+          return props;
+        },
+      },
+    },
+  ];
+}
+
 function createQuerySection(
   label: string,
   controlSuffix: string,
@@ -71,12 +116,7 @@ function createQuerySection(
           config: sharedControls.groupby,
         },
       ],
-      [
-        {
-          name: `adhoc_filters${controlSuffix}`,
-          config: sharedControls.adhoc_filters,
-        },
-      ],
+      createAdhocFilterControl(`adhoc_filters${controlSuffix}`),
       emitFilterControl.length > 0
         ? [
             {
