@@ -428,11 +428,7 @@ function ColumnCollectionTable({
                         details={record.certification_details}
                       />
                     )}
-                    <EditableTitle
-                      canEdit
-                      title={v}
-                      onSaveTitle={onItemChange}
-                    />
+                    <TextControl value={v} onChange={onItemChange} />
                   </StyledLabelWrapper>
                 ) : (
                   <StyledLabelWrapper>
