@@ -346,6 +346,16 @@ def common_bootstrap_payload() -> Dict[str, Any]:
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXTENSIONS"] = bool(
+        bool(conf["EXCEL_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
+    )
+    frontend_config["CSV_EXTENSIONS"] = bool(
+        bool(conf["CSV_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
+    )
+    frontend_config["COLUMNAR_EXTENSIONS"] = bool(
+        bool(conf["COLUMNAR_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
+    )
+
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
@@ -365,17 +375,6 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "allowed_extensions": {
-            "excel_extensions": bool(
-                conf["EXCEL_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])
-            ),
-            "csv_extensions": bool(
-                conf["CSV_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])
-            ),
-            "columnar_extensions": bool(
-                conf["COLUMNAR_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])
-            ),
-        },
         "menu_data": menu_data(),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))

@@ -68,11 +68,6 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
-    allowedExtensions: {
-      columnar_extensions: boolean;
-      csv_extensions: boolean;
-      excel_extensions: boolean;
-    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }

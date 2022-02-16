@@ -162,11 +162,6 @@ const mockedProps = {
         ],
       },
     ],
-    allowedExtensions: {
-      columnar_extensions: true,
-      csv_extensions: true,
-      excel_extensions: true,
-    },
   },
 };
 
