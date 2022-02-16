@@ -1070,7 +1070,7 @@ export function addTable(query, database, tableName, schemaName) {
           })
         : Promise.resolve({ json: { id: shortid.generate() } });
 
-      if (database.preview_data && database.id === query.dbId) {
+      if (database.allows_preview_data && database.id === query.dbId) {
         const dataPreviewQuery = {
           id: shortid.generate(),
           dbId: query.dbId,

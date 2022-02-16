@@ -703,7 +703,7 @@ describe('async actions', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(5);
 
-        const database = { preview_data: false };
+        const database = { allows_preview_data: false };
         const tableName = 'table';
         const schemaName = 'schema';
         const store = mockStore({});
@@ -742,7 +742,7 @@ describe('async actions', () => {
           overwriteRoutes: true,
         });
 
-        const database = { preview_data: true, id: 1 };
+        const database = { allows_preview_data: true, id: 1 };
         const tableName = 'table';
         const schemaName = 'schema';
         const store = mockStore({});
