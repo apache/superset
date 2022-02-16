@@ -14,9 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Warning don't import any model, it will cause a circular import.
-The SupersetSecurityManager consume the `SupersetRole` and `SupersetUser` modules,
--located under the `superset_core` file-
-and while consuming them the `superset` is partially initialized module
-"""
+
+import logging
+from typing import Any, Dict
+
+from sqlalchemy.orm import Session
+
+from superset.models.superset_core.role import SupersetRole
+
+logger = logging.getLogger(__name__)
+
+
+def import_role(
+    session: Session, config: Dict[str, Any], overwrite: bool = False
+) -> SupersetRole:
+    existing = (
+        session.query(SupersetRole.id, SupersetRole.name)
+        .filter_by(name=config["name"])
+        .first()
+    )
+    if existing:
+        if not overwrite:
+            return existing
+
+    config = config.copy()
+
+    role = SupersetRole.import_from_dict(session, config, recursive=False)
+
+    # Create the new role at the db
+    if role.id is None:
+        session.flush()
+
+    return role

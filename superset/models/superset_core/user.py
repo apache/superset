@@ -14,9 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Warning don't import any model, it will cause a circular import.
-The SupersetSecurityManager consume the `SupersetRole` and `SupersetUser` modules,
--located under the `superset_core` file-
-and while consuming them the `superset` is partially initialized module
-"""
+
+import logging
+
+from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import assoc_user_role, User as FabUser
+from sqlalchemy.orm import relationship
+
+metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
+
+
+class SupersetUser(FabUser):
+    __tablename__ = "ab_user"
+
+    __table_args__ = {"extend_existing": True}
+    roles = None
+    roles = relationship(
+        "SupersetRole", secondary=assoc_user_role, backref="superset_user"
+    )

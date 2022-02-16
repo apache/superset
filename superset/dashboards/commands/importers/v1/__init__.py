@@ -37,7 +37,10 @@ from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.models.dashboard import dashboard_slices
+from superset.models.dashboard import Dashboard, dashboard_slices, DashboardRoles
+from superset.models.superset_core.role import SupersetRole
+from superset.role.commands.importer.utils import import_role
+from superset.role.schemas import ImportV1RoleSchema
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -52,6 +55,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
         "databases/": ImportV1DatabaseSchema(),
+        "roles/": ImportV1RoleSchema(),
     }
     import_error = DashboardImportError
 
@@ -81,6 +85,17 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
+
+        # discover roles associated with dashboard
+        role_ids: Dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("roles/"):
+                role = import_role(session, config, overwrite=False)
+                role_ids[role.name] = role.id
+
+        # import related roles
+        # for file_name, config in configs.items():
+        #     if file_name.startswith("roles/") and config["name"] in role_names:
 
         # import related databases
         database_ids: Dict[str, int] = {}
@@ -117,12 +132,23 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = session.execute(
+        dashboards_slice_existing_relationships = session.execute(
             select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
         ).fetchall()
 
+        dashboards_role_existing_relationships_query = (
+            session.query([Dashboard.uuid, SupersetRole.name])
+            .join(SupersetRole)
+            .join(DashboardRoles)
+            .join(Dashboard)
+        )
+        dashboards_role_existing_relationships_all = (
+            dashboards_role_existing_relationships_query.all()
+        )
+
         # import dashboards
-        dashboard_chart_ids: List[Tuple[int, int]] = []
+        dashboard_chart_new_ids: List[Tuple[int, int]] = []
+        dashboard_role_new_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
@@ -131,13 +157,29 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     if uuid not in chart_ids:
                         break
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
-                        dashboard_chart_ids.append((dashboard.id, chart_id))
+                    if (
+                        dashboard.id,
+                        chart_id,
+                    ) not in dashboards_slice_existing_relationships:
+                        dashboard_chart_new_ids.append((dashboard.id, chart_id))
+
+                for role in config["roles"]:
+                    if (
+                        dashboard.uuid,
+                        role["name"],
+                    ) not in dashboards_role_existing_relationships_all:
+                        dashboard_role_new_ids.append((dashboard.id, role["id"]))
 
         # set ref in the dashboard_slices table
-        values = [
+        dashboard_slice_new_values = [
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
+            for (dashboard_id, chart_id) in dashboard_chart_new_ids
         ]
         # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
-        session.execute(dashboard_slices.insert(), values)
+        session.execute(dashboard_slices.insert(), dashboard_slice_new_values)
+
+        dashboard_role_new_values = [
+            {"dashboard_id": dashboard_id, "role_id": role_id}
+            for (dashboard_id, role_id) in dashboard_role_new_ids
+        ]
+        session.execute(DashboardRoles.insert(), dashboard_role_new_values)

@@ -48,6 +48,8 @@ from superset.extensions import (
     results_backend_manager,
     talisman,
 )
+from superset.models.superset_core.role import SupersetRole
+from superset.models.superset_core.user import SupersetUser
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
 from superset.utils.core import pessimistic_connection_handling
@@ -607,6 +609,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.base_template = "superset/base.html"
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
+        custom_sm.set_user_model(SupersetUser)
+        custom_sm.set_role_model(SupersetRole)
 
     def configure_url_map_converters(self) -> None:
         #

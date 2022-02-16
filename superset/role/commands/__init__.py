@@ -14,9 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Warning don't import any model, it will cause a circular import.
-The SupersetSecurityManager consume the `SupersetRole` and `SupersetUser` modules,
--located under the `superset_core` file-
-and while consuming them the `superset` is partially initialized module
-"""

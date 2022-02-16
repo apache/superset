@@ -140,6 +140,14 @@ RoleModelView.related_views = []
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
+    @classmethod
+    def set_user_model(cls, superset_user: object) -> None:
+        cls.user_model = superset_user
+
+    @classmethod
+    def set_role_model(cls, superset_role: object) -> None:
+        cls.role_model = superset_role
+
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
 

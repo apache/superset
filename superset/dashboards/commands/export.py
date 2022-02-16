@@ -34,6 +34,7 @@ from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.dao import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.role.commands.export import ExportRolesCommand
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
         payload = model.export_to_dict(
-            recursive=False,
+            recursive=True,
             include_parent_ref=False,
             include_defaults=True,
             export_uuids=True,
@@ -162,3 +163,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         chart_ids = [chart.id for chart in model.slices]
         yield from ExportChartsCommand(chart_ids).run()
+
+        role_ids = [role.id for role in model.roles]
+        yield from ExportRolesCommand(role_ids).run()

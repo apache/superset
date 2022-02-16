@@ -22,6 +22,7 @@ from marshmallow import fields, post_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
+from superset.role.schemas import RolesSchema
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -138,11 +139,6 @@ class UserSchema(Schema):
     username = fields.String()
     first_name = fields.String()
     last_name = fields.String()
-
-
-class RolesSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
 
 
 class DashboardGetResponseSchema(Schema):
@@ -299,3 +295,4 @@ class ImportV1DashboardSchema(Schema):
     position = fields.Dict()
     metadata = fields.Dict()
     version = fields.String(required=True)
+    roles = fields.List(fields.Nested(RolesSchema))

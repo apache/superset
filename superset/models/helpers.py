@@ -275,22 +275,28 @@ class ImportExportMixin:
                 export_fields.remove("id")
 
         cls = self.__class__
-        parent_excludes = set()
+        parent_excludes = (
+            set()
+        )  # all the coulmns fron the parent that we sholdnt collect.
         if recursive and not include_parent_ref:
             parent_ref = cls.__mapper__.relationships.get(cls.export_parent)
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
+
         dict_rep = {
-            c.name: getattr(self, c.name)
-            for c in cls.__table__.columns  # type: ignore
+            column.name: getattr(self, column.name)
+            for column in cls.__table__.columns  # type: ignore
             if (
-                c.name in export_fields
-                and c.name not in parent_excludes
+                column.name in export_fields
+                and column.name not in parent_excludes
                 and (
                     include_defaults
                     or (
-                        getattr(self, c.name) is not None
-                        and (not c.default or getattr(self, c.name) != c.default.arg)
+                        getattr(self, column.name) is not None
+                        and (
+                            not column.default
+                            or getattr(self, column.name) != column.default.arg
+                        )
                     )
                 )
             )

@@ -164,6 +164,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "slug",
     ]
 
+    export_children = ["roles"]
+
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
 
