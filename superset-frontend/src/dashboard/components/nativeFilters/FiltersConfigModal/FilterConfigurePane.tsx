@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { NativeFilterType, styled } from '@superset-ui/core';
 import React from 'react';
-import { NativeFilterType } from '../types';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 

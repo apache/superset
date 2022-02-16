@@ -122,7 +122,10 @@ class CustomHistogram extends React.PureComponent {
                 </div>
                 <div>
                   <strong>{t('percentile (exclusive)')} </strong>
-                  {`{((datum.cumulativeDensity - datum.density) * 100).toPrecision(4)}th`}
+                  {`${(
+                    (datum.cumulativeDensity - datum.density) *
+                    100
+                  ).toPrecision(4)}th`}
                 </div>
               </div>
             )}

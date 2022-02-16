@@ -17,11 +17,14 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
-import { styled, DataMask } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  Filter,
+  styled,
+  DataMask,
+} from '@superset-ui/core';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
 
 export interface CascadeFilterControlProps {
   dataMaskSelected?: DataMaskStateWithId;

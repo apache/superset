@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
+    engine_aliases = {"trinonative"}
     engine_name = "Trino"
 
     _time_grain_expressions = {

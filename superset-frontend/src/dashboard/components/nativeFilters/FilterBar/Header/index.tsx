@@ -17,15 +17,20 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  Filter,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
-import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { getFilterBarTestId } from '..';
 import { RootState } from '../../../../types';
 

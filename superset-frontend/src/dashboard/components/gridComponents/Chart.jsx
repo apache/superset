@@ -242,12 +242,20 @@ export default class Chart extends React.Component {
 
   onExploreChart = async () => {
     try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
       const key = await postFormData(
         this.props.datasource.id,
         this.props.formData,
-        this.props.slice.id,
+        this.props.slice.slice_id,
+        nextTabId,
       );
-      const url = mountExploreUrl(null, { [URL_PARAMS.formDataKey.name]: key });
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
+      });
       window.open(url, '_blank', 'noreferrer');
     } catch (error) {
       logging.error(error);

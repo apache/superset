@@ -20,7 +20,14 @@ import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 
-import { t } from '@superset-ui/core';
+import {
+  Filter,
+  FilterConfiguration,
+  NativeFilterType,
+  Divider,
+  t,
+  NativeFilterTarget,
+} from '@superset-ui/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   FilterRemoval,
@@ -28,13 +35,6 @@ import {
   FilterHierarchy,
   FilterHierarchyNode,
 } from './types';
-import {
-  Filter,
-  FilterConfiguration,
-  NativeFilterType,
-  Divider,
-  Target,
-} from '../types';
 
 export const REMOVAL_DELAY_SECS = 5;
 
@@ -156,7 +156,7 @@ export const createHandleSave =
             description: formInputs.description,
           };
         }
-        const target: Partial<Target> = {};
+        const target: Partial<NativeFilterTarget> = {};
         if (formInputs.dataset) {
           target.datasetId = formInputs.dataset.value;
         }

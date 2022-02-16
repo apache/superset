@@ -516,10 +516,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
+    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
-      force_screenshot: forceScreenshot ? 'true' : 'false',
+      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -674,7 +675,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadDashboardOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,
@@ -748,7 +749,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadChartOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,
@@ -862,6 +863,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onContentTypeChange = (event: any) => {
     const { target } = event;
+    // When switch content type, reset force_screenshot to false
+    setForceScreenshot(false);
     // Gives time to close the select before changing the type
     setTimeout(() => setContentType(target.value), 200);
   };
