@@ -424,7 +424,7 @@ function nvd3Vis(element, props) {
         chart.stacked(isBarStacked);
         break;
 
-      case 'dist_bar':
+      case 'dist_bar': {
         chart = nv.models
           .multiBarChart()
           .showControls(showControls)
@@ -435,45 +435,37 @@ function nvd3Vis(element, props) {
 
         chart.stacked(isBarStacked);
 
-        if (isBarStacked && orderDesc) {
-          console.log('IF ORDER DESC', orderDesc);
-        }
-
-        // eslint-disable-next-line no-case-declarations
-        const values = {};
+        const totalValues = {};
 
         data.forEach(d => {
           d.values.forEach(value => {
-            if (!values[value.x]) {
-              values[value.x] = value.y;
+            if (!totalValues[value.x]) {
+              totalValues[value.x] = value.y;
             } else {
-              values[value.x] += value.y;
+              totalValues[value.x] += value.y;
             }
           });
         });
 
-        // eslint-disable-next-line no-case-declarations
-        const sortedValues = Object.keys(values).sort(function (a, b) {
-          return values[b] - values[a];
+        const sortedTotalValues = Object.keys(totalValues).sort(function (
+          a,
+          b,
+        ) {
+          return totalValues[b] - totalValues[a];
         });
-
-        if (orderDesc) {
-          data.forEach(d => {
-            d.values.sort((a, b) =>
-              sortedValues.indexOf(a.x) < sortedValues.indexOf(b.x) ? -1 : 1,
-            );
-          });
-        } else {
-          data.forEach(d => {
-            d.values.sort((a, b) =>
-              sortedValues.indexOf(b.x) < sortedValues.indexOf(a.x) ? -1 : 1,
-            );
-          });
-        }
 
         if (orderBars) {
           data.forEach(d => {
             d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
+          });
+        } else {
+          data.forEach(d => {
+            d.values.sort((a, b) =>
+              sortedTotalValues.indexOf(orderDesc ? a.x : b.x) <
+              sortedTotalValues.indexOf(orderDesc ? b.x : a.x)
+                ? -1
+                : 1,
+            );
           });
         }
         if (!reduceXTicks) {
@@ -481,7 +473,7 @@ function nvd3Vis(element, props) {
         }
         chart.width(width);
         break;
-
+      }
       case 'pie':
         chart = nv.models.pieChart();
         colorKey = 'x';
