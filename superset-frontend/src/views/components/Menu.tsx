@@ -68,11 +68,6 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
-    allowedExtensions: {
-      columnar_extensions: boolean;
-      csv_extensions: boolean;
-      excel_extensions: boolean;
-    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }
@@ -197,14 +192,13 @@ const { SubMenu } = DropdownMenu;
 const { useBreakpoint } = Grid;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings, allowedExtensions },
+  data: { menu, brand, navbar_right: navbarRight, settings },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConig = useUiConfig();
   const theme = useTheme();
-  const filteredMenu = menu.filter(item => item.name !== 'Upload Data');
 
   useEffect(() => {
     function handleResize() {
@@ -295,7 +289,7 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {filteredMenu.map(item => {
+            {menu.map(item => {
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
@@ -317,7 +311,6 @@ export function Menu({
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
-            allowedExtensions={allowedExtensions}
             align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}

@@ -40,7 +40,6 @@ setupApp();
 const user = { ...bootstrapData.user };
 const menu = {
   ...bootstrapData.common.menu_data,
-  allowedExtensions: bootstrapData.common.allowed_extensions,
 };
 let lastLocationPathname: string;
 initFeatureFlags(bootstrapData.common.feature_flags);
