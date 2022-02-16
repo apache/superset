@@ -168,6 +168,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
+            "allows_preview_data",
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
@@ -180,8 +181,8 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
-            "allows_preview_data",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
