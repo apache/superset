@@ -23,7 +23,10 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  UserWithPermissionsAndRoles,
+  CommonBootstrapData,
+} from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
@@ -109,11 +112,6 @@ interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
-  allowedExtensions: {
-    columnar_extensions: boolean;
-    csv_extensions: boolean;
-    excel_extensions: boolean;
-  };
 }
 
 const RightMenu = ({
@@ -121,12 +119,21 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
-  allowedExtensions,
 }: RightMenuProps) => {
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  // @ts-ignore
+  const { CSV_EXTENSIONS, COLUMNAR_EXTENSIONS, EXCEL_EXTENSIONS } = useSelector<
+    any,
+    CommonBootstrapData
+  >(state => state.common.conf);
   // if user has any of these roles the dropdown will appear
+  const configMap = {
+    'Upload a CSV': CSV_EXTENSIONS,
+    'Upload a Columnar file': COLUMNAR_EXTENSIONS,
+    'Upload Excel': EXCEL_EXTENSIONS,
+  };
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
@@ -149,30 +156,19 @@ const RightMenu = ({
             icon={<Icons.TriangleDown />}
           >
             {dropdownItems.map(menu => {
-              if (menu.label === 'Data') {
+              if (menu.childs) {
                 return (
                   <SubMenu
                     key="sub2"
                     className="data-menu"
                     title={menuIconAndLabel(menu as MenuObjectProps)}
                   >
-                    {allowedExtensions?.csv_extensions && (
-                      <Menu.Item key="Upload a CSV">
-                        <a href="/csvtodatabaseview/form"> Upload a CSV </a>
-                      </Menu.Item>
-                    )}
-                    {allowedExtensions?.columnar_extensions && (
-                      <Menu.Item key="Upload a Columnar File">
-                        <a href="/columnartodatabaseview/form">
-                          {' '}
-                          Upload a Columnar File{' '}
-                        </a>
-                      </Menu.Item>
-                    )}
-                    {allowedExtensions?.excel_extensions && (
-                      <Menu.Item key="Upload Excel">
-                        <a href="/exceltodatabaseview/form"> Upload Excel </a>
-                      </Menu.Item>
+                    {menu.childs.map(item =>
+                      configMap[item.name] === true ? (
+                        <Menu.Item key={item.name}>
+                          <a href={item.url}> {item.label} </a>
+                        </Menu.Item>
+                      ) : null,
                     )}
                   </SubMenu>
                 );
