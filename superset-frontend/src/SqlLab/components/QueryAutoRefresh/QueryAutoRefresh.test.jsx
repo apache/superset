@@ -55,6 +55,8 @@ describe('QueryAutoRefresh', () => {
       useRedux: true,
     });
 
+    screen.logTestingPlaygroundURL();
+
     expect(mockFetch.calls).toHaveBeenCalledTimes(1);
   });
 
