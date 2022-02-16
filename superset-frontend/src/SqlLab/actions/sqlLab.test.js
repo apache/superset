@@ -754,37 +754,7 @@ describe('async actions', () => {
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
           });
       });
-
-      it('updates and runs data preview query when configured', () => {
-        expect.assertions(5);
-
-        const database = { preview_data: false };
-        const tableName = 'table';
-        const schemaName = 'schema';
-        const store = mockStore({});
-        const expectedActionTypes = [
-          actions.MERGE_TABLE, // addTable
-          actions.MERGE_TABLE, // getTableMetadata
-          actions.MERGE_TABLE, // getTableExtendedMetadata
-          actions.MERGE_TABLE, // addTable
-        ];
-        return store
-          .dispatch(actions.addTable(query, database, tableName, schemaName))
-          .then(() => {
-            expect(store.getActions().map(a => a.type)).toEqual(
-              expectedActionTypes,
-            );
-            expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
-            expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
-            expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(
-              1,
-            );
-
-            // tab state is not updated, since no query was run
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-          });
-      });
-
+      
       it('updates and runs data preview query when configured', () => {
         expect.assertions(2);
 
