@@ -17,8 +17,6 @@
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
-allow_limit_clause = False
-
 
 class TeradataEngineSpec(BaseEngineSpec):
     """Dialect for Teradata DB."""
@@ -27,6 +25,9 @@ class TeradataEngineSpec(BaseEngineSpec):
     engine_name = "Teradata"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 30  # since 14.10 this is 128
+    allow_limit_clause = False
+    select_keywords = {"SELECT", "SEL"}
+    top_keywords = {"TOP", "SAMPLE"}
 
     _time_grain_expressions = {
         None: "{col}",

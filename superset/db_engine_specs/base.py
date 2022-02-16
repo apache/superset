@@ -80,7 +80,6 @@ ColumnTypeMapping = Tuple[
 
 logger = logging.getLogger()
 
-
 CTE_ALIAS = "__cte"
 
 
@@ -304,6 +303,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then the database engine is allowed for LIMIT clause
     # If False, then the database engine is allowed for TOP clause
     allow_limit_clause = True
+    # This list will give the default list of keywords for select statements
+    # to consider in the limit/top SQl parsing
+    sel_keywords = {"SELECT"}
+    # This list will give the default list of keywords for data limit statements
+    # to consider in the limit/top SQl parsing
+    top_keywords = {"LIMIT"}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -642,8 +647,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             sql = sql.strip("\t\n ;")
             qry = (
                 select("*")
-                .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
-                .limit(limit)
+                    .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
+                    .limit(limit)
             )
             return database.compile_sqla_query(qry)
 
@@ -664,23 +669,35 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :return: SQL query with top clause
         """
+
+        td_sel_keywords = cls.sel_keywords
+        td_top_keywords = cls.top_keywords
+        cte = None
+        sql_remainder = None
         sql_statement = sqlparse.format(sql, strip_comments=True)
-        query_limit: Optional[int] = sql_parse._extract_top_from_query(sql_statement)
-        td_sel_keywords = {"SELECT","SEL"}
-        td_top_keywords = {"TOP","SAMPLE"}
+        query_limit: Optional[int] = sql_parse._extract_top_from_query(sql_statement,
+                                                                       td_top_keywords)
         if not _limit:
             final_limit = query_limit
         elif int(query_limit or 0) < _limit and query_limit is not None:
             final_limit = query_limit
         else:
             final_limit = _limit
-        str_statement = str(sql_statement)
+        if not cls.allows_cte_in_subquery:
+            cte, sql_remainder = sql_parse.get_cte_reminder_query(sql_statement)
+        if cte:
+            str_statement = str(sql_remainder)
+            cte = cte + "\n"
+        else:
+            cte = ""
+            str_statement = str(sql)
         str_statement = str_statement.replace("\n", " ").replace("\r", "")
 
         tokens = str_statement.rstrip().split(" ")
         tokens = [token for token in tokens if token]
         if cls.top_not_in_sql(str_statement, td_top_keywords):
-            selects = [i for i, word in enumerate(tokens) if word.upper() in td_sel_keywords]
+            selects = [i for i, word in enumerate(tokens) if
+                       word.upper() in td_sel_keywords]
             first_select = selects[0]
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))
@@ -696,11 +713,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                     token = str(final_limit)
                     next_is_limit_token = False
             new_tokens.append(token)
-        return " ".join(new_tokens)
+        sql = " ".join(new_tokens)
+        return cte + sql
 
     def top_not_in_sql(sql: str, top_words: Set[str]) -> bool:
         for top_word in top_words:
-            if top_word in sql:
+            if top_word in sql.upper():
                 return False
         return True
 
@@ -751,6 +769,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
 
         return None
+
 
     @classmethod
     def df_to_sql(
