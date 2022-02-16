@@ -89,6 +89,7 @@ export type DatabaseObject = {
 
     version?: string;
     cost_estimate_enabled?: boolean; // in SQL Lab
+    preview_data?: boolean;
   };
 
   // Temporary storage

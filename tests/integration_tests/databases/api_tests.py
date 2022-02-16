@@ -180,6 +180,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
+            "preview_data",
         ]
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)

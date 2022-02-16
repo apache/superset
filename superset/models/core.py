@@ -208,6 +208,10 @@ class Database(
         return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
+    def preview_data(self) -> bool:
+        return bool(self.get_extra().get("preview_data", True))
+
+    @property
     def explore_database_id(self) -> int:
         return self.get_extra().get("explore_database_id", self.id)
 
@@ -225,6 +229,7 @@ class Database(
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
             "parameters_schema": self.parameters_schema,
+            "preview_data": self.preview_data,
         }
 
     @property
