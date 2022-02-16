@@ -305,7 +305,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allow_limit_clause = True
     # This list will give the default list of keywords for select statements
     # to consider in the limit/top SQl parsing
-    sel_keywords = {"SELECT"}
+    select_keywords = {"SELECT"}
     # This list will give the default list of keywords for data limit statements
     # to consider in the limit/top SQl parsing
     top_keywords = {"LIMIT"}
@@ -670,7 +670,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL query with top clause
         """
 
-        td_sel_keywords = cls.sel_keywords
+        td_sel_keywords = cls.select_keywords
         td_top_keywords = cls.top_keywords
         cte = None
         sql_remainder = None
@@ -718,7 +718,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     def top_not_in_sql(sql: str, top_words: Set[str]) -> bool:
         for top_word in top_words:
-            if top_word in sql.upper():
+            if top_word.upper() in sql.upper():
                 return False
         return True
 
