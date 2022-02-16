@@ -33,6 +33,7 @@ const propTypes = {
   tooltipText: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
   addSuccessToast: PropTypes.func.isRequired,
+  hasTooltip: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -41,6 +42,7 @@ const defaultProps = {
   shouldShowText: true,
   wrapped: true,
   tooltipText: t('Copy to clipboard'),
+  hasTooltip: true,
 };
 
 class CopyToClipboard extends React.Component {
@@ -88,7 +90,21 @@ class CopyToClipboard extends React.Component {
 
   renderNotWrapped() {
     return (
-      this.getDecoratedCopyNode()
+      <>
+        {this.props.hasTooltip ? (
+          <Tooltip
+            id="copy-to-clipboard-tooltip"
+            placement="top"
+            style={{ cursor: 'pointer' }}
+            title={this.props.tooltipText}
+            trigger={['hover']}
+          >
+            {this.getDecoratedCopyNode()}
+          </Tooltip>
+        ) : (
+          this.getDecoratedCopyNode()
+        )}
+      </>
     );
   }
 
@@ -100,7 +116,18 @@ class CopyToClipboard extends React.Component {
             {this.props.text}
           </span>
         )}
-        {this.getDecoratedCopyNode()}
+        {this.props.hasTooltip ? (
+          <Tooltip
+            id="copy-to-clipboard-tooltip"
+            placement="top"
+            title={this.props.tooltipText}
+            trigger={['hover']}
+          >
+            {this.getDecoratedCopyNode()}
+          </Tooltip>
+        ) : (
+          this.getDecoratedCopyNode()
+        )}
       </span>
     );
   }
