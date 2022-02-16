@@ -28,10 +28,10 @@ def test_ParsedQueryTeradata_lower_limit(app_context: AppContext) -> None:
     """
     from superset.db_engine_specs.teradata import TeradataEngineSpec
 
-    sql = "SEL TOP 1000 * FROM My_table;"
+    sql = "SEL TOP 1000 * FROM My_table"
     limit = 100
 
-    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+    assert str(TeradataEngineSpec.apply_top_to_sql(sql, limit, "Database")) == (
         "SEL TOP 100 * FROM My_table"
     )
 
@@ -45,10 +45,10 @@ def test_ParsedQueryTeradata_higher_limit(app_context: AppContext) -> None:
     """
     from superset.db_engine_specs.teradata import TeradataEngineSpec
 
-    sql = "SEL TOP 1000 * FROM My_table;"
+    sql = "SEL TOP 1000 * FROM My_table"
     limit = 10000
 
-    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+    assert str(TeradataEngineSpec.apply_top_to_sql(sql, limit, "Database")) == (
         "SEL TOP 1000 * FROM My_table"
     )
 
@@ -62,10 +62,10 @@ def test_ParsedQueryTeradata_equal_limit(app_context: AppContext) -> None:
     """
     from superset.db_engine_specs.teradata import TeradataEngineSpec
 
-    sql = "SEL TOP 1000 * FROM My_table;"
+    sql = "SEL TOP 1000 * FROM My_table"
     limit = 1000
 
-    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+    assert str(TeradataEngineSpec.apply_top_to_sql(sql, limit, "Database")) == (
         "SEL TOP 1000 * FROM My_table"
     )
 
@@ -79,9 +79,9 @@ def test_ParsedQueryTeradata_no_limit(app_context: AppContext) -> None:
     """
     from superset.db_engine_specs.teradata import TeradataEngineSpec
 
-    sql = "SEL * FROM My_table;"
+    sql = "SEL * FROM My_table"
     limit = 1000
 
-    assert str(TeradataEngineSpec.apply_limit_to_sql(sql, limit, "Database")) == (
+    assert str(TeradataEngineSpec.apply_top_to_sql(sql, limit, "Database")) == (
         "SEL TOP 1000 * FROM My_table"
     )

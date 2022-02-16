@@ -85,7 +85,7 @@ def _extract_top_from_query(statement: TokenList) -> Optional[int]:
     :return: top value extracted from query, None if no top value present in statement
     """
 
-    td_top_keyword = {"TOP"}
+    td_top_keyword = {"TOP","SAMPLE"}
     str_statement = str(statement)
     str_statement = str_statement.replace("\n", " ").replace("\r", "")
     token = str_statement.rstrip().split(" ")

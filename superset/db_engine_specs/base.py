@@ -666,8 +666,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         sql_statement = sqlparse.format(sql, strip_comments=True)
         query_limit: Optional[int] = sql_parse._extract_top_from_query(sql_statement)
-        td_sel_keywords = {"SELECT"}
-        td_top_keywords = {"TOP"}
+        td_sel_keywords = {"SELECT","SEL"}
+        td_top_keywords = {"TOP","SAMPLE"}
         if not _limit:
             final_limit = query_limit
         elif int(query_limit or 0) < _limit and query_limit is not None:
