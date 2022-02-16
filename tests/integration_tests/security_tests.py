@@ -1299,3 +1299,25 @@ class TestGuestTokens(SupersetTestCase):
 
         self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")
         self.assertIsNone(guest_user)
+
+    @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
+    def test_create_guest_access_token_callable_audience(self, get_time_mock):
+        now = time.time()
+        get_time_mock.return_value = now
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        token = security_manager.create_guest_access_token(user, resources, rls)
+
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience="cool_code",
+        )
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.assertEqual("cool_code", decoded_token["aud"])
+        self.assertEqual("guest", decoded_token["type"])
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None
