@@ -1024,6 +1024,7 @@ def test_slack_chart_report_schedule(
         notification_targets = get_target_from_report_schedule(
             create_report_slack_chart
         )
+
         assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
         assert file_upload_mock.call_args[1]["file"] == SCREENSHOT_FILE
 
@@ -1118,6 +1119,11 @@ def test_slack_chart_report_schedule_with_text(
 |  0 | c11  | c12  | c13       |
 |  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
+
+        print(post_message_mock.call_args[1]["text"])
+        assert (
+            f"http://0.0.0.0:8080/superset/explore/?form_data=%7B%22slice_id%22%3A%201%7D&standalone=0&force=false"
+        ) in post_message_mock.call_args[1]["text"]
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
