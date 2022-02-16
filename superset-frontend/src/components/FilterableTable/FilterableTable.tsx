@@ -266,7 +266,7 @@ const FilterableTable = ({
     sortDirection: SortDirectionType;
   }) => {
     const shouldClearSort =
-      sortDirection === SortDirection.DESC && sortByState === sortBy;
+      sortDirectionState === SortDirection.DESC && sortByState === sortBy;
 
     if (shouldClearSort) {
       setSortByState(undefined);
@@ -568,7 +568,6 @@ const FilterableTable = ({
       >
         {fitted && (
           <Table
-            ref="Table"
             headerHeight={headerHeight}
             height={totalTableHeight.current}
             overscanRowCount={overscanRowCount}
