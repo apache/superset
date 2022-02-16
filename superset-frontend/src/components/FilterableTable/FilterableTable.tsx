@@ -145,6 +145,17 @@ const FilterableTable = ({
   const [list] = useState<Datum[]>(formatTableData(data));
   const [displayedList, setDisplayedList] = useState<Datum[]>(list);
 
+  // columns that have complex type and were expanded into sub columns
+  const [complexColumns] = useState<Record<string, boolean>>(
+    orderedColumnKeys.reduce(
+      (obj, key) => ({
+        ...obj,
+        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
+      }),
+      {},
+    ),
+  );
+
   const getCellContent = ({
     cellData,
     columnKey,
@@ -199,16 +210,6 @@ const FilterableTable = ({
     return widthsByColumnKey;
   };
 
-  // columns that have complex type and were expanded into sub columns
-  const [complexColumns] = useState<Record<string, boolean>>(
-    orderedColumnKeys.reduce(
-      (obj, key) => ({
-        ...obj,
-        [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
-      }),
-      {},
-    ),
-  );
   const [widthsForColumnsByKey] = useState<Record<string, number>>(
     getWidthsForColumns(),
   );
