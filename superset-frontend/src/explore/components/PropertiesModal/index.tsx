@@ -156,6 +156,7 @@ function PropertiesModal({
       });
       // update the redux state
       const updatedChart = {
+        ...payload,
         ...res.json.result,
         id: slice.slice_id,
       };
@@ -256,7 +257,7 @@ function PropertiesModal({
             <h3>{t('Certification')}</h3>
             <FormItem>
               <StyledFormItem label={t('Certified by')} name="certified_by">
-                <Input />
+                <Input aria-label={t('Certified by')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t('Person or group that has certified this chart.')}
@@ -267,7 +268,7 @@ function PropertiesModal({
                 label={t('Certification details')}
                 name="certification_details"
               >
-                <Input />
+                <Input aria-label={t('Certification details')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -279,8 +280,8 @@ function PropertiesModal({
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
             <FormItem>
-              <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
-                <Input />
+              <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
+                <Input aria-label="Cache timeout" />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
