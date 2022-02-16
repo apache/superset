@@ -1300,6 +1300,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """ This is used so the tests can mock time """
         return time.time()
 
+    @staticmethod
+    def _get_guest_token_jwt_audience() -> str:
+        audience = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        if callable(audience):
+            audience = audience()
+        return audience
+
     def create_guest_access_token(
         self,
         user: GuestTokenUser,
@@ -1309,8 +1316,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
-        aud = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
-
+        audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
         exp = now + (exp_seconds * 1000)
@@ -1321,7 +1327,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
-            "aud": aud,
+            "aud": audience,
             "type": "guest",
         }
         token = jwt.encode(claims, secret, algorithm=algo)
@@ -1363,8 +1369,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
-    @staticmethod
-    def parse_jwt_guest_token(raw_token: str) -> Dict[str, Any]:
+    def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
         """
         Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request
@@ -1372,8 +1377,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        aud = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
-        return jwt.decode(raw_token, secret, algorithms=[algo], audience=aud)
+        audience = self._get_guest_token_jwt_audience()
+        return jwt.decode(raw_token, secret, algorithms=[algo], audience=audience)
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
