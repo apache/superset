@@ -137,24 +137,13 @@ const FilterableTable = ({
       return newRow;
     });
 
-  const [list] = useState<Datum[]>(formatTableData(data));
-
-  const container = useRef<HTMLDivElement>(null);
-
   const [sortByState, setSortByState] = useState<string | undefined>(undefined);
   const [sortDirectionState, setSortDirectionState] = useState<
     SortDirectionType | undefined
   >(undefined);
   const [fitted, setFitted] = useState(false);
-  const [displayedList, setDisplayedList] = useState<Datum[]>(
-    formatTableData(data),
-  );
-
-  useEffect(() => {
-    fitTableToWidthIfNeeded();
-  }, []);
-
-  const getDatum = (list: Datum[], index: number) => list[index % list.length];
+  const [list] = useState<Datum[]>(formatTableData(data));
+  const [displayedList, setDisplayedList] = useState<Datum[]>(list);
 
   const getCellContent = ({
     cellData,
@@ -230,6 +219,20 @@ const FilterableTable = ({
       .reduce((curr, next) => curr + next),
   );
   const totalTableHeight = useRef(height);
+  const container = useRef<HTMLDivElement>(null);
+
+  const fitTableToWidthIfNeeded = () => {
+    const containerWidth = container.current?.clientWidth ?? 0;
+    if (totalTableWidth.current < containerWidth) {
+      // fit table width if content doesn't fill the width of the container
+      totalTableWidth.current = containerWidth;
+    }
+    setFitted(true);
+  };
+
+  useEffect(() => {
+    fitTableToWidthIfNeeded();
+  }, []);
 
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
@@ -281,15 +284,6 @@ const FilterableTable = ({
         ),
       );
     }
-  };
-
-  const fitTableToWidthIfNeeded = () => {
-    const containerWidth = container.current?.clientWidth ?? 0;
-    if (totalTableWidth.current < containerWidth) {
-      // fit table width if content doesn't fill the width of the container
-      totalTableWidth.current = containerWidth;
-    }
-    setFitted(true);
   };
 
   const addJsonModal = (
@@ -540,6 +534,8 @@ const FilterableTable = ({
     }
     return content;
   };
+
+  const getDatum = (list: Datum[], index: number) => list[index % list.length];
 
   const renderTable = () => {
     let sortedAndFilteredList = displayedList;
