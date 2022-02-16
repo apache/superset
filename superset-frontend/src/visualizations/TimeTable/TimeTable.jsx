@@ -192,17 +192,14 @@ const TimeTable = ({
         } else {
           v = reversedEntries[timeLag][valueField];
         }
-        if (typeof v === 'number' || typeof recent === 'number') {
-          if (column.comparisonType === 'diff') {
-            v = recent - v;
-          } else if (column.comparisonType === 'perc') {
-            v = recent / v;
-          } else if (column.comparisonType === 'perc_change') {
-            v = recent / v - 1;
-          }
-        } else {
-          v = 'N/A';
+        if (column.comparisonType === 'diff') {
+          v = recent - v;
+        } else if (column.comparisonType === 'perc') {
+          v = recent / v;
+        } else if (column.comparisonType === 'perc_change') {
+          v = recent / v - 1;
         }
+        v = v || 0;
       } else if (column.colType === 'contrib') {
         // contribution to column total
         v =

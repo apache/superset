@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,7 +33,7 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
     ):
         self._parameters = cmd_params
 
-    def run(self) -> bool:
+    def run(self) -> Optional[str]:
         try:
             return self.update(self._parameters)
         except SQLAlchemyError as ex:
@@ -43,5 +44,5 @@ class UpdateKeyValueCommand(BaseCommand, ABC):
         pass
 
     @abstractmethod
-    def update(self, cmd_params: CommandParameters) -> bool:
+    def update(self, cmd_params: CommandParameters) -> Optional[str]:
         ...

@@ -186,6 +186,7 @@ export const dnd_granularity_sqla: typeof dndGroupByControl = {
       options,
       default:
         datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
+      isTemporal: true,
     };
   },
 };
