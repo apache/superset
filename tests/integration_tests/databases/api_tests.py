@@ -172,6 +172,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
+            "allows_preview_data",
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
