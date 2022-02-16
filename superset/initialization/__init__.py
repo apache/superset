@@ -367,6 +367,53 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-table",
         )
         appbuilder.add_separator("Data")
+        appbuilder.add_link(
+            "Upload a CSV",
+            label=__("Upload a CSV"),
+            href="/csvtodatabaseview/form",
+            icon="fa-upload",
+            category="Upload Data",
+            category_label=__("Upload Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["CSV_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
+        appbuilder.add_link(
+            "Upload a Columnar file",
+            label=__("Upload a Columnar File"),
+            href="/columnartodatabaseview/form",
+            icon="fa-upload",
+            category="Upload Data",
+            category_label=__("Upload Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["COLUMNAR_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
+        try:
+            import xlrd  # pylint: disable=unused-import
+
+            appbuilder.add_link(
+                "Upload Excel",
+                label=__("Upload Excel"),
+                href="/exceltodatabaseview/form",
+                icon="fa-upload",
+                category="Upload Data",
+                category_label=__("Upload Data"),
+                category_icon="fa-wrench",
+                cond=lambda: bool(
+                    self.config["EXCEL_EXTENSIONS"].intersection(
+                        self.config["ALLOWED_EXTENSIONS"]
+                    )
+                ),
+            )
+        except ImportError:
+            pass
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
