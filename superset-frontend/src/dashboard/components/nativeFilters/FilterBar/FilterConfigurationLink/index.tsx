@@ -19,15 +19,23 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import Button from 'src/components/Button';
+import { FilterConfiguration, styled } from '@superset-ui/core';
 import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
+import { getFilterBarTestId } from '..';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
+  dashboardId?: number;
 }
+
+const HeaderButton = styled(Button)`
+  padding: 0;
+`;
 
 export const FilterConfigurationLink: React.FC<FCBProps> = ({
   createNewOnOpen,
+  dashboardId,
   children,
 }) => {
   const dispatch = useDispatch();
@@ -38,19 +46,27 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
   }
 
   async function submit(filterConfig: FilterConfiguration) {
-    await dispatch(setFilterConfiguration(filterConfig));
+    dispatch(await setFilterConfiguration(filterConfig));
     close();
   }
 
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <div onClick={() => setOpen(true)}>{children}</div>
+      <HeaderButton
+        {...getFilterBarTestId('create-filter')}
+        buttonStyle="link"
+        buttonSize="xsmall"
+        onClick={() => setOpen(true)}
+      >
+        {children}
+      </HeaderButton>
       <FiltersConfigModal
         isOpen={isOpen}
         onSave={submit}
         onCancel={close}
         createNewOnOpen={createNewOnOpen}
+        key={`filters-for-${dashboardId}`}
       />
     </>
   );

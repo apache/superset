@@ -23,3 +23,5 @@ import { configure as configureTestingLibrary } from '@testing-library/react';
 configureTestingLibrary({
   testIdAttribute: 'data-test',
 });
+
+document.body.innerHTML = '<div id="app" data-bootstrap="{}"></div>';

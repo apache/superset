@@ -22,14 +22,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import FaveStar from '.';
 
-jest.mock('../Icon', () => ({
-  __esModule: true,
-  default: ({ name }: { name: string }) => (
-    <div data-test="icon" data-name={name} />
-  ),
-}));
-
-jest.mock('src/common/components/Tooltip', () => ({
+jest.mock('src/components/Tooltip', () => ({
   Tooltip: (props: any) => <div data-test="tooltip" {...props} />,
 }));
 
@@ -41,11 +34,9 @@ test('render right content', () => {
 
   const { rerender } = render(<FaveStar {...props} isStarred />);
   expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'favorite-selected',
-  );
+  expect(
+    screen.getByRole('img', { name: 'favorite-selected' }),
+  ).toBeInTheDocument();
 
   expect(props.saveFaveStar).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
@@ -53,11 +44,9 @@ test('render right content', () => {
   expect(props.saveFaveStar).toBeCalledWith(props.itemId, true);
 
   rerender(<FaveStar {...props} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'favorite-unselected',
-  );
+  expect(
+    screen.getByRole('img', { name: 'favorite-unselected' }),
+  ).toBeInTheDocument();
 
   expect(props.saveFaveStar).toBeCalledTimes(1);
   userEvent.click(screen.getByRole('button'));

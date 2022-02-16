@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import logging
 import re
 import textwrap
@@ -22,23 +23,12 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    List,
-    Match,
-    Optional,
-    Pattern,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
 import simplejson as json
+from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
@@ -47,11 +37,11 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
-from sqlalchemy.types import TypeEngine
 
-from superset import app, cache_manager, is_feature_enabled
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset import cache_manager, is_feature_enabled
+from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
@@ -70,11 +60,28 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
 
-COLUMN_NOT_RESOLVED_ERROR_REGEX = "line (.+?): .*Column '(.+?)' cannot be resolved"
-TABLE_DOES_NOT_EXIST_ERROR_REGEX = ".*Table (.+?) does not exist"
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    "line (?P<location>.+?): .*Column '(?P<column_name>.+?)' cannot be resolved"
+)
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(".*Table (?P<table_name>.+?) does not exist")
+SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
+    "line (?P<location>.+?): .*Schema '(?P<schema_name>.+?)' does not exist"
+)
+CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
+    "provided, or not known"
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 60\] Operation timed out"
+)
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 61\] Connection refused"
+)
+CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
+    r"line (?P<location>.+?): Catalog '(?P<catalog_name>.+?)' does not exist"
+)
 
-QueryStatus = utils.QueryStatus
-config = app.config
 logger = logging.getLogger(__name__)
 
 
@@ -137,12 +144,67 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
         "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
         "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P0.25Y": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
         "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
         "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+    }
+
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __(
+                'We can\'t seem to resolve the column "%(column_name)s" at '
+                "line %(location)s.",
+            ),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The table "%(table_name)s" does not exist. '
+                "A valid table must be used to run this query.",
+            ),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SCHEMA_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The schema "%(schema_name)s" does not exist. '
+                "A valid schema must be used to run this query.",
+            ),
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {},
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('The hostname "%(hostname)s" cannot be resolved.'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {},
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __(
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
+            ),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {},
+        ),
+        CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {},
+        ),
+        CONNECTION_UNKNOWN_DATABASE_ERROR: (
+            __('Unable to connect to catalog named "%(catalog_name)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {},
+        ),
     }
 
     @classmethod
@@ -159,7 +221,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         that can set the correct properties for impersonating users
         :param connect_args: config to be updated
         :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         :return: None
         """
@@ -266,7 +327,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def _parse_structural_column(  # pylint: disable=too-many-locals,too-many-branches
+    def _parse_structural_column(  # pylint: disable=too-many-locals
         cls,
         parent_column_name: str,
         parent_data_type: str,
@@ -374,86 +435,82 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
             types.BOOLEAN,
-            utils.GenericDataType.BOOLEAN,
+            GenericDataType.BOOLEAN,
         ),
         (
             re.compile(r"^tinyint.*", re.IGNORECASE),
             TinyInteger(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
             types.SMALLINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
             types.INTEGER(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
             types.BIGINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
             types.DECIMAL(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^varbinary.*", re.IGNORECASE),
             types.VARBINARY(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
-        (
-            re.compile(r"^json.*", re.IGNORECASE),
-            types.JSON(),
-            utils.GenericDataType.STRING,
-        ),
+        (re.compile(r"^json.*", re.IGNORECASE), types.JSON(), GenericDataType.STRING,),
         (
             re.compile(r"^date.*", re.IGNORECASE),
-            types.DATE(),
-            utils.GenericDataType.TEMPORAL,
+            types.DATETIME(),
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^timestamp.*", re.IGNORECASE),
             types.TIMESTAMP(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^interval.*", re.IGNORECASE),
             Interval(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^time.*", re.IGNORECASE),
             types.Time(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.STRING),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
     )
 
     @classmethod
@@ -580,16 +637,12 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def estimate_statement_cost(  # pylint: disable=too-many-locals
-        cls, statement: str, cursor: Any
-    ) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
-        :param database: Database instance
         :param cursor: Cursor instance
-        :param username: Effective username
         :return: JSON response from Presto
         """
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
@@ -669,12 +722,14 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             uri.database = database
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 
     @classmethod
@@ -702,7 +757,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return datasource_names
 
     @classmethod
-    def expand_data(  # pylint: disable=too-many-locals,too-many-branches
+    def expand_data(  # pylint: disable=too-many-locals
         cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
     ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
         """
@@ -797,8 +852,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 for row in data:
                     values = row.get(name) or []
                     if isinstance(values, str):
-                        row[name] = values = cast(List[Any], destringify(values))
-                    for value, col in zip(values, expanded):
+                        values = cast(Optional[List[Any]], destringify(values))
+                        row[name] = values
+                    for value, col in zip(values or [], expanded):
                         row[col["name"]] = value
 
         data = [
@@ -850,6 +906,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param schema: Schema name
         :param table: Table (view) name
         """
+        # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
         engine = cls.get_engine(database, schema)
@@ -873,7 +930,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         """Updates progress information"""
         query_id = query.id
         poll_interval = query.database.connect_args.get(
-            "poll_interval", config["PRESTO_POLL_INTERVAL"]
+            "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
         )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()
@@ -1132,61 +1189,18 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
-        raw_message = cls._extract_error_message(ex)
-
-        column_match = re.search(COLUMN_NOT_RESOLVED_ERROR_REGEX, raw_message)
-        if column_match:
-            return [
-                SupersetError(
-                    error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-                    message=__(
-                        'We can\'t seem to resolve the column "%(column_name)s" at '
-                        "line %(location)s.",
-                        column_name=column_match.group(2),
-                        location=column_match.group(1),
-                    ),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
-            ]
-
-        table_match = re.search(TABLE_DOES_NOT_EXIST_ERROR_REGEX, raw_message)
-        if table_match:
-            return [
-                SupersetError(
-                    error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                    message=__(
-                        'The table "%(table_name)s" does not exist. '
-                        "A valid table must be used to run this query.",
-                        table_name=table_match.group(1),
-                    ),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
-            ]
-
-        return super().extract_errors(ex)
-
-    @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
@@ -1196,3 +1210,15 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             return column_spec
 
         return super().get_column_spec(native_type)
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return True

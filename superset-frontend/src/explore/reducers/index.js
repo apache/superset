@@ -18,11 +18,12 @@
  */
 import { combineReducers } from 'redux';
 
-import charts from '../../chart/chartReducer';
+import reports from 'src/reports/reducers/reports';
+import charts from 'src/chart/chartReducer';
+import dataMask from 'src/dataMask/reducer';
+import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from './saveModalReducer';
 import explore from './exploreReducer';
-import dataMask from '../../dataMask/reducer';
-import messageToasts from '../../messageToasts/reducers';
 
 const impressionId = (state = '') => state;
 
@@ -33,4 +34,5 @@ export default combineReducers({
   explore,
   impressionId,
   messageToasts,
+  reports,
 });

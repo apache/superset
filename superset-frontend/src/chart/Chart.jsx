@@ -18,22 +18,23 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import Alert from 'src/components/Alert';
 import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Button from 'src/components/Button';
-import Loading from '../components/Loading';
-import ErrorBoundary from '../components/ErrorBoundary';
+import Loading from 'src/components/Loading';
+import { EmptyStateBig } from 'src/components/EmptyState';
+import ErrorBoundary from 'src/components/ErrorBoundary';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   // current chart is included by dashboard
   dashboardId: PropTypes.number,
   // original selected values for FilterBox viz
@@ -43,12 +44,16 @@ const propTypes = {
   // formData contains chart's own filter parameter
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
   setControlValue: PropTypes.func,
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  force: PropTypes.bool,
+  isFiltersInitialized: PropTypes.bool,
+  isDeactivatedViz: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -62,9 +67,13 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
+const NONEXISTENT_DATASET = t(
+  'The dataset associated with this chart no longer exists',
+);
 
 const defaultProps = {
   addFilter: () => BLANK,
@@ -75,6 +84,8 @@ const defaultProps = {
   triggerRender: false,
   dashboardId: null,
   chartStackTrace: null,
+  isDeactivatedViz: false,
+  force: false,
 };
 
 const Styles = styled.div`
@@ -84,6 +95,10 @@ const Styles = styled.div`
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+
+  .slice_container {
+    height: ${p => p.height}px;
   }
 `;
 
@@ -101,19 +116,30 @@ const RefreshOverlayWrapper = styled.div`
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.handleRenderContainerFailure = this.handleRenderContainerFailure.bind(
-      this,
-    );
+    this.handleRenderContainerFailure =
+      this.handleRenderContainerFailure.bind(this);
   }
 
   componentDidMount() {
-    if (this.props.triggerQuery) {
+    // during migration, hold chart queries before user choose review or cancel
+    if (
+      this.props.triggerQuery &&
+      this.props.filterboxMigrationState !== 'UNDECIDED'
+    ) {
       this.runQuery();
     }
   }
 
   componentDidUpdate() {
-    if (this.props.triggerQuery) {
+    // during migration, hold chart queries before user choose review or cancel
+    if (
+      this.props.triggerQuery &&
+      this.props.filterboxMigrationState !== 'UNDECIDED'
+    ) {
+      // if the chart is deactivated (filter_box), only load once
+      if (this.props.isDeactivatedViz && this.props.queriesResponse) {
+        return;
+      }
       this.runQuery();
     }
   }
@@ -123,19 +149,21 @@ class Chart extends React.PureComponent {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
         this.props.formData,
-        false,
+        this.props.force,
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     } else {
       // Create chart with POST request
       this.props.actions.postChartFormData(
         this.props.formData,
-        false,
+        this.props.force,
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     }
   }
@@ -160,10 +188,36 @@ class Chart extends React.PureComponent {
   }
 
   renderErrorMessage(queryResponse) {
-    const { chartId, chartAlert, chartStackTrace, dashboardId } = this.props;
+    const {
+      chartId,
+      chartAlert,
+      chartStackTrace,
+      datasource,
+      dashboardId,
+      height,
+    } = this.props;
 
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
+
+    // if datasource is still loading, don't render JS errors
+    if (
+      chartAlert !== undefined &&
+      chartAlert !== NONEXISTENT_DATASET &&
+      datasource === PLACEHOLDER_DATASOURCE
+    ) {
+      return (
+        <Styles
+          data-ui-anchor="chart"
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+        >
+          <Loading />
+        </Styles>
+      );
+    }
+
     return (
       <ChartErrorMessage
         chartId={chartId}
@@ -186,6 +240,8 @@ class Chart extends React.PureComponent {
       onQuery,
       refreshOverlayVisible,
       queriesResponse = [],
+      isDeactivatedViz = false,
+      width,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -194,12 +250,22 @@ class Chart extends React.PureComponent {
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
     }
+
     if (errorMessage) {
+      const description = isFeatureEnabled(
+        FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+      )
+        ? t(
+            'Drag and drop values into highlighted field(s) on the left control panel and run query',
+          )
+        : t(
+            'Select values in highlighted field(s) on the left control panel and run query',
+          );
       return (
-        <Alert
-          data-test="alert-warning"
-          message={errorMessage}
-          type="warning"
+        <EmptyStateBig
+          title={t('Add required control values to preview chart')}
+          description={description}
+          image="chart.svg"
         />
       );
     }
@@ -210,9 +276,11 @@ class Chart extends React.PureComponent {
         showMessage={false}
       >
         <Styles
+          data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
           height={height}
+          width={width}
         >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
@@ -229,7 +297,7 @@ class Chart extends React.PureComponent {
             </RefreshOverlayWrapper>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && !isDeactivatedViz && <Loading />}
         </Styles>
       </ErrorBoundary>
     );

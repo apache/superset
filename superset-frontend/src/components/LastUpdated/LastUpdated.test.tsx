@@ -34,7 +34,7 @@ describe('LastUpdated', () => {
   it('renders a refresh action', () => {
     const mockAction = jest.fn();
     wrapper = mount(<LastUpdated updatedAt={updatedAt} update={mockAction} />);
-    const props = wrapper.find('[data-test="refresh"]').props();
+    const props = wrapper.find('[aria-label="refresh"]').first().props();
     if (props.onClick) {
       props.onClick({} as React.MouseEvent);
     }

@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
-from typing import Any
+import urllib.request
+from typing import Any, Dict, Optional
+from urllib.error import URLError
 
 import pandas as pd
+import simplejson
 
 negative_number_re = re.compile(r"^-[0-9.]+$")
 
@@ -65,3 +68,42 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     df = df.applymap(escape_values)
 
     return df.to_csv(**kwargs)
+
+
+def get_chart_csv_data(
+    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
+) -> Optional[bytes]:
+    content = None
+    if auth_cookies:
+        opener = urllib.request.build_opener()
+        cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
+        opener.addheaders.append(("Cookie", cookie_str))
+        response = opener.open(chart_url)
+        content = response.read()
+    if response.getcode() != 200:
+        raise URLError(response.getcode())
+    if content:
+        return content
+    return None
+
+
+def get_chart_dataframe(
+    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
+) -> Optional[pd.DataFrame]:
+    content = get_chart_csv_data(chart_url, auth_cookies)
+    if content is None:
+        return None
+
+    result = simplejson.loads(content.decode("utf-8"))
+    df = pd.DataFrame.from_dict(result["result"][0]["data"])
+
+    # rebuild hierarchical columns and index
+    df.columns = pd.MultiIndex.from_tuples(
+        tuple(colname) if isinstance(colname, list) else (colname,)
+        for colname in result["result"][0]["colnames"]
+    )
+    df.index = pd.MultiIndex.from_tuples(
+        tuple(indexname) if isinstance(indexname, list) else (indexname,)
+        for indexname in result["result"][0]["indexnames"]
+    )
+    return df

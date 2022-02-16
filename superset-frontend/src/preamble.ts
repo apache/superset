@@ -19,21 +19,23 @@
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
+// eslint-disable-next-line no-restricted-imports
 import { configure, supersetTheme } from '@superset-ui/core';
 import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
+import setupDashboardComponents from './setup/setupDasboardComponents';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
-let bootstrapData: any;
+// eslint-disable-next-line import/no-mutable-exports
+export let bootstrapData: any;
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-
   bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
@@ -58,6 +60,8 @@ setupColors(
 
 // Setup number formatters
 setupFormatters();
+
+setupDashboardComponents();
 
 export const theme = merge(
   supersetTheme,

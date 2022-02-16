@@ -17,12 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import {
-  handleDashboardDelete,
-  handleBulkDashboardExport,
-  CardStyles,
-} from 'src/views/CRUD/utils';
+import { Link, useHistory } from 'react-router-dom';
+import { t, useTheme } from '@superset-ui/core';
+import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
@@ -47,7 +45,7 @@ interface DashboardCardProps {
   dashboardFilter?: string;
   userId?: number;
   showThumbnails?: boolean;
-  featureFlag?: boolean;
+  handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
 }
 
 function DashboardCard({
@@ -63,12 +61,14 @@ function DashboardCard({
   favoriteStatus,
   saveFavoriteStatus,
   showThumbnails,
-  featureFlag,
+  handleBulkDashboardExport,
 }: DashboardCardProps) {
+  const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
+  const theme = useTheme();
   const menu = (
     <Menu>
       {canEdit && openDashboardEditModal && (
@@ -140,24 +140,28 @@ function DashboardCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled) {
-          window.location.href = dashboard.url;
+          history.push(dashboard.url);
         }
       }}
     >
       <ListViewCard
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
+        certifiedBy={dashboard.certified_by}
+        certificationDetails={dashboard.certification_details}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
-        cover={!featureFlag || !showThumbnails ? <></> : null}
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
+        }
         url={bulkSelectEnabled ? undefined : dashboard.url}
+        linkComponent={Link}
         imgURL={dashboard.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
-        description={t(
-          'Last modified %s',
-          dashboard.changed_on_delta_humanized,
-        )}
+        description={t('Modified %s', dashboard.changed_on_delta_humanized)}
         coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={
           <ListViewCard.Actions
@@ -172,7 +176,7 @@ function DashboardCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icons.MoreHoriz />
+              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </Dropdown>
           </ListViewCard.Actions>
         }

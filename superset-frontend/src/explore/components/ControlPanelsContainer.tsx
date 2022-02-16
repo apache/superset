@@ -17,44 +17,52 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  ensureIsArray,
   t,
   styled,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
+  css,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
   ControlState,
   CustomControlItem,
+  DatasourceMeta,
   ExpandedControlItem,
   InfoTooltipWithTrigger,
+  sections,
 } from '@superset-ui/chart-controls';
 
-import Tabs from 'src/common/components/Tabs';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
+import Tabs from 'src/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 
+import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
-import {
-  ExploreActions,
-  exploreActions,
-} from 'src/explore/actions/exploreActions';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { ChartState } from 'src/explore/types';
 
 import ControlRow from './ControlRow';
 import Control from './Control';
+import { ControlPanelAlert } from './ControlPanelAlert';
 
 export type ControlPanelsContainerProps = {
+  exploreState: ExplorePageState['explore'];
   actions: ExploreActions;
   datasource_type: DatasourceType;
-  exploreState: ExplorePageState['explore'];
   chart: ChartState;
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
@@ -73,7 +81,6 @@ const Styles = styled.div`
   width: 100%;
   overflow: auto;
   overflow-x: visible;
-  overflow-y: auto;
   #controlSections {
     min-height: 100%;
     overflow: visible;
@@ -87,6 +94,13 @@ const Styles = styled.div`
   }
   .Select__menu {
     max-width: 100%;
+  }
+  .type-label {
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
+    display: inline-block;
+    text-align: center;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 `;
 
@@ -102,33 +116,137 @@ const ControlPanelsTabs = styled(Tabs)`
   }
 `;
 
-export class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
-  // trigger updates to the component when async plugins load
-  static contextType = PluginContext;
+const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
+  !!section.label &&
+  (sections.legacyRegularTime.label === section.label ||
+    sections.legacyTimeseriesTime.label === section.label);
 
-  constructor(props: ControlPanelsContainerProps) {
-    super(props);
-    this.renderControl = this.renderControl.bind(this);
-    this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
-  }
+const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
+  datasource?.columns?.some(c => c.is_dttm) ||
+  datasource.type === DatasourceType.Druid;
 
-  sectionsToRender(): ExpandedControlPanelSectionConfig[] {
-    return getSectionsToRender(
-      this.props.form_data.viz_type,
-      this.props.datasource_type,
+const sectionsToExpand = (
+  sections: ControlPanelSectionConfig[],
+  datasource: DatasourceMeta,
+): string[] =>
+  // avoid expanding time section if datasource doesn't include time column
+  sections.reduce(
+    (acc, section) =>
+      section.expanded && (!isTimeSection(section) || hasTimeColumn(datasource))
+        ? [...acc, String(section.label)]
+        : acc,
+    [] as string[],
+  );
+
+function getState(
+  vizType: string,
+  datasource: DatasourceMeta,
+  datasourceType: DatasourceType,
+) {
+  const querySections: ControlPanelSectionConfig[] = [];
+  const customizeSections: ControlPanelSectionConfig[] = [];
+
+  getSectionsToRender(vizType, datasourceType).forEach(section => {
+    // if at least one control in the section is not `renderTrigger`
+    // or asks to be displayed at the Data tab
+    if (
+      section.tabOverride === 'data' ||
+      section.controlSetRows.some(rows =>
+        rows.some(
+          control =>
+            control &&
+            typeof control === 'object' &&
+            'config' in control &&
+            control.config &&
+            (!control.config.renderTrigger ||
+              control.config.tabOverride === 'data'),
+        ),
+      )
+    ) {
+      querySections.push(section);
+    } else {
+      customizeSections.push(section);
+    }
+  });
+  const expandedQuerySections: string[] = sectionsToExpand(
+    querySections,
+    datasource,
+  );
+  const expandedCustomizeSections: string[] = sectionsToExpand(
+    customizeSections,
+    datasource,
+  );
+  return {
+    expandedQuerySections,
+    expandedCustomizeSections,
+    querySections,
+    customizeSections,
+  };
+}
+
+export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+  const pluginContext = useContext(PluginContext);
+
+  const prevDatasource = usePrevious(props.exploreState.datasource);
+
+  const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (
+      prevDatasource &&
+      (props.exploreState.datasource?.id !== prevDatasource.id ||
+        props.exploreState.datasource?.type !== prevDatasource.type)
+    ) {
+      setShowDatasourceAlert(true);
+      containerRef.current?.scrollTo(0, 0);
+    }
+  }, [
+    props.exploreState.datasource?.id,
+    props.exploreState.datasource?.type,
+    prevDatasource,
+  ]);
+
+  const {
+    expandedQuerySections,
+    expandedCustomizeSections,
+    querySections,
+    customizeSections,
+  } = useMemo(
+    () =>
+      getState(
+        props.form_data.viz_type,
+        props.exploreState.datasource,
+        props.datasource_type,
+      ),
+    [
+      props.form_data.datasource,
+      props.form_data.viz_type,
+      props.datasource_type,
+    ],
+  );
+
+  const resetTransferredControls = useCallback(() => {
+    ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
+      props.actions.setControlValue(
+        controlName,
+        props.controls[controlName].default,
+      ),
     );
-  }
+  }, [props.actions, props.exploreState.controlsTransferred, props.controls]);
 
-  sectionsToExpand(sections: ControlPanelSectionConfig[]) {
-    return sections.reduce(
-      (acc, section) =>
-        section.expanded ? [...acc, String(section.label)] : acc,
-      [] as string[],
-    );
-  }
+  const handleClearFormClick = useCallback(() => {
+    resetTransferredControls();
+    setShowDatasourceAlert(false);
+  }, [resetTransferredControls]);
 
-  renderControl({ name, config }: CustomControlItem) {
-    const { actions, controls, chart, exploreState } = this.props;
+  const handleContinueClick = useCallback(() => {
+    setShowDatasourceAlert(false);
+  }, []);
+
+  const renderControl = ({ name, config }: CustomControlItem) => {
+    const { controls, chart, exploreState } = props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
@@ -141,8 +259,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
       // state, too. Since it's may be expensive to run mapStateToProps for every
       // re-render, we only run this when the chart plugin explicitly ask for this.
       ...(config.mapStateToProps?.length === 3
-        ? // @ts-ignore /* The typing accuses of having an extra parameter. I didn't remove it because I believe it could be an error in the types and not in the code */
-          config.mapStateToProps(exploreState, controls[name], chart)
+        ? config.mapStateToProps(exploreState, controls[name], chart)
         : // for other controls, `mapStateToProps` is already run in
           // controlUtils/getControlState.ts
           undefined),
@@ -153,7 +270,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
     };
 
     // if visibility check says the config is not visible, don't render it
-    if (visibility && !visibility.call(config, this.props, controlData)) {
+    if (visibility && !visibility.call(config, props, controlData)) {
       return null;
     }
     return (
@@ -161,14 +278,16 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
         key={`control-${name}`}
         name={name}
         validationErrors={validationErrors}
-        actions={actions}
+        actions={props.actions}
         {...restProps}
       />
     );
-  }
+  };
 
-  renderControlPanelSection(section: ExpandedControlPanelSectionConfig) {
-    const { controls } = this.props;
+  const renderControlPanelSection = (
+    section: ExpandedControlPanelSectionConfig,
+  ) => {
+    const { controls } = props;
     const { label, description } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -193,7 +312,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
       }),
     );
     const PanelHeader = () => (
-      <span>
+      <span data-test="collapsible-control-panel-header">
         <span>{label}</span>{' '}
         {description && (
           // label is only used in tooltip id (should probably call this prop `id`)
@@ -211,8 +330,24 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
 
     return (
       <Collapse.Panel
-        className="control-panel-section"
-        header={PanelHeader()}
+        css={theme => css`
+          margin-bottom: 0;
+          box-shadow: none;
+
+          &:last-child {
+            padding-bottom: ${theme.gridUnit * 10}px;
+          }
+
+          .panel-body {
+            margin-left: ${theme.gridUnit * 4}px;
+            padding-bottom: 0;
+          }
+
+          span.label {
+            display: inline-block;
+          }
+        `}
+        header={<PanelHeader />}
         key={sectionId}
       >
         {section.controlSetRows.map((controlSets, i) => {
@@ -231,7 +366,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
                 controlItem.config &&
                 controlItem.name !== 'datasource'
               ) {
-                return this.renderControl(controlItem);
+                return renderControl(controlItem);
               }
               return null;
             })
@@ -249,97 +384,84 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
         })}
       </Collapse.Panel>
     );
+  };
+
+  const hasControlsTransferred =
+    ensureIsArray(props.exploreState.controlsTransferred).length > 0;
+
+  const DatasourceAlert = useCallback(
+    () =>
+      hasControlsTransferred ? (
+        <ControlPanelAlert
+          title={t('Keep control settings?')}
+          bodyText={t(
+            "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
+          )}
+          primaryButtonAction={handleContinueClick}
+          secondaryButtonAction={handleClearFormClick}
+          primaryButtonText={t('Continue')}
+          secondaryButtonText={t('Clear form')}
+          type="info"
+        />
+      ) : (
+        <ControlPanelAlert
+          title={t('No form settings were maintained')}
+          bodyText={t(
+            'We were unable to carry over any controls when switching to this new dataset.',
+          )}
+          primaryButtonAction={handleContinueClick}
+          primaryButtonText={t('Continue')}
+          type="warning"
+        />
+      ),
+    [handleClearFormClick, handleContinueClick, hasControlsTransferred],
+  );
+
+  const controlPanelRegistry = getChartControlPanelRegistry();
+  if (
+    !controlPanelRegistry.has(props.form_data.viz_type) &&
+    pluginContext.loading
+  ) {
+    return <Loading />;
   }
 
-  render() {
-    const controlPanelRegistry = getChartControlPanelRegistry();
-    if (
-      !controlPanelRegistry.has(this.props.form_data.viz_type) &&
-      this.context.loading
-    ) {
-      return <Loading />;
-    }
+  const showCustomizeTab = customizeSections.length > 0;
 
-    const querySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
-    const displaySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
-    this.sectionsToRender().forEach(section => {
-      // if at least one control in the section is not `renderTrigger`
-      // or asks to be displayed at the Data tab
-      if (
-        section.tabOverride === 'data' ||
-        section.controlSetRows.some(rows =>
-          rows.some(
-            control =>
-              control &&
-              typeof control === 'object' &&
-              'config' in control &&
-              control.config &&
-              (!control.config.renderTrigger ||
-                control.config.tabOverride === 'data'),
-          ),
-        )
-      ) {
-        querySectionsToRender.push(section);
-      } else {
-        displaySectionsToRender.push(section);
-      }
-    });
-
-    const showCustomizeTab = displaySectionsToRender.length > 0;
-    const expandedQuerySections = this.sectionsToExpand(querySectionsToRender);
-    const expandedCustomSections = this.sectionsToExpand(
-      displaySectionsToRender,
-    );
-    return (
-      <Styles>
-        <ControlPanelsTabs
-          id="controlSections"
-          data-test="control-tabs"
-          fullWidth={showCustomizeTab}
-        >
-          <Tabs.TabPane key="query" tab={t('Data')}>
+  return (
+    <Styles ref={containerRef}>
+      <ControlPanelsTabs
+        id="controlSections"
+        data-test="control-tabs"
+        fullWidth={showCustomizeTab}
+      >
+        <Tabs.TabPane key="query" tab={t('Data')}>
+          <Collapse
+            bordered
+            defaultActiveKey={expandedQuerySections}
+            expandIconPosition="right"
+            ghost
+            key={`query-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
+          >
+            {showDatasourceAlert && <DatasourceAlert />}
+            {querySections.map(renderControlPanelSection)}
+          </Collapse>
+        </Tabs.TabPane>
+        {showCustomizeTab && (
+          <Tabs.TabPane key="display" tab={t('Customize')}>
             <Collapse
               bordered
-              defaultActiveKey={expandedQuerySections}
+              defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
               ghost
+              key={`customize-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
             >
-              {querySectionsToRender.map(this.renderControlPanelSection)}
+              {customizeSections.map(renderControlPanelSection)}
             </Collapse>
           </Tabs.TabPane>
-          {showCustomizeTab && (
-            <Tabs.TabPane key="display" tab={t('Customize')}>
-              <Collapse
-                bordered
-                defaultActiveKey={expandedCustomSections}
-                expandIconPosition="right"
-                ghost
-              >
-                {displaySectionsToRender.map(this.renderControlPanelSection)}
-              </Collapse>
-            </Tabs.TabPane>
-          )}
-        </ControlPanelsTabs>
-      </Styles>
-    );
-  }
-}
+        )}
+      </ControlPanelsTabs>
+    </Styles>
+  );
+};
 
-export default connect(
-  function mapStateToProps(state: ExplorePageState) {
-    const { explore, charts } = state;
-    const chartKey = Object.keys(charts)[0];
-    const chart = charts[chartKey];
-    return {
-      chart,
-      isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
-      controls: explore.controls,
-      exploreState: explore,
-    };
-  },
-  function mapDispatchToProps(dispatch) {
-    return {
-      actions: bindActionCreators(exploreActions, dispatch),
-    };
-  },
-)(ControlPanelsContainer);
+export default ControlPanelsContainer;

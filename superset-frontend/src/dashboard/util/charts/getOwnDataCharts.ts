@@ -31,17 +31,12 @@ export const getAffectedOwnDataCharts = (
   const chartIds = Object.keys(ownDataCharts);
   const appliedChartIds = Object.keys(appliedOwnDataCharts);
   const affectedIds: string[] = arrayDiff(chartIds, appliedChartIds).filter(
-    id =>
-      ownDataCharts[id]?.extraFormData ||
-      appliedOwnDataCharts[id]?.extraFormData,
+    id => ownDataCharts[id] || appliedOwnDataCharts[id],
   );
   const checkForUpdateIds = new Set<string>([...chartIds, ...appliedChartIds]);
   checkForUpdateIds.forEach(chartId => {
     if (
-      !areObjectsEqual(
-        ownDataCharts[chartId]?.extraFormData,
-        appliedOwnDataCharts[chartId]?.extraFormData,
-      )
+      !areObjectsEqual(ownDataCharts[chartId], appliedOwnDataCharts[chartId])
     ) {
       affectedIds.push(chartId);
     }

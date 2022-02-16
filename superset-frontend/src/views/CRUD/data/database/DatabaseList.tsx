@@ -18,19 +18,21 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
-import rison from 'rison';
+import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import handleResourceExport from 'src/utils/export';
 import DatabaseModal from './DatabaseModal';
+
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -49,6 +51,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
   dashboard_count: number;
+  sqllab_tab_count: number;
 }
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
@@ -65,6 +68,11 @@ const IconCancelX = styled(Icons.CancelX)`
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .action-button {
+    display: inline-block;
+    height: 100%;
+  }
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
@@ -87,15 +95,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     addDangerToast,
   );
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
-  const [
-    databaseCurrentlyDeleting,
-    setDatabaseCurrentlyDeleting,
-  ] = useState<DatabaseDeleteObject | null>(null);
+  const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
+    useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatabaseImportModal = () => {
     showImportModal(true);
@@ -108,6 +115,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const handleDatabaseImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Database imported'));
   };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
@@ -119,6 +127,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           ...database,
           chart_count: json.charts.count,
           dashboard_count: json.dashboards.count,
+          sqllab_tab_count: json.sqllab_tab_states.count,
         });
       })
       .catch(
@@ -147,17 +156,20 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
-  function handleDatabaseEdit(database: DatabaseObject) {
-    // Set database and open modal
+  function handleDatabaseEditModal({
+    database = null,
+    modalOpen = false,
+  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
+    // Set database and modal
     setCurrentDatabase(database);
-    setDatabaseModalOpen(true);
+    setDatabaseModalOpen(modalOpen);
   }
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -176,15 +188,22 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
-          setCurrentDatabase(null);
-          setDatabaseModalOpen(true);
+          handleDatabaseEditModal({ modalOpen: true });
         },
       },
     ];
 
     if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
       menuData.buttons.push({
-        name: <Icons.Import />,
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import databases')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
         buttonStyle: 'link',
         onClick: openDatabaseImportModal,
       });
@@ -192,9 +211,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
-    return window.location.assign(
-      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
-    );
+    if (database.id === undefined) {
+      return;
+    }
+
+    handleResourceExport('database', [database.id], () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -225,7 +249,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) => <BooleanDisplay value={allowRunAsync} />,
+        }: {
+          row: { original: { allow_run_async: boolean } };
+        }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
       },
       {
@@ -247,13 +273,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         size: 'sm',
       },
       {
-        accessor: 'allow_csv_upload',
+        accessor: 'allow_file_upload',
         Header: t('CSV upload'),
         Cell: ({
           row: {
-            original: { allow_csv_upload: allowCSVUpload },
+            original: { allow_file_upload: allowFileUpload },
           },
-        }: any) => <BooleanDisplay value={allowCSVUpload} />,
+        }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
       },
       {
@@ -290,7 +316,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleDatabaseEdit(original);
+          const handleEdit = () =>
+            handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
           if (!canEdit && !canDelete && !canExport) {
@@ -366,7 +393,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Expose in SQL Lab'),
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -385,7 +412,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
         id: 'allow_run_async',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -396,7 +423,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Search'),
         id: 'database_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -406,9 +433,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     <>
       <SubMenu {...menuData} />
       <DatabaseModal
-        database={currentDatabase}
+        databaseId={currentDatabase?.id}
         show={databaseModalOpen}
-        onHide={() => setDatabaseModalOpen(false)}
+        onHide={handleDatabaseEditModal}
         onDatabaseAdd={() => {
           refreshData();
         }}
@@ -416,10 +443,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {databaseCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.',
+            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
             databaseCurrentlyDeleting.database_name,
             databaseCurrentlyDeleting.chart_count,
             databaseCurrentlyDeleting.dashboard_count,
+            databaseCurrentlyDeleting.sqllab_tab_count,
           )}
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {
@@ -457,6 +485,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

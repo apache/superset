@@ -36,6 +36,7 @@ export function CancelConfirmationAlert({
 }: ConfirmationAlertProps) {
   return (
     <Alert
+      closable={false}
       type="warning"
       key="alert"
       message={title}
@@ -47,20 +48,20 @@ export function CancelConfirmationAlert({
       action={
         <div css={{ display: 'flex' }}>
           <Button
-            key="submit"
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={onConfirm}
-          >
-            {t('Yes, cancel')}
-          </Button>
-          <Button
             key="cancel"
             buttonSize="small"
             buttonStyle="secondary"
             onClick={onDismiss}
           >
             {t('Keep editing')}
+          </Button>
+          <Button
+            key="submit"
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={onConfirm}
+          >
+            {t('Yes, cancel')}
           </Button>
         </div>
       }

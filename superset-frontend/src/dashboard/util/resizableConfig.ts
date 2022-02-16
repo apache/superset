@@ -19,8 +19,8 @@
 // config for a ResizableContainer
 const adjustableWidthAndHeight = {
   top: false,
-  right: false,
-  bottom: false,
+  right: true,
+  bottom: true,
   left: false,
   topRight: false,
   bottomRight: true,
@@ -30,19 +30,21 @@ const adjustableWidthAndHeight = {
 
 const adjustableWidth = {
   ...adjustableWidthAndHeight,
-  right: true,
   bottomRight: false,
+  bottom: false,
 };
 
 const adjustableHeight = {
   ...adjustableWidthAndHeight,
-  bottom: true,
   bottomRight: false,
+  right: false,
 };
 
 const notAdjustable = {
   ...adjustableWidthAndHeight,
   bottomRight: false,
+  bottom: false,
+  right: false,
 };
 
 export default {

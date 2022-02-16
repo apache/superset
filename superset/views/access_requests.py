@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app as app
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 
 from superset.constants import RouteMethod
 from superset.views.base import DeleteMixin, SupersetModelView
 from superset.views.core import DAR
 
 
-class AccessRequestsModelView(  # pylint: disable=too-many-ancestors
-    SupersetModelView, DeleteMixin
-):
+class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
     include_route_methods = RouteMethod.CRUD_SET
     list_columns = [
@@ -44,3 +45,12 @@ class AccessRequestsModelView(  # pylint: disable=too-many-ancestors
         "roles_with_datasource": _("Roles to grant"),
         "created_on": _("Created On"),
     }
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return bool(app.config["ENABLE_ACCESS_REQUEST"])
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()

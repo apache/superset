@@ -16,48 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, QueryObjectExtras, t, tn } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
-import { Select } from 'src/common/components';
-import { Styles, StyledSelect } from '../common';
+import {
+  ensureIsArray,
+  ExtraFormData,
+  t,
+  TimeGranularity,
+  tn,
+} from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Select } from 'src/components';
+import { FormItemProps } from 'antd/lib/form';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
-
-const { Option } = Select;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
 ) {
-  const { data, formData, height, width, setDataMask } = props;
-  const { defaultValue, currentValue, inputRef } = formData;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    filterState,
+  } = props;
+  const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
+  const durationMap = useMemo(
+    () =>
+      data.reduce(
+        (agg, { duration, name }: { duration: string; name: string }) => ({
+          ...agg,
+          [duration]: name,
+        }),
+        {} as { [key in string]: string },
+      ),
+    [JSON.stringify(data)],
+  );
 
   const handleChange = (values: string[] | string | undefined | null) => {
     const resultValue: string[] = ensureIsArray<string>(values);
     const [timeGrain] = resultValue;
+    const label = timeGrain ? durationMap[timeGrain] : undefined;
 
-    const extras: QueryObjectExtras = {};
+    const extraFormData: ExtraFormData = {};
     if (timeGrain) {
-      extras.time_grain_sqla = timeGrain;
+      extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
     }
     setValue(resultValue);
     setDataMask({
-      nativeFilters: {
-        extraFormData: {
-          override_form_data: {
-            extras,
-          },
-        },
-        currentState: {
-          value: resultValue.length ? resultValue : null,
-        },
+      extraFormData,
+      filterState: {
+        label,
+        value: resultValue.length ? resultValue : null,
       },
     });
   };
-
-  useEffect(() => {
-    handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);
@@ -65,29 +82,52 @@ export default function PluginFilterTimegrain(
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
 
+  useEffect(() => {
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
+
   const placeholderText =
     (data || []).length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
+  const options = (data || []).map(
+    (row: { name: string; duration: string }) => {
+      const { name, duration } = row;
+      return {
+        label: name,
+        value: duration,
+      };
+    },
+  );
+
   return (
-    <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear
-        value={value}
-        placeholder={placeholderText}
-        // @ts-ignore
-        onChange={handleChange}
-        ref={inputRef}
+    <FilterPluginStyle height={height} width={width}>
+      <StyledFormItem
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
-        {(data || []).map((row: { name: string; duration: string }) => {
-          const { name, duration } = row;
-          return (
-            <Option key={duration} value={duration}>
-              {name}
-            </Option>
-          );
-        })}
-      </StyledSelect>
-    </Styles>
+        <Select
+          allowClear
+          value={value}
+          placeholder={placeholderText}
+          // @ts-ignore
+          onChange={handleChange}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
+          ref={inputRef}
+          options={options}
+        />
+      </StyledFormItem>
+    </FilterPluginStyle>
   );
 }

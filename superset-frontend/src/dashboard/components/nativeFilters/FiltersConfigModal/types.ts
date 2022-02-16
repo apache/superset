@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Scope } from '../types';
+import {
+  AdhocFilter,
+  DataMask,
+  NativeFilterType,
+  NativeFilterScope,
+} from '@superset-ui/core';
 
 export interface NativeFiltersFormItem {
-  scope: Scope;
+  scope: NativeFilterScope;
   name: string;
   filterType: string;
   dataset: {
@@ -30,16 +35,33 @@ export interface NativeFiltersFormItem {
   controlValues: {
     [key: string]: any;
   };
+  requiredFirst: {
+    [key: string]: boolean;
+  };
   defaultValue: any;
-  parentFilter: {
+  defaultDataMask: DataMask;
+  parentFilter?: {
     value: string;
     label: string;
   };
-  isInstant: boolean;
+  sortMetric: string | null;
+  adhoc_filters?: AdhocFilter[];
+  time_range?: string;
+  granularity_sqla?: string;
+  type: typeof NativeFilterType.NATIVE_FILTER;
+  description: string;
+  hierarchicalFilter?: boolean;
+}
+export interface NativeFilterDivider {
+  id: string;
+  type: typeof NativeFilterType.DIVIDER;
+  title: string;
+  description: string;
 }
 
 export interface NativeFiltersForm {
-  filters: Record<string, NativeFiltersFormItem>;
+  filters: Record<string, NativeFiltersFormItem | NativeFilterDivider>;
+  changed?: boolean;
 }
 
 export type FilterRemoval =
@@ -49,3 +71,6 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
+
+export type FilterHierarchyNode = { id: string; parentId: string | null };
+export type FilterHierarchy = FilterHierarchyNode[];

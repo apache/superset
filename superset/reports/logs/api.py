@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
+from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.reports import ReportExecutionLog
 from superset.reports.logs.schemas import openapi_spec_methods_override
@@ -32,6 +34,12 @@ logger = logging.getLogger(__name__)
 
 class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportExecutionLog)
+
+    @before_request
+    def ensure_alert_reports_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return self.response_404()
+        return None
 
     include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST}
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -89,7 +97,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_list_schema)
     def get_list(  # pylint: disable=arguments-differ
-        self, pk: int, **kwargs: Dict[str, Any]
+        self, pk: int, **kwargs: Any
     ) -> Response:
         """Get a list of report schedule logs
         ---
@@ -150,7 +158,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     @permission_name("get")
     @rison(get_item_schema)
     def get(  # pylint: disable=arguments-differ
-        self, pk: int, log_id: int, **kwargs: Dict[str, Any]
+        self, pk: int, log_id: int, **kwargs: Any
     ) -> Response:
         """Get a report schedule log
         ---

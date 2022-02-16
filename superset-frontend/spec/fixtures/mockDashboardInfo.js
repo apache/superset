@@ -20,7 +20,7 @@ export default {
   id: 1234,
   slug: 'dashboardSlug',
   metadata: {
-    filter_configuration: [
+    native_filter_configuration: [
       {
         id: 'DefaultsID',
         filterType: 'filter_select',

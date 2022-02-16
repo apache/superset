@@ -17,19 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
+import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { useTabId } from 'src/hooks/useTabId';
+import { URL_PARAMS } from 'src/constants';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import {
+  createFilterKey,
+  getFilterValue,
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
-  url: string;
+  url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
   emailSubject: string;
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
+  dashboardId?: string;
+  formData?: { slice_id: number; datasource: string };
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -41,27 +52,68 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     emailBody,
     addDangerToast,
     addSuccessToast,
+    dashboardId,
+    formData,
     ...rest
   } = props;
 
-  const getShortUrl = useUrlShortener(url);
+  const tabId = useTabId();
+
+  const getShortUrl = useUrlShortener(url || '');
+
+  async function getCopyUrl() {
+    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
+    if (typeof risonObj === 'object' || !dashboardId) return null;
+    const prevData = await getFilterValue(
+      dashboardId,
+      getUrlParam(URL_PARAMS.nativeFiltersKey),
+    );
+    const newDataMaskKey = await createFilterKey(
+      dashboardId,
+      JSON.stringify(prevData),
+      tabId,
+    );
+    const newUrl = new URL(`${window.location.origin}${url}`);
+    newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
+    return `${newUrl.pathname}${newUrl.search}`;
+  }
+
+  async function generateUrl() {
+    if (formData) {
+      const key = await postFormData(
+        parseInt(formData.datasource.split('_')[0], 10),
+        formData,
+        formData.slice_id,
+        tabId,
+      );
+      return `${window.location.origin}${mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: formData.slice_id,
+      })}`;
+    }
+    const copyUrl = await getCopyUrl();
+    return getShortUrl(copyUrl);
+  }
 
   async function onCopyLink() {
     try {
-      const shortUrl = await getShortUrl();
-      await copyTextToClipboard(shortUrl);
+      await copyTextToClipboard(await generateUrl());
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
   async function onShareByEmail() {
     try {
-      const shortUrl = await getShortUrl();
-      const bodyWithLink = `${emailBody}${shortUrl}`;
-      window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
+      const encodedBody = encodeURIComponent(
+        `${emailBody}${await generateUrl()}`,
+      );
+      const encodedSubject = encodeURIComponent(emailSubject);
+      window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {
+      logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }

@@ -68,13 +68,14 @@ class DeleteDatasetCommand(BaseCommand):
             else:
                 if not view_menu:
                     logger.error(
-                        "Could not find the data access permission for the dataset"
+                        "Could not find the data access permission for the dataset",
+                        exc_info=True,
                     )
             db.session.commit()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
             logger.exception(ex)
             db.session.rollback()
-            raise DatasetDeleteFailedError()
+            raise DatasetDeleteFailedError() from ex
         return dataset
 
     def validate(self) -> None:
@@ -85,5 +86,5 @@ class DeleteDatasetCommand(BaseCommand):
         # Check ownership
         try:
             check_ownership(self._model)
-        except SupersetSecurityException:
-            raise DatasetForbiddenError()
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex

@@ -66,11 +66,10 @@ class ImportModelsCommand(BaseCommand):
         try:
             self._import(db.session, self._configs, self.overwrite)
             db.session.commit()
-        except Exception:
+        except Exception as ex:
             db.session.rollback()
-            raise self.import_error()
+            raise self.import_error() from ex
 
-    # pylint: disable=too-many-branches
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
 

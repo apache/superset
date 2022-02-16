@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler } from 'react';
+import React, { MouseEventHandler, forwardRef } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
-import Icon, { IconProps } from 'src/components/Icon';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons, { IconType } from 'src/components/Icons';
 
 export interface RefreshLabelProps {
-  onClick: MouseEventHandler<SVGSVGElement>;
+  onClick: MouseEventHandler<HTMLSpanElement>;
   tooltipContent: string;
 }
 
 const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const IconWithoutRef = React.forwardRef((props: IconProps, ref: any) => (
-    <Icon {...props} />
+  const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
+    <Icons.Refresh {...props} />
   ));
 
   return (
@@ -37,7 +37,6 @@ const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
       <IconWithoutRef
         role="button"
         onClick={onClick}
-        name="refresh"
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
           color: theme.colors.grayscale.base,

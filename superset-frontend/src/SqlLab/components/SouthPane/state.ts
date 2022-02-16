@@ -18,14 +18,15 @@
  */
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-import * as Actions from '../../actions/sqlLab';
-import SouthPane from './SouthPane';
+import * as Actions from 'src/SqlLab/actions/sqlLab';
+import SouthPane from '.';
 
 function mapStateToProps({ sqlLab }: Record<string, any>) {
   return {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
     offline: sqlLab.offline,
+    user: sqlLab.user,
   };
 }
 

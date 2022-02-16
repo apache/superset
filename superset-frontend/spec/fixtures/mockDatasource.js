@@ -45,6 +45,8 @@ export default {
         verbose_name: 'sum__num',
         metric_name: 'sum__num',
         description: null,
+        extra:
+          '{"certification":{"details":"foo", "certified_by":"someone"},"warning_markdown":"bar"}',
       },
       {
         expression: 'AVG(birth_names.num)',
@@ -162,9 +164,12 @@ export default {
         column_name: 'num_girls',
       },
     ],
+    column_types: [0, 1, 2],
     id,
     granularity_sqla: [['ds', 'ds']],
+    main_dttm_col: 'ds',
     name: 'birth_names',
+    owners: [{ first_name: 'joe', last_name: 'man', id: 1 }],
     database: {
       allow_multi_schema_metadata_fetch: null,
       name: 'main',

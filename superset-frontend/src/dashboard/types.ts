@@ -16,10 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import {
+  ChartProps,
+  DataMaskStateWithId,
+  ExtraFormData,
+  GenericDataType,
+  JsonObject,
+  NativeFiltersState,
+} from '@superset-ui/core';
+import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { DataMaskStateWithId } from '../dataMask/types';
+
+import { User } from 'src/types/bootstrapTypes';
+import { ChartState } from '../explore/types';
+
+export { Dashboard } from 'src/types/Dashboard';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -33,24 +45,66 @@ export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
 }
 
 /** Chart state of redux */
-export type Chart = {
-  id: number;
+export type Chart = ChartState & {
   formData: {
     viz_type: string;
+    datasource: string;
   };
 };
 
+export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
-export type DashboardState = { editMode: boolean; directPathToChild: string[] };
+export type DashboardState = {
+  preselectNativeFilters?: JsonObject;
+  editMode: boolean;
+  isPublished: boolean;
+  directPathToChild: string[];
+  activeTabs: ActiveTabs;
+  fullSizeChartId: number | null;
+  isRefreshing: boolean;
+  hasUnsavedChanges: boolean;
+};
+export type DashboardInfo = {
+  id: number;
+  common: {
+    flash_messages: string[];
+    conf: JsonObject;
+  };
+  userId: string;
+  dash_edit_perm: boolean;
+  json_metadata: string;
+  metadata: {
+    native_filter_configuration: JsonObject;
+    show_native_filters: boolean;
+    chart_configuration: JsonObject;
+  };
+};
+
+export type ChartsState = { [key: string]: Chart };
+
+export type Datasource = DatasourceMeta & {
+  uid: string;
+  column_types: GenericDataType[];
+  table_name: string;
+};
+export type DatasourcesState = {
+  [key: string]: Datasource;
+};
 
 /** Root state of redux */
 export type RootState = {
-  charts: { [key: string]: Chart };
+  datasources: DatasourcesState;
+  sliceEntities: JsonObject;
+  charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
   dashboardFilters: {};
   dashboardState: DashboardState;
+  dashboardInfo: DashboardInfo;
   dataMask: DataMaskStateWithId;
+  impressionId: string;
+  nativeFilters: NativeFiltersState;
+  user: User;
 };
 
 /** State of dashboardLayout in redux */
@@ -70,8 +124,11 @@ export type LayoutItem = {
   id: string;
   meta: {
     chartId: number;
+    defaultText?: string;
     height: number;
+    placeholder?: string;
     sliceName?: string;
+    sliceNameOverride?: string;
     text?: string;
     uuid: string;
     width: number;
@@ -80,7 +137,7 @@ export type LayoutItem = {
 
 type ActiveFilter = {
   scope: number[];
-  values: any[];
+  values: ExtraFormData;
 };
 
 export type ActiveFilters = {

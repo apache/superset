@@ -45,15 +45,8 @@ export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
   const { type, onClick, children, ...rest } = props;
-  const {
-    primary,
-    secondary,
-    grayscale,
-    success,
-    warning,
-    error,
-    info,
-  } = colors;
+  const { primary, secondary, grayscale, success, warning, error, info } =
+    colors;
 
   let backgroundColor = grayscale.light3;
   let backgroundColorHover = onClick ? primary.light2 : grayscale.light3;
@@ -87,6 +80,8 @@ export default function Label(props: LabelProps) {
 
   return (
     <Tag
+      onClick={onClick}
+      {...rest}
       css={{
         transition: `background-color ${transitionTiming}s`,
         whiteSpace: 'nowrap',
@@ -99,14 +94,13 @@ export default function Label(props: LabelProps) {
         padding: '0.35em 0.8em',
         lineHeight: 1,
         color,
+        maxWidth: '100%',
         '&:hover': {
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
           opacity: 1,
         },
       }}
-      onClick={onClick}
-      {...rest}
     >
       {children}
     </Tag>

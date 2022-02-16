@@ -29,8 +29,10 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
+from superset.utils.profiler import SupersetProfiler
 
 
 class ResultsBackendManager:
@@ -63,9 +65,7 @@ class UIManifestProcessor:
         self.parse_manifest_json()
 
         @app.context_processor
-        def get_manifest() -> Dict[  # pylint: disable=unused-variable
-            str, Callable[[str], List[str]]
-        ]:
+        def get_manifest() -> Dict[str, Callable[[str], List[str]]]:
             loaded_chunks = set()
 
             def get_files(bundle: str, asset_type: str = "js") -> List[str]:
@@ -96,6 +96,14 @@ class UIManifestProcessor:
         return self.manifest.get(bundle, {}).get(asset_type, [])
 
 
+class ProfilingExtension:  # pylint: disable=too-few-public-methods
+    def __init__(self, interval: float = 1e-4) -> None:
+        self.interval = interval
+
+    def init_app(self, app: Flask) -> None:
+        app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore
+
+
 APP_DIR = os.path.dirname(__file__)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager = AsyncQueryManager()
@@ -104,11 +112,13 @@ celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
 _event_logger: Dict[str, Any] = {}
+encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()
 manifest_processor = UIManifestProcessor(APP_DIR)
 migrate = Migrate()
+profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
 security_manager = LocalProxy(lambda: appbuilder.sm)
 talisman = Talisman()

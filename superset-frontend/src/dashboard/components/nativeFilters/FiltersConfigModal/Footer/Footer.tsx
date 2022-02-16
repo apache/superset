@@ -27,47 +27,26 @@ type FooterProps = {
   onConfirmCancel: OnClickHandler;
   onDismiss: OnClickHandler;
   saveAlertVisible: boolean;
-  getFilterTitle: (id: string) => string;
-  unsavedFiltersIds: string[];
+  canSave?: boolean;
 };
 
 const Footer: FC<FooterProps> = ({
+  canSave = true,
   onCancel,
   handleSave,
   onDismiss,
   onConfirmCancel,
-  getFilterTitle,
-  unsavedFiltersIds,
   saveAlertVisible,
 }) => {
-  const getUnsavedFilterNames = (): string => {
-    const unsavedFiltersNames = unsavedFiltersIds.map(
-      id => `"${getFilterTitle(id)}"`,
-    );
-
-    if (unsavedFiltersNames.length === 0) {
-      return '';
-    }
-
-    if (unsavedFiltersNames.length === 1) {
-      return unsavedFiltersNames[0];
-    }
-
-    const lastFilter = unsavedFiltersNames.pop();
-
-    return `${unsavedFiltersNames.join(', ')} ${t('and')} ${lastFilter}`;
-  };
-
   if (saveAlertVisible) {
     return (
       <CancelConfirmationAlert
         key="cancel-confirm"
-        title={`${unsavedFiltersIds.length} ${t('unsaved filters')}`}
+        title={t('There are unsaved changes.')}
         onConfirm={onConfirmCancel}
         onDismiss={onDismiss}
       >
-        {t(`Are you sure you want to cancel?`)} {getUnsavedFilterNames()}{' '}
-        {t(`will not be saved.`)}
+        {t(`Are you sure you want to cancel?`)}
       </CancelConfirmationAlert>
     );
   }
@@ -83,6 +62,7 @@ const Footer: FC<FooterProps> = ({
         {t('Cancel')}
       </Button>
       <Button
+        disabled={!canSave}
         key="submit"
         buttonStyle="primary"
         onClick={handleSave}

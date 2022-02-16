@@ -25,7 +25,7 @@ import FiltersHeader, { FiltersHeaderProps } from './FiltersHeader';
 const mockedProps = {
   dataMask: {
     DefaultsID: {
-      currentState: {
+      filterState: {
         value: 'value',
       },
     },

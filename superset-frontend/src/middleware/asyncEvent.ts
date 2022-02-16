@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, makeApi, SupersetClient } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  makeApi,
+  SupersetClient,
+  logging,
+} from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
@@ -56,13 +61,15 @@ const RETRY_DELAY = 100;
 
 let config: AppConfig;
 let transport: string;
-let polling_delay: number;
+let pollingDelayMs: number;
+let pollingTimeoutId: number;
 let listenersByJobId: Record<string, ListenerFn>;
 let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
 
 export const init = (appConfig?: AppConfig) => {
   if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
 
   listenersByJobId = {};
   retriesByJobId = {};
@@ -80,16 +87,16 @@ export const init = (appConfig?: AppConfig) => {
       config = bootstrapData?.common?.conf;
     } else {
       config = {};
-      console.warn('asyncEvent: app config data not found');
+      logging.warn('asyncEvent: app config data not found');
     }
   }
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
-  polling_delay = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+  pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 
   try {
     lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
   } catch (err) {
-    console.warn('Failed to fetch last event Id from localStorage');
+    logging.warn('Failed to fetch last event Id from localStorage');
   }
 
   if (transport === TRANSPORT_POLLING) {
@@ -130,7 +137,7 @@ export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
           break;
         }
         default: {
-          console.warn('received event with status', asyncEvent.status);
+          logging.warn('received event with status', asyncEvent.status);
         }
       }
       removeListener(jobId);
@@ -169,7 +176,7 @@ const setLastId = (asyncEvent: AsyncEvent) => {
   try {
     localStorage.setItem(LOCALSTORAGE_KEY, lastReceivedEventId as string);
   } catch (err) {
-    console.warn('Error saving event Id to localStorage', err);
+    logging.warn('Error saving event Id to localStorage', err);
   }
 };
 
@@ -180,12 +187,12 @@ const loadEventsFromApi = async () => {
       const { result: events } = await fetchEvents(eventArgs);
       if (events && events.length) await processEvents(events);
     } catch (err) {
-      console.warn(err);
+      logging.warn(err);
     }
   }
 
   if (transport === TRANSPORT_POLLING) {
-    setTimeout(loadEventsFromApi, polling_delay);
+    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
   }
 };
 
@@ -208,7 +215,7 @@ export const processEvents = async (events: AsyncEvent[]) => {
         }, RETRY_DELAY * retriesByJobId[jobId]);
       } else {
         delete retriesByJobId[jobId];
-        console.warn('listener not found for job_id', asyncEvent.job_id);
+        logging.warn('listener not found for job_id', asyncEvent.job_id);
       }
     }
     setLastId(asyncEvent);
@@ -227,7 +234,7 @@ const wsConnect = (): void => {
   ws = new WebSocket(url);
 
   ws.addEventListener('open', event => {
-    console.log('WebSocket connected');
+    logging.log('WebSocket connected');
     clearTimeout(wsConnectTimeout);
     wsConnectRetries = 0;
   });
@@ -238,7 +245,7 @@ const wsConnect = (): void => {
       if (wsConnectRetries <= wsConnectMaxRetries) {
         wsConnect();
       } else {
-        console.warn('WebSocket not available, falling back to async polling');
+        logging.warn('WebSocket not available, falling back to async polling');
         loadEventsFromApi();
       }
     }, wsConnectErrorDelay);
@@ -255,7 +262,7 @@ const wsConnect = (): void => {
       events = [JSON.parse(event.data)];
       await processEvents(events);
     } catch (err) {
-      console.warn(err);
+      logging.warn(err);
     }
   });
 };

@@ -23,9 +23,51 @@ export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
-  standalone: 'standalone',
-  preselectFilters: 'preselect_filters',
-};
+  migrationState: {
+    name: 'migration_state',
+    type: 'string',
+  },
+  standalone: {
+    name: 'standalone',
+    type: 'number',
+  },
+  uiConfig: {
+    name: 'uiConfig',
+    type: 'number',
+  },
+  preselectFilters: {
+    name: 'preselect_filters',
+    type: 'object',
+  },
+  nativeFilters: {
+    name: 'native_filters',
+    type: 'rison',
+  },
+  nativeFiltersKey: {
+    name: 'native_filters_key',
+    type: 'string',
+  },
+  filterSet: {
+    name: 'filter_set',
+    type: 'string',
+  },
+  showFilters: {
+    name: 'show_filters',
+    type: 'boolean',
+  },
+  formDataKey: {
+    name: 'form_data_key',
+    type: 'string',
+  },
+  sliceId: {
+    name: 'slice_id',
+    type: 'string',
+  },
+  datasetId: {
+    name: 'dataset_id',
+    type: 'string',
+  },
+} as const;
 
 /**
  * Faster debounce delay for inputs without expensive operation.

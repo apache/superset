@@ -20,11 +20,13 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
+import Redis from 'ioredis';
+import StatsD from 'hot-shots';
 
-const winston = require('winston');
-const jwt = require('jsonwebtoken');
-const cookie = require('cookie');
-const Redis = require('ioredis');
+import { createLogger } from './logger';
+import { buildConfig } from './config';
 
 export type StreamResult = [
   recordId: string,
@@ -78,56 +80,23 @@ interface ChannelValue {
 
 const environment = process.env.NODE_ENV;
 
-// default options
-export const opts = {
-  port: 8080,
-  logLevel: 'info',
-  logToFile: false,
-  logFilename: 'app.log',
-  redis: {
-    port: 6379,
-    host: '127.0.0.1',
-    password: '',
-    db: 0,
-    ssl: false,
-  },
-  redisStreamPrefix: 'async-events-',
-  redisStreamReadCount: 100,
-  redisStreamReadBlockMs: 5000,
-  jwtSecret: '',
-  jwtCookieName: 'async-token',
-  socketResponseTimeoutMs: 60 * 1000,
-  pingSocketsIntervalMs: 20 * 1000,
-  gcChannelsIntervalMs: 120 * 1000,
-};
-
 const startServer = process.argv[2] === 'start';
-const configFile =
-  environment === 'test' ? '../config.test.json' : '../config.json';
-let config = {};
-try {
-  config = require(configFile);
-} catch (err) {
-  console.error('config.json not found, using defaults');
-}
-// apply config overrides
-Object.assign(opts, config);
+
+export const opts = buildConfig();
 
 // init logger
-const logTransports = [
-  new winston.transports.Console({ handleExceptions: true }),
-];
-if (opts.logToFile && opts.logFilename) {
-  logTransports.push(
-    new winston.transports.File({
-      filename: opts.logFilename,
-      handleExceptions: true,
-    }),
-  );
-}
-const logger = winston.createLogger({
-  level: opts.logLevel,
-  transports: logTransports,
+const logger = createLogger({
+  silent: environment === 'test',
+  logLevel: opts.logLevel,
+  logToFile: opts.logToFile,
+  logFilename: opts.logFilename,
+});
+
+export const statsd = new StatsD({
+  ...opts.statsd,
+  errorHandler: (e: Error) => {
+    logger.error(e);
+  },
 });
 
 // enforce JWT secret length
@@ -149,7 +118,7 @@ export const wss = new WebSocket.Server({
   clientTracking: false,
 });
 
-const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
+const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 const GLOBAL_EVENT_STREAM_NAME = `${opts.redisStreamPrefix}full`;
 const DEFAULT_STREAM_LAST_ID = '$';
 
@@ -169,6 +138,8 @@ export const trackClient = (
   channel: string,
   socketInstance: SocketInstance,
 ): string => {
+  statsd.increment('ws_connected_client');
+
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
 
@@ -198,6 +169,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
+      statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);
@@ -219,7 +191,7 @@ export const fetchRangeFromStream = async ({
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;
-    listener(reply);
+    listener(reply as StreamResult[]);
   } catch (e) {
     logger.error(e);
   }
@@ -254,7 +226,7 @@ export const subscribeToGlobalStream = async (
       if (!results.length) {
         continue;
       }
-      listener(results);
+      listener(results as StreamResult[]);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
       logger.error(e);
@@ -284,11 +256,11 @@ export const processStreamResults = (results: StreamResult[]): void => {
  * Returns the JWT payload or throws an error on invalid token.
  */
 const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
-  const cookies = cookie.parse(request.headers.cookie);
+  const cookies = cookie.parse(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  return jwt.verify(token, opts.jwtSecret);
+  return jwt.verify(token, opts.jwtSecret) as JwtPayload;
 };
 
 /**
@@ -347,6 +319,27 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
       socketInstance.pongTs = Date.now();
     }
   });
+};
+
+/**
+ * HTTP `request` event handler, called via httpServer
+ */
+export const httpRequest = (
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+) => {
+  const rawUrl = request.url as string;
+  const method = request.method as string;
+  const headers = request.headers || {};
+  const url = new URL(rawUrl as string, `http://${headers.host}`);
+  if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+    response.writeHead(200);
+    response.end('OK');
+  } else {
+    logger.info(`Received unexpected request: ${method} ${rawUrl}`);
+    response.writeHead(404);
+    response.end('Not Found');
+  }
 };
 
 /**
@@ -439,6 +432,7 @@ export const cleanChannel = (channel: string) => {
 if (startServer) {
   // init server event listeners
   wss.on('connection', wsConnection);
+  httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);

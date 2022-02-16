@@ -18,11 +18,11 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
-import Modal from 'src/common/components/Modal';
-import FormLabel from 'src/components/FormLabel';
+import { Input } from 'src/common/components';
+import Modal from 'src/components/Modal';
+import { FormLabel } from 'src/components/Form';
 
-const StyleFormGroup = styled(FormGroup)`
+const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
@@ -52,36 +52,55 @@ export default function DeleteModal({
   title,
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
+  const [confirmation, setConfirmation] = useState<string>('');
+
+  const hide = () => {
+    setConfirmation('');
+    onHide();
+  };
+
+  const confirm = () => {
+    setConfirmation('');
+    onConfirm();
+  };
+
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = event.target.value ?? '';
+    setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
+    setConfirmation(targetValue);
+  };
+
+  const onPressEnter = () => {
+    if (!disableChange) {
+      confirm();
+    }
+  };
 
   return (
     <Modal
       disablePrimaryButton={disableChange}
-      onHide={onHide}
-      onHandledPrimaryAction={onConfirm}
+      onHide={hide}
+      onHandledPrimaryAction={confirm}
       primaryButtonName={t('delete')}
       primaryButtonType="danger"
       show={open}
       title={title}
     >
       <DescriptionContainer>{description}</DescriptionContainer>
-      <StyleFormGroup>
+      <StyledDiv>
         <FormLabel htmlFor="delete">
           {t('Type "%s" to confirm', t('DELETE'))}
         </FormLabel>
-        <FormControl
+        <Input
           data-test="delete-modal-input"
           type="text"
           id="delete"
-          bsSize="sm"
           autoComplete="off"
-          onChange={(
-            event: React.FormEvent<FormControl & FormControlProps>,
-          ) => {
-            const targetValue = (event.currentTarget?.value as string) ?? '';
-            setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
-          }}
+          value={confirmation}
+          onChange={onChange}
+          onPressEnter={onPressEnter}
         />
-      </StyleFormGroup>
+      </StyledDiv>
     </Modal>
   );
 }

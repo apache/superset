@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase } from 'lodash';
+import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging, Behavior } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { EmptyStateBig } from 'src/components/EmptyState';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -45,7 +47,7 @@ const propTypes = {
   setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
-  ownCurrentState: PropTypes.object,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -93,11 +95,14 @@ class ChartRenderer extends React.Component {
         nextProps.queriesResponse !== this.props.queriesResponse;
       return (
         this.hasQueryResponseChange ||
+        !isEqual(nextProps.datasource, this.props.datasource) ||
         nextProps.annotationData !== this.props.annotationData ||
-        nextProps.ownCurrentState !== this.props.ownCurrentState ||
+        nextProps.ownState !== this.props.ownState ||
+        nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
+        nextProps.labelColors !== this.props.labelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
@@ -158,13 +163,8 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const {
-      chartAlert,
-      chartStatus,
-      vizType,
-      chartId,
-      refreshOverlayVisible,
-    } = this.props;
+    const { chartAlert, chartStatus, vizType, chartId, refreshOverlayVisible } =
+      this.props;
 
     // Skip chart rendering
     if (
@@ -181,10 +181,11 @@ class ChartRenderer extends React.Component {
     const {
       width,
       height,
-      annotationData,
       datasource,
+      annotationData,
       initialValues,
-      ownCurrentState,
+      ownState,
+      filterState,
       formData,
       queriesResponse,
     } = this.props;
@@ -224,12 +225,22 @@ class ChartRenderer extends React.Component {
         datasource={datasource}
         initialValues={initialValues}
         formData={formData}
-        ownCurrentState={ownCurrentState}
+        ownState={ownState}
+        filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.CROSS_FILTER]}
+        behaviors={[Behavior.INTERACTIVE_CHART]}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
+        noResults={
+          <EmptyStateBig
+            title={t('No results were returned for this query')}
+            description={t(
+              'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
+            )}
+            image="chart.svg"
+          />
+        }
       />
     );
   }

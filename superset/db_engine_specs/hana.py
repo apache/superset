@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -36,14 +36,16 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         "PT1H": "TO_TIMESTAMP(SUBSTRING(TO_TIMESTAMP({col}),0,14) || '00:00')",
         "P1D": "TO_DATE({col})",
         "P1M": "TO_DATE(SUBSTRING(TO_DATE({col}),0,7)||'-01')",
-        "P0.25Y": "TO_DATE(SUBSTRING( \
+        "P3M": "TO_DATE(SUBSTRING( \
                    TO_DATE({col}), 0, 5)|| LPAD(CAST((CAST(SUBSTRING(QUARTER( \
                    TO_DATE({col}), 1), 7, 1) as int)-1)*3 +1 as text),2,'0') ||'-01')",
         "P1Y": "TO_DATE(YEAR({col})||'-01-01')",
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"

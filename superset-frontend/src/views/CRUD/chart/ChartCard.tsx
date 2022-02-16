@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';
 
@@ -29,7 +28,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete, handleBulkChartExport, CardStyles } from '../utils';
+import { handleChartDelete, CardStyles } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -45,7 +44,7 @@ interface ChartCardProps {
   chartFilter?: string;
   userId?: number;
   showThumbnails?: boolean;
-  featureFlag?: boolean;
+  handleBulkChartExport: (chartsToExport: Chart[]) => void;
 }
 
 export default function ChartCard({
@@ -62,12 +61,13 @@ export default function ChartCard({
   favoriteStatus,
   chartFilter,
   userId,
-  featureFlag,
+  handleBulkChartExport,
 }: ChartCardProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const theme = useTheme();
 
   const menu = (
     <Menu>
@@ -134,7 +134,7 @@ export default function ChartCard({
   return (
     <CardStyles
       onClick={() => {
-        if (!bulkSelectEnabled) {
+        if (!bulkSelectEnabled && chart.url) {
           window.location.href = chart.url;
         }
       }}
@@ -142,11 +142,17 @@ export default function ChartCard({
       <ListViewCard
         loading={loading}
         title={chart.slice_name}
-        cover={!featureFlag || !showThumbnails ? <></> : null}
+        certifiedBy={chart.certified_by}
+        certificationDetails={chart.certification_details}
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
+        }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
-        description={t('Last modified %s', chart.changed_on_delta_humanized)}
+        description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
           <Label type="secondary">{chart.datasource_name_text}</Label>
@@ -164,7 +170,7 @@ export default function ChartCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
+              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </Dropdown>
           </ListViewCard.Actions>
         }

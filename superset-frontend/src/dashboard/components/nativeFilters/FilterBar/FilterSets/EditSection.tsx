@@ -17,17 +17,17 @@
  * under the License.
  */
 import React, { FC, useMemo, useState } from 'react';
-import { HandlerFunction, styled, t } from '@superset-ui/core';
+import { DataMaskState, HandlerFunction, styled, t } from '@superset-ui/core';
 import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
-import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
-import { useDataMask, useFilters, useFilterSets } from '../state';
+import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
+import { getFilterBarTestId } from '../index';
 
 const Wrapper = styled.div`
   display: grid;
@@ -59,8 +59,8 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
 `;
 
 export type EditSectionProps = {
-  filterSetId: string;
-  dataMaskSelected: DataMaskUnit;
+  filterSetId: number;
+  dataMaskSelected: DataMaskState;
   onCancel: HandlerFunction;
   disabled: boolean;
 };
@@ -71,7 +71,7 @@ const EditSection: FC<EditSectionProps> = ({
   dataMaskSelected,
   disabled,
 }) => {
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filters = useFilters();
@@ -88,17 +88,12 @@ const EditSection: FC<EditSectionProps> = ({
 
   const handleSave = () => {
     dispatch(
-      setFilterSetsConfiguration(
-        filterSetFilterValues.map(filterSet => {
-          const newFilterSet = {
-            ...filterSet,
-            name: filterSetName,
-            nativeFilters: filters,
-            dataMask: { nativeFilters: { ...dataMaskApplied } },
-          };
-          return filterSetId === filterSet.id ? newFilterSet : filterSet;
-        }),
-      ),
+      updateFilterSet({
+        id: filterSetId,
+        name: filterSetName,
+        nativeFilters: filters,
+        dataMask: { ...dataMaskApplied },
+      }),
     );
     onCancel();
   };
@@ -156,7 +151,7 @@ const EditSection: FC<EditSectionProps> = ({
               htmlType="submit"
               buttonSize="small"
               onClick={handleSave}
-              data-test="filter-set-edit-save"
+              {...getFilterBarTestId('filter-set-edit-save')}
             >
               {t('Save')}
             </Button>

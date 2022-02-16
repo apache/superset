@@ -16,61 +16,81 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskType, MaskWithId } from './types';
-import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
+import { DataMask, FilterConfiguration, Filters } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import { getInitialDataMask } from './reducer';
+
+export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
+export interface ClearDataMaskState {
+  type: typeof CLEAR_DATA_MASK_STATE;
+}
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
-  filterId: string;
-  [DataMaskType.NativeFilters]?: Omit<MaskWithId, 'id'>;
-  [DataMaskType.CrossFilters]?: Omit<MaskWithId, 'id'>;
-  [DataMaskType.OwnFilters]?: Omit<MaskWithId, 'id'>;
+  filterId: string | number;
+  dataMask: DataMask;
+}
+
+export const INIT_DATAMASK = 'INIT_DATAMASK';
+export interface INITDATAMASK {
+  type: typeof INIT_DATAMASK;
+  dataMask: DataMask;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE';
+
 export interface SetDataMaskForFilterConfigComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
-  unitName: DataMaskType;
+  filters?: Filters;
 }
+
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL';
+
 export interface SetDataMaskForFilterConfigFail {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
-
+export function setDataMaskForFilterConfigComplete(
+  filterConfig: FilterConfiguration,
+  filters?: Filters,
+): SetDataMaskForFilterConfigComplete {
+  return {
+    type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+    filterConfig,
+    filters,
+  };
+}
 export function updateDataMask(
-  filterId: string,
-  dataMask: {
-    nativeFilters?: Omit<MaskWithId, 'id'>;
-    crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
-  },
+  filterId: string | number,
+  dataMask: DataMask,
 ): UpdateDataMask {
-  const { nativeFilters, crossFilters, ownFilters } = dataMask;
-  const filteredDataMask: {
-    nativeFilters?: Omit<MaskWithId, 'id'>;
-    crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
-  } = { ownFilters };
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && nativeFilters) {
-    filteredDataMask.nativeFilters = nativeFilters;
-  }
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && crossFilters) {
-    filteredDataMask.crossFilters = crossFilters;
-  }
+  // Only apply data mask if one of the relevant features is enabled
+  const isFeatureFlagActive =
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
+    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    ...filteredDataMask,
+    dataMask: isFeatureFlagActive ? dataMask : {},
+  };
+}
+
+export function clearDataMask(filterId: string | number) {
+  return updateDataMask(filterId, getInitialDataMask(filterId));
+}
+
+export function clearDataMaskState(): ClearDataMaskState {
+  return {
+    type: CLEAR_DATA_MASK_STATE,
   };
 }
 
 export type AnyDataMaskAction =
+  | ClearDataMaskState
   | UpdateDataMask
   | SetDataMaskForFilterConfigFail
   | SetDataMaskForFilterConfigComplete;

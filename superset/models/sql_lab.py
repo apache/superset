@@ -29,6 +29,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     Numeric,
@@ -46,6 +47,7 @@ from superset.models.helpers import (
 )
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import QueryStatus, user_label
 
 
@@ -76,6 +78,9 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
+    limiting_factor = Column(
+        Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN
+    )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
     ctas_method = Column(String(16), default=CtasMethod.TABLE)
@@ -120,6 +125,7 @@ class Query(Model, ExtraJSONMixin):
             "id": self.client_id,
             "queryId": self.id,
             "limit": self.limit,
+            "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
             "schema": self.schema,
@@ -205,6 +211,11 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def __repr__(self) -> str:
         return str(self.label)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+        }
+
     @property
     def pop_tab_link(self) -> Markup:
         return Markup(
@@ -279,6 +290,10 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     template_params = Column(Text)
     hide_left_bar = Column(Boolean, default=False)
 
+    # any saved queries that are associated with the Tab State
+    saved_query_id = Column(Integer, ForeignKey("saved_query.id"), nullable=True)
+    saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -294,6 +309,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
+            "saved_query": self.saved_query.to_dict() if self.saved_query else None,
         }
 
 

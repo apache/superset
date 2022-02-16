@@ -22,8 +22,11 @@ import {
   ControlStateMapping,
   DatasourceMeta,
 } from '@superset-ui/chart-controls';
-import { CommonBootstrapData } from 'src/types/bootstrapTypes';
-import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+import {
+  CommonBootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
+import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 
 import { ChartState, Slice } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
@@ -32,24 +35,26 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
-export interface ExlorePageBootstrapData extends JsonObject {
+export interface ExplorePageBootstrapData extends JsonObject {
   can_add: boolean;
   can_download: boolean;
   can_overwrite: boolean;
+  common: CommonBootstrapData;
   datasource: DatasourceMeta;
-  form_data: QueryFormData;
   datasource_id: number;
   datasource_type: DatasourceType;
+  forced_height: string | null;
+  form_data: QueryFormData;
   slice: Slice | null;
   standalone: boolean;
-  user_id: number;
-  forced_height: string | null;
-  common: CommonBootstrapData;
+  force: boolean;
+  user: UserWithPermissionsAndRoles;
 }
 
 export default function getInitialState(
-  bootstrapData: ExlorePageBootstrapData,
+  bootstrapData: ExplorePageBootstrapData,
 ) {
   const { form_data: initialFormData } = bootstrapData;
   const { slice } = bootstrapData;
@@ -72,6 +77,11 @@ export default function getInitialState(
       bootstrapData,
       initialFormData,
     ) as ControlStateMapping,
+    controlsTransferred: [],
+    timeFormattedColumns: getItem(
+      LocalStorageKeys.explore__data_table_time_formatted_columns,
+      {},
+    ),
   };
 
   // apply initial mapStateToProps for all controls, must execute AFTER

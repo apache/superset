@@ -16,26 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FilterSet } from 'src/dashboard/reducers/types';
+import { FilterSet } from '@superset-ui/core';
 import { findExistingFilterSet } from '.';
 
 const createDataMaskSelected = () => ({
-  filterId: { currentState: { value: 'value-1' } },
-  filterId2: { currentState: { value: 'value-2' } },
+  filterId: { filterState: { value: 'value-1' } },
+  filterId2: { filterState: { value: 'value-2' } },
 });
 
 test('Should find correct filter', () => {
   const dataMaskSelected = createDataMaskSelected();
-  const filterSetFilterValues = [
+  const filterSetFilterValues: FilterSet[] = [
     {
-      id: 'id-01',
+      id: 1,
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        nativeFilters: {
-          filterId: { currentState: { value: 'value-1' } },
-          filterId2: { currentState: { value: 'value-2' } },
-        },
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+        filterId2: { id: 'filterId2', filterState: { value: 'value-2' } },
       } as any,
     },
   ];
@@ -45,12 +43,10 @@ test('Should find correct filter', () => {
   });
   expect(response).toEqual({
     dataMask: {
-      nativeFilters: {
-        filterId: { currentState: { value: 'value-1' } },
-        filterId2: { currentState: { value: 'value-2' } },
-      },
+      filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+      filterId2: { id: 'filterId2', filterState: { value: 'value-2' } },
     },
-    id: 'id-01',
+    id: 1,
     name: 'name-01',
     nativeFilters: {},
   });
@@ -60,13 +56,11 @@ test('Should return undefined when nativeFilters has less values', () => {
   const dataMaskSelected = createDataMaskSelected();
   const filterSetFilterValues = [
     {
-      id: 'id-01',
+      id: 1,
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        nativeFilters: {
-          filterId: { currentState: { value: 'value-1' } },
-        },
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
       } as any,
     },
   ];
@@ -79,17 +73,15 @@ test('Should return undefined when nativeFilters has less values', () => {
 
 test('Should return undefined when nativeFilters has different values', () => {
   const dataMaskSelected = createDataMaskSelected();
-  const filterSetFilterValues = [
+  const filterSetFilterValues: FilterSet[] = [
     {
-      id: 'id-01',
+      id: 1,
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        nativeFilters: {
-          filterId: { currentState: { value: 'value-1' } },
-          filterId2: { currentState: { value: 'value-1' } },
-        },
-      } as any,
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+        filterId2: { id: 'filterId2', filterState: { value: 'value-1' } },
+      },
     },
   ];
   const response = findExistingFilterSet({
@@ -103,7 +95,7 @@ test('Should return undefined when dataMask:{}', () => {
   const dataMaskSelected = createDataMaskSelected();
   const filterSetFilterValues = [
     {
-      id: 'id-01',
+      id: 1,
       name: 'name-01',
       nativeFilters: {},
       dataMask: {},
@@ -116,14 +108,14 @@ test('Should return undefined when dataMask:{}', () => {
   expect(response).toBeUndefined();
 });
 
-test('Should return undefined when dataMask.nativeFilters is undefined}', () => {
+test('Should return undefined when dataMask is empty}', () => {
   const dataMaskSelected = createDataMaskSelected();
-  const filterSetFilterValues = [
+  const filterSetFilterValues: FilterSet[] = [
     {
-      id: 'id-01',
+      id: 1,
       name: 'name-01',
       nativeFilters: {},
-      dataMask: { nativeFilters: undefined },
+      dataMask: {},
     },
   ];
   const response = findExistingFilterSet({

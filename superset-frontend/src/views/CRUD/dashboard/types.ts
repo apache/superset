@@ -24,3 +24,8 @@ export type DashboardObject = {
   position?: string;
   metadata?: string;
 };
+
+export enum DashboardStatus {
+  PUBLISHED = 'published',
+  DRAFT = 'draft',
+}

@@ -20,14 +20,16 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icons from 'src/components/Icons';
+import { StyledIcon } from 'src/views/CRUD/utils';
+import Modal from 'src/components/Modal';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 import { AnnotationLayerObject } from './types';
 
 interface AnnotationLayerModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   layer?: AnnotationLayerObject | null;
   onLayerAdd?: (layer?: AnnotationLayerObject) => void;
   onHide: () => void;
@@ -37,10 +39,6 @@ interface AnnotationLayerModalProps {
 const StyledAnnotationLayerTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const LayerContainer = styled.div`
@@ -83,16 +81,15 @@ const LayerContainer = styled.div`
 
 const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   onLayerAdd,
   onHide,
   show,
   layer = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentLayer,
-    setCurrentLayer,
-  ] = useState<AnnotationLayerObject | null>();
+  const [currentLayer, setCurrentLayer] =
+    useState<AnnotationLayerObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = layer !== null;
 
@@ -139,6 +136,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           }
 
           hide();
+          addSuccessToast(t('Annotation template updated'));
         });
       }
     } else if (currentLayer) {
@@ -153,6 +151,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         }
 
         hide();
+        addSuccessToast(t('Annotation template created'));
       });
     }
   };
@@ -174,7 +173,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const validate = () => {
-    if (currentLayer && currentLayer.name.length) {
+    if (currentLayer && currentLayer.name?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -234,9 +233,9 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       title={
         <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode
             ? t('Edit annotation layer properties')

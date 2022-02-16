@@ -24,10 +24,10 @@ import Header from './index';
 const createProps = () => ({
   toggleFiltersBar: jest.fn(),
   onApply: jest.fn(),
-  setDataMaskSelected: jest.fn(),
+  onClearAll: jest.fn(),
   dataMaskSelected: {
     DefaultsID: {
-      currentState: {
+      filterState: {
         value: null,
       },
     },
@@ -35,7 +35,7 @@ const createProps = () => ({
   dataMaskApplied: {
     DefaultsID: {
       id: 'DefaultsID',
-      currentState: {
+      filterState: {
         value: null,
       },
     },

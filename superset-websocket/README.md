@@ -64,6 +64,8 @@ npm install
 
 Copy `config.example.json` to `config.json` and adjust the values for your environment.
 
+Configuration via environment variables is also supported which can be helpful in certain contexts, e.g., deployment. `src/config.ts` can be consulted to see the full list of supported values.
+
 ## Superset Configuration
 
 Configure the Superset Flask app to enable global async queries (in `superset_config.py`):
@@ -81,6 +83,8 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://<host>:<port>/"
 
 Note that the WebSocket server must be run on the same hostname (different port) for cookies to be shared between the Flask app and the WebSocket server.
 
+Note also that `localhost` and `127.0.0.1` are not considered the same host. For example, if you're pointing your browser to `localhost:<port>` for Superset, then the WebSocket url will need to be configured as `localhost:<port>`.
+
 The following config values must contain the same values in both the Flask app config and `config.json`:
 ```
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG
@@ -90,6 +94,22 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET
 ```
 
 More info on Superset configuration values for async queries: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+
+## StatsD monitoring
+
+The application is tracking a couple of metrics with `statsd` using the [hot-shots](https://www.npmjs.com/package/hot-shots) library, such as the number of connected clients and the number of failed attempts to send a message to a client.
+
+`statsd` can be configured with the `statsd` object in the configuration file. See the [hot-shots](https://www.npmjs.com/package/hot-shots) readme for more info. The default configuration is:
+
+```json
+{
+  "statsd": {
+    "host": "127.0.0.1",
+    "port": 8125,
+    "globalTags": []
+  }
+}
+```
 
 ## Running
 
@@ -103,4 +123,20 @@ Running in production:
 npm run build && npm start
 ```
 
-*TODO: containerization*
+## Health check
+
+The WebSocket server supports health checks via one of:
+
+```
+GET /health
+```
+
+OR
+
+```
+HEAD /health
+```
+
+## Containerization
+
+*TODO: containerize websocket server*

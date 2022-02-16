@@ -70,21 +70,17 @@ class AnchorLink extends React.PureComponent {
   }
 
   render() {
-    const {
-      anchorLinkId,
-      filters,
-      showShortLinkButton,
-      placement,
-    } = this.props;
+    const { anchorLinkId, filters, showShortLinkButton, placement } =
+      this.props;
     return (
       <span className="anchor-link-container" id={anchorLinkId}>
         {showShortLinkButton && (
           <URLShortLinkButton
-            url={getDashboardUrl(
-              window.location.pathname,
+            url={getDashboardUrl({
+              pathname: window.location.pathname,
               filters,
-              anchorLinkId,
-            )}
+              hash: anchorLinkId,
+            })}
             emailSubject={t('Superset chart')}
             emailContent={t('Check out this chart in dashboard:')}
             placement={placement}

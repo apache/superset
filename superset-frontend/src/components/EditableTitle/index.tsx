@@ -18,8 +18,9 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { styled, t } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
+import CertifiedBadge from '../CertifiedBadge';
 
 export interface EditableTitleProps {
   canEdit?: boolean;
@@ -34,7 +35,13 @@ export interface EditableTitleProps {
   title?: string;
   defaultTitle?: string;
   placeholder?: string;
+  certifiedBy?: string;
+  certificationDetails?: string;
 }
+
+const StyledCertifiedBadge = styled(CertifiedBadge)`
+  vertical-align: middle;
+`;
 
 export default function EditableTitle({
   canEdit = false,
@@ -48,14 +55,14 @@ export default function EditableTitle({
   title = '',
   defaultTitle = '',
   placeholder = '',
+  certifiedBy,
+  certificationDetails,
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
-  const [
-    contentBoundingRect,
-    setContentBoundingRect,
-  ] = useState<DOMRect | null>(null);
+  const [contentBoundingRect, setContentBoundingRect] =
+    useState<DOMRect | null>(null);
   // Used so we can access the DOM element if a user clicks on this component.
 
   const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
@@ -70,6 +77,13 @@ export default function EditableTitle({
   useEffect(() => {
     if (isEditing) {
       contentRef.current.focus();
+      // move cursor and scroll to the end
+      if (contentRef.current.setSelectionRange) {
+        const { length } = contentRef.current.value;
+        contentRef.current.setSelectionRange(length, length);
+        contentRef.current.scrollLeft = contentRef.current.scrollWidth;
+        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+      }
     }
   }, [isEditing]);
 
@@ -110,12 +124,9 @@ export default function EditableTitle({
     }
   }
 
-  // this entire method exists to support using EditableTitle as the title of a
-  // react-bootstrap Tab, as a workaround for this line in react-bootstrap https://goo.gl/ZVLmv4
-  //
-  // tl;dr when a Tab EditableTitle is being edited, typically the Tab it's within has been
-  // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
-  // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
+  // tl;dr when a EditableTitle is being edited, typically the Tab that wraps it has been
+  // clicked and is focused/active. For accessibility, when the focused tab anchor intercepts
+  // the ' ' key (among others, including all arrows) the onChange() doesn't fire. Somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
   function handleKeyDown(event: any) {
     if (event.key === ' ') {
@@ -220,6 +231,15 @@ export default function EditableTitle({
       )}
       style={style}
     >
+      {certifiedBy && (
+        <>
+          <StyledCertifiedBadge
+            certifiedBy={certifiedBy}
+            details={certificationDetails}
+            size="xl"
+          />{' '}
+        </>
+      )}
       {titleComponent}
     </span>
   );

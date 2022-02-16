@@ -20,9 +20,10 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icons from 'src/components/Icons';
+import { StyledIcon } from 'src/views/CRUD/utils';
+import Modal from 'src/components/Modal';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
 import { TemplateObject } from './types';
@@ -43,10 +44,6 @@ const StyledCssTemplateTitle = styled.div`
 const StyledCssEditor = styled(CssEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const TemplateContainer = styled.div`
@@ -78,10 +75,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   cssTemplate = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentCssTemplate,
-    setCurrentCssTemplate,
-  ] = useState<TemplateObject | null>(null);
+  const [currentCssTemplate, setCurrentCssTemplate] =
+    useState<TemplateObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = cssTemplate !== null;
 
@@ -228,9 +223,9 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode
             ? t('Edit CSS template properties')

@@ -19,7 +19,7 @@
 import { t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { StyledModal } from 'src/common/components/Modal';
+import { StyledModal } from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Form } from 'src/common/components';
 import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';

@@ -21,15 +21,17 @@ import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
-import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icons from 'src/components/Icons';
+import Modal from 'src/components/Modal';
+import { StyledIcon } from 'src/views/CRUD/utils';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   annnotationLayerId: number;
   annotation?: AnnotationObject | null;
   onAnnotationAdd?: (annotation?: AnnotationObject) => void;
@@ -45,10 +47,6 @@ const StyledAnnotationTitle = styled.div`
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const AnnotationContainer = styled.div`
@@ -85,6 +83,7 @@ const AnnotationContainer = styled.div`
 
 const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   annnotationLayerId,
   annotation = null,
   onAnnotationAdd,
@@ -92,11 +91,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   show,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [
-    currentAnnotation,
-    setCurrentAnnotation,
-  ] = useState<AnnotationObject | null>(null);
-  const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<AnnotationObject | null>(null);
   const isEditMode = annotation !== null;
 
   // annotation fetch logic
@@ -122,13 +118,12 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     });
   };
 
-  // Functions
   const hide = () => {
-    setIsHidden(true);
-
-    // Reset annotation
-    resetAnnotation();
-
+    if (isEditMode) {
+      setCurrentAnnotation(resource);
+    } else {
+      resetAnnotation();
+    }
     onHide();
   };
 
@@ -153,6 +148,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           }
 
           hide();
+
+          addSuccessToast(t('The annotation has been updated'));
         });
       }
     } else if (currentAnnotation) {
@@ -167,6 +164,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         }
 
         hide();
+
+        addSuccessToast(t('The annotation has been saved'));
       });
     }
   };
@@ -219,9 +218,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const validate = () => {
     if (
       currentAnnotation &&
-      currentAnnotation.short_descr.length &&
-      currentAnnotation.start_dttm.length &&
-      currentAnnotation.end_dttm.length
+      currentAnnotation.short_descr?.length &&
+      currentAnnotation.start_dttm?.length &&
+      currentAnnotation.end_dttm?.length
     ) {
       setDisableSave(false);
     } else {
@@ -236,7 +235,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       (!currentAnnotation ||
         !currentAnnotation.id ||
         (annotation && annotation.id !== currentAnnotation.id) ||
-        (isHidden && show))
+        show)
     ) {
       if (annotation && annotation.id !== null && !loading) {
         const id = annotation.id || 0;
@@ -245,7 +244,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       }
     } else if (
       !isEditMode &&
-      (!currentAnnotation || currentAnnotation.id || (isHidden && show))
+      (!currentAnnotation || currentAnnotation.id || show)
     ) {
       resetAnnotation();
     }
@@ -266,11 +265,6 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     currentAnnotation ? currentAnnotation.end_dttm : '',
   ]);
 
-  // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
-
   return (
     <Modal
       disablePrimaryButton={disableSave}
@@ -282,9 +276,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       title={
         <h4 data-test="annotaion-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode ? t('Edit annotation') : t('Add annotation')}
         </h4>

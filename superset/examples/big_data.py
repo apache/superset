@@ -20,7 +20,7 @@ from typing import List
 
 import sqlalchemy.sql.sqltypes
 
-from superset.utils.data import add_data, ColumnInfo
+from superset.utils.mock_data import add_data, ColumnInfo
 
 COLUMN_TYPES = [
     sqlalchemy.sql.sqltypes.INTEGER(),

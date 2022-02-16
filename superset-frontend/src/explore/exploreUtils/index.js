@@ -29,10 +29,12 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
-import { MULTI_OPERATORS } from 'src/explore/constants';
+import {
+  MULTI_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
-
-const MAX_URL_LENGTH = 8000;
+import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
   const { slice } = explore;
@@ -57,7 +59,7 @@ export function getHostName(allowDomainSharding = false) {
   return availableDomains[currentIndex];
 }
 
-export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
+export function getAnnotationJsonUrl(slice_id, form_data, isNative, force) {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
@@ -69,6 +71,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
       form_data: safeStringify(form_data, (key, value) =>
         value === null ? undefined : value,
       ),
+      force,
     })
     .toString();
 }
@@ -85,37 +88,20 @@ export function getURIDirectory(endpointType = 'base') {
   return '/superset/explore/';
 }
 
-export function getExploreLongUrl(
-  formData,
-  endpointType,
-  allowOverflow = true,
-  extraSearch = {},
-) {
-  if (!formData.datasource) {
-    return null;
-  }
-
+export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
   const uri = new URI('/');
   const directory = getURIDirectory(endpointType);
   const search = uri.search(true);
   Object.keys(extraSearch).forEach(key => {
     search[key] = extraSearch[key];
   });
-  search.form_data = safeStringify(formData);
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
+    if (force) {
+      search.force = '1';
+    }
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
-  const url = uri.directory(directory).search(search).toString();
-  if (!allowOverflow && url.length > MAX_URL_LENGTH) {
-    const minimalFormData = {
-      datasource: formData.datasource,
-      viz_type: formData.viz_type,
-    };
-    return getExploreLongUrl(minimalFormData, endpointType, false, {
-      URL_IS_TOO_LONG_TO_SHARE: null,
-    });
-  }
-  return url;
+  return uri.directory(directory).search(search).toString();
 }
 
 export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
@@ -134,6 +120,11 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   return uri;
 }
 
+/**
+ * This gets the minimal url for the given form data.
+ * If there are dashboard overrides present in the form data,
+ * they will not be included in the url.
+ */
 export function getExploreUrl({
   formData,
   endpointType = 'base',
@@ -146,6 +137,11 @@ export function getExploreUrl({
   if (!formData.datasource) {
     return null;
   }
+
+  // label_colors should not pollute the URL
+  // eslint-disable-next-line no-param-reassign
+  delete formData.label_colors;
+
   let uri = getChartDataUri({ path: '/', allowDomainSharding });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
@@ -175,7 +171,7 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
   if (endpointType === 'query') {
@@ -209,6 +205,7 @@ export const buildV1ChartDataPayload = ({
   resultFormat,
   resultType,
   setDataMask,
+  ownState,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -226,6 +223,7 @@ export const buildV1ChartDataPayload = ({
       result_type: resultType,
     },
     {
+      ownState,
       hooks: {
         setDataMask,
       },
@@ -266,6 +264,7 @@ export const exportChart = ({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
+  ownState = {},
 }) => {
   let url;
   let payload;
@@ -284,6 +283,7 @@ export const exportChart = ({
       force,
       resultFormat,
       resultType,
+      ownState,
     });
   }
   postForm(url, payload);
@@ -314,7 +314,10 @@ export const useDebouncedEffect = (effect, delay, deps) => {
 };
 
 export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  const isMulti = MULTI_OPERATORS.has(operator);
+  const isMulti =
+    [...MULTI_OPERATORS]
+      .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
+      .indexOf(operator) >= 0;
   let expression = subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;
@@ -325,10 +328,12 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-    const formattedComparators = comparatorArray.map(
-      val =>
-        `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
-    );
+    const formattedComparators = comparatorArray
+      .map(val => optionLabel(val))
+      .map(
+        val =>
+          `${quote}${isString ? String(val).replace("'", "''") : val}${quote}`,
+      );
     if (comparatorArray.length > 0) {
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }

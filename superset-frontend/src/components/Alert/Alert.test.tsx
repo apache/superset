@@ -17,31 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import Alert, { AlertProps } from 'src/components/Alert';
 
 type AlertType = Pick<AlertProps, 'type'>;
 type AlertTypeValue = AlertType[keyof AlertType];
 
-test('renders with default props', () => {
+test('renders with default props', async () => {
   render(<Alert message="Message" />);
+
   expect(screen.getByRole('alert')).toHaveTextContent('Message');
-  expect(screen.queryByLabelText(`info icon`)).toBeInTheDocument();
-  expect(screen.queryByLabelText('close icon')).toBeInTheDocument();
+  expect(await screen.findByLabelText(`info icon`)).toBeInTheDocument();
+  expect(await screen.findByLabelText('close icon')).toBeInTheDocument();
 });
 
-test('renders each type', () => {
+test('renders each type', async () => {
   const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
-  types.forEach(type => {
+  for (let i = 0; i < types.length; i += 1) {
+    const type = types[i];
     render(<Alert type={type} message="Message" />);
-    expect(screen.queryByLabelText(`${type} icon`)).toBeInTheDocument();
-  });
+    // eslint-disable-next-line no-await-in-loop
+    expect(await screen.findByLabelText(`${type} icon`)).toBeInTheDocument();
+  }
 });
 
-test('renders without close button', () => {
+test('renders without close button', async () => {
   render(<Alert message="Message" closable={false} />);
-  expect(screen.queryByLabelText('close icon')).not.toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.queryByLabelText('close icon')).not.toBeInTheDocument();
+  });
 });
 
 test('disappear when closed', () => {
@@ -50,10 +56,12 @@ test('disappear when closed', () => {
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-test('renders without icon', () => {
+test('renders without icon', async () => {
   const type = 'info';
   render(<Alert type={type} message="Message" showIcon={false} />);
-  expect(screen.queryByLabelText(`${type} icon`)).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByLabelText(`${type} icon`)).not.toBeInTheDocument();
+  });
 });
 
 test('renders message', () => {

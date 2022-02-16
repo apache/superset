@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
-from typing import List, Union
+from typing import Callable, List, Union
 
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
@@ -23,8 +24,9 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
+from flask_login import AnonymousUserMixin, LoginManager
 
-from superset import db, event_logger, is_feature_enabled
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.typing import FlaskResponse
@@ -32,6 +34,7 @@ from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
     check_ownership,
+    common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
     SupersetModelView,
@@ -116,12 +119,59 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Creates a new, blank dashboard and redirects to it in edit mode"""
+        metadata = {}
+        if is_feature_enabled("ENABLE_FILTER_BOX_MIGRATION"):
+            metadata = {
+                "native_filter_configuration": [],
+                "show_native_filters": True,
+            }
+
         new_dashboard = DashboardModel(
-            dashboard_title="[ untitled dashboard ]", owners=[g.user]
+            dashboard_title="[ untitled dashboard ]",
+            owners=[g.user],
+            json_metadata=json.dumps(metadata, sort_keys=True),
         )
         db.session.add(new_dashboard)
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
+
+    @expose("/<dashboard_id_or_slug>/embedded")
+    @event_logger.log_this_with_extra_payload
+    def embedded(
+        self,
+        dashboard_id_or_slug: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for a dashboard
+        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return Response(status=404)
+
+        # Log in as an anonymous user, just for this view.
+        # This view needs to be visible to all users,
+        # and building the page fails if g.user and/or ctx.user aren't present.
+        login_manager: LoginManager = security_manager.lm
+        login_manager.reload_user(AnonymousUserMixin())
+
+        add_extra_log_payload(
+            dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
+        )
+
+        bootstrap_data = {
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_template(
+            "superset/spa.html",
+            entry="embedded",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
 
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { IconTooltip } from 'src/components/IconTooltip';
 
 describe('IconTooltip', () => {

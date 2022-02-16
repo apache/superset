@@ -19,8 +19,8 @@
 import React from 'react';
 import { useTheme, t } from '@superset-ui/core';
 
-import { Tooltip } from 'src/common/components/Tooltip';
-import { ClassNames } from '@emotion/core';
+import { Tooltip } from 'src/components/Tooltip';
+import { ClassNames } from '@emotion/react';
 
 const TIME_PICKER_HELPER = (
   <>
@@ -62,7 +62,7 @@ dateadd(datetime("2020-03-01"), 2, day)`}</code>
       <h4>{t('Syntax')}</h4>
       <pre>
         <code>{`datetrunc([datetime], [dateunit])
-dateunit = (year | month | week)`}</code>
+dateunit = (year | quarter | month | week)`}</code>
       </pre>
       <h4>{t('Example')}</h4>
       <pre>

@@ -22,11 +22,13 @@ import { Slice } from 'src/types/Chart';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import PropertiesModal from '.';
+import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () => ({
-  slice: ({
+  slice: {
     cache_timeout: null,
+    certified_by: 'John Doe',
+    certification_details: 'Sample certification',
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
     datasource: 'FCC 2018 Survey',
@@ -62,13 +64,14 @@ const createProps = () => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  } as unknown) as Slice,
+  } as unknown as Slice,
   show: true,
   onHide: jest.fn(),
   onSave: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
-fetchMock.get('http://localhost/api/v1/chart/318', {
+fetchMock.get('glob:*/api/v1/chart/318', {
   body: {
     description_columns: {},
     id: 318,
@@ -87,6 +90,8 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
     },
     result: {
       cache_timeout: null,
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
       dashboards: [
         {
           dashboard_title: 'FCC New Coder Survey 2018',
@@ -124,27 +129,26 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
   },
 });
 
-fetchMock.get(
-  'http://localhost/api/v1/chart/related/owners?q=(filter:%27%27)',
-  {
-    body: {
-      count: 1,
-      result: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
-    },
-    sendAsJson: true,
+fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
+  body: {
+    count: 1,
+    result: [
+      {
+        text: 'Superset Admin',
+        value: 1,
+      },
+    ],
   },
-);
+  sendAsJson: true,
+});
 
-fetchMock.put('http://localhost/api/v1/chart/318', {
+fetchMock.put('glob:*/api/v1/chart/318', {
   body: {
     id: 318,
     result: {
       cache_timeout: null,
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
       description: null,
       owners: [],
       slice_name: 'Age distribution of respondents',
@@ -157,10 +161,13 @@ afterAll(() => {
   fetchMock.resetBehavior();
 });
 
+const renderModal = (props: PropertiesModalProps) =>
+  render(<PropertiesModal {...props} />, { useRedux: true });
+
 test('Should render null when show:false', async () => {
   const props = createProps();
   props.show = false;
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -171,7 +178,7 @@ test('Should render null when show:false', async () => {
 
 test('Should render when show:true', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -182,7 +189,7 @@ test('Should render when show:true', async () => {
 
 test('Should have modal header', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Edit Chart Properties')).toBeVisible();
@@ -193,7 +200,7 @@ test('Should have modal header', async () => {
 
 test('"Close" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -209,10 +216,10 @@ test('"Close" button should call "onHide"', async () => {
 
 test('Should render all elements inside modal', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
-    expect(screen.getAllByRole('textbox')).toHaveLength(4);
-
+    expect(screen.getAllByRole('textbox')).toHaveLength(5);
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),
     ).toBeVisible();
@@ -226,12 +233,18 @@ test('Should render all elements inside modal', async () => {
 
     expect(screen.getByRole('heading', { name: 'Access' })).toBeVisible();
     expect(screen.getByText('Owners')).toBeVisible();
+
+    expect(
+      screen.getByRole('heading', { name: 'Configuration' }),
+    ).toBeVisible();
+    expect(screen.getByText('Certified by')).toBeVisible();
+    expect(screen.getByText('Certification details')).toBeVisible();
   });
 });
 
 test('Should have modal footer', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Cancel')).toBeVisible();
@@ -245,7 +258,7 @@ test('Should have modal footer', async () => {
 
 test('"Cancel" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -261,7 +274,7 @@ test('"Cancel" button should call "onHide"', async () => {
 
 test('"Save" button should call only "onSave"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
     expect(props.onSave).toBeCalledTimes(0);
     expect(props.onHide).toBeCalledTimes(0);
@@ -274,4 +287,20 @@ test('"Save" button should call only "onSave"', async () => {
     expect(props.onSave).toBeCalledTimes(1);
     expect(props.onHide).toBeCalledTimes(1);
   });
+});
+
+test('Empty "Certified by" should clear "Certification details"', async () => {
+  const props = createProps();
+  const noCertifiedByProps = {
+    ...props,
+    slice: {
+      ...props.slice,
+      certified_by: '',
+    },
+  };
+  renderModal(noCertifiedByProps);
+
+  expect(
+    screen.getByRole('textbox', { name: 'Certification details' }),
+  ).toHaveValue('');
 });
