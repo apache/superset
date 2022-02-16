@@ -37,7 +37,7 @@ export type EmbedDashboardParams = {
   /** The html element within which to mount the iframe */
   mountPoint: HTMLElement
   /** Attributes to be added to the iframe that will embed Superset */
-  iframeAttributes: Record<string, string> 
+  iframeAttributes: Partial<HTMLIFrameElement> 
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
   /** Are we in debug mode? */
@@ -77,7 +77,7 @@ export async function embedDashboard({
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
 
-      Object.entries(iframeAttributes).forEach(([key,value]) => iframe.setAttribute(key, value));
+      Object.assign(iframe, iframeAttributes);
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
