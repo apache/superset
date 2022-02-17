@@ -595,18 +595,34 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.config["SILENCE_FAB"]:
             logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
 
-        custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
-        if not issubclass(custom_sm, SupersetSecurityManager):
+        sm_class = self.get_default_security_manager()
+        appbuilder.security_manager_class = self.init_security_manager(sm_class)
+        appbuilder.indexview = SupersetIndexView
+        appbuilder.base_template = "superset/base.html"
+        appbuilder.init_app(self.superset_app, db.session)
+
+    def get_default_security_manager(self) -> object:
+        security_manager = (
+            self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
+        )
+        if not issubclass(security_manager, SupersetSecurityManager):
             raise Exception(
                 """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
                  not FAB's security manager.
                  See [4565] in UPDATING.md"""
             )
 
-        appbuilder.indexview = SupersetIndexView
-        appbuilder.base_template = "superset/base.html"
-        appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.superset_app, db.session)
+        return security_manager
+
+    def init_security_manager(self, security_manager: Any) -> SupersetSecurityManager:
+        from superset.models.base.role import SupersetRole
+        from superset.models.base.user import SupersetUser
+
+        if issubclass(security_manager, SupersetSecurityManager):
+            security_manager.set_user_model(SupersetUser)
+            security_manager.set_role_model(SupersetRole)
+
+        return security_manager
 
     def configure_url_map_converters(self) -> None:
         #
