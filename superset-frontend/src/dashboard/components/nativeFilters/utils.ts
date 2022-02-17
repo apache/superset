@@ -37,7 +37,7 @@ import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
 export const getFormData = ({
   datasetId,
-  cascadingFilters = {},
+  parentFilters = {},
   groupby,
   inputRef,
   defaultDataMask,
@@ -51,7 +51,7 @@ export const getFormData = ({
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
-  cascadingFilters?: object;
+  parentFilters?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
@@ -75,7 +75,7 @@ export const getFormData = ({
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
-    extra_form_data: cascadingFilters,
+    extra_form_data: parentFilters,
     granularity_sqla,
     metrics: ['count'],
     row_limit: 1000,
