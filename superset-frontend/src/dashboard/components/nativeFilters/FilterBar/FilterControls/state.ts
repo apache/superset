@@ -20,30 +20,28 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,
+  ensureIsArray,
   ExtraFormData,
-  NativeFiltersState,
 } from '@superset-ui/core';
 import { mergeExtraFormData } from '../../utils';
 
 // eslint-disable-next-line import/prefer-default-export
-export function useCascadingFilters(
+export function useParentFilters(
   id: string,
   dataMaskSelected?: DataMaskStateWithId,
 ): ExtraFormData {
-  const { filters } = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
+  const parentIds = useSelector<any, string[] | undefined>(
+    state => state.nativeFilters.filters[id]?.cascadeParentIds,
   );
-  const filter = filters[id];
   return useMemo(() => {
-    const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
-    let cascadedFilters = {};
-    cascadeParentIds.forEach(parentId => {
+    let parentFilters = {};
+    ensureIsArray(parentIds).forEach(parentId => {
       const parentState = dataMaskSelected?.[parentId];
-      cascadedFilters = mergeExtraFormData(
-        cascadedFilters,
+      parentFilters = mergeExtraFormData(
+        parentFilters,
         parentState?.extraFormData,
       );
     });
-    return cascadedFilters;
-  }, [dataMaskSelected, filter?.cascadeParentIds]);
+    return parentFilters;
+  }, [dataMaskSelected, parentIds]);
 }

@@ -30,23 +30,6 @@ export enum TabIds {
   FilterSets = 'filterSets',
 }
 
-export function mapParentFiltersToChildren(filters: Array<Filter | Divider>): {
-  [id: string]: Filter[];
-} {
-  const cascadeChildren = {};
-  filters.forEach(filter => {
-    const [parentId] =
-      ('cascadeParentIds' in filter && filter.cascadeParentIds) || [];
-    if (parentId) {
-      if (!cascadeChildren[parentId]) {
-        cascadeChildren[parentId] = [];
-      }
-      cascadeChildren[parentId].push(filter);
-    }
-  });
-  return cascadeChildren;
-}
-
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(
     (prev, next) => ({ ...prev, [next.id]: next.extraFormData }),

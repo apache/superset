@@ -46,7 +46,7 @@ import { RootState } from 'src/dashboard/types';
 import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
-import { useCascadingFilters } from './state';
+import { useParentFilters } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
@@ -73,7 +73,7 @@ const FilterValue: React.FC<FilterProps> = ({
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
-  const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
+  const parentFilters = useParentFilters(id, dataMaskSelected);
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
   );
@@ -109,7 +109,7 @@ const FilterValue: React.FC<FilterProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
-      cascadingFilters,
+      parentFilters,
       groupby,
       inputRef,
       adhoc_filters,
@@ -184,7 +184,7 @@ const FilterValue: React.FC<FilterProps> = ({
     }
   }, [
     inViewFirstTime,
-    cascadingFilters,
+    parentFilters,
     datasetId,
     groupby,
     JSON.stringify(filter),
