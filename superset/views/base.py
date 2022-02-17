@@ -62,6 +62,8 @@ from superset import (
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
+from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -365,9 +367,6 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
         ]
-
-    from superset.db_engine_specs import get_available_engine_specs
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     available_specs = get_available_engine_specs()
     if available_specs[GSheetsEngineSpec]:
