@@ -20,9 +20,9 @@ import React from 'react';
 import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { store } from 'src/views/store';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
-import { store } from 'src/views/store';
 
 const user = {
   createdOn: '2021-04-27T18:12:38.952304',
