@@ -229,7 +229,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
-            label=__("Annotation Layers"),
+            label=__("Annotation layers"),
             icon="fa-comment",
             category="Manage",
             category_label=__("Manage"),
@@ -265,7 +265,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",
-            label=__("CSS Templates"),
+            label=__("CSS templates"),
             icon="fa-css3",
             category="Manage",
             category_label=__("Manage"),
@@ -274,7 +274,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityFiltersModelView,
             "Row Level Security",
-            label=__("Row Level Security"),
+            label=__("Row level security"),
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
@@ -314,7 +314,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_link(
             "Import Dashboards",
-            label=__("Import Dashboards"),
+            label=__("Import dashboards"),
             href="/superset/import_dashboards/",
             icon="fa-cloud-upload",
             category="Manage",
@@ -419,7 +419,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             LogModelView,
             "Action Log",
-            label=__("Action Log"),
+            label=__("Action log"),
             category="Security",
             category_label=__("Security"),
             icon="fa-list-ol",
@@ -480,7 +480,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             AlertView,
             "Alerts & Report",
-            label=__("Alerts & Reports"),
+            label=__("Alerts & reports"),
             category="Manage",
             category_label=__("Manage"),
             icon="fa-exclamation-triangle",
