@@ -304,3 +304,129 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
     screen.getByRole('textbox', { name: 'Certification details' }),
   ).toHaveValue('');
 });
+
+test('"Name" should not be empty', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  userEvent.clear(name);
+
+  expect(name).toHaveValue('');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(0);
+  });
+});
+
+test('"Name" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  userEvent.clear(name);
+  userEvent.type(name, 'Test chart new name');
+
+  expect(name).toHaveValue('Test chart new name');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ slice_name: 'Test chart new name' }),
+    );
+  });
+});
+
+test('"Cache timeout" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
+
+  userEvent.clear(cacheTimeout);
+  userEvent.type(cacheTimeout, '1000');
+
+  expect(cacheTimeout).toHaveValue('1000');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ cache_timeout: '1000' }),
+    );
+  });
+});
+
+test('"Description" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const description = screen.getByRole('textbox', { name: 'Description' });
+
+  userEvent.clear(description);
+  userEvent.type(description, 'Test description');
+
+  expect(description).toHaveValue('Test description');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ description: 'Test description' }),
+    );
+  });
+});
+
+test('"Certified by" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
+
+  userEvent.clear(certifiedBy);
+  userEvent.type(certifiedBy, 'Test certified by');
+
+  expect(certifiedBy).toHaveValue('Test certified by');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ certified_by: 'Test certified by' }),
+    );
+  });
+});
+
+test('"Certification details" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const certificationDetails = screen.getByRole('textbox', {
+    name: 'Certification details',
+  });
+
+  userEvent.clear(certificationDetails);
+  userEvent.type(certificationDetails, 'Test certification details');
+
+  expect(certificationDetails).toHaveValue('Test certification details');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({
+        certification_details: 'Test certification details',
+      }),
+    );
+  });
+});
