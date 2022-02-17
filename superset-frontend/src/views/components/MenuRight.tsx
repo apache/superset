@@ -166,7 +166,7 @@ const RightMenu = ({
         onClick={itemClicked => {
           if (itemClicked.key === 'connectDB') {
             setShowModal(true);
-            setEngine(null);
+            setEngine('');
           }
           if (itemClicked.key === 'connectGSheets') {
             setShowModal(true);
