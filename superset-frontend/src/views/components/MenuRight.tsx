@@ -30,26 +30,26 @@ import {
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-export const dropdownItems = [
+export const dropdownItems: MenuObjectProps[] = [
   {
     label: t('Data'),
     icon: 'fa-database',
     childs: [
       {
         icon: 'fa-upload',
-        label: 'Upload a CSV',
+        label: t('Upload a CSV'),
         name: 'Upload a CSV',
         url: '/csvtodatabaseview/form',
       },
       {
         icon: 'fa-upload',
-        label: 'Upload a Columnar File',
+        label: t('Upload a Columnar File'),
         name: 'Upload a Columnar file',
         url: '/columnartodatabaseview/form',
       },
       {
         icon: 'fa-upload',
-        label: 'Upload Excel',
+        label: t('Upload Excel'),
         name: 'Upload Excel',
         url: '/exceltodatabaseview/form',
       },
@@ -161,9 +161,11 @@ const RightMenu = ({
                   <SubMenu
                     key="sub2"
                     className="data-menu"
-                    title={menuIconAndLabel(menu as MenuObjectProps)}
+                    title={menuIconAndLabel(menu)}
                   >
                     {menu.childs.map(item =>
+                      typeof item !== 'string' &&
+                      item.name &&
                       configMap[item.name] === true ? (
                         <Menu.Item key={item.name}>
                           <a href={item.url}> {item.label} </a>
