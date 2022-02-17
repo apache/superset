@@ -74,11 +74,13 @@ export interface MenuProps {
 
 interface MenuObjectChildProps {
   label: string;
-  name: string;
+  name?: string;
   icon?: string;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
+  perm?: string;
+  view?: string;
 }
 
 export interface MenuObjectProps extends MenuObjectChildProps {

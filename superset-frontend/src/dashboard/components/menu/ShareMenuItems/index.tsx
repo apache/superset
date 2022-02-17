@@ -23,6 +23,7 @@ import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
+import { useTabId } from 'src/hooks/useTabId';
 import { URL_PARAMS } from 'src/constants';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import {
@@ -56,6 +57,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     ...rest
   } = props;
 
+  const tabId = useTabId();
+
   const getShortUrl = useUrlShortener(url || '');
 
   async function getCopyUrl() {
@@ -68,6 +71,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     const newDataMaskKey = await createFilterKey(
       dashboardId,
       JSON.stringify(prevData),
+      tabId,
     );
     const newUrl = new URL(`${window.location.origin}${url}`);
     newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
@@ -80,6 +84,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
         parseInt(formData.datasource.split('_')[0], 10),
         formData,
         formData.slice_id,
+        tabId,
       );
       return `${window.location.origin}${mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
