@@ -433,6 +433,7 @@ function nvd3Vis(element, props) {
 
         chart.stacked(isBarStacked);
 
+        // calculating the totals
         const totalValues = {};
 
         data.forEach(d => {
@@ -445,18 +446,17 @@ function nvd3Vis(element, props) {
           });
         });
 
-        const sortedTotalValues = Object.keys(totalValues).sort(function (
-          a,
-          b,
-        ) {
-          return totalValues[b] - totalValues[a];
-        });
+        const sortedTotalValues = Object.keys(totalValues).sort(
+          (a, b) => totalValues[b] - totalValues[a],
+        );
 
         if (orderBars) {
+          // sort by the labels ASC
           data.forEach(d => {
             d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
           });
         } else {
+          // sort ASC or DESC based on total values
           data.forEach(d => {
             d.values.sort((a, b) =>
               sortedTotalValues.indexOf(orderDesc ? a.x : b.x) <
