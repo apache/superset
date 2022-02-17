@@ -85,6 +85,11 @@ import {
   CccsGridChartPlugin,
   StatusIndicatorChartPlugin,
   BigNumberChartPlugin,
+  AtAGlanceChartIpPlugin,
+  AtAGlanceChartDnsPlugin,
+  AtAGlanceUserIdChartPlugin,
+  AtAGlanceUserIDSasChartPlugin,
+  ApplicationLinksChartPlugin,
 } from 'src/cccs-viz/plugins/';
 
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
@@ -102,6 +107,17 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        new AtAGlanceUserIdChartPlugin().configure({
+          key: 'at_a_glance_user_id',
+        }),
+        new AtAGlanceUserIDSasChartPlugin().configure({
+          key: 'at_a_glance_user_id_sas',
+        }),
+        new ApplicationLinksChartPlugin().configure({
+          key: 'application_links',
+        }),
+        new AtAGlanceChartIpPlugin().configure({ key: 'at_a_glance_ip' }),
+        new AtAGlanceChartDnsPlugin().configure({ key: 'at_a_glance_dns' }),
         new GwwkChartsChartPlugin().configure({ key: 'gwwk_charts' }),
         new GwwkDatasetsChartPlugin().configure({ key: 'gwwk_datasets' }),
         new GwwkDashboardsChartPlugin().configure({ key: 'gwwk_dashboards' }),
@@ -152,9 +168,7 @@ export default class MainPreset extends Preset {
         new TreemapChartPlugin().configure({ key: 'treemap' }),
         new WordCloudChartPlugin().configure({ key: 'word_cloud' }),
         new WorldMapChartPlugin().configure({ key: 'world_map' }),
-        new EchartsAreaChartPlugin().configure({
-          key: 'echarts_area',
-        }),
+        new EchartsAreaChartPlugin().configure({ key: 'echarts_area' }),
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
         }),
