@@ -193,16 +193,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def estimate_statement_cost(
         cls, statement: str, cursor: Any, engine: Engine
     ) -> Dict[str, Any]:
-        try:
-            # pylint: disable=import-outside-toplevel
-            from google.cloud import bigquery
-            from google.oauth2 import service_account
-        except ImportError as ex:
-            raise Exception(
-                "Could not import libraries `google.cloud` or `google.oauth2`, "
-                "which are required to be installed in your environment in order "
-                "to estimate cost"
-            ) from ex
+        # pylint: disable=import-outside-toplevel
+        from google.cloud import bigquery
+        from google.oauth2 import service_account
 
         creds = engine.dialect.credentials_info
         credentials = service_account.Credentials.from_service_account_info(creds)
@@ -370,16 +363,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        try:
-            # pylint: disable=import-outside-toplevel
-            import pandas_gbq
-            from google.oauth2 import service_account
-        except ImportError as ex:
-            raise Exception(
-                "Could not import libraries `pandas_gbq` or `google.oauth2`, which are "
-                "required to be installed in your environment in order "
-                "to upload data to BigQuery"
-            ) from ex
+        # pylint: disable=import-outside-toplevel
+        import pandas_gbq
+        from google.oauth2 import service_account
 
         if not table.schema:
             raise Exception("The table schema must be defined")
