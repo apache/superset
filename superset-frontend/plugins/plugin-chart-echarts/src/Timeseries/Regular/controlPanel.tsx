@@ -31,7 +31,7 @@ import { DEFAULT_FORM_DATA, EchartsTimeseriesContributionType } from '../types';
 import {
   legendSection,
   richTooltipSection,
-  showValueSectionWithoutStack,
+  getShowValueSection,
   xAxisControl,
 } from '../../controls';
 
@@ -102,7 +102,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ...showValueSectionWithoutStack,
+        ...getShowValueSection({ withStack: false }),
         [
           {
             name: 'markerEnabled',

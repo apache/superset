@@ -34,7 +34,7 @@ import {
 import {
   legendSection,
   richTooltipSection,
-  showValueSection,
+  getShowValueSection,
   xAxisControl,
 } from '../../../controls';
 
@@ -105,7 +105,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ...showValueSection,
+        ...getShowValueSection(),
         [
           {
             name: 'markerEnabled',

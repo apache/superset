@@ -29,9 +29,9 @@ import {
 
 import { DEFAULT_FORM_DATA } from '../../types';
 import {
+  getShowValueSection,
   legendSection,
   richTooltipSection,
-  showValueSection,
   xAxisControl,
 } from '../../../controls';
 
@@ -85,7 +85,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        ...showValueSection,
+        ...getShowValueSection(),
         [
           {
             name: 'markerEnabled',

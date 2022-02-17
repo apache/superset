@@ -112,7 +112,7 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const getStackControl = (overrides = {}): ControlSetItem => ({
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -120,8 +120,9 @@ const stackControl: ControlSetItem = {
     renderTrigger: true,
     default: false,
     description: t('Stack series on top of each other'),
+    ...overrides,
   },
-};
+});
 
 const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
@@ -168,17 +169,27 @@ const percentageThresholdControl: ControlSetItem = {
   },
 };
 
-export const showValueSection: ControlSetRow[] = [
-  [showValueControl],
-  [stackControl],
-  [onlyTotalControl],
-  [percentageThresholdControl],
-];
-
-export const showValueSectionWithoutStack: ControlSetRow[] = [
-  [showValueControl],
-  [onlyTotalControl],
-];
+export const getShowValueSection = ({
+  withStack,
+  stackDefault,
+}: {
+  withStack?: boolean;
+  stackDefault?: boolean;
+} = {}): ControlSetRow[] => {
+  if (withStack !== false) {
+    return [
+      [showValueControl],
+      [
+        getStackControl(
+          stackDefault === undefined ? {} : { default: stackDefault },
+        ),
+      ],
+      [onlyTotalControl],
+      [percentageThresholdControl],
+    ];
+  }
+  return [[showValueControl], [onlyTotalControl]];
+};
 
 const richTooltipControl: ControlSetItem = {
   name: 'rich_tooltip',

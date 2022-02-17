@@ -33,9 +33,9 @@ import {
   EchartsTimeseriesSeriesType,
 } from '../types';
 import {
+  getShowValueSection,
   legendSection,
   richTooltipSection,
-  showValueSection,
   xAxisControl,
 } from '../../controls';
 
@@ -144,7 +144,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...showValueSection,
+        ...getShowValueSection({ stackDefault: true }),
         [
           {
             name: 'markerEnabled',
