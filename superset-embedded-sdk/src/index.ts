@@ -37,7 +37,7 @@ export type EmbedDashboardParams = {
   /** The html element within which to mount the iframe */
   mountPoint: HTMLElement
   /** Attributes to be added to the iframe that will embed Superset */
-  iframeAttributes: Partial<HTMLIFrameElement> 
+  iframeAttributes: Partial<HTMLIFrameElement>
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
   /** Are we in debug mode? */
