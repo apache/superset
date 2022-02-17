@@ -677,21 +677,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :return: Human readable cost estimate
         """
 
-        def humanize(value: Any, suffix: str) -> str:
-            try:
-                value = int(value)
-            except ValueError:
-                return str(value)
-
-            prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
-            prefix = ""
-            to_next_prefix = 1000
-            while value > to_next_prefix and prefixes:
-                prefix = prefixes.pop(0)
-                value //= to_next_prefix
-
-            return f"{value} {prefix}{suffix}"
-
         cost = []
         columns = [
             ("outputRowCount", "Output count", " rows"),
@@ -705,7 +690,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             statement_cost = {}
             for key, label, suffix in columns:
                 if key in estimate:
-                    statement_cost[label] = humanize(estimate[key], suffix).strip()
+                    statement_cost[label] = cls._humanize(estimate[key], suffix).strip()
             cost.append(statement_cost)
 
         return cost

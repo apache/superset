@@ -1430,6 +1430,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def parse_sql(cls, sql: str) -> List[str]:
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
+    @classmethod
+    def _humanize(cls, value: Any, suffix: str) -> str:
+        try:
+            value = int(value)
+        except ValueError:
+            return str(value)
+
+        prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
+        prefix = ""
+        to_next_prefix = 1000
+        while value > to_next_prefix and prefixes:
+            prefix = prefixes.pop(0)
+            value //= to_next_prefix
+
+        return f"{value} {prefix}{suffix}"
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
