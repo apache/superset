@@ -81,6 +81,7 @@ const getMe = makeApi<void, User>({
 /**
  * When you re-open the window, we check if you are still logged in.
  * If your session expired or you signed out, we'll redirect to login.
+ * If you aren't logged in in the first place (!isActive), then we shouldn't do this.
  */
 if (bootstrapData.user?.isActive) {
   document.addEventListener('visibilitychange', () => {
