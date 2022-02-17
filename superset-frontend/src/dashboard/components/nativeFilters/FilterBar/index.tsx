@@ -328,7 +328,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
   ).length;
 
-  console.log({ height, width, offset });
   return (
     <BarWrapper
       {...getFilterBarTestId()}
