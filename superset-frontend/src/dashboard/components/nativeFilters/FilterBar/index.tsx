@@ -137,6 +137,10 @@ const StyledTabs = styled(Tabs)`
     margin: 0;
     flex: 1;
   }
+
+  & > .ant-tabs-nav .ant-tabs-nav-operations {
+    display: none;
+  }
 `;
 
 const FilterBarEmptyStateContainer = styled.div`
