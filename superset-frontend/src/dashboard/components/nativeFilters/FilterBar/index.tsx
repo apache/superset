@@ -382,7 +382,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                     image="filter.svg"
                     description={
                       canEdit &&
-                      t('Click button above to add a filter to the dashboard')
+                      t(
+                        'Click the button above to add a filter to the dashboard',
+                      )
                     }
                   />
                 </FilterBarEmptyStateContainer>
