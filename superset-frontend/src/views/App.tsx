@@ -34,7 +34,6 @@ import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
 import { RootContextProviders } from './RootContextProviders';
-import { useWindowActivatedAuthCheck } from 'src/hooks/useWindowActivatedAuthCheck';
 
 setupApp();
 
@@ -56,18 +55,8 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-/** This component is just here so we can conditionally call this hook */
-const AuthVigilance = () => {
-  useWindowActivatedAuthCheck();
-  return <></>;
-};
-
 const App = () => (
   <Router>
-    {
-      // only check auth on window visibility change if the user is actually logged in in the first place
-      user?.isActive && <AuthVigilance />
-    }
     <LocationPathnameLogger />
     <RootContextProviders>
       <Menu data={menu} isFrontendRoute={isFrontendRoute} />
