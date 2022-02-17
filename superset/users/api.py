@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import g
+from flask import g, Response
 from flask_appbuilder.api import BaseApi, expose, safe
 
 from .schemas import UserResponseSchema
@@ -31,13 +31,13 @@ class CurrentUserRestApi(BaseApi):
 
     @expose("/", methods=["GET"])
     @safe
-    def me(self):
+    def me(self) -> Response:
         """Get the user object corresponding to the agent making the request
         ---
         get:
           description: >-
             Returns the user object corresponding to the agent making the request,
-            or returns a 401 error if the request is unauthenticated.
+            or returns a 401 error if the user is unauthenticated.
           responses:
             200:
               description: The current user
@@ -51,4 +51,6 @@ class CurrentUserRestApi(BaseApi):
             401:
               $ref: '#/components/responses/401'
         """
+        if g.user is None or g.user.is_anonymous:
+            return self.response_401()
         return self.response(200, result=user_response_schema.dump(g.user))
