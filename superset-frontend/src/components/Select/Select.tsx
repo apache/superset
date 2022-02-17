@@ -305,7 +305,6 @@ const Select = ({
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
-  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -481,7 +480,6 @@ const Select = ({
     () => (value: string, page: number, pageSize: number) => {
       if (allValuesLoaded) {
         setIsLoading(false);
-        setIsTyping(false);
         return;
       }
       const key = `${value};${page};${pageSize}`;
@@ -489,7 +487,6 @@ const Select = ({
       if (cachedCount) {
         setTotalCount(cachedCount);
         setIsLoading(false);
-        setIsTyping(false);
         return;
       }
       setIsLoading(true);
@@ -510,7 +507,6 @@ const Select = ({
         .catch(internalOnError)
         .finally(() => {
           setIsLoading(false);
-          setIsTyping(false);
         });
     },
     [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
@@ -536,9 +532,6 @@ const Select = ({
           setSelectOptions(newOptions);
         }
 
-        if (!searchValue || searchValue === searchedValue) {
-          setIsTyping(false);
-        }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
     [allowNewOptions, isSingleMode, searchedValue, selectOptions],
@@ -598,16 +591,10 @@ const Select = ({
     if (!isDropdownVisible) {
       originNode.ref?.current?.scrollTo({ top: 0 });
     }
-    if ((isLoading && selectOptions.length === 0) || isTyping) {
+    if (isLoading && selectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
     }
     return error ? <Error error={error} /> : originNode;
-  };
-
-  const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key.length === 1 && isAsync && !isTyping) {
-      setIsTyping(true);
-    }
   };
 
   const SuffixIcon = () => {
@@ -722,7 +709,6 @@ const Select = ({
         }
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onInputKeyDown={onInputKeyDown}
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
