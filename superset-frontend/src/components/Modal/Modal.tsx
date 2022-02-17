@@ -124,6 +124,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
+
+    p:first-child {
+      font-family: ${({ theme }) => theme.typography.families.monospace};
+      white-space: pre;
+      word-break: break-word;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
   }
   .ant-modal-footer {
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
