@@ -125,14 +125,17 @@ const RightMenu = ({
     state => state.user,
   );
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [engine, setEngine] = useState<string>(null);
+  const [engine, setEngine] = useState<string>('');
   // @ts-ignore
-  const {
-    CSV_EXTENSIONS,
-    COLUMNAR_EXTENSIONS,
-    EXCEL_EXTENSIONS,
-    SHOW_GLOBAL_GSHEETS,
-  } = useSelector<any, CommonBootstrapData>(state => state.common.conf);
+  const { CSV_EXTENSIONS, COLUMNAR_EXTENSIONS, EXCEL_EXTENSIONS } = useSelector<
+    any,
+    CommonBootstrapData
+  >(state => state.common.conf);
+
+  // @ts-ignore
+  const { SHOW_GLOBAL_GSHEETS } = useSelector<any, CommonBootstrapData>(
+    state => state.common.conf,
+  );
 
   // if user has any of these roles the dropdown will appear
   const configMap = {
