@@ -49,7 +49,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     max_column_name_length = 128
     allows_cte_in_subquery = False
     allow_limit_clause = False
-    sel_keywords = {"SELECT"}
+    select_keywords = {"SELECT"}
     top_keywords = {"TOP"}
 
     _time_grain_expressions = {
