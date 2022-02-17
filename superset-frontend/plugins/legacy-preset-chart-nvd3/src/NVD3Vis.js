@@ -316,8 +316,6 @@ function nvd3Vis(element, props) {
     yIsLogScale,
   } = props;
 
-  console.log('PROPS', props);
-
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
   container.innerHTML = '';
