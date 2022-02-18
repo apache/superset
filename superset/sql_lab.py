@@ -299,7 +299,7 @@ def apply_limit_if_exists(
         if database.db_engine_spec.allow_limit_clause:
             sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
         else:
-            sql = database.apply_top_to_sql(sql, increased_limit, force=True)
+            sql = database.apply_top_to_sql(sql, increased_limit)
     return sql
 
 

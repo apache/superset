@@ -35,11 +35,8 @@ def test_apply_top_to_sql_limit(
     app_context: AppContext, limit: int, original: str, expected: str,
 ) -> None:
     """
-    Test the custom ``ParsedQueryTeradata`` that calls ``_extract_limit_from_query_td(``
-
-    The CLass looks for Teradata limit keywords TOP and SAMPLE vs LIMIT in
-    other dialects.
+    Ensure limits are applied to the query correctly
     """
     from superset.db_engine_specs.teradata import TeradataEngineSpec
 
-    assert str(TeradataEngineSpec.apply_top_to_sql(original, limit)) == expected
+    assert TeradataEngineSpec.apply_top_to_sql(original, limit) == expected
