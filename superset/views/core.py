@@ -177,6 +177,7 @@ DATABASE_KEYS = [
     "expose_in_sqllab",
     "force_ctas_schema",
     "id",
+    "allows_preview_data",
 ]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")

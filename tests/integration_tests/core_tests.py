@@ -1462,6 +1462,29 @@ class TestCore(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
 
+    def test_preview_data_visibility(self):
+        # test that default visibility it set to True
+        database = utils.get_example_database()
+        self.assertEqual(database.allows_preview_data, True)
+
+        # test that visibility is disabled when extra is set to False
+        extra = database.get_extra()
+        extra["allows_preview_data"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_preview_data, False)
+
+        # test that visibility is enabled when extra is set to True
+        extra = database.get_extra()
+        extra["allows_preview_data"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_preview_data, True)
+
+        # test that visibility is not broken with bad values
+        extra = database.get_extra()
+        extra["allows_preview_data"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.allows_preview_data, True)
+
     def test_explore_database_id(self):
         database = utils.get_example_database()
         explore_database = utils.get_example_database()
