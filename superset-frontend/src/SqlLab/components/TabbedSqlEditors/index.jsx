@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import emptySqlChart from 'src/assets/images/empty_sql_chart.png';
 import { Dropdown } from 'src/components/Dropdown';
 import { EditableTabs } from 'src/components/Tabs';
 import { Menu } from 'src/common/components';
@@ -58,6 +59,13 @@ const defaultProps = {
 };
 
 let queryCount = 1;
+
+const StyledImage = styled.div`
+  right: 50%;
+  bottom: 50%;
+  transform: translate(50%, 50%);
+  position: absolute;
+`;
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -401,6 +409,19 @@ class TabbedSqlEditors extends React.PureComponent {
       );
     });
 
+    const emptyTab = (
+      <EditableTabs.TabPane
+        key={Math.random()}
+        data-key={Math.random()}
+        tab={<TabTitle>Add a New Tab</TabTitle>}
+        closable={false}
+      >
+        <StyledImage>
+          <img src={emptySqlChart} alt="No SQL tabs" />
+        </StyledImage>
+      </EditableTabs.TabPane>
+    );
+
     return (
       <EditableTabs
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
@@ -426,6 +447,7 @@ class TabbedSqlEditors extends React.PureComponent {
         }
       >
         {editors}
+        {this.props.queryEditors?.length === 0 && emptyTab}
       </EditableTabs>
     );
   }

@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { t, supersetTheme, ThemeProvider, styled } from '@superset-ui/core';
+import { t, supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -30,7 +30,6 @@ import {
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import emptySqlChart from 'src/assets/images/empty_sql_chart.png';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
 import QuerySearch from '../QuerySearch';
@@ -98,13 +97,6 @@ class App extends React.PureComponent {
 
   render() {
     let content;
-
-    const StyledImage = styled.div`
-      right: 50%;
-      bottom: 50%;
-      transform: translate(50%, 50%);
-      position: absolute;
-    `;
     if (this.state.hash && this.state.hash === '#search') {
       if (isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) {
         return window.location.replace('/superset/sqllab/history/');
@@ -127,11 +119,6 @@ class App extends React.PureComponent {
       <ThemeProvider theme={supersetTheme}>
         <div className="App SqlLab">
           {content}
-          {this.props.queryEditors.length === 0 && (
-            <StyledImage>
-              <img src={emptySqlChart} alt="No SQL tabs" />
-            </StyledImage>
-          )}
           <ToastContainer />
         </div>
       </ThemeProvider>
@@ -142,16 +129,14 @@ class App extends React.PureComponent {
 App.propTypes = {
   actions: PropTypes.object,
   common: PropTypes.object,
-  queryEditors: PropTypes.array,
   localStorageUsageInKilobytes: PropTypes.number.isRequired,
 };
 
 function mapStateToProps(state) {
-  const { common, localStorageUsageInKilobytes, sqlLab } = state;
+  const { common, localStorageUsageInKilobytes } = state;
   return {
     common,
     localStorageUsageInKilobytes,
-    queryEditors: sqlLab.queryEditors,
   };
 }
 
