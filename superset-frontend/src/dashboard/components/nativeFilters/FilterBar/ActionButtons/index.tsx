@@ -48,7 +48,9 @@ const ActionButtonsContainer = styled.div`
     right: 0;
 
     padding: ${theme.gridUnit * 4}px;
-    background: linear-gradient(transparent, white 50%);
+    padding-top: ${theme.gridUnit * 6}px;
+
+    background: linear-gradient(transparent, white 25%);
 
     & > .filter-apply-button {
       margin-bottom: ${theme.gridUnit * 3}px;
