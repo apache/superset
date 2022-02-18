@@ -42,12 +42,6 @@ const createProps = () => ({
   isApplyDisabled: false,
 });
 
-test('should render the "Clear all" option', () => {
-  const mockedProps = createProps();
-  render(<ActionButtons {...mockedProps} />, { useRedux: true });
-  expect(screen.getByText('Clear all')).toBeInTheDocument();
-});
-
 test('should render the "Apply" button', () => {
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });

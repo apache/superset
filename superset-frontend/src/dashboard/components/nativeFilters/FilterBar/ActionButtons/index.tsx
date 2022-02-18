@@ -72,12 +72,13 @@ export const ActionButtons = ({
   dataMaskSelected,
   isApplyDisabled,
 }: ActionButtonsProps) => {
-  const isClearAllDisabled = useMemo(
+  const isClearAllEnabled = useMemo(
     () =>
-      Object.values(dataMaskApplied).every(
+      Object.values(dataMaskApplied).some(
         filter =>
-          dataMaskSelected[filter.id]?.filterState?.value === null ||
-          (!dataMaskSelected[filter.id] && filter.filterState?.value === null),
+          dataMaskSelected[filter.id]?.filterState?.value !== undefined ||
+          (!dataMaskSelected[filter.id] &&
+            filter.filterState?.value !== undefined),
       ),
     [dataMaskApplied, dataMaskSelected],
   );
@@ -95,7 +96,7 @@ export const ActionButtons = ({
         {t('Apply filters')}
       </Button>
       <Button
-        disabled={isClearAllDisabled}
+        disabled={!isClearAllEnabled}
         buttonStyle="link"
         buttonSize="small"
         className="filter-clear-all-button"

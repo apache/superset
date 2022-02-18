@@ -60,6 +60,10 @@ const AddFiltersButtonContainer = styled.div`
       margin-right: ${theme.gridUnit}px;
       line-height: 0;
     }
+
+    .ant-btn > .anticon + span {
+      margin-left: 0;
+    }
   `}
 `;
 
@@ -93,9 +97,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
             dashboardId={dashboardId}
             createNewOnOpen={filterValues.length === 0}
           >
-            <>
-              <Icons.PlusSmall /> Add/Edit Filters
-            </>
+            <Icons.PlusSmall /> {t('Add/Edit Filters')}
           </FilterConfigurationLink>
         </AddFiltersButtonContainer>
       )}
