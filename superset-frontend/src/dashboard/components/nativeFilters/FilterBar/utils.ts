@@ -18,12 +18,7 @@
  */
 
 import { areObjectsEqual } from 'src/reduxUtils';
-import {
-  DataMaskStateWithId,
-  Filter,
-  FilterState,
-  Divider,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
 
 export enum TabIds {
   AllFilters = 'allFilters',

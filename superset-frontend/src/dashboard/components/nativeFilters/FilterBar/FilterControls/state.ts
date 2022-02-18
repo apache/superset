@@ -26,7 +26,7 @@ import {
 import { mergeExtraFormData } from '../../utils';
 
 // eslint-disable-next-line import/prefer-default-export
-export function useParentFilters(
+export function useFilterDependencies(
   id: string,
   dataMaskSelected?: DataMaskStateWithId,
 ): ExtraFormData {
@@ -34,14 +34,14 @@ export function useParentFilters(
     state => state.nativeFilters.filters[id]?.cascadeParentIds,
   );
   return useMemo(() => {
-    let parentFilters = {};
+    let dependencies = {};
     ensureIsArray(parentIds).forEach(parentId => {
       const parentState = dataMaskSelected?.[parentId];
-      parentFilters = mergeExtraFormData(
-        parentFilters,
+      dependencies = mergeExtraFormData(
+        dependencies,
         parentState?.extraFormData,
       );
     });
-    return parentFilters;
+    return dependencies;
   }, [dataMaskSelected, parentIds]);
 }

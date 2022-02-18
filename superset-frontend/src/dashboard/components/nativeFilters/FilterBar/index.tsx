@@ -22,12 +22,12 @@ import {
   DataMaskStateWithId,
   DataMaskWithId,
   Filter,
-  NativeFilterType,
   DataMask,
   HandlerFunction,
   styled,
   t,
   SLOW_DEBOUNCE,
+  isNativeFilter,
 } from '@superset-ui/core';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -225,7 +225,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
+  const nativeFilterValues = filterValues.filter(isNativeFilter);
   const dashboardId = useSelector<any, string>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
@@ -332,7 +333,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const isApplyDisabled = checkIsApplyDisabled(
     dataMaskSelected,
     dataMaskApplied,
-    filterValues,
+    nativeFilterValues,
   );
   const isInitialized = useInitialization();
   const tabPaneStyle = useMemo(
@@ -340,9 +341,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [height],
   );
 
-  const numberOfFilters = filterValues.filter(
-    filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
-  ).length;
+  const numberOfFilters = nativeFilterValues.length;
 
   return (
     <BarWrapper

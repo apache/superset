@@ -91,9 +91,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const { scope } = filterScope;
       const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {
-          scope: scope.rootPath,
+          scope: scope?.rootPath,
           // @ts-ignore
-          immune: scope.excluded,
+          immune: scope?.excluded,
         },
       });
       const tabsInScope = findTabsWithChartsInScope(
