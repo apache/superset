@@ -48,10 +48,6 @@ const Wrapper = styled.div`
     ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const PlusIcon = styled(Icons.PlusSmall)`
-  padding-bottom: 1px;
-`;
-
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
 };
@@ -63,6 +59,10 @@ const AddFiltersButtonContainer = styled.div`
     & button > [role='img']:first-of-type {
       margin-right: ${theme.gridUnit}px;
       line-height: 0;
+    }
+
+    span[role='img'] {
+      padding-bottom: 1px;
     }
 
     .ant-btn > .anticon + span {
@@ -101,7 +101,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
             dashboardId={dashboardId}
             createNewOnOpen={filterValues.length === 0}
           >
-            <PlusIcon /> {t('Add/Edit Filters')}
+            <Icons.PlusSmall /> {t('Add/Edit Filters')}
           </FilterConfigurationLink>
         </AddFiltersButtonContainer>
       )}
