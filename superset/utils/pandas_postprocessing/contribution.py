@@ -17,7 +17,6 @@
 from decimal import Decimal
 from typing import List, Optional
 
-import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -73,7 +72,5 @@ def contribution(
     numeric_df = numeric_df[columns]
     axis = 0 if orientation == PostProcessingContributionOrientation.COLUMN else 1
     numeric_df = numeric_df / numeric_df.values.sum(axis=axis, keepdims=True)
-    # replace infinity and nan with 0 in dataframe
-    numeric_df.replace(to_replace=[np.Inf, -np.Inf, np.nan], value=0, inplace=True)
     contribution_df[rename_columns] = numeric_df
     return contribution_df

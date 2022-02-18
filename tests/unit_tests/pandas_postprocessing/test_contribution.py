@@ -51,9 +51,9 @@ def test_contribution():
         df, orientation=PostProcessingContributionOrientation.ROW,
     )
     assert processed_df.columns.tolist() == [DTTM_ALIAS, "a", "b", "c"]
-    assert processed_df["a"].tolist() == [0.5, 0.25, 0]
-    assert processed_df["b"].tolist() == [0.5, 0.75, 0]
-    assert processed_df["c"].tolist() == [0, 0, 0]
+    assert_array_equal(processed_df["a"].tolist(), [0.5, 0.25, nan])
+    assert_array_equal(processed_df["b"].tolist(), [0.5, 0.75, nan])
+    assert_array_equal(processed_df["c"].tolist(), [0, 0, nan])
 
     # cell contribution across column without temporal column
     df.pop(DTTM_ALIAS)
@@ -61,9 +61,9 @@ def test_contribution():
         df, orientation=PostProcessingContributionOrientation.COLUMN
     )
     assert processed_df.columns.tolist() == ["a", "b", "c"]
-    assert processed_df["a"].tolist() == [0.25, 0.75, 0]
-    assert processed_df["b"].tolist() == [0.1, 0.9, 0]
-    assert processed_df["c"].tolist() == [0, 0, 0]
+    assert_array_equal(processed_df["a"].tolist(), [0.25, 0.75, 0])
+    assert_array_equal(processed_df["b"].tolist(), [0.1, 0.9, 0])
+    assert_array_equal(processed_df["c"].tolist(), [nan, nan, nan])
 
     # contribution only on selected columns
     processed_df = contribution(
