@@ -660,28 +660,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def apply_top_to_sql(
-        cls, sql: str, _limit: int, database: str = "Database", force: bool = False
-    ) -> str:
+    def apply_top_to_sql(cls, sql: str, limit: int) -> str:
         """
         Alters the SQL statement to apply a TOP clause
-        :param _limit: Maximum number of rows to be returned by the query
+        :param limit: Maximum number of rows to be returned by the query
         :param sql: SQL query
-        :param database: Database instance
         :return: SQL query with top clause
         """
 
         cte = None
         sql_remainder = None
         sql_statement = sqlparse.format(sql, strip_comments=True)
-        query_limit: Optional[int] = sql_parse._extract_top_from_query(sql_statement,
-                                                                       cls.top_keywords)
-        if not _limit:
+        query_limit: Optional[int] = sql_parse.extract_top_from_query(
+            sql_statement, cls.top_keywords
+        )
+        if not limit:
             final_limit = query_limit
-        elif int(query_limit or 0) < _limit and query_limit is not None:
+        elif int(query_limit or 0) < limit and query_limit is not None:
             final_limit = query_limit
         else:
-            final_limit = _limit
+            final_limit = limit
         if not cls.allows_cte_in_subquery:
             cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
         if cte:
@@ -695,8 +693,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         tokens = str_statement.rstrip().split(" ")
         tokens = [token for token in tokens if token]
         if cls.top_not_in_sql(str_statement):
-            selects = [i for i, word in enumerate(tokens) if
-                       word.upper() in cls.select_keywords]
+            selects = [
+                i
+                for i, word in enumerate(tokens)
+                if word.upper() in cls.select_keywords
+            ]
             first_select = selects[0]
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))

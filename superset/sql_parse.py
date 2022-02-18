@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from urllib import parse
 
 import sqlparse
@@ -40,7 +40,6 @@ from sqlparse.tokens import (
     String,
     Whitespace,
 )
-
 from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
@@ -87,12 +86,14 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
-def _extract_top_from_query(statement: TokenList, top_keyword: Set[str]) -> Optional[
-    int]:
+def extract_top_from_query(
+    statement: TokenList, top_keywords: Set[str]
+) -> Optional[int]:
     """
     Extract top clause value from SQL statement.
 
     :param statement: SQL statement
+    :param top_keywords: keywords that are considered as synonyms to TOP
     :return: top value extracted from query, None if no top value present in statement
     """
 
@@ -102,7 +103,7 @@ def _extract_top_from_query(statement: TokenList, top_keyword: Set[str]) -> Opti
     token = [part for part in token if part]
     top = None
     for i, _ in enumerate(token):
-        if token[i].upper() in top_keyword and len(token) - 1 > i:
+        if token[i].upper() in top_keywords and len(token) - 1 > i:
             try:
                 top = int(token[i + 1])
             except ValueError:
@@ -111,7 +112,7 @@ def _extract_top_from_query(statement: TokenList, top_keyword: Set[str]) -> Opti
     return top
 
 
-def get_cte_remainder_query(sql: str) -> Optional[str]:
+def get_cte_remainder_query(sql: str) -> Tuple[Optional[str], str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 
@@ -119,7 +120,7 @@ def get_cte_remainder_query(sql: str) -> Optional[str]:
     :return: CTE and remainder block to the caller
 
     """
-    cte = None
+    cte: Optional[str] = None
     remainder = sql
     stmt = sqlparse.parse(sql)[0]
 
