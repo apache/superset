@@ -231,28 +231,25 @@ def test_cte_query_parsing(
     assert actual == expected
 
 
-
 @pytest.mark.parametrize(
     "original,expected,top",
     [
+        ("SEL TOP 1000 * FROM My_table", "SEL TOP 100 * FROM My_table", 100),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 100 * FROM My_table", 100),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 10000),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 1000),
         (
-            dedent(
-                """with abc as (select * from test union select * from test1)
-select TOP 100 * from currency"""
-            ),
-            dedent(
-                """WITH abc as (select * from test union select * from test1)
-select TOP 100 * from currency"""
-            ), 1000,
+            """with abc as (select * from test union select * from test1)
+select TOP 100 * from currency""",
+            """WITH abc as (select * from test union select * from test1)
+select TOP 100 * from currency""",
+            1000,
         ),
         ("SELECT 1 as cnt", "SELECT TOP 10 1 as cnt", 10),
         (
-            dedent(
-                """select TOP 1000 * from abc where id=1"""
-            ),
-            dedent(
-                """select TOP 10 * from abc where id=1"""
-            ), 10,
+            "select TOP 1000 * from abc where id=1",
+            "select TOP 10 * from abc where id=1",
+            10,
         ),
     ],
 )
