@@ -39,6 +39,7 @@ import { isEqual } from 'lodash';
 import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption } from './utils';
 
 const { Option } = AntdSelect;
@@ -214,7 +215,6 @@ const StyledLoadingText = styled.div`
 
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const DEBOUNCE_TIMEOUT = 500;
 const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
 
@@ -511,7 +511,7 @@ const Select = ({
     () =>
       debounce((search: string) => {
         setSearchedValue(search);
-      }, DEBOUNCE_TIMEOUT),
+      }, SLOW_DEBOUNCE),
     [],
   );
 
