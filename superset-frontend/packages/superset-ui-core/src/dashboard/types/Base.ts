@@ -101,7 +101,7 @@ export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
 
 export function isNativeFilter(
   filterElement: Filter | Divider,
-): filterElement is Divider {
+): filterElement is Filter {
   return filterElement.type === NativeFilterType.NATIVE_FILTER;
 }
 

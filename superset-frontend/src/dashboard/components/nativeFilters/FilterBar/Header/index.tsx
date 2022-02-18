@@ -20,7 +20,6 @@
 import {
   DataMaskState,
   DataMaskStateWithId,
-  Filter,
   styled,
   t,
   useTheme,
@@ -31,8 +30,8 @@ import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
+import { RootState } from 'src/dashboard/types';
 import { getFilterBarTestId } from '..';
-import { RootState } from '../../../../types';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -88,7 +87,7 @@ const Header: FC<HeaderProps> = ({
 }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
