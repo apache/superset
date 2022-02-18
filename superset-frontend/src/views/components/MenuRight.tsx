@@ -23,13 +23,15 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
-import {
-  UserWithPermissionsAndRoles,
-  CommonBootstrapData,
-} from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
-import { NavBarProps, MenuObjectProps } from './Menu';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
+import {
+  ExtentionConfigs,
+  GlobalMenuDataOptions,
+  RightMenuProps,
+} from './types';
+import { MenuObjectProps } from './Menu';
 
 export const dropdownItems: MenuObjectProps[] = [
   {
@@ -108,18 +110,6 @@ const StyledAnchor = styled.a`
 
 const { SubMenu } = Menu;
 
-interface RightMenuProps {
-  align: 'flex-start' | 'flex-end';
-  settings: MenuObjectProps[];
-  navbarRight: NavBarProps;
-  isFrontendRoute: (path?: string) => boolean;
-}
-
-export enum GlobalMenuDataOptions {
-  GOOGLE_SHEETS = '1',
-  DB_CONNECTION = '2',
-}
-
 const RightMenu = ({
   align,
   settings,
@@ -131,16 +121,12 @@ const RightMenu = ({
   );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
-  // @ts-ignore
-  const { CSV_EXTENSIONS, COLUMNAR_EXTENSIONS, EXCEL_EXTENSIONS } = useSelector<
-    any,
-    CommonBootstrapData
-  >(state => state.common.conf);
-
-  // @ts-ignore
-  const { SHOW_GLOBAL_GSHEETS } = useSelector<any, CommonBootstrapData>(
-    state => state.common.conf,
-  );
+  const {
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    SHOW_GLOBAL_GSHEETS,
+  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
 
   // if user has any of these roles the dropdown will appear
   const configMap = {
@@ -159,12 +145,11 @@ const RightMenu = ({
     </>
   );
 
-  const handleMenuSelection = (itemChose: React.Key) => {
-    if (itemChose === GlobalMenuDataOptions.DB_CONNECTION) {
+  const handleMenuSelection = (itemChose: any) => {
+    if (Number(itemChose.key) === GlobalMenuDataOptions.DB_CONNECTION) {
       setShowModal(true);
       setEngine('');
-    }
-    if (itemChose === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+    } else if (Number(itemChose.key) === GlobalMenuDataOptions.GOOGLE_SHEETS) {
       setShowModal(true);
       setEngine('Google Sheets');
     }
@@ -177,11 +162,7 @@ const RightMenu = ({
         show={showModal}
         dbEngine={engine}
       />
-      <Menu
-        selectable={false}
-        mode="horizontal"
-        onClick={({ key }) => handleMenuSelection(key)}
-      >
+      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"

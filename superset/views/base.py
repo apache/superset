@@ -368,11 +368,9 @@ def common_bootstrap_payload() -> Dict[str, Any]:
             ReportRecipientType.EMAIL,
         ]
 
+    # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    if available_specs[GSheetsEngineSpec]:
-        frontend_config["SHOW_GLOBAL_GSHEETS"] = True
-    else:
-        frontend_config["SHOW_GLOBAL_GSHEETS"] = False
+    frontend_config["SHOW_GLOBAL_GSHEETS"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
         "flash_messages": messages,

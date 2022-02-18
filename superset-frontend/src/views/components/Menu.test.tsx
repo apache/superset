@@ -20,7 +20,6 @@ import React from 'react';
 import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { store } from '../store';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
 
@@ -186,21 +185,13 @@ beforeEach(() => {
 
 test('should render', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  const { container } = render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  const { container } = render(<Menu {...mockedProps} />, { useRedux: true });
   expect(container).toBeInTheDocument();
 });
 
 test('should render the navigation', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.getByRole('navigation')).toBeInTheDocument();
 });
 
@@ -211,11 +202,7 @@ test('should render the brand', () => {
       brand: { alt, icon },
     },
   } = mockedProps;
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   const image = screen.getByAltText(alt);
   expect(image).toHaveAttribute('src', icon);
 });
@@ -225,11 +212,7 @@ test('should render all the top navbar menu items', () => {
   const {
     data: { menu },
   } = mockedProps;
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   menu.forEach(item => {
     expect(screen.getByText(item.label)).toBeInTheDocument();
   });
@@ -240,11 +223,7 @@ test('should render the top navbar child menu items', async () => {
   const {
     data: { menu },
   } = mockedProps;
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   const sources = screen.getByText('Sources');
   userEvent.hover(sources);
   const datasets = await screen.findByText('Datasets');
@@ -258,11 +237,7 @@ test('should render the top navbar child menu items', async () => {
 
 test('should render the dropdown items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...notanonProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...notanonProps} />, { useRedux: true });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
   // todo (philip): test data submenu
@@ -288,22 +263,14 @@ test('should render the dropdown items', async () => {
 
 test('should render the Settings', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
 });
 
 test('should render the Settings menu item', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
   expect(label).toBeInTheDocument();
@@ -314,11 +281,7 @@ test('should render the Settings dropdown child menu items', async () => {
   const {
     data: { settings },
   } = mockedProps;
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
@@ -326,21 +289,13 @@ test('should render the Settings dropdown child menu items', async () => {
 
 test('should render the plus menu (+) when user is not anonymous', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...notanonProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...notanonProps} />, { useRedux: true });
   expect(screen.getByTestId('new-dropdown')).toBeInTheDocument();
 });
 
 test('should NOT render the plus menu (+) when user is anonymous', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
@@ -352,11 +307,7 @@ test('should render the user actions when user is not anonymous', async () => {
     },
   } = mockedProps;
 
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...notanonProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...notanonProps} />, { useRedux: true });
   userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
   expect(user).toBeInTheDocument();
@@ -370,11 +321,7 @@ test('should render the user actions when user is not anonymous', async () => {
 
 test('should NOT render the user actions when user is anonymous', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.queryByText('User')).not.toBeInTheDocument();
 });
 
@@ -386,11 +333,7 @@ test('should render the Profile link when available', async () => {
     },
   } = mockedProps;
 
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...notanonProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...notanonProps} />, { useRedux: true });
 
   userEvent.hover(screen.getByText('Settings'));
   const profile = await screen.findByText('Profile');
@@ -405,11 +348,7 @@ test('should render the About section and version_string, sha or build_number wh
     },
   } = mockedProps;
 
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
   const version = await screen.findByText(`Version: ${version_string}`);
@@ -428,11 +367,7 @@ test('should render the Documentation link when available', async () => {
       navbar_right: { documentation_url },
     },
   } = mockedProps;
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
@@ -446,11 +381,7 @@ test('should render the Bug Report link when available', async () => {
     },
   } = mockedProps;
 
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   const bugReport = await screen.findByTitle('Report a bug');
   expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
@@ -463,31 +394,19 @@ test('should render the Login link when user is anonymous', () => {
     },
   } = mockedProps;
 
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   const login = screen.getByText('Login');
   expect(login).toHaveAttribute('href', user_login_url);
 });
 
 test('should render the Language Picker', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.getByLabelText('Languages')).toBeInTheDocument();
 });
 
 test('should hide create button without proper roles', () => {
   useSelectorMock.mockReturnValue({ roles: [] });
-  render(
-    <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
-    </reactRedux.Provider>,
-  );
+  render(<Menu {...mockedProps} />, { useRedux: true });
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
