@@ -411,8 +411,8 @@ class TabbedSqlEditors extends React.PureComponent {
 
     const emptyTab = (
       <EditableTabs.TabPane
-        key={Math.random()}
-        data-key={Math.random()}
+        key={0}
+        data-key={0}
         tab={<TabTitle>Add a New Tab</TabTitle>}
         closable={false}
       >
