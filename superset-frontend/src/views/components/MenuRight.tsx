@@ -30,6 +30,7 @@ import {
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
+import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 export const dropdownItems: MenuObjectProps[] = [
   {
@@ -115,6 +116,11 @@ interface RightMenuProps {
   isFrontendRoute: (path?: string) => boolean;
 }
 
+export enum GlobalMenuDataOptions {
+  GOOGLE_SHEETS = '1',
+  DB_CONNECTION = '2',
+}
+
 const RightMenu = ({
   align,
   settings,
@@ -153,6 +159,18 @@ const RightMenu = ({
       {menu.label}
     </>
   );
+
+  const handleMenuSelection = (itemChose: React.Key) => {
+    if (itemChose === GlobalMenuDataOptions.DB_CONNECTION) {
+      setShowModal(true);
+      setEngine('');
+    }
+    if (itemChose === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+      setShowModal(true);
+      setEngine('Google Sheets');
+    }
+  };
+
   return (
     <StyledDiv align={align}>
       <DatabaseModal
@@ -163,16 +181,7 @@ const RightMenu = ({
       <Menu
         selectable={false}
         mode="horizontal"
-        onClick={itemClicked => {
-          if (itemClicked.key === 'connectDB') {
-            setShowModal(true);
-            setEngine('');
-          }
-          if (itemClicked.key === 'connectGSheets') {
-            setShowModal(true);
-            setEngine('Google Sheets');
-          }
-        }}
+        onClick={({ key }) => handleMenuSelection(key)}
       >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
@@ -190,9 +199,11 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu)}
                   >
-                    <Menu.Item key="connectDB">Connect Database</Menu.Item>
+                    <Menu.Item key={GlobalMenuDataOptions.DB_CONNECTION}>
+                      Connect Database
+                    </Menu.Item>
                     {SHOW_GLOBAL_GSHEETS && (
-                      <Menu.Item key="connectGSheets">
+                      <Menu.Item key={GlobalMenuDataOptions.GOOGLE_SHEETS}>
                         Connect Google Sheet
                       </Menu.Item>
                     )}
