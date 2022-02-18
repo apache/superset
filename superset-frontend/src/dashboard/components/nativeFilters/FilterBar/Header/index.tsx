@@ -48,6 +48,10 @@ const Wrapper = styled.div`
     ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+const PlusIcon = styled(Icons.PlusSmall)`
+  padding-bottom: 1px;
+`;
+
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
 };
@@ -97,7 +101,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
             dashboardId={dashboardId}
             createNewOnOpen={filterValues.length === 0}
           >
-            <Icons.PlusSmall /> {t('Add/Edit Filters')}
+            <PlusIcon /> {t('Add/Edit Filters')}
           </FilterConfigurationLink>
         </AddFiltersButtonContainer>
       )}
