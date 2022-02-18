@@ -30,12 +30,12 @@ export function useFilterDependencies(
   id: string,
   dataMaskSelected?: DataMaskStateWithId,
 ): ExtraFormData {
-  const parentIds = useSelector<any, string[] | undefined>(
+  const dependencyIds = useSelector<any, string[] | undefined>(
     state => state.nativeFilters.filters[id]?.cascadeParentIds,
   );
   return useMemo(() => {
     let dependencies = {};
-    ensureIsArray(parentIds).forEach(parentId => {
+    ensureIsArray(dependencyIds).forEach(parentId => {
       const parentState = dataMaskSelected?.[parentId];
       dependencies = mergeExtraFormData(
         dependencies,
@@ -43,5 +43,5 @@ export function useFilterDependencies(
       );
     });
     return dependencies;
-  }, [dataMaskSelected, parentIds]);
+  }, [dataMaskSelected, dependencyIds]);
 }
