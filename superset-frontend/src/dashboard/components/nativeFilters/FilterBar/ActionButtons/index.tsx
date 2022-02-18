@@ -25,6 +25,7 @@ import {
   t,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { isNullish } from 'src/utils/common';
 import { getFilterBarTestId } from '../index';
 
 interface ActionButtonsProps {
@@ -76,9 +77,9 @@ export const ActionButtons = ({
     () =>
       Object.values(dataMaskApplied).some(
         filter =>
-          dataMaskSelected[filter.id]?.filterState?.value !== undefined ||
+          !isNullish(dataMaskSelected[filter.id]?.filterState?.value) ||
           (!dataMaskSelected[filter.id] &&
-            filter.filterState?.value !== undefined),
+            !isNullish(filter.filterState?.value)),
       ),
     [dataMaskApplied, dataMaskSelected],
   );
