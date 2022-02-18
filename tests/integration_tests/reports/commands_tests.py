@@ -291,6 +291,18 @@ def create_report_email_dashboard():
 
 
 @pytest.fixture()
+def create_report_email_dashboard_force_screenshot():
+    with app.app_context():
+        dashboard = db.session.query(Dashboard).first()
+        report_schedule = create_report_notification(
+            email_target="target@email.com", dashboard=dashboard, force_screenshot=True
+        )
+        yield report_schedule
+
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
 def create_report_email_tabbed_dashboard(tabbed_dashboard):
     with app.app_context():
         report_schedule = create_report_notification(
@@ -993,6 +1005,48 @@ def test_email_dashboard_report_schedule(
         notification_targets = get_target_from_report_schedule(
             create_report_email_dashboard
         )
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the email inline screenshot
+        smtp_images = email_mock.call_args[1]["images"]
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices",
+    "create_report_email_dashboard_force_screenshot",
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+def test_email_dashboard_report_schedule_force_screenshot(
+    screenshot_mock, email_mock, create_report_email_dashboard_force_screenshot
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_email_dashboard_force_screenshot.id,
+            datetime.utcnow(),
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(
+            create_report_email_dashboard_force_screenshot
+        )
+        # assert that the link sent is correct
+        assert (
+            '<a href="http://0.0.0.0:8080/superset/dashboard/'
+            f"{create_report_email_dashboard_force_screenshot.id}"
+            '/?standalone=0&force=true">Explore in Superset</a>'
+            in email_mock.call_args[0][2]
+        )
+
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email inline screenshot

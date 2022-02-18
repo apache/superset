@@ -172,7 +172,7 @@ class BaseReportState:
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
             standalone=DashboardStandaloneMode.REPORT.value,
-            # force=force,  TODO (betodealmeida) implement this
+            force=force,
             **kwargs,
         )
 

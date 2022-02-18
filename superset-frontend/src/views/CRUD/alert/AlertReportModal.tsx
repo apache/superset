@@ -343,6 +343,7 @@ const StyledRadioGroup = styled(Radio.Group)`
 `;
 
 const StyledCheckbox = styled(Checkbox)`
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
@@ -940,7 +941,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
       setCurrentAlert({ ...DEFAULT_ALERT });
-      setForceScreenshot(!isReport);
+      // setForceScreenshot(!isReport);
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -1371,17 +1372,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
               </>
             )}
-            {isReport && (
-              <div className="inline-container">
-                <StyledCheckbox
-                  className="checkbox"
-                  checked={forceScreenshot}
-                  onChange={onForceScreenshotChange}
-                >
-                  Ignore cache when generating screenshot
-                </StyledCheckbox>
-              </div>
-            )}
+            <StyledCheckbox
+              className="checkbox"
+              checked={forceScreenshot}
+              onChange={onForceScreenshotChange}
+            >
+              Ignore cache when generating screenshot
+            </StyledCheckbox>
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
