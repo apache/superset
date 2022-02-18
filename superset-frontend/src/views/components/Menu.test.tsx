@@ -20,7 +20,7 @@ import React from 'react';
 import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { store } from 'src/views/store';
+import { store } from '../store';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
 
