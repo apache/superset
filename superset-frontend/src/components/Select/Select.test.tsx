@@ -86,6 +86,9 @@ const getElementsByClassName = (className: string) =>
 
 const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
 
+const findSpinner = () =>
+  waitFor(() => getElementByClassName('.ant-spin-spinning'));
+
 const findSelectOption = (text: string) =>
   waitFor(() =>
     within(getElementByClassName('.rc-virtual-list')).getByText(text),
@@ -456,15 +459,6 @@ test('async - displays the loading indicator when opening', async () => {
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
-test('async - displays the loading indicator while searching', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  await type('John');
-  expect(screen.getByText(LOADING)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.queryByText(LOADING)).not.toBeInTheDocument(),
-  );
-});
-
 test('async - makes a selection in single mode', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
   const optionText = 'Emma';
@@ -587,24 +581,29 @@ test('async - sets a initial value in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
 
-test('async - searches for an item already loaded', async () => {
+test('async - searches for matches in both loaded and unloaded pages', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Oli';
   await open();
-  await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
-  const options = await findAllSelectOptions();
+  await type('and');
+
+  let options = await findAllSelectOptions();
+  expect(options.length).toBe(1);
+  expect(options[0]).toHaveTextContent('Alehandro');
+
+  await screen.findByText('Sandro');
+  options = await findAllSelectOptions();
   expect(options.length).toBe(2);
-  expect(options[0]).toHaveTextContent('Oliver');
-  expect(options[1]).toHaveTextContent('Olivia');
+  expect(options[0]).toHaveTextContent('Alehandro');
+  expect(options[1]).toHaveTextContent('Sandro');
 });
 
 test('async - searches for an item in a page not loaded', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Ashfaq';
+  const mock = jest.fn(loadOptions);
+  render(<Select {...defaultProps} options={mock} />);
+  const search = 'Sandro';
   await open();
   await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
+  await waitFor(() => expect(mock).toHaveBeenCalledTimes(2));
   const options = await findAllSelectOptions();
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent(search);
@@ -668,13 +667,18 @@ test('async - does not fire a new request if all values have been fetched', asyn
 
 test('async - fires a new request if all values have not been fetched', async () => {
   const mock = jest.fn(loadOptions);
-  const search = 'George';
   const pageSize = OPTIONS.length / 2;
   render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);
   await open();
   expect(mock).toHaveBeenCalledTimes(1);
-  await type(search);
-  expect(await findSelectOption(search)).toBeInTheDocument();
+  await type('or');
+
+  // `George` is on the first page so when it appears the API has not been called again
+  expect(await findSelectOption('George')).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(1);
+
+  // `Igor` is on the second paged API request
+  expect(await findSelectOption('Igor')).toBeInTheDocument();
   expect(mock).toHaveBeenCalledTimes(2);
 });
 

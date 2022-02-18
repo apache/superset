@@ -20,13 +20,13 @@ import React, {
   ReactElement,
   ReactNode,
   RefObject,
-  KeyboardEvent,
   UIEvent,
   useEffect,
   useMemo,
   useState,
   useRef,
   useCallback,
+  KeyboardEvent,
 } from 'react';
 import { styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -317,6 +317,7 @@ const Select = ({
     : allowNewOptions
     ? 'tags'
     : 'multiple';
+  const allowFetch = !fetchOnlyOnSearch || searchedValue;
 
   // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
@@ -512,7 +513,7 @@ const Select = ({
     [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
   );
 
-  const handleOnSearch = useMemo(
+  const debouncedHandleSearch = useMemo(
     () =>
       debounce((search: string) => {
         const searchValue = search.trim();
@@ -535,6 +536,16 @@ const Select = ({
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
     [allowNewOptions, isSingleMode, searchedValue, selectOptions],
+  );
+
+  const handleOnSearch = useCallback(
+    (search: string) => {
+      if (isAsync && !allValuesLoaded) {
+        setIsLoading(true);
+      }
+      return debouncedHandleSearch(search);
+    },
+    [debouncedHandleSearch, isAsync, allValuesLoaded],
   );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -659,10 +670,12 @@ const Select = ({
   }, [labelInValue, isAsync, selectValue]);
 
   // Stop the invocation of the debounced function after unmounting
-  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+  useEffect(
+    () => () => debouncedHandleSearch.cancel(),
+    [debouncedHandleSearch],
+  );
 
   useEffect(() => {
-    const allowFetch = !fetchOnlyOnSearch || searchedValue;
     if (isAsync && loadingEnabled && allowFetch) {
       const page = 0;
       handlePaginatedFetch(searchedValue, page, pageSize);
@@ -675,6 +688,7 @@ const Select = ({
     handlePaginatedFetch,
     loadingEnabled,
     fetchOnlyOnSearch,
+    allowFetch,
   ]);
 
   useEffect(() => {
@@ -701,7 +715,7 @@ const Select = ({
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
         notFoundContent={
-          allowNewOptions && !fetchOnlyOnSearch ? (
+          isLoading ? (
             <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
           ) : (
             notFoundContent
