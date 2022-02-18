@@ -20,7 +20,7 @@
 import { IFRAME_COMMS_MESSAGE_TYPE } from './const';
 
 // We can swap this out for the actual switchboard package once it gets published
-import { Switchboard } from '../../superset-frontend/packages/superset-ui-switchboard/src/switchboard';
+import { Switchboard } from '@superset-ui/switchboard';
 
 /**
  * The function to fetch a guest token from your Host App's backend server.

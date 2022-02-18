@@ -19,8 +19,9 @@
 import { snakeCase, isEqual } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging, Behavior } from '@superset-ui/core';
+import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { EmptyStateBig } from 'src/components/EmptyState';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -231,6 +232,15 @@ class ChartRenderer extends React.Component {
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
+        noResults={
+          <EmptyStateBig
+            title={t('No results were returned for this query')}
+            description={t(
+              'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
+            )}
+            image="chart.svg"
+          />
+        }
       />
     );
   }

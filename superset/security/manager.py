@@ -74,6 +74,7 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
+from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -1299,6 +1300,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """ This is used so the tests can mock time """
         return time.time()
 
+    @staticmethod
+    def _get_guest_token_jwt_audience() -> str:
+        audience = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        if callable(audience):
+            audience = audience()
+        return audience
+
     def create_guest_access_token(
         self,
         user: GuestTokenUser,
@@ -1308,7 +1316,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
-
+        audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
         exp = now + (exp_seconds * 1000)
@@ -1319,6 +1327,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
+            "aud": audience,
+            "type": "guest",
         }
         token = jwt.encode(claims, secret, algorithm=algo)
         return token
@@ -1344,6 +1354,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a resources claim")
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
+            if token.get("type") != "guest":
+                raise ValueError("This is not a guest token.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -1357,8 +1369,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
-    @staticmethod
-    def parse_jwt_guest_token(raw_token: str) -> Dict[str, Any]:
+    def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
         """
         Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request
@@ -1366,7 +1377,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        return jwt.decode(raw_token, secret, algorithms=[algo])
+        audience = self._get_guest_token_jwt_audience()
+        return jwt.decode(raw_token, secret, algorithms=[algo], audience=audience)
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:

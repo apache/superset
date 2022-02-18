@@ -25,5 +25,6 @@ class CommandParameters:
     actor: User
     dataset_id: int = 0
     chart_id: int = 0
+    tab_id: Optional[int] = None
     key: Optional[str] = None
     form_data: Optional[str] = None

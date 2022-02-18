@@ -56,7 +56,7 @@ describe('async actions', () => {
     JSON.stringify({ data: mockBigNumber, query: { sqlEditorId: 'dfsadfs' } }),
   );
 
-  const runQueryEndpoint = 'glob:*/superset/sql_json/*';
+  const runQueryEndpoint = 'glob:*/superset/sql_json/';
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
@@ -188,7 +188,7 @@ describe('async actions', () => {
     });
   });
 
-  describe('runQuery', () => {
+  describe('runQuery without query params', () => {
     const makeRequest = () => {
       const request = actions.runQuery(query);
       return request(dispatch);
@@ -248,6 +248,32 @@ describe('async actions', () => {
         );
       });
     });
+  });
+
+  describe('runQuery with query params', () => {
+    const { location } = window;
+
+    beforeAll(() => {
+      delete window.location;
+      window.location = new URL('http://localhost/sqllab/?foo=bar');
+    });
+
+    afterAll(() => {
+      delete window.location;
+      window.location = location;
+    });
+
+    const makeRequest = () => {
+      const request = actions.runQuery(query);
+      return request(dispatch);
+    };
+
+    it('makes the fetch request', () =>
+      makeRequest().then(() => {
+        expect(
+          fetchMock.calls('glob:*/superset/sql_json/?foo=bar'),
+        ).toHaveLength(1);
+      }));
   });
 
   describe('reRunQuery', () => {
