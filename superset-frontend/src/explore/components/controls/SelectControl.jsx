@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import { css, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { SELECT_ALL_STRING } from 'src/components/Select/Select';
+import { Select as DeprecatedSelect } from 'src/components/Select/DeprecatedSelect';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -50,10 +51,17 @@ const propTypes = {
   ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
+  valueRenderer: PropTypes.func,
+  deprecatedSelectFlag: PropTypes.bool,
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
+  promptTextCreator: PropTypes.func,
+  menuPortalTarget: PropTypes.element,
+  menuPosition: PropTypes.string,
+  menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 
   // ControlHeader props
   label: PropTypes.string,
@@ -81,8 +89,10 @@ const defaultProps = {
   allowAll: false,
   onChange: () => {},
   onFocus: () => {},
+  deprecatedSelectFlag: false,
   showHeader: true,
   valueKey: 'value',
+  promptTextCreator: label => `Create Option ${label}`,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -92,6 +102,7 @@ export default class SelectControl extends React.PureComponent {
       options: this.getOptions(props),
     };
     this.onChange = this.onChange.bind(this);
+    this.onChangeDeprecated = this.onChangeDeprecated.bind(this);
     this.handleFilterOptions = this.handleFilterOptions.bind(this);
   }
 
@@ -119,6 +130,30 @@ export default class SelectControl extends React.PureComponent {
             .map(v => v?.[valueKey] || v)
         : val.map(v => v?.[valueKey] || v);
       onChangeVal = values;
+    }
+
+    if (typeof val === 'object' && val?.[valueKey]) {
+      onChangeVal = val[valueKey];
+    }
+
+    this.props.onChange(onChangeVal, []);
+  }
+
+  // Beware: This is acting like an on-click instead of an on-change
+  // (firing every time user chooses vs firing only if a new option is chosen).
+  onChangeDeprecated(val) {
+    // will eventually call `exploreReducer`: SET_FIELD_VALUE
+    const { valueKey } = this.props;
+    let onChangeVal = val;
+
+    if (Array.isArray(val)) {
+      if (val.filter(v => v.value === 'Select all').length > 0) {
+        onChangeVal = this.props.options
+          .filter(v => v.value !== 'Select all')
+          .map(v => v?.[valueKey] || v);
+      } else {
+        onChangeVal = val.map(v => v?.[valueKey] || v);
+      }
     }
 
     if (typeof val === 'object' && val?.[valueKey]) {
@@ -210,8 +245,15 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       onFocus,
       optionRenderer,
+      promptTextCreator,
+      valueRenderer,
       showHeader,
       value,
+      valueKey,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
+      menuPlacement,
       // ControlHeader props
       description,
       renderTrigger,
@@ -278,6 +320,35 @@ export default class SelectControl extends React.PureComponent {
       value: getValue(),
     };
 
+    const deprecatedProps = {
+      autoFocus,
+      'aria-label': label,
+      clearable,
+      disabled,
+      filterOption,
+      ignoreAccents: false,
+      isLoading,
+      isMulti: this.props.isMulti || this.props.multi,
+      labelKey: 'label',
+      menuPlacement,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
+      name: `select-${name}`,
+      noResultsText: 'No results found',
+      onChange: this.onChangeDeprecated,
+      onFocus,
+      optionRenderer,
+      value: getValue(),
+      options: this.state.options,
+      placeholder,
+      assistiveText: '',
+      promptTextCreator,
+      selectRef: this.getSelectRef,
+      valueKey,
+      valueRenderer,
+    };
+
     return (
       <div
         css={theme => css`
@@ -292,7 +363,14 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        <Select {...selectProps} />
+        {this.props.deprecatedSelectFlag === true ? (
+          <>
+            <ControlHeader {...headerProps} />
+            <DeprecatedSelect {...deprecatedProps} />
+          </>
+        ) : (
+          <Select {...selectProps} />
+        )}
       </div>
     );
   }

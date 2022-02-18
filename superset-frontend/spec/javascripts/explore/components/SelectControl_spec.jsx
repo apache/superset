@@ -21,7 +21,9 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Select as SelectComponent } from 'src/components';
+import { Select as DeprecatedSelect } from 'src/components/Select/DeprecatedSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 const defaultProps = {
@@ -58,6 +60,20 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent)).toExist();
     });
 
+    it('renders with DeprecatedSelect & ControlHeader when deprecatedSelectFlag=true', () => {
+      wrapper.setProps({ deprecatedSelectFlag: true });
+      expect(wrapper.find(SelectComponent)).not.toExist();
+      expect(wrapper.find(DeprecatedSelect)).toExist();
+      expect(wrapper.find(ControlHeader)).toExist();
+    });
+
+    it('renders with Select when deprecatedSelectFlag=false', () => {
+      wrapper.setProps({ deprecatedSelectFlag: false });
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(DeprecatedSelect)).not.toExist();
+      expect(wrapper.find(ControlHeader)).not.toExist();
+    });
+
     it('renders as mode multiple', () => {
       wrapper.setProps({ multi: true });
       expect(wrapper.find(SelectComponent)).toExist();
@@ -82,15 +98,42 @@ describe('SelectControl', () => {
         multi: true,
         allowAll: true,
         choices: expectedValues,
+        options: expectedValues,
         name: 'row_limit',
         label: 'Row Limit',
         valueKey: 'value',
         onChange: sinon.spy(),
       };
       wrapper.setProps(selectAllProps);
-      wrapper.instance().onChange([{ meta: true, value: 'Select all' }]);
-      expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
+      wrapper.instance().onChange(['Select all']);
+      expect(selectAllProps.onChange.calledWith(expectedValues, [])).toBe(true);
     });
+
+    it('returns all options on Deprecated select all', () => {
+      const expectedValues = ['one', 'two'];
+      const selectAllProps = {
+        multi: true,
+        allowAll: true,
+        deprecatedSelectFlag: true,
+        choices: expectedValues,
+        options: expectedValues,
+        name: 'row_limit',
+        label: 'Row Limit',
+        valueKey: 'value',
+        onChange: sinon.spy(),
+      };
+      wrapper.setProps(selectAllProps);
+      wrapper.instance().onChangeDeprecated([
+        {
+          label: 'Select all',
+          meta: true,
+          value: 'Select all',
+          column_name: 'Select all',
+        },
+      ]);
+      expect(selectAllProps.onChange.calledWith(expectedValues, [])).toBe(true);
+    });
+
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {

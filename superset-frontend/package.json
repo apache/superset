@@ -70,7 +70,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
-    "@superset-ui/chart-controls": "0.18.19-cccs.0",
+    "@superset-ui/chart-controls": "0.18.19-cccs.1",
     "@superset-ui/core": "0.18.19-cccs.0",
     "@superset-ui/legacy-plugin-chart-calendar": "0.18.19-cccs.0",
     "@superset-ui/legacy-plugin-chart-chord": "0.18.19-cccs.0",
