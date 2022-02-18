@@ -30,7 +30,6 @@ import {
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 export const dropdownItems: MenuObjectProps[] = [
   {
