@@ -29,6 +29,7 @@ import {
 } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
+import { checkUploadExtensions } from '../CRUD/utils';
 
 export const dropdownItems: MenuObjectProps[] = [
   {
@@ -107,6 +108,13 @@ const StyledAnchor = styled.a`
 
 const { SubMenu } = Menu;
 
+interface ExtentionConfigs {
+  CSV_EXTENSIONS: Array<any>;
+  COLUMNAR_EXTENSIONS: Array<any>;
+  EXCEL_EXTENSIONS: Array<any>;
+  ALLOWED_EXTENSIONS: Array<any>;
+}
+
 interface RightMenuProps {
   align: 'flex-start' | 'flex-end';
   settings: MenuObjectProps[];
@@ -123,11 +131,12 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  // @ts-ignore
-  const { CSV_EXTENSIONS, COLUMNAR_EXTENSIONS, EXCEL_EXTENSIONS } = useSelector<
-    any,
-    CommonBootstrapData
-  >(state => state.common.conf);
+  const {
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
+  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
   // if user has any of these roles the dropdown will appear
   const configMap = {
     'Upload a CSV': CSV_EXTENSIONS,
@@ -144,6 +153,7 @@ const RightMenu = ({
       {menu.label}
     </>
   );
+
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
@@ -166,7 +176,10 @@ const RightMenu = ({
                     {menu.childs.map(item =>
                       typeof item !== 'string' &&
                       item.name &&
-                      configMap[item.name] === true ? (
+                      checkUploadExtensions(
+                        configMap[item.name],
+                        ALLOWED_EXTENSIONS,
+                      ) ? (
                         <Menu.Item key={item.name}>
                           <a href={item.url}> {item.label} </a>
                         </Menu.Item>

@@ -27,6 +27,7 @@ import {
   css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { intersection } from 'lodash';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
@@ -409,3 +410,8 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
             isNeedsPassword(payload) || isAlreadyExists(payload),
         ),
   );
+
+export const checkUploadExtensions = (arr: Array<any>, cons: Array<any>) => {
+  const isValidExtension = intersection(arr, cons).length;
+  return isValidExtension;
+};
