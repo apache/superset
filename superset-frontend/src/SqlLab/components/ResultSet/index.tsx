@@ -184,6 +184,7 @@ const ResultSet = ({
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
     Record<string, any>
   >({});
+  const [saveModalAutocompleteValue] = useState('');
   const [userDatasetOptions, setUserDatasetOptions] = useState<
     DatasetOptionAutocomplete[]
   >([]);
@@ -429,7 +430,6 @@ const ResultSet = ({
   };
 
   const renderControls = () => {
-    const saveModalAutocompleteValue = '';
     if (search || visualize || csv) {
       let { data } = query.results;
       if (cache && query.cached) {
@@ -663,10 +663,10 @@ const ResultSet = ({
                 </Button>
                 <ExploreCtasResultsButton
                   // @ts-ignore Redux types are difficult to work with, ignoring for now
+                  actions={actions}
                   table={tempTable}
                   schema={tempSchema}
                   dbId={exploreDBId}
-                  actions={actions}
                 />
               </ButtonGroup>
             </>
