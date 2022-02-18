@@ -328,10 +328,10 @@ test('should render the plus menu (+) when user is not anonymous', () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   render(
     <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
+      <Menu {...notanonProps} />
     </reactRedux.Provider>,
   );
-  // expect(screen.getByTestId('new-dropdown')).toBeInTheDocument();
+  expect(screen.getByTestId('new-dropdown')).toBeInTheDocument();
 });
 
 test('should NOT render the plus menu (+) when user is anonymous', () => {
@@ -354,18 +354,18 @@ test('should render the user actions when user is not anonymous', async () => {
 
   render(
     <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
+      <Menu {...notanonProps} />
     </reactRedux.Provider>,
   );
   userEvent.hover(screen.getByText('Settings'));
-  // const user = await screen.findByText('User');
-  // expect(user).toBeInTheDocument();
+  const user = await screen.findByText('User');
+  expect(user).toBeInTheDocument();
 
-  // const info = await screen.findByText('Info');
-  // const logout = await screen.findByText('Logout');
+  const info = await screen.findByText('Info');
+  const logout = await screen.findByText('Logout');
 
-  // expect(info).toHaveAttribute('href', user_info_url);
-  // expect(logout).toHaveAttribute('href', user_logout_url);
+  expect(info).toHaveAttribute('href', user_info_url);
+  expect(logout).toHaveAttribute('href', user_logout_url);
 });
 
 test('should NOT render the user actions when user is anonymous', () => {
@@ -388,13 +388,13 @@ test('should render the Profile link when available', async () => {
 
   render(
     <reactRedux.Provider store={store}>
-      <Menu {...mockedProps} />
+      <Menu {...notanonProps} />
     </reactRedux.Provider>,
   );
 
   userEvent.hover(screen.getByText('Settings'));
-  // const profile = await screen.findByText('Profile');
-  // expect(profile).toHaveAttribute('href', user_profile_url);
+  const profile = await screen.findByText('Profile');
+  expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
 test('should render the About section and version_string, sha or build_number when available', async () => {
