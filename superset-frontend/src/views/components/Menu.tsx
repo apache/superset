@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -75,10 +75,12 @@ export interface MenuProps {
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon: string;
-  index: number;
+  icon?: string;
+  index?: number;
   url?: string;
   isFrontendRoute?: boolean;
+  perm?: string;
+  view?: string;
 }
 
 export interface MenuObjectProps extends MenuObjectChildProps {
@@ -172,7 +174,21 @@ const StyledHeader = styled.header`
     }
   }
 `;
-
+const globalStyles = (theme: SupersetTheme) => css`
+  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+    border-radius: 0px;
+  }
+  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+    border-radius: 0px;
+  }
+  .ant-menu-vertical > .ant-menu-submenu.data-menu > .ant-menu-submenu-title {
+    height: 28px;
+    i {
+      padding-right: ${theme.gridUnit * 2}px;
+      margin-left: ${theme.gridUnit * 1.75}px;
+    }
+  }
+`;
 const { SubMenu } = DropdownMenu;
 
 const { useBreakpoint } = Grid;
@@ -184,6 +200,7 @@ export function Menu({
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConig = useUiConfig();
+  const theme = useTheme();
 
   useEffect(() => {
     function handleResize() {
@@ -251,16 +268,7 @@ export function Menu({
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
-      <Global
-        styles={css`
-          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
-            border-radius: 0px;
-          }
-          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
-            border-radius: 0px;
-          }
-        `}
-      />
+      <Global styles={globalStyles(theme)} />
       <Row>
         <Col md={16} xs={24}>
           <Tooltip

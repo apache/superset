@@ -1016,4 +1016,24 @@ describe('DatabaseModal', () => {
       });
     });
   });
+  describe('DatabaseModal w/ Deeplinking Engine', () => {
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    it('enters step 2 of 3 when proper database is selected', () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      expect(step2of3text).toBeVisible();
+    });
+  });
 });

@@ -211,7 +211,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard": "dashboard_title",
         "chart": "slice_name",
         "database": "database_name",
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
     apispec_parameter_schemas = {

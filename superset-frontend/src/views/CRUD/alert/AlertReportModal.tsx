@@ -675,7 +675,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadDashboardOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,
@@ -749,7 +749,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadChartOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,

@@ -75,7 +75,7 @@ const fetchTimeRange = async (
   timeRange: string,
   endpoints?: TimeRangeEndpoints,
 ) => {
-  const query = rison.encode(timeRange);
+  const query = rison.encode_uri(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });

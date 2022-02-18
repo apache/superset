@@ -26,7 +26,7 @@ const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colors.grayscale.base};
     text-transform: uppercase;
   }
 `;
