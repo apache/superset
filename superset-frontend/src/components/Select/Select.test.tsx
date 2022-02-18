@@ -17,13 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
 
@@ -85,9 +79,6 @@ const getElementsByClassName = (className: string) =>
   document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
 const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
-
-const findSpinner = () =>
-  waitFor(() => getElementByClassName('.ant-spin-spinning'));
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -389,13 +380,6 @@ test('static - does not show "Loading..." when allowNewOptions is false and a ne
   await open();
   await type(NEW_OPTION);
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
-});
-
-test('static - shows "Loading..." when allowNewOptions is true and a new option is entered', async () => {
-  render(<Select {...defaultProps} allowNewOptions />);
-  await open();
-  await type(NEW_OPTION);
-  expect(await screen.findByText(LOADING)).toBeInTheDocument();
 });
 
 test('static - does not add a new option if the option already exists', async () => {

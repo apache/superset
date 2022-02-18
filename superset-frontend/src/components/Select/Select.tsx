@@ -26,7 +26,6 @@ import React, {
   useState,
   useRef,
   useCallback,
-  KeyboardEvent,
 } from 'react';
 import { styled, t } from '@superset-ui/core';
 import AntdSelect, {
@@ -63,12 +62,7 @@ type PickedSelectProps = Pick<
   | 'value'
 >;
 
-type OptionsProps = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export interface OptionsType extends Omit<OptionsProps, 'label'> {
-  label?: string;
-  customLabel?: ReactNode;
-}
+type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
 
 export type OptionsTypePage = {
   data: OptionsType;
@@ -485,7 +479,7 @@ const Select = ({
       }
       const key = `${value};${page};${pageSize}`;
       const cachedCount = fetchedQueries.current.get(key);
-      if (cachedCount) {
+      if (cachedCount !== undefined) {
         setTotalCount(cachedCount);
         setIsLoading(false);
         return;
@@ -516,36 +510,44 @@ const Select = ({
   const debouncedHandleSearch = useMemo(
     () =>
       debounce((search: string) => {
-        const searchValue = search.trim();
-        if (allowNewOptions && isSingleMode) {
-          const newOption = searchValue &&
-            !hasOption(searchValue, selectOptions) && {
-              label: searchValue,
-              value: searchValue,
-            };
-          const newOptions = newOption
-            ? [
-                newOption,
-                ...selectOptions.filter(opt => opt.value !== searchedValue),
-              ]
-            : [...selectOptions.filter(opt => opt.value !== searchedValue)];
-
-          setSelectOptions(newOptions);
-        }
-
-        setSearchedValue(searchValue);
+        setSearchedValue(search);
       }, DEBOUNCE_TIMEOUT),
-    [allowNewOptions, isSingleMode, searchedValue, selectOptions],
+    [],
   );
 
   const handleOnSearch = useCallback(
     (search: string) => {
-      if (isAsync && !allValuesLoaded) {
-        setIsLoading(true);
+      const searchValue = search.trim();
+      if (allowNewOptions && isSingleMode) {
+        const newOption = searchValue &&
+          !hasOption(searchValue, selectOptions) && {
+            label: searchValue,
+            value: searchValue,
+            isNewOption: true,
+          };
+        const cleanSelectOptions = selectOptions.filter(
+          opt => !opt.isNewOption,
+        );
+        const newOptions = newOption
+          ? [newOption, ...cleanSelectOptions]
+          : cleanSelectOptions;
+        setSelectOptions(newOptions);
+      }
+      if (isAsync && !allValuesLoaded && loadingEnabled) {
+        setIsLoading(search !== searchedValue);
       }
       return debouncedHandleSearch(search);
     },
-    [debouncedHandleSearch, isAsync, allValuesLoaded],
+    [
+      allowNewOptions,
+      isSingleMode,
+      isAsync,
+      allValuesLoaded,
+      loadingEnabled,
+      debouncedHandleSearch,
+      selectOptions,
+      searchedValue,
+    ],
   );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -677,9 +679,8 @@ const Select = ({
 
   useEffect(() => {
     if (isAsync && loadingEnabled && allowFetch) {
-      const page = 0;
-      handlePaginatedFetch(searchedValue, page, pageSize);
-      setPage(page);
+      handlePaginatedFetch(searchedValue, 0, pageSize);
+      setPage(0);
     }
   }, [
     isAsync,
@@ -687,7 +688,6 @@ const Select = ({
     pageSize,
     handlePaginatedFetch,
     loadingEnabled,
-    fetchOnlyOnSearch,
     allowFetch,
   ]);
 
