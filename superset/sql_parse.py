@@ -30,8 +30,17 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace, \
-    CTE
+from sqlparse.tokens import (
+    CTE,
+    DDL,
+    DML,
+    Keyword,
+    Name,
+    Punctuation,
+    String,
+    Whitespace,
+)
+
 from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
@@ -102,7 +111,7 @@ def _extract_top_from_query(statement: TokenList, top_keyword: Set[str]) -> Opti
     return top
 
 
-def get_cte_reminder_query(sql: str) -> Optional[str]:
+def get_cte_remainder_query(sql: str) -> Optional[str]:
     """
     parse the SQL and return the CTE and rest of the block to the caller
 

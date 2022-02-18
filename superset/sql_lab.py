@@ -287,14 +287,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     return SupersetResultSet(data, cursor_description, db_engine_spec)
 
 
-def apply_cte(
-    database: Database, sql: str
-) -> str:
-    # Use the Basengine function to parse the SQL for CTE
-    sql = database.db_engine_spec.get_cte_query(sql)
-    return sql
-
-
 def apply_limit_if_exists(
     database: Database, increased_limit: Optional[int], query: Query, sql: str
 ) -> str:

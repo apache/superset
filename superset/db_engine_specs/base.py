@@ -80,6 +80,7 @@ ColumnTypeMapping = Tuple[
 
 logger = logging.getLogger()
 
+
 CTE_ALIAS = "__cte"
 
 
@@ -303,12 +304,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # If True, then the database engine is allowed for LIMIT clause
     # If False, then the database engine is allowed for TOP clause
     allow_limit_clause = True
-    # This list will give keywords for select statements
-    # to consider for the engines with TOP SQl parsing
-    select_keywords: Set[str] = None
-    # This list will give the keywords for data limit statements
-    # to consider for the engines with TOP SQl parsing
-    top_keywords: Set[str] = None
+    # This set will give keywords for select statements
+    # to consider for the engines with TOP SQL parsing
+    select_keywords: Set[str] = {"SELECT"}
+    # This set will give the keywords for data limit statements
+    # to consider for the engines with TOP SQL parsing
+    top_keywords: Set[str] = {"TOP"}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -682,7 +683,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         else:
             final_limit = _limit
         if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_reminder_query(sql_statement)
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
         if cte:
             str_statement = str(sql_remainder)
             cte = cte + "\n"
