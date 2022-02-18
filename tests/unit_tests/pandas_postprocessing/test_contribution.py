@@ -18,6 +18,8 @@
 from datetime import datetime
 
 import pytest
+from numpy import nan
+from numpy.testing import assert_array_equal
 from pandas import DataFrame
 
 from superset.exceptions import QueryObjectValidationError
@@ -28,9 +30,14 @@ from superset.utils.pandas_postprocessing import contribution
 def test_contribution():
     df = DataFrame(
         {
-            DTTM_ALIAS: [datetime(2020, 7, 16, 14, 49), datetime(2020, 7, 16, 14, 50),],
-            "a": [1, 3],
-            "b": [1, 9],
+            DTTM_ALIAS: [
+                datetime(2020, 7, 16, 14, 49),
+                datetime(2020, 7, 16, 14, 50),
+                datetime(2020, 7, 16, 14, 51),
+            ],
+            "a": [1, 3, nan],
+            "b": [1, 9, nan],
+            "c": [nan, nan, nan],
         }
     )
     with pytest.raises(QueryObjectValidationError, match="not numeric"):
@@ -43,18 +50,20 @@ def test_contribution():
     processed_df = contribution(
         df, orientation=PostProcessingContributionOrientation.ROW,
     )
-    assert processed_df.columns.tolist() == [DTTM_ALIAS, "a", "b"]
-    assert processed_df["a"].tolist() == [0.5, 0.25]
-    assert processed_df["b"].tolist() == [0.5, 0.75]
+    assert processed_df.columns.tolist() == [DTTM_ALIAS, "a", "b", "c"]
+    assert_array_equal(processed_df["a"].tolist(), [0.5, 0.25, nan])
+    assert_array_equal(processed_df["b"].tolist(), [0.5, 0.75, nan])
+    assert_array_equal(processed_df["c"].tolist(), [0, 0, nan])
 
     # cell contribution across column without temporal column
     df.pop(DTTM_ALIAS)
     processed_df = contribution(
         df, orientation=PostProcessingContributionOrientation.COLUMN
     )
-    assert processed_df.columns.tolist() == ["a", "b"]
-    assert processed_df["a"].tolist() == [0.25, 0.75]
-    assert processed_df["b"].tolist() == [0.1, 0.9]
+    assert processed_df.columns.tolist() == ["a", "b", "c"]
+    assert_array_equal(processed_df["a"].tolist(), [0.25, 0.75, 0])
+    assert_array_equal(processed_df["b"].tolist(), [0.1, 0.9, 0])
+    assert_array_equal(processed_df["c"].tolist(), [nan, nan, nan])
 
     # contribution only on selected columns
     processed_df = contribution(
@@ -63,7 +72,8 @@ def test_contribution():
         columns=["a"],
         rename_columns=["pct_a"],
     )
-    assert processed_df.columns.tolist() == ["a", "b", "pct_a"]
-    assert processed_df["a"].tolist() == [1, 3]
-    assert processed_df["b"].tolist() == [1, 9]
-    assert processed_df["pct_a"].tolist() == [0.25, 0.75]
+    assert processed_df.columns.tolist() == ["a", "b", "c", "pct_a"]
+    assert_array_equal(processed_df["a"].tolist(), [1, 3, nan])
+    assert_array_equal(processed_df["b"].tolist(), [1, 9, nan])
+    assert_array_equal(processed_df["c"].tolist(), [nan, nan, nan])
+    assert processed_df["pct_a"].tolist() == [0.25, 0.75, 0]
