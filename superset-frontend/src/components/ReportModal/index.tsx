@@ -283,12 +283,9 @@ function ReportModal({
     </>
   );
 
-  const renderErrorMessage = () => {
-    if (currentReport?.error) {
-      return errorMapping[currentReport.error] || currentReport?.error;
-    }
-    return currentReport?.error;
-  };
+  const renderErrorMessage =
+    currentReport?.error &&
+    (errorMapping[currentReport.error] || currentReport?.error);
 
   return (
     <StyledModal
@@ -313,7 +310,7 @@ function ReportModal({
                 value: target.value,
               }),
           }}
-          errorMessage={renderErrorMessage() || ''}
+          errorMessage={renderErrorMessage || ''}
           label="Report Name"
           data-test="report-name-test"
         />

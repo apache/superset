@@ -39,26 +39,14 @@ export default function reportsReducer(state = {}, action) {
     [ADD_REPORT]() {
       const { result, id } = action.json;
       const report = { ...result, id };
-      if (result.dashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [result.dashboard]: report,
-          },
-        };
-      }
-      if (result.chart) {
-        return {
-          ...state,
-          charts: {
-            ...state.chart,
-            [result.chart]: report,
-          },
-        };
-      }
+      const reportId = report.dashboard || report.chart;
+
       return {
         ...state,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportId]: report,
+        },
       };
     },
 
@@ -67,21 +55,13 @@ export default function reportsReducer(state = {}, action) {
         ...action.json.result,
         id: action.json.id,
       };
+      const reportId = report.dashboard || report.chart;
 
-      if (action.json.result.dashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [report.dashboard]: report,
-          },
-        };
-      }
       return {
         ...state,
-        charts: {
-          ...state.chart,
-          [report.chart]: report,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportId]: report,
         },
       };
     },
