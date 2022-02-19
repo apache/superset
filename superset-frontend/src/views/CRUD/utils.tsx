@@ -411,7 +411,5 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         ),
   );
 
-export const checkUploadExtensions = (arr: Array<any>, cons: Array<any>) => {
-  const isValidExtension = intersection(arr, cons).length;
-  return isValidExtension;
-};
+export const checkUploadExtensions = (arr: Array<any>, cons: Array<any>) =>
+  intersection(arr, cons).length;
