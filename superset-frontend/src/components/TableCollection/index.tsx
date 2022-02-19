@@ -192,7 +192,7 @@ export const Table = styled.table`
   .table-cell {
     text-overflow: ellipsis;
     overflow: hidden;
-    white-space: nowrap;
+    white-space: normal;
     max-width: 320px;
     line-height: 1;
     vertical-align: middle;
