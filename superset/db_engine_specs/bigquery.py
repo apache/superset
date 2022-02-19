@@ -212,25 +212,19 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def query_cost_formatter(
         cls, raw_cost: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        def format_bytes_str(raw_bytes: int) -> str:
-            if not isinstance(raw_bytes, int):
-                return str(raw_bytes)
-            units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
-            index = 0
-            bytes_float = float(raw_bytes)
-            while bytes_float >= 1024 and index < len(units) - 1:
-                bytes_float /= 1024
-                index += 1
-
-            return "{:.1f}".format(bytes_float) + f" {units[index]}"
-
-        return [
-            {
-                k: format_bytes_str(v) if k == "Total bytes processed" else str(v)
-                for k, v in row.items()
-            }
-            for row in raw_cost
+        cost = []
+        columns = [
+            ("Total bytes processed", "", "bytes"),
         ]
+
+        for row in raw_cost:
+            statement_cost = {}
+            for key, suffix, category in columns:
+                if key in row:
+                    statement_cost[key] = cls._humanize(row[key], suffix, category)
+            cost.append(statement_cost)
+
+        return cost
 
     @classmethod
     def convert_dttm(

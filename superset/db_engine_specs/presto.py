@@ -679,18 +679,20 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
         cost = []
         columns = [
-            ("outputRowCount", "Output count", " rows"),
-            ("outputSizeInBytes", "Output size", "B"),
-            ("cpuCost", "CPU cost", ""),
-            ("maxMemory", "Max memory", "B"),
-            ("networkCost", "Network cost", ""),
+            ("outputRowCount", "Output count", " rows", None),
+            ("outputSizeInBytes", "Output size", "", "bytes"),
+            ("cpuCost", "CPU cost", "", None),
+            ("maxMemory", "Max memory", "", "bytes"),
+            ("networkCost", "Network cost", "", None),
         ]
         for row in raw_cost:
             estimate: Dict[str, float] = row.get("estimate", {})
             statement_cost = {}
-            for key, label, suffix in columns:
+            for key, label, suffix, category in columns:
                 if key in estimate:
-                    statement_cost[label] = cls._humanize(estimate[key], suffix).strip()
+                    statement_cost[label] = cls._humanize(
+                        estimate[key], suffix, category
+                    ).strip()
             cost.append(statement_cost)
 
         return cost

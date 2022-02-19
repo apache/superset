@@ -1431,20 +1431,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
     @classmethod
-    def _humanize(cls, value: Any, suffix: str) -> str:
+    def _humanize(cls, value: Any, suffix: str, category: Optional[str] = None) -> str:
         try:
             value = int(value)
         except ValueError:
             return str(value)
+        if category not in ["bytes", None]:
+            raise Exception(f"Unsupported value category: {category}")
 
-        prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
-        prefix = ""
         to_next_prefix = 1000
-        while value > to_next_prefix and prefixes:
-            prefix = prefixes.pop(0)
+        prefixes = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"]
+        suffixes = [p + suffix for p in prefixes]
+
+        if category == "bytes":
+            to_next_prefix = 1024
+            suffixes = ["B" if p == "" else p + "iB" for p in prefixes]
+
+        suffix = suffixes.pop(0)
+        while value >= to_next_prefix and suffixes:
+            suffix = suffixes.pop(0)
             value //= to_next_prefix
 
-        return f"{value} {prefix}{suffix}"
+        if not suffix.startswith(" "):
+            suffix = " " + suffix
+
+        return "{}{}".format(value, suffix).strip()
 
 
 # schema for adding a database by providing parameters instead of the

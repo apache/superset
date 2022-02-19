@@ -420,25 +420,20 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
 
     def test_query_cost_formatter_example_costs(self):
         raw_cost = [
-            {"Total bytes processed": 123, "Some other column": 123,},
-            {"Total bytes processed": 1024, "Some other column": "abcde",},
-            {"Total bytes processed": 1024 * 1024 + 1024 * 512,},
-            {"Total bytes processed": 1024 ** 3,},
-            {"Total bytes processed": 1024 ** 4,},
-            {"Total bytes processed": 1024 ** 5,},
-            {"Total bytes processed": 1024 ** 6,},
+            {"Total bytes processed": 123},
+            {"Total bytes processed": 1024},
+            {"Total bytes processed": 1024 ** 2 + 1024 * 512,},
+            {"Total bytes processed": 1024 ** 3 * 100,},
+            {"Total bytes processed": 1024 ** 4 * 1000,},
         ]
         result = BigQueryEngineSpec.query_cost_formatter(raw_cost)
         self.assertEqual(
             result,
             [
-                {"Total bytes processed": "123.0 B", "Some other column": "123",},
-                {"Total bytes processed": "1.0 KiB", "Some other column": "abcde",},
-                {"Total bytes processed": "1.5 MiB",},
-                {"Total bytes processed": "1.0 GiB",},
-                {"Total bytes processed": "1.0 TiB",},
-                {"Total bytes processed": "1.0 PiB",},
-                # Petabyte is the largest unit, but larger values can be handled
-                {"Total bytes processed": "1024.0 PiB",},
+                {"Total bytes processed": "123 B"},
+                {"Total bytes processed": "1 KiB"},
+                {"Total bytes processed": "1 MiB",},
+                {"Total bytes processed": "100 GiB",},
+                {"Total bytes processed": "1000 TiB",},
             ],
         )

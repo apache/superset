@@ -524,7 +524,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         expected = [
             {
                 "Output count": "904 M rows",
-                "Output size": "354 GB",
+                "Output size": "329 GiB",
                 "CPU cost": "354 G",
                 "Max memory": "0 B",
                 "Network cost": "354 G",

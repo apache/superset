@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from textwrap import dedent
+from typing import Any, Optional
 
 import pytest
 from flask.ctx import AppContext
@@ -98,4 +99,42 @@ def test_cte_query_parsing(
     from superset.db_engine_specs.base import BaseEngineSpec
 
     actual = BaseEngineSpec.get_cte_query(original)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "value,suffix,category,expected",
+    [
+        ("str", "", None, "str"),
+        (0, "", None, "0"),
+        (100, "", None, "100"),
+        (1000, "", None, "1 K"),
+        (10000, "", None, "10 K"),
+        (123, " rows", None, "123 rows"),
+        (1234, " rows", None, "1 K rows"),
+        (1999, " rows", None, "1 K rows"),
+        (2000, " rows", None, "2 K rows"),
+        (123, "", "bytes", "123 B"),
+        (1024, "", "bytes", "1 KiB"),
+        (1024 ** 2, "", "bytes", "1 MiB"),
+        (1000 ** 2, "J", None, "1 MJ"),
+        (1024 ** 3, "", "bytes", "1 GiB"),
+        (1000 ** 3, "W", None, "1 GW"),
+        (1024 ** 8, "", "bytes", "1 YiB"),
+        (1000 ** 8, "m", None, "1 Ym"),
+        # Yottabyte is the largest unit, but larger values can be handled
+        (1024 ** 9, "", "bytes", "1024 YiB"),
+        (1000 ** 9, "m", None, "1000 Ym"),
+    ],
+)
+def test_humanize(
+    app_context: AppContext,
+    value: Any,
+    suffix: str,
+    category: Optional[str],
+    expected: str,
+) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    actual = BaseEngineSpec._humanize(value, suffix, category)
     assert actual == expected
