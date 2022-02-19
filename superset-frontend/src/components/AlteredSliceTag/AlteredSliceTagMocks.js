@@ -162,7 +162,7 @@ export const fakePluginControls = {
           {
             name: 'metrics',
             config: {
-              type: "MetricsControl",
+              type: 'MetricsControl',
               label: 'Fake Metrics',
               default: null,
             },
