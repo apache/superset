@@ -184,7 +184,6 @@ const ResultSet = ({
   const [datasetToOverwrite, setDatasetToOverwrite] = useState<
     Record<string, any>
   >({});
-  const [saveModalAutocompleteValue] = useState('');
   const [userDatasetOptions, setUserDatasetOptions] = useState<
     DatasetOptionAutocomplete[]
   >([]);
@@ -200,9 +199,8 @@ const ResultSet = ({
   };
 
   useEffect(() => {
-    // only do this the first time the component is rendered/mounted
-    reRunQueryIfSessionTimeoutErrorOnMount();
     (async () => {
+      reRunQueryIfSessionTimeoutErrorOnMount();
       const userDatasetsOwned = await getUserDatasets();
       setUserDatasetOptions(userDatasetsOwned);
     })();
@@ -212,20 +210,22 @@ const ResultSet = ({
   useEffect(() => {
     if (
       cache &&
-      !prevQuery?.cached &&
-      prevQuery?.results?.data &&
-      prevQuery.results.data.length > 0
+      query.cached &&
+      query?.results?.data &&
+      query.results.data.length > 0
     ) {
-      // this.setState({ data: prevQuery.results.data }, () =>
-      //   clearQueryResults(prevQuery),
-      // );
-      setCachedData(prevQuery.results.data);
-      actions.clearQueryResults(prevQuery);
+      setCachedData(query.results.data);
+      actions.clearQueryResults(query);
     }
-    if (prevQuery && prevQuery.resultsKey !== query.resultsKey) {
-      fetchResults(prevQuery);
+    if (
+      query.resultsKey &&
+      prevQuery &&
+      query.resultsKey !== prevQuery.resultsKey
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      fetchResults(query);
     }
-  }, [query]);
+  }, [query, cache]);
 
   const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
     if (alertElement) {
@@ -437,12 +437,12 @@ const ResultSet = ({
       }
       const { columns } = query.results;
       // Added compute logic to stop user from being able to Save & Explore
+
       const disableSaveAndExploreBtn =
         (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
           newSaveDatasetName.length === 0) ||
         (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
-          Object.keys(datasetToOverwrite).length === 0 &&
-          saveModalAutocompleteValue.length === 0);
+          Object.keys(datasetToOverwrite).length === 0);
 
       return (
         <ResultSetControls>
