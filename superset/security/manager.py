@@ -1007,6 +1007,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
+    def raise_for_query_str_access(
+        self, query: str, schema: Optional[str], database: "Database",
+    ) -> None:
+        from superset.sql_parse import Table
+
+        denied = set()
+        for table in sql_parse.ParsedQuery(query).tables:
+            table_ = Table(table.table, table.schema or schema)
+            try:
+                self.raise_for_access(table=table_, database=database)
+            except SupersetSecurityException:
+                denied.add(table_)
+        if denied:
+            raise SupersetSecurityException(self.get_table_access_error_object(denied))
+
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
         self,
@@ -1032,7 +1047,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import feature_flag_manager
-        from superset.sql_parse import Table
 
         if database and table or query:
             if query:
@@ -1044,21 +1058,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
-                tables = {
-                    Table(table_.table, table_.schema or query.schema)
-                    for table_ in sql_parse.ParsedQuery(query.sql).tables
-                }
+                self.raise_for_query_str_access(query.sql, query.schema, database)
             elif table:
-                tables = {table}
-
-            denied = set()
-
-            for table_ in tables:
-                schema_perm = self.get_schema_perm(database, schema=table_.schema)
+                schema_perm = self.get_schema_perm(database, schema=table.schema)
 
                 if not (schema_perm and self.can_access("schema_access", schema_perm)):
                     datasources = SqlaTable.query_datasources_by_name(
-                        self.get_session, database, table_.table, schema=table_.schema
+                        self.get_session, database, table.table, schema=table.schema
                     )
 
                     # Access to any datasource is suffice.
@@ -1066,12 +1072,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         if self.can_access("datasource_access", datasource_.perm):
                             break
                     else:
-                        denied.add(table_)
-
-            if denied:
-                raise SupersetSecurityException(
-                    self.get_table_access_error_object(denied)
-                )
+                        raise SupersetSecurityException(
+                            self.get_table_access_error_object({table})
+                        )
 
         if datasource or query_context or viz:
             if query_context:
