@@ -23,10 +23,7 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
-import {
-  UserWithPermissionsAndRoles,
-  CommonBootstrapData,
-} from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 import { checkUploadExtensions } from '../CRUD/utils';
