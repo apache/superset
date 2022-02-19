@@ -15,39 +15,45 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from datetime import datetime
 from unittest import mock
 
-from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+import pytest
+
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.models.core import Database
-from superset.models.sql_lab import Query
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.unit_tests.fixtures.common import dttm
 
 
-class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
+@pytest.mark.usefixtures("app_context")
+class TestSnowflakeDbEngineSpec:
+    @pytest.mark.parametrize(
+        "actual,expected",
+        [
+            ("DATE", "TO_DATE('2019-01-02')"),
+            ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+            ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ],
+    )
+    def test_convert_dttm(self, actual: str, expected: str, dttm: datetime) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-        test_cases = {
-            "DATE": "TO_DATE('2019-01-02')",
-            "DATETIME": "CAST('2019-01-02T03:04:05.678900' AS DATETIME)",
-            "TIMESTAMP": "TO_TIMESTAMP('2019-01-02T03:04:05.678900')",
-        }
+        assert SnowflakeEngineSpec.convert_dttm(actual, dttm) == expected
 
-        for type_, expected in test_cases.items():
-            self.assertEqual(SnowflakeEngineSpec.convert_dttm(type_, dttm), expected)
+    def test_database_connection_test_mutator(self) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+        from superset.models.core import Database
 
-    def test_database_connection_test_mutator(self):
         database = Database(sqlalchemy_uri="snowflake://abc")
         SnowflakeEngineSpec.mutate_db_for_connection_test(database)
         engine_params = json.loads(database.extra or "{}")
 
-        self.assertDictEqual(
-            {"engine_params": {"connect_args": {"validate_default_parameters": True}}},
-            engine_params,
-        )
+        assert {
+            "engine_params": {"connect_args": {"validate_default_parameters": True}}
+        } == engine_params
 
-    def test_extract_errors(self):
+    def test_extract_errors(self) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
         msg = "Object dumbBrick does not exist or not authorized."
         result = SnowflakeEngineSpec.extract_errors(Exception(msg))
         assert result == [
@@ -87,20 +93,29 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
         ]
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_get_cancel_query_id(self, engine_mock):
+    def test_get_cancel_query_id(self, engine_mock: mock.Mock) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+        from superset.models.sql_lab import Query
+
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
         cursor_mock.fetchone.return_value = [123]
         assert SnowflakeEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query(self, engine_mock):
+    def test_cancel_query(self, engine_mock: mock.Mock) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+        from superset.models.sql_lab import Query
+
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is True
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "123") is True
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query_failed(self, engine_mock):
+    def test_cancel_query_failed(self, engine_mock: mock.Mock) -> None:
+        from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+        from superset.models.sql_lab import Query
+
         query = Query()
         cursor_mock = engine_mock.raiseError.side_effect = Exception()
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is False
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "123") is False
