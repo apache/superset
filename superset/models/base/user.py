@@ -15,16 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-Warning prevent circular import
-"""
+import logging
 
-# from . import (
-#     alerts,
-#     core,
-#     datasource_access_request,
-#     dynamic_plugins,
-#     schedules,
-#     sql_lab,
-#     user_attributes,
-# )
+from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import assoc_user_role, User as FabUser
+from sqlalchemy.orm import relationship
+
+metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
+
+
+class SupersetUser(FabUser):
+    __tablename__ = "ab_user"
+
+    roles = relationship(
+        "SupersetRole", secondary=assoc_user_role, backref="superset_user"
+    )

@@ -15,16 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-Warning prevent circular import
-"""
+import logging
 
-# from . import (
-#     alerts,
-#     core,
-#     datasource_access_request,
-#     dynamic_plugins,
-#     schedules,
-#     sql_lab,
-#     user_attributes,
-# )
+from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import Role as FabRole
+
+from superset.models.helpers import ImportExportMixin
+
+metadata = Model.metadata  # pylint: disable=no-member
+logger = logging.getLogger(__name__)
+
+
+class SupersetRole(ImportExportMixin, FabRole):
+    EXPORT_FIELDS = ["name"]
+
+    __tablename__ = FabRole.__tablename__
+
+    export_fields = EXPORT_FIELDS
