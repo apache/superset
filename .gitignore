@@ -91,7 +91,6 @@ venv
 
 # PyCharm
 .run
-ide-tools
 
 # Test data
 celery_results.sqlite

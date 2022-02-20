@@ -1409,11 +1409,3 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if resource["type"] == resource_type.value and str(resource["id"]) == strid:
                 return True
         return False
-
-    @classmethod
-    def set_user_model(cls, superset_user: object) -> None:
-        cls.user_model = superset_user
-
-    @classmethod
-    def set_role_model(cls, superset_role: object) -> None:
-        cls.role_model = superset_role
