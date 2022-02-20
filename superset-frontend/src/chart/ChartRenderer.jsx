@@ -49,6 +49,7 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
 };
 
 const BLANK = {};
@@ -190,6 +191,7 @@ class ChartRenderer extends React.Component {
       filterState,
       formData,
       queriesResponse,
+      postTransformProps,
     } = this.props;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
@@ -243,6 +245,7 @@ class ChartRenderer extends React.Component {
             image="chart.svg"
           />
         }
+        postTransformProps={postTransformProps}
       />
     );
   }

@@ -69,6 +69,7 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
 };
 
 const BLANK = {};

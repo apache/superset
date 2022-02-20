@@ -82,6 +82,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
   filterState: PropTypes.object,
+  postTransformProps: PropTypes.func,
 };
 
 const defaultProps = {
@@ -318,6 +319,7 @@ export default class Chart extends React.Component {
       handleToggleFullSize,
       isFullSize,
       filterboxMigrationState,
+      postTransformProps,
     } = this.props;
 
     const { width } = this.state;
@@ -442,6 +444,7 @@ export default class Chart extends React.Component {
             vizType={slice.viz_type}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
+            postTransformProps={postTransformProps}
           />
         </div>
       </div>
