@@ -290,16 +290,15 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
 def apply_limit_if_exists(
     database: Database, increased_limit: Optional[int], query: Query, sql: str
 ) -> str:
+    print("apply_limit_if_exists")
+    print(database.db_engine_spec.allow_limit_clause)
     if query.limit and increased_limit:
         # We are fetching one more than the requested limit in order
         # to test whether there are more rows than the limit. According to the DB
         # Engine support it will choose top or limit parse
         # Later, the extra row will be dropped before sending
         # the results back to the user.
-        if database.db_engine_spec.allow_limit_clause:
-            sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
-        else:
-            sql = database.apply_top_to_sql(sql, increased_limit)
+        sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
     return sql
 
 
