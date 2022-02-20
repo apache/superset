@@ -67,7 +67,7 @@ function CountryMap(element, props) {
   const colorMap = {};
   data.forEach(d => {
     colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id)
+      ? colorScale(d.country_id, sliceId)
       : linearColorScale(d.metric);
   });
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
