@@ -112,7 +112,7 @@ function mapDispatchToProps(dispatch) {
       setFullSizeChartId,
       setActiveTabs,
       logEvent,
-      postAddSliceFromDashboard: postAddSliceFromDashboard,
+      postAddSliceFromDashboard,
     },
     dispatch,
   );
