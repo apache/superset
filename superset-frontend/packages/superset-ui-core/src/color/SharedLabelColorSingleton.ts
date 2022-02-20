@@ -34,9 +34,8 @@ export class SharedLabelColor {
 
   getColorMap(colorNamespace?: string, colorScheme?: string) {
     if (colorScheme) {
-      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
-        colorNamespace || '',
-      );
+      const categoricalNamespace =
+        CategoricalColorNamespace.getNamespace(colorNamespace);
       const scale = categoricalNamespace.getScale(colorScheme);
       const colors = scale.range();
       // reverse to prevent color conflicts
