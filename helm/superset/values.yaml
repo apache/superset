@@ -256,6 +256,7 @@ supersetNode:
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     # redis_password: superset
     redis_port: "6379"
+    redis_db: "0"
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ template "superset.fullname" . }}-postgresql'
     db_port: "5432"

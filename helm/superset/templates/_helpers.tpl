@@ -93,11 +93,11 @@ class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 {{- if .Values.supersetNode.connections.redis_password }}
-  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/{env('REDIS_DB')}"
+  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/{env('REDIS_DB')}"
 {{- else }}
-  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/{env('REDIS_DB')}"
+  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/{env('REDIS_DB')}"
 {{- end }}
 
 CELERY_CONFIG = CeleryConfig
@@ -107,6 +107,7 @@ RESULTS_BACKEND = RedisCache(
       password=env('REDIS_PASSWORD'),
 {{- end }}
       port=env('REDIS_PORT'),
+      db=env('REDIS_DB'),
       key_prefix='superset_results'
 )
 
