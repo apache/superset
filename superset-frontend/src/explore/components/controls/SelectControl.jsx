@@ -64,6 +64,7 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
+  caseSensitive: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -80,6 +81,7 @@ const defaultProps = {
   onFocus: () => {},
   showHeader: true,
   valueKey: 'value',
+  caseSensitive: false,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -243,6 +245,7 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       sortComparator: this.props.sortComparator || propertyComparator('order'),
       value: getValue(),
+      caseSensitive: this.props.caseSensitive
     };
 
     return (

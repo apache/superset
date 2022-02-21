@@ -158,6 +158,11 @@ export interface SelectProps extends PickedSelectProps {
    */
   onError?: (error: string) => void;
   sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
+  /**
+   * If caseSensitive is true, filter option is case sensitive.
+   * False by default.
+   */
+  caseSensitive?: boolean;
 }
 
 const StyledContainer = styled.div`
@@ -289,6 +294,7 @@ const Select = ({
   showSearch = true,
   sortComparator = defaultSortComparator,
   value,
+  caseSensitive,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -453,19 +459,22 @@ const Select = ({
       let mergedData: OptionsType = [];
       if (data && Array.isArray(data) && data.length) {
         const dataValues = new Set();
-        data.forEach(option =>
-          dataValues.add(String(option.value).toLocaleLowerCase()),
-        );
+        data.forEach(option => {
+          const newValue = caseSensitive
+            ? String(option.value)
+            : String(option.value).toLocaleLowerCase();
+          dataValues.add(newValue);
+        });
 
         // merges with existing and creates unique options
         setSelectOptions(prevOptions => {
           mergedData = [
-            ...prevOptions.filter(
-              previousOption =>
-                !dataValues.has(
-                  String(previousOption.value).toLocaleLowerCase(),
-                ),
-            ),
+            ...prevOptions.filter(previousOption => {
+              const value = caseSensitive
+                ? String(previousOption.value)
+                : String(previousOption.value).toLocaleLowerCase();
+              return !dataValues.has(value);
+            }),
             ...data,
           ];
           mergedData.sort(sortComparator);
@@ -474,7 +483,7 @@ const Select = ({
       }
       return mergedData;
     },
-    [sortComparator],
+    [caseSensitive, sortComparator],
   );
 
   const handlePaginatedFetch = useMemo(
@@ -522,7 +531,7 @@ const Select = ({
         const searchValue = search.trim();
         if (allowNewOptions && isSingleMode) {
           const newOption = searchValue &&
-            !hasOption(searchValue, selectOptions) && {
+            !hasOption(searchValue, selectOptions, caseSensitive) && {
               label: searchValue,
               value: searchValue,
             };
@@ -541,7 +550,13 @@ const Select = ({
         }
         setSearchedValue(searchValue);
       }, DEBOUNCE_TIMEOUT),
-    [allowNewOptions, isSingleMode, searchedValue, selectOptions],
+    [
+      allowNewOptions,
+      caseSensitive,
+      isSingleMode,
+      searchedValue,
+      selectOptions,
+    ],
   );
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -562,13 +577,21 @@ const Select = ({
       return filterOption(search, option);
     }
 
+    const formatValue = (value: string): string => {
+      if (caseSensitive) {
+        return value;
+      }
+
+      return value.toLowerCase();
+    };
+
     if (filterOption) {
-      const searchValue = search.trim().toLowerCase();
+      const searchValue = formatValue(search.trim());
 
       if (optionFilterProps && optionFilterProps.length) {
         return optionFilterProps.some(prop => {
           const optionProp = option?.[prop]
-            ? String(option[prop]).trim().toLowerCase()
+            ? formatValue(String(option[prop]).trim())
             : '';
           return optionProp.includes(searchValue);
         });

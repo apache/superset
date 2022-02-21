@@ -23,6 +23,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
   sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -136,10 +137,7 @@ const config: ControlPanelConfig = {
           {
             name: 'x_axis_time_format',
             config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Time Format'),
-              renderTrigger: true,
+              ...sharedControls.x_axis_time_format,
               default: 'smart_date',
               choices: D3_TIME_FORMAT_OPTIONS,
               description: D3_FORMAT_DOCS,

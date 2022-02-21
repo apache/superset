@@ -60,15 +60,20 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
-export function hasOption(search: string, options: AntdOptionsType) {
+export function hasOption(
+  search: string,
+  options: AntdOptionsType,
+  caseSensitive = false,
+) {
   const searchOption = search.trim().toLowerCase();
   return options.find(opt => {
     const { label, value } = opt;
-    const labelText = String(label);
-    const valueText = String(value);
-    return (
-      valueText.toLowerCase() === searchOption ||
-      labelText.toLowerCase() === searchOption
-    );
+    const labelText = caseSensitive
+      ? String(label)
+      : String(label).toLowerCase();
+    const valueText = caseSensitive
+      ? String(value)
+      : String(value).toLowerCase();
+    return valueText === searchOption || labelText === searchOption;
   });
 }

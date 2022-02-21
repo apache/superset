@@ -430,6 +430,7 @@ const y_axis_format: SharedControlConfig<'SelectControl'> = {
   label: t('Y Axis Format'),
   renderTrigger: true,
   default: DEFAULT_NUMBER_FORMAT,
+  caseSensitive: true,
   choices: D3_FORMAT_OPTIONS,
   description: D3_FORMAT_DOCS,
   mapStateToProps: state => {
@@ -451,6 +452,7 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Time format'),
   renderTrigger: true,
+  caseSensitive: true,
   default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
