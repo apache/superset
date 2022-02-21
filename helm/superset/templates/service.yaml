@@ -32,9 +32,9 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
-      name: http
+      name: https
   selector:
     app: {{ template "superset.name" . }}
     release: {{ .Release.Name }}

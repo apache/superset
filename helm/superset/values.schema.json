@@ -431,10 +431,14 @@
                     "properties": {
                         "port": {
                             "type": "integer"
+                        },
+                        "targetPort": {
+                            "type": "integer"
                         }
                     },
                     "required": [
-                        "port"
+                        "port",
+                        "targetPort"
                     ]
                 },
                 "postgresqlUsername": {
