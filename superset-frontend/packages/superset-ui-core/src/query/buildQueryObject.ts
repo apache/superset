@@ -20,7 +20,6 @@
 /* eslint-disable camelcase */
 import {
   AdhocFilter,
-  PhysicalColumn,
   QueryFieldAliases,
   QueryFormColumn,
   QueryFormData,
