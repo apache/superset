@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { isNullish } from 'src/utils/common';
+import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { getFilterBarTestId } from '../index';
 
 interface ActionButtonsProps {
@@ -42,10 +43,11 @@ const ActionButtonsContainer = styled.div`
     flex-direction: column;
     align-items: center;
 
-    position: absolute;
+    position: fixed;
+
+    // filter bar width minus 1px for border
+    width: ${OPEN_FILTER_BAR_WIDTH - 1}px;
     bottom: 0;
-    left: 0;
-    right: 0;
 
     padding: ${theme.gridUnit * 4}px;
     padding-top: ${theme.gridUnit * 6}px;
@@ -57,8 +59,11 @@ const ActionButtonsContainer = styled.div`
     }
 
     && > .filter-clear-all-button {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colors.grayscale.base};
       margin-left: 0;
+      &:hover {
+        color: ${theme.colors.primary.dark1};
+      }
 
       &[disabled],
       &[disabled]:hover {
