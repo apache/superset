@@ -31,8 +31,8 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
+    - port: {{ .Values.service.servicePort }}
+      targetPort: http
       protocol: TCP
       name: https
   selector:
