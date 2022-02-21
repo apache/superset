@@ -490,8 +490,7 @@ class Database(
     ) -> str:
         if self.db_engine_spec.allow_limit_clause:
             return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
-        else:
-            return self.db_engine_spec.apply_top_to_sql(sql, limit)
+        return self.db_engine_spec.apply_top_to_sql(sql, limit)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
