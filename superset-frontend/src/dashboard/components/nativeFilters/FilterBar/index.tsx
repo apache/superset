@@ -306,9 +306,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
         dispatch(clearDataMask(filterId));
+        setDataMaskSelected(draft => {
+          if (draft[filterId].filterState?.value !== undefined) {
+            draft[filterId].filterState!.value = undefined;
+          }
+        });
       }
     });
-  }, [dataMaskSelected, dispatch]);
+  }, [dataMaskSelected, dispatch, setDataMaskSelected]);
 
   const openFiltersBar = useCallback(
     () => toggleFiltersBar(true),
