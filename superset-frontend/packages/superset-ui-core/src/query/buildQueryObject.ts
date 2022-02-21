@@ -19,7 +19,6 @@
 
 /* eslint-disable camelcase */
 import {
-  AdhocColumn,
   AdhocFilter,
   PhysicalColumn,
   QueryFieldAliases,
@@ -27,6 +26,8 @@ import {
   QueryFormData,
   QueryObject,
   QueryObjectFilterClause,
+  isPhysicalColumn,
+  isAdhocColumn,
 } from './types';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
@@ -92,11 +93,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     ...extras,
     ...filterFormData,
   });
-  const isAdhocColumn = (v?: AdhocColumn | PhysicalColumn) =>
-    (v as AdhocColumn)?.sqlExpression !== undefined;
-  const normalizeSeriesLimitMetric = (v: QueryFormColumn | undefined) => {
-    if (isAdhocColumn(v) || (v as PhysicalColumn)?.length) {
-      return v;
+  const normalizeSeriesLimitMetric = (column: QueryFormColumn | undefined) => {
+    if (isAdhocColumn(column) || isPhysicalColumn(column)) {
+      return column;
     }
     return undefined;
   };
