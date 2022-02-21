@@ -98,7 +98,11 @@ class AnnotationLayerControl extends React.PureComponent {
       this.setState({ addedAnnotationIndex: annotations.length - 1 });
     }
 
-    this.props.refreshAnnotationData(newAnnotation);
+    this.props.refreshAnnotationData({
+      annotation: newAnnotation,
+      force: true,
+    });
+
     this.props.onChange(annotations);
   }
 
@@ -239,8 +243,8 @@ function mapStateToProps({ charts, explore }) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    refreshAnnotationData: annotationLayer =>
-      dispatch(runAnnotationQuery(annotationLayer)),
+    refreshAnnotationData: annotationObj =>
+      dispatch(runAnnotationQuery(annotationObj)),
   };
 }
 
