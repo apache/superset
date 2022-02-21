@@ -438,8 +438,7 @@
                         }
                     },
                     "required": [
-                        "port",
-                        "targetPort"
+                        "port"
                     ]
                 },
                 "postgresqlUsername": {
