@@ -80,6 +80,7 @@ ColumnTypeMapping = Tuple[
 
 logger = logging.getLogger()
 
+
 CTE_ALIAS = "__cte"
 
 

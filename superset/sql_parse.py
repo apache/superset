@@ -50,6 +50,7 @@ PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT J
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
 
+
 # TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
 sqlparse.keywords.SQL_REGEX.insert(
     0,

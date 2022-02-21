@@ -493,9 +493,6 @@ class Database(
         else:
             return self.db_engine_spec.apply_top_to_sql(sql, limit)
 
-    def apply_top_to_sql(self, sql: str, limit: int = 1000, force: bool = False) -> str:
-        return self.db_engine_spec.apply_top_to_sql(sql, limit)
-
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
 
