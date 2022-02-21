@@ -44,6 +44,7 @@ export default styled.div`
     vertical-align: middle;
     top: ${({ theme: { gridUnit } }) => gridUnit * 2}px;
     margin: 0 ${({ theme: { gridUnit } }) => gridUnit}px;
+    right: 0;
   }
   th.is-sorted svg {
     color: ${({ theme: { colors } }) => colors.grayscale.base};
