@@ -95,7 +95,7 @@ export default function buildQueryObject<T extends QueryFormData>(
   const isAdhocColumn = (v?: AdhocColumn | PhysicalColumn) =>
     (v as AdhocColumn)?.sqlExpression !== undefined;
   const normalizeSeriesLimitMetric = (v: QueryFormColumn | undefined) => {
-    if (isAdhocColumn(v) || (v && (v as PhysicalColumn).length)) {
+    if (isAdhocColumn(v) || (v as PhysicalColumn)?.length) {
       return v;
     }
     return undefined;
@@ -132,10 +132,6 @@ export default function buildQueryObject<T extends QueryFormData>(
     custom_params,
   };
 
-  console.log(
-    'queryObject.series_limit_metric',
-    queryObject.series_limit_metric,
-  );
   // override extra form data used by native and cross filters
   queryObject = overrideExtraFormData(queryObject, overrides);
 
