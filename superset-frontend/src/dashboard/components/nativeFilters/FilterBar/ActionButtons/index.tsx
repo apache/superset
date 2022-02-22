@@ -55,6 +55,12 @@ const ActionButtonsContainer = styled.div`
 
     background: linear-gradient(transparent, white 25%);
 
+    pointer-events: none;
+
+    & > button {
+      pointer-events: auto;
+    }
+
     & > .filter-apply-button {
       margin-bottom: ${theme.gridUnit * 3}px;
     }
