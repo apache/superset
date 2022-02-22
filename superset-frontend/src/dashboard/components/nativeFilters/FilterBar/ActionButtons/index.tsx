@@ -44,6 +44,7 @@ const ActionButtonsContainer = styled.div`
     align-items: center;
 
     position: fixed;
+    z-index: 100;
 
     // filter bar width minus 1px for border
     width: ${OPEN_FILTER_BAR_WIDTH - 1}px;
