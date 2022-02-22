@@ -51,18 +51,19 @@ import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import {
+  BUILDER_SIDEPANEL_WIDTH,
+  CLOSED_FILTER_BAR_WIDTH,
+  FILTER_BAR_HEADER_HEIGHT,
+  FILTER_BAR_TABS_HEIGHT,
+  HEADER_HEIGHT,
+  MAIN_HEADER_HEIGHT,
+  OPEN_FILTER_BAR_WIDTH,
+  TABS_HEIGHT,
+} from 'src/dashboard/constants';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
-
-const MAIN_HEADER_HEIGHT = 53;
-const TABS_HEIGHT = 50;
-const HEADER_HEIGHT = 72;
-const CLOSED_FILTER_BAR_WIDTH = 32;
-const OPEN_FILTER_BAR_WIDTH = 260;
-const FILTER_BAR_HEADER_HEIGHT = 80;
-const FILTER_BAR_TABS_HEIGHT = 46;
-const BUILDER_SIDEPANEL_WIDTH = 374;
 
 type DashboardBuilderProps = {};
 
