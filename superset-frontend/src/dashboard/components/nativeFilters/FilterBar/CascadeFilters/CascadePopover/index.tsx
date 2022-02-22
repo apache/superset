@@ -38,6 +38,7 @@ import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
+import { FilterCard } from '../../../FilterCard';
 
 interface CascadePopoverProps {
   dataMaskSelected: DataMaskStateWithId;
@@ -163,13 +164,15 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 
   if (!filter.cascadeChildren?.length) {
     return (
-      <FilterControl
-        dataMaskSelected={dataMaskSelected}
-        filter={filter}
-        directPathToChild={directPathToChild}
-        onFilterSelectionChange={onFilterSelectionChange}
-        inView={inView}
-      />
+      <FilterCard filter={filter}>
+        <FilterControl
+          dataMaskSelected={dataMaskSelected}
+          filter={filter}
+          directPathToChild={directPathToChild}
+          onFilterSelectionChange={onFilterSelectionChange}
+          inView={inView}
+        />
+      </FilterCard>
     );
   }
 

@@ -1,0 +1,121 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { Filter, t } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
+import { Layout, RootState } from 'src/dashboard/types';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { useMemo } from 'react';
+
+export const useFilterScope = (filter: Filter) => {
+  const layout = useSelector<RootState, Layout>(
+    state => state.dashboardLayout.present,
+  );
+
+  return useMemo(() => {
+    let topLevelTabs: string[] | undefined;
+    if (layout[DASHBOARD_ROOT_ID].children[0].startsWith('TABS-')) {
+      topLevelTabs = layout[layout[DASHBOARD_ROOT_ID].children[0]].children;
+    }
+
+    // no charts in scope
+    if (filter.scope.rootPath.length === 0) {
+      return undefined;
+    }
+
+    // all charts in scope
+    // no charts excluded and no top level tabs
+    // OR no charts excluded and every top level tab is in rootPath
+    if (
+      filter.scope.excluded.length === 0 &&
+      (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID ||
+        (topLevelTabs &&
+          filter.scope.rootPath.every(elementId =>
+            topLevelTabs!.includes(elementId),
+          )))
+    ) {
+      return [t('All charts')];
+    }
+
+    // no charts excluded and not every top level tab in scope
+    // returns "TAB1, TAB2"
+    if (filter.scope.excluded.length === 0 && topLevelTabs) {
+      return filter.scope.rootPath.map(
+        tabId => layout[tabId].meta.text || layout[tabId].meta.defaultText,
+      );
+    }
+
+    // no top level tabs, charts excluded
+    // returns "CHART1, CHART2"
+    if (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID) {
+      return Object.values(layout)
+        .filter(
+          layoutElement =>
+            layoutElement.type === CHART_TYPE &&
+            !filter.scope.excluded.includes(layoutElement.meta.chartId),
+        )
+        .map(
+          layoutElement =>
+            layoutElement.meta.sliceNameOverride ||
+            layoutElement.meta.sliceName ||
+            layoutElement.id,
+        );
+    }
+
+    // top level tabs, charts excluded
+    // returns "TAB1, TAB2, CHART1"
+    if (topLevelTabs) {
+      const topLevelTabsInFullScope = [...filter.scope.rootPath];
+      const layoutChartElements = Object.values(layout).filter(
+        element =>
+          element.type === CHART_TYPE &&
+          element.parents.some(parent =>
+            topLevelTabsInFullScope.includes(parent),
+          ),
+      );
+      filter.scope.excluded.forEach(chartId => {
+        const excludedIndex = topLevelTabsInFullScope.findIndex(tabId =>
+          layoutChartElements
+            .find(chart => chart.meta.chartId === chartId)
+            ?.parents.includes(tabId),
+        );
+        if (excludedIndex > -1) {
+          topLevelTabsInFullScope.splice(excludedIndex, 1);
+        }
+      });
+      const chartsInExcludedTabs = layoutChartElements.filter(
+        chart =>
+          !filter.scope.excluded.includes(chart.meta.chartId) &&
+          chart.parents.every(
+            parent => !topLevelTabsInFullScope.includes(parent),
+          ),
+      );
+      return topLevelTabsInFullScope
+        .map(tabId => layout[tabId].meta.text || layout[tabId].meta.defaultText)
+        .concat(
+          chartsInExcludedTabs.map(
+            chart =>
+              chart.meta.sliceNameOverride || chart.meta.sliceName || chart.id,
+          ),
+        );
+    }
+
+    return undefined;
+  }, [filter.scope.excluded, filter.scope.rootPath, layout]);
+};
