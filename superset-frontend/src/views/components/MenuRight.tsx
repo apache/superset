@@ -39,19 +39,24 @@ export const dropdownItems: MenuObjectProps[] = [
     icon: 'fa-database',
     childs: [
       {
-        icon: 'fa-upload',
+        label: t('Connect Database'),
+        name: GlobalMenuDataOptions.DB_CONNECTION,
+      },
+      {
+        label: t('Connect Google Sheet'),
+        name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+      },
+      {
         label: t('Upload a CSV'),
         name: 'Upload a CSV',
         url: '/csvtodatabaseview/form',
       },
       {
-        icon: 'fa-upload',
         label: t('Upload a Columnar File'),
         name: 'Upload a Columnar file',
         url: '/columnartodatabaseview/form',
       },
       {
-        icon: 'fa-upload',
         label: t('Upload Excel'),
         name: 'Upload Excel',
         url: '/exceltodatabaseview/form',
@@ -133,6 +138,8 @@ const RightMenu = ({
     'Upload a CSV': CSV_EXTENSIONS,
     'Upload a Columnar file': COLUMNAR_EXTENSIONS,
     'Upload Excel': EXCEL_EXTENSIONS,
+    [GlobalMenuDataOptions.GOOGLE_SHEETS]: SHOW_GLOBAL_GSHEETS,
+    [GlobalMenuDataOptions.DB_CONNECTION]: true, // todo(hugh): add permission check here for database creation
   };
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
@@ -146,10 +153,10 @@ const RightMenu = ({
   );
 
   const handleMenuSelection = (itemChose: any) => {
-    if (Number(itemChose.key) === GlobalMenuDataOptions.DB_CONNECTION) {
+    if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
       setShowModal(true);
       setEngine('');
-    } else if (Number(itemChose.key) === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+    } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
       setShowModal(true);
       setEngine('Google Sheets');
     }
@@ -179,22 +186,17 @@ const RightMenu = ({
                     className="data-menu"
                     title={menuIconAndLabel(menu)}
                   >
-                    <Menu.Item key={GlobalMenuDataOptions.DB_CONNECTION}>
-                      Connect Database
-                    </Menu.Item>
-                    {SHOW_GLOBAL_GSHEETS && (
-                      <Menu.Item key={GlobalMenuDataOptions.GOOGLE_SHEETS}>
-                        Connect Google Sheet
-                      </Menu.Item>
-                    )}
-                    <Menu.Divider />
-                    {menu.childs.map(item =>
+                    {menu.childs.map((item, idx) =>
                       typeof item !== 'string' &&
                       item.name &&
                       configMap[item.name] === true ? (
-                        <Menu.Item key={item.name}>
-                          <a href={item.url}> {item.label} </a>
-                        </Menu.Item>
+                        <>
+                          {idx === 2 && <Menu.Divider />}
+                          <Menu.Item key={item.name}>
+                            {item.url && <a href={item.url}> {item.label} </a>}
+                            {item.url === undefined && item.label}
+                          </Menu.Item>
+                        </>
                       ) : null,
                     )}
                   </SubMenu>

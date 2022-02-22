@@ -33,6 +33,6 @@ export interface RightMenuProps {
 }
 
 export enum GlobalMenuDataOptions {
-  GOOGLE_SHEETS,
-  DB_CONNECTION,
+  GOOGLE_SHEETS = 'gsheets',
+  DB_CONNECTION = 'dbconnection',
 }
