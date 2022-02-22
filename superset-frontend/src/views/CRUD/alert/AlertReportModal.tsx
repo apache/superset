@@ -517,11 +517,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
-      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      force_screenshot: forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -941,7 +940,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
       setCurrentAlert({ ...DEFAULT_ALERT });
-      // setForceScreenshot(!isReport);
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
