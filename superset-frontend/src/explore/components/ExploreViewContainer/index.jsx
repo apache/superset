@@ -177,7 +177,13 @@ const updateHistory = debounce(
 
     const urlParams = payload?.url_params || {};
     Object.entries(urlParams).forEach(([key, value]) => {
-      if (!['slice_id', 'form_data_key', 'dataset_id'].includes(key)) {
+      if (
+        ![
+          URL_PARAMS.sliceId.name,
+          URL_PARAMS.formDataKey.name,
+          URL_PARAMS.datasetId.name,
+        ].includes(key)
+      ) {
         additionalParam[key] = value;
       }
     });
