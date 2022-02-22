@@ -18,75 +18,73 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+from flask.ctx import AppContext
 
 from tests.unit_tests.fixtures.common import dttm
 
 
-@pytest.mark.usefixtures("app_context")
-class TestSQliteDbEngineSpec:
-    def test_convert_dttm(self, dttm: datetime) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        assert (
-            SqliteEngineSpec.convert_dttm("TEXT", dttm)
-            == "'2019-01-02 03:04:05.678900'"
-        )
+    assert SqliteEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05.678900'"
 
-    def test_convert_dttm_lower(self, dttm: datetime) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        assert (
-            SqliteEngineSpec.convert_dttm("text", dttm)
-            == "'2019-01-02 03:04:05.678900'"
-        )
+def test_convert_dttm_lower(app_context: AppContext, dttm: datetime) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-    def test_convert_dttm_invalid_type(self, dttm: datetime) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    assert SqliteEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05.678900'"
 
-        assert SqliteEngineSpec.convert_dttm("other", dttm) == None
 
-    def test_get_all_datasource_names_table(self) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+def test_convert_dttm_invalid_type(app_context: AppContext, dttm: datetime) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        database = mock.MagicMock()
-        database.get_all_schema_names.return_value = ["schema1"]
-        table_names = ["table1", "table2"]
-        get_tables = mock.MagicMock(return_value=table_names)
-        database.get_all_table_names_in_schema = get_tables
-        result = SqliteEngineSpec.get_all_datasource_names(database, "table")
+    assert SqliteEngineSpec.convert_dttm("other", dttm) == None
 
-        assert result == table_names
-        get_tables.assert_called_once_with(
-            schema="schema1",
-            force=True,
-            cache=database.table_cache_enabled,
-            cache_timeout=database.table_cache_timeout,
-        )
 
-    def test_get_all_datasource_names_view(self) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+def test_get_all_datasource_names_table(app_context: AppContext) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        database = mock.MagicMock()
-        database.get_all_schema_names.return_value = ["schema1"]
-        views_names = ["view1", "view2"]
-        get_views = mock.MagicMock(return_value=views_names)
-        database.get_all_view_names_in_schema = get_views
-        result = SqliteEngineSpec.get_all_datasource_names(database, "view")
+    database = mock.MagicMock()
+    database.get_all_schema_names.return_value = ["schema1"]
+    table_names = ["table1", "table2"]
+    get_tables = mock.MagicMock(return_value=table_names)
+    database.get_all_table_names_in_schema = get_tables
+    result = SqliteEngineSpec.get_all_datasource_names(database, "table")
 
-        assert result == views_names
-        get_views.assert_called_once_with(
-            schema="schema1",
-            force=True,
-            cache=database.table_cache_enabled,
-            cache_timeout=database.table_cache_timeout,
-        )
+    assert result == table_names
+    get_tables.assert_called_once_with(
+        schema="schema1",
+        force=True,
+        cache=database.table_cache_enabled,
+        cache_timeout=database.table_cache_timeout,
+    )
 
-    def test_get_all_datasource_names_invalid_type(self) -> None:
-        from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        database = mock.MagicMock()
-        database.get_all_schema_names.return_value = ["schema1"]
-        invalid_type = "asdf"
+def test_get_all_datasource_names_view(app_context: AppContext) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
-        with pytest.raises(Exception):
-            SqliteEngineSpec.get_all_datasource_names(database, invalid_type)
+    database = mock.MagicMock()
+    database.get_all_schema_names.return_value = ["schema1"]
+    views_names = ["view1", "view2"]
+    get_views = mock.MagicMock(return_value=views_names)
+    database.get_all_view_names_in_schema = get_views
+    result = SqliteEngineSpec.get_all_datasource_names(database, "view")
+
+    assert result == views_names
+    get_views.assert_called_once_with(
+        schema="schema1",
+        force=True,
+        cache=database.table_cache_enabled,
+        cache_timeout=database.table_cache_timeout,
+    )
+
+
+def test_get_all_datasource_names_invalid_type(app_context: AppContext) -> None:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    database = mock.MagicMock()
+    database.get_all_schema_names.return_value = ["schema1"]
+    invalid_type = "asdf"
+
+    with pytest.raises(Exception):
+        SqliteEngineSpec.get_all_datasource_names(database, invalid_type)
