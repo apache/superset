@@ -165,7 +165,7 @@ const publishDataMask = debounce(
     const { search } = location;
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
-    let dataMaskKey = '';
+    let dataMaskKey: string;
     previousParams.forEach((value, key) => {
       if (key !== URL_PARAMS.nativeFilters.name) {
         newParams.append(key, value);
@@ -251,7 +251,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         };
       });
     },
-    [dataMaskSelected, dispatch, setDataMaskSelected, tab],
+    [dataMaskSelected, dispatch, setDataMaskSelected],
   );
 
   useEffect(() => {
@@ -280,10 +280,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
     }
   }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
-
-  useEffect(() => {
-    setDataMaskSelected(() => dataMaskApplied);
-  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
