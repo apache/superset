@@ -202,14 +202,16 @@ export default function Button(props: ButtonProps) {
         },
         '&[disabled], &[disabled]:hover': {
           color: grayscale.base,
-          backgroundColor: backgroundColorDisabled,
-          borderColor: borderColorDisabled,
+          backgroundColor:
+            buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
+          borderColor:
+            buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
         },
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.gridUnit * 2,
         },
-        '& :first-of-type': {
+        '& > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}
