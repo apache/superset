@@ -744,8 +744,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key,)
             value = GetFormDataCommand(parameters).run()
-            if value:
-                initial_form_data = json.loads(value)
+            initial_form_data = json.loads(value) if value else {}
 
         if not initial_form_data:
             slice_id = request.args.get("slice_id")
