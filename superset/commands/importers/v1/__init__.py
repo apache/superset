@@ -42,6 +42,13 @@ class ImportModelsCommand(BaseCommand):
     schemas: Dict[str, Schema] = {}
     import_error = CommandException
 
+    _exceptions: List[ValidationError] = []
+    # load existing databases so we can apply the password validation
+    _db_passwords = {
+        str(uuid): password
+        for uuid, password in db.session.query(Database.uuid, Database.password).all()
+    }
+
     # pylint: disable=unused-argument
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
@@ -71,33 +78,42 @@ class ImportModelsCommand(BaseCommand):
             raise self.import_error() from ex
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
-
-        # load existing databases so we can apply the password validation
-        db_passwords = {
-            str(uuid): password
-            for uuid, password in db.session.query(
-                Database.uuid, Database.password
-            ).all()
-        }
-
         # verify that the metadata file is present and valid
         try:
             metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
-            exceptions.append(exc)
+            self._exceptions.append(exc)
             metadata = None
 
-        # validate that the type declared in METADATA_FILE_NAME is correct
+        self._validate_metadata_type(metadata)
+        self._load__configs()
+        self._prevent_overwrite_existing_model()
+
+        if self._exceptions:
+            exception = CommandInvalidError(f"Error importing {self.model_name}")
+            exception.add_list(self._exceptions)
+            raise exception
+
+    def _validate_metadata_type(self, metadata: Optional[Dict[str, str]]) -> None:
+        """Validate that the type declared in METADATA_FILE_NAME is correct"""
         if metadata and "type" in metadata:
             type_validator = validate.Equal(self.dao.model_cls.__name__)  # type: ignore
             try:
                 type_validator(metadata["type"])
             except ValidationError as exc:
                 exc.messages = {METADATA_FILE_NAME: {"type": exc.messages}}
-                exceptions.append(exc)
+                self._exceptions.append(exc)
 
-        # validate objects
+    def _get_password(self, file_name: str, prefix: str, uuid: str) -> str:
+        """get passwords from the request or from existing DBs"""
+        password = ""
+        if file_name in self.passwords:
+            password = self.passwords[file_name]
+        elif prefix == "databases" and uuid in self._db_passwords:
+            password = self._db_passwords[uuid]
+        return password
+
+    def _load__configs(self) -> None:
         for file_name, content in self.contents.items():
             # skip directories
             if not content:
@@ -109,19 +125,18 @@ class ImportModelsCommand(BaseCommand):
                 try:
                     config = load_yaml(file_name, content)
 
-                    # populate passwords from the request or from existing DBs
-                    if file_name in self.passwords:
-                        config["password"] = self.passwords[file_name]
-                    elif prefix == "databases" and config["uuid"] in db_passwords:
-                        config["password"] = db_passwords[config["uuid"]]
+                    config["password"] = self._get_password(
+                        file_name, prefix, config["uuid"]
+                    )
 
                     schema.load(config)
                     self._configs[file_name] = config
                 except ValidationError as exc:
                     exc.messages = {file_name: exc.messages}
-                    exceptions.append(exc)
+                    self._exceptions.append(exc)
 
-        # check if the object exists and shouldn't be overwritten
+    def _prevent_overwrite_existing_model(self) -> None:
+        """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
             existing_uuids = self._get_uuids()
             for file_name, config in self._configs.items():
@@ -129,7 +144,7 @@ class ImportModelsCommand(BaseCommand):
                     file_name.startswith(self.prefix)
                     and config["uuid"] in existing_uuids
                 ):
-                    exceptions.append(
+                    self._exceptions.append(
                         ValidationError(
                             {
                                 file_name: (
@@ -139,8 +154,3 @@ class ImportModelsCommand(BaseCommand):
                             }
                         )
                     )
-
-        if exceptions:
-            exception = CommandInvalidError(f"Error importing {self.model_name}")
-            exception.add_list(exceptions)
-            raise exception

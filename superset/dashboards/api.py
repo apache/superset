@@ -952,7 +952,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing dashboards?
                       type: boolean
           responses:
             200:
@@ -991,9 +991,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
-        overwrite = request.form.get("overwrite") == "true"
+        # overwrite = request.form.get("overwrite") == "true"
 
-        command = ImportDashboardsCommand(
+        overwrite = {
+            "databases": False,
+            "datasets": False,
+            "charts": False,
+            "dashboards": request.form.get("overwrite") == "true",
+        }
+
+        command = ImportDashboardsCommand(  # We doing import using the dispatcher, sounds dangeruas
             contents, passwords=passwords, overwrite=overwrite
         )
         command.run()
