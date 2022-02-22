@@ -63,7 +63,7 @@ type PickedSelectProps = Pick<
   | 'value'
 >;
 
-type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
 
 export type OptionsTypePage = {
   data: OptionsType;
