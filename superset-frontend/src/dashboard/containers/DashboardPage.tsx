@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { FC, useRef, useEffect, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -210,6 +215,17 @@ const DashboardPage: FC = () => {
     }
     return () => {};
   }, [css]);
+
+  useEffect(
+    () => () => {
+      // clean up label color
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+        metadata?.color_namespace,
+      );
+      categoricalNamespace.resetColors();
+    },
+    [metadata?.color_namespace],
+  );
 
   useEffect(() => {
     if (datasetsApiError) {
