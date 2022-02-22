@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import emptySqlChart from 'src/assets/images/empty_sql_chart.png';
 import { Dropdown } from 'src/components/Dropdown';
 import { EditableTabs } from 'src/components/Tabs';
 import { Menu } from 'src/common/components';
@@ -31,6 +30,7 @@ import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import SqlEditor from '../SqlEditor';
 import TabStatusIcon from '../TabStatusIcon';
 
@@ -59,13 +59,6 @@ const defaultProps = {
 };
 
 let queryCount = 1;
-
-const StyledImage = styled.div`
-  right: 50%;
-  bottom: 50%;
-  transform: translate(50%, 50%);
-  position: absolute;
-`;
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -413,12 +406,13 @@ class TabbedSqlEditors extends React.PureComponent {
       <EditableTabs.TabPane
         key={0}
         data-key={0}
-        tab={<TabTitle>Add a New Tab</TabTitle>}
+        tab={<TabTitle style={{ paddingTop: '6px' }}>Add a New Tab</TabTitle>}
         closable={false}
       >
-        <StyledImage>
-          <img src={emptySqlChart} alt="No SQL tabs" />
-        </StyledImage>
+        <EmptyStateBig
+          image="empty_sql_chart.svg"
+          description={t('Add a new tab to create SQL Query')}
+        />
       </EditableTabs.TabPane>
     );
 
