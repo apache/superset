@@ -220,6 +220,7 @@ class Chart extends React.PureComponent {
 
     return (
       <ChartErrorMessage
+        key={chartId}
         chartId={chartId}
         error={error}
         subtitle={message}
