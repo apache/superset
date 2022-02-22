@@ -85,13 +85,6 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-        label: {
-          name: t('verified'),
-          description: t(
-            'This chart was tested and verified, so the overall experience should be stable.',
-          ),
-        },
-        searchWeight: 0.5,
       }),
       transformProps: lineTransformProps,
     });
