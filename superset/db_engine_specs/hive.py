@@ -335,6 +335,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         job_id = None
         query_id = query.id
         while polled.operationState in unfinished_states:
+            # Queries don't terminate when user clicks the STOP button on SQL LAB.
+            # Refresh session so that the `query.status` modified in stop_query in
+            # views/core.py is reflected here.
+            session.refresh(query)
             query = session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
