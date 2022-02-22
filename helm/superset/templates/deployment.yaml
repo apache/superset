@@ -81,6 +81,16 @@ spec:
       hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
       containers:
+        - name: nginx
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: nginx
+              containerPort: 80
+          volumeMounts:
+            - name: superset-extra-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx.conf
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}

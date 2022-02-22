@@ -32,7 +32,7 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.servicePort }}
-      targetPort: http
+      targetPort: 80
       protocol: TCP
       name: https
   selector:
