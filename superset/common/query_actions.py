@@ -175,6 +175,15 @@ _result_type_functions: Dict[
 }
 
 
+def compile_query(
+    query_context: "QueryContext", query: "QueryObject"
+) -> Dict[str, Any]:
+    compiled_query = _get_query(query_context, query, False)
+    if compiled_query.get("error"):
+        raise QueryObjectValidationError(compiled_query["error"])
+    return compiled_query
+
+
 def get_query_results(
     result_type: ChartDataResultType,
     query_context: "QueryContext",

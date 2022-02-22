@@ -31,7 +31,7 @@ from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_actions import get_query_results
+from superset.common.query_actions import compile_query, get_query_results
 from superset.common.utils import dataframe_utils as df_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
@@ -479,4 +479,16 @@ class QueryContextProcessor:
         """
         for query in self._query_context.queries:
             query.validate()
+            # the dict returned from compile_query can have 3 keys:
+            # "language", "query", "error"
+            compiled_query = compile_query(self._query_context, query)
+            if compiled_query.get("error"):
+                raise QueryObjectValidationError(f"Error: {compiled_query['error']}")
+            security_manager.raise_for_query_str_access(
+                compiled_query["query"],
+                self._query_context.datasource.schema,
+                # database isn't present on BaseDatasource, but it is defined in
+                # all child classes
+                self._query_context.datasource.database,  # pylint: disable=no-member
+            )
         security_manager.raise_for_access(query_context=self._query_context)

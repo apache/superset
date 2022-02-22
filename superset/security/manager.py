@@ -1008,8 +1008,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
     def raise_for_query_str_access(
-        self, query: str, schema: Optional[str], database: "Database",
+        self, query: str, schema: str, database: "Database",
     ) -> None:
+        """
+        Parses a raw SQL query, and checks the elements of the query to see
+        if the current user can access them, namely tables aka "datasets".
+
+        This exists separately from raise_for_access because we want to cal it from
+        outside security manager and raise_for_access takes a SQL Lab Query model.
+
+        :param query: a raw sql query that we want to check access rights for
+        :param schema: the implied schema to use if the query doesn't specify one
+        :param database: y'know... it's the database
+        :return: nothing, but throws a SupersetSecurityException if access isn't granted
+        """
         from superset.sql_parse import Table
 
         denied = set()
@@ -1018,7 +1030,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             try:
                 self.raise_for_access(table=table_, database=database)
             except SupersetSecurityException:
-                denied.add(table_)
+                denied.add(table_)  # we want a full list of denied elements
         if denied:
             raise SupersetSecurityException(self.get_table_access_error_object(denied))
 
