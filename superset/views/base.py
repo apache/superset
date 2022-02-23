@@ -349,7 +349,10 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
-    frontend_config = {k: (list(conf.get(k)) if type(conf.get(k)) is set else conf.get(k)) for k in FRONTEND_CONF_KEYS}
+    frontend_config = {
+        k: (list(conf.get(k)) if type(conf.get(k)) is set else conf.get(k))
+        for k in FRONTEND_CONF_KEYS
+    }
 
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
