@@ -17,6 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@superset-ui/core';
+import { noOp } from 'src/utils/common';
 import { DEFAULT_FORM_DATA, PluginFilterSelectChartProps } from './types';
 
 export default function transformProps(
@@ -35,9 +36,10 @@ export default function transformProps(
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const {
-    setDataMask = () => {},
-    setFocusedFilter = () => {},
-    unsetFocusedFilter = () => {},
+    setDataMask = noOp,
+    setFocusedFilter = noOp,
+    unsetFocusedFilter = noOp,
+    setFilterActive = noOp,
   } = hooks;
   const [queryData] = queriesData;
   const { colnames = [], coltypes = [], data = [] } = queryData || {};
@@ -59,5 +61,6 @@ export default function transformProps(
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
   };
 }

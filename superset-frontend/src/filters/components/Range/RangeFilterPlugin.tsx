@@ -152,6 +152,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
   } = props;
   const [row] = data;
@@ -289,6 +290,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}
             onMouseLeave={unsetFocusedFilter}
+            onMouseDown={() => setFilterActive(true)}
+            onMouseUp={() => setFilterActive(false)}
           >
             {enableSingleMaxValue && (
               <Slider

@@ -60,6 +60,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     width,
     height,
     filterState,
@@ -104,6 +105,8 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           name="time_range"
           onChange={handleTimeRangeChange}
           type={filterState.validateStatus}
+          onOpenPopover={() => setFilterActive(true)}
+          onClosePopover={() => setFilterActive(false)}
         />
       </ControlContainer>
     </TimeFilterStyles>

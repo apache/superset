@@ -18,6 +18,7 @@
  */
 import React, {
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -48,6 +49,8 @@ import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
+import { FilterCard } from '../../FilterCard';
+import { FilterBarScrollContext } from '../index';
 
 const HEIGHT = 32;
 
@@ -94,6 +97,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFilterActive, setIsFilterActive] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -195,13 +199,8 @@ const FilterValue: React.FC<FilterProps> = ({
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {
-      // wait for Cascade Popover to open
-      const timeout = setTimeout(() => {
-        inputRef?.current?.focus();
-      }, 200);
-      return () => clearTimeout(timeout);
+      inputRef?.current?.focus();
     }
-    return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
   const setDataMask = useCallback(
@@ -218,9 +217,18 @@ const FilterValue: React.FC<FilterProps> = ({
     [dispatch],
   );
 
+  const setFilterActive = useCallback((isActive: boolean) => {
+    setIsFilterActive(isActive);
+  }, []);
+
   const hooks = useMemo(
-    () => ({ setDataMask, setFocusedFilter, unsetFocusedFilter }),
-    [setDataMask, setFocusedFilter, unsetFocusedFilter],
+    () => ({
+      setDataMask,
+      setFocusedFilter,
+      unsetFocusedFilter,
+      setFilterActive,
+    }),
+    [setDataMask, setFilterActive, setFocusedFilter, unsetFocusedFilter],
   );
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -236,6 +244,7 @@ const FilterValue: React.FC<FilterProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
+  const isScrolling = useContext(FilterBarScrollContext);
   if (error) {
     return (
       <BasicErrorAlert
@@ -251,22 +260,26 @@ const FilterValue: React.FC<FilterProps> = ({
       {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
-        <SuperChart
-          height={HEIGHT}
-          width="100%"
-          showOverflow={showOverflow}
-          formData={formData}
-          parentRef={parentRef}
-          // For charts that don't have datasource we need workaround for empty placeholder
-          queriesData={hasDataSource ? state : queriesDataPlaceholder}
-          chartType={filterType}
-          behaviors={behaviors}
-          filterState={filterState}
-          ownState={filter.dataMask?.ownState}
-          enableNoResults={metadata?.enableNoResults}
-          isRefreshing={isRefreshing}
-          hooks={hooks}
-        />
+        <FilterCard filter={filter} isVisible={!isFilterActive && !isScrolling}>
+          <div>
+            <SuperChart
+              height={HEIGHT}
+              width="100%"
+              showOverflow={showOverflow}
+              formData={formData}
+              parentRef={parentRef}
+              // For charts that don't have datasource we need workaround for empty placeholder
+              queriesData={hasDataSource ? state : queriesDataPlaceholder}
+              chartType={filterType}
+              behaviors={behaviors}
+              filterState={filterState}
+              ownState={filter.dataMask?.ownState}
+              enableNoResults={metadata?.enableNoResults}
+              isRefreshing={isRefreshing}
+              hooks={hooks}
+            />
+          </div>
+        </FilterCard>
       )}
     </StyledDiv>
   );

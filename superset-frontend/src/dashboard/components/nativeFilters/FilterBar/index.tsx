@@ -18,6 +18,17 @@
  */
 
 /* eslint-disable no-param-reassign */
+import throttle from 'lodash/throttle';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  createContext,
+} from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import cx from 'classnames';
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -29,9 +40,6 @@ import {
   SLOW_DEBOUNCE,
   isNativeFilter,
 } from '@superset-ui/core';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import cx from 'classnames';
 import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
 import { useHistory } from 'react-router-dom';
@@ -204,6 +212,7 @@ const publishDataMask = debounce(
   SLOW_DEBOUNCE,
 );
 
+export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -233,6 +242,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+
+  const [isScrolling, setIsScrolling] = useState(false);
+  const timeout = useRef<any>();
 
   const handleFilterSelectionChange = useCallback(
     (
@@ -329,6 +341,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [toggleFiltersBar],
   );
 
+  const onScroll = useCallback(
+    throttle(() => {
+      clearTimeout(timeout.current);
+      setIsScrolling(true);
+      timeout.current = setTimeout(() => {
+        setIsScrolling(false);
+      }, 300);
+    }, 200),
+    [],
+  );
+
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
     dataMaskSelected,
@@ -344,51 +367,95 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const numberOfFilters = nativeFilterValues.length;
 
   return (
-    <BarWrapper
-      {...getFilterBarTestId()}
-      className={cx({ open: filtersOpen })}
-      width={width}
-    >
-      <CollapsedBar
-        {...getFilterBarTestId('collapsable')}
-        className={cx({ open: !filtersOpen })}
-        onClick={openFiltersBar}
-        offset={offset}
+    <FilterBarScrollContext.Provider value={isScrolling}>
+      <BarWrapper
+        {...getFilterBarTestId()}
+        className={cx({ open: filtersOpen })}
+        width={width}
       >
-        <StyledCollapseIcon
-          {...getFilterBarTestId('expand-button')}
-          iconSize="l"
-        />
-        <StyledFilterIcon {...getFilterBarTestId('filter-icon')} iconSize="l" />
-      </CollapsedBar>
-      <Bar className={cx({ open: filtersOpen })} width={width}>
-        <Header toggleFiltersBar={toggleFiltersBar} />
-        {!isInitialized ? (
-          <div css={{ height }}>
-            <Loading />
-          </div>
-        ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
-          <StyledTabs
-            centered
-            onChange={setTab as HandlerFunction}
-            defaultActiveKey={TabIds.AllFilters}
-            activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
-          >
-            <Tabs.TabPane
-              tab={t('All filters (%(filterCount)d)', {
-                filterCount: numberOfFilters,
-              })}
-              key={TabIds.AllFilters}
-              css={tabPaneStyle}
+        <CollapsedBar
+          {...getFilterBarTestId('collapsable')}
+          className={cx({ open: !filtersOpen })}
+          onClick={openFiltersBar}
+          offset={offset}
+        >
+          <StyledCollapseIcon
+            {...getFilterBarTestId('expand-button')}
+            iconSize="l"
+          />
+          <StyledFilterIcon
+            {...getFilterBarTestId('filter-icon')}
+            iconSize="l"
+          />
+        </CollapsedBar>
+        <Bar className={cx({ open: filtersOpen })} width={width}>
+          <Header toggleFiltersBar={toggleFiltersBar} />
+          {!isInitialized ? (
+            <div css={{ height }}>
+              <Loading />
+            </div>
+          ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
+            <StyledTabs
+              centered
+              onChange={setTab as HandlerFunction}
+              defaultActiveKey={TabIds.AllFilters}
+              activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
             >
-              {editFilterSetId && (
-                <EditSection
-                  dataMaskSelected={dataMaskSelected}
+              <Tabs.TabPane
+                tab={t('All filters (%(filterCount)d)', {
+                  filterCount: numberOfFilters,
+                })}
+                key={TabIds.AllFilters}
+                css={tabPaneStyle}
+              >
+                {editFilterSetId && (
+                  <EditSection
+                    dataMaskSelected={dataMaskSelected}
+                    disabled={!isApplyDisabled}
+                    onCancel={() => setEditFilterSetId(null)}
+                    filterSetId={editFilterSetId}
+                  />
+                )}
+                {filterValues.length === 0 ? (
+                  <FilterBarEmptyStateContainer>
+                    <EmptyStateSmall
+                      title={t('No filters are currently added')}
+                      image="filter.svg"
+                      description={
+                        canEdit &&
+                        t(
+                          'Click the button above to add a filter to the dashboard',
+                        )
+                      }
+                    />
+                  </FilterBarEmptyStateContainer>
+                ) : (
+                  <FilterControls
+                    dataMaskSelected={dataMaskSelected}
+                    directPathToChild={directPathToChild}
+                    onFilterSelectionChange={handleFilterSelectionChange}
+                  />
+                )}
+              </Tabs.TabPane>
+              <Tabs.TabPane
+                disabled={!!editFilterSetId}
+                tab={t('Filter sets (%(filterSetCount)d)', {
+                  filterSetCount: filterSetFilterValues.length,
+                })}
+                key={TabIds.FilterSets}
+                css={tabPaneStyle}
+              >
+                <FilterSets
+                  onEditFilterSet={setEditFilterSetId}
                   disabled={!isApplyDisabled}
-                  onCancel={() => setEditFilterSetId(null)}
-                  filterSetId={editFilterSetId}
+                  dataMaskSelected={dataMaskSelected}
+                  tab={tab}
+                  onFilterSelectionChange={handleFilterSelectionChange}
                 />
-              )}
+              </Tabs.TabPane>
+            </StyledTabs>
+          ) : (
+            <div css={tabPaneStyle} onScroll={onScroll}>
               {filterValues.length === 0 ? (
                 <FilterBarEmptyStateContainer>
                   <EmptyStateSmall
@@ -409,55 +476,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                   onFilterSelectionChange={handleFilterSelectionChange}
                 />
               )}
-            </Tabs.TabPane>
-            <Tabs.TabPane
-              disabled={!!editFilterSetId}
-              tab={t('Filter sets (%(filterSetCount)d)', {
-                filterSetCount: filterSetFilterValues.length,
-              })}
-              key={TabIds.FilterSets}
-              css={tabPaneStyle}
-            >
-              <FilterSets
-                onEditFilterSet={setEditFilterSetId}
-                disabled={!isApplyDisabled}
-                dataMaskSelected={dataMaskSelected}
-                tab={tab}
-                onFilterSelectionChange={handleFilterSelectionChange}
-              />
-            </Tabs.TabPane>
-          </StyledTabs>
-        ) : (
-          <div css={tabPaneStyle}>
-            {filterValues.length === 0 ? (
-              <FilterBarEmptyStateContainer>
-                <EmptyStateSmall
-                  title={t('No filters are currently added')}
-                  image="filter.svg"
-                  description={
-                    canEdit &&
-                    t('Click the button above to add a filter to the dashboard')
-                  }
-                />
-              </FilterBarEmptyStateContainer>
-            ) : (
-              <FilterControls
-                dataMaskSelected={dataMaskSelected}
-                directPathToChild={directPathToChild}
-                onFilterSelectionChange={handleFilterSelectionChange}
-              />
-            )}
-          </div>
-        )}
-        <ActionButtons
-          onApply={handleApply}
-          onClearAll={handleClearAll}
-          dataMaskSelected={dataMaskSelected}
-          dataMaskApplied={dataMaskApplied}
-          isApplyDisabled={isApplyDisabled}
-        />
-      </Bar>
-    </BarWrapper>
+            </div>
+          )}
+          <ActionButtons
+            onApply={handleApply}
+            onClearAll={handleClearAll}
+            dataMaskSelected={dataMaskSelected}
+            dataMaskApplied={dataMaskApplied}
+            isApplyDisabled={isApplyDisabled}
+          />
+        </Bar>
+      </BarWrapper>
+    </FilterBarScrollContext.Provider>
   );
 };
 export default React.memo(FilterBar);
