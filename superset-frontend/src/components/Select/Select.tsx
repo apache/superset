@@ -673,7 +673,10 @@ const Select = ({
 
   // Stop the invocation of the debounced function after unmounting
   useEffect(
-    () => () => debouncedHandleSearch.cancel(),
+    () => () => {
+      debouncedHandleSearch.cancel();
+      setIsLoading(false);
+    },
     [debouncedHandleSearch],
   );
 
@@ -714,13 +717,7 @@ const Select = ({
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
-        notFoundContent={
-          isLoading ? (
-            <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
-          ) : (
-            notFoundContent
-          )
-        }
+        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={isAsync ? handlePagination : undefined}
