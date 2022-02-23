@@ -327,7 +327,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterValues,
   );
   const isInitialized = useInitialization();
-  const tabPaneStyle = useMemo(() => ({ overflow: 'auto', height }), [height]);
+  const tabPaneStyle = useMemo(
+    () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
+    [height],
+  );
 
   const numberOfFilters = filterValues.filter(
     filterValue => filterValue.type === NativeFilterType.NATIVE_FILTER,
