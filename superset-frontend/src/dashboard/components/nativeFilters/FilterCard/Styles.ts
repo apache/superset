@@ -16,32 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, SupersetTheme } from '@superset-ui/core';
-
-export const popoverStyle = (theme: SupersetTheme) => css`
-  .filter-card-popover {
-    width: 240px;
-    padding: 0;
-    border-radius: 4px;
-
-    .ant-popover-inner-content {
-      padding: ${theme.gridUnit * 4}px;
-    }
-
-    .ant-popover-arrow {
-      display: none;
-    }
-  }
-
-  .filter-card-tooltip {
-    &.ant-tooltip-placement-bottom {
-      padding-top: 0;
-      & .ant-tooltip-arrow {
-        top: -13px;
-      }
-    }
-  }
-`;
+import { css, styled } from '@superset-ui/core';
 
 export const Row = styled.div`
   ${({ theme }) => css`

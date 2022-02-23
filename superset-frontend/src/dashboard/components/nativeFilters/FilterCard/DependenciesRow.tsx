@@ -70,7 +70,10 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
     [elementsTruncated, dependencies],
   );
 
-  return Array.isArray(dependencies) && dependencies.length > 0 ? (
+  if (!Array.isArray(dependencies) || dependencies.length === 0) {
+    return null;
+  }
+  return (
     <Row>
       <RowLabel
         css={css`
@@ -78,7 +81,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           align-items: center;
         `}
       >
-        Dependent on{' '}
+        {t('Dependent on')}{' '}
         <Tooltip
           title={t(
             'Filter only displays values relevant to selections made in other filters.',
@@ -102,19 +105,12 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
       >
         <TooltipTrigger>
           <RowValue ref={dependenciesRef}>
-            {dependencies.map((dependency, index) =>
-              index === 0 ? (
-                <DependencyValue
-                  dependency={dependency}
-                  label={dependency.name}
-                />
-              ) : (
-                <DependencyValue
-                  dependency={dependency}
-                  label={`, ${dependency.name}`}
-                />
-              ),
-            )}
+            {dependencies.map((dependency, index) => (
+              <DependencyValue
+                dependency={dependency}
+                label={index === 0 ? dependency.name : `, ${dependency.name}`}
+              />
+            ))}
           </RowValue>
           {hasHiddenElements && (
             <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
@@ -122,5 +118,5 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         </TooltipTrigger>
       </Tooltip>
     </Row>
-  ) : null;
+  );
 });

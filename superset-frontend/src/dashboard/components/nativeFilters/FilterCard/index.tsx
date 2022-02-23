@@ -18,12 +18,9 @@
  */
 
 import React, { useState } from 'react';
-import { Global } from '@emotion/react';
-import { useTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
 import { FilterCardProps } from './types';
-import { popoverStyle } from './Styles';
 
 export const FilterCard = ({
   children,
@@ -31,27 +28,23 @@ export const FilterCard = ({
   getPopupContainer,
   isVisible: externalIsVisible = true,
 }: FilterCardProps) => {
-  const theme = useTheme();
   const [internalIsVisible, setInternalIsVisible] = useState(false);
 
   return (
-    <>
-      <Global styles={popoverStyle(theme)} />
-      <Popover
-        placement="right"
-        overlayClassName="filter-card-popover"
-        mouseEnterDelay={0.2}
-        mouseLeaveDelay={0.2}
-        onVisibleChange={visible => {
-          setInternalIsVisible(visible);
-        }}
-        visible={externalIsVisible && internalIsVisible}
-        content={<FilterCardContent filter={filter} />}
-        getPopupContainer={getPopupContainer ?? (() => document.body)}
-        destroyTooltipOnHide
-      >
-        {children}
-      </Popover>
-    </>
+    <Popover
+      placement="right"
+      overlayClassName="filter-card-popover"
+      mouseEnterDelay={0.2}
+      mouseLeaveDelay={0.2}
+      onVisibleChange={visible => {
+        setInternalIsVisible(visible);
+      }}
+      visible={externalIsVisible && internalIsVisible}
+      content={<FilterCardContent filter={filter} />}
+      getPopupContainer={getPopupContainer ?? (() => document.body)}
+      destroyTooltipOnHide
+    >
+      {children}
+    </Popover>
   );
 };

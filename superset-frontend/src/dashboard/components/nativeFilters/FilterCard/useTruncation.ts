@@ -22,18 +22,20 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
   const [elementsTruncated, setElementsTruncated] = useState(0);
   const [hasHiddenElements, setHasHiddenElements] = useState(false);
 
+  const currentElement = elementRef.current;
   useLayoutEffect(() => {
-    if (!elementRef.current) {
+    if (!currentElement) {
       return;
     }
-    if (elementRef.current.scrollWidth > elementRef.current.clientWidth) {
-      // "..." is around 6x wide
-      const maxWidth = elementRef.current.clientWidth - 6;
-      const elementsCount = elementRef.current.childNodes.length;
+    const { scrollWidth, clientWidth, childNodes } = currentElement;
+    if (scrollWidth > clientWidth) {
+      // "..." is around 6px wide
+      const maxWidth = clientWidth - 6;
+      const elementsCount = childNodes.length;
       let width = 0;
       let i = 0;
       while (width < maxWidth) {
-        width += (elementRef.current.childNodes[i] as HTMLElement).offsetWidth;
+        width += (childNodes[i] as HTMLElement).offsetWidth;
         i += 1;
       }
       if (i === elementsCount) {
@@ -47,9 +49,9 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
       setElementsTruncated(0);
     }
   }, [
-    elementRef.current?.offsetWidth,
-    elementRef.current?.clientWidth,
-    elementRef,
+    currentElement?.offsetWidth,
+    currentElement?.clientWidth,
+    currentElement,
   ]);
 
   return [elementsTruncated, hasHiddenElements];
