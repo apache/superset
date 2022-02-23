@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""new dataset models
+
+# pylint: disable=too-few-public-methods
+"""New dataset models
 
 Revision ID: b8d3a24d9131
 Revises: aea15018d53b
@@ -22,18 +24,391 @@ Create Date: 2021-11-11 16:41:53.266965
 
 """
 
+import json
+from typing import Any, Dict, List, Optional, Type
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import and_, inspect, or_
+from sqlalchemy.engine import create_engine, Engine
+from sqlalchemy.engine.base import Connection
+from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.exc import ArgumentError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset import app, db, db_engine_specs
+from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
+from superset.extensions import encrypted_field_factory, security_manager
+from superset.sql_parse import ParsedQuery
+from superset.utils.memoized import memoized
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
 down_revision = "aea15018d53b"
+
+Base = declarative_base()
+custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
+DB_CONNECTION_MUTATOR = app.config["DB_CONNECTION_MUTATOR"]
+
+
+class Database(Base):
+
+    __tablename__ = "dbs"
+    __table_args__ = (UniqueConstraint("database_name"),)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    database_name = sa.Column(sa.String(250), unique=True, nullable=False)
+    sqlalchemy_uri = sa.Column(sa.String(1024), nullable=False)
+    password = sa.Column(encrypted_field_factory.create(sa.String(1024)))
+    impersonate_user = sa.Column(sa.Boolean, default=False)
+    encrypted_extra = sa.Column(encrypted_field_factory.create(sa.Text), nullable=True)
+    extra = sa.Column(
+        sa.Text,
+        default=json.dumps(
+            dict(
+                metadata_params={},
+                engine_params={},
+                metadata_cache_timeout={},
+                schemas_allowed_for_file_upload=[],
+            )
+        ),
+    )
+
+    @property
+    def sqlalchemy_uri_decrypted(self) -> str:
+        try:
+            url = make_url(self.sqlalchemy_uri)
+        except (ArgumentError, ValueError):
+            return "dialect://invalid_uri"
+        if custom_password_store:
+            url.password = custom_password_store(url)
+        else:
+            url.password = self.password
+        return str(url)
+
+    @property
+    def backend(self) -> str:
+        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+
+    @classmethod
+    @memoized
+    def get_db_engine_spec_for_backend(
+        cls, backend: str
+    ) -> Type[db_engine_specs.BaseEngineSpec]:
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(backend, db_engine_specs.BaseEngineSpec)
+
+    @property
+    def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
+        return self.get_db_engine_spec_for_backend(self.backend)
+
+    def get_extra(self) -> Dict[str, Any]:
+        return self.db_engine_spec.get_extra_params(self)
+
+    def get_effective_user(
+        self, object_url: URL, user_name: Optional[str] = None,
+    ) -> Optional[str]:
+        effective_username = None
+        if self.impersonate_user:
+            effective_username = object_url.username
+            if user_name:
+                effective_username = user_name
+
+        return effective_username
+
+    def get_encrypted_extra(self) -> Dict[str, Any]:
+        return json.loads(self.encrypted_extra) if self.encrypted_extra else {}
+
+    @memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
+    def get_sqla_engine(self, schema: Optional[str] = None) -> Engine:
+        extra = self.get_extra()
+        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        effective_username = self.get_effective_user(sqlalchemy_url, "admin")
+        # If using MySQL or Presto for example, will set url.username
+        self.db_engine_spec.modify_url_for_impersonation(
+            sqlalchemy_url, self.impersonate_user, effective_username
+        )
+
+        params = extra.get("engine_params", {})
+        connect_args = params.get("connect_args", {})
+        if self.impersonate_user:
+            self.db_engine_spec.update_impersonation_config(
+                connect_args, str(sqlalchemy_url), effective_username
+            )
+
+        if connect_args:
+            params["connect_args"] = connect_args
+
+        params.update(self.get_encrypted_extra())
+
+        if DB_CONNECTION_MUTATOR:
+            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
+                sqlalchemy_url,
+                params,
+                effective_username,
+                security_manager,
+                "migration",
+            )
+
+        return create_engine(sqlalchemy_url, **params)
+
+
+class TableColumn(Base):
+
+    __tablename__ = "table_columns"
+    __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    table_id = sa.Column(sa.Integer, sa.ForeignKey("tables.id"))
+    is_active = sa.Column(sa.Boolean, default=True)
+    extra = sa.Column(sa.Text)
+    column_name = sa.Column(sa.String(255), nullable=False)
+    type = sa.Column(sa.String(32))
+    expression = sa.Column(sa.Text)
+    description = sa.Column(sa.Text)
+    is_dttm = sa.Column(sa.Boolean, default=False)
+
+
+class SqlMetric(Base):
+
+    __tablename__ = "sql_metrics"
+    __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    table_id = sa.Column(sa.Integer, sa.ForeignKey("tables.id"))
+    extra = sa.Column(sa.Text)
+    metric_type = sa.Column(sa.String(32))
+    metric_name = sa.Column(sa.String(255), nullable=False)
+    expression = sa.Column(sa.Text, nullable=False)
+    warning_text = sa.Column(sa.Text)
+    description = sa.Column(sa.Text)
+
+
+class SqlaTable(Base):
+
+    __tablename__ = "tables"
+    __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    columns: List[TableColumn] = []
+    column_class = TableColumn
+    metrics: List[SqlMetric] = []
+    metric_class = SqlMetric
+
+    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database: Database = relationship(
+        "Database",
+        backref=backref("tables", cascade="all, delete-orphan"),
+        foreign_keys=[database_id],
+    )
+    schema = sa.Column(sa.String(255))
+    table_name = sa.Column(sa.String(250), nullable=False)
+    sql = sa.Column(sa.Text)
+
+
+table_column_association_table = sa.Table(
+    "sl_table_columns",
+    Base.metadata,
+    sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
+    sa.Column("column_id", sa.ForeignKey("sl_columns.id")),
+)
+
+dataset_column_association_table = sa.Table(
+    "sl_dataset_columns",
+    Base.metadata,
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
+    sa.Column("column_id", sa.ForeignKey("sl_columns.id")),
+)
+
+dataset_table_association_table = sa.Table(
+    "sl_dataset_tables",
+    Base.metadata,
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
+    sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
+)
+
+
+class NewColumn(Base):
+
+    __tablename__ = "sl_columns"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.Text)
+    type = sa.Column(sa.Text)
+    expression = sa.Column(sa.Text)
+    is_physical = sa.Column(sa.Boolean, default=True)
+    description = sa.Column(sa.Text)
+    warning_text = sa.Column(sa.Text)
+    is_temporal = sa.Column(sa.Boolean, default=False)
+    is_aggregation = sa.Column(sa.Boolean, default=False)
+    is_additive = sa.Column(sa.Boolean, default=False)
+
+
+class NewTable(Base):
+
+    __tablename__ = "sl_tables"
+    __table_args__ = (UniqueConstraint("database_id", "catalog", "schema", "name"),)
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.Text)
+    schema = sa.Column(sa.Text)
+    catalog = sa.Column(sa.Text)
+    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database: Database = relationship(
+        "Database",
+        backref=backref("new_tables", cascade="all, delete-orphan"),
+        foreign_keys=[database_id],
+    )
+
+    columns: List[NewColumn] = relationship(
+        "NewColumn", secondary=table_column_association_table, cascade="all, delete"
+    )
+
+
+class NewDataset(Base):
+
+    __tablename__ = "sl_datasets"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    sqlatable_id = sa.Column(sa.Integer, nullable=True, unique=True)
+    name = sa.Column(sa.Text)
+    expression = sa.Column(sa.Text)
+    tables: List[NewTable] = relationship(
+        "NewTable", secondary=dataset_table_association_table
+    )
+    columns: List[NewColumn] = relationship(
+        "NewColumn", secondary=dataset_column_association_table, cascade="all, delete"
+    )
+
+    is_physical = sa.Column(sa.Boolean, default=False)
+
+
+def after_insert(  # pylint: disable=too-many-locals
+    mapper: Mapper, connection: Connection, target: SqlaTable,
+) -> None:
+    """
+    Copy old datasets to the new models.
+    """
+    # set permissions
+    security_manager.set_perm(mapper, connection, target)
+
+    session = inspect(target).session
+
+    # get DB-specific conditional quoter for expressions that point to columns or
+    # table names
+    database = (
+        target.database
+        or session.query(Database).filter_by(id=target.database_id).one()
+    )
+    engine = database.get_sqla_engine(schema=target.schema)
+    conditional_quote = engine.dialect.identifier_preparer.quote
+
+    # create columns
+    columns = []
+    for column in target.columns:
+        # ``is_active`` might be ``None`` at this point, but it defaults to ``True``.
+        if column.is_active is False:
+            continue
+
+        extra_json = json.loads(column.extra or "{}")
+        for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
+            value = getattr(column, attr)
+            if value:
+                extra_json[attr] = value
+
+        columns.append(
+            NewColumn(
+                name=column.column_name,
+                type=column.type or "Unknown",
+                expression=column.expression or conditional_quote(column.column_name),
+                description=column.description,
+                is_temporal=column.is_dttm,
+                is_aggregation=False,
+                is_physical=column.expression is None,
+                extra_json=json.dumps(extra_json) if extra_json else None,
+            ),
+        )
+
+    # create metrics
+    for metric in target.metrics:
+        extra_json = json.loads(metric.extra or "{}")
+        for attr in {"verbose_name", "metric_type", "d3format"}:
+            value = getattr(metric, attr)
+            if value:
+                extra_json[attr] = value
+
+        is_additive = (
+            metric.metric_type and metric.metric_type.lower() in ADDITIVE_METRIC_TYPES
+        )
+
+        columns.append(
+            NewColumn(
+                name=metric.metric_name,
+                type="Unknown",  # figuring this out would require a type inferrer
+                expression=metric.expression,
+                warning_text=metric.warning_text,
+                description=metric.description,
+                is_aggregation=True,
+                is_additive=is_additive,
+                is_physical=False,
+                extra_json=json.dumps(extra_json) if extra_json else None,
+            ),
+        )
+
+    # physical dataset
+    tables = []
+    if target.sql is None:
+        physical_columns = [column for column in columns if column.is_physical]
+
+        # create table
+        table = NewTable(
+            name=target.table_name,
+            schema=target.schema,
+            catalog=None,  # currently not supported
+            database_id=target.database_id,
+            columns=physical_columns,
+        )
+        tables.append(table)
+
+    # virtual dataset
+    else:
+        # mark all columns as virtual (not physical)
+        for column in columns:
+            column.is_physical = False
+
+        # find referenced tables
+        parsed = ParsedQuery(target.sql)
+        referenced_tables = parsed.tables
+
+        # predicate for finding the referenced tables
+        predicate = or_(
+            *[
+                and_(
+                    NewTable.schema == (table.schema or target.schema),
+                    NewTable.name == table.table,
+                )
+                for table in referenced_tables
+            ]
+        )
+        tables = session.query(NewTable).filter(predicate).all()
+
+    # create the new dataset
+    dataset = NewDataset(
+        sqlatable_id=target.id,
+        name=target.table_name,
+        expression=target.sql or conditional_quote(target.table_name),
+        tables=tables,
+        columns=columns,
+        is_physical=target.sql is None,
+    )
+    session.add(dataset)
 
 
 def upgrade():
@@ -159,8 +534,8 @@ def upgrade():
 
     datasets = session.query(SqlaTable).all()
     for dataset in datasets:
-        SqlaTable.after_insert(
-            mapper=None, connection=session.connection, target=dataset,  # not needed
+        after_insert(
+            mapper=None, connection=session.connection, target=dataset,
         )
 
 
