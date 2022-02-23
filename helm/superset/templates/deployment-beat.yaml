@@ -55,6 +55,9 @@ spec:
       labels:
         app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
+      {{- if .Values.supersetCeleryBeat.podLabels }}
+        {{ toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
+      {{- end }}
     spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
