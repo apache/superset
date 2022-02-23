@@ -93,3 +93,7 @@ class Column(
     # Is an increase desired? Useful for displaying the results of A/B tests, or setting
     # up alerts. Eg, this is true for "revenue", but false for "latency".
     is_increase_desired = sa.Column(sa.Boolean, default=True)
+
+    # Column is managed externally and should be read-only inside Superset
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)

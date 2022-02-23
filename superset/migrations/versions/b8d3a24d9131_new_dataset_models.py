@@ -32,12 +32,10 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine import create_engine, Engine
-from sqlalchemy.engine.base import Connection
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
@@ -78,6 +76,7 @@ class Database(Base):
             )
         ),
     )
+    server_cert = sa.Column(encrypted_field_factory.create(sa.Text), nullable=True)
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
@@ -196,6 +195,14 @@ class SqlaTable(Base):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
+    def get_perm(self) -> str:
+        return f"[{self.database}].[{self.table_name}](id:{self.id})"
+
+    def get_schema_perm(self) -> Optional[str]:
+        return security_manager.get_schema_perm(self.database, self.schema)
+
+    perm = property(get_perm)
+
     id = sa.Column(sa.Integer, primary_key=True)
     columns: List[TableColumn] = []
     column_class = TableColumn
@@ -211,6 +218,8 @@ class SqlaTable(Base):
     schema = sa.Column(sa.String(255))
     table_name = sa.Column(sa.String(250), nullable=False)
     sql = sa.Column(sa.Text)
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)
 
 
 table_column_association_table = sa.Table(
@@ -249,6 +258,8 @@ class NewColumn(Base):
     is_temporal = sa.Column(sa.Boolean, default=False)
     is_aggregation = sa.Column(sa.Boolean, default=False)
     is_additive = sa.Column(sa.Boolean, default=False)
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)
 
 
 class NewTable(Base):
@@ -266,10 +277,11 @@ class NewTable(Base):
         backref=backref("new_tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
-
     columns: List[NewColumn] = relationship(
         "NewColumn", secondary=table_column_association_table, cascade="all, delete"
     )
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)
 
 
 class NewDataset(Base):
@@ -286,19 +298,15 @@ class NewDataset(Base):
     columns: List[NewColumn] = relationship(
         "NewColumn", secondary=dataset_column_association_table, cascade="all, delete"
     )
-
     is_physical = sa.Column(sa.Boolean, default=False)
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)
 
 
-def after_insert(  # pylint: disable=too-many-locals
-    mapper: Mapper, connection: Connection, target: SqlaTable,
-) -> None:
+def after_insert(target: SqlaTable,) -> None:  # pylint: disable=too-many-locals
     """
     Copy old datasets to the new models.
     """
-    # set permissions
-    security_manager.set_perm(mapper, connection, target)
-
     session = inspect(target).session
 
     # get DB-specific conditional quoter for expressions that point to columns or
@@ -333,6 +341,8 @@ def after_insert(  # pylint: disable=too-many-locals
                 is_aggregation=False,
                 is_physical=column.expression is None,
                 extra_json=json.dumps(extra_json) if extra_json else None,
+                is_managed_externally=target.is_managed_externally,
+                external_url=target.external_url,
             ),
         )
 
@@ -359,6 +369,8 @@ def after_insert(  # pylint: disable=too-many-locals
                 is_additive=is_additive,
                 is_physical=False,
                 extra_json=json.dumps(extra_json) if extra_json else None,
+                is_managed_externally=target.is_managed_externally,
+                external_url=target.external_url,
             ),
         )
 
@@ -374,6 +386,8 @@ def after_insert(  # pylint: disable=too-many-locals
             catalog=None,  # currently not supported
             database_id=target.database_id,
             columns=physical_columns,
+            is_managed_externally=target.is_managed_externally,
+            external_url=target.external_url,
         )
         tables.append(table)
 
@@ -407,6 +421,8 @@ def after_insert(  # pylint: disable=too-many-locals
         tables=tables,
         columns=columns,
         is_physical=target.sql is None,
+        is_managed_externally=target.is_managed_externally,
+        external_url=target.external_url,
     )
     session.add(dataset)
 
@@ -439,6 +455,13 @@ def upgrade():
         sa.Column("is_aggregation", sa.BOOLEAN(), nullable=False, default=False,),
         sa.Column("is_additive", sa.BOOLEAN(), nullable=False, default=False,),
         sa.Column("is_increase_desired", sa.BOOLEAN(), nullable=False, default=True,),
+        sa.Column(
+            "is_managed_externally",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
+        sa.Column("external_url", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("sl_columns") as batch_op:
@@ -461,6 +484,13 @@ def upgrade():
         sa.Column("catalog", sa.TEXT(), nullable=True),
         sa.Column("schema", sa.TEXT(), nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
+        sa.Column(
+            "is_managed_externally",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
+        sa.Column("external_url", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="sl_tables_ibfk_1"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -496,6 +526,13 @@ def upgrade():
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False,),
+        sa.Column(
+            "is_managed_externally",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
+        sa.Column("external_url", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("sl_datasets") as batch_op:
@@ -534,9 +571,7 @@ def upgrade():
 
     datasets = session.query(SqlaTable).all()
     for dataset in datasets:
-        after_insert(
-            mapper=None, connection=session.connection, target=dataset,
-        )
+        after_insert(target=dataset)
 
 
 def downgrade():

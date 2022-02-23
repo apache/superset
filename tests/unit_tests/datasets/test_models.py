@@ -342,6 +342,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "TIMESTAMP",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
         {
             "changed_by": None,
@@ -361,6 +363,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "INTEGER",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
         {
             "changed_by": None,
@@ -380,6 +384,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "INTEGER",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
         {
             "changed_by": None,
@@ -399,6 +405,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "INTEGER",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
         {
             "changed_by": None,
@@ -418,6 +426,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "INTEGER",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
         {
             "changed_by": None,
@@ -437,6 +447,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "type": "Unknown",
             "unit": None,
             "warning_text": None,
+            "is_managed_externally": False,
+            "external_url": None,
         },
     ]
 
@@ -457,6 +469,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "columns": [1, 2, 3, 4],
             "created_by": None,
             "changed_by": None,
+            "is_managed_externally": False,
+            "external_url": None,
         }
     ]
 
@@ -478,6 +492,8 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "tables": [1],
             "extra_json": "{}",
             "expression": "old_dataset",
+            "is_managed_externally": False,
+            "external_url": None,
         }
     ]
 
@@ -601,6 +617,8 @@ FROM
             "is_temporal": True,
             "id": 1,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -620,6 +638,8 @@ FROM
             "is_temporal": False,
             "id": 2,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -639,6 +659,8 @@ FROM
             "is_temporal": False,
             "id": 3,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -658,6 +680,8 @@ FROM
             "is_temporal": False,
             "id": 4,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "TIMESTAMP",
@@ -677,6 +701,8 @@ FROM
             "is_temporal": True,
             "id": 5,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -696,6 +722,8 @@ FROM
             "is_temporal": False,
             "id": 6,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -715,6 +743,8 @@ FROM
             "is_temporal": False,
             "id": 7,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -734,6 +764,8 @@ FROM
             "is_temporal": False,
             "id": 8,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "INTEGER",
@@ -753,6 +785,8 @@ FROM
             "is_temporal": False,
             "id": 9,
             "is_aggregation": False,
+            "external_url": None,
+            "is_managed_externally": False,
         },
         {
             "type": "Unknown",
@@ -772,6 +806,8 @@ FROM
             "is_temporal": False,
             "id": 10,
             "is_aggregation": True,
+            "external_url": None,
+            "is_managed_externally": False,
         },
     ]
 
@@ -792,6 +828,8 @@ FROM
             "is_physical": False,
             "tables": [1],
             "extra_json": "{}",
+            "external_url": None,
+            "is_managed_externally": False,
             "expression": """
 SELECT
   ds,
@@ -1175,8 +1213,10 @@ def test_update_physical_sqlatable(
             "catalog": None,
             "columns": [1],
             "database": 1,
+            "external_url": None,
             "schema": None,
             "id": 1,
+            "is_managed_externally": False,
         },
         {
             "created_by": None,
@@ -1186,8 +1226,10 @@ def test_update_physical_sqlatable(
             "catalog": None,
             "columns": [2],
             "database": 2,
+            "external_url": None,
             "schema": None,
             "id": 2,
+            "is_managed_externally": False,
         },
     ]
 

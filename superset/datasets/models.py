@@ -86,3 +86,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     # Does the dataset point directly to a ``Table``?
     is_physical = sa.Column(sa.Boolean, default=False)
+
+    # Column is managed externally and should be read-only inside Superset
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)

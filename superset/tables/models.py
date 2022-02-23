@@ -86,3 +86,7 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     columns: List[Column] = relationship(
         "Column", secondary=association_table, cascade="all, delete"
     )
+
+    # Column is managed externally and should be read-only inside Superset
+    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    external_url = sa.Column(sa.Text, nullable=True)

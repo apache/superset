@@ -1984,6 +1984,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     is_aggregation=False,
                     is_physical=column.expression is None,
                     extra_json=json.dumps(extra_json) if extra_json else None,
+                    is_managed_externally=target.is_managed_externally,
+                    external_url=target.external_url,
                 ),
             )
 
@@ -2011,6 +2013,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     is_additive=is_additive,
                     is_physical=False,
                     extra_json=json.dumps(extra_json) if extra_json else None,
+                    is_managed_externally=target.is_managed_externally,
+                    external_url=target.external_url,
                 ),
             )
 
@@ -2026,6 +2030,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 catalog=None,  # currently not supported
                 database_id=target.database_id,
                 columns=physical_columns,
+                is_managed_externally=target.is_managed_externally,
+                external_url=target.external_url,
             )
             tables.append(table)
 
@@ -2059,6 +2065,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             tables=tables,
             columns=columns,
             is_physical=target.sql is None,
+            is_managed_externally=target.is_managed_externally,
+            external_url=target.external_url,
         )
         session.add(dataset)
 
@@ -2169,6 +2177,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         is_aggregation=False,
                         is_physical=column.expression is None,
                         extra_json=json.dumps(extra_json) if extra_json else None,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
                     )
                 )
 
@@ -2210,6 +2220,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         is_additive=is_additive,
                         is_physical=False,
                         extra_json=json.dumps(extra_json) if extra_json else None,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
                     )
                 )
 
@@ -2250,6 +2262,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         catalog=None,
                         database_id=target.database_id,
                         columns=physical_columns,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
                     )
                 dataset.tables = [table]
             elif dataset.tables:
