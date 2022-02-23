@@ -125,6 +125,7 @@ CMD /usr/bin/run-server.sh
 ######################################################################
 FROM lean AS prod
 ARG GECKODRIVER_VERSION=v0.28.0
+ARG FIREFOX_VERSION=88.0
 USER root
 
 RUN apt-get update -y \
