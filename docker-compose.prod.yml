@@ -1,4 +1,4 @@
-x-superset-image: &superset-image jacobru/superset:22.02.12
+x-superset-image: &superset-image jacobru/superset:22.02.23
 x-superset-depends-on: &superset-depends-on
   - redis
 
