@@ -50,4 +50,4 @@ def test_column_model(app_context: None, session: Session) -> None:
     assert column.is_partition is False
     assert column.is_aggregation is False
     assert column.is_additive is False
-    assert column.increase_good is True
+    assert column.is_increase_desired is True
