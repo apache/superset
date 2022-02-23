@@ -51,7 +51,7 @@ export const Row = styled.div`
     font-size: ${theme.typography.sizes.s}px;
 
     & .ant-tooltip-open {
-      display: inline;
+      display: inline-flex;
     }
   `};
 `;
@@ -66,13 +66,14 @@ export const RowLabel = styled.span`
   `};
 `;
 
-export const RowValue = styled.span`
+export const RowValue = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.dark1};
     font-size: ${theme.typography.sizes.s}px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: inline;
   `};
 `;
 
@@ -92,4 +93,10 @@ export const TooltipList = styled.ul`
     padding-left: ${theme.gridUnit * 3}px;
     margin-bottom: 0;
   `};
+`;
+
+export const TooltipTrigger = styled.div`
+  min-width: 0;
+  display: inline-flex;
+  white-space: nowrap;
 `;

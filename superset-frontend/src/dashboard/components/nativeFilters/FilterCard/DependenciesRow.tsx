@@ -29,6 +29,7 @@ import {
   RowTruncationCount,
   RowValue,
   TooltipList,
+  TooltipTrigger,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
 import { useTruncation } from './useTruncation';
@@ -48,7 +49,7 @@ const DependencyValue = ({ dependency, label }: DependencyValueProps) => {
 
 export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);
-  const dependenciesRef = useRef<HTMLElement>(null);
+  const dependenciesRef = useRef<HTMLDivElement>(null);
   const [elementsTruncated, hasHiddenElements] = useTruncation(dependenciesRef);
   const theme = useTheme();
 
@@ -99,25 +100,27 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         title={tooltipText}
         placement="bottom"
       >
-        <RowValue ref={dependenciesRef}>
-          {dependencies.map((dependency, index) =>
-            index === 0 ? (
-              <DependencyValue
-                dependency={dependency}
-                label={dependency.name}
-              />
-            ) : (
-              <DependencyValue
-                dependency={dependency}
-                label={`, ${dependency.name}`}
-              />
-            ),
+        <TooltipTrigger>
+          <RowValue ref={dependenciesRef}>
+            {dependencies.map((dependency, index) =>
+              index === 0 ? (
+                <DependencyValue
+                  dependency={dependency}
+                  label={dependency.name}
+                />
+              ) : (
+                <DependencyValue
+                  dependency={dependency}
+                  label={`, ${dependency.name}`}
+                />
+              ),
+            )}
+          </RowValue>
+          {hasHiddenElements && (
+            <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
           )}
-        </RowValue>
+        </TooltipTrigger>
       </Tooltip>
-      {hasHiddenElements && (
-        <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
-      )}
     </Row>
   ) : null;
 });

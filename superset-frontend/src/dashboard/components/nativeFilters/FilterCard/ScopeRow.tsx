@@ -26,13 +26,14 @@ import {
   RowTruncationCount,
   RowValue,
   TooltipList,
+  TooltipTrigger,
 } from './Styles';
 import { useTruncation } from './useTruncation';
 import { FilterCardRowProps } from './types';
 
 export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
-  const scopeRef = useRef<HTMLElement>(null);
+  const scopeRef = useRef<HTMLDivElement>(null);
 
   const [elementsTruncated, hasHiddenElements] = useTruncation(scopeRef);
   const tooltipText = useMemo(
@@ -55,15 +56,17 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
         placement="bottom"
         overlayClassName="filter-card-tooltip"
       >
-        <RowValue ref={scopeRef}>
-          {scope.map((element, index) =>
-            index === 0 ? <span>{element}</span> : <span>, {element}</span>,
+        <TooltipTrigger>
+          <RowValue ref={scopeRef}>
+            {scope.map((element, index) =>
+              index === 0 ? <span>{element}</span> : <span>, {element}</span>,
+            )}
+          </RowValue>
+          {hasHiddenElements > 0 && (
+            <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
           )}
-        </RowValue>
+        </TooltipTrigger>
       </Tooltip>
-      {hasHiddenElements > 0 && (
-        <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
-      )}
     </Row>
   ) : null;
 });
