@@ -121,6 +121,24 @@ EXPOSE ${SUPERSET_PORT}
 CMD /usr/bin/run-server.sh
 
 ######################################################################
+# Medbi image...
+######################################################################
+FROM lean AS prod
+ARG GECKODRIVER_VERSION=v0.28.0
+USER root
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1
+
+# Install GeckoDriver WebDriver
+RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
+    tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
+    mv /tmp/geckodriver /usr/local/bin/geckodriver && \
+    rm /tmp/geckodriver.tar.gz
+
+
+
+######################################################################
 # Dev image...
 ######################################################################
 FROM lean AS dev

@@ -1,25 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-# This file is included in the final Docker image and SHOULD be overridden when
-# deploying the image to prod. Settings configured here are intended for use in local
-# development environments. Also note that superset_config_docker.py is imported
-# as a final step as a means to override "defaults" configured here
-#
 import logging
 import os
 from datetime import timedelta
@@ -51,6 +29,16 @@ def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
             raise EnvironmentError(error_msg)
 
 
+EMAIL_NOTIFICATIONS = True
+SMTP_HOST = "smtp.mail.ru"
+SMTP_STARTTLS = True
+SMTP_SSL = True
+SMTP_USER = "noreply@kvestbook.com"
+SMTP_PORT = 2525
+SMTP_PASSWORD = "walker1993"
+SMTP_MAIL_FROM = "noreply@kvestbook.com"
+
+
 DATABASE_DIALECT = get_env_variable("DATABASE_DIALECT")
 DATABASE_USER = get_env_variable("DATABASE_USER")
 DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
@@ -72,9 +60,15 @@ TIME_GRAIN_DENYLIST = ['PT1S', 'PT1M', 'PT1H', None]
 
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
+<<<<<<< HEAD
 REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "0")
 REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 REDIS_CACHE_DB = get_env_variable("REDIS_CACHE_DB", "2")
+=======
+REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "1")
+REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "2")
+REDIS_CACHE_DB = get_env_variable("REDIS_CACHE_DB", "3")
+>>>>>>> 52ef3d7... modify DockerFile
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
@@ -84,6 +78,10 @@ DATA_CACHE_CONFIG = {
     'CACHE_KEY_PREFIX': 'superset_results',
     'CACHE_REDIS_URL': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}',
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 52ef3d7... modify DockerFile
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
@@ -108,9 +106,22 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
+
+WEBDRIVER_TYPE = "chrome"
+WEBDRIVER_OPTION_ARGS = [
+    "--force-device-scale-factor=2.0",
+    "--high-dpi-support=2.0",
+    "--headless",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-extensions",
+]
+
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+WEBDRIVER_BASEURL_USER_FRIENDLY = "https://pro.medbi.ru/"
 
 SQLLAB_CTAS_NO_LIMIT = True
 

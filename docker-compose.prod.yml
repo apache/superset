@@ -1,0 +1,70 @@
+x-superset-image: &superset-image jacobru/superset:22.02.12
+x-superset-depends-on: &superset-depends-on
+  - redis
+
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker:/app/docker
+  #- ./superset:/app/superset
+  - ./superset-frontend/src/assets/images:/app/superset/static/assets/images
+  - ./superset_home:/app/superset_home
+
+x-superset-networks: &superset-networks
+  - main_medbi
+
+version: "3.7"
+services:
+  redis:
+    hostname: superset_redis
+    image: redis:latest
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+    networks: *superset-networks
+
+  superset:
+    env_file: docker/.env-prod
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
+    restart: always
+    ports:
+      - 8088:8088
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    networks: *superset-networks
+
+  superset-worker:
+    image: *superset-image
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: docker/.env-prod
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+    networks: *superset-networks
+
+  superset-worker-beat:
+    image: *superset-image
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file: docker/.env-prod
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+    networks: *superset-networks
+
+volumes:
+  superset_home:
+    external: false
+  redis:
+    external: false
+
+networks:
+  main_medbi:
+    name: medbi_sail
+    external: true
