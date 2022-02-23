@@ -16,27 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useRef } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Row } from './Styles';
+import { Row, FilterName } from './Styles';
 import { FilterCardRowProps } from './types';
+import { useTruncation } from './useTruncation';
+import { TooltipWithTruncation } from './TooltipWithTruncation';
 
-export const NameRow = ({ filter }: FilterCardRowProps) => (
-  <Row
-    css={(theme: SupersetTheme) =>
-      css`
-        margin-bottom: ${theme.gridUnit * 3}px;
-      `
-    }
-  >
-    <Icons.FilterSmall
+export const NameRow = ({ filter }: FilterCardRowProps) => {
+  const filterNameRef = useRef<HTMLElement>(null);
+  const [elementsTruncated] = useTruncation(filterNameRef);
+  return (
+    <Row
       css={(theme: SupersetTheme) =>
         css`
-          margin-right: ${theme.gridUnit}px;
+          margin-bottom: ${theme.gridUnit * 3}px;
         `
       }
-    />
-    <span>{filter.name}</span>
-  </Row>
-);
+    >
+      <Icons.FilterSmall
+        css={(theme: SupersetTheme) =>
+          css`
+            margin-right: ${theme.gridUnit}px;
+          `
+        }
+      />
+      <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
+        <FilterName ref={filterNameRef}>{filter.name}</FilterName>
+      </TooltipWithTruncation>
+    </Row>
+  );
+};

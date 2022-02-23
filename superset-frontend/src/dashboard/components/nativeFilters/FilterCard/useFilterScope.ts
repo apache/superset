@@ -134,7 +134,7 @@ export const useFilterScope = (filter: Filter) => {
         }, []);
       // Join tab names and chart names
       return topLevelTabsInFullScope
-        .map(tabId => extractChartLabel(layout[tabId]))
+        .map(tabId => extractTabLabel(layout[tabId]))
         .concat(chartsInExcludedTabs.map(extractChartLabel));
     }
 

@@ -22,8 +22,8 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
   const [elementsTruncated, setElementsTruncated] = useState(0);
   const [hasHiddenElements, setHasHiddenElements] = useState(false);
 
-  const currentElement = elementRef.current;
   useLayoutEffect(() => {
+    const currentElement = elementRef.current;
     if (!currentElement) {
       return;
     }
@@ -49,9 +49,9 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
       setElementsTruncated(0);
     }
   }, [
-    currentElement?.offsetWidth,
-    currentElement?.clientWidth,
-    currentElement,
+    elementRef.current?.offsetWidth,
+    elementRef.current?.clientWidth,
+    elementRef,
   ]);
 
   return [elementsTruncated, hasHiddenElements];

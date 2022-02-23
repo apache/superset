@@ -21,7 +21,6 @@ import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
 import {
   DependencyItem,
   Row,
@@ -29,11 +28,11 @@ import {
   RowTruncationCount,
   RowValue,
   TooltipList,
-  TooltipTrigger,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
 import { useTruncation } from './useTruncation';
 import { DependencyValueProps, FilterCardRowProps } from './types';
+import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 const DependencyValue = ({ dependency, label }: DependencyValueProps) => {
   const dispatch = useDispatch();
@@ -82,12 +81,10 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         `}
       >
         {t('Dependent on')}{' '}
-        <Tooltip
+        <TooltipWithTruncation
           title={t(
             'Filter only displays values relevant to selections made in other filters.',
           )}
-          placement="bottom"
-          overlayClassName="filter-card-tooltip"
         >
           <Icons.Info
             iconSize="s"
@@ -96,27 +93,21 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
               margin-left: ${theme.gridUnit}px;
             `}
           />
-        </Tooltip>
+        </TooltipWithTruncation>
       </RowLabel>
-      <Tooltip
-        overlayClassName="filter-card-tooltip"
-        title={tooltipText}
-        placement="bottom"
-      >
-        <TooltipTrigger>
-          <RowValue ref={dependenciesRef}>
-            {dependencies.map((dependency, index) => (
-              <DependencyValue
-                dependency={dependency}
-                label={index === 0 ? dependency.name : `, ${dependency.name}`}
-              />
-            ))}
-          </RowValue>
-          {hasHiddenElements && (
-            <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
-          )}
-        </TooltipTrigger>
-      </Tooltip>
+      <TooltipWithTruncation title={tooltipText}>
+        <RowValue ref={dependenciesRef}>
+          {dependencies.map((dependency, index) => (
+            <DependencyValue
+              dependency={dependency}
+              label={index === 0 ? dependency.name : `, ${dependency.name}`}
+            />
+          ))}
+        </RowValue>
+        {hasHiddenElements && (
+          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+        )}
+      </TooltipWithTruncation>
     </Row>
   );
 });

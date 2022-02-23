@@ -52,12 +52,17 @@ export const RowLabel = styled.span`
 export const RowValue = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.s}px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: inline;
   `};
+`;
+
+export const FilterName = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const DependencyItem = styled.span`

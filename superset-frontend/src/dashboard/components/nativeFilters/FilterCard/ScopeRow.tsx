@@ -18,7 +18,6 @@
  */
 import React, { useMemo, useRef } from 'react';
 import { t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { useFilterScope } from './useFilterScope';
 import {
   Row,
@@ -26,10 +25,10 @@ import {
   RowTruncationCount,
   RowValue,
   TooltipList,
-  TooltipTrigger,
 } from './Styles';
 import { useTruncation } from './useTruncation';
 import { FilterCardRowProps } from './types';
+import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
@@ -54,22 +53,16 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   return (
     <Row>
       <RowLabel>{t('Scope')}</RowLabel>
-      <Tooltip
-        title={tooltipText}
-        placement="bottom"
-        overlayClassName="filter-card-tooltip"
-      >
-        <TooltipTrigger>
-          <RowValue ref={scopeRef}>
-            {scope.map((element, index) => (
-              <span>{index === 0 ? element : `, {element}`}</span>
-            ))}
-          </RowValue>
-          {hasHiddenElements > 0 && (
-            <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
-          )}
-        </TooltipTrigger>
-      </Tooltip>
+      <TooltipWithTruncation title={tooltipText}>
+        <RowValue ref={scopeRef}>
+          {scope.map((element, index) => (
+            <span>{index === 0 ? element : `, ${element}`}</span>
+          ))}
+        </RowValue>
+        {hasHiddenElements > 0 && (
+          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+        )}
+      </TooltipWithTruncation>
     </Row>
   );
 });
