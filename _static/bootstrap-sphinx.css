@@ -1,0 +1,167 @@
+/*
+ * bootstrap-sphinx.css
+ * ~~~~~~~~~~~~~~~~~~~~
+ *
+ * Sphinx stylesheet -- Bootstrap theme.
+ */
+
+.navbar-inverse .brand {
+  color: #FFF;
+}
+
+/*
+ * Reset navbar styles from overrides in:
+ * https://bitbucket.org/birkenfeld/sphinx/commits/78d8ebf76b630ab4073a7328af9d91e8123b8d96
+ */
+.navbar .container {
+  padding-top: 0;
+}
+
+.page-top {
+  top: 0px;
+}
+
+
+
+
+
+table {
+  border: 0;
+}
+
+.highlighttable .code pre {
+    font-size: 12px;
+}
+
+.highlighttable .linenos pre {
+    word-break: normal;
+    font-size: 12px;
+}
+
+div.highlight {
+  background: none;
+}
+
+a.footnote-reference {
+  vertical-align: super;
+  font-size: 75%;
+}
+
+table.footnote td.label {
+  font-size: 100%;
+  display: block;
+  line-height: normal;
+  background: inherit;
+}
+
+table.footnote {
+  width: auto;
+  margin-bottom: 0px;
+}
+
+table.field-list {
+  width: auto;
+}
+
+.footer {
+  width: 100%;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+}
+
+.bs-sidenav form, .bs-sidenav #sourcelink {
+  padding: 5px 20px;
+}
+
+
+
+/* The code below is based on the bootstrap website sidebar */
+
+.bs-sidenav.affix {
+  position: static;
+}
+
+/* First level of nav */
+.bs-sidenav {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  padding-top:    10px;
+  padding-bottom: 10px;
+  text-shadow: 0 1px 0 #fff;
+  background-color: #f7f5fa;
+  border-radius: 5px;
+}
+
+/* All levels of nav */
+.bs-sidenav .nav > li > a {
+  display: block;
+  color: #716b7a;
+  padding: 5px 20px;
+}
+.bs-sidenav .nav > li > a:hover,
+.bs-sidenav .nav > li > a:focus {
+  text-decoration: none;
+  background-color: #e5e3e9;
+  border-right: 1px solid #dbd8e0;
+}
+.bs-sidenav .nav > .active > a,
+.bs-sidenav .nav > .active:hover > a,
+.bs-sidenav .nav > .active:focus > a {
+  font-weight: bold;
+  color: #563d7c;
+  background-color: transparent;
+  border-right: 1px solid #563d7c;
+}
+
+.bs-sidenav .nav .nav > li > a {
+  padding-top:    3px;
+  padding-bottom: 3px;
+  padding-left: 30px;
+  font-size: 90%;
+}
+
+.bs-sidenav .nav .nav .nav > li > a {
+  padding-top:    3px;
+  padding-bottom: 3px;
+  padding-left: 40px;
+  font-size: 90%;
+}
+
+.bs-sidenav .nav .nav .nav .nav > li > a {
+  padding-top:    3px;
+  padding-bottom: 3px;
+  padding-left: 50px;
+  font-size: 90%;
+}
+
+/* Show and affix the side nav when space allows it */
+@media screen and (min-width: 992px) {
+  .bs-sidenav .nav > .active > ul {
+    display: block;
+  }
+  /* Widen the fixed sidenav */
+  .bs-sidenav.affix,
+  .bs-sidenav.affix-bottom {
+    width: 213px;
+  }
+  .bs-sidenav.affix {
+    position: fixed; /* Undo the static from mobile first approach */
+  }
+  .bs-sidenav.affix-bottom {
+    position: absolute; /* Undo the static from mobile first approach */
+  }
+  .bs-sidenav.affix-bottom .bs-sidenav,
+  .bs-sidenav.affix .bs-sidenav {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+@media screen and (min-width: 1200px) {
+  /* Widen the fixed sidenav again */
+  .bs-sidenav.affix-bottom,
+  .bs-sidenav.affix {
+    width: 263px;
+  }
+}
+
+

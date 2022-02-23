@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Security &mdash; Superset&#39;s documentation  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
+        <link rel="next" title="SQL Lab" href="sqllab.html"/>
+        <link rel="prev" title="Tutorial for Superset Administrators" href="tutorial.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Superset's documentation
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Security</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#provided-roles">Provided Roles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#admin">Admin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#alpha">Alpha</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gamma">Gamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sql-lab">sql_lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#public">Public</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#customizing">Customizing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#permissions">Permissions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#restricting-access-to-a-subset-of-data-sources">Restricting access to a subset of data sources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#restricting-the-access-to-some-metrics">Restricting the access to some metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Superset's documentation</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Security</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="security">
+<h1>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h1>
+<p>Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
+&#8220;Simple and rapid application development framework, built on top of Flask.&#8221;.
+FAB provides authentication, user management, permissions and roles.</p>
+<div class="section" id="provided-roles">
+<h2>Provided Roles<a class="headerlink" href="#provided-roles" title="Permalink to this headline">¶</a></h2>
+<p>Superset ships with a set of roles that are handled by Superset itself.
+You can assume that these roles will stay up-to-date as Superset evolves.
+Even though it&#8217;s possible for <code class="docutils literal"><span class="pre">Admin</span></code> usrs to do so, it is not recommended
+that you alter these roles in any way by removing
+or adding permissions to them as these roles will be re-synchronized to
+their original values as you run your next <code class="docutils literal"><span class="pre">superset</span> <span class="pre">init</span></code> command.</p>
+<p>Since it&#8217;s not recommended to alter the roles described here, it&#8217;s right
+to assume that your security strategy should be to compose user access based
+on these base roles and roles that you create. For instance you could
+create a role <code class="docutils literal"><span class="pre">Financial</span> <span class="pre">Analyst</span></code> that would be made of set of permissions
+to a set of data sources (tables) and/or databases. Users would then be
+granted <code class="docutils literal"><span class="pre">Gamma</span></code>, <code class="docutils literal"><span class="pre">Financial</span> <span class="pre">Analyst</span></code>, and perhaps <code class="docutils literal"><span class="pre">sql_lab</span></code>.</p>
+<div class="section" id="admin">
+<h3>Admin<a class="headerlink" href="#admin" title="Permalink to this headline">¶</a></h3>
+<p>Admins have all possible rights, including granting or revoking rights from
+other users and altering other people&#8217;s slices and dashboards.</p>
+</div>
+<div class="section" id="alpha">
+<h3>Alpha<a class="headerlink" href="#alpha" title="Permalink to this headline">¶</a></h3>
+<p>Alpha have access to all data sources, but they cannot grant or revoke access
+from other users. They are also limited to altering the objects that they
+own. Alpha users can add and alter data sources.</p>
+</div>
+<div class="section" id="gamma">
+<h3>Gamma<a class="headerlink" href="#gamma" title="Permalink to this headline">¶</a></h3>
+<p>Gamma have limited access. They can only consume data coming from data sources
+they have been giving access to through another complementary role.
+They only have access to view the slices and
+dashboards made from data sources that they have access to. Currently Gamma
+users are not able to alter or add data sources. We assume that they are
+mostly content consumers, though they can create slices and dashboards.</p>
+<p>Also note that when Gamma users look at the dashboards and slices list view,
+they will only see the objects that they have access to.</p>
+</div>
+<div class="section" id="sql-lab">
+<h3>sql_lab<a class="headerlink" href="#sql-lab" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal"><span class="pre">sql_lab</span></code> role grants access to SQL Lab. Note that while <code class="docutils literal"><span class="pre">Admin</span></code>
+users have access to all databases by default, both <code class="docutils literal"><span class="pre">Alpha</span></code> and <code class="docutils literal"><span class="pre">Gamma</span></code>
+users need to be given access on a per database basis.</p>
+</div>
+<div class="section" id="public">
+<h3>Public<a class="headerlink" href="#public" title="Permalink to this headline">¶</a></h3>
+<p>It&#8217;s possible to allow logged out users to access some Superset features.</p>
+<p>By setting <code class="docutils literal"><span class="pre">PUBLIC_ROLE_LIKE_GAMMA</span> <span class="pre">=</span> <span class="pre">True</span></code> in your <code class="docutils literal"><span class="pre">superset_config.py</span></code>,
+you grant public role the same set of permissions as for the GAMMA role.
+This is useful if one wants to enable anonymous users to view
+dashboards. Explicit grant on specific datasets is still required, meaning
+that you need to edit the <code class="docutils literal"><span class="pre">Public</span></code> role and add the Public data sources
+to the role manually.</p>
+</div>
+</div>
+<div class="section" id="managing-gamma-per-data-source-access">
+<h2>Managing Gamma per data source access<a class="headerlink" href="#managing-gamma-per-data-source-access" title="Permalink to this headline">¶</a></h2>
+<p>Here&#8217;s how to provide users access to only specific datasets. First make
+sure the users with limited access have [only] the Gamma role assigned to
+them. Second, create a new role (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Security</span> <span class="pre">-&gt;</span> <span class="pre">List</span> <span class="pre">Roles</span></code>) and
+click the <code class="docutils literal"><span class="pre">+</span></code> sign.</p>
+<a class="reference internal image-reference" href="_images/create_role.png"><img alt="_images/create_role.png" src="_images/create_role.png" style="width: 591.5px; height: 309.5px;" /></a>
+<p>This new window allows you to give this new role a name, attribute it to users
+and select the tables in the <code class="docutils literal"><span class="pre">Permissions</span></code> dropdown. To select the data
+sources you want to associate with this role, simply click in the dropdown
+and use the typeahead to search for your table names.</p>
+<p>You can then confirm with your Gamma users that they see the objects
+(dashboards and slices) associated with the tables related to their roles.</p>
+</div>
+<div class="section" id="customizing">
+<h2>Customizing<a class="headerlink" href="#customizing" title="Permalink to this headline">¶</a></h2>
+<p>The permissions exposed by FAB are very granular and allow for a great level
+of customization. FAB creates many permissions automagically for each model
+that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
+each view. On top of that, Superset can expose more granular permissions like
+<code class="docutils literal"><span class="pre">all_datasource_access</span></code>.</p>
+<p>We do not recommend altering the 3 base roles as there
+are a set of assumptions that Superset build upon. It is possible though for
+you to create your own roles, and union them to existing ones.</p>
+<div class="section" id="permissions">
+<h3>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h3>
+<p>Roles are composed of a set of permissions, and Superset has many categories
+of permissions. Here are the different categories of permissions:</p>
+<ul class="simple">
+<li><strong>Model &amp; action</strong>: models are entities like <code class="docutils literal"><span class="pre">Dashboard</span></code>,
+<code class="docutils literal"><span class="pre">Slice</span></code>, or <code class="docutils literal"><span class="pre">User</span></code>. Each model has a fixed set of permissions, like
+<code class="docutils literal"><span class="pre">can_edit</span></code>, <code class="docutils literal"><span class="pre">can_show</span></code>, <code class="docutils literal"><span class="pre">can_delete</span></code>, <code class="docutils literal"><span class="pre">can_list</span></code>, <code class="docutils literal"><span class="pre">can_add</span></code>, and
+so on. By adding <code class="docutils literal"><span class="pre">can_delete</span> <span class="pre">on</span> <span class="pre">Dashboard</span></code> to a role, and granting that
+role to a user, this user will be able to delete dashboards.</li>
+<li><strong>Views</strong>: views are individual web pages, like the <code class="docutils literal"><span class="pre">explore</span></code> view or the
+<code class="docutils literal"><span class="pre">SQL</span> <span class="pre">Lab</span></code> view. When granted to a user, he/she will see that view in
+the its menu items, and be able to load that page.</li>
+<li><strong>Data source</strong>: For each data source, a permission is created. If the user
+does not have the <code class="docutils literal"><span class="pre">all_datasource_access</span></code> permission granted, the user
+will only be able to see Slices or explore the data sources that are granted
+to them</li>
+<li><strong>Database</strong>: Granting access to a database allows for the user to access
+all data sources within that database, and will enable the user to query
+that database in SQL Lab, provided that the SQL Lab specific permission
+have been granted to the user</li>
+</ul>
+</div>
+<div class="section" id="restricting-access-to-a-subset-of-data-sources">
+<h3>Restricting access to a subset of data sources<a class="headerlink" href="#restricting-access-to-a-subset-of-data-sources" title="Permalink to this headline">¶</a></h3>
+<p>The best way to go is probably to give user <code class="docutils literal"><span class="pre">Gamma</span></code> plus one or many other
+roles that would add access to specific data sources. We recommend that you
+create individual roles for each access profile. Say people in your finance
+department might have access to a set of databases and data sources, and
+these permissions can be consolidated in a single role. Users with this
+profile then need to be attributed <code class="docutils literal"><span class="pre">Gamma</span></code> as a foundation to the models
+and views they can access, and that <code class="docutils literal"><span class="pre">Finance</span></code> role that is a collection
+of permissions to data objects.</p>
+<p>One user can have many roles, so a finance executive could be granted
+<code class="docutils literal"><span class="pre">Gamma</span></code>, <code class="docutils literal"><span class="pre">Finance</span></code>, and perhaps another <code class="docutils literal"><span class="pre">Executive</span></code> role that gather
+a set of data sources that power dashboards only made available to executives.
+When looking at its dashboard list, this user will only see the
+list of dashboards it has access to, based on the roles and
+permissions that were attributed.</p>
+</div>
+<div class="section" id="restricting-the-access-to-some-metrics">
+<h3>Restricting the access to some metrics<a class="headerlink" href="#restricting-the-access-to-some-metrics" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes some metrics are relatively sensitive (e.g. revenue).
+We may want to restrict those metrics to only a few roles.
+For example, assumed there is a metric <code class="docutils literal"><span class="pre">[cluster1].[datasource1].[revenue]</span></code>
+and only Admin users are allowed to see it. Here’s how to restrict the access.</p>
+<ol class="arabic simple">
+<li>Edit the datasource (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Source</span> <span class="pre">-&gt;</span> <span class="pre">Druid</span> <span class="pre">datasources</span> <span class="pre">-&gt;</span> <span class="pre">edit</span> <span class="pre">the</span>
+<span class="pre">record</span> <span class="pre">&quot;datasource1&quot;</span></code>) and go to the tab <code class="docutils literal"><span class="pre">List</span> <span class="pre">Druid</span> <span class="pre">Metric</span></code>. Check
+the checkbox <code class="docutils literal"><span class="pre">Is</span> <span class="pre">Restricted</span></code> in the row of the metric <code class="docutils literal"><span class="pre">revenue</span></code>.</li>
+<li>Edit the role (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Security</span> <span class="pre">-&gt;</span> <span class="pre">List</span> <span class="pre">Roles</span> <span class="pre">-&gt;</span> <span class="pre">edit</span> <span class="pre">the</span> <span class="pre">record</span>
+<span class="pre">“Admin”</span></code>), in the permissions field, type-and-search the permission
+<code class="docutils literal"><span class="pre">metric</span> <span class="pre">access</span> <span class="pre">on</span> <span class="pre">[cluster1].[datasource1].[revenue]</span> <span class="pre">(id:</span> <span class="pre">1)</span></code>, then
+click the Save button on the bottom of the page.</li>
+</ol>
+<p>Any users without the permission will see the error message
+<em>Access to the metrics denied: revenue (Status: 500)</em> in the slices.
+It also happens when the user wants to access a post-aggregation metric that
+is dependent on revenue.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sqllab.html" class="btn btn-neutral float-right" title="SQL Lab" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorial.html" class="btn btn-neutral" title="Tutorial for Superset Administrators" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
