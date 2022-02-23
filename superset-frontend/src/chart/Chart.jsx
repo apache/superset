@@ -208,6 +208,7 @@ class Chart extends React.PureComponent {
     ) {
       return (
         <Styles
+          key={chartId}
           data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
@@ -220,6 +221,7 @@ class Chart extends React.PureComponent {
 
     return (
       <ChartErrorMessage
+        key={chartId}
         chartId={chartId}
         error={error}
         subtitle={message}

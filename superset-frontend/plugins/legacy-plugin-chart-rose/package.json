@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "nvd3": "1.8.6",
+    "nvd3-fork": "^2.0.5",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {

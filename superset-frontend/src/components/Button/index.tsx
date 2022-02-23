@@ -202,15 +202,17 @@ export default function Button(props: ButtonProps) {
         },
         '&[disabled], &[disabled]:hover': {
           color: grayscale.base,
-          backgroundColor: backgroundColorDisabled,
-          borderColor: borderColorDisabled,
+          backgroundColor:
+            buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
+          borderColor:
+            buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
           pointerEvents: 'none',
         },
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.gridUnit * 2,
         },
-        '& :first-of-type': {
+        '& > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}
@@ -229,7 +231,11 @@ export default function Button(props: ButtonProps) {
       >
         {/* this ternary wraps the button in a span so that the tooltip shows up
         when the button is disabled.  */}
-        {disabled ? <span style={{cursor: 'not-allowed'}}>{button}</span> : button}
+        {disabled ? (
+          <span style={{ cursor: 'not-allowed' }}>{button}</span>
+        ) : (
+          button
+        )}
       </Tooltip>
     );
   }
