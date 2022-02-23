@@ -1771,7 +1771,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ]
             if is_feature_enabled("EMBEDDED_SUPERSET"):
                 templatable_statements += [
-                    f.clause for f in security_manager.get_guest_rls_filters(self)
+                    f['clause'] for f in security_manager.get_guest_rls_filters(self)
                 ]
         for statement in templatable_statements:
             if ExtraCache.regex.search(statement):
