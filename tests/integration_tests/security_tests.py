@@ -1192,7 +1192,7 @@ class TestGuestTokens(SupersetTestCase):
         self.assertEqual(aud, decoded_token["aud"])
         self.assertEqual("guest", decoded_token["type"])
         self.assertEqual(
-            now + (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000),
+            now + self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"],
             decoded_token["exp"],
         )
 
@@ -1210,7 +1210,7 @@ class TestGuestTokens(SupersetTestCase):
     def test_get_guest_user_expired_token(self, get_time_mock):
         # make a just-expired token
         get_time_mock.return_value = (
-            time.time() - (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000) - 1
+            time.time() - self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] - 1
         )
         token = self.create_guest_token()
         fake_request = FakeRequest()
