@@ -19,7 +19,7 @@
 """New dataset models
 
 Revision ID: b8d3a24d9131
-Revises: aea15018d53b
+Revises: 5afbb1a5849b
 Create Date: 2021-11-11 16:41:53.266965
 
 """
@@ -49,7 +49,7 @@ from superset.utils.memoized import memoized
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
-down_revision = "aea15018d53b"
+down_revision = "5afbb1a5849b"
 
 Base = declarative_base()
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
