@@ -28,9 +28,9 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { useMemo } from 'react';
 
-const extractTabLabel = (tab: LayoutItem) =>
+const extractTabLabel = (tab?: LayoutItem) =>
   tab?.meta?.text || tab?.meta?.defaultText;
-const extractChartLabel = (chart: LayoutItem) =>
+const extractChartLabel = (chart?: LayoutItem) =>
   chart?.meta?.sliceNameOverride || chart?.meta?.sliceName || chart?.id;
 
 const useCharts = () => {
