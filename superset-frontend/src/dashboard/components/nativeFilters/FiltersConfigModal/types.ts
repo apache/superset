@@ -44,6 +44,7 @@ export interface NativeFiltersFormItem {
     value: string;
     label: string;
   };
+  dependencies?: string[];
   sortMetric: string | null;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
@@ -71,6 +72,3 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
-
-export type FilterHierarchyNode = { id: string; parentId: string | null };
-export type FilterHierarchy = FilterHierarchyNode[];

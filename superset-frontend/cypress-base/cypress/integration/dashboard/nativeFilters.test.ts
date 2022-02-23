@@ -263,7 +263,6 @@ describe('Nativefilters Sanity test', () => {
       'Filter has default value',
       'Can select multiple values',
       'Filter value is required',
-      'Filter is hierarchical',
       'Select first filter value by default',
       'Inverse selection',
       'Dynamically search all filter values',
