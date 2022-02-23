@@ -350,7 +350,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
 
     # should not expose API TOKEN to frontend
     frontend_config = {
-        k: (list(conf.get(k)) if type(conf.get(k)) is set else conf.get(k))
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
         for k in FRONTEND_CONF_KEYS
     }
 
