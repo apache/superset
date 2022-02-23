@@ -50,6 +50,14 @@ export const Row = styled.div`
     margin: ${theme.gridUnit}px 0;
     font-size: ${theme.typography.sizes.s}px;
 
+    &:first-of-type {
+      margin-top: 0;
+    }
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
+
     & .ant-tooltip-open {
       display: inline-flex;
     }
