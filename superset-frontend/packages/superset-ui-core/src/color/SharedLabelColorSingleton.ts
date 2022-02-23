@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import tinycolor from 'tinycolor2';
 import { CategoricalColorNamespace } from '.';
 import makeSingleton from '../utils/makeSingleton';
 
@@ -38,14 +39,24 @@ export class SharedLabelColor {
         CategoricalColorNamespace.getNamespace(colorNamespace);
       const scale = categoricalNamespace.getScale(colorScheme);
       const colors = scale.range();
-      // reverse to prevent color conflicts
-      colors.reverse();
-      const colorMap = this.values.reduce((res, name, index) => {
-        const value = name.toString();
-        const color = colors[index % colors.length];
-        return { ...res, [value]: color };
-      }, {});
-      return colorMap;
+      const multiple = Math.ceil(this.values.length / colors.length);
+      const analogousColors = colors.map(color =>
+        tinycolor(color).analogous(multiple, 10),
+      );
+      const generatedColors: tinycolor.Instance[] = [];
+      // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
+      while (analogousColors[analogousColors.length - 1].length) {
+        analogousColors.forEach(colors =>
+          generatedColors.push(colors.shift() as tinycolor.Instance),
+        );
+      }
+      return this.values.reduce(
+        (res, name, index) => ({
+          ...res,
+          [name.toString()]: generatedColors[index].toHexString(),
+        }),
+        {},
+      );
     }
     return undefined;
   }
