@@ -35,7 +35,7 @@ from sqlalchemy.engine import create_engine, Engine
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
@@ -173,6 +173,10 @@ class TableColumn(Base):
     expression = sa.Column(sa.Text)
     description = sa.Column(sa.Text)
     is_dttm = sa.Column(sa.Boolean, default=False)
+    filterable = sa.Column(sa.Boolean, default=True)
+    groupby = sa.Column(sa.Boolean, default=True)
+    verbose_name = sa.Column(sa.String(1024))
+    python_date_format = sa.Column(sa.String(255))
 
 
 class SqlMetric(Base):
@@ -188,6 +192,8 @@ class SqlMetric(Base):
     expression = sa.Column(sa.Text, nullable=False)
     warning_text = sa.Column(sa.Text)
     description = sa.Column(sa.Text)
+    d3format = sa.Column(sa.String(128))
+    verbose_name = sa.Column(sa.String(1024))
 
 
 class SqlaTable(Base):
@@ -195,13 +201,11 @@ class SqlaTable(Base):
     __tablename__ = "tables"
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
-    def get_perm(self) -> str:
-        return f"[{self.database}].[{self.table_name}](id:{self.id})"
-
-    def get_schema_perm(self) -> Optional[str]:
-        return security_manager.get_schema_perm(self.database, self.schema)
-
-    perm = property(get_perm)
+    def fetch_columns_and_metrics(self, session: Session) -> None:
+        self.columns = session.query(TableColumn).filter(
+            TableColumn.table_id == self.id
+        )
+        self.metrics = session.query(SqlMetric).filter(TableColumn.table_id == self.id)
 
     id = sa.Column(sa.Integer, primary_key=True)
     columns: List[TableColumn] = []
@@ -258,8 +262,12 @@ class NewColumn(Base):
     is_temporal = sa.Column(sa.Boolean, default=False)
     is_aggregation = sa.Column(sa.Boolean, default=False)
     is_additive = sa.Column(sa.Boolean, default=False)
+    is_spatial = sa.Column(sa.Boolean, default=False)
+    is_partition = sa.Column(sa.Boolean, default=False)
+    is_increase_desired = sa.Column(sa.Boolean, default=True)
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
+    extra_json = sa.Column(sa.Text, default="{}")
 
 
 class NewTable(Base):
@@ -303,7 +311,7 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
-def after_insert(target: SqlaTable,) -> None:  # pylint: disable=too-many-locals
+def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     """
     Copy old datasets to the new models.
     """
@@ -339,7 +347,10 @@ def after_insert(target: SqlaTable,) -> None:  # pylint: disable=too-many-locals
                 description=column.description,
                 is_temporal=column.is_dttm,
                 is_aggregation=False,
-                is_physical=column.expression is None,
+                is_physical=column.expression is None or column.expression == "",
+                is_spatial=False,
+                is_partition=False,
+                is_increase_desired=True,
                 extra_json=json.dumps(extra_json) if extra_json else None,
                 is_managed_externally=target.is_managed_externally,
                 external_url=target.external_url,
@@ -368,6 +379,9 @@ def after_insert(target: SqlaTable,) -> None:  # pylint: disable=too-many-locals
                 is_aggregation=True,
                 is_additive=is_additive,
                 is_physical=False,
+                is_spatial=False,
+                is_partition=False,
+                is_increase_desired=True,
                 extra_json=json.dumps(extra_json) if extra_json else None,
                 is_managed_externally=target.is_managed_externally,
                 external_url=target.external_url,
@@ -571,6 +585,7 @@ def upgrade():
 
     datasets = session.query(SqlaTable).all()
     for dataset in datasets:
+        dataset.fetch_columns_and_metrics(session)
         after_insert(target=dataset)
 
 
