@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
+import { ReactNode } from 'react';
 import { Filter } from '@superset-ui/core';
-import { ScopeRow } from './ScopeRow';
-import { DependenciesRow } from './DependenciesRow';
-import { NameRow } from './NameRow';
-import { TypeRow } from './TypeRow';
 
-export const FilterCardContent = ({ filter }: { filter: Filter }) => (
-  <div>
-    <NameRow filter={filter} />
-    <TypeRow filter={filter} />
-    <ScopeRow filter={filter} />
-    <DependenciesRow filter={filter} />
-  </div>
-);
+export interface FilterCardProps {
+  children: ReactNode;
+  filter: Filter;
+  getPopupContainer?: (node: HTMLElement) => HTMLElement;
+  isVisible?: boolean;
+}
+
+export interface FilterCardRowProps {
+  filter: Filter;
+}
+
+export interface DependencyValueProps {
+  dependency: Filter;
+  label: string;
+}

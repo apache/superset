@@ -16,19 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
-import { Filter } from '@superset-ui/core';
-import { ScopeRow } from './ScopeRow';
-import { DependenciesRow } from './DependenciesRow';
-import { NameRow } from './NameRow';
-import { TypeRow } from './TypeRow';
+import { css, SupersetTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import { Row } from './Styles';
+import { FilterCardRowProps } from './types';
 
-export const FilterCardContent = ({ filter }: { filter: Filter }) => (
-  <div>
-    <NameRow filter={filter} />
-    <TypeRow filter={filter} />
-    <ScopeRow filter={filter} />
-    <DependenciesRow filter={filter} />
-  </div>
+export const NameRow = ({ filter }: FilterCardRowProps) => (
+  <Row
+    css={(theme: SupersetTheme) =>
+      css`
+        margin-bottom: ${theme.gridUnit * 3}px;
+      `
+    }
+  >
+    <Icons.FilterSmall
+      css={(theme: SupersetTheme) =>
+        css`
+          margin-right: ${theme.gridUnit}px;
+        `
+      }
+    />
+    <span>{filter.name}</span>
+  </Row>
 );

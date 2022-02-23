@@ -17,40 +17,41 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
-import { Filter } from '@superset-ui/core';
+import React, { useState } from 'react';
+import { Global } from '@emotion/react';
+import { useTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
-import { Styles } from './Styles';
-
-export interface FilterCardProps {
-  children: ReactNode;
-  filter: Filter;
-  triggerNode?: (node: HTMLElement) => HTMLElement;
-}
+import { FilterCardProps } from './types';
+import { popoverStyle } from './Styles';
 
 export const FilterCard = ({
   children,
   filter,
-  triggerNode,
+  getPopupContainer,
+  isVisible: externalIsVisible = true,
 }: FilterCardProps) => {
+  const theme = useTheme();
+  const [internalIsVisible, setInternalIsVisible] = useState(false);
+
   return (
-    <Styles>
+    <>
+      <Global styles={popoverStyle(theme)} />
       <Popover
-        placement="bottomLeft"
+        placement="right"
         overlayClassName="filter-card-popover"
         mouseEnterDelay={0.2}
         mouseLeaveDelay={0.2}
+        onVisibleChange={visible => {
+          setInternalIsVisible(visible);
+        }}
+        visible={externalIsVisible && internalIsVisible}
         content={<FilterCardContent filter={filter} />}
-        visible
-        getPopupContainer={node =>
-          triggerNode?.(node) ??
-          (node.parentNode as HTMLElement) ??
-          document.body
-        }
+        getPopupContainer={getPopupContainer ?? (() => document.body)}
+        destroyTooltipOnHide
       >
         {children}
       </Popover>
-    </Styles>
+    </>
   );
 };

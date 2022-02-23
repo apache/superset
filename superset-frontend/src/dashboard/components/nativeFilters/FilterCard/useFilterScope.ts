@@ -18,15 +18,26 @@
  */
 import { Filter, t } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Layout, RootState } from 'src/dashboard/types';
+import {
+  ChartsState,
+  Layout,
+  LayoutItem,
+  RootState,
+} from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { useMemo } from 'react';
+
+const useCharts = () => {
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  return useMemo(() => Object.values(charts), [charts]);
+};
 
 export const useFilterScope = (filter: Filter) => {
   const layout = useSelector<RootState, Layout>(
     state => state.dashboardLayout.present,
   );
+  const charts = useCharts();
 
   return useMemo(() => {
     let topLevelTabs: string[] | undefined;
@@ -46,8 +57,8 @@ export const useFilterScope = (filter: Filter) => {
       filter.scope.excluded.length === 0 &&
       (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID ||
         (topLevelTabs &&
-          filter.scope.rootPath.every(elementId =>
-            topLevelTabs!.includes(elementId),
+          topLevelTabs.every(topLevelTab =>
+            filter.scope.rootPath.includes(topLevelTab),
           )))
     ) {
       return [t('All charts')];
@@ -61,37 +72,40 @@ export const useFilterScope = (filter: Filter) => {
       );
     }
 
+    const layoutCharts = Object.values(layout).filter(
+      layoutElement => layoutElement.type === CHART_TYPE,
+    );
+
     // no top level tabs, charts excluded
     // returns "CHART1, CHART2"
     if (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID) {
-      return Object.values(layout)
-        .filter(
-          layoutElement =>
-            layoutElement.type === CHART_TYPE &&
-            !filter.scope.excluded.includes(layoutElement.meta.chartId),
-        )
-        .map(
-          layoutElement =>
-            layoutElement.meta.sliceNameOverride ||
-            layoutElement.meta.sliceName ||
-            layoutElement.id,
-        );
+      return charts
+        .filter(chart => !filter.scope.excluded.includes(chart.id))
+        .map(chart => {
+          const layoutElement = layoutCharts.find(
+            layoutChart => layoutChart.meta.chartId === chart.id,
+          );
+          return (
+            layoutElement?.meta.sliceNameOverride ||
+            layoutElement?.meta.sliceName ||
+            layoutElement?.id
+          );
+        })
+        .filter(Boolean);
     }
 
     // top level tabs, charts excluded
     // returns "TAB1, TAB2, CHART1"
     if (topLevelTabs) {
       const topLevelTabsInFullScope = [...filter.scope.rootPath];
-      const layoutChartElements = Object.values(layout).filter(
-        element =>
-          element.type === CHART_TYPE &&
-          element.parents.some(parent =>
-            topLevelTabsInFullScope.includes(parent),
-          ),
+      const layoutChartElementsInTabsInScope = layoutCharts.filter(element =>
+        element.parents.some(parent =>
+          topLevelTabsInFullScope.includes(parent),
+        ),
       );
       filter.scope.excluded.forEach(chartId => {
         const excludedIndex = topLevelTabsInFullScope.findIndex(tabId =>
-          layoutChartElements
+          layoutChartElementsInTabsInScope
             .find(chart => chart.meta.chartId === chartId)
             ?.parents.includes(tabId),
         );
@@ -99,13 +113,22 @@ export const useFilterScope = (filter: Filter) => {
           topLevelTabsInFullScope.splice(excludedIndex, 1);
         }
       });
-      const chartsInExcludedTabs = layoutChartElements.filter(
-        chart =>
-          !filter.scope.excluded.includes(chart.meta.chartId) &&
-          chart.parents.every(
-            parent => !topLevelTabsInFullScope.includes(parent),
-          ),
-      );
+      const chartsInExcludedTabs = charts
+        .filter(chart => !filter.scope.excluded.includes(chart.id))
+        .reduce((acc: LayoutItem[], chart) => {
+          const layoutChartElementInExcludedTab =
+            layoutChartElementsInTabsInScope.find(
+              element =>
+                element.meta.chartId === chart.id &&
+                element.parents.every(
+                  parent => !topLevelTabsInFullScope.includes(parent),
+                ),
+            );
+          if (layoutChartElementInExcludedTab) {
+            acc.push(layoutChartElementInExcludedTab);
+          }
+          return acc;
+        }, []);
       return topLevelTabsInFullScope
         .map(tabId => layout[tabId].meta.text || layout[tabId].meta.defaultText)
         .concat(
@@ -117,5 +140,5 @@ export const useFilterScope = (filter: Filter) => {
     }
 
     return undefined;
-  }, [filter.scope.excluded, filter.scope.rootPath, layout]);
+  }, [charts, filter.scope.excluded, filter.scope.rootPath, layout]);
 };

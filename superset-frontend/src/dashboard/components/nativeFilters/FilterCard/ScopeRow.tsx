@@ -16,44 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useLayoutEffect, useRef, useState } from 'react';
-import { Filter, t } from '@superset-ui/core';
+import React, { useMemo, useRef } from 'react';
+import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useFilterScope } from './useFilterScope';
-import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';
+import {
+  Row,
+  RowLabel,
+  RowTruncationCount,
+  RowValue,
+  TooltipList,
+} from './Styles';
+import { useTruncation } from './useTruncation';
+import { FilterCardRowProps } from './types';
 
-export const isLabelTruncated = (labelRef?: React.RefObject<any>) =>
-  !!(
-    labelRef &&
-    labelRef.current &&
-    labelRef.current.scrollWidth > labelRef.current.clientWidth
-  );
-
-export const ScopeRow = ({ filter }: { filter: Filter }) => {
+export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
-  const scopeRef = useRef(null);
-  const [elementsTruncated] = useState(5);
-  const [tooltipText, setTooltipText] = useState<ReactNode | string | null>(
-    null,
+  const scopeRef = useRef<HTMLElement>(null);
+
+  const [elementsTruncated, hasHiddenElements] = useTruncation(scopeRef);
+  const tooltipText = useMemo(
+    () =>
+      elementsTruncated > 0 && scope ? (
+        <TooltipList>
+          {scope.map(val => (
+            <li>{val}</li>
+          ))}
+        </TooltipList>
+      ) : null,
+    [elementsTruncated, scope],
   );
 
-  useLayoutEffect(() => {
-    if (isLabelTruncated(scopeRef)) {
-      setTooltipText(scope?.map(val => <div>{val}</div>));
-    }
-  }, [scope]);
-
-  console.log({ tooltipText });
   return Array.isArray(scope) && scope.length > 0 ? (
     <Row>
       <RowLabel>{t('Scope')}</RowLabel>
-
-      <RowValue ref={scopeRef}>
-        <Tooltip title={tooltipText}>{scope.join(', ')}</Tooltip>
-      </RowValue>
-      {elementsTruncated && (
+      <Tooltip
+        title={tooltipText}
+        placement="bottom"
+        overlayClassName="filter-card-tooltip"
+      >
+        <RowValue ref={scopeRef}>
+          {scope.map((element, index) =>
+            index === 0 ? <span>{element}</span> : <span>, {element}</span>,
+          )}
+        </RowValue>
+      </Tooltip>
+      {hasHiddenElements > 0 && (
         <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
       )}
     </Row>
   ) : null;
-};
+});

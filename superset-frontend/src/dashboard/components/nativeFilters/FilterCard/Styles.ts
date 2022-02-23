@@ -16,24 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 
-export const Styles = styled.div`
-  ${({ theme }) => css`
-    .filter-card-popover {
-      width: 240px;
-      padding: 0;
-      border-radius: 4px;
+export const popoverStyle = (theme: SupersetTheme) => css`
+  .filter-card-popover {
+    width: 240px;
+    padding: 0;
+    border-radius: 4px;
 
-      .ant-popover-inner-content {
-        padding: ${theme.gridUnit * 4}px;
-      }
+    .ant-popover-inner-content {
+      padding: ${theme.gridUnit * 4}px;
+    }
 
-      .ant-popover-arrow {
-        display: none;
+    .ant-popover-arrow {
+      display: none;
+    }
+  }
+
+  .filter-card-tooltip {
+    &.ant-tooltip-placement-bottom {
+      padding-top: 0;
+      & .ant-tooltip-arrow {
+        top: -13px;
       }
     }
-  `}
+  }
 `;
 
 export const Row = styled.div`
@@ -42,6 +49,10 @@ export const Row = styled.div`
     align-items: center;
     margin: ${theme.gridUnit}px 0;
     font-size: ${theme.typography.sizes.s}px;
+
+    & .ant-tooltip-open {
+      display: inline;
+    }
   `};
 `;
 
@@ -51,6 +62,7 @@ export const RowLabel = styled.span`
     padding-right: ${theme.gridUnit * 4}px;
     margin-right: auto;
     text-transform: uppercase;
+    white-space: nowrap;
   `};
 `;
 
@@ -64,8 +76,20 @@ export const RowValue = styled.span`
   `};
 `;
 
+export const DependencyItem = styled.span`
+  text-decoration: underline;
+  cursor: pointer;
+`;
+
 export const RowTruncationCount = styled.span`
   ${({ theme }) => css`
     color: ${theme.colors.primary.base};
   `}
+`;
+
+export const TooltipList = styled.ul`
+  ${({ theme }) => css`
+    padding-left: ${theme.gridUnit * 3}px;
+    margin-bottom: 0;
+  `};
 `;

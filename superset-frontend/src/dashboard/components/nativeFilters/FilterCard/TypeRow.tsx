@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { useMemo } from 'react';
+import { getChartMetadataRegistry, t } from '@superset-ui/core';
+import { Row, RowLabel, RowValue } from './Styles';
+import { FilterCardRowProps } from './types';
 
-import React from 'react';
-import { Filter } from '@superset-ui/core';
-import { ScopeRow } from './ScopeRow';
-import { DependenciesRow } from './DependenciesRow';
-import { NameRow } from './NameRow';
-import { TypeRow } from './TypeRow';
-
-export const FilterCardContent = ({ filter }: { filter: Filter }) => (
-  <div>
-    <NameRow filter={filter} />
-    <TypeRow filter={filter} />
-    <ScopeRow filter={filter} />
-    <DependenciesRow filter={filter} />
-  </div>
-);
+export const TypeRow = ({ filter }: FilterCardRowProps) => {
+  const metadata = useMemo(
+    () => getChartMetadataRegistry().get(filter.filterType),
+    [filter.filterType],
+  );
+  return (
+    <Row>
+      <RowLabel>{t('Filter type')}</RowLabel>
+      <RowValue>{metadata?.name}</RowValue>
+    </Row>
+  );
+};
