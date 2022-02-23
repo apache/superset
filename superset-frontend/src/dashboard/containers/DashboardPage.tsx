@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { FC, useRef, useEffect, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
+import { Global } from '@emotion/react';
 import { useParams } from 'react-router-dom';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -49,6 +50,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
 import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
+import { filterCardPopoverStyle } from '../styles';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -68,6 +70,7 @@ const originalDocumentTitle = document.title;
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -226,6 +229,7 @@ const DashboardPage: FC = () => {
 
   return (
     <>
+      <Global styles={filterCardPopoverStyle(theme)} />
       <FilterBoxMigrationModal
         show={filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.UNDECIDED}
         hideFooter={!isMigrationEnabled}
