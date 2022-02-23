@@ -1,0 +1,187 @@
+---
+title: Introduction
+hide_title: true
+sidebar_position: 1
+---
+
+import useBaseUrl from "@docusaurus/useBaseUrl";
+
+## Deploy
+The "Deploy" chapter contain all the information you need to deploy Superset to a production environment.  
+
+## Introduction
+In this "Introduction" section,  
+We focus on how to config Superset for production environment.   
+We won't talk about specific Cloud Service Provider(AWS, Google Cloud, Microsoft Azure, etc) 
+
+## Docker
+Deploy Superset using Docker are recommended.  
+by using Docker, we won't need to deal with environment inconsistency problem,   
+Also, when traffic grows, we can just spin up more container to handle the traffic.  
+If you are not familiar with Docker, you should read [Docker Documentation](https://docs.docker.com/) first.
+
+## The Docker concept you should know before starting
+* What is Docker Image? What is Docker Container? What's their difference?  
+* What is `Dockerfile`?
+* What is `docker build` and `docker run` commands?
+* What is [Docker Hub](https://hub.docker.com/)? 
+* What is Docker Compose(`docker-compose.yml`)?
+
+Tips: after installed Docker, you can run `docker --help` to show all the available Docker commands.  
+
+
+## Basic: We need to build our own Docker Image
+Why?  
+Because there are some important configuration we need to set,  
+We can't just use the Superset Docker Image from DockerHub ([`apache/superset`](https://hub.docker.com/r/apache/superset)) directly.      
+We need to build our own Docker Image **base on** `apache/superset`: 
+
+
+## Example 1: config `APP_NAME`. 
+In the first example, we want things to be as simple as possible.   
+We gonna set one config called `APP_NAME` and nothing else.  
+The purpose of this example is to show you how to config Superset.  
+
+First, let's create a folder named `hello-superset` with these 2 empty files:
+```
+.
+├── Dockerfile
+└── superset_config.py
+```
+The content above come from the output of `tree .` command.   
+the `tree` command list contents of directories in a tree-like format.    
+`tree .` mean list all file in current location.    
+
+Copy and paste the following content into `superset_config.py`:
+```python
+APP_NAME = "Hello Superset"  
+``` 
+
+Copy and paste the following content into `Dockerfile`:   
+```Dockerfile
+FROM apache/superset 
+
+COPY superset_config.py /app/pythonpath/superset_config.py
+```
+
+Next, Let's build the Docker Image, run this command inside `hello-superset` folder:
+```
+docker build --tag hello-superset .
+```
+Explain: 
+* the `.`(period) at the end of command, mean use current directory as "build context" (By default the `docker build` command will look for a `Dockerfile` at the root of the build context.)
+* `--tag hello-superset` mean give this Docker Image a tag "hello-superset"
+
+Let's show the Docker Image we just built:  
+```
+docker images hello-superset
+```
+
+Output:  
+```
+REPOSITORY       TAG       IMAGE ID       CREATED             SIZE
+hello-superset   latest    2688cfad3224   About an hour ago   1.69GB
+```
+
+We are not using `docker images ls` here, because it output all the Docker Images.  
+It make our terminal messy.  
+
+
+Let's run the `hello-superset` Docker Image:
+```
+docker run -d -p 8080:8088 --name superset-container hello-superset
+```
+Explain:
+  * `-d` mean run this container in background. (you can replace `-d` with `--detach`)
+  * `-p 8080:8088` mean bind host port 8080 to container port 8088. format is `host_port:container_port`. (you can replace `-p` with `--publish`)
+  * `--name superset-container` mean give this container a name "superset-container"
+  * `hello-superset` is the Docker Image name we want to run.
+
+
+We can verify there are a container called `superset-container` by using `docker ps` command.
+```
+CONTAINER ID   IMAGE            COMMAND                  CREATED             STATUS                       PORTS                    NAMES
+332421e4b621   hello-superset   "/bin/sh -c /usr/bin…"   About an hour ago   Up About an hour (healthy)   0.0.0.0:8080->8088/tcp   superset-container
+```
+
+Visit [http://localhost:8080](http://localhost:8080) to see the result.
+
+<img src={useBaseUrl("/img/tutorial/config_app_name.png" )} />
+
+The title is `Hello Superset`,  
+That mean `APP_NAME` config is working.  
+
+## Example 2: Verify the `superset_config.py` is working.       
+In the second example, we want to verify the config.  
+the `APP_NAME` is easy to verify, we can just look at the title of the page.  
+But there are a lot of other config are not shown on the page.  
+
+I am gonna assume the Docker Container from Example 1 are still running, in that case,  
+we can get into the container using this command:
+```
+docker exec -it superset-container /bin/bash
+```
+
+Now your terminal become:  
+```
+superset@fb91498fad65:/app$
+```
+
+Get into Flask Shell by running:  
+```
+flask shell
+```
+
+You would probably see these output:
+```
+Loaded your LOCAL configuration at [/app/pythonpath/superset_config.py]
+logging was configured successfully
+2022-02-21 15:45:32,389:INFO:superset.utils.logging_configurator:logging was configured successfully
+2022-02-21 15:45:32,507:INFO:root:Configured event logger of type <class 'superset.utils.log.DBEventLogger'>
+/usr/local/lib/python3.8/site-packages/flask_caching/__init__.py:201: UserWarning: Flask-Caching: CACHE_TYPE is set to null, caching is effectively disabled.
+  warnings.warn(
+Python 3.8.12 (default, Dec 21 2021, 10:45:09) 
+[GCC 10.2.1 20210110] on linux
+App: superset.app [production]
+Instance: /app/instance
+>>> 
+```
+
+Let's read the `APP_NAME` config:  
+```
+>>> app.config["APP_NAME"]
+'Hello Superset'
+```
+
+In the default configuration file (`superset/config.py`), you would find these lines:
+```
+# The SQLAlchemy connection string.
+SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
+```
+
+Let's see what's the value of `SQLALCHEMY_DATABASE_URI`
+
+```
+>>> app.config["SQLALCHEMY_DATABASE_URI"]
+'sqlite:////app/superset_home/superset.db'
+```
+
+Done, now you know, in order to get config value, the steps are:
+1. Get into the Docker Container
+2. Run `flask shell`
+3. Run `app.config["CONFIG_NAME"]`  
+
+## Example 3: login Superset for the first time.  
+TODO
+
+
+## The 2 configuration you must set.   
+1. `SECRET_KEY`: Your App secret key.
+2. `SQLALCHEMY_DATABASE_URI`: Superset's metadata database.  
+
+The default value of `SQLALCHEMY_DATABASE_URI` is a SQLite database store on local file system,  
+Because we are using Docker, 
+
+TODO
+
+
