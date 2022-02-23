@@ -7,7 +7,7 @@ x-superset-volumes: &superset-volumes
   - ./docker:/app/docker
   #- ./superset:/app/superset
   - ./superset-frontend/src/assets/images:/app/superset/static/assets/images
-  - ./superset_home:/app/superset_home
+  - ../superset_home:/app/superset_home
 
 x-superset-networks: &superset-networks
   - main_medbi
