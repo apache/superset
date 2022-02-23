@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>FAQ &mdash; Superset&#39;s documentation  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
+        <link rel="prev" title="Druid" href="druid.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Superset's documentation
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#can-i-query-join-multiple-tables-at-one-time">Can I query/join multiple tables at one time?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-big-can-my-data-source-be">How BIG can my data source be?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-create-my-own-visualization">How do I create my own visualization?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-are-my-queries-timing-out">Why are my queries timing out?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-does-fabmanager-or-superset-freezed-hung-not-responding-when-started-my-home-directory-is-nfs-mounted">Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-add-new-columns-to-an-existing-table">How do I add new columns to an existing table</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Superset's documentation</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>FAQ</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="faq">
+<h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="can-i-query-join-multiple-tables-at-one-time">
+<h2>Can I query/join multiple tables at one time?<a class="headerlink" href="#can-i-query-join-multiple-tables-at-one-time" title="Permalink to this headline">¶</a></h2>
+<p>Not directly no. A Superset SQLAlchemy datasource can only be a single table
+or a view.</p>
+<p>When working with tables, the solution would be to materialize
+a table that contains all the fields needed for your analysis, most likely
+through some scheduled batch process.</p>
+<p>A view is a simple logical layer that abstract an arbitrary SQL queries as
+a virtual table. This can allow you to join and union multiple tables, and
+to apply some transformation using arbitrary SQL expressions. The limitation
+there is your database performance as Superset effectively will run a query
+on top of your query (view). A good practice may be to limit yourself to
+joining your main large table to one or many small tables only, and avoid
+using <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> where possible as Superset will do its own <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> and
+doing the work twice might slow down performance.</p>
+<p>Whether you use a table or a view, the important factor is whether your
+database is fast enough to serve it in an interactive fashion to provide
+a good user experience in Superset.</p>
+</div>
+<div class="section" id="how-big-can-my-data-source-be">
+<h2>How BIG can my data source be?<a class="headerlink" href="#how-big-can-my-data-source-be" title="Permalink to this headline">¶</a></h2>
+<p>It can be gigantic! As mentioned above, the main criteria is whether your
+database can execute queries and return results in a time frame that is
+acceptable to your users. Many distributed databases out there can execute
+queries that scan through terabytes in an interactive fashion.</p>
+</div>
+<div class="section" id="how-do-i-create-my-own-visualization">
+<h2>How do I create my own visualization?<a class="headerlink" href="#how-do-i-create-my-own-visualization" title="Permalink to this headline">¶</a></h2>
+<p>We are planning on making it easier to add new visualizations to the
+framework, in the meantime, we&#8217;ve tagged a few pull requests as
+<code class="docutils literal"><span class="pre">example</span></code> to give people examples of how to contribute new
+visualizations.</p>
+<p><a class="reference external" href="https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed">https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed</a></p>
+</div>
+<div class="section" id="why-are-my-queries-timing-out">
+<h2>Why are my queries timing out?<a class="headerlink" href="#why-are-my-queries-timing-out" title="Permalink to this headline">¶</a></h2>
+<p>If you are seeing timeouts (504 Gateway Time-out) when running queries,
+it&#8217;s because the web server is timing out web requests. If you want to
+increase the default (50), you can specify the timeout when starting the
+web server with the <code class="docutils literal"><span class="pre">-t</span></code> flag, which is expressed in seconds.</p>
+<p><code class="docutils literal"><span class="pre">superset</span> <span class="pre">runserver</span> <span class="pre">-t</span> <span class="pre">300</span></code></p>
+</div>
+<div class="section" id="why-is-the-map-not-visible-in-the-mapbox-visualization">
+<h2>Why is the map not visible in the mapbox visualization?<a class="headerlink" href="#why-is-the-map-not-visible-in-the-mapbox-visualization" title="Permalink to this headline">¶</a></h2>
+<p>You need to register to mapbox.com, get an API key and configure it as
+<code class="docutils literal"><span class="pre">MAPBOX_API_KEY</span></code> in <code class="docutils literal"><span class="pre">superset_config.py</span></code>.</p>
+</div>
+<div class="section" id="how-to-add-dynamic-filters-to-a-dashboard">
+<h2>How to add dynamic filters to a dashboard?<a class="headerlink" href="#how-to-add-dynamic-filters-to-a-dashboard" title="Permalink to this headline">¶</a></h2>
+<p>It&#8217;s easy: use the <code class="docutils literal"><span class="pre">Filter</span> <span class="pre">Box</span></code> widget, build a slice, and add it to your
+dashboard.</p>
+<p>The <code class="docutils literal"><span class="pre">Filter</span> <span class="pre">Box</span></code> widget allows you to define a query to populate dropdowns
+that can be use for filtering. To build the list of distinct values, we
+run a query, and sort the result by the metric you provide, sorting
+descending.</p>
+<p>The widget also has a checkbox <code class="docutils literal"><span class="pre">Date</span> <span class="pre">Filter</span></code>, which enables time filtering
+capabilities to your dashboard. After checking the box and refreshing, you&#8217;ll
+see a <code class="docutils literal"><span class="pre">from</span></code> and a <code class="docutils literal"><span class="pre">to</span></code> dropdown show up.</p>
+<p>By default, the filtering will be applied to all the slices that are built
+on top of a datasource that shares the column name that the filter is based
+on. It&#8217;s also a requirement for that column to be checked as &#8220;filterable&#8221;
+in the column tab of the table editor.</p>
+<p>But what about if you don&#8217;t want certain widgets to get filtered on your
+dashboard? You can do that by editing your dashboard, and in the form,
+edit the <code class="docutils literal"><span class="pre">JSON</span> <span class="pre">Metadata</span></code> field, more specifically the
+<code class="docutils literal"><span class="pre">filter_immune_slices</span></code> key, that receives an array of sliceIds that should
+never be affected by any dashboard level filtering.</p>
+<p>..code:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;filter_immune_slices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">324</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">92</span><span class="p">],</span>
+    <span class="s2">&quot;expanded_slices&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;filter_immune_slice_fields&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;177&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;country_name&quot;</span><span class="p">,</span> <span class="s2">&quot;__from&quot;</span><span class="p">,</span> <span class="s2">&quot;__to&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;32&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;__from&quot;</span><span class="p">,</span> <span class="s2">&quot;__to&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In the json blob above, slices 324, 65 and 92 won&#8217;t be affected by any
+dashboard level filtering.</p>
+<p>Now note the <code class="docutils literal"><span class="pre">filter_immune_slice_fields</span></code> key. This one allows you to
+be more specific and define for a specific slice_id, which filter fields
+should be disregarded.</p>
+<p>Note the use of the <code class="docutils literal"><span class="pre">__from</span></code> and <code class="docutils literal"><span class="pre">__to</span></code> keywords, those are reserved
+for dealing with the time boundary filtering mentioned above.</p>
+<p>But what happens with filtering when dealing with slices coming from
+different tables or databases? If the column name is shared, the filter will
+be applied, it&#8217;s as simple as that.</p>
+</div>
+<div class="section" id="why-does-fabmanager-or-superset-freezed-hung-not-responding-when-started-my-home-directory-is-nfs-mounted">
+<h2>Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?<a class="headerlink" href="#why-does-fabmanager-or-superset-freezed-hung-not-responding-when-started-my-home-directory-is-nfs-mounted" title="Permalink to this headline">¶</a></h2>
+<p>superset creates and uses an sqlite database at <code class="docutils literal"><span class="pre">~/.superset/superset.db</span></code>. Sqlite is known to <a class="reference external" href="https://www.sqlite.org/lockingv3.html">don&#8217;t work well if used on NFS</a> due to broken file locking implementation on NFS.</p>
+<p>One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.</p>
+<p>Another work around is to change where superset stores the sqlite database by adding <code class="docutils literal"><span class="pre">SQLALCHEMY_DATABASE_URI</span> <span class="pre">=</span> <span class="pre">'sqlite:////new/localtion/superset.db'</span></code> in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. <code class="docutils literal"><span class="pre">export</span> <span class="pre">PYTHONPATH=/opt/logs/sandbox/airbnb/</span></code>).</p>
+</div>
+<div class="section" id="how-do-i-add-new-columns-to-an-existing-table">
+<h2>How do I add new columns to an existing table<a class="headerlink" href="#how-do-i-add-new-columns-to-an-existing-table" title="Permalink to this headline">¶</a></h2>
+<p>Table schemas evolve, and Superset needs to reflect that. It&#8217;s pretty common
+in the life cycle of a dashboard to want to add a new dimension or metric.
+To get Superset to discover your new columns, all you have to do is to
+go to <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Sources</span> <span class="pre">-&gt;</span> <span class="pre">Tables</span></code>, click the <code class="docutils literal"><span class="pre">edit</span></code> icon next to the
+table who&#8217;s schema has changed, and hit <code class="docutils literal"><span class="pre">Save</span></code> from the <code class="docutils literal"><span class="pre">Detail</span></code> tab.
+Behind the scene, the new columns will get merged it. Following this,
+you may want to
+re-edit the table afterwards to configure the <code class="docutils literal"><span class="pre">Column</span></code> tab, check the
+appropriate boxes and save again.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="druid.html" class="btn btn-neutral" title="Druid" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
