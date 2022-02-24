@@ -50,6 +50,7 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
+from superset.users.api import CurrentUserRestApi
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -205,6 +206,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
