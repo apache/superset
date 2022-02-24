@@ -87,7 +87,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           )}
         >
           <Icons.Info
-            iconSize="s"
+            iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`
               margin-left: ${theme.gridUnit}px;

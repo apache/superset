@@ -55,6 +55,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { useTabId } from 'src/hooks/useTabId';
+import { RootState } from 'src/dashboard/types';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -68,7 +69,6 @@ import { createFilterKey, updateFilterKey } from './keyValue';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import { RootState } from '../../../types';
 import { ActionButtons } from './ActionButtons';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
@@ -351,6 +351,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }, 200),
     [],
   );
+
+  useEffect(() => {
+    document.onscroll = onScroll;
+    return () => {
+      document.onscroll = null;
+    };
+  }, [onScroll]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(

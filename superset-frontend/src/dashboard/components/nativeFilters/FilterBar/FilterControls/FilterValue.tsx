@@ -18,7 +18,6 @@
  */
 import React, {
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -49,8 +48,6 @@ import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
-import { FilterCard } from '../../FilterCard';
-import { FilterBarScrollContext } from '../index';
 
 const HEIGHT = 32;
 
@@ -73,6 +70,7 @@ const FilterValue: React.FC<FilterProps> = ({
   inView = true,
   showOverflow,
   parentRef,
+  setFilterActive,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -97,7 +95,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isFilterActive, setIsFilterActive] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -217,10 +214,6 @@ const FilterValue: React.FC<FilterProps> = ({
     [dispatch],
   );
 
-  const setFilterActive = useCallback((isActive: boolean) => {
-    setIsFilterActive(isActive);
-  }, []);
-
   const hooks = useMemo(
     () => ({
       setDataMask,
@@ -244,7 +237,6 @@ const FilterValue: React.FC<FilterProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
-  const isScrolling = useContext(FilterBarScrollContext);
   if (error) {
     return (
       <BasicErrorAlert
@@ -260,26 +252,22 @@ const FilterValue: React.FC<FilterProps> = ({
       {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
-        <FilterCard filter={filter} isVisible={!isFilterActive && !isScrolling}>
-          <div>
-            <SuperChart
-              height={HEIGHT}
-              width="100%"
-              showOverflow={showOverflow}
-              formData={formData}
-              parentRef={parentRef}
-              // For charts that don't have datasource we need workaround for empty placeholder
-              queriesData={hasDataSource ? state : queriesDataPlaceholder}
-              chartType={filterType}
-              behaviors={behaviors}
-              filterState={filterState}
-              ownState={filter.dataMask?.ownState}
-              enableNoResults={metadata?.enableNoResults}
-              isRefreshing={isRefreshing}
-              hooks={hooks}
-            />
-          </div>
-        </FilterCard>
+        <SuperChart
+          height={HEIGHT}
+          width="100%"
+          showOverflow={showOverflow}
+          formData={formData}
+          parentRef={parentRef}
+          // For charts that don't have datasource we need workaround for empty placeholder
+          queriesData={hasDataSource ? state : queriesDataPlaceholder}
+          chartType={filterType}
+          behaviors={behaviors}
+          filterState={filterState}
+          ownState={filter.dataMask?.ownState}
+          enableNoResults={metadata?.enableNoResults}
+          isRefreshing={isRefreshing}
+          hooks={hooks}
+        />
       )}
     </StyledDiv>
   );
