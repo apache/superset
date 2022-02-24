@@ -219,7 +219,7 @@ const StyledLoadingText = styled.div`
 `;
 
 const MAX_TAG_COUNT = 4;
-const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
+const TOKEN_SEPARATORS = ['\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
 const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
