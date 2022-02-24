@@ -64,7 +64,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     width,
     height,
     filterState,
-    formData: { inputRef },
+    inputRef,
   } = props;
 
   const handleTimeRangeChange = useCallback(

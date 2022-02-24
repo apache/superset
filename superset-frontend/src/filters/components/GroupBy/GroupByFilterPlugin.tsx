@@ -40,8 +40,9 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     unsetFocusedFilter,
     setFilterActive,
     filterState,
+    inputRef,
   } = props;
-  const { defaultValue, inputRef, multiSelect } = formData;
+  const { defaultValue, multiSelect } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 

@@ -88,13 +88,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     appSection,
     showOverflow,
     parentRef,
+    inputRef,
   } = props;
   const {
     enableEmptyFilter,
     multiSelect,
     showSearch,
     inverseSelection,
-    inputRef,
     defaultToFirstItem,
     searchAllOptions,
   } = formData;

@@ -29,7 +29,6 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Charts, DashboardLayout } from 'src/dashboard/types';
-import { RefObject } from 'react';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
@@ -39,7 +38,6 @@ export const getFormData = ({
   datasetId,
   dependencies = {},
   groupby,
-  inputRef,
   defaultDataMask,
   controlValues,
   filterType,
@@ -50,7 +48,6 @@ export const getFormData = ({
   type,
 }: Partial<Filter> & {
   datasetId?: number;
-  inputRef?: RefObject<HTMLInputElement>;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -85,7 +82,6 @@ export const getFormData = ({
     url_params: extractUrlParams('regular'),
     inView: true,
     viz_type: filterType,
-    inputRef,
     type,
   };
 };

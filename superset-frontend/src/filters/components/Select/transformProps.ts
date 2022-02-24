@@ -33,6 +33,7 @@ export default function transformProps(
     appSection,
     filterState,
     isRefreshing,
+    inputRef,
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const {
@@ -62,5 +63,6 @@ export default function transformProps(
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
+    inputRef,
   };
 }

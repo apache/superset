@@ -112,7 +112,6 @@ const FilterValue: React.FC<FilterProps> = ({
       datasetId,
       dependencies,
       groupby,
-      inputRef,
       adhoc_filters,
       time_range,
     });
@@ -258,6 +257,7 @@ const FilterValue: React.FC<FilterProps> = ({
           showOverflow={showOverflow}
           formData={formData}
           parentRef={parentRef}
+          inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : queriesDataPlaceholder}
           chartType={filterType}

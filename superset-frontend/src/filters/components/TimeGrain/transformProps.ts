@@ -21,7 +21,7 @@ import { noOp } from 'src/utils/common';
 import { DEFAULT_FORM_DATA } from './types';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, height, hooks, queriesData, width, filterState } =
+  const { formData, height, hooks, queriesData, width, filterState, inputRef } =
     chartProps;
   const {
     setDataMask = noOp,
@@ -42,5 +42,6 @@ export default function transformProps(chartProps: ChartProps) {
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
+    inputRef,
   };
 }

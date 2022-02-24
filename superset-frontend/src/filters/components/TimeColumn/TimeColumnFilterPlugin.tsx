@@ -42,8 +42,9 @@ export default function PluginFilterTimeColumn(
     unsetFocusedFilter,
     setFilterActive,
     filterState,
+    inputRef,
   } = props;
-  const { defaultValue, inputRef } = formData;
+  const { defaultValue } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
