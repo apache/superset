@@ -21,7 +21,7 @@
 /* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import nv from 'nvd3';
+import nv from 'nvd3-fork';
 import {
   getTimeFormatter,
   getNumberFormatter,

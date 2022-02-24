@@ -17,38 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import ButtonGroup from 'src/components/ButtonGroup';
 import { t, useTheme } from '@superset-ui/core';
 
 import { Tooltip } from 'src/components/Tooltip';
-import Button from 'src/components/Button';
+import Button, { ButtonStyle, OnClickHandler } from 'src/components/Button';
 
-const propTypes = {
-  canAdd: PropTypes.bool.isRequired,
-  onQuery: PropTypes.func.isRequired,
-  onSave: PropTypes.func,
-  onStop: PropTypes.func,
-  loading: PropTypes.bool,
-  chartIsStale: PropTypes.bool,
-  errorMessage: PropTypes.node,
+export type QueryAndSaveBtnsProps = {
+  canAdd: boolean;
+  onQuery: OnClickHandler;
+  onSave: OnClickHandler;
+  onStop: OnClickHandler;
+  loading?: boolean;
+  chartIsStale?: boolean;
+  errorMessage: React.ReactElement | undefined;
 };
 
-const defaultProps = {
-  onStop: () => {},
-  onSave: () => {},
-};
-
-export default function QueryAndSaveBtns({
-  canAdd,
-  onQuery,
-  onSave,
-  onStop,
-  loading,
-  chartIsStale,
-  errorMessage,
-}) {
-  let qryButtonStyle = 'tertiary';
+export default function QueryAndSaveBtns(props: QueryAndSaveBtnsProps) {
+  const {
+    canAdd,
+    onQuery = () => {},
+    onSave = () => {},
+    onStop = () => {},
+    loading,
+    chartIsStale,
+    errorMessage,
+  } = props;
+  let qryButtonStyle: ButtonStyle = 'tertiary';
   if (errorMessage) {
     qryButtonStyle = 'danger';
   } else if (chartIsStale) {
@@ -127,6 +122,3 @@ export default function QueryAndSaveBtns({
     </div>
   );
 }
-
-QueryAndSaveBtns.propTypes = propTypes;
-QueryAndSaveBtns.defaultProps = defaultProps;

@@ -33,9 +33,7 @@ describe('nativefiler url param key', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-  });
-  beforeEach(() => {
-    cy.login();
+    cy.wait(1000); // wait for key to be published (debounced)
   });
   let initialFilterKey: string;
   it('should have cachekey in nativefilter param', () => {

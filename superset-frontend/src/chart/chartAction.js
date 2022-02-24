@@ -244,14 +244,14 @@ export async function getChartDataRequest({
   );
 }
 
-export function runAnnotationQuery(
+export function runAnnotationQuery({
   annotation,
   timeout = 60,
   formData = null,
   key,
   isDashboardRequest = false,
   force = false,
-) {
+}) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
     // make a copy of formData, not modifying original formData
@@ -482,16 +482,16 @@ export function exploreJSON(
       chartDataRequestCaught,
       dispatch(triggerQuery(false, key)),
       dispatch(updateQueryFormData(formData, key)),
-      ...annotationLayers.map(x =>
+      ...annotationLayers.map(annotation =>
         dispatch(
-          runAnnotationQuery(
-            x,
+          runAnnotationQuery({
+            annotation,
             timeout,
             formData,
             key,
             isDashboardRequest,
             force,
-          ),
+          }),
         ),
       ),
     ]);

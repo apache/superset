@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/embedded-sdk",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.3",
   "description": "SDK for embedding resources from Superset into your own application",
   "access": "public",
   "keywords": [
@@ -32,6 +32,9 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
+  "dependencies": {
+    "@superset-ui/switchboard": "^0.18.26-0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.16.8",
     "@babel/core": "^7.16.12",

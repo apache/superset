@@ -23,11 +23,38 @@ import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  UserWithPermissionsAndRoles,
+  CommonBootstrapData,
+} from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
-export const dropdownItems = [
+export const dropdownItems: MenuObjectProps[] = [
+  {
+    label: t('Data'),
+    icon: 'fa-database',
+    childs: [
+      {
+        icon: 'fa-upload',
+        label: t('Upload a CSV'),
+        name: 'Upload a CSV',
+        url: '/csvtodatabaseview/form',
+      },
+      {
+        icon: 'fa-upload',
+        label: t('Upload a Columnar File'),
+        name: 'Upload a Columnar file',
+        url: '/columnartodatabaseview/form',
+      },
+      {
+        icon: 'fa-upload',
+        label: t('Upload Excel'),
+        name: 'Upload Excel',
+        url: '/exceltodatabaseview/form',
+      },
+    ],
+  },
   {
     label: t('SQL query'),
     url: '/superset/sqllab?new=true',
@@ -96,12 +123,27 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-
+  // @ts-ignore
+  const { CSV_EXTENSIONS, COLUMNAR_EXTENSIONS, EXCEL_EXTENSIONS } = useSelector<
+    any,
+    CommonBootstrapData
+  >(state => state.common.conf);
   // if user has any of these roles the dropdown will appear
+  const configMap = {
+    'Upload a CSV': CSV_EXTENSIONS,
+    'Upload a Columnar file': COLUMNAR_EXTENSIONS,
+    'Upload Excel': EXCEL_EXTENSIONS,
+  };
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const showActionDropdown = canSql || canChart || canDashboard;
+  const menuIconAndLabel = (menu: MenuObjectProps) => (
+    <>
+      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
+      {menu.label}
+    </>
+  );
   return (
     <StyledDiv align={align}>
       <Menu mode="horizontal">
@@ -113,9 +155,32 @@ const RightMenu = ({
             }
             icon={<Icons.TriangleDown />}
           >
-            {dropdownItems.map(
-              menu =>
-                findPermission(menu.perm, menu.view, roles) && (
+            {dropdownItems.map(menu => {
+              if (menu.childs) {
+                return (
+                  <SubMenu
+                    key="sub2"
+                    className="data-menu"
+                    title={menuIconAndLabel(menu)}
+                  >
+                    {menu.childs.map(item =>
+                      typeof item !== 'string' &&
+                      item.name &&
+                      configMap[item.name] === true ? (
+                        <Menu.Item key={item.name}>
+                          <a href={item.url}> {item.label} </a>
+                        </Menu.Item>
+                      ) : null,
+                    )}
+                  </SubMenu>
+                );
+              }
+              return (
+                findPermission(
+                  menu.perm as string,
+                  menu.view as string,
+                  roles,
+                ) && (
                   <Menu.Item key={menu.label}>
                     <a href={menu.url}>
                       <i
@@ -125,8 +190,9 @@ const RightMenu = ({
                       {menu.label}
                     </a>
                   </Menu.Item>
-                ),
-            )}
+                )
+              );
+            })}
           </SubMenu>
         )}
         <SubMenu

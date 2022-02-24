@@ -49,6 +49,7 @@ def contribution(
     """
     contribution_df = df.copy()
     numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
+    numeric_df.fillna(0, inplace=True)
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()
