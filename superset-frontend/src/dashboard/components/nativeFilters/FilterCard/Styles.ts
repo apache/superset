@@ -83,6 +83,10 @@ export const TooltipList = styled.ul`
   `};
 `;
 
+export const TooltipSectionLabel = styled.span`
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+`;
+
 export const TooltipTrigger = styled.div`
   min-width: 0;
   display: inline-flex;
