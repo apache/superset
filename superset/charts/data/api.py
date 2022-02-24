@@ -287,6 +287,8 @@ class ChartDataRestApi(ChartRestApi):
         """
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
+            # In order to get `url_params` in form_data(used for async queries)
+            setattr(g, "form_data", cached_data)
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
