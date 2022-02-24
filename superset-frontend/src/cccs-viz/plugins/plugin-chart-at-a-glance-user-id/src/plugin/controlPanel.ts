@@ -196,6 +196,46 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    {
+      label: t('IP dashboard link configuration'),
+      expanded: true,
+      tabOverride: 'data',
+      controlSetRows: [
+        [
+          {
+            name: 'ipDashBoardBaseUrl',
+            config: {
+              type: 'TextControl',
+              label: t('Base url for supersert'),
+              renderTrigger: true,
+              description: t('the url for superset you wish to link to. i.e superset.com'),
+            },
+          }
+        ],
+        [
+          {
+            name: 'ipDashboardId',
+            config: {
+              type: 'TextControl',
+              label: t('Ip dasboard id'),
+              renderTrigger: true,
+              description: t('the id of the dashboard which contains an IP filter you wish to link to'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'ipDashboardFilterId',
+            config: {
+              type: 'TextControl',
+              label: t('Filter id for ip dashboard'),
+              renderTrigger: true,
+              description: t('The filter you wish to be prepopulated with an ip upon clicking the link'),
+            },
+          },
+        ],
+      ],
+    },
   ],
   // override controls that are inherited by the default configuration
   controlOverrides: {

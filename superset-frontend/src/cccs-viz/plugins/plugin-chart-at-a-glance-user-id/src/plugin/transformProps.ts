@@ -16,9 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
+import { ChartProps, TimeseriesDataRecord, QueryFormData } from '@superset-ui/core';
 
-export default function transformProps(chartProps: ChartProps) {
+export type AAGUserIDFormData = QueryFormData & {
+  ipDashboardId?: string;
+  ipDashBoardBaseUrl?: string;
+  ipDashboardFilterId?: string;
+};
+
+export type AAGUserIDChartProps = ChartProps & {
+  formData: AAGUserIDFormData;
+};
+
+
+export default function transformProps(chartProps: AAGUserIDChartProps) {
   /**
    * This function is called after a successful response has been
    * received from the chart data endpoint, and is used to transform
@@ -49,7 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
    * be seen until restarting the development server.
    */
   const { width, height, formData, queriesData, hooks } = chartProps;
-  const { boldText, headerFontSize, headerText } = formData;
+  const { boldText, headerFontSize, headerText, ipDashboardId, ipDashboardFilterId, ipDashBoardBaseUrl } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
   const { setDataMask = () => {} } = hooks;
   return {
@@ -61,6 +72,9 @@ export default function transformProps(chartProps: ChartProps) {
     boldText,
     headerFontSize,
     headerText,
+    ipDashboardId,
+    ipDashboardFilterId,
+    ipDashBoardBaseUrl,
     formData,
   };
 }
