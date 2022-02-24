@@ -4,6 +4,7 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
+    "copy-www-site-files": "cp static/resources/.asf.yaml static/resources/.htaccess build/",
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
