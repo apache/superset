@@ -17,16 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import sinon from 'sinon';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import QueryAutoRefresh from 'src/SqlLab/components/QueryAutoRefresh';
 import { initialState, runningQuery } from 'src/SqlLab/fixtures';
 import fetchMock from 'fetch-mock';
-import * as Actions from 'src/SqlLab/actions/sqlLab';
+import * as actions from 'src/SqlLab/actions/sqlLab';
 
 describe('QueryAutoRefresh', () => {
   const middlewares = [thunk];
@@ -55,9 +53,17 @@ describe('QueryAutoRefresh', () => {
       useRedux: true,
     });
 
-    screen.logTestingPlaygroundURL();
+    expect(mockFetch.called()).toBe(true);
+  });
 
-    expect(mockFetch.calls).toHaveBeenCalledTimes(1);
+  it('setUserOffline', () => {
+    const spy = jest.spyOn(actions, 'setUserOffline');
+
+    render(setup(), {
+      useRedux: true,
+    });
+
+    expect(spy).toHaveBeenCalled();
   });
 
   // const getWrapper = () =>
@@ -74,6 +80,7 @@ describe('QueryAutoRefresh', () => {
   //   expect(wrapper.instance().shouldCheckForQueries()).toBe(true);
   // });
 
+  // is it possible to call actions.setUserOffline to change the mock state of the component causing the value of offline to change?
   // Change the props passed into the render, setting offline to on or off
   // eslint-disable-next-line jest/no-commented-out-tests
   // it('setUserOffline', () => {
