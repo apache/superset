@@ -33,6 +33,7 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
+  ChartLabel,
 } from '@superset-ui/core';
 import { Collapse, Input, Tooltip } from 'src/common/components';
 import Label from 'src/components/Label';
@@ -110,6 +111,8 @@ const DEFAULT_ORDER = [
   'para',
   'country_map',
 ];
+
+const CHART_LABEL_ORDER = [ChartLabel.DEPRECATED, ChartLabel.VERIFIED];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
@@ -410,10 +413,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
-      {type.label && (
+      {type.label?.name && (
         <ThumbnailLabelWrapper>
           <HighlightLabel>
-            <div>{type.label.name}</div>
+            <div>{t(type.label?.name)}</div>
           </HighlightLabel>
         </ThumbnailLabelWrapper>
       )}
@@ -499,7 +502,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .map(([key, value]) => ({ key, value }))
       .filter(
         ({ value }) =>
-          nativeFilterGate(value.behaviors || []) && !value.deprecated,
+          nativeFilterGate(value.behaviors || []) &&
+          value.label?.name !== ChartLabel.DEPRECATED,
       );
     result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
     return result;
@@ -587,9 +591,15 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return fuse
       .search(searchInputValue)
       .map(result => result.item)
-      .sort(
-        (a, b) => (b.value?.searchWeight || 0) - (a.value?.searchWeight || 0),
-      );
+      .sort((a, b) => {
+        const aOrder = a.value?.label?.name
+          ? CHART_LABEL_ORDER.indexOf(a.value?.label?.name)
+          : 0;
+        const bOrder = b.value?.label?.name
+          ? CHART_LABEL_ORDER.indexOf(b.value?.label?.name)
+          : 0;
+        return bOrder - aOrder;
+      });
   }, [searchInputValue, fuse]);
 
   const focusSearch = useCallback(() => {
@@ -787,15 +797,15 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               `}
             >
               {selectedVizMetadata?.name}
-              {selectedVizMetadata?.label && (
+              {selectedVizMetadata?.label?.name && (
                 <Tooltip
                   id="viz-badge-tooltip"
                   placement="top"
-                  title={selectedVizMetadata?.label.description}
+                  title={selectedVizMetadata.label?.description}
                 >
                   <TitleLabelWrapper>
                     <HighlightLabel>
-                      <div>{selectedVizMetadata.label.name}</div>
+                      <div>{t(selectedVizMetadata.label?.name)}</div>
                     </HighlightLabel>
                   </TitleLabelWrapper>
                 </Tooltip>

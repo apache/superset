@@ -52,4 +52,9 @@ export interface PlainObject {
   [key: string]: any;
 }
 
+export enum ChartLabel {
+  VERIFIED = 'VERIFIED',
+  DEPRECATED = 'DEPRECATED',
+}
+
 export default {};
