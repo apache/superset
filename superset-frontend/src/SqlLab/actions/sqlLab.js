@@ -1108,11 +1108,16 @@ export function addTable(query, database, tableName, schemaName) {
           isDataPreview: true,
         };
         Promise.all([
-          dispatch(mergeTable({
-            ...newTable,
-            dataPreviewQueryId: dataPreviewQuery.id,
-          }, dataPreviewQuery)),
-          dispatch(runQuery(dataPreviewQuery))
+          dispatch(
+            mergeTable(
+              {
+                ...newTable,
+                dataPreviewQueryId: dataPreviewQuery.id,
+              },
+              dataPreviewQuery,
+            ),
+          ),
+          dispatch(runQuery(dataPreviewQuery)),
         ]);
       }
 
