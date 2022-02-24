@@ -1192,8 +1192,7 @@ class TestGuestTokens(SupersetTestCase):
         self.assertEqual(aud, decoded_token["aud"])
         self.assertEqual("guest", decoded_token["type"])
         self.assertEqual(
-            now + self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"],
-            decoded_token["exp"],
+            now + self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"], decoded_token["exp"],
         )
 
     def test_get_guest_user(self):
