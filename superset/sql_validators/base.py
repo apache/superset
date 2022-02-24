@@ -14,15 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=too-few-public-methods
-
 from typing import Any, Dict, List, Optional
 
 from superset.models.core import Database
 
 
-class SQLValidationAnnotation:
+class SQLValidationAnnotation:  # pylint: disable=too-few-public-methods
     """Represents a single annotation (error/warning) in an SQL querytext"""
 
     def __init__(
@@ -47,7 +44,7 @@ class SQLValidationAnnotation:
         }
 
 
-class BaseSQLValidator:
+class BaseSQLValidator:  # pylint: disable=too-few-public-methods
     """BaseSQLValidator defines the interface for checking that a given sql
     query is valid for a given database engine."""
 

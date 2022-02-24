@@ -28,7 +28,7 @@ import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 export const getSelectExtraFormData = (
   col: string,
-  value?: null | (string | number)[],
+  value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
   inverseSelection = false,
 ): ExtraFormData => {
@@ -46,6 +46,7 @@ export const getSelectExtraFormData = (
       {
         col,
         op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        // @ts-ignore
         val: value,
       },
     ];
@@ -59,11 +60,20 @@ export const getRangeExtraFormData = (
   upper?: number | null,
 ) => {
   const filters: QueryObjectFilterClause[] = [];
-  if (lower !== undefined && lower !== null) {
+  if (lower !== undefined && lower !== null && lower !== upper) {
     filters.push({ col, op: '>=', val: lower });
   }
-  if (upper !== undefined && upper !== null) {
+  if (upper !== undefined && upper !== null && upper !== lower) {
     filters.push({ col, op: '<=', val: upper });
+  }
+  if (
+    upper !== undefined &&
+    upper !== null &&
+    lower !== undefined &&
+    lower !== null &&
+    upper === lower
+  ) {
+    filters.push({ col, op: '==', val: upper });
   }
 
   return filters.length

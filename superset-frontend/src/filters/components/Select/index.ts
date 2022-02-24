@@ -28,6 +28,8 @@ export default class FilterSelectPlugin extends ChartPlugin {
       name: t('Select filter'),
       description: t('Select filter plugin using AntD'),
       behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      enableNoResults: false,
+      tags: [t('Experimental')],
       thumbnail,
     });
 

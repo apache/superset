@@ -18,7 +18,15 @@
 # ATTENTION: If you change any constants, make sure to also change utils/common.js
 
 # string to use when None values *need* to be converted to/from strings
+from enum import Enum
+
 NULL_STRING = "<NULL>"
+EMPTY_STRING = "<empty string>"
+
+CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
+
+# UUID for the examples database
+EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
@@ -94,7 +102,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "bulk_delete": "write",
     "delete": "write",
     "distinct": "read",
-    "export": "read",
     "get": "read",
     "get_list": "read",
     "info": "read",
@@ -119,6 +126,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "get_data": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -150,3 +158,20 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
     set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values())
     | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
 )
+
+
+class PandasAxis(int, Enum):
+    ROW = 0
+    COLUMN = 1
+
+
+class PandasPostprocessingCompare(str, Enum):
+    DIFF = "difference"
+    PCT = "percentage"
+    RAT = "ratio"
+
+
+class CacheRegion(str, Enum):
+    DEFAULT = "default"
+    DATA = "data"
+    THUMBNAIL = "thumbnail"

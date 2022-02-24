@@ -31,6 +31,7 @@ export default function transformProps(
     behaviors,
     appSection,
     filterState,
+    isRefreshing,
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const {
@@ -54,6 +55,7 @@ export default function transformProps(
     height,
     data,
     formData: newFormData,
+    isRefreshing,
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,

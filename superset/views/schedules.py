@@ -50,9 +50,7 @@ from superset.views.core import json_success
 from .base import DeleteMixin, SupersetModelView
 
 
-class EmailScheduleView(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class EmailScheduleView(SupersetModelView, DeleteMixin):
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
 
@@ -134,8 +132,8 @@ class EmailScheduleView(
         try:
             recipients = get_email_address_list(item.recipients)
             item.recipients = ", ".join(recipients)
-        except Exception:
-            raise SupersetException("Invalid email list")
+        except Exception as ex:
+            raise SupersetException("Invalid email list") from ex
 
         item.user = item.user or g.user
         if not croniter.is_valid(item.crontab):
@@ -267,7 +265,7 @@ class DashboardEmailScheduleView(
     def pre_add(self, item: "DashboardEmailScheduleView") -> None:
         if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
-        super(DashboardEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)
 
 
 class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-ancestors
@@ -348,4 +346,4 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
     def pre_add(self, item: "SliceEmailScheduleView") -> None:
         if item.slice is None:
             raise SupersetException("Slice is mandatory")
-        super(SliceEmailScheduleView, self).pre_add(item)
+        super().pre_add(item)

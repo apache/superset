@@ -27,7 +27,7 @@ import {
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   HeaderContainer,
   AddIconButton,
@@ -80,8 +80,9 @@ class CollectionControl extends React.Component {
   }
 
   onChange(i, value) {
-    Object.assign(this.props.value[i], value);
-    this.props.onChange(this.props.value);
+    const newValue = [...this.props.value];
+    newValue[i] = { ...this.props.value[i], ...value };
+    this.props.onChange(newValue);
   }
 
   onAdd() {
@@ -156,11 +157,9 @@ class CollectionControl extends React.Component {
         <HeaderContainer>
           <ControlHeader {...this.props} />
           <AddIconButton onClick={this.onAdd}>
-            <Icon
-              name="plus-large"
-              width={theme.gridUnit * 3}
-              height={theme.gridUnit * 3}
-              color={theme.colors.grayscale.light5}
+            <Icons.PlusLarge
+              iconSize="s"
+              iconColor={theme.colors.grayscale.light5}
             />
           </AddIconButton>
         </HeaderContainer>

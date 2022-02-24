@@ -30,6 +30,8 @@ from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.commands.importers.v1.utils import find_chart_uuids
 from superset.dashboards.dao import DashboardDAO
 from superset.commands.export import ExportModelsCommand
+from superset.datasets.commands.export import ExportDatasetsCommand
+from superset.datasets.dao import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
@@ -116,7 +118,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             export_uuids=True,
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
-        # becomes the default export endpoint
+        #  becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():
             value: Optional[str] = payload.pop(key, None)
             if value:
@@ -125,6 +127,18 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 except (TypeError, json.decoder.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
+
+        # Extract all native filter datasets and replace native
+        # filter dataset references with uuid
+        for native_filter in payload.get("metadata", {}).get(
+            "native_filter_configuration", []
+        ):
+            for target in native_filter.get("targets", []):
+                dataset_id = target.pop("datasetId", None)
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    target["datasetUuid"] = str(dataset.uuid)
+                    yield from ExportDatasetsCommand([dataset_id]).run()
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config

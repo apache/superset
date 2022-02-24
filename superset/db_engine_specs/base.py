@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument
+# pylint: disable=too-many-lines
 import json
 import logging
 import re
@@ -43,7 +43,8 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
-from sqlalchemy import column, DateTime, select, types
+from marshmallow.validate import Range
+from sqlalchemy import column, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -51,8 +52,9 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
-from sqlalchemy.types import String, TypeEngine, UnicodeText
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
+from sqlalchemy.types import TypeEngine
+from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
@@ -70,42 +72,50 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
 
+ColumnTypeMapping = Tuple[
+    Pattern[str],
+    Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+    GenericDataType,
+]
+
 logger = logging.getLogger()
 
 
-class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
+CTE_ALIAS = "__cte"
+
+
+class TimeGrain(NamedTuple):
     name: str  # TODO: redundant field, remove
     label: str
     function: str
     duration: Optional[str]
 
 
-QueryStatus = utils.QueryStatus
-
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
     "PT1S": __("Second"),
+    "PT5S": __("5 second"),
+    "PT30S": __("30 second"),
     "PT1M": __("Minute"),
     "PT5M": __("5 minute"),
     "PT10M": __("10 minute"),
     "PT15M": __("15 minute"),
-    "PT0.5H": __("Half hour"),
+    "PT30M": __("30 minute"),
     "PT1H": __("Hour"),
+    "PT6H": __("6 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
-    "P0.25Y": __("Quarter"),
+    "P3M": __("Quarter"),
     "P1Y": __("Year"),
-    "1969-12-28T00:00:00Z/P1W": __("Week starting sunday"),
-    "1969-12-29T00:00:00Z/P1W": __("Week starting monday"),
-    "P1W/1970-01-03T00:00:00Z": __("Week ending saturday"),
-    "P1W/1970-01-04T00:00:00Z": __("Week_ending sunday"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
 }
 
 
-class TimestampExpression(
-    ColumnClause
-):  # pylint: disable=abstract-method,too-many-ancestors,too-few-public-methods
+class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -156,26 +166,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Set[str] = set()
-    engine_name: Optional[
-        str
-    ] = None  # used for user messages, overridden in child classes
+    engine_name: Optional[str] = None  # for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Tuple[
-        Tuple[
-            Pattern[str],
-            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-            GenericDataType,
-        ],
-        ...,
-    ] = (
+    column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
+        (
+            re.compile(r"^string", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^n((var)?char|text)", re.IGNORECASE),
+            types.UnicodeText(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^(var)?char", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^(tiny|medium|long)?text", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
         (
             re.compile(r"^smallint", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^int.*", re.IGNORECASE),
+            re.compile(r"^int(eger)?", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
         ),
@@ -184,6 +205,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.BigInteger(),
             GenericDataType.NUMERIC,
         ),
+        (re.compile(r"^long", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
         (
             re.compile(r"^decimal", re.IGNORECASE),
             types.Numeric(),
@@ -222,49 +244,34 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^string", re.IGNORECASE),
-            types.String(),
-            utils.GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE),
-            UnicodeText(),
-            utils.GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE),
-            String(),
-            utils.GenericDataType.STRING,
-        ),
-        (
-            re.compile(r"^((TINY|MEDIUM|LONG)?TEXT)", re.IGNORECASE),
-            String(),
-            utils.GenericDataType.STRING,
-        ),
-        (re.compile(r"^LONG", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
-        (
-            re.compile(r"^datetime", re.IGNORECASE),
-            types.DateTime(),
-            GenericDataType.TEMPORAL,
-        ),
-        (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
-        (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
             GenericDataType.TEMPORAL,
         ),
         (
-            re.compile(r"^interval", re.IGNORECASE),
-            types.Interval(),
+            re.compile(r"^datetime", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^date", re.IGNORECASE),
+            types.DateTime(),
             GenericDataType.TEMPORAL,
         ),
         (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
         (
-            re.compile(r"^bool.*", re.IGNORECASE),
+            re.compile(r"^interval", re.IGNORECASE),
+            types.Interval(),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^bool(ean)?", re.IGNORECASE),
             types.Boolean(),
             GenericDataType.BOOLEAN,
         ),
     )
+
+    # Does database support join-free timeslot grouping
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -273,6 +280,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
+    allows_escaped_colons = True
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -281,6 +289,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
     allows_hidden_ordeby_agg = True
+
+    # Whether ORDER BY clause can use sql caculated expression
+    # if True, use alias of select column for `order by`
+    # the True is safely for most database
+    # But for backward compatibility, False by default
+    allows_hidden_cc_in_orderby = False
+
+    # Whether allow CTE as subquery or regular CTE
+    # If True, then it will allow  in subquery ,
+    # if False it will allow as regular CTE
+    allows_cte_in_subquery = True
+    # Whether allow LIMIT clause in the SQL
+    # If True, then the database engine is allowed for LIMIT clause
+    # If False, then the database engine is allowed for TOP clause
+    allow_limit_clause = True
+    # This set will give keywords for select statements
+    # to consider for the engines with TOP SQL parsing
+    select_keywords: Set[str] = {"SELECT"}
+    # This set will give the keywords for data limit statements
+    # to consider for the engines with TOP SQL parsing
+    top_keywords: Set[str] = {"TOP"}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -321,8 +350,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return new_exception(str(exception))
 
     @classmethod
-    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+    def get_allow_cost_estimate(  # pylint: disable=unused-argument
+        cls, extra: Dict[str, Any],
+    ) -> bool:
         return False
+
+    @classmethod
+    def get_text_clause(cls, clause: str) -> TextClause:
+        """
+        SQLALchemy wrapper to ensure text clauses are escaped properly
+
+        :param clause: string clause with potentially unescaped characters
+        :return: text clause with escaped characters
+        """
+        if cls.allows_escaped_colons:
+            clause = clause.replace(":", "\\:")
+        return text(clause)
 
     @classmethod
     def get_engine(
@@ -376,7 +419,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
 
-        return TimestampExpression(time_expr, col, type_=DateTime)
+        return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
     def get_time_grains(cls) -> Tuple[TimeGrain, ...]:
@@ -574,8 +617,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str
+    def extra_table_metadata(  # pylint: disable=unused-argument
+        cls, database: "Database", table_name: str, schema_name: str,
     ) -> Dict[str, Any]:
         """
         Returns engine-specific table metadata
@@ -617,6 +660,71 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
+    def apply_top_to_sql(cls, sql: str, limit: int) -> str:
+        """
+        Alters the SQL statement to apply a TOP clause
+        :param limit: Maximum number of rows to be returned by the query
+        :param sql: SQL query
+        :return: SQL query with top clause
+        """
+
+        cte = None
+        sql_remainder = None
+        sql = sql.strip(" \t\n;")
+        sql_statement = sqlparse.format(sql, strip_comments=True)
+        query_limit: Optional[int] = sql_parse.extract_top_from_query(
+            sql_statement, cls.top_keywords
+        )
+        if not limit:
+            final_limit = query_limit
+        elif int(query_limit or 0) < limit and query_limit is not None:
+            final_limit = query_limit
+        else:
+            final_limit = limit
+        if not cls.allows_cte_in_subquery:
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
+        if cte:
+            str_statement = str(sql_remainder)
+            cte = cte + "\n"
+        else:
+            cte = ""
+            str_statement = str(sql)
+        str_statement = str_statement.replace("\n", " ").replace("\r", "")
+
+        tokens = str_statement.rstrip().split(" ")
+        tokens = [token for token in tokens if token]
+        if cls.top_not_in_sql(str_statement):
+            selects = [
+                i
+                for i, word in enumerate(tokens)
+                if word.upper() in cls.select_keywords
+            ]
+            first_select = selects[0]
+            tokens.insert(first_select + 1, "TOP")
+            tokens.insert(first_select + 2, str(final_limit))
+
+        next_is_limit_token = False
+        new_tokens = []
+
+        for token in tokens:
+            if token in cls.top_keywords:
+                next_is_limit_token = True
+            elif next_is_limit_token:
+                if token.isdigit():
+                    token = str(final_limit)
+                    next_is_limit_token = False
+            new_tokens.append(token)
+        sql = " ".join(new_tokens)
+        return cte + sql
+
+    @classmethod
+    def top_not_in_sql(cls, sql: str) -> bool:
+        for top_word in cls.top_keywords:
+            if top_word.upper() in sql.upper():
+                return False
+        return True
+
+    @classmethod
     def get_limit_from_sql(cls, sql: str) -> Optional[int]:
         """
         Extract limit from SQL query
@@ -638,6 +746,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
+
+    @classmethod
+    def get_cte_query(cls, sql: str) -> Optional[str]:
+        """
+        Convert the input CTE based SQL to the SQL for virtual table conversion
+
+        :param sql: SQL query
+        :return: CTE with the main select query aliased as `__cte`
+
+        """
+        if not cls.allows_cte_in_subquery:
+            stmt = sqlparse.parse(sql)[0]
+
+            # The first meaningful token for CTE will be with WITH
+            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+            if not (token and token.ttype == CTE):
+                return None
+            idx, token = stmt.token_next(idx)
+            idx = stmt.token_index(token) + 1
+
+            # extract rest of the SQLs after CTE
+            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+
+        return None
 
     @classmethod
     def df_to_sql(
@@ -666,7 +799,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         to_sql_kwargs["name"] = table.table
 
         if table.schema:
-
             # Only add schema when it is preset and non empty.
             to_sql_kwargs["schema"] = table.schema
 
@@ -676,12 +808,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(  # pylint: disable=unused-argument
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         """
         Convert Python datetime object to a SQL expression
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
+        :param db_extra: The database extra object
         :return: The SQL expression
         """
         return None
@@ -808,12 +943,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(inspector.get_schema_names())
 
     @classmethod
-    def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_table_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all tables from schema
 
+        :param database: The database to get info
         :param inspector: SqlAlchemy inspector
         :param schema: Schema to inspect. If omitted, uses default schema for database
         :return: All tables in schema
@@ -824,12 +960,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sorted(tables)
 
     @classmethod
-    def get_view_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+    def get_view_names(  # pylint: disable=unused-argument
+        cls, database: "Database", inspector: Inspector, schema: Optional[str],
     ) -> List[str]:
         """
         Get all views from schema
 
+        :param database: The database to get info
         :param inspector: SqlAlchemy inspector
         :param schema: Schema name. If omitted, uses default schema for database
         :return: All views in schema
@@ -878,7 +1015,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return inspector.get_columns(table_name, schema)
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(  # pylint: disable=too-many-arguments,unused-argument
         cls,
         table_name: str,
         schema: Optional[str],
@@ -894,7 +1031,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :param query: SqlAlchemy query
         :param columns: List of TableColumns
-        :return: SqlAlchemy query with additional where clause referencing latest
+        :return: SqlAlchemy query with additional where clause referencing the latest
         partition
         """
         # TODO: Fix circular import caused by importing Database, TableColumn
@@ -924,12 +1061,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table_name: Table name, unquoted
-        :param engine: SqlALchemy Engine instance
+        :param engine: SqlAlchemy Engine instance
         :param schema: Schema, unquoted
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
-        :param latest_partition: Only query latest partition
+        :param latest_partition: Only query the latest partition
         :param cols: Columns to include in query
         :return: SQL query
         """
@@ -963,7 +1100,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any,) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
@@ -994,7 +1131,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param statement: A single SQL statement
         :param database: Database instance
-        :param username: Effective username
+        :param user_name: Effective username
         :return: Dictionary with different costs
         """
         parsed_query = ParsedQuery(statement)
@@ -1059,13 +1196,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param connect_args: config to be updated
         :param uri: URI
-        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         :return: None
         """
 
     @classmethod
-    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
+    def execute(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: str, **kwargs: Any,
+    ) -> None:
         """
         Execute a SQL query
 
@@ -1090,8 +1228,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
         sqlalchemy.sql.elements.quoted_name object to ensure that the select query
-        and query results have same case. Otherwise return the mutated label as a
-        regular string. If maxmimum supported column name length is exceeded,
+        and query results have same case. Otherwise, return the mutated label as a
+        regular string. If maximum supported column name length is exceeded,
         generate a truncated label by calling truncate_label().
 
         :param label: expected expression label/alias
@@ -1111,15 +1249,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_sqla_column_type(
         cls,
         column_type: Optional[str],
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[Tuple[TypeEngine, GenericDataType], None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[Tuple[TypeEngine, GenericDataType]]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
@@ -1127,16 +1258,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
         :param column_type: Column type returned by inspector
+        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
         :return: SqlAlchemy column type
         """
         if not column_type:
             return None
         for regex, sqla_type, generic_type in column_type_mappings:
             match = regex.match(column_type)
-            if match:
-                if callable(sqla_type):
-                    return sqla_type(match), generic_type
-                return sqla_type, generic_type
+            if not match:
+                continue
+            if callable(sqla_type):
+                return sqla_type(match), generic_type
+            return sqla_type, generic_type
         return None
 
     @staticmethod
@@ -1160,7 +1293,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         In the case that a label exceeds the max length supported by the engine,
         this method is used to construct a deterministic and unique label based on
-        the original label. By default this returns an md5 hash of the original label,
+        the original label. By default, this returns a md5 hash of the original label,
         conditionally truncated if the length of the hash exceeds the max column length
         of the engine.
 
@@ -1179,8 +1312,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str:
         """
         Convert sqlalchemy column type to string representation.
-        By default removes collation and character encoding info to avoid unnecessarily
-        long datatypes.
+        By default, removes collation and character encoding info to avoid
+        unnecessarily long datatypes.
 
         :param sqla_column_type: SqlAlchemy column type
         :param dialect: Sqlalchemy dialect
@@ -1194,7 +1327,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sqla_column_type.compile(dialect=dialect).upper()
 
     @classmethod
-    def get_function_names(cls, database: "Database") -> List[str]:
+    def get_function_names(  # pylint: disable=unused-argument
+        cls, database: "Database",
+    ) -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
         Used for SQL Lab autocomplete.
@@ -1217,7 +1352,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return data
 
     @staticmethod
-    def mutate_db_for_connection_test(database: "Database") -> None:
+    def mutate_db_for_connection_test(  # pylint: disable=unused-argument
+        database: "Database",
+    ) -> None:
         """
         Some databases require passing additional parameters for validating database
         connections. This method makes it possible to mutate the database instance prior
@@ -1245,6 +1382,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 raise ex
         return extra
 
+    @staticmethod
+    def update_encrypted_extra_params(
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        """
+        Some databases require some sensitive information which do not conform to
+        the username:password syntax normally used by SQLAlchemy.
+
+        :param database: database instance from which to extract extras
+        :param params: params to be updated
+        """
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            params.update(encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex
+
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
@@ -1255,24 +1412,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    @utils.memoized
-    def get_column_spec(
+    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+        Determine if the statement should be considered as SELECT statement.
+        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
+        """
+        return parsed_query.is_select()
+
+    @classmethod
+    def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
         """
         Converts native database type to sqlalchemy column type.
-        :param native_type: Native database typee
+        :param native_type: Native database type
+        :param db_extra: The database extra object
         :param source: Type coming from the database table or cursor description
+        :param column_type_mappings: Maps from string to SqlAlchemy TypeEngine
         :return: ColumnSpec object
         """
         col_types = cls.get_sqla_column_type(
@@ -1284,13 +1444,61 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # using datetimes
             if generic_type == GenericDataType.TEMPORAL:
                 column_type = literal_dttm_type_factory(
-                    type(column_type), cls, native_type or ""
+                    column_type, cls, native_type or "", db_extra=db_extra or {}
                 )
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return False
+
+    @classmethod
+    def get_cancel_query_id(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query,
+    ) -> Optional[str]:
+        """
+        Select identifiers from the database engine that uniquely identifies the
+        queries to cancel. The identifier is typically a session id, process id
+        or similar.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Query identifier
+        """
+
+        return None
+
+    @classmethod
+    def cancel_query(  # pylint: disable=unused-argument
+        cls, cursor: Any, query: Query, cancel_query_id: str,
+    ) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
+        """
+
+        return False
+
+    @classmethod
+    def parse_sql(cls, sql: str) -> List[str]:
+        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
 
 # schema for adding a database by providing parameters instead of the
@@ -1299,7 +1507,11 @@ class BasicParametersSchema(Schema):
     username = fields.String(required=True, allow_none=True, description=__("Username"))
     password = fields.String(allow_none=True, description=__("Password"))
     host = fields.String(required=True, description=__("Hostname or IP address"))
-    port = fields.Integer(required=True, description=__("Database port"))
+    port = fields.Integer(
+        required=True,
+        description=__("Database port"),
+        validate=Range(min=0, max=2 ** 16, max_inclusive=False),
+    )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
         keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
@@ -1320,7 +1532,6 @@ class BasicParametersType(TypedDict, total=False):
 
 
 class BasicParametersMixin:
-
     """
     Mixin for configuring DB engine specs via a dictionary.
 
@@ -1328,7 +1539,7 @@ class BasicParametersMixin:
     individual parameters, instead of the full SQLAlchemy URI. This
     mixin is for the most common pattern of URI:
 
-        drivername://user:password@host:port/dbname[?key=value&key=value...]
+        engine+driver://user:password@host:port/dbname[?key=value&key=value...]
 
     """
 
@@ -1336,11 +1547,11 @@ class BasicParametersMixin:
     parameters_schema = BasicParametersSchema()
 
     # recommended driver name for the DB engine spec
-    drivername = ""
+    default_driver = ""
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (
-        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
     # query parameter to enable encryption in the database connection
@@ -1348,8 +1559,13 @@ class BasicParametersMixin:
     encryption_parameters: Dict[str, str] = {}
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
-        query = parameters.get("query", {})
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+        cls,
+        parameters: BasicParametersType,
+        encryted_extra: Optional[Dict[str, str]] = None,
+    ) -> str:
+        # make a copy so that we don't update the original
+        query = parameters.get("query", {}).copy()
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
                 raise Exception("Unable to build a URL with encryption enabled")
@@ -1357,7 +1573,7 @@ class BasicParametersMixin:
 
         return str(
             URL(
-                cls.drivername,
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
@@ -1368,8 +1584,15 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
+    def get_parameters_from_uri(  # pylint: disable=unused-argument
+        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> BasicParametersType:
         url = make_url(uri)
+        query = {
+            key: value
+            for (key, value) in url.query.items()
+            if (key, value) not in cls.encryption_parameters.items()
+        }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
         )
@@ -1379,7 +1602,7 @@ class BasicParametersMixin:
             "host": url.host,
             "port": url.port,
             "database": url.database,
-            "query": url.query,
+            "query": query,
             "encryption": encryption,
         }
 
@@ -1396,7 +1619,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
-        present = {key for key in parameters if parameters[key]}  # type: ignore
+        present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 
         if missing:
@@ -1409,7 +1632,7 @@ class BasicParametersMixin:
                 ),
             )
 
-        host = parameters["host"]
+        host = parameters.get("host", None)
         if not host:
             return errors
         if not is_hostname_valid(host):
@@ -1423,10 +1646,33 @@ class BasicParametersMixin:
             )
             return errors
 
-        port = parameters["port"]
+        port = parameters.get("port", None)
         if not port:
             return errors
-        if not is_port_open(host, port):
+        try:
+            port = int(port)
+        except (ValueError, TypeError):
+            errors.append(
+                SupersetError(
+                    message="Port must be a valid integer.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        if not (isinstance(port, int) and 0 <= port < 2 ** 16):
+            errors.append(
+                SupersetError(
+                    message=(
+                        "The port must be an integer between 0 and 65535 "
+                        "(inclusive)."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        elif not is_port_open(host, port):
             errors.append(
                 SupersetError(
                     message="The port is closed.",

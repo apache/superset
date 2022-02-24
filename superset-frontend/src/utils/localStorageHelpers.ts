@@ -17,19 +17,102 @@
  * under the License.
  */
 
-export const getFromLocalStorage = (key: string, defaultValue: any) => {
+import { TableTabTypes } from 'src/views/CRUD/types';
+import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
+
+export enum LocalStorageKeys {
+  /**
+   * START LEGACY LOCAL STORAGE KEYS
+   *
+   * Do not follow the patterns here for key names. Keys should instead be namespaced to avoid
+   * collisions.
+   *
+   * TODO: Update all local storage keys to follow the new pattern. This is a breaking change,
+   * and therefore should be done in a major release.
+   */
+  filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
+  chart_split_sizes = 'chart_split_sizes',
+  controls_width = 'controls_width',
+  datasource_width = 'datasource_width',
+  is_datapanel_open = 'is_datapanel_open',
+  homepage_chart_filter = 'homepage_chart_filter',
+  homepage_dashboard_filter = 'homepage_dashboard_filter',
+  homepage_collapse_state = 'homepage_collapse_state',
+  homepage_activity_filter = 'homepage_activity_filter',
+  /** END LEGACY LOCAL STORAGE KEYS */
+
+  /**
+   * New local storage keys should be namespaced to avoid collisions. Keys should be named in the
+   * form [namespace]__[key].
+   *
+   * Example:
+   * sqllab__is_autocomplete_enabled
+   */
+  sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
+  explore__data_table_time_formatted_columns = 'explore__data_table_time_formatted_columns',
+}
+
+export type LocalStorageValues = {
+  filter_box_transition_snoozed_at: Record<number, number>;
+  chart_split_sizes: [number, number];
+  controls_width: number;
+  datasource_width: number;
+  is_datapanel_open: boolean;
+  homepage_chart_filter: TableTabTypes;
+  homepage_dashboard_filter: TableTabTypes;
+  homepage_collapse_state: string[];
+  homepage_activity_filter: SetTabType | null;
+  sqllab__is_autocomplete_enabled: boolean;
+  explore__data_table_time_formatted_columns: Record<string, string[]>;
+};
+
+export function getItem<K extends LocalStorageKeys>(
+  key: K,
+  defaultValue: LocalStorageValues[K],
+): LocalStorageValues[K] {
+  return dangerouslyGetItemDoNotUse(key, defaultValue);
+}
+
+export function setItem<K extends LocalStorageKeys>(
+  key: K,
+  value: LocalStorageValues[K],
+): void {
+  dangerouslySetItemDoNotUse(key, value);
+}
+
+/*
+ * This function should not be used directly, as it doesn't provide any type safety or any
+ * guarantees that the globally namespaced localstorage key is correct.
+ *
+ * Instead, use getItem and setItem. Any legacy uses should be updated/migrated in future
+ * Superset versions (as they may require breaking changes).
+ * */
+export function dangerouslyGetItemDoNotUse(
+  key: string,
+  defaultValue: any,
+): any {
   try {
     const value = localStorage.getItem(key);
-    return JSON.parse(value || 'null') || defaultValue;
+    if (value === null) {
+      return defaultValue;
+    }
+    return JSON.parse(value);
   } catch {
     return defaultValue;
   }
-};
+}
 
-export const setInLocalStorage = (key: string, value: any) => {
+/*
+ * This function should not be used directly, as it doesn't provide any type safety or any
+ * guarantees that the globally namespaced localstorage key is correct.
+ *
+ * Instead, use getItem and setItem. Any legacy uses should be updated/migrated in future
+ * Superset versions (as they may require breaking changes).
+ * */
+export function dangerouslySetItemDoNotUse(key: string, value: any): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Catch in case localStorage is unavailable
   }
-};
+}

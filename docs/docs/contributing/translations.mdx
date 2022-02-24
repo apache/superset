@@ -1,0 +1,148 @@
+---
+title: Translating
+hide_title: true
+sidebar_position: 9
+version: 1
+---
+
+## Translating
+
+We use [Flask-Babel](https://flask-babel.tkte.ch/) to translate Superset.
+In Python files, we use the following
+[translation functions](https://flask-babel.tkte.ch/#using-translations) from
+`Flask-Babel`:
+- `gettext` and `lazy_gettext` (usually aliased to `_`): for translating singular
+  strings.
+- `ngettext`: for translating strings that might become plural.
+
+```python
+from flask_babel import lazy_gettext as _
+```
+
+then wrap the translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
+
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In TypeScript/JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
+
+```javascript
+import { t, tn } from "@superset-ui/translation";
+```
+
+### Enabling language selection
+
+Add the `LANGUAGES` variable to your `superset_config.py`. Having more than one
+option inside will add a language selection dropdown to the UI on the right side
+of the navigation bar.
+
+```python
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
+}
+```
+
+### Creating a new language dictionary
+
+First check if the language code for your target language already exists. Check if the
+[two letter ISO 639-1 code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+for your target language already exists in the `superset/translations` directory:
+
+```bash
+ls superset/translations | grep -E "^[a-z]{2}\/"
+```
+
+If your language already has a pre-existing translation, skip to the next section
+
+The following languages are already supported by Flask AppBuilder, and will make it
+easier to translate the application to your target language:
+[Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html)
+
+To create a dictionary for a new language, first make sure the necessary dependencies are installed:
+```bash
+pip install -r superset/translations/requirements.txt
+```
+
+Then run the following, where `LANGUAGE_CODE` is replaced with the language code for your target
+language:
+
+```bash
+pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
+```
+
+For instance, to add a translation for Finnish (language code `fi`), run the following:
+
+```bash
+pybabel init -i superset/translations/messages.pot -d superset/translations -l fi
+```
+
+### Extracting new strings for translation
+
+This step needs to be done every time application strings change. This happens fairly
+frequently, so if you want to ensure that your translation has good coverage, this
+step needs to be run fairly frequently and the updated strings merged to the upstream
+codebase via PRs. To update the template file `superset/translations/messages.pot`
+with current application strings, run the following command:
+
+```bash
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+```
+
+Do not forget to update this file with the appropriate license information.
+
+### Updating language files
+
+Run the following command to update the language files with the new extracted strings.
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+You can then translate the strings gathered in files located under
+`superset/translation`, where there's one folder per language. You can use [Poedit](https://poedit.net/features)
+to translate the `po` file more conveniently.
+There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
+
+To perform the translation on MacOS, you can install `poedit` via Homebrew:
+
+```bash
+brew install poedit
+```
+
+After this, just start the `poedit` application and open the `messages.po` file. In the
+case of the Finnish translation, this would be `superset/translations/fi/LC_MESSAGES/messages.po`.
+
+### Applying translations
+
+To make the translations available on the frontend, we need to convert the PO file into
+a JSON file. To do this, we need to globally install the npm package `po2json`.
+
+```bash
+npm install -g po2json
+```
+
+To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
+
+```bash
+./scripts/po2json.sh
+```
+
+If you get errors running `po2json`, you might be running the Ubuntu package with the same
+name, rather than the Node.js package (they have a different format for the arguments). If
+there is a conflict, you may need to update your `PATH` environment variable or fully qualify
+the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
+If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
+For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+
+Finally, for the translations to take effect we need to compile translation catalogs into
+binary MO files.
+
+```bash
+pybabel compile -d superset/translations
+```

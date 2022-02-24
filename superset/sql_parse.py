@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from dataclasses import dataclass  # pylint: disable=wrong-import-order
+import re
+from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from urllib import parse
 
 import sqlparse
@@ -29,14 +30,35 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import (
+    CTE,
+    DDL,
+    DML,
+    Keyword,
+    Name,
+    Punctuation,
+    String,
+    Whitespace,
+)
 from sqlparse.utils import imt
+
+from superset.exceptions import QueryClauseValidationException
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
 logger = logging.getLogger(__name__)
+
+
+# TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
+sqlparse.keywords.SQL_REGEX.insert(
+    0,
+    (
+        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
+        sqlparse.tokens.String.Single,
+    ),
+)
 
 
 class CtasMethod(str, Enum):
@@ -65,6 +87,58 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
+def extract_top_from_query(
+    statement: TokenList, top_keywords: Set[str]
+) -> Optional[int]:
+    """
+    Extract top clause value from SQL statement.
+
+    :param statement: SQL statement
+    :param top_keywords: keywords that are considered as synonyms to TOP
+    :return: top value extracted from query, None if no top value present in statement
+    """
+
+    str_statement = str(statement)
+    str_statement = str_statement.replace("\n", " ").replace("\r", "")
+    token = str_statement.rstrip().split(" ")
+    token = [part for part in token if part]
+    top = None
+    for i, _ in enumerate(token):
+        if token[i].upper() in top_keywords and len(token) - 1 > i:
+            try:
+                top = int(token[i + 1])
+            except ValueError:
+                top = None
+            break
+    return top
+
+
+def get_cte_remainder_query(sql: str) -> Tuple[Optional[str], str]:
+    """
+    parse the SQL and return the CTE and rest of the block to the caller
+
+    :param sql: SQL query
+    :return: CTE and remainder block to the caller
+
+    """
+    cte: Optional[str] = None
+    remainder = sql
+    stmt = sqlparse.parse(sql)[0]
+
+    # The first meaningful token for CTE will be with WITH
+    idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+    if not (token and token.ttype == CTE):
+        return cte, remainder
+    idx, token = stmt.token_next(idx)
+    idx = stmt.token_index(token) + 1
+
+    # extract rest of the SQLs after CTE
+    remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+    cte = f"WITH {token.value}"
+
+    return cte, remainder
+
+
 def strip_comments_from_sql(statement: str) -> str:
     """
     Strips comments from a SQL statement, does a simple test first
@@ -79,7 +153,7 @@ def strip_comments_from_sql(statement: str) -> str:
 
 
 @dataclass(eq=True, frozen=True)
-class Table:  # pylint: disable=too-few-public-methods
+class Table:
     """
     A fully qualified SQL table conforming to [[catalog.]schema.]table.
     """
@@ -131,13 +205,36 @@ class ParsedQuery:
         return self._limit
 
     def is_select(self) -> bool:
-        return self._parsed[0].get_type() == "SELECT"
+        # make sure we strip comments; prevents a bug with coments in the CTE
+        parsed = sqlparse.parse(self.strip_comments())
+        if parsed[0].get_type() == "SELECT":
+            return True
+
+        if parsed[0].get_type() != "UNKNOWN":
+            return False
+
+        # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
+        # and no DDL is allowed
+        if any(token.ttype == DDL for token in parsed[0]) or any(
+            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+        ):
+            return False
+
+        # return false on `EXPLAIN`, `SET`, `SHOW`, etc.
+        if parsed[0][0].ttype == Keyword:
+            return False
+
+        return any(
+            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+        )
 
     def is_valid_ctas(self) -> bool:
-        return self._parsed[-1].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return parsed[-1].get_type() == "SELECT"
 
     def is_valid_cvas(self) -> bool:
-        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
+        parsed = sqlparse.parse(self.strip_comments())
+        return len(parsed) == 1 and parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
@@ -146,7 +243,7 @@ class ParsedQuery:
         )
 
         # Explain statements will only be the first statement
-        return statements_without_comments.startswith("EXPLAIN")
+        return statements_without_comments.upper().startswith("EXPLAIN")
 
     def is_show(self) -> bool:
         # Remove comments
@@ -265,9 +362,7 @@ class ParsedQuery:
         exec_sql += f"CREATE {method} {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(  # pylint: disable=too-many-branches
-        self, token: Token
-    ) -> None:
+    def _extract_from_token(self, token: Token) -> None:
         """
         <Identifier> store a list of subtokens and <IdentifierList> store lists of
         subtoken list.
@@ -343,3 +438,23 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+
+def validate_filter_clause(clause: str) -> None:
+    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
+        raise QueryClauseValidationException("Filter clause contains comment")
+
+    statements = sqlparse.parse(clause)
+    if len(statements) != 1:
+        raise QueryClauseValidationException("Filter clause contains multiple queries")
+    open_parens = 0
+
+    for token in statements[0]:
+        if token.value in (")", "("):
+            open_parens += 1 if token.value == "(" else -1
+            if open_parens < 0:
+                raise QueryClauseValidationException(
+                    "Closing unclosed parenthesis in filter clause"
+                )
+    if open_parens > 0:
+        raise QueryClauseValidationException("Unclosed parenthesis in filter clause")

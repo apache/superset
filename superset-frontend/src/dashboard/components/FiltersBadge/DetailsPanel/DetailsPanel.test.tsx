@@ -96,6 +96,7 @@ test('Should render "appliedCrossFilterIndicators"', () => {
     <DetailsPanel {...props}>
       <div data-test="details-panel-content">Content</div>
     </DetailsPanel>,
+    { useRedux: true },
   );
 
   userEvent.click(screen.getByTestId('details-panel-content'));
@@ -129,6 +130,7 @@ test('Should render "appliedIndicators"', () => {
     <DetailsPanel {...props}>
       <div data-test="details-panel-content">Content</div>
     </DetailsPanel>,
+    { useRedux: true },
   );
 
   userEvent.click(screen.getByTestId('details-panel-content'));
@@ -160,6 +162,7 @@ test('Should render "incompatibleIndicators"', () => {
     <DetailsPanel {...props}>
       <div data-test="details-panel-content">Content</div>
     </DetailsPanel>,
+    { useRedux: true },
   );
 
   userEvent.click(screen.getByTestId('details-panel-content'));
@@ -193,6 +196,7 @@ test('Should render "unsetIndicators"', () => {
     <DetailsPanel {...props}>
       <div data-test="details-panel-content">Content</div>
     </DetailsPanel>,
+    { useRedux: true },
   );
 
   userEvent.click(screen.getByTestId('details-panel-content'));
@@ -227,6 +231,7 @@ test('Should render empty', () => {
     <DetailsPanel {...props}>
       <div data-test="details-panel-content">Content</div>
     </DetailsPanel>,
+    { useRedux: true },
   );
 
   expect(screen.getByTestId('details-panel-content')).toBeInTheDocument();

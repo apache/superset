@@ -19,7 +19,7 @@
 import React from 'react';
 import { css, styled } from '@superset-ui/core';
 import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export interface TabsProps extends AntDTabsProps {
   fullWidth?: boolean;
@@ -65,11 +65,6 @@ const StyledTabs = ({
       css`
         .ant-tabs-nav-list {
           width: 100%;
-        }
-
-        .ant-tabs-tab {
-          width: 0;
-          margin-right: 0;
         }
       `};
 
@@ -124,6 +119,9 @@ const StyledEditableTabs = styled(StyledTabs)`
     `}
 `;
 
+const StyledCancelXIcon = styled(Icons.CancelX)`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 export const EditableTabs = Object.assign(StyledEditableTabs, {
   TabPane: StyledTabPane,
 });
@@ -135,9 +133,7 @@ EditableTabs.defaultProps = {
 };
 
 EditableTabs.TabPane.defaultProps = {
-  closeIcon: (
-    <Icon role="button" tabIndex={0} cursor="pointer" name="cancel-x" />
-  ),
+  closeIcon: <StyledCancelXIcon role="button" tabIndex={0} />,
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`

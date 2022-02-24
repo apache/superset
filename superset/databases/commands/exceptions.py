@@ -39,7 +39,7 @@ class DatabaseExistsValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(
-            _("A database with the same name already exists"),
+            _("A database with the same name already exists."),
             field_name="database_name",
         )
 
@@ -60,7 +60,7 @@ class DatabaseExtraJSONValidationError(ValidationError):
         super().__init__(
             [
                 _(
-                    "Field cannot be decoded by JSON.  %{json_error}s",
+                    "Field cannot be decoded by JSON. %(json_error)s",
                     json_error=json_error,
                 )
             ],
@@ -106,7 +106,7 @@ class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
 
 
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
-    message = _("Cannot delete a database that has tables attached")
+    message = _("Cannot delete a database that has datasets attached")
 
 
 class DatabaseDeleteFailedError(DeleteFailedError):

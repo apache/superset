@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -27,15 +28,15 @@ from superset.charts.commands.exceptions import (
     DashboardsNotFoundValidationError,
 )
 from superset.charts.dao import ChartDAO
-from superset.commands.base import BaseCommand
-from superset.commands.utils import get_datasource_by_id, populate_owners
+from superset.commands.base import BaseCommand, CreateMixin
+from superset.commands.utils import get_datasource_by_id
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.dashboards.dao import DashboardDAO
 
 logger = logging.getLogger(__name__)
 
 
-class CreateChartCommand(BaseCommand):
+class CreateChartCommand(CreateMixin, BaseCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
         self._actor = user
         self._properties = data.copy()
@@ -43,14 +44,16 @@ class CreateChartCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
+            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_by"] = self._actor
             chart = ChartDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
-            raise ChartCreateFailedError()
+            raise ChartCreateFailedError() from ex
         return chart
 
     def validate(self) -> None:
-        exceptions = list()
+        exceptions = []
         datasource_type = self._properties["datasource_type"]
         datasource_id = self._properties["datasource_id"]
         dashboard_ids = self._properties.get("dashboards", [])
@@ -70,7 +73,7 @@ class CreateChartCommand(BaseCommand):
         self._properties["dashboards"] = dashboards
 
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

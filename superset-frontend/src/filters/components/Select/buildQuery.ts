@@ -16,29 +16,64 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  GenericDataType,
+  getColumnLabel,
+  isPhysicalColumn,
+  QueryObject,
+  QueryObjectFilterClause,
+  BuildQuery,
+} from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
-export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
+const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
+  formData: PluginFilterSelectQueryFormData,
+  options,
+) => {
+  const { search, coltypeMap } = options?.ownState || {};
   const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
+    const extraFilters: QueryObjectFilterClause[] = [];
+    if (search) {
+      columns.filter(isPhysicalColumn).forEach(column => {
+        const label = getColumnLabel(column);
+        if (coltypeMap[label] === GenericDataType.STRING) {
+          extraFilters.push({
+            col: column,
+            op: 'ILIKE',
+            val: `%${search}%`,
+          });
+        } else if (
+          coltypeMap[label] === GenericDataType.NUMERIC &&
+          !Number.isNaN(Number(search))
+        ) {
+          // for numeric columns we apply a >= where clause
+          extraFilters.push({
+            col: column,
+            op: '>=',
+            val: Number(search),
+          });
+        }
+      });
+    }
 
     const sortColumns = sortMetric ? [sortMetric] : columns;
-    return [
+    const query: QueryObject[] = [
       {
         ...baseQueryObject,
-        apply_fetch_values_predicate: true,
         groupby: columns,
         metrics: sortMetric ? [sortMetric] : [],
-        filters: filters.concat(
-          columns.map(column => ({ col: column, op: 'IS NOT NULL' })),
-        ),
+        filters: filters.concat(extraFilters),
         orderby:
-          sortMetric || sortAscending
-            ? sortColumns.map(column => [column, sortAscending])
+          sortMetric || sortAscending !== undefined
+            ? sortColumns.map(column => [column, !!sortAscending])
             : [],
       },
     ];
+    return query;
   });
-}
+};
+
+export default buildQuery;

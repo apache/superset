@@ -20,8 +20,8 @@
 import React, { useCallback } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
-import Icon from '../Icon';
+import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
+import Icons from 'src/components/Icons';
 
 interface FaveStarProps {
   itemId: number;
@@ -66,7 +66,11 @@ const FaveStar = ({
       data-test="fave-unfave-icon"
       role="button"
     >
-      <Icon name={isStarred ? 'favorite-selected' : 'favorite-unselected'} />
+      {isStarred ? (
+        <Icons.FavoriteSelected iconSize="xxl" />
+      ) : (
+        <Icons.FavoriteUnselected iconSize="xxl" />
+      )}
     </StyledLink>
   );
 

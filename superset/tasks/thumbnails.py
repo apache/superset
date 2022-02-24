@@ -22,7 +22,7 @@ from typing import Optional
 
 from flask import current_app
 
-from superset import app, security_manager, thumbnail_cache
+from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.utils.celery import session_scope
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
@@ -39,40 +39,38 @@ def cache_chart_thumbnail(
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
-    with app.app_context():  # type: ignore
-        if not thumbnail_cache:
-            logger.warning("No cache set, refusing to compute")
-            return None
-        logger.info("Caching chart: %s", url)
-        screenshot = ChartScreenshot(url, digest)
-        with session_scope(nullpool=True) as session:
-            user = security_manager.get_user_by_username(
-                current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
-            )
-            screenshot.compute_and_cache(
-                user=user,
-                cache=thumbnail_cache,
-                force=force,
-                window_size=window_size,
-                thumb_size=thumb_size,
-            )
+    if not thumbnail_cache:
+        logger.warning("No cache set, refusing to compute")
         return None
+    logger.info("Caching chart: %s", url)
+    screenshot = ChartScreenshot(url, digest)
+    with session_scope(nullpool=True) as session:
+        user = security_manager.get_user_by_username(
+            current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
+        )
+        screenshot.compute_and_cache(
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            window_size=window_size,
+            thumb_size=thumb_size,
+        )
+    return None
 
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
 def cache_dashboard_thumbnail(
     url: str, digest: str, force: bool = False, thumb_size: Optional[WindowSize] = None
 ) -> None:
-    with app.app_context():  # type: ignore
-        if not thumbnail_cache:
-            logging.warning("No cache set, refusing to compute")
-            return
-        logger.info("Caching dashboard: %s", url)
-        screenshot = DashboardScreenshot(url, digest)
-        with session_scope(nullpool=True) as session:
-            user = security_manager.get_user_by_username(
-                current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
-            )
-            screenshot.compute_and_cache(
-                user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
-            )
+    if not thumbnail_cache:
+        logging.warning("No cache set, refusing to compute")
+        return
+    logger.info("Caching dashboard: %s", url)
+    screenshot = DashboardScreenshot(url, digest)
+    with session_scope(nullpool=True) as session:
+        user = security_manager.get_user_by_username(
+            current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
+        )
+        screenshot.compute_and_cache(
+            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+        )

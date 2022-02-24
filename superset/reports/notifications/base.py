@@ -18,6 +18,8 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional, Type
 
+import pandas as pd
+
 from superset.models.reports import ReportRecipients, ReportRecipientType
 
 
@@ -25,10 +27,11 @@ from superset.models.reports import ReportRecipients, ReportRecipientType
 class NotificationContent:
     name: str
     csv: Optional[bytes] = None  # bytes for csv file
-    screenshot: Optional[bytes] = None  # bytes for the screenshot
+    screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
+    embedded_data: Optional[pd.DataFrame] = None
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

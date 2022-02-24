@@ -50,7 +50,7 @@ class BulkDeleteDashboardCommand(BaseCommand):
             return None
         except DeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise DashboardBulkDeleteFailedError()
+            raise DashboardBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
@@ -68,5 +68,5 @@ class BulkDeleteDashboardCommand(BaseCommand):
         for model in self._models:
             try:
                 check_ownership(model)
-            except SupersetSecurityException:
-                raise DashboardForbiddenError()
+            except SupersetSecurityException as ex:
+                raise DashboardForbiddenError() from ex

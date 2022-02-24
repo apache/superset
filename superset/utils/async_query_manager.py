@@ -63,8 +63,6 @@ def increment_id(redis_id: str) -> str:
 
 
 class AsyncQueryManager:
-    # pylint: disable=too-many-instance-attributes
-
     MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
     STATUS_RUNNING = "running"
@@ -73,7 +71,7 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis: redis.Redis
+        self._redis: redis.Redis  # type: ignore
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
@@ -100,7 +98,7 @@ class AsyncQueryManager:
                 "Please provide a JWT secret at least 32 bytes long"
             )
 
-        self._redis = redis.Redis(  # type: ignore
+        self._redis = redis.Redis(
             **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
         )
         self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
@@ -114,9 +112,7 @@ class AsyncQueryManager:
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         @app.after_request
-        def validate_session(  # pylint: disable=unused-variable
-            response: Response,
-        ) -> Response:
+        def validate_session(response: Response) -> Response:
             user_id = None
 
             try:
@@ -165,9 +161,9 @@ class AsyncQueryManager:
 
         try:
             return self.parse_jwt(token)
-        except Exception as exc:
-            logger.warning(exc)
-            raise AsyncQueryTokenException("Failed to parse token")
+        except Exception as ex:
+            logger.warning(ex)
+            raise AsyncQueryTokenException("Failed to parse token") from ex
 
     def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
@@ -180,9 +176,7 @@ class AsyncQueryManager:
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = self._redis.xrange(  # type: ignore
-            stream_name, start_id, "+", self.MAX_EVENT_COUNT
-        )
+        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
@@ -203,9 +197,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._redis.xadd(  # type: ignore
-            scoped_stream_name, event_data, "*", self._stream_limit
-        )
-        self._redis.xadd(  # type: ignore
-            full_stream_name, event_data, "*", self._stream_limit_firehose
-        )
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)

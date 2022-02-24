@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
 import {
   Dropdown,
@@ -41,8 +41,8 @@ export {
   Divider,
   Dropdown,
   Form,
+  Grid,
   Empty,
-  Modal,
   Typography,
   Tree,
   Popover,
@@ -50,19 +50,26 @@ export {
   Row,
   Space,
   Skeleton,
+  Steps,
   Switch,
   Tag,
   Tabs,
   Tooltip,
+  Upload,
   Input as AntdInput,
 } from 'antd';
 export { Card as AntdCard } from 'antd';
-export { FormInstance } from 'antd/lib/form';
-export { RadioChangeEvent } from 'antd/lib/radio';
-export { TreeProps } from 'antd/lib/tree';
-export { default as Alert, AlertProps } from 'antd/lib/alert';
-export { default as Select, SelectProps } from 'antd/lib/select';
-export { default as List, ListItemProps } from 'antd/lib/list';
+export { default as Modal } from 'antd/lib/modal';
+export type { ModalProps } from 'antd/lib/modal';
+export type { FormInstance } from 'antd/lib/form';
+export type { RadioChangeEvent } from 'antd/lib/radio';
+export type { TreeProps } from 'antd/lib/tree';
+export { default as Alert } from 'antd/lib/alert';
+export { default as Select } from 'antd/lib/select';
+export { default as List } from 'antd/lib/list';
+export type { AlertProps } from 'antd/lib/alert';
+export type { SelectProps } from 'antd/lib/select';
+export type { ListItemProps } from 'antd/lib/list';
 
 export { default as Collapse } from 'src/components/Collapse';
 export { default as Badge } from 'src/components/Badge';
@@ -180,11 +187,14 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
   & > .ant-menu-submenu-title {
     padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
       ${({ theme }) => theme.gridUnit * 3}px !important;
-    svg {
+    span[role='img'] {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * 4 + 7}px;
-      right: ${({ theme }) => theme.gridUnit}px;
-      width: ${({ theme }) => theme.gridUnit * 6}px;
+      right: ${({ theme }) => -theme.gridUnit + -2}px;
+      top: ${({ theme }) => theme.gridUnit * 5.25}px;
+      svg {
+        font-size: ${({ theme }) => theme.gridUnit * 6}px;
+        color: ${({ theme }) => theme.colors.grayscale.base};
+      }
     }
     & > span {
       position: relative;
@@ -213,6 +223,10 @@ export const MainNav = Object.assign(StyledNav, {
   ItemGroup: AntdMenu.ItemGroup,
 });
 
+interface ExtendedDropDownProps extends DropDownProps {
+  ref?: RefObject<HTMLDivElement>;
+}
+
 export const Input = styled(AntdInput)`
   border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -228,11 +242,11 @@ export const TextArea = styled(AntdInput.TextArea)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
-export const NoAnimationDropdown = (props: DropDownProps) => (
-  <Dropdown
-    overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
-    {...props}
-  />
+// @z-index-below-dashboard-header (100) - 1 = 99
+export const NoAnimationDropdown = (
+  props: ExtendedDropDownProps & { children?: React.ReactNode },
+) => (
+  <Dropdown overlayStyle={{ zIndex: 99, animationDuration: '0s' }} {...props} />
 );
 
 export const ThinSkeleton = styled(Skeleton)`

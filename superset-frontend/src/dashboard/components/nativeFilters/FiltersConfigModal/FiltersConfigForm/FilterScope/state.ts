@@ -25,12 +25,14 @@ import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import { TreeItem } from './types';
+import { BuildTreeLeafTitle, TreeItem } from './types';
 import { buildTree } from './utils';
 
 // eslint-disable-next-line import/prefer-default-export
 export function useFilterScopeTree(
   currentChartId?: number,
+  initiallyExcludedCharts: number[] = [],
+  buildTreeLeafTitle: BuildTreeLeafTitle = label => label,
 ): {
   treeData: [TreeItem];
   layout: Layout;
@@ -61,8 +63,16 @@ export function useFilterScopeTree(
   );
 
   useMemo(() => {
-    buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts, validNodes);
-  }, [charts, layout, tree]);
+    buildTree(
+      layout[DASHBOARD_ROOT_ID],
+      tree,
+      layout,
+      charts,
+      validNodes,
+      initiallyExcludedCharts,
+      buildTreeLeafTitle,
+    );
+  }, [layout, tree, charts, initiallyExcludedCharts, buildTreeLeafTitle]);
 
   return { treeData: [tree], layout };
 }

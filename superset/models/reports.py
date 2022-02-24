@@ -16,6 +16,8 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
+import json
+from typing import Any, Dict, Optional
 
 from cron_descriptor import get_description
 from flask_appbuilder import Model
@@ -31,7 +33,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, relationship, validates
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
@@ -50,7 +52,7 @@ class ReportScheduleType(str, enum.Enum):
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
-    """ Validator types for alerts """
+    """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"
@@ -72,6 +74,13 @@ class ReportState(str, enum.Enum):
 class ReportDataFormat(str, enum.Enum):
     VISUALIZATION = "PNG"
     DATA = "CSV"
+    TEXT = "TEXT"
+
+
+class ReportCreationMethodType(str, enum.Enum):
+    CHARTS = "charts"
+    DASHBOARDS = "dashboards"
+    ALERTS_REPORTS = "alerts_reports"
 
 
 report_schedule_user = Table(
@@ -102,6 +111,10 @@ class ReportSchedule(Model, AuditMixinNullable):
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(1000), nullable=False)
+    creation_method = Column(
+        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+    )
+    timezone = Column(String(100), default="UTC", nullable=False)
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
@@ -134,6 +147,12 @@ class ReportSchedule(Model, AuditMixinNullable):
     # (Alerts/Reports) Unlock a possible stalled working state
     working_timeout = Column(Integer, default=60 * 60 * 1)
 
+    # Store the selected dashboard tabs etc.
+    extra = Column(Text, default="{}")
+
+    # (Reports) When generating a screenshot, bypass the cache?
+    force_screenshot = Column(Boolean, default=False)
+
     def __repr__(self) -> str:
         return str(self.name)
 
@@ -141,11 +160,15 @@ class ReportSchedule(Model, AuditMixinNullable):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
 
+    @validates("extra")
+    # pylint: disable=unused-argument,no-self-use
+    def validate_extra(self, key: str, value: Dict[Any, Any]) -> Optional[str]:
+        if value is not None:
+            return json.dumps(value)
+        return None
 
-class ReportRecipients(
-    Model, AuditMixinNullable
-):  # pylint: disable=too-few-public-methods
 
+class ReportRecipients(Model, AuditMixinNullable):
     """
     Report Recipients, meant to support multiple notification types, eg: Slack, email
     """

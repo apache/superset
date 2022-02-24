@@ -22,7 +22,6 @@ import {
   AlertProps as AntdAlertProps,
 } from 'src/common/components';
 import { useTheme } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 
 export type AlertProps = PropsWithChildren<
@@ -61,7 +60,7 @@ export default function Alert(props: AlertProps) {
       role="alert"
       showIcon={showIcon}
       icon={<AlertIcon aria-label={`${type} icon`} />}
-      closeText={closable && <Icon name="x-small" aria-label="close icon" />}
+      closeText={closable && <Icons.XSmall aria-label="close icon" />}
       css={{
         marginBottom: roomBelow ? gridUnit * 4 : 0,
         padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
