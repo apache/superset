@@ -192,8 +192,11 @@ const RightMenu = ({
                         <>
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>
-                            {item.url && <a href={item.url}> {item.label} </a>}
-                            {item.url === undefined && item.label}
+                            {item.url ? (
+                              <a href={item.url}> {item.label} </a>
+                            ) : (
+                              item.label
+                            )}
                           </Menu.Item>
                         </>
                       ) : null,
