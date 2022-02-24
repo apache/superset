@@ -66,7 +66,6 @@ const createProps = (viz_type = 'sunburst') => ({
       row_limit: 10000,
       slice_id: 371,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
       viz_type,
     },

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, TimeRangeEndpoint } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import React, { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { NO_TIME_RANGE } from 'src/explore/constants';
@@ -54,11 +54,6 @@ const ControlContainer = styled.div<{
     }
   }
 `;
-
-const endpoints = ['inclusive', 'exclusive'] as [
-  TimeRangeEndpoint,
-  TimeRangeEndpoint,
-];
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
@@ -105,7 +100,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
-          endpoints={endpoints}
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}

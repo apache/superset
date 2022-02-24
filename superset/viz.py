@@ -397,7 +397,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "having": self.form_data.get("having", ""),
             "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
-            "time_range_endpoints": self.form_data.get("time_range_endpoints"),
             "where": self.form_data.get("where", ""),
         }
 
