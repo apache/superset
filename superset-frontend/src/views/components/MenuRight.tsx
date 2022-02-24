@@ -33,59 +33,6 @@ import {
 } from './types';
 import { MenuObjectProps } from './Menu';
 
-export const dropdownItems: MenuObjectProps[] = [
-  {
-    label: t('Data'),
-    icon: 'fa-database',
-    childs: [
-      {
-        label: t('Connect Database'),
-        name: GlobalMenuDataOptions.DB_CONNECTION,
-      },
-      {
-        label: t('Connect Google Sheet'),
-        name: GlobalMenuDataOptions.GOOGLE_SHEETS,
-      },
-      {
-        label: t('Upload a CSV'),
-        name: 'Upload a CSV',
-        url: '/csvtodatabaseview/form',
-      },
-      {
-        label: t('Upload a Columnar File'),
-        name: 'Upload a Columnar file',
-        url: '/columnartodatabaseview/form',
-      },
-      {
-        label: t('Upload Excel'),
-        name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
-      },
-    ],
-  },
-  {
-    label: t('SQL query'),
-    url: '/superset/sqllab?new=true',
-    icon: 'fa-fw fa-search',
-    perm: 'can_sqllab',
-    view: 'Superset',
-  },
-  {
-    label: t('Chart'),
-    url: '/chart/add',
-    icon: 'fa-fw fa-bar-chart',
-    perm: 'can_write',
-    view: 'Chart',
-  },
-  {
-    label: t('Dashboard'),
-    url: '/dashboard/new',
-    icon: 'fa-fw fa-dashboard',
-    perm: 'can_write',
-    view: 'Dashboard',
-  },
-];
-
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
     ${theme.gridUnit * 4}px ${theme.gridUnit * 7}px;
@@ -124,27 +71,77 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [engine, setEngine] = useState<string>('');
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
     EXCEL_EXTENSIONS,
-    SHOW_GLOBAL_GSHEETS,
+    HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
 
-  // if user has any of these roles the dropdown will appear
-  const configMap = {
-    'Upload a CSV': CSV_EXTENSIONS,
-    'Upload a Columnar file': COLUMNAR_EXTENSIONS,
-    'Upload Excel': EXCEL_EXTENSIONS,
-    [GlobalMenuDataOptions.GOOGLE_SHEETS]: SHOW_GLOBAL_GSHEETS,
-    [GlobalMenuDataOptions.DB_CONNECTION]: true, // todo(hugh): add permission check here for database creation
-  };
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const showActionDropdown = canSql || canChart || canDashboard;
+  const dropdownItems: MenuObjectProps[] = [
+    {
+      label: t('Data'),
+      icon: 'fa-database',
+      childs: [
+        {
+          label: t('Connect Database'),
+          name: GlobalMenuDataOptions.DB_CONNECTION,
+          perm: true,
+        },
+        {
+          label: t('Connect Google Sheet'),
+          name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+          perm: HAS_GSHEETS_INSTALLED,
+        },
+        {
+          label: t('Upload a CSV'),
+          name: 'Upload a CSV',
+          url: '/csvtodatabaseview/form',
+          perm: CSV_EXTENSIONS,
+        },
+        {
+          label: t('Upload a Columnar File'),
+          name: 'Upload a Columnar file',
+          url: '/columnartodatabaseview/form',
+          perm: COLUMNAR_EXTENSIONS,
+        },
+        {
+          label: t('Upload Excel'),
+          name: 'Upload Excel',
+          url: '/exceltodatabaseview/form',
+          perm: EXCEL_EXTENSIONS,
+        },
+      ],
+    },
+    {
+      label: t('SQL query'),
+      url: '/superset/sqllab?new=true',
+      icon: 'fa-fw fa-search',
+      perm: 'can_sqllab',
+      view: 'Superset',
+    },
+    {
+      label: t('Chart'),
+      url: '/chart/add',
+      icon: 'fa-fw fa-bar-chart',
+      perm: 'can_write',
+      view: 'Chart',
+    },
+    {
+      label: t('Dashboard'),
+      url: '/dashboard/new',
+      icon: 'fa-fw fa-dashboard',
+      perm: 'can_write',
+      view: 'Dashboard',
+    },
+  ];
+
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
       <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
@@ -155,17 +152,21 @@ const RightMenu = ({
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
       setShowModal(true);
-      setEngine('');
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
       setShowModal(true);
       setEngine('Google Sheets');
     }
   };
 
+  const handleOnHideModal = () => {
+    setEngine('');
+    setShowModal(false);
+  };
+
   return (
     <StyledDiv align={align}>
       <DatabaseModal
-        onHide={() => setShowModal(false)}
+        onHide={handleOnHideModal}
         show={showModal}
         dbEngine={engine}
       />
@@ -187,9 +188,7 @@ const RightMenu = ({
                     title={menuIconAndLabel(menu)}
                   >
                     {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' &&
-                      item.name &&
-                      configMap[item.name] === true ? (
+                      typeof item !== 'string' && item.name && item.perm ? (
                         <>
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>

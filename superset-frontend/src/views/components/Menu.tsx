@@ -79,7 +79,7 @@ interface MenuObjectChildProps {
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
-  perm?: string;
+  perm?: string | boolean;
   view?: string;
 }
 

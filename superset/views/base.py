@@ -370,7 +370,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["SHOW_GLOBAL_GSHEETS"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
         "flash_messages": messages,

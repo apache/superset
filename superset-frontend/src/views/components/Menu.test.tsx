@@ -21,7 +21,64 @@ import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
-import { dropdownItems } from './MenuRight';
+
+const dropdownItems = [
+  {
+    label: 'Data',
+    icon: 'fa-database',
+    childs: [
+      {
+        label: 'Connect Database',
+        name: 'dbconnect',
+        perm: true,
+      },
+      {
+        label: 'Connect Google Sheet',
+        name: 'gsheets',
+        perm: true,
+      },
+      {
+        label: 'Upload a CSV',
+        name: 'Upload a CSV',
+        url: '/csvtodatabaseview/form',
+        perm: true,
+      },
+      {
+        label: 'Upload a Columnar File',
+        name: 'Upload a Columnar file',
+        url: '/columnartodatabaseview/form',
+        perm: true,
+      },
+      {
+        label: 'Upload Excel',
+        name: 'Upload Excel',
+        url: '/exceltodatabaseview/form',
+        perm: true,
+      },
+    ],
+  },
+  {
+    label: 'SQL query',
+    url: '/superset/sqllab?new=true',
+    icon: 'fa-fw fa-search',
+    perm: 'can_sqllab',
+    view: 'Superset',
+  },
+  {
+    label: 'Chart',
+    url: '/chart/add',
+    icon: 'fa-fw fa-bar-chart',
+    perm: 'can_write',
+    view: 'Chart',
+  },
+  {
+    label: 'Dashboard',
+    url: '/dashboard/new',
+    icon: 'fa-fw fa-dashboard',
+    perm: 'can_write',
+    view: 'Dashboard',
+  },
+];
 
 const user = {
   createdOn: '2021-04-27T18:12:38.952304',

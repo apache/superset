@@ -20,10 +20,10 @@
 import { NavBarProps, MenuObjectProps } from './Menu';
 
 export interface ExtentionConfigs {
-  CSV_EXTENSIONS: Array<any>;
-  COLUMNAR_EXTENSIONS: Array<any>;
-  EXCEL_EXTENSIONS: Array<any>;
-  SHOW_GLOBAL_GSHEETS: boolean;
+  CSV_EXTENSIONS: boolean;
+  COLUMNAR_EXTENSIONS: boolean;
+  EXCEL_EXTENSIONS: boolean;
+  HAS_GSHEETS_INSTALLED: boolean;
 }
 export interface RightMenuProps {
   align: 'flex-start' | 'flex-end';
