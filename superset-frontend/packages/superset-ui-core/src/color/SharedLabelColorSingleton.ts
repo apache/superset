@@ -45,7 +45,7 @@ export class SharedLabelColor {
       );
       const generatedColors: tinycolor.Instance[] = [];
       // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
-      while (analogousColors[analogousColors.length - 1].length) {
+      while (analogousColors[analogousColors.length - 1]?.length) {
         analogousColors.forEach(colors =>
           generatedColors.push(colors.shift() as tinycolor.Instance),
         );
@@ -53,7 +53,7 @@ export class SharedLabelColor {
       return this.values.reduce(
         (res, name, index) => ({
           ...res,
-          [name.toString()]: generatedColors[index].toHexString(),
+          [name.toString()]: generatedColors[index]?.toHexString(),
         }),
         {},
       );
