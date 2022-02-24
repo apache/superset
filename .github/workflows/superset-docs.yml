@@ -27,7 +27,6 @@ jobs:
       - name: yarn build
         run: |
           yarn build
-          yarn copy-www-site-files
       - name: deploy docs
         if: github.ref == 'refs/heads/master'
         uses: ./.github/actions/github-action-push-to-another-repository
