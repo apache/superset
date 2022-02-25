@@ -21,8 +21,15 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Menu, MenuMode, Row } from 'src/common/components';
+import {
+  Menu,
+  MenuMode,
+  Row,
+  MainNav as DropdownMenu,
+} from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
+import Icons from 'src/components/Icons';
+import { MenuObjectChildProps, MenuObjectProps } from './Menu';
 
 const StyledHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -38,11 +45,17 @@ const StyledHeader = styled.div`
   .nav-right {
     display: flex;
     align-items: center;
-    padding: 14px 0;
+    padding: 20px 0;
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     float: right;
     position: absolute;
     right: 0;
+    ul.ant-menu-root {
+      padding: 0px;
+      .ant-menu-submenu-title > span {
+        top: ${({ theme }) => theme.gridUnit * 1.5}px;
+      }
+    }
   }
   .nav-right-collapse {
     display: flex;
@@ -151,7 +164,10 @@ export interface SubMenuProps {
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
   color?: string;
+  dropDownLinks?: Array<MenuObjectProps>;
 }
+
+const { SubMenu } = DropdownMenu;
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
@@ -176,6 +192,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         props.buttons.length >= 3 &&
         window.innerWidth >= 795
       ) {
+        // eslint-disable-next-line no-unused-expressions
         setNavRightStyle('nav-right');
       } else if (
         props.buttons &&
@@ -230,6 +247,17 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           })}
         </Menu>
         <div className={navRightStyle}>
+          <Menu mode="horizontal">
+            {props.dropDownLinks?.map((link, i) => (
+              <SubMenu key={i} title={link.label} icon={<Icons.TriangleDown />}>
+                {link.childs?.map(item => (
+                  <DropdownMenu.Item>
+                    <a href={item.url}>{item.label}</a>
+                  </DropdownMenu.Item>
+                ))}
+              </SubMenu>
+            ))}
+          </Menu>
           {props.buttons?.map((btn, i) => (
             <Button
               key={i}

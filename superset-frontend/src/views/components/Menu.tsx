@@ -72,7 +72,7 @@ export interface MenuProps {
   isFrontendRoute?: (path?: string) => boolean;
 }
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
   name?: string;
   icon?: string;
