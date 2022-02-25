@@ -79,6 +79,7 @@ describe('TabbedSqlEditors', () => {
     defaultQueryLimit: 1000,
     maxRow: 100000,
   };
+
   const getWrapper = () =>
     shallow(<TabbedSqlEditors store={store} {...mockedProps} />)
       .dive()
@@ -226,5 +227,11 @@ describe('TabbedSqlEditors', () => {
     expect(wrapper.find(EditableTabs).props().hideAdd).toBe(false);
     wrapper.setProps({ offline: true });
     expect(wrapper.find(EditableTabs).props().hideAdd).toBe(true);
+  });
+  it('should have an empty state when query editors is empty', () => {
+    wrapper = getWrapper();
+    wrapper.setProps({ queryEditors: [] });
+    const firstTab = wrapper.find(EditableTabs.TabPane).first();
+    expect(firstTab.props()['data-key']).toBe(0);
   });
 });
