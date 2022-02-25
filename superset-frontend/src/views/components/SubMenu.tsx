@@ -250,11 +250,16 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           <Menu mode="horizontal">
             {props.dropDownLinks?.map((link, i) => (
               <SubMenu key={i} title={link.label} icon={<Icons.TriangleDown />}>
-                {link.childs?.map(item => (
-                  <DropdownMenu.Item>
-                    <a href={item.url}>{item.label}</a>
-                  </DropdownMenu.Item>
-                ))}
+                {link.childs?.map(item => {
+                  if (typeof item === 'object') {
+                    return (
+                      <DropdownMenu.Item>
+                        <a href={item.url}>{item.label}</a>
+                      </DropdownMenu.Item>
+                    );
+                  }
+                  return null;
+                })}
               </SubMenu>
             ))}
           </Menu>
