@@ -29,7 +29,7 @@ import {
 } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import { MenuObjectChildProps, MenuObjectProps } from './Menu';
+import { MenuObjectProps } from './Menu';
 
 const StyledHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
