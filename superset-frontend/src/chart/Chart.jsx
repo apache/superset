@@ -167,8 +167,6 @@ class Chart extends React.PureComponent {
       );
     } else {
       // Create chart with POST request
-      console.log('starting post call for a given chart');
-      console.log(getUrlParam(URL_PARAMS.force));
       this.props.actions.postChartFormData(
         this.props.formData,
         this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
