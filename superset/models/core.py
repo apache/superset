@@ -229,7 +229,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
-            "allows_preview_data": self.preview_data,
+            "allows_preview_data": self.allows_preview_data,
             "parameters_schema": self.parameters_schema,
         }
 
