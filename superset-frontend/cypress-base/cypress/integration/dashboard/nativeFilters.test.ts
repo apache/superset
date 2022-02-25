@@ -548,6 +548,7 @@ describe('Nativefilters Sanity test', () => {
   });
   it('User can create parent filters using "Filter is hierarchical"', () => {
     cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    // Create region filter
     cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
       .should('be.visible')
       .click();
@@ -579,6 +580,7 @@ describe('Nativefilters Sanity test', () => {
       .last()
       .should('be.visible', { timeout: 20000 })
       .click({ force: true });
+    // Create country filter
     cy.get(nativeFilters.addFilterButton.button)
       .first()
       .click({ force: true })
@@ -630,6 +632,7 @@ describe('Nativefilters Sanity test', () => {
       .last()
       .should('be.visible', { timeout: 20000 })
       .click({ force: true });
+    // Setup parent filter 
     cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
       () => {
         cy.contains('Filter is hierarchical').should('be.visible').click();
@@ -644,7 +647,11 @@ describe('Nativefilters Sanity test', () => {
       .should('be.visible')
       .click();
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    cy.get(nativeFilters.filterIcon).click({ force: true });
+    // assert that native filter is created
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .should('be.visible')
+      .contains('region');
+    cy.get(nativeFilters.filterIcon).click();
     cy.contains('Select parent filters (2)').should('be.visible');
   });
 });
