@@ -93,7 +93,6 @@ class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-meth
     """
 
     template = "superset/fab_overrides/list_role.html"
-
     
     def __init__(self, **kwargs: Any) -> None:
         kwargs["appbuilder"] = current_app.appbuilder
