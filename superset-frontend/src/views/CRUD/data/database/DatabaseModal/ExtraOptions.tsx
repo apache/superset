@@ -492,12 +492,6 @@ const ExtraOptions = ({
                 'The engine_params object gets unpacked into the sqlalchemy.create_engine call.',
               )}
             </div>
-            <div>
-              {t(
-                '6. The preview_data field is a boolean specifying whether or not data ' +
-                  'preview queries will be run when fetching table metadata in SQL Lab.',
-              )}
-            </div>
           </div>
         </StyledInputContainer>
         <StyledInputContainer>

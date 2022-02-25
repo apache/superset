@@ -209,8 +209,8 @@ class Database(
         return bool(extra.get("allows_virtual_table_explore", True))
 
     @property
-    def preview_data(self) -> bool:
-        return bool(self.get_extra().get("preview_data", True))
+    def explore_database_id(self) -> int:
+        return self.get_extra().get("explore_database_id", self.id)
 
     @property
     def allows_preview_data(self) -> bool:
