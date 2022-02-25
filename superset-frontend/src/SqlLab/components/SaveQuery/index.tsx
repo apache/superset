@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Input, TextArea } from 'src/common/components';
+import { Row, Col } from 'src/common/components';
+import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { Form, FormItem } from 'src/components/Form';
