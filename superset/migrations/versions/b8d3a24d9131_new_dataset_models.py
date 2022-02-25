@@ -323,12 +323,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         target.database
         or session.query(Database).filter_by(id=target.database_id).first()
     )
-    engine: Optional[Engine] = None
-    if database:
-        engine = database.get_sqla_engine(schema=target.schema)
-    conditional_quote = (
-        engine.dialect.identifier_preparer.quote if engine else lambda x: x
-    )
+    if not database:
+        return
+    engine = database.get_sqla_engine(schema=target.schema)
+    conditional_quote = engine.dialect.identifier_preparer.quote
 
     # create columns
     columns = []
