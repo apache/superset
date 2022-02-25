@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React from 'react';
 import rison from 'rison';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
 import { Steps } from 'src/common/components';
@@ -24,6 +24,7 @@ import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
+import { LabeledValues } from 'src/components/Select/Select';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -252,11 +253,7 @@ export default class AddSliceContainer extends React.PureComponent<
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
-      const list: {
-        customLabel: ReactNode;
-        label: string;
-        value: string;
-      }[] = response.json.result.map((item: Dataset) => ({
+      const list: LabeledValues = response.json.result.map((item: Dataset) => ({
         value: `${item.id}__${item.datasource_type}`,
         customLabel: this.newLabel(item),
         label: item.table_name,

@@ -32,7 +32,6 @@ import { styled, t } from '@superset-ui/core';
 import AntdSelect, {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import debounce from 'lodash/debounce';
@@ -44,7 +43,21 @@ import { hasOption } from './utils';
 
 const { Option } = AntdSelect;
 
-type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
+export type RawValue = string | number;
+
+export interface LabeledValue {
+  key?: string;
+  value: RawValue;
+  label: ReactNode;
+  customLabel?: ReactNode;
+}
+
+export type RawValues = RawValue[];
+export type LabeledValues = LabeledValue[];
+export type SelectValue = RawValue | LabeledValue | RawValues | LabeledValues;
+export type OptionsType = LabeledValues;
+
+type AntdSelectAllProps = AntdSelectProps<SelectValue>;
 
 type PickedSelectProps = Pick<
   AntdSelectAllProps,
@@ -63,15 +76,8 @@ type PickedSelectProps = Pick<
   | 'value'
 >;
 
-type OptionsProps = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export interface OptionsType extends Omit<OptionsProps, 'label'> {
-  label?: string;
-  customLabel?: ReactNode;
-}
-
 export type OptionsTypePage = {
-  data: OptionsType;
+  data: LabeledValues;
   totalCount: number;
 };
 
@@ -157,7 +163,7 @@ export interface SelectProps extends PickedSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
-  sortComparator?: (a: AntdLabeledValue, b: AntdLabeledValue) => number;
+  sortComparator?: (a: LabeledValue, b: LabeledValue) => number;
 }
 
 const StyledContainer = styled.div`
@@ -230,7 +236,7 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
-const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
+const defaultSortComparator = (a: LabeledValue, b: LabeledValue) => {
   if (typeof a.label === 'string' && typeof b.label === 'string') {
     return a.label.localeCompare(b.label);
   }
@@ -245,7 +251,7 @@ const defaultSortComparator = (a: AntdLabeledValue, b: AntdLabeledValue) => {
  * Can be used with string and number property values.
  * */
 export const propertyComparator =
-  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
+  (property: string) => (a: LabeledValue, b: LabeledValue) => {
     if (typeof a[property] === 'string' && typeof b[property] === 'string') {
       return a[property].localeCompare(b[property]);
     }
@@ -333,15 +339,15 @@ const Select = ({
           if (Array.isArray(selectedValue)) {
             if (isLabeledValue) {
               found =
-                (selectedValue as AntdLabeledValue[]).find(
+                (selectedValue as LabeledValue[]).find(
                   element => element.value === opt.value,
                 ) !== undefined;
             } else {
-              found = selectedValue.includes(opt.value);
+              found = (selectedValue as RawValue[]).includes(opt.value);
             }
           } else {
             found = isLabeledValue
-              ? (selectedValue as AntdLabeledValue).value === opt.value
+              ? (selectedValue as LabeledValue).value === opt.value
               : selectedValue === opt.value;
           }
 
@@ -355,16 +361,16 @@ const Select = ({
         // fallback for custom options in tags mode as they
         // do not appear in the selectOptions state
         if (!isSingleMode && Array.isArray(selectedValue)) {
-          selectedValue.forEach((val: string | number | AntdLabeledValue) => {
+          selectedValue.forEach((val: string | number | LabeledValue) => {
             if (
               !topOptions.find(
                 tOpt =>
                   tOpt.value ===
-                  (isLabeledValue ? (val as AntdLabeledValue)?.value : val),
+                  (isLabeledValue ? (val as LabeledValue)?.value : val),
               )
             ) {
               if (isLabeledValue) {
-                const labelValue = val as AntdLabeledValue;
+                const labelValue = val as LabeledValue;
                 topOptions.push({
                   label: labelValue.label,
                   value: labelValue.value,
@@ -393,9 +399,7 @@ const Select = ({
     [isAsync, isSingleMode, labelInValue, selectOptions, sortComparator],
   );
 
-  const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
-  ) => {
+  const handleOnSelect = (selectedValue: string | number | LabeledValue) => {
     if (isSingleMode) {
       setSelectValue(selectedValue);
     } else {
@@ -414,21 +418,21 @@ const Select = ({
         ]);
       } else {
         setSelectValue([
-          ...(currentSelected as AntdLabeledValue[]),
-          selectedValue as AntdLabeledValue,
+          ...(currentSelected as LabeledValue[]),
+          selectedValue as LabeledValue,
         ]);
       }
     }
     setSearchedValue('');
   };
 
-  const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
+  const handleOnDeselect = (value: string | number | LabeledValue) => {
     if (Array.isArray(selectValue)) {
       if (typeof value === 'number' || typeof value === 'string') {
         const array = selectValue as (string | number)[];
         setSelectValue(array.filter(element => element !== value));
       } else {
-        const array = selectValue as AntdLabeledValue[];
+        const array = selectValue as LabeledValue[];
         setSelectValue(array.filter(element => element.value !== value.value));
       }
     }
@@ -557,7 +561,7 @@ const Select = ({
     }
   };
 
-  const handleFilterOption = (search: string, option: AntdLabeledValue) => {
+  const handleFilterOption = (search: string, option: LabeledValue) => {
     if (typeof filterOption === 'function') {
       return filterOption(search, option);
     }
@@ -643,22 +647,22 @@ const Select = ({
     if (selectValue) {
       setSelectOptions(selectOptions => {
         const array = Array.isArray(selectValue)
-          ? (selectValue as AntdLabeledValue[])
-          : [selectValue as AntdLabeledValue | string | number];
-        const options: AntdLabeledValue[] = [];
+          ? (selectValue as LabeledValue[])
+          : [selectValue as LabeledValue | string | number];
+        const options: LabeledValue[] = [];
         const isLabeledValue = isAsync || labelInValue;
         array.forEach(element => {
           const found = selectOptions.find(
             (option: { value: string | number }) =>
               isLabeledValue
-                ? option.value === (element as AntdLabeledValue).value
+                ? option.value === (element as LabeledValue).value
                 : option.value === element,
           );
           if (!found) {
             options.push(
               isLabeledValue
-                ? (element as AntdLabeledValue)
-                : ({ value: element, label: element } as AntdLabeledValue),
+                ? (element as LabeledValue)
+                : ({ value: element, label: element } as LabeledValue),
             );
           }
         });

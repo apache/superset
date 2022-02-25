@@ -387,7 +387,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             ('column_name' in column && column.column_name) ||
             ('label' in column && column.label),
           key:
-            ('id' in column && column.id) ||
+            ('id' in column && String(column.id)) ||
             ('optionName' in column && column.optionName) ||
             undefined,
           customLabel: renderSubjectOptionLabel(column),
