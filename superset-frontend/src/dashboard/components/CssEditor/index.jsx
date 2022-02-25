@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Menu, Dropdown } from 'src/common/components';
+import { Dropdown } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';

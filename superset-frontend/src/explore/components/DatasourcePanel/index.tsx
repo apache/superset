@@ -26,7 +26,7 @@ import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { css, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';

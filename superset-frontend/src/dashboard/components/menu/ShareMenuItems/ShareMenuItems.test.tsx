@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as copyTextToClipboard from 'src/utils/copy';

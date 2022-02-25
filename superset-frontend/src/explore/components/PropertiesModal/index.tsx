@@ -18,7 +18,8 @@
  */
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
-import { Form, Row, Col, Input, TextArea } from 'src/common/components';
+import { Form, Row, Col } from 'src/common/components';
+import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { SelectValue } from 'antd/lib/select';

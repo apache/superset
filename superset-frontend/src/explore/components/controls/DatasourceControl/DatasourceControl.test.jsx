@@ -20,7 +20,7 @@ import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import {
   DatasourceModal,
   ChangeDatasourceModal,

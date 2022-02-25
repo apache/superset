@@ -16,15 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Input } from 'src/components/Input';
+import { styled } from '@superset-ui/core';
+import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd';
 
-interface HiddenControlsProps {
-  onChange: () => void;
-  value: string | number | readonly string[] | undefined;
-}
+export const Input = styled(AntdInput)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
 
-export default function HiddenControl(props: HiddenControlsProps) {
-  // This wouldn't be necessary but might as well
-  return <Input type="hidden" value={props.value} />;
-}
+export const InputNumber = styled(AntdInputNumber)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
+
+export const TextArea = styled(AntdInput.TextArea)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;

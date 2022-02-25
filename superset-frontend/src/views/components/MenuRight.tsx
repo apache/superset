@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { MainNav as Menu } from 'src/common/components';
+import { MainNav as Menu } from 'src/components/Menu';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';

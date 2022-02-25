@@ -36,7 +36,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 
