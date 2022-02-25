@@ -104,6 +104,10 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "SCHEDULED_QUERIES",
+    "EXCEL_EXTENSIONS",
+    "CSV_EXTENSIONS",
+    "COLUMNAR_EXTENSIONS",
+    "ALLOWED_EXTENSIONS",
 )
 
 logger = logging.getLogger(__name__)
@@ -347,16 +351,10 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
-    frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
-    frontend_config["EXCEL_EXTENSIONS"] = bool(
-        bool(conf["EXCEL_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
-    frontend_config["CSV_EXTENSIONS"] = bool(
-        bool(conf["CSV_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
-    frontend_config["COLUMNAR_EXTENSIONS"] = bool(
-        bool(conf["COLUMNAR_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
+    frontend_config = {
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
+        for k in FRONTEND_CONF_KEYS
+    }
 
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
