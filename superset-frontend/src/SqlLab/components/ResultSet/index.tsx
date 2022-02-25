@@ -550,6 +550,7 @@ export default class ResultSet extends React.PureComponent<
                   <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
+              hideTooltip
             />
           </ResultSetButtons>
           {this.props.search && (
@@ -726,10 +727,10 @@ export default class ResultSet extends React.PureComponent<
                   </Button>
                   <ExploreCtasResultsButton
                     // @ts-ignore Redux types are difficult to work with, ignoring for now
+                    actions={this.props.actions}
                     table={tempTable}
                     schema={tempSchema}
                     dbId={exploreDBId}
-                    actions={this.props.actions}
                   />
                 </ButtonGroup>
               </>

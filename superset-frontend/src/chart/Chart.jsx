@@ -115,6 +115,14 @@ const RefreshOverlayWrapper = styled.div`
   justify-content: center;
 `;
 
+const MonospaceDiv = styled.div`
+  font-family: ${({ theme }) => theme.typography.families.monospace};
+  white-space: pre;
+  word-break: break-word;
+  overflow-x: auto;
+  white-space: pre-wrap;
+`;
+
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -212,6 +220,7 @@ class Chart extends React.PureComponent {
     ) {
       return (
         <Styles
+          key={chartId}
           data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
@@ -224,9 +233,10 @@ class Chart extends React.PureComponent {
 
     return (
       <ChartErrorMessage
+        key={chartId}
         chartId={chartId}
         error={error}
-        subtitle={message}
+        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
         link={queryResponse ? queryResponse.link : null}
         source={dashboardId ? 'dashboard' : 'explore'}

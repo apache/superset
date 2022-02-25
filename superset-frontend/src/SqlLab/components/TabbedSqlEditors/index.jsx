@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Dropdown } from 'src/components/Dropdown';
 import { EditableTabs } from 'src/components/Tabs';
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
@@ -403,6 +403,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
     return (
       <EditableTabs
+        destroyInactiveTabPane
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         id="a11y-query-editor-tabs"
         className="SqlEditorTabs"

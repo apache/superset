@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-lines, redefined-outer-name
 import dataclasses
 import json
 import logging
@@ -53,6 +53,7 @@ from sqlalchemy import (
     desc,
     Enum,
     ForeignKey,
+    inspect,
     Integer,
     or_,
     select,
@@ -71,12 +72,14 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.columns.models import Column as NewColumn
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import (
@@ -86,8 +89,14 @@ from superset.jinja_context import (
 )
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
+from superset.models.helpers import (
+    AuditMixinNullable,
+    CertificationMixin,
+    clone_model,
+    QueryResult,
+)
 from superset.sql_parse import ParsedQuery
+from superset.tables.models import Table as NewTable
 from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import (
@@ -103,6 +112,13 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
+
+# a non-exhaustive set of additive metrics
+ADDITIVE_METRIC_TYPES = {
+    "count",
+    "sum",
+    "doubleSum",
+}
 
 
 class SqlaQuery(NamedTuple):
@@ -1830,23 +1846,474 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             raise Exception(get_dataset_exist_error_msg(target.full_name))
 
     @staticmethod
-    def update_table(
-        _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+    def update_table(  # pylint: disable=unused-argument
+        mapper: Mapper, connection: Connection, target: Union[SqlMetric, TableColumn]
     ) -> None:
         """
         Forces an update to the table's changed_on value when a metric or column on the
         table is updated. This busts the cache key for all charts that use the table.
 
-        :param _mapper: Unused.
-        :param _connection: Unused.
-        :param obj: The metric or column that was updated.
+        :param mapper: Unused.
+        :param connection: Unused.
+        :param target: The metric or column that was updated.
         """
-        db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+        inspector = inspect(target)
+        session = inspector.session
+
+        # get DB-specific conditional quoter for expressions that point to columns or
+        # table names
+        database = (
+            target.table.database
+            or session.query(Database).filter_by(id=target.database_id).one()
+        )
+        engine = database.get_sqla_engine(schema=target.table.schema)
+        conditional_quote = engine.dialect.identifier_preparer.quote
+
+        session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
+
+        # update ``Column`` model as well
+        dataset = (
+            session.query(NewDataset).filter_by(sqlatable_id=target.table.id).one()
+        )
+
+        if isinstance(target, TableColumn):
+            columns = [
+                column
+                for column in dataset.columns
+                if column.name == target.column_name
+            ]
+            if not columns:
+                return
+
+            column = columns[0]
+            extra_json = json.loads(target.extra or "{}")
+            for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
+                value = getattr(target, attr)
+                if value:
+                    extra_json[attr] = value
+
+            column.name = target.column_name
+            column.type = target.type or "Unknown"
+            column.expression = target.expression or conditional_quote(
+                target.column_name
+            )
+            column.description = target.description
+            column.is_temporal = target.is_dttm
+            column.is_physical = target.expression is None
+            column.extra_json = json.dumps(extra_json) if extra_json else None
+
+        else:  # SqlMetric
+            columns = [
+                column
+                for column in dataset.columns
+                if column.name == target.metric_name
+            ]
+            if not columns:
+                return
+
+            column = columns[0]
+            extra_json = json.loads(target.extra or "{}")
+            for attr in {"verbose_name", "metric_type", "d3format"}:
+                value = getattr(target, attr)
+                if value:
+                    extra_json[attr] = value
+
+            is_additive = (
+                target.metric_type
+                and target.metric_type.lower() in ADDITIVE_METRIC_TYPES
+            )
+
+            column.name = target.metric_name
+            column.expression = target.expression
+            column.warning_text = target.warning_text
+            column.description = target.description
+            column.is_additive = is_additive
+            column.extra_json = json.dumps(extra_json) if extra_json else None
+
+    @staticmethod
+    def after_insert(  # pylint: disable=too-many-locals
+        mapper: Mapper, connection: Connection, target: "SqlaTable",
+    ) -> None:
+        """
+        Shadow write the dataset to new models.
+
+        The ``SqlaTable`` model is currently being migrated to two new models, ``Table``
+        and ``Dataset``. In the first phase of the migration the new models are populated
+        whenever ``SqlaTable`` is modified (created, updated, or deleted).
+
+        In the second phase of the migration reads will be done from the new models.
+        Finally, in the third phase of the migration the old models will be removed.
+
+        For more context: https://github.com/apache/superset/issues/14909
+        """
+        # set permissions
+        security_manager.set_perm(mapper, connection, target)
+
+        session = inspect(target).session
+
+        # get DB-specific conditional quoter for expressions that point to columns or
+        # table names
+        database = (
+            target.database
+            or session.query(Database).filter_by(id=target.database_id).one()
+        )
+        engine = database.get_sqla_engine(schema=target.schema)
+        conditional_quote = engine.dialect.identifier_preparer.quote
+
+        # create columns
+        columns = []
+        for column in target.columns:
+            # ``is_active`` might be ``None`` at this point, but it defaults to ``True``.
+            if column.is_active is False:
+                continue
+
+            extra_json = json.loads(column.extra or "{}")
+            for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
+                value = getattr(column, attr)
+                if value:
+                    extra_json[attr] = value
+
+            columns.append(
+                NewColumn(
+                    name=column.column_name,
+                    type=column.type or "Unknown",
+                    expression=column.expression
+                    or conditional_quote(column.column_name),
+                    description=column.description,
+                    is_temporal=column.is_dttm,
+                    is_aggregation=False,
+                    is_physical=column.expression is None,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                    extra_json=json.dumps(extra_json) if extra_json else None,
+                    is_managed_externally=target.is_managed_externally,
+                    external_url=target.external_url,
+                ),
+            )
+
+        # create metrics
+        for metric in target.metrics:
+            extra_json = json.loads(metric.extra or "{}")
+            for attr in {"verbose_name", "metric_type", "d3format"}:
+                value = getattr(metric, attr)
+                if value:
+                    extra_json[attr] = value
+
+            is_additive = (
+                metric.metric_type
+                and metric.metric_type.lower() in ADDITIVE_METRIC_TYPES
+            )
+
+            columns.append(
+                NewColumn(
+                    name=metric.metric_name,
+                    type="Unknown",  # figuring this out would require a type inferrer
+                    expression=metric.expression,
+                    warning_text=metric.warning_text,
+                    description=metric.description,
+                    is_aggregation=True,
+                    is_additive=is_additive,
+                    is_physical=False,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                    extra_json=json.dumps(extra_json) if extra_json else None,
+                    is_managed_externally=target.is_managed_externally,
+                    external_url=target.external_url,
+                ),
+            )
+
+        # physical dataset
+        tables = []
+        if target.sql is None:
+            physical_columns = [column for column in columns if column.is_physical]
+
+            # create table
+            table = NewTable(
+                name=target.table_name,
+                schema=target.schema,
+                catalog=None,  # currently not supported
+                database_id=target.database_id,
+                columns=physical_columns,
+                is_managed_externally=target.is_managed_externally,
+                external_url=target.external_url,
+            )
+            tables.append(table)
+
+        # virtual dataset
+        else:
+            # mark all columns as virtual (not physical)
+            for column in columns:
+                column.is_physical = False
+
+            # find referenced tables
+            parsed = ParsedQuery(target.sql)
+            referenced_tables = parsed.tables
+
+            # predicate for finding the referenced tables
+            predicate = or_(
+                *[
+                    and_(
+                        NewTable.schema == (table.schema or target.schema),
+                        NewTable.name == table.table,
+                    )
+                    for table in referenced_tables
+                ]
+            )
+            tables = session.query(NewTable).filter(predicate).all()
+
+        # create the new dataset
+        dataset = NewDataset(
+            sqlatable_id=target.id,
+            name=target.table_name,
+            expression=target.sql or conditional_quote(target.table_name),
+            tables=tables,
+            columns=columns,
+            is_physical=target.sql is None,
+            is_managed_externally=target.is_managed_externally,
+            external_url=target.external_url,
+        )
+        session.add(dataset)
+
+    @staticmethod
+    def after_delete(  # pylint: disable=unused-argument
+        mapper: Mapper, connection: Connection, target: "SqlaTable",
+    ) -> None:
+        """
+        Shadow write the dataset to new models.
+
+        The ``SqlaTable`` model is currently being migrated to two new models, ``Table``
+        and ``Dataset``. In the first phase of the migration the new models are populated
+        whenever ``SqlaTable`` is modified (created, updated, or deleted).
+
+        In the second phase of the migration reads will be done from the new models.
+        Finally, in the third phase of the migration the old models will be removed.
+
+        For more context: https://github.com/apache/superset/issues/14909
+        """
+        session = inspect(target).session
+        dataset = (
+            session.query(NewDataset).filter_by(sqlatable_id=target.id).one_or_none()
+        )
+        if dataset:
+            session.delete(dataset)
+
+    @staticmethod
+    def after_update(  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
+        mapper: Mapper, connection: Connection, target: "SqlaTable",
+    ) -> None:
+        """
+        Shadow write the dataset to new models.
+
+        The ``SqlaTable`` model is currently being migrated to two new models, ``Table``
+        and ``Dataset``. In the first phase of the migration the new models are populated
+        whenever ``SqlaTable`` is modified (created, updated, or deleted).
+
+        In the second phase of the migration reads will be done from the new models.
+        Finally, in the third phase of the migration the old models will be removed.
+
+        For more context: https://github.com/apache/superset/issues/14909
+        """
+        inspector = inspect(target)
+        session = inspector.session
+
+        # double-check that ``UPDATE``s are actually pending (this method is called even
+        # for instances that have no net changes to their column-based attributes)
+        if not session.is_modified(target, include_collections=True):
+            return
+
+        # set permissions
+        security_manager.set_perm(mapper, connection, target)
+
+        dataset = (
+            session.query(NewDataset).filter_by(sqlatable_id=target.id).one_or_none()
+        )
+        if not dataset:
+            return
+
+        # get DB-specific conditional quoter for expressions that point to columns or
+        # table names
+        database = (
+            target.database
+            or session.query(Database).filter_by(id=target.database_id).one()
+        )
+        engine = database.get_sqla_engine(schema=target.schema)
+        conditional_quote = engine.dialect.identifier_preparer.quote
+
+        # update columns
+        if inspector.attrs.columns.history.has_changes():
+            # handle deleted columns
+            if inspector.attrs.columns.history.deleted:
+                column_names = {
+                    column.column_name
+                    for column in inspector.attrs.columns.history.deleted
+                }
+                dataset.columns = [
+                    column
+                    for column in dataset.columns
+                    if column.name not in column_names
+                ]
+
+            # handle inserted columns
+            for column in inspector.attrs.columns.history.added:
+                # ``is_active`` might be ``None``, but it defaults to ``True``.
+                if column.is_active is False:
+                    continue
+
+                extra_json = json.loads(column.extra or "{}")
+                for attr in {
+                    "groupby",
+                    "filterable",
+                    "verbose_name",
+                    "python_date_format",
+                }:
+                    value = getattr(column, attr)
+                    if value:
+                        extra_json[attr] = value
+
+                dataset.columns.append(
+                    NewColumn(
+                        name=column.column_name,
+                        type=column.type or "Unknown",
+                        expression=column.expression
+                        or conditional_quote(column.column_name),
+                        description=column.description,
+                        is_temporal=column.is_dttm,
+                        is_aggregation=False,
+                        is_physical=column.expression is None,
+                        is_spatial=False,
+                        is_partition=False,
+                        is_increase_desired=True,
+                        extra_json=json.dumps(extra_json) if extra_json else None,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
+                    )
+                )
+
+        # update metrics
+        if inspector.attrs.metrics.history.has_changes():
+            # handle deleted metrics
+            if inspector.attrs.metrics.history.deleted:
+                column_names = {
+                    metric.metric_name
+                    for metric in inspector.attrs.metrics.history.deleted
+                }
+                dataset.columns = [
+                    column
+                    for column in dataset.columns
+                    if column.name not in column_names
+                ]
+
+            # handle inserted metrics
+            for metric in inspector.attrs.metrics.history.added:
+                extra_json = json.loads(metric.extra or "{}")
+                for attr in {"verbose_name", "metric_type", "d3format"}:
+                    value = getattr(metric, attr)
+                    if value:
+                        extra_json[attr] = value
+
+                is_additive = (
+                    metric.metric_type
+                    and metric.metric_type.lower() in ADDITIVE_METRIC_TYPES
+                )
+
+                dataset.columns.append(
+                    NewColumn(
+                        name=metric.metric_name,
+                        type="Unknown",
+                        expression=metric.expression,
+                        warning_text=metric.warning_text,
+                        description=metric.description,
+                        is_aggregation=True,
+                        is_additive=is_additive,
+                        is_physical=False,
+                        is_spatial=False,
+                        is_partition=False,
+                        is_increase_desired=True,
+                        extra_json=json.dumps(extra_json) if extra_json else None,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
+                    )
+                )
+
+        # physical dataset
+        if target.sql is None:
+            physical_columns = [
+                column for column in dataset.columns if column.is_physical
+            ]
+
+            # if the table name changed we should create a new table instance, instead
+            # of reusing the original one
+            if (
+                inspector.attrs.table_name.history.has_changes()
+                or inspector.attrs.schema.history.has_changes()
+                or inspector.attrs.database_id.history.has_changes()
+            ):
+                # does the dataset point to an existing table?
+                table = (
+                    session.query(NewTable)
+                    .filter_by(
+                        database_id=target.database_id,
+                        schema=target.schema,
+                        name=target.table_name,
+                    )
+                    .first()
+                )
+                if not table:
+                    # create new columns
+                    physical_columns = [
+                        clone_model(column, ignore=["uuid"])
+                        for column in physical_columns
+                    ]
+
+                    # create new table
+                    table = NewTable(
+                        name=target.table_name,
+                        schema=target.schema,
+                        catalog=None,
+                        database_id=target.database_id,
+                        columns=physical_columns,
+                        is_managed_externally=target.is_managed_externally,
+                        external_url=target.external_url,
+                    )
+                dataset.tables = [table]
+            elif dataset.tables:
+                table = dataset.tables[0]
+                table.columns = physical_columns
+
+        # virtual dataset
+        else:
+            # mark all columns as virtual (not physical)
+            for column in dataset.columns:
+                column.is_physical = False
+
+            # update referenced tables if SQL changed
+            if inspector.attrs.sql.history.has_changes():
+                parsed = ParsedQuery(target.sql)
+                referenced_tables = parsed.tables
+
+                predicate = or_(
+                    *[
+                        and_(
+                            NewTable.schema == (table.schema or target.schema),
+                            NewTable.name == table.table,
+                        )
+                        for table in referenced_tables
+                    ]
+                )
+                dataset.tables = session.query(NewTable).filter(predicate).all()
+
+        # update other attributes
+        dataset.name = target.table_name
+        dataset.expression = target.sql or conditional_quote(target.table_name)
+        dataset.is_physical = target.sql is None
 
 
-sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
-sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
+sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
+sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
+sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
 sa.event.listen(TableColumn, "after_update", SqlaTable.update_table)
 
