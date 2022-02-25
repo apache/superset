@@ -262,9 +262,8 @@ class TabbedSqlEditors extends React.PureComponent {
     if (this.props.queryEditors.length > 0) {
       const untitled_query_numbers = this.props.queryEditors
         .filter(x => x.title.includes('Untitled Query '))
-        .map(x => x.title).map(x =>
-          x.replace('Untitled Query ', ''),
-        ).filter(x => !isNaN(x));
+        .map(x => x.title.replace('Untitled Query ', ''))
+        .filter(x => !isNaN(x));
       if (untitled_query_numbers.length > 0) {
         //When there are query tabs open, and at least one is called "Untitled Query #"
         //Where # is a valid number
