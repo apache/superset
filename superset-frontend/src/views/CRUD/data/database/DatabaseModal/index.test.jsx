@@ -591,9 +591,12 @@ describe('DatabaseModal', () => {
       const allowDbExplorationText = screen.getByText(
         /allow this database to be explored/i,
       );
-      const allowSQLLabDataPreviewQueriesCheckbox = screen.getByRole('checkbox', {
-        name: /Allow SQL Lab data preview queries/i,
-      });
+      const allowSQLLabDataPreviewQueriesCheckbox = screen.getByRole(
+        'checkbox',
+        {
+          name: /Allow SQL Lab data preview queries/i,
+        },
+      );
       const allowSQLLabDataPreviewQueriesText = screen.getByText(
         /Allow SQL Lab data preview queries/i,
       );
@@ -616,6 +619,7 @@ describe('DatabaseModal', () => {
         checkboxOffSVGs[4],
         checkboxOffSVGs[5],
         checkboxOffSVGs[6],
+        checkboxOffSVGs[7],
         tooltipIcons[0],
         tooltipIcons[1],
         tooltipIcons[2],
@@ -623,6 +627,7 @@ describe('DatabaseModal', () => {
         tooltipIcons[4],
         tooltipIcons[5],
         tooltipIcons[6],
+        tooltipIcons[7],
         exposeInSQLLabText,
         allowCTASText,
         allowCVASText,
