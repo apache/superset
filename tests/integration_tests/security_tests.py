@@ -52,6 +52,10 @@ from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -224,7 +228,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # database change
-        new_db = Database(sqlalchemy_uri="some_uri", database_name="tmp_db")
+        new_db = Database(sqlalchemy_uri="sqlite://", database_name="tmp_db")
         session.add(new_db)
         stored_table.database = (
             session.query(Database).filter_by(database_name="tmp_db").one()
@@ -358,9 +362,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         session.add(database)
 
         stored_db = (
@@ -411,9 +413,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_hybrid_perm_database(self):
-        database = Database(
-            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
 
         db.session.add(database)
 
@@ -437,9 +437,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)
@@ -573,6 +571,7 @@ class TestRolePermission(SupersetTestCase):
         )  # wb_health_population slice, has access
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
         """
@@ -906,6 +905,7 @@ class TestRolePermission(SupersetTestCase):
             ["LocaleView", "index"],
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
+            ["CurrentUserRestApi", "me"],
             ["Dashboard", "embedded"],
             ["R", "index"],
             ["Superset", "log"],

@@ -950,6 +950,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(link_table.c.id == target.id)
                 .values(perm=target.get_perm())
             )
+            target.perm = target.get_perm()
 
         if (
             hasattr(target, "schema_perm")
@@ -960,6 +961,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .where(link_table.c.id == target.id)
                 .values(schema_perm=target.get_schema_perm())
             )
+            target.schema_perm = target.get_schema_perm()
 
         pvm_names = []
         if target.__tablename__ in {"dbs", "clusters"}:
