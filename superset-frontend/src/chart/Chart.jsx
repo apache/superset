@@ -29,6 +29,8 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -157,6 +159,9 @@ class Chart extends React.PureComponent {
       );
     } else {
       // Create chart with POST request
+      console.log('starting post call for a given chart');
+      console.log(getUrlParam(URL_PARAMS.force));
+      // console.log(force);
       this.props.actions.postChartFormData(
         this.props.formData,
         this.props.force,

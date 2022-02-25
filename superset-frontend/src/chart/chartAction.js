@@ -206,7 +206,7 @@ export async function getChartDataRequest({
   setDataMask = () => {},
   resultFormat = 'json',
   resultType = 'full',
-  force = false,
+  force = true,
   method = 'POST',
   requestParams = {},
   ownState = {},
@@ -233,7 +233,10 @@ export async function getChartDataRequest({
       querySettings,
     );
   }
+  console.log('making v1ChartDataRequest');
+  console.log('force', force);
   return v1ChartDataRequest(
+    // this makes the call for all charts
     formData,
     resultFormat,
     resultType,
@@ -378,6 +381,7 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
+    console.log('making call for dashboard data');
     const chartDataRequest = getChartDataRequest({
       setDataMask,
       formData,

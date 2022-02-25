@@ -73,10 +73,21 @@ const DashboardPage: FC = () => {
   );
   const { addDangerToast } = useToasts();
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
+
+  // 1. Pull url params force from initial request
+  const params = new URLSearchParams(window.location.search);
+  console.log('force:', params.get('force'));
+
+  // 2. if force=true pass that param into useDashboardCharts
+  // 3. Read in params from force into dashboard/:id/charts
+  // 4. Append the force=true to each form_data / url depending on how it needs to be triggered
+
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
-  const { result: charts, error: chartsApiError } =
-    useDashboardCharts(idOrSlug);
+  const { result: charts, error: chartsApiError } = useDashboardCharts(
+    idOrSlug,
+    true,
+  );
   const { result: datasets, error: datasetsApiError } =
     useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);

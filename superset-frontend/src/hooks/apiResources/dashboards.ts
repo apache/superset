@@ -34,8 +34,10 @@ export const useDashboard = (idOrSlug: string | number) =>
   );
 
 // gets the chart definitions for a dashboard
-export const useDashboardCharts = (idOrSlug: string | number) =>
-  useApiV1Resource<Chart[]>(`/api/v1/dashboard/${idOrSlug}/charts`);
+export const useDashboardCharts = (idOrSlug: string | number, force = false) =>
+  useApiV1Resource<Chart[]>(
+    `/api/v1/dashboard/${idOrSlug}/charts?force=${force}`,
+  );
 
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset
