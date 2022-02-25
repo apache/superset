@@ -40,10 +40,6 @@ export interface NativeFiltersFormItem {
   };
   defaultValue: any;
   defaultDataMask: DataMask;
-  parentFilter?: {
-    value: string;
-    label: string;
-  };
   dependencies?: string[];
   sortMetric: string | null;
   adhoc_filters?: AdhocFilter[];
@@ -51,7 +47,6 @@ export interface NativeFiltersFormItem {
   granularity_sqla?: string;
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
-  hierarchicalFilter?: boolean;
 }
 export interface NativeFilterDivider {
   id: string;

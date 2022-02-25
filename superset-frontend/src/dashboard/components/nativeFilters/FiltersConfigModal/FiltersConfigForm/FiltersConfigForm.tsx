@@ -826,7 +826,10 @@ const FiltersConfigForm = (
             key={`${filterId}-${FilterPanels.configuration.key}`}
           >
             {canDependOnOtherFilters && hasAvailableFilters && (
-              <StyledRowFormItem name={['filters', filterId, 'dependencies']}>
+              <StyledRowFormItem
+                name={['filters', filterId, 'dependencies']}
+                initialValue={dependencies}
+              >
                 <DependencyList
                   availableFilters={availableFilters}
                   dependencies={dependencies}

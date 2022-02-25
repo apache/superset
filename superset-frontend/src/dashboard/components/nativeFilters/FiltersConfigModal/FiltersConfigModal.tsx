@@ -413,7 +413,7 @@ export function FiltersConfigModal({
         const result = hasCircularDependency(dependencyMap, filterId);
         const field = {
           name: ['filters', filterId, 'dependencies'],
-          errors: result ? [t('Cannot create cyclic hierarchy')] : [],
+          errors: result ? [t('Cyclic dependency detected')] : [],
         };
         form.setFields([field]);
       });
