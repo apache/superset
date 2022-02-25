@@ -26,6 +26,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
+import { checkUploadExtensions } from '../CRUD/utils';
 import {
   ExtentionConfigs,
   GlobalMenuDataOptions,
@@ -75,6 +76,7 @@ const RightMenu = ({
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
     EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
 
@@ -188,7 +190,9 @@ const RightMenu = ({
                     title={menuIconAndLabel(menu)}
                   >
                     {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' && item.name && item.perm ? (
+                      typeof item !== 'string' &&
+                      item.name &&
+                      checkUploadExtensions(item.perm, ALLOWED_EXTENSIONS) ? (
                         <>
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>
