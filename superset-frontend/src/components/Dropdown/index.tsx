@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { RefObject } from 'react';
 import { Dropdown as AntdDropdown } from 'antd';
+import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
 
 const MenuDots = styled.div`
@@ -75,4 +76,18 @@ export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
       <MenuDots />
     </MenuDotsWrapper>
   </AntdDropdown>
+);
+
+interface ExtendedDropDownProps extends DropDownProps {
+  ref?: RefObject<HTMLDivElement>;
+}
+
+// @z-index-below-dashboard-header (100) - 1 = 99
+export const NoAnimationDropdown = (
+  props: ExtendedDropDownProps & { children?: React.ReactNode },
+) => (
+  <AntdDropdown
+    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
+    {...props}
+  />
 );
