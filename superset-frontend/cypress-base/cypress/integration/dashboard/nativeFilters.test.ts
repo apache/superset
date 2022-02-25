@@ -632,7 +632,7 @@ describe('Nativefilters Sanity test', () => {
       .last()
       .should('be.visible', { timeout: 20000 })
       .click({ force: true });
-    // Setup parent filter 
+    // Setup parent filter
     cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
       () => {
         cy.contains('Filter is hierarchical').should('be.visible').click();
