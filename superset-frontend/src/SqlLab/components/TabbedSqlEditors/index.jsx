@@ -260,24 +260,23 @@ class TabbedSqlEditors extends React.PureComponent {
     let newTitle;
 
     if (this.props.queryEditors.length > 0) {
-      const untitled_query_names = this.props.queryEditors
-        .filter(x => x.title.includes('Untitled Query'))
-        .map(x => x.title);
-      if (untitled_query_names.length > 0) {
-        //When there are editors open, and at least one is called "Untitled Query #"
-        const largest_Number = Math.max.apply(
-          null,
-          untitled_query_names.map(x =>
-            x.replace('Untitled Query ', ''),
-          ),
-        );
+      const untitled_query_numbers = this.props.queryEditors
+        .filter(x => x.title.includes('Untitled Query '))
+        .map(x => x.title).map(x =>
+          x.replace('Untitled Query ', ''),
+        ).filter(x => !isNaN(x));
+      if (untitled_query_numbers.length > 0) {
+        //When there are query tabs open, and at least one is called "Untitled Query #"
+        //Where # is a valid number
+        const largest_Number = Math.max.apply(null, untitled_query_numbers);
         newTitle = t('Untitled Query %s', largest_Number + 1);
       } else {
-        //When there are editors open but none of them are called "Untitled Query #"
+        //When there are query tabs open but none of them are called "Untitled Query #"
+        //Where # is a valid number
         newTitle = 'Untitled Query 1';
       }
     } else {
-      //When there are no editors currently open
+      //When there are no query tabs currently open
       newTitle = 'Untitled Query 1';
     }
 
