@@ -591,6 +591,12 @@ describe('DatabaseModal', () => {
       const allowDbExplorationText = screen.getByText(
         /allow this database to be explored/i,
       );
+      const allowSQLLabDataPreviewQueriesCheckbox = screen.getByRole('checkbox', {
+        name: /Allow SQL Lab data preview queries/i,
+      });
+      const allowSQLLabDataPreviewQueriesText = screen.getByText(
+        /Allow SQL Lab data preview queries/i,
+      );
 
       // ---------- Assertions ----------
       const visibleComponents = [
@@ -627,6 +633,7 @@ describe('DatabaseModal', () => {
         allowMultiSchemaMDFetchText,
         enableQueryCostEstimationText,
         allowDbExplorationText,
+        allowSQLLabDataPreviewQueriesText,
       ];
       // These components exist in the DOM but are not visible
       const invisibleComponents = [
@@ -637,6 +644,7 @@ describe('DatabaseModal', () => {
         allowMultiSchemaMDFetchCheckbox,
         enableQueryCostEstimationCheckbox,
         allowDbExplorationCheckbox,
+        allowSQLLabDataPreviewQueriesCheckbox,
       ];
 
       visibleComponents.forEach(component => {
@@ -645,8 +653,8 @@ describe('DatabaseModal', () => {
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
-      expect(checkboxOffSVGs).toHaveLength(7);
-      expect(tooltipIcons).toHaveLength(7);
+      expect(checkboxOffSVGs).toHaveLength(8);
+      expect(tooltipIcons).toHaveLength(8);
     });
 
     it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
