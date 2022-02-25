@@ -347,7 +347,6 @@ export const hydrateDashboard =
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboardData, user);
-    console.log(chartQueries);
 
     return dispatch({
       type: HYDRATE_DASHBOARD,

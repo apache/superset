@@ -151,7 +151,7 @@ class Chart extends React.PureComponent {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
         this.props.formData,
-        this.props.force,
+        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
@@ -161,10 +161,9 @@ class Chart extends React.PureComponent {
       // Create chart with POST request
       console.log('starting post call for a given chart');
       console.log(getUrlParam(URL_PARAMS.force));
-      // console.log(force);
       this.props.actions.postChartFormData(
         this.props.formData,
-        this.props.force,
+        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,

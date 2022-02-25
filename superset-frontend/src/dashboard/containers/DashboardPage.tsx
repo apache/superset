@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { FC, useRef, useEffect, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
+import { Global } from '@emotion/react';
 import { useParams } from 'react-router-dom';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -49,6 +50,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
 import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
+import { filterCardPopoverStyle } from '../styles';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -68,26 +70,16 @@ const originalDocumentTitle = document.title;
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const { addDangerToast } = useToasts();
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
-
-  // 1. Pull url params force from initial request
-  const params = new URLSearchParams(window.location.search);
-  console.log('force:', params.get('force'));
-
-  // 2. if force=true pass that param into useDashboardCharts
-  // 3. Read in params from force into dashboard/:id/charts
-  // 4. Append the force=true to each form_data / url depending on how it needs to be triggered
-
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
-  const { result: charts, error: chartsApiError } = useDashboardCharts(
-    idOrSlug,
-    true,
-  );
+  const { result: charts, error: chartsApiError } =
+    useDashboardCharts(idOrSlug);
   const { result: datasets, error: datasetsApiError } =
     useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
@@ -237,6 +229,7 @@ const DashboardPage: FC = () => {
 
   return (
     <>
+      <Global styles={filterCardPopoverStyle(theme)} />
       <FilterBoxMigrationModal
         show={filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.UNDECIDED}
         hideFooter={!isMigrationEnabled}

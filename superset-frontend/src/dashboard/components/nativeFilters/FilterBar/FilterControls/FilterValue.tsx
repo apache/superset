@@ -137,7 +137,7 @@ const FilterValue: React.FC<FilterProps> = ({
       setIsRefreshing(true);
       getChartDataRequest({
         formData: newFormData,
-        force: true,
+        force: false,
         requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
