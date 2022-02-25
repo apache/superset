@@ -19,7 +19,7 @@
 import React from 'react';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import Button, { ButtonProps } from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import {

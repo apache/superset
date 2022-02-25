@@ -20,7 +20,7 @@ import React from 'react';
 import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { useTabId } from 'src/hooks/useTabId';
