@@ -75,6 +75,7 @@ describe('canUserEditDashboard', () => {
     email: 'user@example.com',
     firstName: 'Test',
     isActive: true,
+    isAnonymous: false,
     lastName: 'User',
     userId: 1,
     username: 'owner',

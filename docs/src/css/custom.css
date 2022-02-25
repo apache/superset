@@ -38,6 +38,10 @@
   --ifm-navbar-height: none;
 }
 
+.theme-doc-toc-desktop {
+  position: fixed !important;
+}
+
 .docusaurus-highlight-code-line {
   background-color: rgba(0, 0, 0, 0.1);
   display: block;

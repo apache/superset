@@ -2,6 +2,7 @@
   "name": "docs-v-2",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
@@ -16,9 +17,9 @@
   },
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
-    "@docusaurus/core": "2.0.0-beta.9",
-    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.14",
-    "@docusaurus/preset-classic": "2.0.0-beta.9",
+    "@docusaurus/core": "^2.0.0-beta.15",
+    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.15",
+    "@docusaurus/preset-classic": "^2.0.0-beta.15",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
     "@mdx-js/react": "^1.6.21",
@@ -39,7 +40,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "2.0.0-beta.9",
+    "@docusaurus/module-type-aliases": "^2.0.0-beta.15",
     "@tsconfig/docusaurus": "^1.0.4",
     "typescript": "^4.3.5"
   },
