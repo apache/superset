@@ -219,6 +219,10 @@ def test_import_csv_enforced_schema(mock_event_logger):
 
     full_table_name = f"admin_database.{CSV_UPLOAD_TABLE_W_SCHEMA}"
 
+    # Invalid table name
+    resp = upload_csv(CSV_FILENAME1, full_table_name)
+    assert "Table name cannot contain a schema" in resp
+
     # no schema specified, fail upload
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, extra={"schema": None})
     assert (
