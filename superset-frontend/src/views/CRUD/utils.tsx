@@ -411,5 +411,13 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         ),
   );
 
-export const checkUploadExtensions = (arr: Array<any>, cons: Array<any>) =>
-  intersection(arr, cons).length;
+export const checkUploadExtensions = (
+  perm: Array<any> | string | undefined | boolean,
+  cons: Array<any>,
+) => {
+  if (perm !== undefined) {
+    if (typeof perm === 'boolean') return perm;
+    return intersection(perm, cons).length;
+  }
+  return false;
+};
