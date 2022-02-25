@@ -21,12 +21,8 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import {
-  Menu,
-  MenuMode,
-  Row,
-  MainNav as DropdownMenu,
-} from 'src/common/components';
+import { Row } from 'src/common/components';
+import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { MenuObjectProps } from './Menu';
