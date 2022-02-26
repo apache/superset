@@ -36,7 +36,7 @@ class Datasource(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=("druid", "table", "view", "sl_table")),
         required=True,
     )
 

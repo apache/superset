@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from superset.tables.models import Table
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -83,6 +84,50 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             admin = self.get_user("admin")
             for cx in range(CHARTS_FIXTURE_COUNT - 1):
                 charts.append(self.insert_chart(f"name{cx}", [admin.id], 1))
+            fav_charts = []
+            for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
+                fav_star = FavStar(
+                    user_id=admin.id, class_name="slice", obj_id=charts[cx].id
+                )
+                db.session.add(fav_star)
+                db.session.commit()
+                fav_charts.append(fav_star)
+            yield charts
+
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            for fav_chart in fav_charts:
+                db.session.delete(fav_chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_table_datasource(self):
+        with self.create_app().app_context():
+            admin = self.get_user("admin")
+            table = Table(
+                database_id=db.session.query(Database).first().id, name="test_table"
+            )
+            db.session.add(table)
+            db.session.commit()
+            yield table
+
+            # rollback changes
+            db.session.delete(table)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_charts_with_table(self):
+        with self.create_app().app_context():
+            charts = []
+            admin = self.get_user("admin")
+            table = db.session.query(Table).first()
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(
+                    self.insert_chart(
+                        f"name{cx}", [admin.id], table.id, datasource_type=table.type
+                    )
+                )
             fav_charts = []
             for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
                 fav_star = FavStar(
@@ -430,7 +475,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test create chart
         """
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -441,6 +485,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.post_assert_metric(uri, chart_data, "post")
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Slice).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_table_datasource", "create_charts_with_table")
+    def test_create_chart_with_table(self):
+        """
+        Chart API: Test create chart with Table
+        """
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        admin_id = self.get_user("admin").id
+        table_id = db.session.query(Table).first().id
+        chart_data = {
+            "slice_name": "name1",
+            "description": "description1",
+            "owners": [admin_id],
+            "viz_type": "viz_type1",
+            "params": "1234",
+            "cache_timeout": 1000,
+            "datasource_id": table_id,
+            "datasource_type": "sl_table",
             "dashboards": dashboards_ids,
             "certified_by": "John Doe",
             "certification_details": "Sample certification",
@@ -520,7 +593,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": ["Must be one of: druid, table, view, sl-table."]
+                }
+            },
         )
         chart_data = {
             "slice_name": "title1",
@@ -686,7 +763,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": ["Must be one of: druid, table, view, sl-table."]
+                }
+            },
         )
 
         chart_data = {"datasource_id": 0, "datasource_type": "table"}

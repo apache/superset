@@ -24,11 +24,12 @@ addition to a table, new models for columns, metrics, and datasets were also int
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-from typing import List
+from typing import List, Optional
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm.query import Query
 from sqlalchemy.schema import UniqueConstraint
 
 from superset.columns.models import Column
@@ -90,3 +91,25 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
+    type = "sl_table"
+
+    @staticmethod
+    def default_query(qry: Query) -> Query:
+        return qry
+        # self.database.select_star(
+        #     self.table_name, schema=self.schema, show_cols=False, latest_partition=False
+        # )
+
+    @property
+    def perm(self) -> Optional[str]:
+        return "todo"
+
+    def get_perm(self) -> Optional[str]:
+        return self.perm
+
+    @property
+    def schema_perm(self) -> Optional[str]:
+        return "todo"
+
+    def get_schema_perm(self) -> Optional[str]:
+        return self.schema_perm

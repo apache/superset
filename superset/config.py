@@ -659,6 +659,7 @@ DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
         ("superset.connectors.druid.models", ["DruidDatasource"]),
+        ("superset.tables.models", ["Table"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
