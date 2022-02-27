@@ -1,5 +1,5 @@
 import { ChartProps } from '@superset-ui/core';
-import transformProps, { AAGUserIDChartProps, AAGUserIDFormData } from '../../src/plugin/transformProps';
+import transformProps, { AAGUserIDFormData } from '../../src/plugin/transformProps';
 describe('AtAGlance tranformProps', () => {
   
   const formData: AAGUserIDFormData = {
