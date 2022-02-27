@@ -25,7 +25,7 @@ export type AAGUserIDFormData = QueryFormData & {
 };
 
 export type AAGUserIDChartProps = ChartProps & {
-  formData: AAGUserIDFormData;
+  formData: any;
 };
 
 
