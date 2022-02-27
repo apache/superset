@@ -206,9 +206,9 @@ const config: ControlPanelConfig = {
             name: 'ipDashBoardBaseUrl',
             config: {
               type: 'TextControl',
-              label: t('Base url for supersert'),
+              label: t('Base URL for supersert'),
               renderTrigger: true,
-              description: t('the url for superset you wish to link to. i.e superset.com'),
+              description: t('The URL for superset that you wish to link to (ex. superset.com).'),
             },
           }
         ],
@@ -217,9 +217,9 @@ const config: ControlPanelConfig = {
             name: 'ipDashboardId',
             config: {
               type: 'TextControl',
-              label: t('Ip dasboard id'),
+              label: t('IP dasboard ID'),
               renderTrigger: true,
-              description: t('the id of the dashboard which contains an IP filter you wish to link to'),
+              description: t('The ID for the dashboard which you wish to link to.'),
             },
           },
         ],
@@ -228,9 +228,9 @@ const config: ControlPanelConfig = {
             name: 'ipDashboardFilterId',
             config: {
               type: 'TextControl',
-              label: t('Filter id for ip dashboard'),
+              label: t('Filter ID for IP dashboard'),
               renderTrigger: true,
-              description: t('The filter you wish to be prepopulated with an ip upon clicking the link'),
+              description: t('The filter ID you wish to be prepopulated with an IP upon clicking the link.'),
             },
           },
         ],

@@ -192,7 +192,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(canadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
+                  generateClientIpLinksList(canadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId, props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -210,7 +210,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(nonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
+                  generateClientIpLinksList(nonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId, props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -228,7 +228,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(unsuccessfulCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
+                  generateClientIpLinksList(unsuccessfulCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId, props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -246,7 +246,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(unsuccessfulNonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
+                  generateClientIpLinksList(unsuccessfulNonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId, props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
             </Collapse>
