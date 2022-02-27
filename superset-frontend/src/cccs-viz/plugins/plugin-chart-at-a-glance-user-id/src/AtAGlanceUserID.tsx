@@ -28,10 +28,10 @@ const generateClientIpLinksList = (ipList: any, ipDashBoardBaseUrl: string, ipDa
         <li>
           <a
             href={
-              `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${a.client_ip}\
-              '%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${a.client_ip}\
-              '%29%29%29%29%2CfilterState%3A%28label%3A'${a.client_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}\
-              %2CownState%3A%28%29%29%29`}
+              `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${a.client_ip}'` +
+              `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${a.client_ip}'` +
+              `%29%29%29%29%2CfilterState%3A%28label%3A'${a.client_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
+              `%2CownState%3A%28%29%29%29`}
           >
             {a.client_ip}
           </a>
@@ -200,7 +200,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(canadianIpsList, initialFormData.ipDashBoardBaseUrl, initialFormData.ipDashboardId ,initialFormData.ipDashboardFilterId)
+                  generateClientIpLinksList(canadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -218,7 +218,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(nonCanadianIpsList, initialFormData.ipDashBoardBaseUrl, initialFormData.ipDashboardId ,initialFormData.ipDashboardFilterId)
+                  generateClientIpLinksList(nonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -236,7 +236,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(unsuccessfulCanadianIpsList, initialFormData.ipDashBoardBaseUrl, initialFormData.ipDashboardId ,initialFormData.ipDashboardFilterId)
+                  generateClientIpLinksList(unsuccessfulCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -254,7 +254,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  generateClientIpLinksList(unsuccessfulNonCanadianIpsList, initialFormData.ipDashBoardBaseUrl, initialFormData.ipDashboardId ,initialFormData.ipDashboardFilterId)
+                  generateClientIpLinksList(unsuccessfulNonCanadianIpsList, props.ipDashBoardBaseUrl, props.ipDashboardId ,props.ipDashboardFilterId)
                 )}
               </Collapse.Panel>
             </Collapse>
