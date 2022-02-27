@@ -206,7 +206,7 @@ const config: ControlPanelConfig = {
             name: 'ipDashBoardBaseUrl',
             config: {
               type: 'TextControl',
-              label: t('Base URL for supersert'),
+              label: t('Base URL for superset'),
               renderTrigger: true,
               description: t('The URL for superset that you wish to link to (ex. superset.com).'),
             },
