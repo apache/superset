@@ -16,12 +16,7 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string; 
 };
 
-
-
-
-
 const generateClientIpLinksList = (ipList: any, ipDashBoardBaseUrl: string, ipDashboardId: string, ipDashboardFilterId: string) => {
-
   return(
     <ul>
       {ipList.map((a: { client_ip: string }) => (
@@ -39,7 +34,6 @@ const generateClientIpLinksList = (ipList: any, ipDashBoardBaseUrl: string, ipDa
       ))}
     </ul>
   )
-
 }
 
 
@@ -60,8 +54,6 @@ const generateClientIpLinksList = (ipList: any, ipDashBoardBaseUrl: string, ipDa
  *       value:
  *         description: Returns the value of the given field if found.
  */
-
-
 const getPayloadField = (field: string, payload: any) => {
   let value = '';
   try {
