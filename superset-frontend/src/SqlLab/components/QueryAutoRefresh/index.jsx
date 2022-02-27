@@ -29,7 +29,6 @@ const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 10000;
 
 function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
-  console.log(actions, 'ACTIONS');
   const [offlineState, setOfflineState] = useState(offline);
   let timer = null;
 
@@ -46,11 +45,6 @@ function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
 
   const stopwatch = () => {
     // only poll /superset/queries/ if there are started or running queries
-    console.log(
-      shouldCheckForQueries(),
-      '<====SHOULD CHECK=====================',
-    );
-    console.log(offlineState, 'OFFLINE BEFORE');
     if (shouldCheckForQueries()) {
       SupersetClient.get({
         endpoint: `/superset/queries/${
@@ -59,7 +53,6 @@ function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
         timeout: QUERY_TIMEOUT_LIMIT,
       })
         .then(({ json }) => {
-          console.log('INSIDE THEN STATEMENT');
           if (Object.keys(json).length > 0) {
             actions.refreshQueries(json);
           }
@@ -67,14 +60,11 @@ function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
           setOfflineState(false);
         })
         .catch(() => {
-          console.log('INSIDE CATCH STATEMENT');
           setOfflineState(true);
         });
     } else {
       setOfflineState(false);
     }
-
-    console.log(offlineState, 'OFFLINE AFTER');
   };
 
   const startTimer = () => {
@@ -90,14 +80,12 @@ function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
 
   useEffect(() => {
     startTimer();
-    console.log(offlineState, 'OFFLINE STATE IN USE EFFECT');
     return () => {
       stopTimer();
     };
   }, []);
 
   useEffect(() => {
-    console.log('OFFLINE STATE CHANGED ==============================');
     actions.setUserOffline(offlineState);
   }, [offlineState]);
 

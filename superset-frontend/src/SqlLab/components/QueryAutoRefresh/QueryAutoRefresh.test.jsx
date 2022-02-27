@@ -65,39 +65,4 @@ describe('QueryAutoRefresh', () => {
 
     expect(spy).toHaveBeenCalled();
   });
-
-  // const getWrapper = () =>
-  //   shallow(<QueryAutoRefresh store={store} />)
-  //     .dive()
-  //     .dive();
-  // let wrapper;
-
-  // Just need to render for this
-  // spy on setUserOffline for the actual test
-  // eslint-disable-next-line jest/no-commented-out-tests
-  // it('shouldCheckForQueries', () => {
-  //   wrapper = getWrapper();
-  //   expect(wrapper.instance().shouldCheckForQueries()).toBe(true);
-  // });
-
-  // is it possible to call actions.setUserOffline to change the mock state of the component causing the value of offline to change?
-  // Change the props passed into the render, setting offline to on or off
-  // eslint-disable-next-line jest/no-commented-out-tests
-  // it('setUserOffline', () => {
-  //   wrapper = getWrapper();
-  //   // calls action.setUserOffline, and keeps track of whether it has been called or not
-  //   const spy = sinon.spy(wrapper.instance().props.actions, 'setUserOffline');
-
-  //   // state not changed
-  //   wrapper.setState({
-  //     offline: false,
-  //   });
-  //   expect(spy.called).toBe(false);
-
-  //   // state is changed
-  //   wrapper.setState({
-  //     offline: true,
-  //   });
-  //   expect(spy.callCount).toBe(1);
-  // });
 });
