@@ -4,7 +4,6 @@ import { QueryFormData } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 
 type DataManager = {
-  formData: QueryFormData;
   data: any[];
   isInit: boolean;
   isLoading: boolean;
@@ -29,7 +28,6 @@ const generateClientIpLinksList = (ipList: any, ipDashBoardBaseUrl: string, ipDa
         <li>
           <a
             href={
-
               `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${a.client_ip}\
               '%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${a.client_ip}\
               '%29%29%29%29%2CfilterState%3A%28label%3A'${a.client_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}\
@@ -82,7 +80,7 @@ const getPayloadField = (field: string, payload: any) => {
 };
 
 // Main Component
-function AtAGlanceUserIDCore(initialFormData: AtAGlanceUserIDProps) {
+function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
 
   const [userIDString, setUserIDString] = useState('user@domain.invalid,');
   
@@ -92,8 +90,7 @@ function AtAGlanceUserIDCore(initialFormData: AtAGlanceUserIDProps) {
   let unsuccessfulNonCanadianIpsList: any[] = [];
 
   const [aadDataManager, setAadDataManger] = useState<DataManager>({
-    formData: initialFormData,
-    data: initialFormData.data,
+    data: props.data,
     isInit: false,
     isLoading: false,
     isError: false,
@@ -103,18 +100,17 @@ function AtAGlanceUserIDCore(initialFormData: AtAGlanceUserIDProps) {
 
   for (
     let i = 0;
-    i < initialFormData.formData?.extraFormData?.filters?.length;
+    i < props.formData?.extraFormData?.filters?.length;
     // eslint-disable-next-line no-plusplus
     i++
   ) {
-    const filter = initialFormData.formData.extraFormData.filters[i];
+    const filter = props.formData.extraFormData.filters[i];
     if (filter.col === 'user_id') {
       const localUserId: string = filter.val[0];
       if (localUserId !== userIDString) {
         setAadDataManger({
           ...aadDataManager,
-          data: initialFormData.data,
-          formData: initialFormData,
+          data: props.data,
         });
         setUserIDString(localUserId);
         hasFiltered = false;
