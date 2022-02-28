@@ -256,13 +256,6 @@ class Chart extends React.PureComponent {
 
     const isLoading = chartStatus === 'loading';
     const isFaded = refreshOverlayVisible && !errorMessage;
-    // redefine the formData because the x & y axis title margin of formData is string type in case of custom value. And so these should be always number.
-    /* eslint radix: ["error", "as-needed"] */
-    const formData = {
-      ...this.props.formData,
-      x_axis_title_margin: parseInt(this.props.formData.x_axis_title_margin),
-      y_axis_title_margin: parseInt(this.props.formData.y_axis_title_margin),
-    };
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
@@ -305,7 +298,7 @@ class Chart extends React.PureComponent {
           >
             <ChartRenderer
               {...this.props}
-              formData={formData}
+              formData={this.props.formData}
               data-test={this.props.vizType}
             />
           </div>
