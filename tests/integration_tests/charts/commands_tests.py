@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -23,6 +22,7 @@ import yaml
 from flask import g
 
 from superset import db, security_manager
+from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.commands.export import ExportChartsCommand
 from superset.charts.commands.importers.v1 import ImportChartsCommand
@@ -333,8 +333,39 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.views.base.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_v1_response(self, mock_sm_g, mock_g):
+        """Test that the create chart command creates a chart XXX"""
+        actor = security_manager.find_user(username="admin")
+        mock_g.user = mock_sm_g.user = actor
+        chart_data = {
+            "slice_name": "new chart",
+            "description": "new description",
+            "owners": [actor.id],
+            "viz_type": "new_viz_type",
+            "params": json.dumps(
+                {"viz_type": "new_viz_type", "url_params": {"foo": "bar"}}
+            ),
+            "cache_timeout": 1000,
+            "datasource_id": 1,
+            "datasource_type": "table",
+        }
+
+        command = CreateChartCommand(actor, chart_data)
+        chart = command.run()
+        chart = db.session.query(Slice).get(chart.id)
+        assert chart.viz_type == "new_viz_type"
+        json_params = json.loads(chart.params)
+        assert json_params == {"viz_type": "new_viz_type"}
+        assert chart.slice_name == "new chart"
+        assert chart.owners == [actor]
+        db.session.delete(chart)
+        db.session.commit()
+
+    @patch("superset.views.base.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_update_v1_response(self, mock_sm_g, mock_g):
-        """Test that a chart command updates properties"""
+        """Test that the update chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
         actor = security_manager.find_user(username="admin")
         mock_g.user = mock_sm_g.user = actor
@@ -343,6 +374,10 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "description": "test for update",
             "cache_timeout": None,
             "owners": [actor.id],
+            "viz_type": "update_viz_type",
+            "params": json.dumps(
+                {"viz_type": "update_viz_type", "url_params": {"foo": "bar"},}
+            ),
         }
         command = UpdateChartCommand(actor, model_id, json_obj)
         last_saved_before = db.session.query(Slice).get(pk).last_saved_at
@@ -350,6 +385,9 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).get(pk)
         assert chart.last_saved_at != last_saved_before
         assert chart.last_saved_by == actor
+        assert chart.viz_type == "update_viz_type"
+        params = json.loads(chart.params)
+        assert params == {"viz_type": "update_viz_type"}
 
     @patch("superset.views.base.g")
     @patch("superset.security.manager.g")

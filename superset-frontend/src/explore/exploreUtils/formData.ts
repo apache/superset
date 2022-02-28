@@ -24,6 +24,13 @@ type Payload = {
   chart_id?: number;
 };
 
+const TEMPORARY_CONTROLS = new Set(['url_params']);
+
+export const sanitizeFormData = (formData: JsonObject): JsonObject =>
+  Object.keys(formData)
+    .filter(key => !TEMPORARY_CONTROLS.has(key))
+    .reduce((cum, key) => ({ ...cum, [key]: formData[key] }), {});
+
 const assembleEndpoint = (key?: string, tabId?: string) => {
   let endpoint = 'api/v1/explore/form_data';
   if (key) {
@@ -37,12 +44,12 @@ const assembleEndpoint = (key?: string, tabId?: string) => {
 
 const assemblePayload = (
   datasetId: number,
-  form_data: JsonObject,
+  formData: JsonObject,
   chartId?: number,
 ) => {
   const payload: Payload = {
     dataset_id: datasetId,
-    form_data: JSON.stringify(form_data),
+    form_data: JSON.stringify(sanitizeFormData(formData)),
   };
   if (chartId) {
     payload.chart_id = chartId;
@@ -52,23 +59,23 @@ const assemblePayload = (
 
 export const postFormData = (
   datasetId: number,
-  form_data: JsonObject,
+  formData: JsonObject,
   chartId?: number,
   tabId?: string,
 ): Promise<string> =>
   SupersetClient.post({
     endpoint: assembleEndpoint(undefined, tabId),
-    jsonPayload: assemblePayload(datasetId, form_data, chartId),
+    jsonPayload: assemblePayload(datasetId, formData, chartId),
   }).then(r => r.json.key);
 
 export const putFormData = (
   datasetId: number,
   key: string,
-  form_data: JsonObject,
+  formData: JsonObject,
   chartId?: number,
   tabId?: string,
 ): Promise<string> =>
   SupersetClient.put({
     endpoint: assembleEndpoint(key, tabId),
-    jsonPayload: assemblePayload(datasetId, form_data, chartId),
+    jsonPayload: assemblePayload(datasetId, formData, chartId),
   }).then(r => r.json.message);

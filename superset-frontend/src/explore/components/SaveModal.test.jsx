@@ -159,6 +159,7 @@ describe('SaveModal', () => {
         Promise.resolve({
           dashboard_url: 'http://localhost/mock_dashboard/',
           slice: { slice_url: '/mock_slice/' },
+          url_params: { foo: 'bar' },
         }),
       );
     });
@@ -219,7 +220,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              'http://localhost/mock_dashboard/',
+              'http://localhost/mock_dashboard/?foo=bar',
             );
             done();
           });
@@ -235,7 +236,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/',
+              '/mock_slice/?foo=bar',
             );
             done();
           });
@@ -248,7 +249,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/',
+              '/mock_slice/?foo=bar',
             );
             done();
           });

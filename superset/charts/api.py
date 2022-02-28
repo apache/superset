@@ -283,7 +283,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(g.user, item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(201, id=new_model.id, result=new_model.to_json())
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
@@ -354,7 +354,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateChartCommand(g.user, pk, item).run()
-            response = self.response(200, id=changed_model.id, result=item)
+            response = self.response(
+                200, id=changed_model.id, result=changed_model.to_json()
+            )
         except ChartNotFoundError:
             response = self.response_404()
         except ChartForbiddenError:

@@ -148,7 +148,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        const { url_params } = data;
+        if (url_params) {
+          const prefix = url.includes('?') ? '&' : '?';
+          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
+        }
         window.location.assign(url);
       });
     this.props.onHide();

@@ -742,7 +742,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         form_data_key = request.args.get("form_data_key")
         if form_data_key:
-            parameters = CommandParameters(actor=g.user, key=form_data_key,)
+            parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
@@ -751,10 +751,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dataset_id = request.args.get("dataset_id")
             if slice_id:
                 initial_form_data["slice_id"] = slice_id
-                flash(_("Form data not found in cache, reverting to chart metadata."))
+                if form_data_key:
+                    flash(
+                        _("Form data not found in cache, reverting to chart metadata.")
+                    )
             elif dataset_id:
                 initial_form_data["datasource"] = f"{dataset_id}__table"
-                flash(_("Form data not found in cache, reverting to dataset metadata."))
+                if form_data_key:
+                    flash(
+                        _(
+                            "Form data not found in cache, reverting to dataset metadata."
+                        )
+                    )
 
         form_data, slc = get_form_data(
             use_slice_data=True, initial_form_data=initial_form_data
@@ -977,6 +985,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slice_name = request.args.get("slice_name")
         action = request.args.get("action")
         form_data = get_form_data()[0]
+        url_params = form_data.pop("url_params", None)
 
         if action == "saveas":
             if "slice_id" in form_data:
@@ -1070,6 +1079,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "slice": slc.data,
             "dashboard_url": dash.url if dash else None,
             "dashboard_id": dash.id if dash else None,
+            "url_params": url_params,
         }
 
         if dash and request.args.get("goto_dash") == "true":
