@@ -288,11 +288,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
 
+  const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
-  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
+  }, [dataMaskAppliedText, setDataMaskSelected]);
 
-  const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
     publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
