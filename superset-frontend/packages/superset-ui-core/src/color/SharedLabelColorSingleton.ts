@@ -40,9 +40,10 @@ export class SharedLabelColor {
       const scale = categoricalNamespace.getScale(colorScheme);
       const colors = scale.range();
       const multiple = Math.ceil(this.values.length / colors.length);
-      const analogousColors = colors.map(color =>
-        tinycolor(color).analogous(multiple, 10),
-      );
+      const analogousColors = colors.map(color => {
+        const result = tinycolor(color).analogous(Math.max(multiple, 5));
+        return result.slice(result.length - multiple, result.length);
+      });
       const generatedColors: tinycolor.Instance[] = [];
       // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
       while (analogousColors[analogousColors.length - 1]?.length) {
