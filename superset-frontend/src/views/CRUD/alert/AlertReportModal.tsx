@@ -595,7 +595,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/api/v1/report/related/owners?q=${query}`,
+          endpoint: `/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
