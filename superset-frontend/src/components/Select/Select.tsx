@@ -54,9 +54,9 @@ export interface LabeledValue {
 
 export type RawValues = RawValue[];
 export type LabeledValues = LabeledValue[];
-export type SelectValue = RawValue | LabeledValue | RawValues | LabeledValues;
 export type OptionsType = LabeledValues;
 
+type SelectValue = RawValue | LabeledValue | RawValues | LabeledValues;
 type AntdSelectAllProps = AntdSelectProps<SelectValue>;
 
 type PickedSelectProps = Pick<
