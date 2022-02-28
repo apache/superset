@@ -20,26 +20,28 @@ export default function ApplicationLinks(props: ApplicationsProps) {
       callback_url = 'ip_string';
     }
   }
-
-  useEffect(() => {
-    fetch(
-      // eslint-disable-next-line no-restricted-globals
-      `http://${location.host}/api/v1/proxy/alfred/${callback_url}/${appVal}`,
-    )
-      .then(res => res.json())
-      .then(response => {
-        if (response !== null && response.payload !== undefined) {
-          setAlfredCount(response.payload.data?.length);
-        } else {
-          setAlfredCount(0);
-        }
-      })
-      .catch(e => {
-        // eslint-disable-next-line no-console
-        console.log(e);
-        setAlfredCount(0);
-      });
-  }, [appVal, callback_url]);
+  // TODO: this can be fixed after CLDN-929
+  // useEffect(() => {
+  //   fetch(
+  //     // eslint-disable-next-line no-restricted-globals
+  //     `http://${location.host}/api/v1/proxy/alfred/${callback_url}/${appVal}`,
+  //   )
+  //     .then(res => res.json())
+  //     .then(response => {
+  //       if (response !== null && response.payload !== undefined) {
+  //         setAlfredCount(response.payload.data?.length);
+  //       } else {
+  //         setAlfredCount(0);
+  //       }
+  //     })
+  //     .catch(e => {
+  //       // eslint-disable-next-line no-console
+  //       console.log(e);
+  //       setAlfredCount(0);
+  // This will be caught by supersets default error handling that wraps and will display this message the the user 
+  //       throw new Error("Failed to fetch results from Alfred");
+  //     });
+  // }, [appVal, callback_url]);
 
   return (
     <div>

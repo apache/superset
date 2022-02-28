@@ -49,7 +49,10 @@ const getPayloadField = (field: string, payload: any) => {
     // eslint-disable-next-line no-console
     console.log(e);
     value = 'Something went wrong';
+    // This will be caught by supersets default error handling that wraps and will display this message the the user 
+    throw new Error("Error fetching values from dataset, this may be caused due to having this viz on the incorrect dataset.")
   }
+
   return value;
 };
 
