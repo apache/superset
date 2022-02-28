@@ -432,6 +432,7 @@ const y_axis_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_NUMBER_FORMAT,
   choices: D3_FORMAT_OPTIONS,
   description: D3_FORMAT_DOCS,
+  allowTokenSeperators: false,
   mapStateToProps: state => {
     const showWarning = state.controls?.comparison_type?.value === 'percentage';
     return {
