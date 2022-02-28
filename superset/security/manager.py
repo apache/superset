@@ -210,7 +210,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "database_access",
         "schema_access",
         "datasource_access",
-        "metric_access",
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
