@@ -288,6 +288,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
 
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
+
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
   useEffect(() => {
     publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
