@@ -63,19 +63,18 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
     );
   }, [elementsTruncated, scope]);
 
-  if (!scope || Object.keys(scope).length === 0) {
-    return null;
-  }
   return (
     <Row>
       <RowLabel>{t('Scope')}</RowLabel>
       <TooltipWithTruncation title={tooltipText}>
         <RowValue ref={scopeRef}>
-          {Object.values(scope)
-            .flat()
-            .map((element, index) => (
-              <span>{index === 0 ? element : `, ${element}`}</span>
-            ))}
+          {scope
+            ? Object.values(scope)
+                .flat()
+                .map((element, index) => (
+                  <span>{index === 0 ? element : `, ${element}`}</span>
+                ))
+            : t('None')}
         </RowValue>
         {hasHiddenElements > 0 && (
           <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
