@@ -27,10 +27,10 @@ import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import ChartRenderer from './ChartRenderer';
-import { ChartErrorMessage } from './ChartErrorMessage';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import ChartRenderer from './ChartRenderer';
+import { ChartErrorMessage } from './ChartErrorMessage';
 
 const propTypes = {
   annotationData: PropTypes.object,
