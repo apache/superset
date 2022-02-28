@@ -520,7 +520,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
-      force_screenshot: forceScreenshot,
+      force_screenshot: !isReport || forceScreenshot, // alerts (!isReport) should always bypass cache
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1368,15 +1368,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     )}
                   </StyledRadioGroup>
                 </div>
+                {isReport && (
+                  <div className="inline-container">
+                    <StyledCheckbox
+                      className="checkbox"
+                      checked={forceScreenshot}
+                      onChange={onForceScreenshotChange}
+                    >
+                      Ignore cache when generating screenshot
+                    </StyledCheckbox>
+                  </div>
+                )}
               </>
             )}
-            <StyledCheckbox
-              className="checkbox"
-              checked={forceScreenshot}
-              onChange={onForceScreenshotChange}
-            >
-              Ignore cache when generating screenshot
-            </StyledCheckbox>
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
