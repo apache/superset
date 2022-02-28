@@ -81,8 +81,6 @@ import {
   GroupByFilterPlugin,
 } from 'src/filters/components/';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
-import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
-import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 import { FunnelChartPlugin } from '@blotoutio/plugin-chart-funnel';
 import { PieDoughnutChartPlugin } from '@blotoutio/plugin-chart-pie-doughnut';
 import { LineStackChartPlugin } from '@blotoutio/plugin-chart-line-stack';
@@ -95,6 +93,8 @@ import { SankeyNodeAlignRightChartPlugin } from '@blotoutio/plugin-chart-sankey-
 import { SankeyItemstyleChartPlugin } from '@blotoutio/plugin-chart-sankey-itemstyle';
 import { BarLabelRotationChartPlugin } from '@blotoutio/plugin-chart-bar-label-rotation';
 import { BarYCategoryStackChartPlugin } from '@blotoutio/plugin-chart-bar-y-category-stack';
+import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
+import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
 export default class MainPreset extends Preset {
   constructor() {

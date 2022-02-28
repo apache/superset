@@ -118,8 +118,8 @@ function ChartTable({
   };
 
   useEffect(() => {
-    getData('Favorite').then()
-  }, [])
+    getData('Favorite').then();
+  }, []);
 
   const getFilters = (filterName: string) => {
     const filters = [];

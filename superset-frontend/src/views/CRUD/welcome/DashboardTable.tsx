@@ -108,8 +108,8 @@ function DashboardTable({
   };
 
   useEffect(() => {
-    getData('Favorite').then()
-  }, [])
+    getData('Favorite').then();
+  }, []);
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
