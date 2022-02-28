@@ -119,7 +119,7 @@ In this section, we'll walkthrough the pre-defined Jinja macros in Superset.
 
 The `{{ current_username() }}` macro returns the username of the currently logged in user.
 
-If you have caching enabled in your Superset configuration, then by defaul the the `username` value will be used
+If you have caching enabled in your Superset configuration, then by default the the `username` value will be used
 by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
 cache hit in the future and Superset can retrieve cached data.
 
@@ -132,7 +132,7 @@ cache key by adding the following parameter to your Jinja code:
 
 **Current User ID**
 
-The `{{ current_user_id()}}` macro returns the user_id of the currently logged in user.
+The `{{ current_user_id() }}` macro returns the user_id of the currently logged in user.
 
 If you have caching enabled in your Superset configuration, then by defaul the the `user_id` value will be used
 by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
@@ -197,8 +197,8 @@ You can retrieve the value for a specific filter as a list using `{{ filter_valu
 
 This is useful if:
 
-- you want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
-- you want to have the ability for filter inside the main query for performance purposes
+- You want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
+- You want to have the ability for filter inside the main query for performance purposes
 
 Here's a concrete example:
 
@@ -218,9 +218,9 @@ returns the operator specified in the Explore UI.
 
 This is useful if:
 
-- you want to handle more than the IN operator in your SQL clause
-- you want to handle generating custom SQL conditions for a filter
-- you want to have the ability to filter inside the main query for speed purposes
+- You want to handle more than the IN operator in your SQL clause
+- You want to handle generating custom SQL conditions for a filter
+- You want to have the ability to filter inside the main query for speed purposes
 
 Here's a concrete example:
 
