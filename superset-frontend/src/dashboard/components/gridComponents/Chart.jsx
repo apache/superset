@@ -242,10 +242,15 @@ export default class Chart extends React.Component {
 
   onExploreChart = async () => {
     try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
       const key = await postFormData(
         this.props.datasource.id,
         this.props.formData,
         this.props.slice.slice_id,
+        nextTabId,
       );
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -269,6 +274,7 @@ export default class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: 'csv',
+      force: true,
     });
   }
 

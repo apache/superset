@@ -26,6 +26,17 @@ import { Tooltip } from 'src/components/Tooltip';
 
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
 
+export type ButtonStyle =
+  | 'primary'
+  | 'secondary'
+  | 'tertiary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'default'
+  | 'link'
+  | 'dashed';
+
 export interface ButtonProps {
   id?: string;
   className?: string;
@@ -46,16 +57,7 @@ export interface ButtonProps {
     | 'rightBottom';
   onClick?: OnClickHandler;
   disabled?: boolean;
-  buttonStyle?:
-    | 'primary'
-    | 'secondary'
-    | 'tertiary'
-    | 'success'
-    | 'warning'
-    | 'danger'
-    | 'default'
-    | 'link'
-    | 'dashed';
+  buttonStyle?: ButtonStyle;
   buttonSize?: 'default' | 'small' | 'xsmall';
   style?: CSSProperties;
   children?: React.ReactNode;
@@ -200,14 +202,16 @@ export default function Button(props: ButtonProps) {
         },
         '&[disabled], &[disabled]:hover': {
           color: grayscale.base,
-          backgroundColor: backgroundColorDisabled,
-          borderColor: borderColorDisabled,
+          backgroundColor:
+            buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
+          borderColor:
+            buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
         },
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.gridUnit * 2,
         },
-        '& :first-of-type': {
+        '& > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}

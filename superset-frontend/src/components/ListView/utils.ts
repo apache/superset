@@ -46,10 +46,17 @@ import {
 } from './types';
 
 // Define custom RisonParam for proper encoding/decoding; note that
-// plus symbols should be encoded to avoid being converted into a space
+// %, &, +, and # must be encoded to avoid breaking the url
 const RisonParam: QueryParamConfig<string, any> = {
   encode: (data?: any | null) =>
-    data === undefined ? undefined : rison.encode(data).replace(/\+/g, '%2B'),
+    data === undefined
+      ? undefined
+      : rison
+          .encode(data)
+          .replace(/%/g, '%25')
+          .replace(/&/g, '%26')
+          .replace(/\+/g, '%2B')
+          .replace(/#/g, '%23'),
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
       ? undefined

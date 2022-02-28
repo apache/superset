@@ -35,7 +35,8 @@ import {
   useTheme,
   ChartLabel,
 } from '@superset-ui/core';
-import { Collapse, Input, Tooltip } from 'src/common/components';
+import { Collapse, Tooltip } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';

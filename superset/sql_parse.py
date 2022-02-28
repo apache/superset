@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from urllib import parse
 
 import sqlparse
@@ -30,7 +30,16 @@ from sqlparse.sql import (
     Token,
     TokenList,
 )
-from sqlparse.tokens import DDL, DML, Keyword, Name, Punctuation, String, Whitespace
+from sqlparse.tokens import (
+    CTE,
+    DDL,
+    DML,
+    Keyword,
+    Name,
+    Punctuation,
+    String,
+    Whitespace,
+)
 from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
@@ -76,6 +85,58 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
             if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
                 return int(token.value)
     return None
+
+
+def extract_top_from_query(
+    statement: TokenList, top_keywords: Set[str]
+) -> Optional[int]:
+    """
+    Extract top clause value from SQL statement.
+
+    :param statement: SQL statement
+    :param top_keywords: keywords that are considered as synonyms to TOP
+    :return: top value extracted from query, None if no top value present in statement
+    """
+
+    str_statement = str(statement)
+    str_statement = str_statement.replace("\n", " ").replace("\r", "")
+    token = str_statement.rstrip().split(" ")
+    token = [part for part in token if part]
+    top = None
+    for i, _ in enumerate(token):
+        if token[i].upper() in top_keywords and len(token) - 1 > i:
+            try:
+                top = int(token[i + 1])
+            except ValueError:
+                top = None
+            break
+    return top
+
+
+def get_cte_remainder_query(sql: str) -> Tuple[Optional[str], str]:
+    """
+    parse the SQL and return the CTE and rest of the block to the caller
+
+    :param sql: SQL query
+    :return: CTE and remainder block to the caller
+
+    """
+    cte: Optional[str] = None
+    remainder = sql
+    stmt = sqlparse.parse(sql)[0]
+
+    # The first meaningful token for CTE will be with WITH
+    idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+    if not (token and token.ttype == CTE):
+        return cte, remainder
+    idx, token = stmt.token_next(idx)
+    idx = stmt.token_index(token) + 1
+
+    # extract rest of the SQLs after CTE
+    remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+    cte = f"WITH {token.value}"
+
+    return cte, remainder
 
 
 def strip_comments_from_sql(statement: str) -> str:

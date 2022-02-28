@@ -50,6 +50,7 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
+from superset.users.api import CurrentUserRestApi
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -205,6 +206,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
@@ -367,53 +369,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-table",
         )
         appbuilder.add_separator("Data")
-        appbuilder.add_link(
-            "Upload a CSV",
-            label=__("Upload a CSV"),
-            href="/csvtodatabaseview/form",
-            icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-wrench",
-            cond=lambda: bool(
-                self.config["CSV_EXTENSIONS"].intersection(
-                    self.config["ALLOWED_EXTENSIONS"]
-                )
-            ),
-        )
-        appbuilder.add_link(
-            "Upload a Columnar file",
-            label=__("Upload a Columnar File"),
-            href="/columnartodatabaseview/form",
-            icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-wrench",
-            cond=lambda: bool(
-                self.config["COLUMNAR_EXTENSIONS"].intersection(
-                    self.config["ALLOWED_EXTENSIONS"]
-                )
-            ),
-        )
-        try:
-            import xlrd  # pylint: disable=unused-import
-
-            appbuilder.add_link(
-                "Upload Excel",
-                label=__("Upload Excel"),
-                href="/exceltodatabaseview/form",
-                icon="fa-upload",
-                category="Data",
-                category_label=__("Data"),
-                category_icon="fa-wrench",
-                cond=lambda: bool(
-                    self.config["EXCEL_EXTENSIONS"].intersection(
-                        self.config["ALLOWED_EXTENSIONS"]
-                    )
-                ),
-            )
-        except ImportError:
-            pass
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
