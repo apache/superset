@@ -1067,6 +1067,13 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         with self.assertRaises(Exception):
             test_viz.query_obj()
 
+    def test_query_obj_order_by(self):
+        test_viz = viz.TimeTableViz(
+            self.get_datasource_mock(), {"metrics": ["sum__A", "count"], "groupby": []}
+        )
+        query_obj = test_viz.query_obj()
+        self.assertEqual(query_obj["orderby"], [("sum__A", False)])
+
 
 class TestBaseDeckGLViz(SupersetTestCase):
     def test_get_metrics(self):
