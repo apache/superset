@@ -580,7 +580,9 @@ IMG_UPLOAD_URL = "/static/uploads/"
 
 # Default cache config, applies to all cache backends unless specifically overridden in
 # each cache config.
-def DEFAULT_CACHE_CONFIG_FUNC(app: Flask) -> Dict[str, Any]:
+def DEFAULT_CACHE_CONFIG_FUNC(  # pylint: disable=invalid-name
+    app: Flask,
+) -> Dict[str, Any]:
     default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
     if default_timeout is None:
         default_timeout = int(timedelta(days=1).total_seconds())
