@@ -1040,12 +1040,12 @@ def test_email_dashboard_report_schedule_force_screenshot(
             create_report_email_dashboard_force_screenshot
         )
         # assert that the link sent is correct
-        # assert (
-        #     '<a href="http://0.0.0.0:8080/superset/dashboard/'
-        #     f"{create_report_email_dashboard_force_screenshot.id}"
-        #     '/?standalone=0&force=true">Explore in Superset</a>'
-        #     in email_mock.call_args[0][2]
-        # )
+        assert (
+            '<a href="http://0.0.0.0:8080/superset/dashboard/'
+            f"{create_report_email_dashboard_force_screenshot.id}"
+            '/?standalone=0&force=true">Explore in Superset</a>'
+            in email_mock.call_args[0][2]
+        )
 
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
