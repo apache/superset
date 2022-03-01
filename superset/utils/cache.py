@@ -41,7 +41,7 @@ stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
-def get_default_cache_config(flask_app: Flask) -> Dict[str, Any]:
+def get_default_cache_config(flask_app: Flask) -> CacheConfig:
     return flask_app.config["DEFAULT_CACHE_CONFIG_FUNC"](app)
 
 
