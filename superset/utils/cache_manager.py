@@ -17,6 +17,8 @@
 from flask import Flask
 from flask_caching import Cache
 
+from superset.utils.cache import get_default_cache_config
+
 
 class CacheManager:
     def __init__(self) -> None:
@@ -29,7 +31,7 @@ class CacheManager:
         self._explore_form_data_cache = Cache()
 
     def init_app(self, app: Flask) -> None:
-        default_cache_config = app.config["DEFAULT_CACHE_CONFIG_FUNC"](app)
+        default_cache_config = get_default_cache_config(app)
         self._cache.init_app(
             app, {**default_cache_config, **app.config["CACHE_CONFIG"]},
         )
