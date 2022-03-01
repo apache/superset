@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omitBy } from 'lodash';
+import { omit } from 'lodash';
 import { SupersetClient, JsonObject } from '@superset-ui/core';
 
 type Payload = {
@@ -25,10 +25,10 @@ type Payload = {
   chart_id?: number;
 };
 
-const TEMPORARY_CONTROLS = new Set(['url_params']);
+const TEMPORARY_CONTROLS = ['url_params'];
 
 export const sanitizeFormData = (formData: JsonObject): JsonObject =>
-  omitBy(formData, key => TEMPORARY_CONTROLS.has(key));
+  omit(formData, TEMPORARY_CONTROLS);
 
 const assembleEndpoint = (key?: string, tabId?: string) => {
   let endpoint = 'api/v1/explore/form_data';
