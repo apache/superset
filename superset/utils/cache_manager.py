@@ -29,40 +29,22 @@ class CacheManager:
         self._explore_form_data_cache = Cache()
 
     def init_app(self, app: Flask) -> None:
+        default_cache_config = app.config["DEFAULT_CACHE_CONFIG_FUNC"](app)
         self._cache.init_app(
-            app,
-            {
-                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["CACHE_CONFIG"],
-            },
+            app, {**default_cache_config, **app.config["CACHE_CONFIG"]},
         )
         self._data_cache.init_app(
-            app,
-            {
-                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["DATA_CACHE_CONFIG"],
-            },
+            app, {**default_cache_config, **app.config["DATA_CACHE_CONFIG"]},
         )
         self._thumbnail_cache.init_app(
-            app,
-            {
-                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["THUMBNAIL_CACHE_CONFIG"],
-            },
+            app, {**default_cache_config, **app.config["THUMBNAIL_CACHE_CONFIG"]},
         )
         self._filter_state_cache.init_app(
-            app,
-            {
-                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["FILTER_STATE_CACHE_CONFIG"],
-            },
+            app, {**default_cache_config, **app.config["FILTER_STATE_CACHE_CONFIG"]},
         )
         self._explore_form_data_cache.init_app(
             app,
-            {
-                "CACHE_DEFAULT_TIMEOUT": app.config["CACHE_DEFAULT_TIMEOUT"],
-                **app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"],
-            },
+            {**default_cache_config, **app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"],},
         )
 
     @property

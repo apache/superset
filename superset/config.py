@@ -36,7 +36,7 @@ import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
-from flask import Blueprint
+from flask import Blueprint, Flask
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing_extensions import Literal
@@ -543,8 +543,9 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # Also used by Alerts & Reports
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
+# thumbnail cache (merged with default cache config)
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "null",
+    "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
 }
 
@@ -576,29 +577,41 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-# Default cache timeout, applies to all cache backends unless specifically overridden in
+
+# Default cache config, applies to all cache backends unless specifically overridden in
 # each cache config.
-CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
+def DEFAULT_CACHE_CONFIG_FUNC(app: Flask) -> Dict[str, Any]:
+    default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
+    if default_timeout is None:
+        default_timeout = int(timedelta(days=1).total_seconds())
+    else:
+        logger.warning(
+            "The config flag CACHE_DEFAULT_TIMEOUT has been deprecated "
+            "and will be removed in Superset 2.0. Please set default cache options in "
+            "DEFAULT_CACHE_CONFIG_FUNC"
+        )
 
-# Default cache for Superset objects
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+    return {
+        "CACHE_TYPE": "SimpleCache" if app.debug else "NullCache",
+        "CACHE_DEFAULT_TIMEOUT": default_timeout,
+    }
 
-# Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
-# Cache for filters state
+# Default cache for Superset objects (merged with default cache config)
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Cache for datasource metadata and query results (merged with default cache config)
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+
+# Cache for filters state (merged with default cache config)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
     "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
-# Cache for chart form data
+# Cache for chart form data (merged with default cache config)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,

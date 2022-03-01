@@ -40,7 +40,11 @@ from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.utils import csv
-from superset.utils.cache import generate_cache_key, set_and_log_cache
+from superset.utils.cache import (
+    generate_cache_key,
+    get_default_cache_config,
+    set_and_log_cache,
+)
 from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -385,7 +389,7 @@ class QueryContextProcessor:
         cache_timeout_rv = self._query_context.get_cache_timeout()
         if cache_timeout_rv:
             return cache_timeout_rv
-        return config["CACHE_DEFAULT_TIMEOUT"]
+        return get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
 
     def cache_key(self, **extra: Any) -> str:
         """
