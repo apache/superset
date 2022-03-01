@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import re
 from typing import Any, Dict
 
@@ -24,6 +25,9 @@ from marshmallow.validate import Length
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from superset.datasets.models import Dataset
+
+logger = logging.getLogger(__name__)
+
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -184,13 +188,20 @@ class ImportV1MetricSchema(Schema):
 class ImportV1DatasetSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_extra(self, data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+    def convert_str_fields_to_json(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
         """
-        Fix for extra initially beeing exported as a string.
+        Fix for fields initially being exported as a string.
         """
-        if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+        str_fields = {"extra", "params"}
 
+        for key in str_fields:
+            if isinstance(data.get(key), str):
+                try:
+                    data[key] = json.loads(data[key])
+                except json.decoder.JSONDecodeError:
+                    logger.info("Unable to decode `%s` field: %s", key, data[key])
         return data
 
     table_name = fields.String(required=True)
