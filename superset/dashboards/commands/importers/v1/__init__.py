@@ -21,6 +21,7 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
+from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
@@ -55,18 +56,29 @@ class ImportDashboardsCommand(ImportModelsCommand):
     }
     import_error = DashboardImportError
 
+    def run(self) -> None:
+        self.validate()
+
+        # rollback to prevent partial imports
+        try:
+            self._import(
+                db.session, self._configs, self.config_overwrite, self.overwrite
+            )
+            db.session.commit()
+        except Exception as ex:
+            db.session.rollback()
+            raise self.import_error() from ex
+
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(  # type: ignore
+    def _import(  # type: ignore  # pylint: disable=arguments-differ
         session: Session,
         configs: Dict[str, Any],
+        config_overwrite: Dict[str, bool],
         overwrite: bool = False,
-        config_overwrite: Optional[Dict[str, bool]] = None,
     ) -> None:
         # discover charts and datasets associated with dashboards
-        if config_overwrite is None:
-            config_overwrite = {}
         chart_uuids: Set[str] = set()
         dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():

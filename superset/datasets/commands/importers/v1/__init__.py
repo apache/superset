@@ -44,10 +44,7 @@ class ImportDatasetsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session,
-        configs: Dict[str, Any],
-        overwrite: bool = False,
-        **kwargs: Any
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
     ) -> None:
         # discover databases associated with datasets
         database_uuids: Set[str] = set()
