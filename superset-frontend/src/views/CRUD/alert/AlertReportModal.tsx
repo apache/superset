@@ -1368,18 +1368,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     )}
                   </StyledRadioGroup>
                 </div>
-                {isReport && (
-                  <div className="inline-container">
-                    <StyledCheckbox
-                      className="checkbox"
-                      checked={forceScreenshot}
-                      onChange={onForceScreenshotChange}
-                    >
-                      Ignore cache when generating screenshot
-                    </StyledCheckbox>
-                  </div>
-                )}
               </>
+            )}
+            {isReport && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
+                >
+                  Ignore cache when generating screenshot
+                </StyledCheckbox>
+              </div>
             )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
