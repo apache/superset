@@ -29,7 +29,12 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getTextDimension, getMultipleTextDimensions, t, styled } from '@superset-ui/core';
+import {
+  getTextDimension,
+  getMultipleTextDimensions,
+  t,
+  styled,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -221,7 +226,8 @@ export default class FilterableTable extends PureComponent<
             (index + 1) * (this.list.length + 1),
           )
           .reduce((a, b) => Math.max(a, b)) + PADDING;
-      widthsByColumnKey[key] = value > MAX_COLUMN_WIDTH ? MAX_COLUMN_WIDTH : value;
+      widthsByColumnKey[key] =
+        value > MAX_COLUMN_WIDTH ? MAX_COLUMN_WIDTH : value;
     });
 
     return widthsByColumnKey;
@@ -417,8 +423,11 @@ export default class FilterableTable extends PureComponent<
         : 'header-style';
 
     let trigger: string[] = [];
-    if (this.widthsForColumnsByKey[dataKey] < getTextDimension({ style: {fontSize: '12px'}, text: label}).width) {
-      trigger=['hover'];
+    if (
+      this.widthsForColumnsByKey[dataKey] <
+      getTextDimension({ style: { fontSize: '12px' }, text: label }).width
+    ) {
+      trigger = ['hover'];
     }
     return (
       <Tooltip
