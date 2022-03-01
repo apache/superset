@@ -139,7 +139,7 @@ export const Databases = [
     imgName: 'teradata.png'
   },
   {
-    title: 'YugabyteDB',
+    title: 'Yugabyte',
     href: "www.yugabyte.com",
     imgName: 'yugabyte.png'
   }
