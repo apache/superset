@@ -30,6 +30,7 @@ import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import SqlEditor from '../SqlEditor';
 import TabStatusIcon from '../TabStatusIcon';
 
@@ -62,6 +63,10 @@ let queryCount = 1;
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
+`;
+
+const StyledTab = styled.span`
+  line-height: 24px;
 `;
 
 const TabTitle = styled.span`
@@ -314,6 +319,7 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   render() {
+    const noQueryEditors = this.props.queryEditors?.length === 0;
     const editors = this.props.queryEditors.map(qe => {
       let latestQuery;
       if (qe.latestQueryId) {
@@ -401,6 +407,37 @@ class TabbedSqlEditors extends React.PureComponent {
       );
     });
 
+    const emptyTab = (
+      <StyledTab>
+        <TabTitle>{t('Add a new tab')}</TabTitle>
+        <Tooltip
+          id="add-tab"
+          placement="bottom"
+          title={
+            userOS === 'Windows'
+              ? t('New tab (Ctrl + q)')
+              : t('New tab (Ctrl + t)')
+          }
+        >
+          <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+        </Tooltip>
+      </StyledTab>
+    );
+
+    const emptyTabState = (
+      <EditableTabs.TabPane
+        key={0}
+        data-key={0}
+        tab={emptyTab}
+        closable={false}
+      >
+        <EmptyStateBig
+          image="empty_sql_chart.svg"
+          description={t('Add a new tab to create SQL Query')}
+        />
+      </EditableTabs.TabPane>
+    );
+
     return (
       <EditableTabs
         destroyInactiveTabPane
@@ -411,7 +448,9 @@ class TabbedSqlEditors extends React.PureComponent {
         onChange={this.handleSelect}
         fullWidth={false}
         hideAdd={this.props.offline}
+        onTabClick={() => noQueryEditors && this.newQueryEditor()}
         onEdit={this.handleEdit}
+        type={noQueryEditors ? 'card' : 'editable-card'}
         addIcon={
           <Tooltip
             id="add-tab"
@@ -427,6 +466,7 @@ class TabbedSqlEditors extends React.PureComponent {
         }
       >
         {editors}
+        {noQueryEditors && emptyTabState}
       </EditableTabs>
     );
   }
