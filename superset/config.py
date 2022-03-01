@@ -588,7 +588,7 @@ def DEFAULT_CACHE_CONFIG_FUNC(  # pylint: disable=invalid-name
         default_timeout = int(timedelta(days=1).total_seconds())
     else:
         logger.warning(
-            "The config flag CACHE_DEFAULT_TIMEOUT has been deprecated "
+            "The global config flag CACHE_DEFAULT_TIMEOUT has been deprecated "
             "and will be removed in Superset 2.0. Please set default cache options in "
             "DEFAULT_CACHE_CONFIG_FUNC"
         )
