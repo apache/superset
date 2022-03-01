@@ -287,6 +287,7 @@ export default class AddSliceContainer extends React.PureComponent<
                   options={this.loadDatasources}
                   placeholder={t('Choose a dataset')}
                   showSearch
+                  fetchOnlyOnSearch
                   value={this.state.datasource}
                 />
                 <span>
