@@ -19,6 +19,7 @@
 
 from ipaddress import ip_address
 import sqlalchemy
+from flask.ctx import AppContext
 from sqlalchemy import Column, Integer
 from tests.integration_tests.base_tests import SupersetTestCase
 from superset.business_type.business_type_request import BusinessTypeRequest
@@ -29,495 +30,478 @@ from superset.business_type.internet_address import internet_address
 from superset.business_type.port import port
 
 
-class TestBusinessType(SupersetTestCase):
-    """This class includes all of the unit tests for the business type functions"""
-
-    # To run the unit tests below, use the following command in the root Superset folder:
-    # tox -e py38 -- tests/unit_tests/business_type/types_tests.py
-
-    def test_ip_func_valid_ip(self):
-        """Test to see if the cidr_func behaves as expected when a valid IP is passed in"""
-        cidr_request: BusinessTypeRequest = {
-            "business_type": "cidr",
-            "values": ["1.1.1.1"],
-        }
-        cidr_response: BusinessTypeResponse = {
-            "values": [16843009],
-            "error_message": "",
-            "display_value": "16843009",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(internet_address.translate_type(cidr_request), cidr_response)
-
-    def test_cidr_func_invalid_ip(self):
-        """Test to see if the cidr_func behaves as expected when an invalid IP is passed in"""
-        cidr_request: BusinessTypeRequest = {"business_type": "cidr", "values": ["abc"]}
-        cidr_response: BusinessTypeResponse = {
-            "values": [],
-            "error_message": "'abc' does not appear to be an IPv4 or IPv6 network",
-            "display_value": "",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(internet_address.translate_type(cidr_request), cidr_response)
-
-    def test_port_translation_func_valid_port_number(self):
-        """Test to see if the port_translation_func behaves as expected when a valid port number
-        is passed in"""
-        port_request: BusinessTypeRequest = {"business_type": "port", "values": ["80"]}
-        port_response: BusinessTypeResponse = {
-            "values": [[80]],
-            "error_message": "",
-            "display_value": "[80]",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(port.translate_type(port_request), port_response)
-
-    def test_port_translation_func_valid_port_name(self):
-        """Test to see if the port_translation_func behaves as expected when a valid port name
-        is passed in"""
-        port_request: BusinessTypeRequest = {
-            "business_type": "port",
-            "values": ["https"],
-        }
-        port_response: BusinessTypeResponse = {
-            "values": [[443]],
-            "error_message": "",
-            "display_value": "[443]",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(port.translate_type(port_request), port_response)
-
-    def test_port_translation_func_invalid_port_name(self):
-        """Test to see if the port_translation_func behaves as expected when an invalid port name
-        is passed in"""
-        port_request: BusinessTypeRequest = {"business_type": "port", "values": ["abc"]}
-        port_response: BusinessTypeResponse = {
-            "values": [],
-            "error_message": "'abc' does not appear to be a port name or number",
-            "display_value": "",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(port.translate_type(port_request), port_response)
-
-    def test_port_translation_func_invalid_port_number(self):
-        """Test to see if the port_translation_func behaves as expected when an invalid port
-        number is passed in"""
-        port_request: BusinessTypeRequest = {
-            "business_type": "port",
-            "values": ["123456789"],
-        }
-        port_response: BusinessTypeResponse = {
-            "values": [],
-            "error_message": "'123456789' does not appear to be a port name or number",
-            "display_value": "",
-            "valid_filter_operators": [
-                FilterStringOperators.EQUALS,
-                FilterStringOperators.GREATER_THAN_OR_EQUAL,
-                FilterStringOperators.GREATER_THAN,
-                FilterStringOperators.IN,
-                FilterStringOperators.LESS_THAN,
-                FilterStringOperators.LESS_THAN_OR_EQUAL,
-            ],
-        }
-
-        self.assertEqual(port.translate_type(port_request), port_response)
-
-    def test_cidr_translate_filter_func_equals(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the EQUALS
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.EQUALS
-        input_values = [16843009]
-
-        cidr_translate_filter_response = input_column == input_values[0]
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_not_equals(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_EQUALS
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_EQUALS
-        input_values = [16843009]
-
-        cidr_translate_filter_response = input_column != input_values[0]
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_greater_than_or_equals(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the
-        GREATER_THAN_OR_EQUALS operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.GREATER_THAN_OR_EQUALS
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column >= input_values[0]
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_greater_than(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the
-        GREATER_THAN operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.GREATER_THAN
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column > input_values[0]
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_less_than(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the LESS_THAN
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.LESS_THAN
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column < input_values[0]
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_less_than_or_equals(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the
-        LESS_THAN_OR_EQUALS operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.LESS_THAN_OR_EQUALS
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column <= input_values[0]
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_in_single(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
-        is used with a single IP"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.IN
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column.in_(input_values)
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_in_double(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
-        is used with two IP's"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.IN
-        input_values = [{"start": 16843009, "end": 33686018}]
-
-        input_condition = input_column.in_([])
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_condition | ((input_column <= 33686018) & (input_column >= 16843009))
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_not_in_single(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN
-        operator is used with a single IP"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_IN
-        input_values = [16843009]
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
-            input_column.in_(input_values)
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_cidr_translate_filter_func_not_in_double(self):
-        """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN
-        operator is used with two IP's"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_IN
-        input_values = [{"start": 16843009, "end": 33686018}]
-
-        input_condition = ~(input_column.in_([]))
-
-        cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_condition & (input_column > 33686018) & (input_column < 16843009)
-        )
-
-        self.assertTrue(
-            internet_address.translate_filter(
-                input_column, input_operation, input_values
-            ).compare(cidr_translate_filter_response)
-        )
-
-    def test_port_translate_filter_func_equals(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the EQUALS
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.EQUALS
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_not_equals(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the NOT_EQUALS
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_EQUALS
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_greater_than_or_equals(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the
-        GREATER_THAN_OR_EQUALS operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.GREATER_THAN_OR_EQUALS
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column >= input_values[0][0]
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_greater_than(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the
-        GREATER_THAN operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.GREATER_THAN
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column > input_values[0][0]
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_less_than_or_equals(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the
-        LESS_THAN_OR_EQUALS operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.LESS_THAN_OR_EQUALS
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column <= input_values[0][0]
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_less_than(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the LESS_THAN
-        operator is used"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.LESS_THAN
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column < input_values[0][0]
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_in_single(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the IN operator
-        is used with a single port"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.IN
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_in_double(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the IN operator
-        is used with two ports"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.IN
-        input_values = [[443, 80]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_not_in_single(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the NOT_IN
-        operator is used with a single port"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_IN
-        input_values = [[443]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
-
-    def test_port_translate_filter_func_not_in_double(self):
-        """Test to see if the port_translate_filter_func behaves as expected when the NOT_IN
-        operator is used with two ports"""
-
-        input_column = Column("user_ip", Integer)
-        input_operation = FilterOperator.NOT_IN
-        input_values = [[443, 80]]
-
-        port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
-            input_column.in_(input_values[0])
-        )
-
-        self.assertTrue(
-            port.translate_filter(input_column, input_operation, input_values).compare(
-                port_translate_filter_response
-            )
-        )
+# To run the unit tests below, use the following command in the root Superset folder:
+# tox -e py38 -- tests/unit_tests/business_type/types_tests.py
+
+
+def test_ip_func_valid_ip(app_context: None):
+    """Test to see if the cidr_func behaves as expected when a valid IP is passed in"""
+    cidr_request: BusinessTypeRequest = {
+        "business_type": "cidr",
+        "values": ["1.1.1.1"],
+    }
+    cidr_response: BusinessTypeResponse = {
+        "values": [16843009],
+        "error_message": "",
+        "display_value": "16843009",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert internet_address.translate_type(cidr_request) == cidr_response
+
+
+def test_cidr_func_invalid_ip(app_context: None):
+    """Test to see if the cidr_func behaves as expected when an invalid IP is passed in"""
+    cidr_request: BusinessTypeRequest = {"business_type": "cidr", "values": ["abc"]}
+    cidr_response: BusinessTypeResponse = {
+        "values": [],
+        "error_message": "'abc' does not appear to be an IPv4 or IPv6 network",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert internet_address.translate_type(cidr_request) == cidr_response
+
+
+def test_port_translation_func_valid_port_number(app_context: None):
+    """Test to see if the port_translation_func behaves as expected when a valid port number
+    is passed in"""
+    port_request: BusinessTypeRequest = {"business_type": "port", "values": ["80"]}
+    port_response: BusinessTypeResponse = {
+        "values": [[80]],
+        "error_message": "",
+        "display_value": "[80]",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
+def test_port_translation_func_valid_port_name(app_context: None):
+    """Test to see if the port_translation_func behaves as expected when a valid port name
+    is passed in"""
+    port_request: BusinessTypeRequest = {
+        "business_type": "port",
+        "values": ["https"],
+    }
+    port_response: BusinessTypeResponse = {
+        "values": [[443]],
+        "error_message": "",
+        "display_value": "[443]",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
+def test_port_translation_func_invalid_port_name(app_context: None):
+    """Test to see if the port_translation_func behaves as expected when an invalid port name
+    is passed in"""
+    port_request: BusinessTypeRequest = {"business_type": "port", "values": ["abc"]}
+    port_response: BusinessTypeResponse = {
+        "values": [],
+        "error_message": "'abc' does not appear to be a port name or number",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
+def test_port_translation_func_invalid_port_number(app_context: None):
+    """Test to see if the port_translation_func behaves as expected when an invalid port
+    number is passed in"""
+    port_request: BusinessTypeRequest = {
+        "business_type": "port",
+        "values": ["123456789"],
+    }
+    port_response: BusinessTypeResponse = {
+        "values": [],
+        "error_message": "'123456789' does not appear to be a port name or number",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
+def test_cidr_translate_filter_func_equals(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the EQUALS
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.EQUALS
+    input_values = [16843009]
+
+    cidr_translate_filter_response = input_column == input_values[0]
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_not_equals(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_EQUALS
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_EQUALS
+    input_values = [16843009]
+
+    cidr_translate_filter_response = input_column != input_values[0]
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_greater_than_or_equals(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the
+    GREATER_THAN_OR_EQUALS operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.GREATER_THAN_OR_EQUALS
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column >= input_values[0]
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_greater_than(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the
+    GREATER_THAN operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.GREATER_THAN
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column > input_values[0]
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_less_than(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the LESS_THAN
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.LESS_THAN
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column < input_values[0]
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_less_than_or_equals(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the
+    LESS_THAN_OR_EQUALS operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.LESS_THAN_OR_EQUALS
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column <= input_values[0]
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_in_single(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
+    is used with a single IP"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.IN
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column.in_(input_values)
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_in_double(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the IN operator
+    is used with two IP's"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.IN
+    input_values = [{"start": 16843009, "end": 33686018}]
+
+    input_condition = input_column.in_([])
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_condition | ((input_column <= 33686018) & (input_column >= 16843009))
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_not_in_single(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN
+    operator is used with a single IP"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_IN
+    input_values = [16843009]
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
+        input_column.in_(input_values)
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_cidr_translate_filter_func_not_in_double(app_context: None):
+    """Test to see if the cidr_translate_filter_func behaves as expected when the NOT_IN
+    operator is used with two IP's"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_IN
+    input_values = [{"start": 16843009, "end": 33686018}]
+
+    input_condition = ~(input_column.in_([]))
+
+    cidr_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_condition & (input_column > 33686018) & (input_column < 16843009)
+    )
+
+    assert internet_address.translate_filter(
+        input_column, input_operation, input_values
+    ).compare(cidr_translate_filter_response)
+
+
+def test_port_translate_filter_func_equals(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the EQUALS
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.EQUALS
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_not_equals(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the NOT_EQUALS
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_EQUALS
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_greater_than_or_equals(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the
+    GREATER_THAN_OR_EQUALS operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.GREATER_THAN_OR_EQUALS
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column >= input_values[0][0]
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_greater_than(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the
+    GREATER_THAN operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.GREATER_THAN
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column > input_values[0][0]
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_less_than_or_equals(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the
+    LESS_THAN_OR_EQUALS operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.LESS_THAN_OR_EQUALS
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column <= input_values[0][0]
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_less_than(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the LESS_THAN
+    operator is used"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.LESS_THAN
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column < input_values[0][0]
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_in_single(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the IN operator
+    is used with a single port"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.IN
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_in_double(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the IN operator
+    is used with two ports"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.IN
+    input_values = [[443, 80]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = (
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_not_in_single(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the NOT_IN
+    operator is used with a single port"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_IN
+    input_values = [[443]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )
+
+
+def test_port_translate_filter_func_not_in_double(app_context: None):
+    """Test to see if the port_translate_filter_func behaves as expected when the NOT_IN
+    operator is used with two ports"""
+
+    input_column = Column("user_ip", Integer)
+    input_operation = FilterOperator.NOT_IN
+    input_values = [[443, 80]]
+
+    port_translate_filter_response: sqlalchemy.sql.expression.BinaryExpression = ~(
+        input_column.in_(input_values[0])
+    )
+
+    assert port.translate_filter(input_column, input_operation, input_values).compare(
+        port_translate_filter_response
+    )

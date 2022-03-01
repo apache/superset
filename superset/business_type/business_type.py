@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, List
 
 from sqlalchemy import Column
+from sqlalchemy.sql.expression import BinaryExpression
 
 from superset.business_type.business_type_request import BusinessTypeRequest
 from superset.business_type.business_type_response import BusinessTypeResponse
@@ -38,4 +39,4 @@ class BusinessType:
     description: str
     valid_data_types: List[str]
     translate_type: Callable[[BusinessTypeRequest], BusinessTypeResponse]
-    translate_filter: Callable[[Column, FilterOperator, Any], List[Any]]
+    translate_filter: Callable[[Column, FilterOperator, Any], BinaryExpression]
