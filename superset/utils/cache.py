@@ -62,7 +62,7 @@ def set_and_log_cache(
 
     timeout = (
         cache_timeout
-        if cache_timeout
+        if cache_timeout is not None
         else get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
