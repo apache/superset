@@ -27,7 +27,6 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import * as featureFlags from 'src/featureFlags';
-import { getMockStore } from 'spec/fixtures/mockStore';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
