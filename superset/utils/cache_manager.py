@@ -44,7 +44,7 @@ class CacheManager:
         )
         self._explore_form_data_cache.init_app(
             app,
-            {**default_cache_config, **app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"],},
+            {**default_cache_config, **app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"]},
         )
 
     @property
