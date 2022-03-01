@@ -57,7 +57,6 @@ type PickedSelectProps = Pick<
   | 'notFoundContent'
   | 'onChange'
   | 'onClear'
-  | 'onFocus'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -515,40 +514,31 @@ const Select = ({
     [],
   );
 
-  const handleOnSearch = useCallback(
-    (search: string) => {
-      const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, selectOptions) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
-        const cleanSelectOptions = selectOptions.filter(
-          opt => !opt.isNewOption,
-        );
-        const newOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(newOptions);
-      }
-      if (isAsync && !allValuesLoaded && loadingEnabled) {
-        setIsLoading(search !== searchedValue);
-      }
-      return debouncedHandleSearch(search);
-    },
-    [
-      allowNewOptions,
-      isSingleMode,
-      isAsync,
-      allValuesLoaded,
-      loadingEnabled,
-      debouncedHandleSearch,
-      selectOptions,
-      searchedValue,
-    ],
-  );
+  const handleOnSearch = (search: string) => {
+    const searchValue = search.trim();
+    if (allowNewOptions && isSingleMode) {
+      const newOption = searchValue &&
+        !hasOption(searchValue, selectOptions) && {
+          label: searchValue,
+          value: searchValue,
+          isNewOption: true,
+        };
+      const cleanSelectOptions = selectOptions.filter(opt => !opt.isNewOption);
+      const newOptions = newOption
+        ? [newOption, ...cleanSelectOptions]
+        : cleanSelectOptions;
+      setSelectOptions(newOptions);
+    }
+    if (
+      isAsync &&
+      !allValuesLoaded &&
+      loadingEnabled &&
+      (!fetchOnlyOnSearch || searchValue)
+    ) {
+      setIsLoading(true);
+    }
+    return debouncedHandleSearch(search);
+  };
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -587,8 +577,21 @@ const Select = ({
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
     setIsDropdownVisible(isDropdownVisible);
 
-    if (isAsync && !loadingEnabled) {
-      setLoadingEnabled(true);
+    if (isAsync) {
+      // loading is enabled when dropdown is open,
+      // disabled when dropdown is closed
+      if (loadingEnabled !== isDropdownVisible) {
+        setLoadingEnabled(isDropdownVisible);
+      }
+      // when closing dropdown, always reset loading state
+      if (!isDropdownVisible && isLoading) {
+        // delay is for the animation of closing the dropdown
+        // so the dropdown doesn't flash between "Loading..." and "No data"
+        // before closing.
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 250);
+      }
     }
 
     // multiple or tags mode keep the dropdown visible while selecting options
@@ -610,7 +613,9 @@ const Select = ({
     return error ? <Error error={error} /> : originNode;
   };
 
-  const SuffixIcon = () => {
+  // use a function instead of component since every rerender of the
+  // Select component will create a new component
+  const getSuffixIcon = () => {
     if (isLoading) {
       return <StyledSpin size="small" />;
     }
@@ -675,7 +680,6 @@ const Select = ({
   useEffect(
     () => () => {
       debouncedHandleSearch.cancel();
-      setIsLoading(false);
     },
     [debouncedHandleSearch],
   );
@@ -731,7 +735,7 @@ const Select = ({
         showArrow
         tokenSeparators={TOKEN_SEPARATORS}
         value={selectValue}
-        suffixIcon={<SuffixIcon />}
+        suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={
           invertSelection ? (
             <StyledStopOutlined iconSize="m" />
