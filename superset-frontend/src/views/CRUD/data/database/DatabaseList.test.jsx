@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
+import * as redux from 'react-redux'
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
@@ -26,6 +27,7 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import * as featureFlags from 'src/featureFlags';
+import { getMockStore } from 'spec/fixtures/mockStore';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
@@ -38,7 +40,20 @@ import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({ common: { config: {
+  CSV_EXTENSIONS: ['hello']
+} }});
+
+const mockAppState = { 
+  common: { 
+    config: {
+      CSV_EXTENSIONS: ['csv'],
+      EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+      COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+      ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+    } 
+  }
+};
 
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
@@ -94,16 +109,27 @@ fetchMock.get(databaseRelatedEndpoint, {
   },
 });
 
+const useSelectorMock = jest.spyOn(redux, 'useSelector');
+
 describe('DatabaseList', () => {
+
+  useSelectorMock.mockReturnValue({
+    CSV_EXTENSIONS: ['csv'],
+    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+  });
+
   const wrapper = mount(
     <Provider store={store}>
       <DatabaseList user={mockUser} />
     </Provider>,
   );
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
-
+  
   it('renders', () => {
     expect(wrapper.find(DatabaseList)).toExist();
   });
@@ -195,6 +221,7 @@ describe('RTL', () => {
           <DatabaseList user={mockUser} />
         </QueryParamProvider>,
         { useRedux: true },
+        mockAppState 
       );
     });
 
