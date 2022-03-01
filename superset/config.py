@@ -25,6 +25,7 @@ import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
+import math
 import os
 import re
 import sys
@@ -595,6 +596,7 @@ def DEFAULT_CACHE_CONFIG_FUNC(  # pylint: disable=invalid-name
 
     return {
         "CACHE_TYPE": "SimpleCache" if app.debug else "NullCache",
+        "CACHE_THRESHOLD": math.inf,
         "CACHE_DEFAULT_TIMEOUT": default_timeout,
     }
 
@@ -608,14 +610,12 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for filters state (merged with default cache config)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
-    "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
 # Cache for chart form data (merged with default cache config)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
-    "CACHE_THRESHOLD": 0,
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
