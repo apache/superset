@@ -42,9 +42,8 @@ import { buildCascadeFiltersTree } from './utils';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
-  &:hover {
-    cursor: pointer;
-  }
+  // 108px padding to make room for buttons with position: absolute
+  padding-bottom: ${({ theme }) => theme.gridUnit * 27}px;
 `;
 
 type FilterControlsProps = {

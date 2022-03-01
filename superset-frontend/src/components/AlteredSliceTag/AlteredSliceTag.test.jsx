@@ -218,6 +218,18 @@ describe('AlteredSliceTag', () => {
       ).toBe(expected);
     });
 
+    it('returns Metrics if the field type is metrics', () => {
+      const value = [
+        {
+          label: 'SUM(Sales)',
+        },
+      ];
+      const expected = 'SUM(Sales)';
+      expect(
+        wrapper.instance().formatValue(value, 'metrics', controlsMap),
+      ).toBe(expected);
+    });
+
     it('stringifies objects', () => {
       const value = { 1: 2, alpha: 'bravo' };
       const expected = '{"1":2,"alpha":"bravo"}';

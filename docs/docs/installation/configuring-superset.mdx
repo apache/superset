@@ -10,8 +10,9 @@ version: 1
 ### Configuration
 
 To configure your application, you need to create a file `superset_config.py` and add it to your
-`PYTHONPATH`. Here are some of the parameters you can set in that file:
+`PYTHONPATH`. If your applcation was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
+Here are some of the parameters you can set in that file:
 ```
 # Superset specific config
 ROW_LIMIT = 5000
@@ -284,7 +285,7 @@ change and define a grace period end date (exclusive of course) after which all 
 to the [start, end) interval.
 
 ```python
-from dateime import date
+from datetime import date
 
 SIP_15_ENABLED = True
 SIP_15_GRACE_PERIOD_END = date(<YYYY>, <MM>, <DD>)
