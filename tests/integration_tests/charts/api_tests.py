@@ -439,9 +439,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "description": "description1",
             "owners": [admin_id],
             "viz_type": "viz_type1",
-            "params": json.dumps(
-                {"viz_type": "viz_type1", "url_params": {"foo": "bar"}},
-            ),
+            "params": "1234",
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
@@ -454,10 +452,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(uri, chart_data, "post")
         self.assertEqual(rv.status_code, 201)
         data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        assert result["viz_type"] == "viz_type1"
-        params = json.loads(result["params"])
-        assert params == {"viz_type": "viz_type1"}
         model = db.session.query(Slice).get(data.get("id"))
         db.session.delete(model)
         db.session.commit()
@@ -562,9 +556,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "description": "description1",
             "owners": [gamma.id],
             "viz_type": "viz_type1",
-            "params": json.dumps(
-                {"viz_type": "viz_type1", "url_params": {"foo": "bar"}},
-            ),
+            "params": """{"a": 1}""",
             "cache_timeout": 1000,
             "datasource_id": birth_names_table_id,
             "datasource_type": "table",
@@ -584,8 +576,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertNotIn(admin, model.owners)
         self.assertIn(gamma, model.owners)
         self.assertEqual(model.viz_type, "viz_type1")
-        params = json.loads(model.params)
-        assert params == {"viz_type": "viz_type1"}
+        self.assertEqual(model.params, """{"a": 1}""")
         self.assertEqual(model.cache_timeout, 1000)
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")

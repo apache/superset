@@ -138,9 +138,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.slice_name = this.state.newSliceName;
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
+    const { url_params, ...formData } = this.props.form_data || {};
 
     this.props.actions
-      .saveSlice(this.props.form_data, sliceParams)
+      .saveSlice(formData, sliceParams)
       .then((data: JsonObject) => {
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
@@ -149,7 +150,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         }
         // Go to new slice url or dashboard url
         let url = gotodash ? data.dashboard_url : data.slice.slice_url;
-        const { url_params } = data;
         if (url_params) {
           const prefix = url.includes('?') ? '&' : '?';
           url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;

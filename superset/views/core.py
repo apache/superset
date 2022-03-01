@@ -985,7 +985,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slice_name = request.args.get("slice_name")
         action = request.args.get("action")
         form_data = get_form_data()[0]
-        url_params = form_data.pop("url_params", None)
 
         if action == "saveas":
             if "slice_id" in form_data:
@@ -1079,7 +1078,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "slice": slc.data,
             "dashboard_url": dash.url if dash else None,
             "dashboard_id": dash.id if dash else None,
-            "url_params": url_params,
         }
 
         if dash and request.args.get("goto_dash") == "true":

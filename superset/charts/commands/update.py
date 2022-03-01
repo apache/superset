@@ -30,7 +30,6 @@ from superset.charts.commands.exceptions import (
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
-from superset.charts.commands.utils import sanitize_metadata
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import get_datasource_by_id
@@ -53,12 +52,11 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
     def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
         self._actor = user
         self._model_id = model_id
-        self._model: Optional[Slice] = None
         self._properties = data.copy()
+        self._model: Optional[Slice] = None
 
     def run(self) -> Model:
         self.validate()
-        sanitize_metadata(self)
         try:
             if self._properties.get("query_context_generation") is None:
                 self._properties["last_saved_at"] = datetime.now()

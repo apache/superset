@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -28,7 +27,6 @@ from superset.charts.commands.exceptions import (
     ChartInvalidError,
     DashboardsNotFoundValidationError,
 )
-from superset.charts.commands.utils import sanitize_metadata
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.utils import get_datasource_by_id
@@ -45,7 +43,6 @@ class CreateChartCommand(CreateMixin, BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        sanitize_metadata(self)
         try:
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = self._actor
