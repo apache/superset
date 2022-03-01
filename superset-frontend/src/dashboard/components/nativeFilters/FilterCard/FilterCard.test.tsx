@@ -87,80 +87,84 @@ const baseInitialState = {
     },
   },
   dashboardLayout: {
-    ROOT_ID: {
-      children: ['TABS-1'],
-      id: 'ROOT_ID',
-      type: 'ROOT',
-    },
+    past: [],
+    future: [],
+    present: {
+      ROOT_ID: {
+        children: ['TABS-1'],
+        id: 'ROOT_ID',
+        type: 'ROOT',
+      },
 
-    'TABS-1': {
-      children: ['TAB-1', 'TAB-2'],
-      id: 'TABS-1',
-      meta: {},
-      parents: ['ROOT_ID'],
-      type: 'TABS',
-    },
-    'TAB-1': {
-      children: [],
-      id: 'TAB-1',
-      meta: {
-        defaultText: 'Tab title',
-        placeholder: 'Tab title',
-        text: 'Tab 1',
+      'TABS-1': {
+        children: ['TAB-1', 'TAB-2'],
+        id: 'TABS-1',
+        meta: {},
+        parents: ['ROOT_ID'],
+        type: 'TABS',
       },
-      parents: ['ROOT_ID', 'TABS-1'],
-      type: 'TAB',
-    },
-    'TAB-2': {
-      children: [],
-      id: 'TAB-2',
-      meta: {
-        defaultText: 'Tab title',
-        placeholder: 'Tab title',
-        text: 'Tab 2',
+      'TAB-1': {
+        children: [],
+        id: 'TAB-1',
+        meta: {
+          defaultText: 'Tab title',
+          placeholder: 'Tab title',
+          text: 'Tab 1',
+        },
+        parents: ['ROOT_ID', 'TABS-1'],
+        type: 'TAB',
       },
-      parents: ['ROOT_ID', 'TABS-1'],
-      type: 'TAB',
-    },
-    'CHART-1': {
-      children: [],
-      id: 'CHART-1',
-      meta: {
-        chartId: 1,
-        sliceName: 'Test chart',
+      'TAB-2': {
+        children: [],
+        id: 'TAB-2',
+        meta: {
+          defaultText: 'Tab title',
+          placeholder: 'Tab title',
+          text: 'Tab 2',
+        },
+        parents: ['ROOT_ID', 'TABS-1'],
+        type: 'TAB',
       },
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
-      type: 'CHART',
-    },
-    'CHART-2': {
-      children: [],
-      id: 'CHART-2',
-      meta: {
-        chartId: 2,
-        sliceName: 'Test chart 2',
+      'CHART-1': {
+        children: [],
+        id: 'CHART-1',
+        meta: {
+          chartId: 1,
+          sliceName: 'Test chart',
+        },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
+        type: 'CHART',
       },
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
-      type: 'CHART',
-    },
-    'CHART-3': {
-      children: [],
-      id: 'CHART-3',
-      meta: {
-        chartId: 3,
-        sliceName: 'Test chart 3',
+      'CHART-2': {
+        children: [],
+        id: 'CHART-2',
+        meta: {
+          chartId: 2,
+          sliceName: 'Test chart 2',
+        },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
+        type: 'CHART',
       },
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
-      type: 'CHART',
-    },
-    'CHART-4': {
-      children: [],
-      id: 'CHART-4',
-      meta: {
-        chartId: 4,
-        sliceName: 'Test chart 4',
+      'CHART-3': {
+        children: [],
+        id: 'CHART-3',
+        meta: {
+          chartId: 3,
+          sliceName: 'Test chart 3',
+        },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-1'],
+        type: 'CHART',
       },
-      parents: ['ROOT_ID', 'TABS-1', 'TAB-2'],
-      type: 'CHART',
+      'CHART-4': {
+        children: [],
+        id: 'CHART-4',
+        meta: {
+          chartId: 4,
+          sliceName: 'Test chart 4',
+        },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-2'],
+        type: 'CHART',
+      },
     },
   },
 };
