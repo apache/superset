@@ -245,6 +245,9 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
+const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
+  `${value};${page};${pageSize}`;
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -471,12 +474,12 @@ const Select = ({
   );
 
   const handlePaginatedFetch = useMemo(
-    () => (value: string, page: number, pageSize: number) => {
+    () => (value: string, page: number) => {
       if (allValuesLoaded) {
         setIsLoading(false);
         return;
       }
-      const key = `${value};${page};${pageSize}`;
+      const key = getQueryCacheKey(value, page, pageSize);
       const cachedCount = fetchedQueries.current.get(key);
       if (cachedCount !== undefined) {
         setTotalCount(cachedCount);
@@ -503,12 +506,20 @@ const Select = ({
           setIsLoading(false);
         });
     },
-    [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
+    [
+      allValuesLoaded,
+      fetchOnlyOnSearch,
+      handleData,
+      internalOnError,
+      options,
+      pageSize,
+    ],
   );
 
   const debouncedHandleSearch = useMemo(
     () =>
       debounce((search: string) => {
+        // async search will triggered in handlePaginatedFetch
         setSearchedValue(search);
       }, SLOW_DEBOUNCE),
     [],
@@ -533,9 +544,11 @@ const Select = ({
       isAsync &&
       !allValuesLoaded &&
       loadingEnabled &&
-      (!fetchOnlyOnSearch || searchValue)
+      !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
     ) {
-      setIsLoading(true);
+      // if fetch only on search but search value is empty, then should not be
+      // in loading state
+      setIsLoading(!(fetchOnlyOnSearch && !searchValue));
     }
     return debouncedHandleSearch(search);
   };
@@ -548,7 +561,7 @@ const Select = ({
 
     if (!isLoading && isAsync && hasMoreData && thresholdReached) {
       const newPage = page + 1;
-      handlePaginatedFetch(searchedValue, newPage, pageSize);
+      handlePaginatedFetch(searchedValue, newPage);
       setPage(newPage);
     }
   };
@@ -686,13 +699,12 @@ const Select = ({
 
   useEffect(() => {
     if (isAsync && loadingEnabled && allowFetch) {
-      handlePaginatedFetch(searchedValue, 0, pageSize);
+      handlePaginatedFetch(searchedValue, 0);
       setPage(0);
     }
   }, [
     isAsync,
     searchedValue,
-    pageSize,
     handlePaginatedFetch,
     loadingEnabled,
     allowFetch,

@@ -633,7 +633,7 @@ test('async - does not fire a new request for the same search input', async () =
   expect(loadOptions).toHaveBeenCalledTimes(1);
   clearAll();
   await type('search');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(await screen.findByText(LOADING)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);
 });
 
