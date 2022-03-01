@@ -31,7 +31,7 @@ class CurrentUserRestApi(BaseApi):
 
     @expose("/", methods=["GET"])
     @safe
-    def me(self) -> Response:
+    def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request
         ---
         get:

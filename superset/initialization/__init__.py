@@ -50,7 +50,6 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
-from superset.users.api import CurrentUserRestApi
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -195,6 +194,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TabStateView,
         )
         from superset.views.tags import TagView
+        from superset.views.users.api import CurrentUserRestApi
 
         #
         # Setup API views
