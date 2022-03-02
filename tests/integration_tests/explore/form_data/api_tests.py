@@ -74,8 +74,6 @@ def dataset_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
-    app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
-    cache_manager.init_app(app)
     entry: TemporaryExploreState = {
         "owner": admin_id,
         "dataset_id": dataset_id,

@@ -55,7 +55,11 @@ def set_and_log_cache(
     if isinstance(cache_instance.cache, NullCache):
         return
 
-    timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
+    timeout = (
+        cache_timeout
+        if cache_timeout is not None
+        else app.config["CACHE_DEFAULT_TIMEOUT"]
+    )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
