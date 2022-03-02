@@ -38,8 +38,11 @@ assists people when migrating to a new version.
   (init, load_examples and etc) require setting the FLASK_APP environment variable
   (which is set by default when .flaskenv is loaded)
 - [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
+- [17543](https://github.com/apache/superset/pull/17543): introduces new models from SIP-68. The database migration migrates the old models (`SqlaTable`, `TableColumn`, `SqlMetric`) to the new models (`Column`, `Table`, `Dataset`), and the PR introduces logic to keep the old models in sync with the new ones until they are fully removed. The migration might take considerable time depending on the number of datasets.
 
 ### Deprecations
+
+- [18960](https://github.com/apache/superset/pull/18960): Persisting URL params in chart metadata is no longer supported. To set a default value for URL params in Jinja code, use the optional second argument: `url_param("my-param", "my-default-value")`.
 
 ### Other
 

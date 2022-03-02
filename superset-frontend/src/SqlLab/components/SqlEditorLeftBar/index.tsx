@@ -39,7 +39,7 @@ interface actionsTypes {
   addTable: (queryEditor: any, value: any, schema: any) => void;
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
-  queryEditorSetSchema: (schema?: string) => void;
+  queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
   queryEditorSetSchemaOptions: () => void;
   queryEditorSetTableOptions: (options: Array<any>) => void;
   resetState: () => void;
@@ -132,6 +132,10 @@ export default function SqlEditorLeftBar({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
+  const onSchemaChange = (schema: string) => {
+    actions.queryEditorSetSchema(queryEditor, schema);
+  };
+
   return (
     <div className="SqlEditorLeftBar">
       <TableSelector
@@ -139,7 +143,7 @@ export default function SqlEditorLeftBar({
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
-        onSchemaChange={actions.queryEditorSetSchema}
+        onSchemaChange={onSchemaChange}
         onSchemasLoad={actions.queryEditorSetSchemaOptions}
         onTableChange={onTableChange}
         onTablesLoad={actions.queryEditorSetTableOptions}

@@ -262,10 +262,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (previousFilters) {
       const updates = {};
       Object.values(filters).forEach(currentFilter => {
+        const previousFilter = previousFilters?.[currentFilter.id];
+        if (!previousFilter) {
+          return;
+        }
         const currentType = currentFilter.filterType;
         const currentTargets = currentFilter.targets;
         const currentDataMask = currentFilter.defaultDataMask;
-        const previousFilter = previousFilters?.[currentFilter.id];
         const previousType = previousFilter?.filterType;
         const previousTargets = previousFilter?.targets;
         const previousDataMask = previousFilter?.defaultDataMask;
@@ -286,6 +289,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [dataMaskAppliedText, setDataMaskSelected]);
+
   useEffect(() => {
     publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
     // eslint-disable-next-line react-hooks/exhaustive-deps

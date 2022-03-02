@@ -142,17 +142,6 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        if "." in csv_table.table and csv_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(csv_table.table)s" and in the schema field: '
-                '"%(csv_table.schema)s". Please remove one',
-                table=csv_table.table,
-                schema=csv_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
-
         try:
             df = pd.concat(
                 pd.read_csv(
@@ -285,17 +274,6 @@ class ExcelToDatabaseView(SimpleFormView):
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=excel_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
-
-        if "." in excel_table.table and excel_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(excel_table.table)s" and in the schema field: '
-                '"%(excel_table.schema)s". Please remove one',
-                table=excel_table.table,
-                schema=excel_table.schema,
             )
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
@@ -455,17 +433,6 @@ class ColumnarToDatabaseView(SimpleFormView):
                 "Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=columnar_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/columnartodatabaseview/form")
-
-        if "." in columnar_table.table and columnar_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(columnar_table.table)s" and in the schema field: '
-                '"%(columnar_table.schema)s". Please remove one',
-                table=columnar_table.table,
-                schema=columnar_table.schema,
             )
             flash(message, "danger")
             return redirect("/columnartodatabaseview/form")
