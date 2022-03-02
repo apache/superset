@@ -31,11 +31,11 @@ class CacheManager:
         super().__init__()
 
         self._default_cache_config: CacheConfig = {}
-        self._cache = Cache()
-        self._data_cache = Cache()
-        self._thumbnail_cache = Cache()
-        self._filter_state_cache = Cache()
-        self._explore_form_data_cache = Cache()
+        self.cache = Cache()
+        self.data_cache = Cache()
+        self.thumbnail_cache = Cache()
+        self.filter_state_cache = Cache()
+        self.explore_form_data_cache = Cache()
 
     def _init_cache(
         self, app: Flask, cache: Cache, cache_config_key: str, required: bool = False
@@ -77,35 +77,15 @@ class CacheManager:
             **app.config["DEFAULT_CACHE_CONFIG"],
         }
 
-        self._init_cache(app, self._cache, "CACHE_CONFIG")
-        self._init_cache(app, self._data_cache, "DATA_CACHE_CONFIG")
-        self._init_cache(app, self._thumbnail_cache, "THUMBNAIL_CACHE_CONFIG")
+        self._init_cache(app, self.cache, "CACHE_CONFIG")
+        self._init_cache(app, self.data_cache, "DATA_CACHE_CONFIG")
+        self._init_cache(app, self.thumbnail_cache, "THUMBNAIL_CACHE_CONFIG")
         self._init_cache(
-            app, self._filter_state_cache, "FILTER_STATE_CACHE_CONFIG", required=True
+            app, self.filter_state_cache, "FILTER_STATE_CACHE_CONFIG", required=True
         )
         self._init_cache(
             app,
-            self._explore_form_data_cache,
+            self.explore_form_data_cache,
             "EXPLORE_FORM_DATA_CACHE_CONFIG",
             required=True,
         )
-
-    @property
-    def data_cache(self) -> Cache:
-        return self._data_cache
-
-    @property
-    def cache(self) -> Cache:
-        return self._cache
-
-    @property
-    def thumbnail_cache(self) -> Cache:
-        return self._thumbnail_cache
-
-    @property
-    def filter_state_cache(self) -> Cache:
-        return self._filter_state_cache
-
-    @property
-    def explore_form_data_cache(self) -> Cache:
-        return self._explore_form_data_cache
