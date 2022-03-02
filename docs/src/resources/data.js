@@ -143,4 +143,9 @@ export const Databases = [
     href: "www.yugabyte.com",
     imgName: 'yugabyte.png'
   }
+  {
+    title: 'MaxCompute',
+    href: 'https://www.alibabacloud.com/product/maxcompute',
+    imgName: 'maxcompute.png',
+  },  
 ];

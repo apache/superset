@@ -1,0 +1,27 @@
+---
+title: MaxCompute
+hide_title: true
+sidebar_position: 40
+version: 1
+---
+
+## MaxCompute
+
+MaxCompute (formerly known as ODPS) is a general purpose, fully managed, 
+multi-tenancy data processing platform for large-scale data warehousing,
+developed by Alibaba Cloud.
+
+The [pyodps](https://pyodps.readthedocs.io/en/latest/) library is the
+recommended way to connect to MaxCompute via sqlalchemy.
+
+MaxCompute connection parameters:
+
+- **access_key_id**: The AccessKey ID of your Alibaba Cloud account.
+- **secret_access_key**: The AccessKey secret of your Alibaba Cloud account.
+- **project_name**: The name of the Hologres project.
+
+The connection string looks like:
+
+```
+odps://{access_key_id}:{secret_access_key}@{project_name}
+```

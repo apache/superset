@@ -146,6 +146,7 @@ setup(
         "impala": ["impyla>0.16.2, <0.17"],
         "kusto": ["sqlalchemy-kusto>=1.0.1, <2"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
+        "maxcompute": ["pyodps>=0.10"],
         "mmsql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],
         "oracle": ["cx-Oracle>8.0.0, <8.1"],
