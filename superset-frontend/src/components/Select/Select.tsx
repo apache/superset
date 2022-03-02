@@ -40,7 +40,7 @@ import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { hasOption } from './utils';
+import { hasOption, hasOptionIgnoreCase } from './utils';
 
 const { Option } = AntdSelect;
 
@@ -57,6 +57,8 @@ type PickedSelectProps = Pick<
   | 'notFoundContent'
   | 'onChange'
   | 'onClear'
+  | 'onFocus'
+  | 'onBlur'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -519,7 +521,7 @@ const Select = ({
   const debouncedHandleSearch = useMemo(
     () =>
       debounce((search: string) => {
-        // async search will triggered in handlePaginatedFetch
+        // async search will be triggered in handlePaginatedFetch
         setSearchedValue(search);
       }, SLOW_DEBOUNCE),
     [],
@@ -529,12 +531,14 @@ const Select = ({
     const searchValue = search.trim();
     if (allowNewOptions && isSingleMode) {
       const newOption = searchValue &&
-        !hasOption(searchValue, selectOptions) && {
+        !hasOptionIgnoreCase(searchValue, selectOptions) && {
           label: searchValue,
           value: searchValue,
           isNewOption: true,
         };
-      const cleanSelectOptions = selectOptions.filter(opt => !opt.isNewOption);
+      const cleanSelectOptions = selectOptions.filter(
+        opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+      );
       const newOptions = newOption
         ? [newOption, ...cleanSelectOptions]
         : cleanSelectOptions;
