@@ -385,8 +385,8 @@ export default class AnnotationLayer extends React.PureComponent {
         description = 'Select the Annotation Layer you would like to use.';
       } else {
         label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
-        your chart must be one of these visualization types:
+        description = `Use another existing chart as a source for annotations and overlays.
+        Your chart must be one of these visualization types:
         [${this.getSupportedSourceTypes(annotationType)
           .map(x => x.label)
           .join(', ')}]`;

@@ -2824,7 +2824,7 @@
       "Annotation Source": ["注释来源"],
       "No options": ["没有选项"],
       "Superset annotation": ["Superset注释"],
-      "Use a pre defined Superset Chart as a source for annotations and overlays. your chart must be one of these visualization types:": [
+      "Use another existing chart as a source for annotations and overlays. Your chart must be one of these visualization types:": [
         "使用预定义的图表作为注释和覆盖的源。图表必须是以下可视化类型之一："
       ],
       "Expects a formula with depending time parameter 'x'\n        in milliseconds since epoch. mathjs is used to evaluate the formulas.\n        Example: '2x+5'": [
