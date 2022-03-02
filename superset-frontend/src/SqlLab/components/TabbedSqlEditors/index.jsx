@@ -257,26 +257,18 @@ class TabbedSqlEditors extends React.PureComponent {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    let newTitle;
+    let newTitle = 'Untitled Query 1';
 
     if (this.props.queryEditors.length > 0) {
       const untitledQueryNumbers = this.props.queryEditors
-        .filter(x => x.title.includes('Untitled Query '))
-        .map(x => x.title.replace('Untitled Query ', ''))
-        .filter(x => !Number.isNaN(Number(x)));
+        .filter(x => x.title.match(/^Untitled Query (\d+)$/))
+        .map(x => x.title.replace('Untitled Query ', ''));
       if (untitledQueryNumbers.length > 0) {
         // When there are query tabs open, and at least one is called "Untitled Query #"
         // Where # is a valid number
         const largestNumber = Math.max.apply(null, untitledQueryNumbers);
         newTitle = t('Untitled Query %s', largestNumber + 1);
-      } else {
-        // When there are query tabs open but none of them are called "Untitled Query #"
-        // Where # is a valid number
-        newTitle = 'Untitled Query 1';
       }
-    } else {
-      // When there are no query tabs currently open
-      newTitle = 'Untitled Query 1';
     }
 
     const qe = {
