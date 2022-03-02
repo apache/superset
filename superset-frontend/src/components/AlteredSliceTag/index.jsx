@@ -161,6 +161,8 @@ export default class AlteredSliceTag extends React.Component {
         Header: 'After',
       },
     ];
+    // set the wrap text in the specific columns.
+    const columnsForWrapText = ['Control', 'Before', 'After'];
 
     return (
       <TableView
@@ -168,6 +170,7 @@ export default class AlteredSliceTag extends React.Component {
         data={this.state.rows}
         pageSize={50}
         className="table-condensed"
+        columnsForWrapText={columnsForWrapText}
       />
     );
   }

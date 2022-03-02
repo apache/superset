@@ -31,6 +31,7 @@ interface TableCollectionProps {
   columns: TableInstance['column'][];
   loading: boolean;
   highlightRowId?: number;
+  columnsForWrapText?: any[];
 }
 
 export const Table = styled.table`
@@ -192,12 +193,17 @@ export const Table = styled.table`
   .table-cell {
     text-overflow: ellipsis;
     overflow: hidden;
-    white-space: normal;
     max-width: 320px;
     line-height: 1;
     vertical-align: middle;
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+    &__wrap {
+      white-space: normal;
+    }
+    &__nowrap {
+      white-space: nowrap;
     }
   }
 
@@ -224,6 +230,7 @@ export default React.memo(
     rows,
     loading,
     highlightRowId,
+    columnsForWrapText,
   }: TableCollectionProps) => (
     <Table
       {...getTableProps()}
@@ -301,15 +308,23 @@ export default React.memo(
               >
                 {row.cells.map(cell => {
                   if (cell.column.hidden) return null;
-
                   const columnCellProps = cell.column.cellProps || {};
+                  const isWrapText =
+                    columnsForWrapText &&
+                    columnsForWrapText.includes(cell.column.Header);
+                  console.log(isWrapText);
                   return (
                     <td
-                      data-test="table-row-cell"
-                      className={cx('table-cell', {
-                        'table-cell-loader': loading,
-                        [cell.column.size || '']: cell.column.size,
-                      })}
+                      data-test={`table-row-cell${isWrapText ? '__wrap' : ''}`}
+                      className={cx(
+                        `table-cell table-cell__${
+                          isWrapText ? 'wrap' : 'nowrap'
+                        }`,
+                        {
+                          'table-cell-loader': loading,
+                          [cell.column.size || '']: cell.column.size,
+                        },
+                      )}
                       {...cell.getCellProps()}
                       {...columnCellProps}
                     >

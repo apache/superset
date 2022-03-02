@@ -191,3 +191,12 @@ test('should render the right page', () => {
   expect(screen.getByText('Kate')).toBeInTheDocument();
   expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 });
+
+test('should render the right wrap content text by columnsForWrapText', () => {
+  const props = {
+    ...mockedProps,
+    columnsForWrapText: ['Name'],
+  };
+  render(<TableView {...props} />);
+  expect(screen.getByTestId('table-row-cell__wrap')).toBeInTheDocument();
+});

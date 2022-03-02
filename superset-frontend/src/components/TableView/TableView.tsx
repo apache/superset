@@ -50,6 +50,7 @@ export interface TableViewProps {
   showRowCount?: boolean;
   scrollTable?: boolean;
   small?: boolean;
+  columnsForWrapText?: string[];
 }
 
 const EmptyWrapper = styled.div`
@@ -127,6 +128,7 @@ const TableView = ({
   noDataText,
   showRowCount = true,
   serverPagination = false,
+  columnsForWrapText,
   onServerPagination = () => {},
   ...props
 }: TableViewProps) => {
@@ -204,6 +206,7 @@ const TableView = ({
           rows={content}
           columns={columns}
           loading={loading}
+          columnsForWrapText={columnsForWrapText}
         />
         {isEmpty && (
           <EmptyWrapperComponent>
