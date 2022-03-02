@@ -74,7 +74,6 @@ def dataset_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
-    cache_manager.init_app(app)
     entry: TemporaryExploreState = {
         "owner": admin_id,
         "dataset_id": dataset_id,

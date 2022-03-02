@@ -538,9 +538,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 )
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
-                cache_timeout = app.config["DEFAULT_CACHE_CONFIG"][
-                    "CACHE_DEFAULT_TIMEOUT"
-                ]
+                cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(

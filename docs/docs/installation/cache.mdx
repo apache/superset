@@ -7,25 +7,21 @@ version: 1
 
 ## Caching
 
-Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purpose. Default caching options
-can be set by overriding the `DEFAULT_CACHE_CONFIG` in your `superset_config.py`. Unless overridden, the default
-cache type will be set to `SimpleCache` when running in debug mode, and `NullCache` otherwise.
-
-Currently there are five separate cache configurations to provide additional security and more granular customization options:
+Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purpose. Configuring caching is as easy as providing a custom cache config in your
+`superset_config.py` that complies with [the Flask-Caching specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
+Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
+local filesystem. Custom cache backends are also supported. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
+The following cache configurations can be customized:
 - Metadata cache (optional): `CACHE_CONFIG`
 - Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
 - SQL Lab query results (optional): `RESULTS_BACKEND`. See [Async Queries via Celery](/docs/installation/async-queries-celery) for details
 - Dashboard filter state (required): `FILTER_STATE_CACHE_CONFIG`.
 - Explore chart form data (required): `EXPLORE_FORM_DATA_CACHE_CONFIG`
 
-Configuring caching is as easy as providing a custom cache config in your
-`superset_config.py` that complies with [the Flask-Caching specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
-Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
-local filesystem. Custom cache backends are also supported. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
-
-Note that Dashboard and Explore caching is required, and configuring the application with either of these caches set to `NullCache` will
-cause the application to fail on startup. Also keep in mind, tht when running Superset on a multi-worker setup, a dedicated cache is required.
-For this we recommend running either Redis or Memcached:
+Please note, that Dashboard and Explore caching is required. When running Superset in debug mode, both Explore and Dashboard caches will default to `SimpleCache`;
+However, trying to run Superset in non-debug mode without defining a cache for these will cause the application to fail on startup. When running
+superset in single-worker mode, any cache backend is supported. However, when running Superset in on a multi-worker setup, a dedicated cache is required. For this
+we recommend using either Redis or Memcached:
 
 - Redis (recommended): we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
@@ -37,6 +33,7 @@ For chart data, Superset goes up a “timeout search path”, from a slice's con
 to the datasource’s, the database’s, then ultimately falls back to the global default
 defined in `DATA_CACHE_CONFIG`.
 
+## Celery beat
 
 Superset has a Celery task that will periodically warm up the cache based on different strategies.
 To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:

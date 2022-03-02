@@ -36,7 +36,7 @@ import pkg_resources
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
-from flask import Blueprint, Flask
+from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing_extensions import Literal
@@ -543,8 +543,8 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # Also used by Alerts & Reports
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
-# thumbnail cache (will be merged with DEFAULT_CACHE_CONFIG)
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
 }
 
@@ -576,27 +576,26 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-# Default cache for Superset objects (will be used as the base for all cache configs)
-DEFAULT_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "NullCache",
-    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=1).total_seconds()),
-}
+# Default cache timeout, applies to all cache backends unless specifically overridden in
+# each cache config.
+CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
-# Default cache for Superset objects (will be merged with DEFAULT_CACHE_CONFIG)
-CACHE_CONFIG: CacheConfig = {}
+# Default cache for Superset objects
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for datasource metadata and query results (will be merged with
-#  DEFAULT_CACHE_CONFIG)
-DATA_CACHE_CONFIG: CacheConfig = {}
+# Cache for datasource metadata and query results
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for filters state (will be merged with DEFAULT_CACHE_CONFIG)
+# Cache for dashboard filter state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
     # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
-# Cache for chart form data (will be merged with DEFAULT_CACHE_CONFIG)
+# Cache for explore form data state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     # should the timeout be reset when retrieving a cached value

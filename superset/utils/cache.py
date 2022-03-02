@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING, Union
 
-from flask import current_app as app, Flask, request
+from flask import current_app as app, request
 from flask_caching import Cache
 from flask_caching.backends import NullCache
 from werkzeug.wrappers.etag import ETagResponseMixin
@@ -29,7 +29,6 @@ from werkzeug.wrappers.etag import ETagResponseMixin
 from superset import db
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.typing import CacheConfig
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
 
@@ -59,7 +58,7 @@ def set_and_log_cache(
     timeout = (
         cache_timeout
         if cache_timeout is not None
-        else app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+        else app.config["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
@@ -151,7 +150,7 @@ def etag_cache(
 
     """
     if max_age is None:
-        max_age = app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+        max_age = app.config["CACHE_DEFAULT_TIMEOUT"]
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)

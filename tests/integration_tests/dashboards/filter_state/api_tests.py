@@ -62,7 +62,6 @@ def admin_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(dashboard_id, admin_id):
-    cache_manager.init_app(app)
     entry: Entry = {"owner": admin_id, "value": value}
     cache_manager.filter_state_cache.set(cache_key(dashboard_id, key), entry)
 

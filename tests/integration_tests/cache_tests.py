@@ -64,17 +64,12 @@ class TestCache(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data_cache(self):
         # Override cache config
-        default_cache_config = app.config["DEFAULT_CACHE_CONFIG"]
-
-        app.config["DEFAULT_CACHE_CONFIG"] = {
-            **default_cache_config,
-            "CACHE_DEFAULT_TIMEOUT": 100,
-        }
         data_cache_config = app.config["DATA_CACHE_CONFIG"]
-
+        cache_default_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
+        app.config["CACHE_DEFAULT_TIMEOUT"] = 100
         app.config["DATA_CACHE_CONFIG"] = {
+            "CACHE_TYPE": "SimpleCache",
             "CACHE_DEFAULT_TIMEOUT": 10,
-            "CACHE_KEY_PREFIX": "superset_data_cache",
         }
         cache_manager.init_app(app)
 
@@ -105,5 +100,5 @@ class TestCache(SupersetTestCase):
 
         # reset cache config
         app.config["DATA_CACHE_CONFIG"] = data_cache_config
-        app.config["DEFAULT_CACHE_CONFIG"] = default_cache_config
+        app.config["CACHE_DEFAULT_TIMEOUT"] = cache_default_timeout
         cache_manager.init_app(app)

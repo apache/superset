@@ -385,7 +385,7 @@ class QueryContextProcessor:
         cache_timeout_rv = self._query_context.get_cache_timeout()
         if cache_timeout_rv:
             return cache_timeout_rv
-        return app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+        return config["CACHE_DEFAULT_TIMEOUT"]
 
     def cache_key(self, **extra: Any) -> str:
         """
