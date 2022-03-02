@@ -1022,6 +1022,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param database: y'know... it's the database
         :return: nothing, but throws a SupersetSecurityException if access isn't granted
         """
+
+        # pylint: disable=import-outside-toplevel
         from superset.sql_parse import Table
 
         denied = set()
@@ -1035,7 +1037,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             raise SupersetSecurityException(self.get_table_access_error_object(denied))
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,

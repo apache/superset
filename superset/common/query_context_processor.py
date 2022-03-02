@@ -489,6 +489,6 @@ class QueryContextProcessor:
                 self._query_context.datasource.schema,
                 # database isn't present on BaseDatasource, but it is defined in
                 # all child classes
-                self._query_context.datasource.database,  # pylint: disable=no-member
+                self._query_context.datasource.database,
             )
         security_manager.raise_for_access(query_context=self._query_context)
