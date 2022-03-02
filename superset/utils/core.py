@@ -1042,7 +1042,7 @@ def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterCla
 
 def append_filters_to_adhoc_filters(
     adhoc_filters: List[AdhocFilterClause], filters: List[QueryObjectFilterClause]
-):
+) -> None:
     adhoc_filters.extend(
         simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
         for fltr in filters
