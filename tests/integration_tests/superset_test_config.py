@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # type: ignore
+import math
 from copy import copy
 from datetime import timedelta
 
@@ -86,11 +87,11 @@ REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
 
-def DEFAULT_CACHE_CONFIG_FUNC(app):
-    return {
-        "CACHE_TYPE": "SimpleCache",
-        "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
-    }
+DEFAULT_CACHE_CONFIG = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_THRESHOLD": math.inf,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+}
 
 
 CACHE_CONFIG = {

@@ -41,10 +41,6 @@ stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
-def get_default_cache_config(flask_app: Flask) -> CacheConfig:
-    return flask_app.config["DEFAULT_CACHE_CONFIG_FUNC"](app)
-
-
 def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str:
     hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
     return f"{key_prefix}{hash_str}"
@@ -63,7 +59,7 @@ def set_and_log_cache(
     timeout = (
         cache_timeout
         if cache_timeout is not None
-        else get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
+        else app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
@@ -155,7 +151,7 @@ def etag_cache(
 
     """
     if max_age is None:
-        max_age = get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
+        max_age = app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)

@@ -43,7 +43,6 @@ from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.cache import get_default_cache_config
 from superset.utils.celery import session_scope
 from superset.utils.core import json_iso_dttm_ser, QuerySource, zlib_compress
 from superset.utils.dates import now_as_float
@@ -539,7 +538,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 )
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
-                cache_timeout = get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
+                cache_timeout = app.config["DEFAULT_CACHE_CONFIG"][
+                    "CACHE_DEFAULT_TIMEOUT"
+                ]
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(

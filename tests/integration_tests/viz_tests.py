@@ -174,7 +174,7 @@ class TestBaseViz(SupersetTestCase):
         datasource.database.cache_timeout = None
         test_viz = viz.BaseViz(datasource, form_data={})
         self.assertEqual(
-            app.config["DEFAULT_CACHE_CONFIG_FUNC"](app)["CACHE_DEFAULT_TIMEOUT"],
+            app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"],
             test_viz.cache_timeout,
         )
         # restore DATA_CACHE_CONFIG timeout

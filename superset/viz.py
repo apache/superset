@@ -72,7 +72,7 @@ from superset.models.helpers import QueryResult
 from superset.sql_parse import validate_filter_clause
 from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
-from superset.utils.cache import get_default_cache_config, set_and_log_cache
+from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
     DTTM_ALIAS,
@@ -429,7 +429,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             return self.datasource.database.cache_timeout
         if config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
             return config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
-        return get_default_cache_config(app)["CACHE_DEFAULT_TIMEOUT"]
+        return app.config["DEFAULT_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self) -> str:
         return json.dumps(
