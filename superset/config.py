@@ -592,12 +592,14 @@ DATA_CACHE_CONFIG: CacheConfig = {}
 # Cache for filters state (will be merged with DEFAULT_CACHE_CONFIG)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
 # Cache for chart form data (will be merged with DEFAULT_CACHE_CONFIG)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
