@@ -75,6 +75,7 @@ export interface MenuObjectChildProps {
   isFrontendRoute?: boolean;
   perm?: string | boolean;
   view?: string;
+  upload?: boolean;
 }
 
 export interface MenuObjectProps extends MenuObjectChildProps {

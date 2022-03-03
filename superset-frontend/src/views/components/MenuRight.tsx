@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { MainNav as Menu } from 'src/components/Menu';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  css,
+  SupersetTheme,
+  SupersetClient,
+} from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
 import findPermission from 'src/dashboard/util/findPermission';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
@@ -63,6 +71,9 @@ const StyledAnchor = styled.a`
 
 const { SubMenu } = Menu;
 
+// stole this from findPermission.ts
+const ADMIN_ROLE_NAME = 'admin';
+
 const RightMenu = ({
   align,
   settings,
@@ -96,6 +107,11 @@ const RightMenu = ({
 
   const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const isUserAdmin = Object.keys(roles).some(
+    role => role.toLowerCase() === ADMIN_ROLE_NAME,
+  );
+  const showUploads = allowUploads || isUserAdmin;
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -115,19 +131,22 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: canUploadCSV,
+          perm: CSV_EXTENSIONS && showUploads,
+          upload: true,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar,
+          perm: COLUMNAR_EXTENSIONS && showUploads,
+          upload: true,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: canUploadExcel,
+          perm: EXCEL_EXTENSIONS && showUploads,
+          upload: true,
         },
       ],
     },
@@ -154,6 +173,19 @@ const RightMenu = ({
     },
   ];
 
+  const hasFileUploadEnabled = () => {
+    SupersetClient.get({
+      endpoint: '/api/v1/database/upload_enabled',
+    }).then(({ json }: Record<string, any>) => {
+      setAllowUploads(json.can_upload);
+    });
+  };
+
+  useEffect(() => {
+    hasFileUploadEnabled();
+  }, []);
+
+  console.log(allowUploads);
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
       <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
@@ -175,14 +207,24 @@ const RightMenu = ({
     setShowModal(false);
   };
 
+  const isDisabled = isUserAdmin && !allowUploads;
+
+  const tooltipText = 'Enable "Allow data upload" in a database settings';
+
   return (
     <StyledDiv align={align}>
       <DatabaseModal
         onHide={handleOnHideModal}
         show={showModal}
+        onDatabaseAdd={() => {}}
         dbEngine={engine}
       />
-      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
+      <Menu
+        selectable={false}
+        mode="horizontal"
+        onClick={handleMenuSelection}
+        onOpenChange={() => hasFileUploadEnabled()}
+      >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -205,7 +247,14 @@ const RightMenu = ({
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>
                             {item.url ? (
-                              <a href={item.url}> {item.label} </a>
+                              <Tooltip
+                                placement="top"
+                                title={
+                                  item.upload && isDisabled ? tooltipText : null
+                                }
+                              >
+                                <a href={item.url}> {item.label} </a>
+                              </Tooltip>
                             ) : (
                               item.label
                             )}
@@ -346,4 +395,4 @@ const RightMenu = ({
   );
 };
 
-export default RightMenu;
+export default withToasts(RightMenu);

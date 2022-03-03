@@ -28,7 +28,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import app, db, event_logger
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -72,6 +72,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
+from superset.views.base import can_upload_with_schemas
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -96,6 +97,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "function_names",
         "available",
         "validate_parameters",
+        "upload_enabled",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -1044,3 +1046,36 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/upload_enabled/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".upload_enabled",
+        log_to_statsd=False,
+    )
+    def upload_enabled(self) -> Response:
+        """Returns a boolean saying whether uploads are enabled for the user
+        ---
+        get:
+          description:
+            Get the status of if any databases have allow file upload enabled
+            and also have a schema in a database that can have files uploaded to it.
+          responses:
+            200:
+              description: Database names
+              content:
+                application/json:
+                  schema:
+                    type: boolean
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dbs_with_uploads = (
+            db.session.query(Database).filter_by(allow_file_upload=True).all()
+        )
+        allow_uploads = can_upload_with_schemas(dbs_with_uploads)
+        return self.response(200, can_upload=allow_uploads)

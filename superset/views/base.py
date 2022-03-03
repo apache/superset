@@ -71,6 +71,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.models.core import Database
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -342,6 +343,15 @@ def menu_data() -> Dict[str, Any]:
             "locale": session.get("locale", "en"),
         },
     }
+
+
+def can_upload_with_schemas(dbs: List) -> bool:
+    for db in dbs:
+        if len(db.get_schema_access_for_file_upload()) >= 1:
+            return True
+        else:
+            pass
+    return False
 
 
 def common_bootstrap_payload() -> Dict[str, Any]:
