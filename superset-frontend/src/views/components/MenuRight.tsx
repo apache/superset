@@ -114,7 +114,7 @@ const RightMenu = ({
           perm: COLUMNAR_EXTENSIONS,
         },
         {
-          label: t('Upload Excel to database'),
+          label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
           perm: EXCEL_EXTENSIONS,
