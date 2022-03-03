@@ -659,6 +659,7 @@ export function useDatabaseValidation() {
           setValidationErrors(null);
         })
         .catch(e => {
+          setValidationErrors(null);
           if (typeof e.json === 'function') {
             e.json().then(({ errors = [] }: JsonObject) => {
               const parsedErrors = errors
