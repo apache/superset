@@ -1042,6 +1042,20 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
 
+    @patch("superset.security.SupersetSecurityManager.raise_for_access")
+    def test_raise_for_query_str_access(self, mock_raise_for_access):
+        mock_raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                "dummy",
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                ErrorLevel.ERROR,
+            )
+        )
+        with self.assertRaises(SupersetSecurityException):
+            security_manager.raise_for_query_str_access(
+                query="SELECT * FROM foo", schema="bar", database=get_example_database()
+            )
+
     @patch("superset.security.manager.g")
     def test_get_user_roles(self, mock_g):
         admin = security_manager.find_user("admin")
