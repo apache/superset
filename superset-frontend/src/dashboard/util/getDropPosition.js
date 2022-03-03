@@ -54,15 +54,6 @@ export default function getDropPosition(monitor, Component) {
     return null;
   }
 
-  // TODO need a better solution to prevent nested tabs
-  if (
-    draggingItem.type === TABS_TYPE &&
-    component.type === TAB_TYPE &&
-    componentDepth === 2
-  ) {
-    return null;
-  }
-
   const validChild = isValidChild({
     parentType: component.type,
     parentDepth: componentDepth,
