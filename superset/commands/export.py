@@ -67,3 +67,47 @@ class ExportModelsCommand(BaseCommand):
         self._models = self.dao.find_by_ids(self.model_ids)
         if len(self._models) != len(self.model_ids):
             raise self.not_found()
+
+
+class ExportAssetsCommand(BaseCommand):
+    """
+    Command that exports all databases, datasets, charts, dashboards and saved queries.
+    """
+
+    def __init__(self):
+        pass
+
+    def run(self) -> Iterator[Tuple[str, str]]:
+        # pylint: disable=import-outside-toplevel
+        from superset.charts.commands.export import ExportChartsCommand
+        from superset.dashboards.commands.export import ExportDashboardsCommand
+        from superset.databases.commands.export import ExportDatabasesCommand
+        from superset.datasets.commands.export import ExportDatasetsCommand
+        from superset.queries.saved_queries.commands.export import (
+            ExportSavedQueriesCommand,
+        )
+
+        metadata = {
+            "version": EXPORT_VERSION,
+            "type": "assets",
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        }
+        yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
+        seen = {METADATA_FILE_NAME}
+
+        commands = [
+            ExportDatabasesCommand,
+            ExportDatasetsCommand,
+            ExportChartsCommand,
+            ExportDashboardsCommand,
+            ExportSavedQueriesCommand,
+        ]
+        for command in commands:
+            ids = [model.id for model in command.dao.find_all()]
+            for file_name, file_content in command(ids).run():
+                if file_name not in seen:
+                    yield file_name, file_content
+                    seen.add(file_name)
+
+    def validate(self) -> None:
+        pass

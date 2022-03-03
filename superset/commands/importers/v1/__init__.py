@@ -80,7 +80,7 @@ class ImportModelsCommand(BaseCommand):
             metadata = None
 
         self._validate_metadata_type(metadata, exceptions)
-        self._load__configs(exceptions)
+        self._load_configs(exceptions)
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
@@ -100,7 +100,7 @@ class ImportModelsCommand(BaseCommand):
                 exc.messages = {METADATA_FILE_NAME: {"type": exc.messages}}
                 exceptions.append(exc)
 
-    def _load__configs(self, exceptions: List[ValidationError]) -> None:
+    def _load_configs(self, exceptions: List[ValidationError]) -> None:
         # load existing databases so we can apply the password validation
         db_passwords: Dict[str, str] = {
             str(uuid): password
@@ -134,7 +134,7 @@ class ImportModelsCommand(BaseCommand):
     def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
         self, exceptions: List[ValidationError]
     ) -> None:
-        """check if the object exists and shouldn't be overwritten"""
+        """Check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
             existing_uuids = self._get_uuids()
             for file_name, config in self._configs.items():
