@@ -412,7 +412,6 @@ describe('Nativefilters Sanity test', () => {
       viz_type: 'echarts_timeseries',
       datasource: '3__table',
       granularity_sqla: 'purpose__last_set',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       time_grain_sqla: 'P1D',
       time_range: 'No filter',
       metrics: ['count'],

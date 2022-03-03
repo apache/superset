@@ -19,17 +19,10 @@ import dataclasses
 from typing import Any, Dict, List, Optional
 
 from superset.common.chart_data import ChartDataResultType
-from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
+from superset.utils.core import AnnotationType, DTTM_ALIAS
 
 query_birth_names = {
-    "extras": {
-        "where": "",
-        "time_range_endpoints": (
-            TimeRangeEndpoint.INCLUSIVE,
-            TimeRangeEndpoint.EXCLUSIVE,
-        ),
-        "time_grain_sqla": "P1D",
-    },
+    "extras": {"where": "", "time_grain_sqla": "P1D"},
     "columns": ["name"],
     "metrics": [{"label": "sum__num"}],
     "orderby": [("sum__num", False)],

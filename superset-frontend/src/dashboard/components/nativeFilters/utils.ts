@@ -82,7 +82,6 @@ export const getFormData = ({
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
-    time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: extractUrlParams('regular'),
     inView: true,
     viz_type: filterType,
