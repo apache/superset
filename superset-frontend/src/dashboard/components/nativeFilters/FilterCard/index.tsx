@@ -42,7 +42,7 @@ export const FilterCard = ({
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
       onVisibleChange={visible => {
-        setInternalIsVisible(visible);
+        setInternalIsVisible(externalIsVisible && visible);
       }}
       visible={externalIsVisible && internalIsVisible}
       content={<FilterCardContent filter={filter} />}
