@@ -517,10 +517,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
+    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
-      force_screenshot: !isReport || forceScreenshot, // alerts (!isReport) should always bypass cache
+      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1370,7 +1371,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
               </>
             )}
-            {isReport && (
+            {(isReport || contentType === 'dashboard') && (
               <div className="inline-container">
                 <StyledCheckbox
                   data-test="bypass-cache"
