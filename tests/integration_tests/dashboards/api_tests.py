@@ -341,7 +341,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     "username": "admin",
                     "first_name": "admin",
                     "last_name": "user",
-                    "email": "admin@fab.org",
                 }
             ],
             "roles": [],
