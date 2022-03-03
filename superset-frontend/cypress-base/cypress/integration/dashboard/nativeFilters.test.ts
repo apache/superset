@@ -127,21 +127,10 @@ describe('Nativefilters Sanity test', () => {
       .within(() =>
         cy.get('input').type('wb_health_population{enter}', { force: true }),
       );
-    // Add following step to avoid flaky enter value in line 177
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
 
-    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
-    // hack for unclickable country_name
-    cy.wait(5000);
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+    cy.get(`${nativeFilters.filtersPanel.filterInfoInput}:visible:last`)
       .last()
-      .should('be.visible', { timeout: 30000 })
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
+      .focus()
       .type('country_name');
     cy.get(nativeFilters.filtersPanel.inputDropdown)
       .should('be.visible', { timeout: 20000 })

@@ -17,13 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
 
@@ -388,13 +382,6 @@ test('static - does not show "Loading..." when allowNewOptions is false and a ne
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
-test('static - shows "Loading..." when allowNewOptions is true and a new option is entered', async () => {
-  render(<Select {...defaultProps} allowNewOptions />);
-  await open();
-  await type(NEW_OPTION);
-  expect(await screen.findByText(LOADING)).toBeInTheDocument();
-});
-
 test('static - does not add a new option if the option already exists', async () => {
   render(<Select {...defaultProps} allowNewOptions />);
   const option = OPTIONS[0].label;
@@ -454,15 +441,6 @@ test('async - displays the loading indicator when opening', async () => {
     expect(screen.getByText(LOADING)).toBeInTheDocument();
   });
   expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
-});
-
-test('async - displays the loading indicator while searching', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  await type('John');
-  expect(screen.getByText(LOADING)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.queryByText(LOADING)).not.toBeInTheDocument(),
-  );
 });
 
 test('async - makes a selection in single mode', async () => {
@@ -587,24 +565,29 @@ test('async - sets a initial value in multiple mode', async () => {
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
 
-test('async - searches for an item already loaded', async () => {
+test('async - searches for matches in both loaded and unloaded pages', async () => {
   render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Oli';
   await open();
-  await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
-  const options = await findAllSelectOptions();
+  await type('and');
+
+  let options = await findAllSelectOptions();
+  expect(options.length).toBe(1);
+  expect(options[0]).toHaveTextContent('Alehandro');
+
+  await screen.findByText('Sandro');
+  options = await findAllSelectOptions();
   expect(options.length).toBe(2);
-  expect(options[0]).toHaveTextContent('Oliver');
-  expect(options[1]).toHaveTextContent('Olivia');
+  expect(options[0]).toHaveTextContent('Alehandro');
+  expect(options[1]).toHaveTextContent('Sandro');
 });
 
 test('async - searches for an item in a page not loaded', async () => {
-  render(<Select {...defaultProps} options={loadOptions} />);
-  const search = 'Ashfaq';
+  const mock = jest.fn(loadOptions);
+  render(<Select {...defaultProps} options={mock} />);
+  const search = 'Sandro';
   await open();
   await type(search);
-  await waitForElementToBeRemoved(screen.getByText(LOADING));
+  await waitFor(() => expect(mock).toHaveBeenCalledTimes(2));
   const options = await findAllSelectOptions();
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent(search);
@@ -650,7 +633,7 @@ test('async - does not fire a new request for the same search input', async () =
   expect(loadOptions).toHaveBeenCalledTimes(1);
   clearAll();
   await type('search');
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(await screen.findByText(LOADING)).toBeInTheDocument();
   expect(loadOptions).toHaveBeenCalledTimes(1);
 });
 
@@ -668,13 +651,18 @@ test('async - does not fire a new request if all values have been fetched', asyn
 
 test('async - fires a new request if all values have not been fetched', async () => {
   const mock = jest.fn(loadOptions);
-  const search = 'George';
   const pageSize = OPTIONS.length / 2;
   render(<Select {...defaultProps} options={mock} pageSize={pageSize} />);
   await open();
   expect(mock).toHaveBeenCalledTimes(1);
-  await type(search);
-  expect(await findSelectOption(search)).toBeInTheDocument();
+  await type('or');
+
+  // `George` is on the first page so when it appears the API has not been called again
+  expect(await findSelectOption('George')).toBeInTheDocument();
+  expect(mock).toHaveBeenCalledTimes(1);
+
+  // `Igor` is on the second paged API request
+  expect(await findSelectOption('Igor')).toBeInTheDocument();
   expect(mock).toHaveBeenCalledTimes(2);
 });
 
