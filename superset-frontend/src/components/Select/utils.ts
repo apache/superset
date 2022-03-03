@@ -1,3 +1,4 @@
+import { ensureIsArray } from '@superset-ui/core';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -60,7 +61,19 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
-export function hasOption(search: string, options: AntdOptionsType) {
+export function hasOption<VT extends string | number>(
+  value: VT,
+  options?: VT | VT[] | { value: VT } | { value: VT }[],
+) {
+  const optionsArray = ensureIsArray(options);
+  return (
+    optionsArray.find(x =>
+      typeof x === 'object' ? x.value === value : x === value,
+    ) !== undefined
+  );
+}
+
+export function hasOptionIgnoreCase(search: string, options: AntdOptionsType) {
   const searchOption = search.trim().toLowerCase();
   return options.find(opt => {
     const { label, value } = opt;
