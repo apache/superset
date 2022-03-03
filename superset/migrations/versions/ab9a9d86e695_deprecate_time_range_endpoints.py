@@ -17,7 +17,7 @@
 """deprecate time_range_endpoints
 
 Revision ID: ab9a9d86e695
-Revises: b8d3a24d9131
+Revises: b5a422d8e252
 Create Date: 2022-02-25 08:06:14.835094
 
 """
@@ -31,7 +31,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "ab9a9d86e695"
-down_revision = "b8d3a24d9131"
+down_revision = "b5a422d8e252"
 
 Base = declarative_base()
 
