@@ -1040,16 +1040,6 @@ def form_data_to_adhoc(form_data: Dict[str, Any], clause: str) -> AdhocFilterCla
     return result
 
 
-def append_filters_to_adhoc_filters(
-    adhoc_filters: List[AdhocFilterClause], filters: List[QueryObjectFilterClause]
-) -> None:
-    adhoc_filters.extend(
-        simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
-        for fltr in filters
-        if fltr
-    )
-
-
 def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     """
     Merge extra form data (appends and overrides) into the main payload
@@ -1093,7 +1083,11 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     if append_filters:
         for key, value in form_data.items():
             if re.match("adhoc_filter.*", key):
-                append_filters_to_adhoc_filters(value, append_filters)
+                value.extend(
+                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
+                    for fltr in append_filters
+                    if fltr
+                )
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:
