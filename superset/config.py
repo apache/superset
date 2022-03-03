@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import pkg_resources
@@ -1257,22 +1257,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# SIP-15 should be enabled for all new Superset deployments which ensures that the time
-# range endpoints adhere to [start, end). For existing deployments admins should provide
-# a dedicated period of time to allow chart producers to update their charts before
-# mass migrating all charts to use the [start, end) interval.
-#
-# Note if no end date for the grace period is specified then the grace period is
-# indefinite.
-SIP_15_ENABLED = True
-SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
-SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = (
-    "Action Required: Preview then save your chart using the "
-    'new time range endpoints <a target="_blank" href="{url}" '
-    'class="alert-link">here</a>.'
-)
 
 # Turn this key to False to disable ownership check on the old dataset MVC and
 # datasource API /datasource/save.

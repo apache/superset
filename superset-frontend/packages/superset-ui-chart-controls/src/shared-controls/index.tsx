@@ -323,7 +323,6 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   ),
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
-    endpoints: form_data?.time_range_endpoints || null,
   }),
 };
 
