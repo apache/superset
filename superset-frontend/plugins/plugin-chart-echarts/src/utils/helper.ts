@@ -1,5 +1,4 @@
-export const convertNumber = (value: string | number) => {
-  /* eslint radix: ["error", "as-needed"] */
-  if (typeof value !== 'number') return parseInt(value) || 0;
+export const convertInteger = (value: string | number) => {
+  if (typeof value !== 'number') return parseInt(value, 10) || 0;
   return value;
 };

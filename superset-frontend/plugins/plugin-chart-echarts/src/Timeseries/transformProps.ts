@@ -55,7 +55,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
-import { convertNumber } from '../utils/helper';
+import { convertInteger } from '../utils/helper';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -284,8 +284,8 @@ export default function transformProps(
     legendMargin,
     addXAxisLabelOffset,
     yAxisTitlePosition,
-    convertNumber(yAxisTitleMargin),
-    convertNumber(xAxisTitleMargin),
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
 
   const legendData = rawSeries
@@ -306,7 +306,7 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: convertNumber(xAxisTitleMargin),
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: true,
@@ -324,7 +324,7 @@ export default function transformProps(
       axisLabel: { formatter },
       scale: truncateYAxis,
       name: yAxisTitle,
-      nameGap: convertNumber(yAxisTitleMargin),
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
