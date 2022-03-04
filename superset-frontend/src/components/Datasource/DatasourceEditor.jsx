@@ -36,21 +36,17 @@ import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import EditableTitle from 'src/components/EditableTitle';
-
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
-
-import CollectionTable from 'src/CRUD/CollectionTable';
-import Fieldset from 'src/CRUD/Fieldset';
-import Field from 'src/CRUD/Field';
-
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CollectionTable from './CollectionTable';
+import Fieldset from './Fieldset';
+import Field from './Field';
 
 const DatasourceContainer = styled.div`
   .change-warning {
