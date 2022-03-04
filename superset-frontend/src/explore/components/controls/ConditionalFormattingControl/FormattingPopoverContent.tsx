@@ -20,7 +20,7 @@ import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select, { propertyComparator } from 'src/components/Select/Select';
-import { Col, Row } from 'src/common/components';
+import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
 import {

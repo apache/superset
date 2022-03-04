@@ -18,7 +18,7 @@
  */
 import React, { FunctionComponent, useState } from 'react';
 import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
-import { Row, Col } from 'src/common/components';
+import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import * as chrono from 'chrono-node';

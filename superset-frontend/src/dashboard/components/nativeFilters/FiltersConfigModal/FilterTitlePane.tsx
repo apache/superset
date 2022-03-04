@@ -18,7 +18,7 @@
  */
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { MainNav as Menu } from 'src/components/Menu';
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
@@ -90,12 +90,17 @@ const FilterTitlePane: React.FC<Props> = ({
   );
   return (
     <TabsContainer>
-      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
+      <AntdDropdown
+        overlay={menu}
+        arrow
+        placement="topLeft"
+        trigger={['hover']}
+      >
         <StyledAddBox>
           <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
           <span>{t('Add filters and dividers')}</span>
         </StyledAddBox>
-      </Dropdown>
+      </AntdDropdown>
       <div
         css={{
           height: '100%',
