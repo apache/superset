@@ -1,45 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ApplicationsProps } from './types';
 
 export default function ApplicationLinks(props: ApplicationsProps) {
   const { application, appVal, appType } = props;
-  const [alfredCount, setAlfredCount] = useState(-1);
+  const [alfredCount, ] = useState(-1);
 
   let url = '';
   let infoType = '';
-  let callback_url = '';
+  // TODO: this can be re added CLDN-929
+  //let callback_url = '';
 
   if (application === 'ALFRED') {
     if (appType === 'USER_ID') {
       url = `https://alfred-tst.u.chimera.azure.cyber.gc.ca/?expression=MATCH%20(email:EMAIL_ADDRESS)%20WHERE%20email.value%20in%20[%22${appVal}%22]%20return%20email.value,%20email.maliciousness,%20email.uri`;
       infoType = 'user id';
-      callback_url = 'user_id';
+      //callback_url = 'user_id';
     } else {
       url = `https://alfred-tst.u.chimera.azure.cyber.gc.ca/?expression=MATCH%20(ip%3AIP_ADDRESS)%20WHERE%20ip.value%20IN%20%5B%22${appVal}%22%5D%20RETURN%20ip.value%2C%20ip.maliciousness%2C%20ip.creation_date%2C%20ip.created_by%2C%20ip.uri%2C%20ip.report_uri`;
       infoType = 'IP';
-      callback_url = 'ip_string';
+      //callback_url = 'ip_string';
     }
   }
-
-  useEffect(() => {
-    fetch(
-      // eslint-disable-next-line no-restricted-globals
-      `http://${location.host}/api/v1/proxy/alfred/${callback_url}/${appVal}`,
-    )
-      .then(res => res.json())
-      .then(response => {
-        if (response !== null && response.payload !== undefined) {
-          setAlfredCount(response.payload.data?.length);
-        } else {
-          setAlfredCount(0);
-        }
-      })
-      .catch(e => {
-        // eslint-disable-next-line no-console
-        console.log(e);
-        setAlfredCount(0);
-      });
-  }, [appVal, callback_url]);
+  // TODO: this can be fixed after CLDN-929
+  // useEffect(() => {
+  //   fetch(
+  //     // eslint-disable-next-line no-restricted-globals
+  //     `http://${location.host}/api/v1/proxy/alfred/${callback_url}/${appVal}`,
+  //   )
+  //     .then(res => res.json())
+  //     .then(response => {
+  //       if (response !== null && response.payload !== undefined) {
+  //         setAlfredCount(response.payload.data?.length);
+  //       } else {
+  //         setAlfredCount(0);
+  //       }
+  //     })
+  //     .catch(e => {
+  //       // eslint-disable-next-line no-console
+  //       console.log(e);
+  //       setAlfredCount(0);
+  // This will be caught by supersets default error handling that wraps and will display this message the the user 
+  //       throw new Error("Failed to fetch results from Alfred");
+  //     });
+  // }, [appVal, callback_url]);
 
   return (
     <div>
