@@ -16,22 +16,13 @@
 # under the License.
 from marshmallow import fields, Schema
 
-from superset.utils.schema import validate_json
+from superset.utils import schema as utils
 
 
-class TemporaryCachePostSchema(Schema):
+class KeyValuePostSchema(Schema):
     value = fields.String(
         required=True,
         allow_none=False,
         description="Any type of JSON supported text.",
-        validate=validate_json,
-    )
-
-
-class TemporaryCachePutSchema(Schema):
-    value = fields.String(
-        required=True,
-        allow_none=False,
-        description="Any type of JSON supported text.",
-        validate=validate_json,
+        validate=utils.validate_json,
     )
