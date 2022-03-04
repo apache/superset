@@ -24,8 +24,6 @@ import {
   GroupedOptionsType,
 } from 'react-select';
 
-import { OptionsType as AntdOptionsType } from './Select';
-
 /**
  * Find Option value that matches a possibly string value.
  *
@@ -75,17 +73,4 @@ export function hasOption<VT extends string | number>(
       typeof x === 'object' ? x.value === value : x === value,
     ) !== undefined
   );
-}
-
-export function hasOptionIgnoreCase(search: string, options: AntdOptionsType) {
-  const searchOption = search.trim().toLowerCase();
-  return options.find(opt => {
-    const { label, value } = opt;
-    const labelText = String(label);
-    const valueText = String(value);
-    return (
-      valueText.toLowerCase() === searchOption ||
-      labelText.toLowerCase() === searchOption
-    );
-  });
 }

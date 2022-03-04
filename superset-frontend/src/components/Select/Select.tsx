@@ -42,7 +42,7 @@ import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption, hasOptionIgnoreCase } from './utils';
+import { getValue, hasOption } from './utils';
 
 const { Option } = AntdSelect;
 
