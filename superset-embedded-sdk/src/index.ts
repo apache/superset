@@ -38,6 +38,8 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
+  /** The dashboard UI config: hideTitle: 1; hideTab: 2; hideNav: 4; hideChartControls: 8; **/
+  uiConfig?: number
   /** Are we in debug mode? */
   debug?: boolean
 }
@@ -59,6 +61,7 @@ export async function embedDashboard({
   supersetDomain,
   mountPoint,
   fetchGuestToken,
+  uiConfig,
   debug = false
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
@@ -72,6 +75,7 @@ export async function embedDashboard({
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
+      const dashboardConfig = uiConfig ? `?uiConfig=${uiConfig}` : ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
@@ -103,7 +107,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded`;
+      iframe.src = `${supersetDomain}/dashboard/${id}/embedded${dashboardConfig}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
