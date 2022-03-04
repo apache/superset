@@ -19,7 +19,7 @@
 
 import React, { ReactNode } from 'react';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
 export enum EmptyStateSize {

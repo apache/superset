@@ -42,7 +42,7 @@ import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { Checkbox } from 'src/common/components';
+import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -342,7 +342,7 @@ const StyledRadioGroup = styled(Radio.Group)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
-const StyledCheckbox = styled(Checkbox)`
+const StyledCheckbox = styled(AntdCheckbox)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 

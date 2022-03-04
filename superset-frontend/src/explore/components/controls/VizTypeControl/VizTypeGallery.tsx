@@ -34,7 +34,7 @@ import {
   SupersetTheme,
   useTheme,
 } from '@superset-ui/core';
-import { Collapse } from 'src/common/components';
+import { AntdCollapse } from 'src/components';
 import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -663,7 +663,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <Collapse
+        <AntdCollapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Object.keys(sectionMap)}
@@ -672,7 +672,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             const section = sectionMap[sectionId];
 
             return (
-              <Collapse.Panel
+              <AntdCollapse.Panel
                 header={<span className="header">{section.title}</span>}
                 key={sectionId}
               >
@@ -690,10 +690,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                     onClick={clickSelector}
                   />
                 ))}
-              </Collapse.Panel>
+              </AntdCollapse.Panel>
             );
           })}
-        </Collapse>
+        </AntdCollapse>
       </LeftPane>
 
       <SearchWrapper>

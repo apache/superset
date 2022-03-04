@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Tag } from 'src/common/components';
+import { Tag } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;

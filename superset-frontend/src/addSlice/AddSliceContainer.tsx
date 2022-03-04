@@ -19,9 +19,8 @@
 import React, { ReactNode } from 'react';
 import rison from 'rison';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
-import { Steps } from 'src/common/components';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 

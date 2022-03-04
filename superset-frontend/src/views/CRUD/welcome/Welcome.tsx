@@ -39,7 +39,7 @@ import {
   loadingCardCount,
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { Switch } from 'src/common/components';
+import { AntdSwitch } from 'src/components';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -267,7 +267,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         <span className="navbar-brand">Home</span>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
-            <Switch checked={checked} onChange={handleToggle} />
+            <AntdSwitch checked={checked} onChange={handleToggle} />
             <span>Thumbnails</span>
           </div>
         ) : null}

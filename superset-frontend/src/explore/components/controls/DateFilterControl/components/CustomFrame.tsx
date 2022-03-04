@@ -20,7 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
-import { Col, Row } from 'src/common/components';
+import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';

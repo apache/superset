@@ -41,7 +41,7 @@ import {
   isNativeFilter,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Tabs } from 'src/common/components';
+import { AntdTabs } from 'src/components';
 import { useHistory } from 'react-router-dom';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -136,7 +136,7 @@ const StyledFilterIcon = styled(Icons.Filter)`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const StyledTabs = styled(Tabs)`
+const StyledTabs = styled(AntdTabs)`
   & .ant-tabs-nav-list {
     width: 100%;
   }
@@ -408,7 +408,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               defaultActiveKey={TabIds.AllFilters}
               activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
             >
-              <Tabs.TabPane
+              <AntdTabs.TabPane
                 tab={t('All filters (%(filterCount)d)', {
                   filterCount: numberOfFilters,
                 })}
@@ -443,8 +443,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                     onFilterSelectionChange={handleFilterSelectionChange}
                   />
                 )}
-              </Tabs.TabPane>
-              <Tabs.TabPane
+              </AntdTabs.TabPane>
+              <AntdTabs.TabPane
                 disabled={!!editFilterSetId}
                 tab={t('Filter sets (%(filterSetCount)d)', {
                   filterSetCount: filterSetFilterValues.length,
@@ -459,7 +459,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                   tab={tab}
                   onFilterSelectionChange={handleFilterSelectionChange}
                 />
-              </Tabs.TabPane>
+              </AntdTabs.TabPane>
             </StyledTabs>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>

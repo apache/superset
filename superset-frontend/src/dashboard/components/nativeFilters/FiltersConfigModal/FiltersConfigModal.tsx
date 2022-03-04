@@ -33,7 +33,7 @@ import {
   SLOW_DEBOUNCE,
   t,
 } from '@superset-ui/core';
-import { Form } from 'src/common/components';
+import { AntdForm } from 'src/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
@@ -73,7 +73,7 @@ export const StyledModalBody = styled.div`
   }
 `;
 
-export const StyledForm = styled(Form)`
+export const StyledForm = styled(AntdForm)`
   width: 100%;
 `;
 
@@ -106,7 +106,7 @@ export function FiltersConfigModal({
   onSave,
   onCancel,
 }: FiltersConfigModalProps) {
-  const [form] = Form.useForm<NativeFiltersForm>();
+  const [form] = AntdForm.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
 

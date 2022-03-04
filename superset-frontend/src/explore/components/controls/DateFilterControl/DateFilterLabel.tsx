@@ -38,7 +38,7 @@ import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
 import Popover from 'src/components/Popover';
-import { Divider } from 'src/common/components';
+import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select, { propertyComparator } from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';

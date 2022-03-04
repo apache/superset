@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import moment from 'moment';
-import { RadioChangeEvent } from 'antd/lib/radio';
+import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';

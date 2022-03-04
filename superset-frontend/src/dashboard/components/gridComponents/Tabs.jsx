@@ -22,7 +22,7 @@ import { styled, t } from '@superset-ui/core';
 import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
-import { Modal } from 'src/common/components';
+import { AntdModal } from 'src/components';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
@@ -198,7 +198,7 @@ export class Tabs extends React.PureComponent {
 
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
-    Modal.confirm({
+    AntdModal.confirm({
       title: t('Delete dashboard tab?'),
       content: (
         <span>

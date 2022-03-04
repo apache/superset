@@ -36,7 +36,7 @@ import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/common/components';
+import { RadioChangeEvent } from 'src/components';
 import {
   StyledModal,
   StyledTopSection,

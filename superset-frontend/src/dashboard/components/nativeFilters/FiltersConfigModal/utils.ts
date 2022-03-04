@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
 import shortid from 'shortid';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
