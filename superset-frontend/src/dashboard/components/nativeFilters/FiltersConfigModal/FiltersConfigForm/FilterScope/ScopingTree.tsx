@@ -19,7 +19,7 @@
 
 import React, { FC, useMemo, useState } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
-import { Tree } from 'src/common/components';
+import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';

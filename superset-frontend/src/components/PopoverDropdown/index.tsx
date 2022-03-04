@@ -19,7 +19,7 @@
 import React from 'react';
 import cx from 'classnames';
 import { styled, useTheme } from '@superset-ui/core';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 
@@ -89,7 +89,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   const theme = useTheme();
   const selected = options.find(opt => opt.value === value);
   return (
-    <Dropdown
+    <AntdDropdown
       trigger={['click']}
       overlayStyle={{ zIndex: theme.zIndex.max }}
       overlay={
@@ -115,7 +115,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
           css={{ marginTop: theme.gridUnit * 0.5 }}
         />
       </div>
-    </Dropdown>
+    </AntdDropdown>
   );
 };
 
