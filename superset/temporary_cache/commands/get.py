@@ -21,13 +21,13 @@ from typing import Optional
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
-from superset.key_value.commands.parameters import CommandParameters
+from superset.temporary_cache.commands.exceptions import TemporaryCacheGetFailedError
+from superset.temporary_cache.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
-class GetKeyValueCommand(BaseCommand, ABC):
+class GetTemporaryCacheCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters):
         self._cmd_params = cmd_params
 
@@ -36,7 +36,7 @@ class GetKeyValueCommand(BaseCommand, ABC):
             return self.get(self._cmd_params)
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
-            raise KeyValueGetFailedError() from ex
+            raise TemporaryCacheGetFailedError() from ex
 
     def validate(self) -> None:
         pass

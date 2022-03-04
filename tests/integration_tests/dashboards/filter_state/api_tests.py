@@ -23,9 +23,9 @@ from sqlalchemy.orm import Session
 
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.extensions import cache_manager
-from superset.key_value.commands.entry import Entry
-from superset.key_value.utils import cache_key
 from superset.models.dashboard import Dashboard
+from superset.temporary_cache.commands.entry import Entry
+from superset.temporary_cache.utils import cache_key
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,

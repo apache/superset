@@ -16,30 +16,33 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.exceptions import KeyValueCreateFailedError
-from superset.key_value.commands.parameters import CommandParameters
+from superset.temporary_cache.commands.exceptions import TemporaryCacheUpdateFailedError
+from superset.temporary_cache.commands.parameters import CommandParameters
 
 logger = logging.getLogger(__name__)
 
 
-class CreateKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, cmd_params: CommandParameters):
-        self._cmd_params = cmd_params
+class UpdateTemporaryCacheCommand(BaseCommand, ABC):
+    def __init__(
+        self, cmd_params: CommandParameters,
+    ):
+        self._parameters = cmd_params
 
-    def run(self) -> str:
+    def run(self) -> Optional[str]:
         try:
-            return self.create(self._cmd_params)
+            return self.update(self._parameters)
         except SQLAlchemyError as ex:
-            logger.exception("Error running create command")
-            raise KeyValueCreateFailedError() from ex
+            logger.exception("Error running update command")
+            raise TemporaryCacheUpdateFailedError() from ex
 
     def validate(self) -> None:
         pass
 
     @abstractmethod
-    def create(self, cmd_params: CommandParameters) -> str:
+    def update(self, cmd_params: CommandParameters) -> Optional[str]:
         ...

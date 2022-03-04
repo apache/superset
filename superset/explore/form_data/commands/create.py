@@ -24,8 +24,8 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.form_data.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.exceptions import KeyValueCreateFailedError
-from superset.key_value.utils import cache_key, random_key
+from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
+from superset.temporary_cache.utils import cache_key, random_key
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class CreateFormDataCommand(BaseCommand):
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
-            raise KeyValueCreateFailedError() from ex
+            raise TemporaryCacheCreateFailedError() from ex
 
     def validate(self) -> None:
         pass

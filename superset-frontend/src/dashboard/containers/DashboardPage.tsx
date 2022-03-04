@@ -165,7 +165,7 @@ const DashboardPage: FC = () => {
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-      // check if key from key_value api and get datamask
+      // check if key from temporary_cache api and get datamask
       if (nativeFilterKeyValue) {
         dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }

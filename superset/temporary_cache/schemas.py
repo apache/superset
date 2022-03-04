@@ -17,13 +17,13 @@
 from marshmallow import fields, Schema
 
 
-class KeyValuePostSchema(Schema):
+class TemporaryCachePostSchema(Schema):
     value = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
     )
 
 
-class KeyValuePutSchema(Schema):
+class TemporaryCachePutSchema(Schema):
     value = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
     )
