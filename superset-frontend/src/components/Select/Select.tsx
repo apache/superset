@@ -355,9 +355,7 @@ const Select = (
   // add selected values to options list if they are not in it
   const fullSelectOptions = useMemo(() => {
     const missingValues: OptionsType = ensureIsArray(selectValue)
-      .filter(
-        opt => !hasOption(getValue(opt), selectOptions as AntdLabeledValue[]),
-      )
+      .filter(opt => !hasOption(getValue(opt), selectOptions))
       .map(opt =>
         typeof opt === 'object' ? opt : { value: opt, label: String(opt) },
       );
@@ -497,7 +495,7 @@ const Select = (
     const searchValue = search.trim();
     if (allowNewOptions && isSingleMode) {
       const newOption = searchValue &&
-        !hasOption(searchValue, fullSelectOptions as AntdLabeledValue[]) && {
+        !hasOption(searchValue, fullSelectOptions, true) && {
           label: searchValue,
           value: searchValue,
           isNewOption: true,

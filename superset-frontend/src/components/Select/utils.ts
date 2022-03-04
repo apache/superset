@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
 import { ensureIsArray } from '@superset-ui/core';
 import {
   OptionTypeBase,
@@ -63,14 +64,21 @@ export function getValue(option: string | number | { value: string | number }) {
   return typeof option === 'object' ? option.value : option;
 }
 
-export function hasOption<VT extends string | number>(
-  value: VT,
-  options?: VT | VT[] | { value?: VT } | { value?: VT }[],
-) {
+type LabeledValue<V> = { label?: ReactNode; value?: V };
+
+export function hasOption<V>(
+  value: V,
+  options?: V | LabeledValue<V> | (V | LabeledValue<V>)[],
+  checkLabel = false,
+): boolean {
   const optionsArray = ensureIsArray(options);
   return (
-    optionsArray.find(x =>
-      typeof x === 'object' ? x.value === value : x === value,
+    optionsArray.find(
+      x =>
+        x === value ||
+        (typeof x === 'object' &&
+          (('value' in x && x.value === value) ||
+            (checkLabel && 'label' in x && x.label === value))),
     ) !== undefined
   );
 }
