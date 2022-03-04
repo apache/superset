@@ -32,7 +32,7 @@ interface Props {
   onAdd: (type: NativeFilterType) => void;
   removedFilters: Record<string, FilterRemoval>;
   currentFilterId: string;
-  filterGroups: string[][];
+  filters: string[];
   erroredFilters: string[];
 }
 
@@ -60,7 +60,7 @@ const FilterTitlePane: React.FC<Props> = ({
   onRearrage,
   restoreFilter,
   currentFilterId,
-  filterGroups,
+  filters,
   removedFilters,
   erroredFilters,
 }) => {
@@ -104,7 +104,7 @@ const FilterTitlePane: React.FC<Props> = ({
         }}
       >
         <FilterTitleContainer
-          filterGroups={filterGroups}
+          filters={filters}
           currentFilterId={currentFilterId}
           removedFilters={removedFilters}
           getFilterTitle={getFilterTitle}

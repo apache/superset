@@ -36,15 +36,17 @@ describe('FilterScope', () => {
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
     filterId: 'DefaultFilterId',
-    parentFilters: [],
+    dependencies: [],
     setErroredFilters: jest.fn(),
-    onFilterHierarchyChange: jest.fn(),
     restoreFilter: jest.fn(),
+    getAvailableFilters: () => [],
+    getDependencySuggestion: () => '',
     save,
     removedFilters: {},
     handleActiveFilterPanelChange: jest.fn(),
     activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
     isActive: true,
+    validateDependencies: jest.fn(),
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {

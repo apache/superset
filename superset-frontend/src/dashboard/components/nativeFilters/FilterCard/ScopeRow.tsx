@@ -25,27 +25,43 @@ import {
   RowTruncationCount,
   RowValue,
   TooltipList,
+  TooltipSectionLabel,
 } from './Styles';
 import { useTruncation } from './useTruncation';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
+
+const getTooltipSection = (items: string[] | undefined, label: string) =>
+  Array.isArray(items) && items.length > 0 ? (
+    <>
+      <TooltipSectionLabel>{label}:</TooltipSectionLabel>
+      <TooltipList>
+        {items.map(item => (
+          <li>{item}</li>
+        ))}
+      </TooltipList>
+    </>
+  ) : null;
 
 export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
   const scopeRef = useRef<HTMLDivElement>(null);
 
   const [elementsTruncated, hasHiddenElements] = useTruncation(scopeRef);
-  const tooltipText = useMemo(
-    () =>
-      elementsTruncated > 0 && scope ? (
-        <TooltipList>
-          {scope.map(val => (
-            <li>{val}</li>
-          ))}
-        </TooltipList>
-      ) : null,
-    [elementsTruncated, scope],
-  );
+  const tooltipText = useMemo(() => {
+    if (elementsTruncated === 0 || !scope) {
+      return null;
+    }
+    if (scope.all) {
+      return <span>{t('All charts')}</span>;
+    }
+    return (
+      <div>
+        {getTooltipSection(scope.tabs, t('Tabs'))}
+        {getTooltipSection(scope.charts, t('Charts'))}
+      </div>
+    );
+  }, [elementsTruncated, scope]);
 
   return (
     <Row>
@@ -53,9 +69,11 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
       <TooltipWithTruncation title={tooltipText}>
         <RowValue ref={scopeRef}>
           {scope
-            ? scope.map((element, index) => (
-                <span>{index === 0 ? element : `, ${element}`}</span>
-              ))
+            ? Object.values(scope)
+                .flat()
+                .map((element, index) => (
+                  <span>{index === 0 ? element : `, ${element}`}</span>
+                ))
             : t('None')}
         </RowValue>
         {hasHiddenElements > 0 && (
