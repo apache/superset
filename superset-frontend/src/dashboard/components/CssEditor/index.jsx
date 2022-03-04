@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled } from '@superset-ui/core';
@@ -90,9 +90,9 @@ class CssEditor extends React.PureComponent {
       );
 
       return (
-        <Dropdown overlay={menu} placement="bottomRight">
+        <AntdDropdown overlay={menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
-        </Dropdown>
+        </AntdDropdown>
       );
     }
     return null;

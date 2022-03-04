@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
-import { List, ListItemProps } from 'src/common/components';
+import { List, ListItemProps } from 'src/components';
 
 export interface CustomListItemProps extends ListItemProps {
   selectable: boolean;

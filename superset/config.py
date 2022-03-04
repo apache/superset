@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import pkg_resources
@@ -362,7 +362,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # With Superset 2.0, we are updating the default so that the legacy datasource
     # editor no longer shows. Currently this is set to false so that the editor
     # option does show, but we will be depreciating it.
-    "DISABLE_LEGACY_DATASOURCE_EDITOR": False,
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
     # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
@@ -544,7 +544,7 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "null",
+    "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
 }
 
@@ -581,26 +581,24 @@ IMG_UPLOAD_URL = "/static/uploads/"
 CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Default cache for Superset objects
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for filters state
+# Cache for dashboard filter state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
-    "CACHE_THRESHOLD": 0,
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
-# Cache for chart form data
+# Cache for explore form data state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
-    "CACHE_THRESHOLD": 0,
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
@@ -1259,22 +1257,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# SIP-15 should be enabled for all new Superset deployments which ensures that the time
-# range endpoints adhere to [start, end). For existing deployments admins should provide
-# a dedicated period of time to allow chart producers to update their charts before
-# mass migrating all charts to use the [start, end) interval.
-#
-# Note if no end date for the grace period is specified then the grace period is
-# indefinite.
-SIP_15_ENABLED = True
-SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
-SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = (
-    "Action Required: Preview then save your chart using the "
-    'new time range endpoints <a target="_blank" href="{url}" '
-    'class="alert-link">here</a>.'
-)
 
 # Turn this key to False to disable ownership check on the old dataset MVC and
 # datasource API /datasource/save.

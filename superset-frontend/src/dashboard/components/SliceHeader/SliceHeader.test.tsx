@@ -129,8 +129,6 @@ const createProps = () => ({
       row_limit: 10000,
       show_legend: false,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
-      url_params: {},
       viz_type: 'dist_bar',
       x_ticks_layout: 'auto',
       y_axis_format: 'SMART_NUMBER',

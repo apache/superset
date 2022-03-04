@@ -19,14 +19,13 @@
 import rison from 'rison';
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';

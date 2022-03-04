@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeFormData } from './formData';
 
-import { DataMask, Filter } from '@superset-ui/core';
-
-export type CascadeFilter = Filter & { dataMask?: DataMask } & {
-  cascadeChildren: CascadeFilter[];
-};
+test('sanitizeFormData removes temporary control values', () => {
+  expect(
+    sanitizeFormData({
+      url_params: { foo: 'bar' },
+      metrics: ['foo', 'bar'],
+    }),
+  ).toEqual({ metrics: ['foo', 'bar'] });
+});

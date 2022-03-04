@@ -15,20 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
-from flask import Flask
-from flask_caching import Cache
 from typing_extensions import Literal, TypedDict
 from werkzeug.wrappers import Response
 
@@ -69,7 +57,7 @@ class AdhocColumn(TypedDict, total=False):
     sqlExpression: Optional[str]
 
 
-CacheConfig = Union[Callable[[Flask], Cache], Dict[str, Any]]
+CacheConfig = Dict[str, Any]
 DbapiDescriptionRow = Tuple[
     str, str, Optional[str], Optional[str], Optional[int], Optional[int], bool
 ]
