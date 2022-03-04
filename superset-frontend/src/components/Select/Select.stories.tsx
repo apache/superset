@@ -80,12 +80,6 @@ const ARG_TYPES = {
       The options can also be async, a promise that returns an array of options.
     `,
   },
-  optionsCount: {
-    defaultValue: options.length,
-    control: {
-      type: 'number',
-    },
-  },
   ariaLabel: {
     description: `It adds the aria-label tag for accessibility standards.
       Must be plain English and localized.
@@ -205,6 +199,12 @@ InteractiveSelect.args = {
 
 InteractiveSelect.argTypes = {
   ...ARG_TYPES,
+  optionsCount: {
+    defaultValue: options.length,
+    control: {
+      type: 'number',
+    },
+  },
   header: {
     defaultValue: 'none',
     description: `It adds a header on top of the Select. Can be any ReactNode.`,

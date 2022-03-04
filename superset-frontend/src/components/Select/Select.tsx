@@ -350,24 +350,23 @@ const Select = (
       sortSelectedFirst(a, b) || sortComparator(a, b, ''),
     [sortComparator, sortSelectedFirst],
   );
-  const [selectOptions_, setSelectOptions] =
+  const [selectOptions, setSelectOptions] =
     useState<OptionsType>(initialOptions);
   // add selected values to options list if they are not in it
-  const selectOptions = useMemo(() => {
+  const fullSelectOptions = useMemo(() => {
     const missingValues: OptionsType = ensureIsArray(selectValue)
       .filter(
-        opt => !hasOption(getValue(opt), selectOptions_ as AntdLabeledValue[]),
+        opt => !hasOption(getValue(opt), selectOptions as AntdLabeledValue[]),
       )
       .map(opt =>
         typeof opt === 'object' ? opt : { value: opt, label: String(opt) },
       );
-    if (missingValues.length > 0) {
-      return missingValues.concat(selectOptions_);
-    }
-    return selectOptions_;
-  }, [selectOptions_, selectValue]);
+    return missingValues.length > 0
+      ? missingValues.concat(selectOptions)
+      : selectOptions;
+  }, [selectOptions, selectValue]);
 
-  const hasCustomLabels = selectOptions.some(opt => !!opt?.customLabel);
+  const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
     selectedValue: string | number | AntdLabeledValue,
@@ -498,12 +497,12 @@ const Select = (
     const searchValue = search.trim();
     if (allowNewOptions && isSingleMode) {
       const newOption = searchValue &&
-        !hasOptionIgnoreCase(searchValue, selectOptions) && {
+        !hasOption(searchValue, fullSelectOptions as AntdLabeledValue[]) && {
           label: searchValue,
           value: searchValue,
           isNewOption: true,
         };
-      const cleanSelectOptions = selectOptions.filter(
+      const cleanSelectOptions = fullSelectOptions.filter(
         opt => !opt.isNewOption || hasOption(opt.value, selectValue),
       );
       const newOptions = newOption
@@ -577,9 +576,11 @@ const Select = (
     }
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
-    if (isDropdownVisible && !inputValue && selectOptions.length > 0) {
-      const sortedOptions = [...selectOptions].sort(sortComparatorWithSearch);
-      if (!isEqual(sortedOptions, selectOptions)) {
+    if (isDropdownVisible && !inputValue && fullSelectOptions.length > 0) {
+      const sortedOptions = [...fullSelectOptions].sort(
+        sortComparatorWithSearch,
+      );
+      if (!isEqual(sortedOptions, fullSelectOptions)) {
         setSelectOptions(sortedOptions);
       }
     }
@@ -595,7 +596,7 @@ const Select = (
     if (!isDropdownVisible) {
       originNode.ref?.current?.scrollTo({ top: 0 });
     }
-    if (isLoading && selectOptions.length === 0) {
+    if (isLoading && fullSelectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
     }
     return error ? <Error error={error} /> : originNode;
@@ -685,7 +686,7 @@ const Select = (
         onSelect={handleOnSelect}
         onClear={handleClear}
         onChange={onChange}
-        options={hasCustomLabels ? undefined : selectOptions}
+        options={hasCustomLabels ? undefined : fullSelectOptions}
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
@@ -703,7 +704,7 @@ const Select = (
         {...props}
       >
         {hasCustomLabels &&
-          selectOptions.map(opt => {
+          fullSelectOptions.map(opt => {
             const isOptObject = typeof opt === 'object';
             const label = isOptObject ? opt?.label || opt.value : opt;
             const value = isOptObject ? opt.value : opt;
