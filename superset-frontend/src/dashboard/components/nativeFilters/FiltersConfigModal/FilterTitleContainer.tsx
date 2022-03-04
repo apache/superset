@@ -25,6 +25,7 @@ import DraggableFilter from './DraggableFilter';
 const FilterTitle = styled.div`
   ${({ theme }) => `
       display: flex;
+      align-items: center;
       padding: ${theme.gridUnit * 2}px;
       width: 100%;
       border-radius: ${theme.borderRadius}px;
@@ -72,7 +73,7 @@ interface Props {
   onRemove: (id: string) => void;
   restoreFilter: (id: string) => void;
   onRearrage: (dragIndex: number, targetIndex: number) => void;
-  filterGroups: string[][];
+  filters: string[];
   erroredFilters: string[];
 }
 
@@ -84,7 +85,7 @@ const FilterTitleContainer: React.FC<Props> = ({
   onRearrage,
   currentFilterId,
   removedFilters,
-  filterGroups,
+  filters,
   erroredFilters = [],
 }) => {
   const renderComponent = (id: string) => {
@@ -127,7 +128,7 @@ const FilterTitleContainer: React.FC<Props> = ({
             </span>
           )}
         </div>
-        <div css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
+        <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>
           {isRemoved ? null : (
             <StyledTrashIcon
               onClick={event => {
@@ -174,15 +175,15 @@ const FilterTitleContainer: React.FC<Props> = ({
 
   const renderFilterGroups = () => {
     const items: React.ReactNode[] = [];
-    filterGroups.forEach((item, index) => {
+    filters.forEach((item, index) => {
       items.push(
         <DraggableFilter
           key={index}
           onRearrage={onRearrage}
           index={index}
-          filterIds={item}
+          filterIds={[item]}
         >
-          {item.map(filter => renderComponent(filter))}
+          {renderComponent(item)}
         </DraggableFilter>,
       );
     });
