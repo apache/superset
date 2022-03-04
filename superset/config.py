@@ -145,7 +145,7 @@ SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
-SUPERSET_WEBSERVER_PORT = 8088
+SUPERSET_WEBSERVER_PORT = 80
 
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
@@ -672,6 +672,7 @@ DRUID_DATA_SOURCE_DENYLIST: List[str] = []
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
+        ("contrib.connectors.pandas.models", ["PandasDatasource"]),
         ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
@@ -720,7 +721,8 @@ QUERY_LOGGER = None
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
 # Maximum number of rows returned for any analytical database query
-SQL_MAX_ROW = 100000
+#custom
+SQL_MAX_ROW = 1000000
 
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
@@ -1024,7 +1026,7 @@ ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {}
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
+ENABLE_JAVASCRIPT_CONTROLS = True
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None

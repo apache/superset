@@ -91,13 +91,22 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+#custom
+FEATURE_FLAGS = {"ALERT_REPORTS": True,"ENABLE_JAVASCRIPT_CONTROLS":True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
+
+#custom
+ENABLE_JAVASCRIPT_CONTROLS = True
+SQL_MAX_ROW = 1000000
+ROW_LIMIT = 1000000
+SUPERSET_WEBSERVER_TIMEOUT = 1800
+SUPERSET_WEBSERVER_PORT = 80
+SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
