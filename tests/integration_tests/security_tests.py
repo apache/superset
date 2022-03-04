@@ -905,7 +905,7 @@ class TestRolePermission(SupersetTestCase):
             ["LocaleView", "index"],
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
-            ["CurrentUserRestApi", "me"],
+            ["CurrentUserRestApi", "get_me"],
             ["Dashboard", "embedded"],
             ["R", "index"],
             ["Superset", "log"],

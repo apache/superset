@@ -20,7 +20,7 @@ import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'antd';
+import { AntdButton } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 
@@ -206,6 +206,7 @@ export default function Button(props: ButtonProps) {
             buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
           borderColor:
             buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
+          pointerEvents: 'none',
         },
         marginLeft: 0,
         '& + .superset-button': {
@@ -230,7 +231,11 @@ export default function Button(props: ButtonProps) {
       >
         {/* this ternary wraps the button in a span so that the tooltip shows up
         when the button is disabled.  */}
-        {disabled ? <span>{button}</span> : button}
+        {disabled ? (
+          <span css={{ cursor: 'not-allowed' }}>{button}</span>
+        ) : (
+          button
+        )}
       </Tooltip>
     );
   }

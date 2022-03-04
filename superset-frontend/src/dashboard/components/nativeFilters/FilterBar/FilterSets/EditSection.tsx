@@ -18,7 +18,7 @@
  */
 import React, { FC, useMemo, useState } from 'react';
 import { DataMaskState, HandlerFunction, styled, t } from '@superset-ui/core';
-import { Typography, Tooltip } from 'src/common/components';
+import { Typography, AntdTooltip } from 'src/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { updateFilterSet } from 'src/dashboard/actions/nativeFilters';
@@ -135,7 +135,7 @@ const EditSection: FC<EditSectionProps> = ({
         >
           {t('Cancel')}
         </Button>
-        <Tooltip
+        <AntdTooltip
           placement="right"
           title={
             (isFilterSetNameDuplicated &&
@@ -156,7 +156,7 @@ const EditSection: FC<EditSectionProps> = ({
               {t('Save')}
             </Button>
           </ActionButton>
-        </Tooltip>
+        </AntdTooltip>
       </ActionButtons>
       {isDuplicateFilterSet && (
         <Warning mark>

@@ -16,7 +16,6 @@
 # under the License.
 import logging
 from collections import defaultdict
-from datetime import date
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
@@ -48,7 +47,6 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.typing import FormData
-from superset.utils.core import TimeRangeEndpoint
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -211,12 +209,6 @@ def get_form_data(  # pylint: disable=too-many-locals
             form_data = slice_form_data
 
     update_time_range(form_data)
-
-    if app.config["SIP_15_ENABLED"]:
-        form_data["time_range_endpoints"] = get_time_range_endpoints(
-            form_data, slc, slice_id
-        )
-
     return form_data, slc
 
 
@@ -300,59 +292,6 @@ def apply_display_max_row_limit(
         sql_results["data"] = sql_results["data"][:display_limit]
         sql_results["displayLimitReached"] = True
     return sql_results
-
-
-def get_time_range_endpoints(
-    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None
-) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
-    """
-    Get the slice aware time range endpoints from the form-data falling back to the SQL
-    database specific definition or default if not defined.
-
-    Note under certain circumstances the slice object may not exist, however the slice
-    ID may be defined which serves as a fallback.
-
-    When SIP-15 is enabled all new slices will use the [start, end) interval. If the
-    grace period is defined and has ended all slices will adhere to the [start, end)
-    interval.
-
-    :param form_data: The form-data
-    :param slc: The slice
-    :param slice_id: The slice ID
-    :returns: The time range endpoints tuple
-    """
-
-    if (
-        app.config["SIP_15_GRACE_PERIOD_END"]
-        and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
-    ):
-        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
-
-    endpoints = form_data.get("time_range_endpoints")
-
-    if (slc or slice_id) and not endpoints:
-        try:
-            _, datasource_type = get_datasource_info(None, None, form_data)
-        except SupersetException:
-            return None
-
-        if datasource_type == "table":
-            if not slc:
-                slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-
-            if slc and slc.datasource:
-                endpoints = slc.datasource.database.get_extra().get(
-                    "time_range_endpoints"
-                )
-
-            if not endpoints:
-                endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
-
-    if endpoints:
-        start, end = endpoints
-        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
-
-    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
 
 
 # see all dashboard components type in

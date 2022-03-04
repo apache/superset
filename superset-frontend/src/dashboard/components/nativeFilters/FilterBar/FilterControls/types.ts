@@ -30,4 +30,5 @@ export interface FilterProps {
   inView?: boolean;
   showOverflow?: boolean;
   parentRef?: RefObject<any>;
+  setFilterActive?: (isActive: boolean) => void;
 }

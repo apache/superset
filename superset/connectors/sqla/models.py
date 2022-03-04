@@ -301,35 +301,14 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table
 
     def get_time_filter(
-        self,
-        start_dttm: DateTime,
-        end_dttm: DateTime,
-        time_range_endpoints: Optional[
-            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
-        ],
+        self, start_dttm: DateTime, end_dttm: DateTime,
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
         l = []
         if start_dttm:
-            l.append(
-                col
-                >= self.table.text(
-                    self.dttm_sql_literal(start_dttm, time_range_endpoints)
-                )
-            )
+            l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
-            if (
-                time_range_endpoints
-                and time_range_endpoints[1] == utils.TimeRangeEndpoint.EXCLUSIVE
-            ):
-                l.append(
-                    col
-                    < self.table.text(
-                        self.dttm_sql_literal(end_dttm, time_range_endpoints)
-                    )
-                )
-            else:
-                l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm, None)))
+            l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm)))
         return and_(*l)
 
     def get_timestamp_expression(
@@ -368,13 +347,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         )
         return self.table.make_sqla_column_compatible(time_expr, label)
 
-    def dttm_sql_literal(
-        self,
-        dttm: DateTime,
-        time_range_endpoints: Optional[
-            Tuple[utils.TimeRangeEndpoint, utils.TimeRangeEndpoint]
-        ],
-    ) -> str:
+    def dttm_sql_literal(self, dttm: DateTime) -> str:
         """Convert datetime object to a SQL expression string"""
         sql = (
             self.db_engine_spec.convert_dttm(self.type, dttm, db_extra=self.db_extra)
@@ -387,12 +360,8 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
         tf = self.python_date_format
 
-        # Fallback to the default format (if defined) only if the SIP-15 time range
-        # endpoints, i.e., [start, end) are enabled.
-        if not tf and time_range_endpoints == (
-            utils.TimeRangeEndpoint.INCLUSIVE,
-            utils.TimeRangeEndpoint.EXCLUSIVE,
-        ):
+        # Fallback to the default format (if defined).
+        if not tf:
             tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
                 self.column_name
             )
@@ -1210,8 +1179,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             metrics_exprs = []
 
-        time_range_endpoints = extras.get("time_range_endpoints")
-
         if granularity:
             if granularity not in columns_by_name or not dttm_col:
                 raise QueryObjectValidationError(
@@ -1238,12 +1205,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ):
                 time_filters.append(
                     columns_by_name[self.main_dttm_col].get_time_filter(
-                        from_dttm, to_dttm, time_range_endpoints
+                        from_dttm, to_dttm,
                     )
                 )
-            time_filters.append(
-                dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
-            )
+            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -1450,9 +1415,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if dttm_col and not db_engine_spec.time_groupby_inline:
                     inner_time_filter = [
                         dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm,
-                            inner_to_dttm or to_dttm,
-                            time_range_endpoints,
+                            inner_from_dttm or from_dttm, inner_to_dttm or to_dttm,
                         )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
