@@ -940,7 +940,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
       setCurrentAlert({ ...DEFAULT_ALERT });
-      setForceScreenshot(contentType === 'chart' && !isReport);
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -1369,18 +1368,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     )}
                   </StyledRadioGroup>
                 </div>
-                {isReport && (
-                  <div className="inline-container">
-                    <StyledCheckbox
-                      className="checkbox"
-                      checked={forceScreenshot}
-                      onChange={onForceScreenshotChange}
-                    >
-                      Ignore cache when generating screenshot
-                    </StyledCheckbox>
-                  </div>
-                )}
               </>
+            )}
+            {(isReport || contentType === 'dashboard') && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
+                >
+                  Ignore cache when generating screenshot
+                </StyledCheckbox>
+              </div>
             )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>

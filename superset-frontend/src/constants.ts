@@ -67,6 +67,10 @@ export const URL_PARAMS = {
     name: 'dataset_id',
     type: 'string',
   },
+  force: {
+    name: 'force',
+    type: 'boolean',
+  },
 } as const;
 
 /**
