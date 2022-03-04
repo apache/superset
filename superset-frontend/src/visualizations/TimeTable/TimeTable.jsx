@@ -129,7 +129,16 @@ const TimeTable = ({
         sortType: (rowA, rowB, columnId) => {
           const rowAVal = rowA.values[columnId].props['data-value'];
           const rowBVal = rowB.values[columnId].props['data-value'];
-          return rowAVal - rowBVal;
+          if (typeof rowAVal === 'number' && typeof rowBVal === 'number') {
+            return rowAVal - rowBVal;
+          }
+          if (typeof rowAVal === 'number') {
+            return 1;
+          }
+          if (typeof rowBVal === 'number') {
+            return -1;
+          }
+          return 0;
         },
       })),
     ],
@@ -192,14 +201,17 @@ const TimeTable = ({
         } else {
           v = reversedEntries[timeLag][valueField];
         }
-        if (column.comparisonType === 'diff') {
-          v = recent - v;
-        } else if (column.comparisonType === 'perc') {
-          v = recent / v;
-        } else if (column.comparisonType === 'perc_change') {
-          v = recent / v - 1;
+        if (typeof v === 'number' && typeof recent === 'number') {
+          if (column.comparisonType === 'diff') {
+            v = recent - v;
+          } else if (column.comparisonType === 'perc') {
+            v = recent / v;
+          } else if (column.comparisonType === 'perc_change') {
+            v = recent / v - 1;
+          }
+        } else {
+          v = null;
         }
-        v = v || 0;
       } else if (column.colType === 'contrib') {
         // contribution to column total
         v =
