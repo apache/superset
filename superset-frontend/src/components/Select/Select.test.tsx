@@ -230,15 +230,21 @@ test('same case should be ranked to the top', async () => {
   render(
     <Select
       {...defaultProps}
-      options={[{ value: 'Ca' }, { value: 'ab' }, { value: 'Ac' }]}
+      options={[
+        { value: 'Cac' },
+        { value: 'abac' },
+        { value: 'acbc' },
+        { value: 'CAc' },
+      ]}
     />,
   );
-  await type('A');
+  await type('Ac');
   const options = await findAllSelectOptions();
-  expect(options.length).toBe(3);
-  expect(options[0]?.textContent).toEqual('Ac');
-  expect(options[1]?.textContent).toEqual('ab');
-  expect(options[2]?.textContent).toEqual('Ca');
+  expect(options.length).toBe(4);
+  expect(options[0]?.textContent).toEqual('acbc');
+  expect(options[1]?.textContent).toEqual('CAc');
+  expect(options[2]?.textContent).toEqual('abac');
+  expect(options[3]?.textContent).toEqual('Cac');
 });
 
 test('ignores special keys when searching', async () => {
