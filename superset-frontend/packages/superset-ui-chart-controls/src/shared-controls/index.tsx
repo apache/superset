@@ -459,7 +459,7 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   type: 'AdhocFilterControl',
   label: t('Filters'),
-  default: null,
+  default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],
