@@ -31,7 +31,7 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { Collapse } from 'src/common/components';
+import { AntdCollapse } from 'src/components';
 import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
@@ -121,7 +121,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         return <OutPortal node={portalNodes[index]} inView />;
       })}
       {showCollapsePanel && (
-        <Collapse
+        <AntdCollapse
           ghost
           bordered
           expandIconPosition="right"
@@ -148,7 +148,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             }
           `}
         >
-          <Collapse.Panel
+          <AntdCollapse.Panel
             header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
             key="1"
           >
@@ -158,8 +158,8 @@ const FilterControls: FC<FilterControlsProps> = ({
               );
               return <OutPortal node={portalNodes[index]} inView />;
             })}
-          </Collapse.Panel>
-        </Collapse>
+          </AntdCollapse.Panel>
+        </AntdCollapse>
       )}
     </Wrapper>
   );
