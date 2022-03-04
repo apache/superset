@@ -20,6 +20,7 @@
 /** Type checking is disabled for this file due to reselect only supporting
  * TS declarations for selectors with up to 12 arguments. */
 // @ts-nocheck
+import { RefObject } from 'react';
 import { createSelector } from 'reselect';
 import {
   AppSection,
@@ -90,6 +91,8 @@ export interface ChartPropsConfig {
   appSection?: AppSection;
   /** is the chart refreshing its contents */
   isRefreshing?: boolean;
+  /** chart ref */
+  inputRef?: RefObject<any>;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -128,6 +131,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   isRefreshing?: boolean;
 
+  inputRef?: RefObject<any>;
+
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
@@ -143,6 +148,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       height = DEFAULT_HEIGHT,
       appSection,
       isRefreshing,
+      inputRef,
     } = config;
     this.width = width;
     this.height = height;
@@ -159,6 +165,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.behaviors = behaviors;
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
+    this.inputRef = inputRef;
   }
 }
 
@@ -178,6 +185,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.behaviors,
     input => input.appSection,
     input => input.isRefreshing,
+    input => input.inputRef,
     (
       annotationData,
       datasource,
@@ -192,6 +200,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       behaviors,
       appSection,
       isRefreshing,
+      inputRef,
     ) =>
       new ChartProps({
         annotationData,
@@ -207,6 +216,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         behaviors,
         appSection,
         isRefreshing,
+        inputRef,
       }),
   );
 };
