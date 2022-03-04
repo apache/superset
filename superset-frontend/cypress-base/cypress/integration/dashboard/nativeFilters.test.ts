@@ -22,11 +22,7 @@ import {
   nativeFilters,
   exploreView,
 } from 'cypress/support/directories';
-import {
-  testItems,
-  WORLD_HEALTH_CHARTS,
-  waitForChartLoad,
-} from './dashboard.helper';
+import { testItems } from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
@@ -263,7 +259,6 @@ describe('Nativefilters Sanity test', () => {
       'Filter has default value',
       'Can select multiple values',
       'Filter value is required',
-      'Filter is hierarchical',
       'Select first filter value by default',
       'Inverse selection',
       'Dynamically search all filter values',
@@ -534,114 +529,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filterFromDashboardView.filterContent)
       .contains('year')
       .should('be.visible');
-  });
-  it('User can create parent filters using "Filter is hierarchical"', () => {
-    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    // Create region filter
-    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
-      .should('be.visible')
-      .click();
-    cy.get(nativeFilters.filtersPanel.filterTypeInput)
-      .find(nativeFilters.filtersPanel.filterTypeItem)
-      .click({ force: true });
-    cy.get('[label="Value"]').click();
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .click({ force: true })
-      .within(() =>
-        cy
-          .get('input')
-          .type('wb_health_population{enter}', { delay: 50, force: true }),
-      );
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.filterName)
-      .click({ force: true })
-      .clear()
-      .type('region', { scrollBehavior: false, force: true });
-    cy.wait(3000);
-    cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .should('be.visible')
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type('region');
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .last()
-      .should('be.visible', { timeout: 20000 })
-      .click({ force: true });
-    // Create country filter
-    cy.get(nativeFilters.addFilterButton.button)
-      .first()
-      .click({ force: true })
-      .then(() => {
-        cy.get(nativeFilters.addFilterButton.dropdownItem)
-          .contains('Filter')
-          .click({ force: true });
-      });
-    cy.get(nativeFilters.filtersPanel.filterTypeInput)
-      .find(nativeFilters.filtersPanel.filterTypeItem)
-      .last()
-      .click({ force: true });
-    cy.get('[label="Value"]').last().click({ force: true });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .last()
-      .click({ scrollBehavior: false })
-      .within(() =>
-        cy
-          .get('input')
-          .clear({ force: true })
-          .type('wb_health_population{enter}', {
-            delay: 50,
-            force: true,
-            scrollBehavior: false,
-          }),
-      );
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .should('be.visible')
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.filterName)
-      .last()
-      .click({ force: true })
-      .type('country', { scrollBehavior: false, force: true });
-    cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type('country_name', { delay: 50, scrollBehavior: false, force: true });
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .last()
-      .should('be.visible', { timeout: 20000 })
-      .click({ force: true });
-    // Setup parent filter
-    cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
-      () => {
-        cy.contains('Filter is hierarchical').should('be.visible').click();
-        cy.wait(1000);
-        cy.get(nativeFilters.filterConfigurationSections.parentFilterInput)
-          .click()
-          .type('region{enter}', { delay: 30 });
-      },
-    );
-    cy.get(nativeFilters.modal.footer)
-      .contains('Save')
-      .should('be.visible')
-      .click();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    // assert that native filter is created
-    cy.get(nativeFilters.filterFromDashboardView.filterName)
-      .should('be.visible')
-      .contains('region');
-    cy.get(nativeFilters.filterIcon).click();
-    cy.contains('Select parent filters (2)').should('be.visible');
   });
 });
 

@@ -32,5 +32,5 @@ export interface FilterCardRowProps {
 
 export interface DependencyValueProps {
   dependency: Filter;
-  label: string;
+  hasSeparator?: boolean;
 }

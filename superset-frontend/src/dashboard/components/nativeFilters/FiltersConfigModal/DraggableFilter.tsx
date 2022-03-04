@@ -39,7 +39,7 @@ const Container = styled.div<TitleContainerProps>`
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding:  ${theme.gridUnit}px
+    padding:  ${theme.gridUnit}px;
   `}
 `;
 
@@ -133,7 +133,7 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
   return (
     <Container ref={ref} isDragging={isDragging}>
       <DragIcon isDragging={isDragging} alt="Move icon" className="dragIcon" />
-      <div css={{ flexGrow: 4 }}>{children}</div>
+      <div css={{ flex: 1 }}>{children}</div>
     </Container>
   );
 };

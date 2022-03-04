@@ -76,7 +76,7 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
-  CASCADING_FILTERS,
+  ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
 import { FilterRemoval, NativeFiltersForm } from '../types';
@@ -95,6 +95,7 @@ import {
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
+import DependencyList from './DependencyList';
 
 const TabPane = styled(Tabs.TabPane)`
   padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
@@ -283,15 +284,13 @@ export interface FiltersConfigFormProps {
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
-  parentFilters: { id: string; title: string }[];
-  onFilterHierarchyChange: (
-    filterId: string,
-    parentFilter: { label: string; value: string },
-  ) => void;
+  getAvailableFilters: (filterId: string) => { label: string; value: string }[];
   handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
   activeFilterPanelKeys: string | string[];
   isActive: boolean;
   setErroredFilters: (f: (filters: string[]) => string[]) => void;
+  validateDependencies: () => void;
+  getDependencySuggestion: (filterId: string) => string;
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
@@ -324,12 +323,13 @@ const FiltersConfigForm = (
     filterToEdit,
     removedFilters,
     form,
-    parentFilters,
+    getAvailableFilters,
     activeFilterPanelKeys,
     restoreFilter,
-    onFilterHierarchyChange,
     handleActiveFilterPanelChange,
     setErroredFilters,
+    validateDependencies,
+    getDependencySuggestion,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -350,23 +350,8 @@ const FiltersConfigForm = (
   const formValues = form.getFieldValue('filters')?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
 
-  const parentFilterOptions = useMemo(
-    () =>
-      parentFilters.map(filter => ({
-        value: filter.id,
-        label: filter.title,
-      })),
-    [parentFilters],
-  );
-
-  const parentId =
-    formFilter?.parentFilter?.value || filterToEdit?.cascadeParentIds?.[0];
-
-  const parentFilter = parentFilterOptions.find(
-    ({ value }) => value === parentId,
-  );
-
-  const hasParentFilter = !!parentFilter;
+  const dependencies =
+    formFilter?.dependencies || filterToEdit?.cascadeParentIds;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -435,7 +420,9 @@ const FiltersConfigForm = (
     formFilter?.filterType,
   );
 
-  const isCascadingFilter = CASCADING_FILTERS.includes(formFilter?.filterType);
+  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
+    formFilter?.filterType,
+  );
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -625,32 +612,8 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  const ParentSelect = ({
-    value,
-    ...rest
-  }: {
-    value?: { value: string | number };
-  }) => {
-    const parentId = value?.value;
-    const isParentRemoved = parentId && removedFilters[parentId];
-    let options = parentFilterOptions;
-    if (isParentRemoved) {
-      options = [
-        { label: t('(deleted)'), value: parentId as string },
-        ...parentFilterOptions,
-      ];
-    }
-    return (
-      <Select
-        ariaLabel={t('Parent filter')}
-        placeholder={t('None')}
-        options={options}
-        allowClear
-        value={parentId}
-        {...rest}
-      />
-    );
-  };
+  const availableFilters = getAvailableFilters(filterId);
+  const hasAvailableFilters = availableFilters.length > 0;
 
   useEffect(() => {
     if (datasetId) {
@@ -862,51 +825,27 @@ const FiltersConfigForm = (
             header={FilterPanels.configuration.name}
             key={`${filterId}-${FilterPanels.configuration.key}`}
           >
-            {isCascadingFilter && (
-              <CleanFormItem name={['filters', filterId, 'hierarchicalFilter']}>
-                <CollapsibleControl
-                  title={t('Filter is hierarchical')}
-                  initialValue={hasParentFilter}
-                  onChange={checked => {
+            {canDependOnOtherFilters && hasAvailableFilters && (
+              <StyledRowFormItem
+                name={['filters', filterId, 'dependencies']}
+                initialValue={dependencies}
+              >
+                <DependencyList
+                  availableFilters={availableFilters}
+                  dependencies={dependencies}
+                  onDependenciesChange={dependencies => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      dependencies,
+                    });
+                    forceUpdate();
+                    validateDependencies();
                     formChanged();
-                    // execute after render
-                    setTimeout(() => {
-                      if (checked) {
-                        form.validateFields([
-                          ['filters', filterId, 'parentFilter'],
-                        ]);
-                      } else {
-                        setNativeFilterFieldValues(form, filterId, {
-                          parentFilter: undefined,
-                        });
-                      }
-                      onFilterHierarchyChange(
-                        filterId,
-                        checked
-                          ? form.getFieldValue('filters')[filterId].parentFilter
-                          : undefined,
-                      );
-                    }, 0);
                   }}
-                >
-                  <StyledRowSubFormItem
-                    name={['filters', filterId, 'parentFilter']}
-                    label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-                    initialValue={parentFilter}
-                    normalize={value => (value ? { value } : undefined)}
-                    data-test="parent-filter-input"
-                    required
-                    rules={[
-                      {
-                        required: true,
-                        message: t('Parent filter is required'),
-                      },
-                    ]}
-                  >
-                    <ParentSelect />
-                  </StyledRowSubFormItem>
-                </CollapsibleControl>
-              </CleanFormItem>
+                  getDependencySuggestion={() =>
+                    getDependencySuggestion(filterId)
+                  }
+                />
+              </StyledRowFormItem>
             )}
             {hasDataset && hasAdditionalFilters && (
               <CleanFormItem name={['filters', filterId, 'preFilter']}>

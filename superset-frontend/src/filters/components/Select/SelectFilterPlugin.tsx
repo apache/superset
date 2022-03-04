@@ -84,16 +84,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     appSection,
     showOverflow,
     parentRef,
+    inputRef,
   } = props;
   const {
     enableEmptyFilter,
     multiSelect,
     showSearch,
     inverseSelection,
-    inputRef,
     defaultToFirstItem,
     searchAllOptions,
   } = formData;
@@ -323,6 +324,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
+          onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
     </FilterPluginStyle>

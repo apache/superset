@@ -48,6 +48,10 @@ const StyledContainer = styled.div<{ checked: boolean }>`
   }
 `;
 
+const ChildrenContainer = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
 const CollapsibleControl = (props: CollapsibleControlProps) => {
   const {
     checked,
@@ -91,7 +95,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
           )}
         </>
       </Checkbox>
-      {isChecked && children}
+      {isChecked && <ChildrenContainer>{children}</ChildrenContainer>}
     </StyledContainer>
   );
 };

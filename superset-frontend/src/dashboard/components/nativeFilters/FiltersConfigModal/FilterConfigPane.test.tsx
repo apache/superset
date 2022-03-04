@@ -31,7 +31,7 @@ const defaultProps = {
   onRearrange: jest.fn(),
   restoreFilter: jest.fn(),
   currentFilterId: 'NATIVE_FILTER-1',
-  filterGroups: [['NATIVE_FILTER-2', 'NATIVE_FILTER-1'], ['NATIVE_FILTER-3']],
+  filters: ['NATIVE_FILTER-1', 'NATIVE_FILTER-2', 'NATIVE_FILTER-3'],
   removedFilters: {},
   erroredFilters: [],
 };
@@ -94,7 +94,7 @@ test('remove filter', async () => {
       }),
     );
   });
-  expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-2');
+  expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-1');
 });
 
 test('add filter', async () => {

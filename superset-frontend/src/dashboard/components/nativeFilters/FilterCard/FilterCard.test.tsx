@@ -246,7 +246,6 @@ describe('Filter Card', () => {
       };
       renderContent(filter);
       expect(screen.getByText('Scope')).toBeVisible();
-      expect(screen.getByText('Test chart 2')).toBeVisible();
       expect(
         screen.getByText(getTextInHTMLTags('Test chart 2, Test chart 3')),
       ).toBeVisible();

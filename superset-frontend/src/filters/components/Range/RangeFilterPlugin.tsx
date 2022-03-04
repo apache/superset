@@ -152,12 +152,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
+    inputRef,
   } = props;
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, inputRef, enableSingleValue } = formData;
+  const { groupby, defaultValue, enableSingleValue } = formData;
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -289,6 +291,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}
             onMouseLeave={unsetFocusedFilter}
+            onMouseDown={() => setFilterActive(true)}
+            onMouseUp={() => setFilterActive(false)}
           >
             {enableSingleMaxValue && (
               <Slider

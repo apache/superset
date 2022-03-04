@@ -46,6 +46,7 @@ import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
+import { noOp } from 'src/utils/common';
 import { FrameType } from './types';
 
 import {
@@ -173,6 +174,8 @@ interface DateFilterControlProps {
   value?: string;
   endpoints?: TimeRangeEndpoints;
   type?: Type;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
 }
 
 export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
@@ -181,7 +184,14 @@ export const getDateFilterControlTestId = testWithId(
 );
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints, onChange, type } = props;
+  const {
+    value = DEFAULT_TIME_RANGE,
+    endpoints,
+    onChange,
+    type,
+    onOpenPopover = noOp,
+    onClosePopover = noOp,
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -273,8 +283,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const togglePopover = () => {
     if (show) {
       onHide();
+      onClosePopover();
     } else {
-      setShow(true);
+      onOpen();
+      onOpenPopover();
     }
   };
 
@@ -372,11 +384,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         overlayStyle={overlayStyle}
       >
         <Tooltip placement="top" title={tooltipTitle}>
-          <Label
-            className="pointer"
-            data-test="time-range-trigger"
-            onClick={onOpen}
-          >
+          <Label className="pointer" data-test="time-range-trigger">
             {actualTimeRange}
           </Label>
         </Tooltip>

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, {
+  forwardRef,
   ReactElement,
   ReactNode,
   RefObject,
@@ -59,6 +60,7 @@ type PickedSelectProps = Pick<
   | 'onClear'
   | 'onFocus'
   | 'onBlur'
+  | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
   | 'value'
@@ -264,31 +266,35 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
  * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
-const Select = ({
-  allowNewOptions = false,
-  ariaLabel,
-  fetchOnlyOnSearch,
-  filterOption = true,
-  header = null,
-  invertSelection = false,
-  labelInValue = false,
-  lazyLoading = true,
-  loading,
-  mode = 'single',
-  name,
-  notFoundContent,
-  onError,
-  onChange,
-  onClear,
-  optionFilterProps = ['label', 'value'],
-  options,
-  pageSize = DEFAULT_PAGE_SIZE,
-  placeholder = t('Select ...'),
-  showSearch = true,
-  sortComparator = defaultSortComparator,
-  value,
-  ...props
-}: SelectProps) => {
+const Select = (
+  {
+    allowNewOptions = false,
+    ariaLabel,
+    fetchOnlyOnSearch,
+    filterOption = true,
+    header = null,
+    invertSelection = false,
+    labelInValue = false,
+    lazyLoading = true,
+    loading,
+    mode = 'single',
+    name,
+    notFoundContent,
+    onError,
+    onChange,
+    onClear,
+    onDropdownVisibleChange,
+    optionFilterProps = ['label', 'value'],
+    options,
+    pageSize = DEFAULT_PAGE_SIZE,
+    placeholder = t('Select ...'),
+    showSearch = true,
+    sortComparator = defaultSortComparator,
+    value,
+    ...props
+  }: SelectProps,
+  ref: RefObject<HTMLInputElement>,
+) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
@@ -616,6 +622,10 @@ const Select = ({
     if (!isSingleMode && isDropdownVisible) {
       handleTopOptions(selectValue);
     }
+
+    if (onDropdownVisibleChange) {
+      onDropdownVisibleChange(isDropdownVisible);
+    }
   };
 
   const dropdownRender = (
@@ -759,6 +769,7 @@ const Select = ({
             <StyledCheckOutlined iconSize="m" />
           )
         }
+        ref={ref}
         {...props}
       >
         {shouldUseChildrenOptions &&
@@ -779,4 +790,4 @@ const Select = ({
   );
 };
 
-export default Select;
+export default forwardRef(Select);

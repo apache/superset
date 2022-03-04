@@ -20,7 +20,7 @@ import React, { FC } from 'react';
 import {
   DataMaskState,
   FilterSet,
-  NativeFilterType,
+  isNativeFilter,
   styled,
   t,
   useTheme,
@@ -73,13 +73,13 @@ export type FiltersHeaderProps = {
 const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const filterValues = Object.values(filters).filter(
-    nativeFilter => nativeFilter.type === NativeFilterType.NATIVE_FILTER,
-  );
+  const filterValues = Object.values(filters).filter(isNativeFilter);
 
   let resultFilters = filterValues ?? [];
   if (filterSet?.nativeFilters) {
-    resultFilters = Object.values(filterSet?.nativeFilters);
+    resultFilters = Object.values(filterSet?.nativeFilters).filter(
+      isNativeFilter,
+    );
   }
 
   const getFiltersHeader = () => (

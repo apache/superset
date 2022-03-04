@@ -27,7 +27,7 @@ export const useFilterDependencies = (filter: Filter) => {
       return [];
     }
     return filterDependencyIds.reduce((acc: Filter[], filterDependencyId) => {
-      acc.push(state.nativeFilters.filters[filterDependencyId]);
+      acc.push(state.nativeFilters.filters[filterDependencyId] as Filter);
       return acc;
     }, []);
   });

@@ -456,7 +456,7 @@ export const mockQueryDataForCountries = [
 export const buildNativeFilter = (
   id: string,
   name: string,
-  parents: string[],
+  dependencies: string[],
 ) => ({
   id,
   controlValues: {
@@ -481,7 +481,7 @@ export const buildNativeFilter = (
     filterState: {},
     ownState: {},
   },
-  cascadeParentIds: parents,
+  cascadeParentIds: dependencies,
   scope: {
     rootPath: ['ROOT_ID'],
     excluded: [],

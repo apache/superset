@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, Filter, styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -74,7 +74,7 @@ const AddFiltersButtonContainer = styled.div`
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
