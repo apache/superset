@@ -35,8 +35,11 @@ serviceAccount:
 bootstrapScript: |
   #!/bin/bash
   rm -rf /var/lib/apt/lists/* && \
+  apt-get update && \
+  apt-get install -y libpq-dev && \
+  pip uninstall -y psycopg2-binary && \ 
+  pip install psycopg2 && \
   pip install \
-    psycopg2-binary==2.9.1 \
     redis==3.5.3 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
@@ -159,7 +162,7 @@ configMountPath: "/app/pythonpath"
 extraConfigMountPath: "/app/configs"
 
 image:
-  repository: apache/superset
+  repository: cachengo/superset
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -225,15 +228,15 @@ supersetNode:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     # Change in case of bringing your own redis and then also set redis.enabled:false
-    redis_host: '{{ template "superset.fullname" . }}-redis-headless'
+    redis_host: 'redis-server.redis-server'
     # redis_password: superset
     redis_port: "6379"
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
-    db_host: '{{ template "superset.fullname" . }}-postgresql'
+    db_host: 'postgres-service'
     db_port: "5432"
-    db_user: superset
-    db_pass: superset
-    db_name: superset
+    db_user: Y2l0dXN1c2Vy
+    db_pass: Y2l0dXNwYXNzd29yZA==
+    db_name: postgres
   env: {}
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
@@ -249,7 +252,7 @@ supersetNode:
   ## Annotations to be added to supersetNode pods
   podAnnotations: {}
   ## Labels to be added to supersetNode pods
-  podLabels: {}
+  # podLabels: {}
 ##
 ## Superset worker configuration
 supersetWorker:
@@ -271,7 +274,7 @@ supersetWorker:
   ## Annotations to be added to supersetWorker pods
   podAnnotations: {}
   ## Labels to be added to supersetWorker pods
-  podLabels: {}
+  # podLabels: {}
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
@@ -295,7 +298,7 @@ supersetCeleryBeat:
   ## Annotations to be added to supersetCeleryBeat pods
   podAnnotations: {}
   ## Labels to be added to supersetCeleryBeat pods
-  podLabels: {}
+  # podLabels: {}
 ##
 ## Init job configuration
 init:
@@ -364,7 +367,7 @@ postgresql:
   ##
   ## Use the PostgreSQL chart dependency.
   ## Set to false if bringing your own PostgreSQL.
-  enabled: true
+  enabled: false
   ##
   ## The name of an existing secret that contains the postgres password.
   existingSecret:
@@ -412,7 +415,7 @@ redis:
   ## If you are bringing your own redis, you can set the host in supersetNode.connections.redis_host
   ##
   ## Set to false if bringing your own redis.
-  enabled: true
+  enabled: false
   ##
   ## Set architecture to standalone/replication
   architecture: standalone
@@ -434,10 +437,13 @@ redis:
   master:
     ##
     ## Image configuration
-    # image:
+    image:
       ##
       ## docker registry secret names (list)
       # pullSecrets: nil
+      repository: redis
+      tag: latest
+      pullPolicy: IfNotPresent
     ##
     ## Configure persistance
     persistence:
