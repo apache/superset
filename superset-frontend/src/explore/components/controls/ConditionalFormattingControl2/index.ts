@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export * from './getColorFormatters2';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
+import ConditionalFormattingControl2 from './ConditionalFormattingControl';
+
+export * from './types';
+export default ConditionalFormattingControl2;

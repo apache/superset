@@ -27,7 +27,7 @@ import {
   smartDateFormatter,
   TimeFormats,
 } from '@superset-ui/core';
-import { getColorFormatters } from '@superset-ui/chart-controls';
+import { getColorFormatters2 } from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 
 const { DATABASE_DATETIME } = TimeFormats;
@@ -136,7 +136,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
-  const metricColorFormatters = getColorFormatters(conditionalFormatting, data);
+  const metricColorFormatters = getColorFormatters2(conditionalFormatting, data);
 
   return {
     width,
