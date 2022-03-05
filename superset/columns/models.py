@@ -100,3 +100,13 @@ class Column(
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
+
+    @property
+    # for backward compatibility
+    def is_dttm(self):
+        return self.is_temporal
+
+    @property
+    # for backward compatibility
+    def column_name(self):
+        return self.name

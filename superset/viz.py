@@ -469,7 +469,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
     def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
-
         try:
             self.run_extra_queries()
         except SupersetSecurityException as ex:

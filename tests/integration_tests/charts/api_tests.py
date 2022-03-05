@@ -28,6 +28,7 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.models import Dataset
 from superset.extensions import cache_manager, db
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -41,6 +42,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.tables import get_table_datasource
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
@@ -102,21 +104,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             db.session.commit()
 
     @pytest.fixture()
-    def create_table_datasource(self):
-        with self.create_app().app_context():
-            admin = self.get_user("admin")
-            table = Table(
-                database_id=db.session.query(Database).first().id, name="test_table"
-            )
-            db.session.add(table)
-            db.session.commit()
-            yield table
-
-            # rollback changes
-            db.session.delete(table)
-            db.session.commit()
-
-    @pytest.fixture()
     def create_charts_with_table(self):
         with self.create_app().app_context():
             charts = []
@@ -126,6 +113,38 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 charts.append(
                     self.insert_chart(
                         f"name{cx}", [admin.id], table.id, datasource_type=table.type
+                    )
+                )
+            fav_charts = []
+            for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
+                fav_star = FavStar(
+                    user_id=admin.id, class_name="slice", obj_id=charts[cx].id
+                )
+                db.session.add(fav_star)
+                db.session.commit()
+                fav_charts.append(fav_star)
+            yield charts
+
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            for fav_chart in fav_charts:
+                db.session.delete(fav_chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_charts_with_sl_dataset(self):
+        with self.create_app().app_context():
+            charts = []
+            admin = self.get_user("admin")
+            sl_dataset = db.session.query(Dataset).first()
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(
+                    self.insert_chart(
+                        f"name{cx}",
+                        [admin.id],
+                        sl_dataset.id,
+                        datasource_type=sl_dataset.type,
                     )
                 )
             fav_charts = []
@@ -497,7 +516,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         db.session.delete(model)
         db.session.commit()
 
-    @pytest.mark.usefixtures("create_table_datasource", "create_charts_with_table")
+    @pytest.mark.usefixtures("get_table_datasource", "create_charts_with_table")
     def test_create_chart_with_table(self):
         """
         Chart API: Test create chart with Table
@@ -514,6 +533,38 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "cache_timeout": 1000,
             "datasource_id": table_id,
             "datasource_type": "sl_table",
+            "dashboards": dashboards_ids,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.post_assert_metric(uri, chart_data, "post")
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Slice).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("get_table_datasource", "create_charts_with_sl_dataset")
+    def test_create_chart_with_sl_dataset(self):
+        """
+        Chart API: Test create chart with SL_Dataset
+        """
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        admin_id = self.get_user("admin").id
+        dataset = db.session.query(
+            Dataset
+        ).first()  # todo can we return this from the fixture?
+        chart_data = {
+            "slice_name": "name1",
+            "description": "description1",
+            "owners": [admin_id],
+            "viz_type": "viz_type1",
+            "params": "1234",
+            "cache_timeout": 1000,
+            "datasource_id": dataset.id,
+            "datasource_type": dataset.type,
             "dashboards": dashboards_ids,
             "certified_by": "John Doe",
             "certification_details": "Sample certification",

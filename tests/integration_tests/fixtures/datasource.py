@@ -17,8 +17,17 @@
 """Fixtures for test_datasource.py"""
 from typing import Any, Dict
 
+import pytest
+from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
+
+from superset.columns.models import Column as Sl_Column
+from superset.datasets.models import Dataset
+from superset.extensions import db
+from superset.models.core import Database
+from superset.tables.models import Table as SL_Table
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
+from tests.integration_tests.test_app import app
 
 
 def get_datasource_post() -> Dict[str, Any]:
@@ -159,3 +168,40 @@ def get_datasource_post() -> Dict[str, Any]:
             },
         ],
     }
+
+
+@pytest.fixture()
+def get_sl_dataset():
+    with app.app_context():
+        engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
+        meta = MetaData()
+
+        students = Table(
+            "students",
+            meta,
+            Column("id", Integer, primary_key=True),
+            Column("name", String),
+            Column("lastname", String),
+            Column("ds", Date),
+        )
+        meta.create_all(engine)
+
+        students.insert().values(name="George", ds="2021-01-01")
+
+        table = SL_Table(
+            database_id=db.session.query(Database).first().id, name="students"
+        )
+        table.columns = [Sl_Column(name="name", type="text", expression="name")]
+        students_ds = Dataset(
+            name="students_ds",
+            tables=[table],
+            columns=[Sl_Column(name="name", type="text", expression="name")],
+            expression="students",
+        )
+        db.session.add(table)
+        db.session.add(students_ds)
+        db.session.commit()
+        yield students_ds
+
+        # rollback changes
+        # todo

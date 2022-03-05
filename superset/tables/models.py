@@ -24,13 +24,16 @@ addition to a table, new models for columns, metrics, and datasets were also int
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-from typing import List, Optional
+from os import stat
+from typing import Any, Hashable, List, NamedTuple, Optional
 
+import pandas as pd
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.orm.query import Query
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql.selectable import Select
 
 from superset.columns.models import Column
 from superset.models.core import Database
@@ -39,6 +42,18 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
+from superset.typing import QueryObjectDict
+
+
+# todo - move this
+class SqlaQuery(NamedTuple):
+    applied_template_filters: List[str]
+    query: Query = None
+    status: str = None
+    errors = []
+    df = pd.DataFrame()
+    empty = False
+
 
 association_table = sa.Table(
     "sl_table_columns",
@@ -59,11 +74,13 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # not exist in the migrations. The reason it does not physically exist is MySQL,
     # PostgreSQL, etc. have a different interpretation of uniqueness when it comes to NULL
     # which is problematic given the catalog and schema are optional.
-    __table_args__ = (UniqueConstraint("database_id", "catalog", "schema", "name"),)
+    __table_args__ = (UniqueConstraint(
+        "database_id", "catalog", "schema", "name"),)
 
     id = sa.Column(sa.Integer, primary_key=True)
 
-    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database_id = sa.Column(
+        sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
     database: Database = relationship(
         "Database",
         # TODO (betodealmeida): rename the backref to ``tables`` once we get rid of the
@@ -89,16 +106,19 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
 
     # Column is managed externally and should be read-only inside Superset
-    is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
+    is_managed_externally = sa.Column(
+        sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
     type = "sl_table"
+    is_rls_supported = True
+
+    # todo: (eschutho) setting to a very large number
+    # because there is no cache
+    cache_timeout = 1000000000000
 
     @staticmethod
-    def default_query(qry: Query) -> Query:
+    def default_query(qry: SqlaQuery) -> SqlaQuery:
         return qry
-        # self.database.select_star(
-        #     self.table_name, schema=self.schema, show_cols=False, latest_partition=False
-        # )
 
     @property
     def perm(self) -> Optional[str]:
@@ -113,3 +133,28 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     def get_schema_perm(self) -> Optional[str]:
         return self.schema_perm
+
+    @property
+    def uid(self) -> str:  # from BaseDatasource
+        """Unique id across datasource types"""
+        return f"{self.id}__{self.type}"
+
+    def get_extra_cache_keys(  # pylint: disable=no-self-use
+        self, query_obj: QueryObjectDict  # pylint: disable=unused-argument
+    ) -> List[Hashable]:
+        """If a datasource needs to provide additional keys for calculation of
+        cache keys, those can be provided via this method
+
+        :param query_obj: The dict representation of a query object
+        :return: list of keys
+        """
+        return []
+
+    @property
+    def column_names(self) -> List[str]:  # from BaseDatasource (modified)
+        return sorted([c.column_name for c in self.columns], key=lambda x: x or "")
+
+    def query_class(
+        mapper=None, session=None
+    ):  # todo this should be extending form the sqlalchemy model
+        return SqlaQuery

@@ -23,6 +23,7 @@ import html
 import io
 import json
 import logging
+from superset.datasets.models import Dataset
 from typing import Dict, List
 from urllib.parse import quote
 
@@ -49,6 +50,8 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
 )
+from tests.integration_tests.fixtures.tables import get_table_datasource
+from tests.integration_tests.fixtures.datasource import get_sl_dataset
 from tests.integration_tests.test_app import app
 import superset.views.utils
 from superset import (
@@ -59,6 +62,7 @@ from superset import (
 )
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
+from superset.tables.models import Table
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
@@ -90,6 +94,13 @@ class TestCore(SupersetTestCase):
         db.session.query(models.Log).delete()
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
+        }
+        self.sl_table_ids = {
+            sl_tbl.name: sl_tbl.id for sl_tbl in (db.session.query(Table).all())
+        }
+        self.sl_dataset_ids = {
+            sl_dataset.name: sl_dataset.id
+            for sl_dataset in (db.session.query(Dataset).all())
         }
         self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
@@ -1215,6 +1226,51 @@ class TestCore(SupersetTestCase):
 
         self.assertEqual(rv.status_code, 404)
         self.assertEqual(data["error"], "Cached data not found")
+
+    @pytest.mark.usefixtures("get_table_datasource")
+    def test_explore_json_with_table_dataset(self):
+        dataset_id = self.sl_dataset_ids.get("students")
+        form_data = {
+            "datasource": f"{dataset_id}__sl_table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["name"],
+            "row_limit": 100,
+        }
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+
+    @pytest.mark.usefixtures("get_sl_dataset")
+    def test_explore_json_with_sl_dataset(self):
+        tbl_id = self.sl_table_ids.get("students")
+        form_data = {
+            "datasource": f"{tbl_id}__sl_dataset",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["name"],
+            "row_limit": 100,
+        }
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        print(rv.get_data())
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
 
     @mock.patch(
         "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
