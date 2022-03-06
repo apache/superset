@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, useTheme } from '@superset-ui/core';
+import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
-import { Dropdown, MainNav as Menu } from 'src/common/components';
-import { NativeFilterType } from '../types';
+import { AntdDropdown } from 'src/components';
+import { MainNav as Menu } from 'src/components/Menu';
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
 
@@ -32,31 +32,17 @@ interface Props {
   onAdd: (type: NativeFilterType) => void;
   removedFilters: Record<string, FilterRemoval>;
   currentFilterId: string;
-  filterGroups: string[][];
+  filters: string[];
   erroredFilters: string[];
 }
-
-const StyledPlusButton = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
-
-const StyledHeader = styled.div`
-  ${({ theme }) => `
-    color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.l}px;
-    padding-top: ${theme.gridUnit * 4}px;
-    padding-right: ${theme.gridUnit * 4}px;
-    padding-left: ${theme.gridUnit * 4}px;
-    padding-bottom: ${theme.gridUnit * 2}px;
-  `}
-`;
 
 const StyledAddBox = styled.div`
   ${({ theme }) => `
   cursor: pointer;
   margin: ${theme.gridUnit * 4}px;
+  color: ${theme.colors.primary.base};
   &:hover {
-    color: ${theme.colors.primary.base};
+    color: ${theme.colors.primary.dark1};
   }
 `}
 `;
@@ -74,7 +60,7 @@ const FilterTitlePane: React.FC<Props> = ({
   onRearrage,
   restoreFilter,
   currentFilterId,
-  filterGroups,
+  filters,
   removedFilters,
   erroredFilters,
 }) => {
@@ -104,7 +90,17 @@ const FilterTitlePane: React.FC<Props> = ({
   );
   return (
     <TabsContainer>
-      <StyledHeader>Filters</StyledHeader>
+      <AntdDropdown
+        overlay={menu}
+        arrow
+        placement="topLeft"
+        trigger={['hover']}
+      >
+        <StyledAddBox>
+          <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
+          <span>{t('Add filters and dividers')}</span>
+        </StyledAddBox>
+      </AntdDropdown>
       <div
         css={{
           height: '100%',
@@ -113,7 +109,7 @@ const FilterTitlePane: React.FC<Props> = ({
         }}
       >
         <FilterTitleContainer
-          filterGroups={filterGroups}
+          filters={filters}
           currentFilterId={currentFilterId}
           removedFilters={removedFilters}
           getFilterTitle={getFilterTitle}
@@ -124,15 +120,6 @@ const FilterTitlePane: React.FC<Props> = ({
           restoreFilter={restoreFilter}
         />
       </div>
-      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
-        <StyledAddBox>
-          <StyledPlusButton
-            data-test="new-dropdown-icon"
-            className="fa fa-plus"
-          />{' '}
-          <span>{t('Add')}</span>
-        </StyledAddBox>
-      </Dropdown>
     </TabsContainer>
   );
 };

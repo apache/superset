@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { NativeFilterType, styled } from '@superset-ui/core';
 import React from 'react';
-import { NativeFilterType } from '../types';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 
@@ -32,7 +31,7 @@ interface Props {
   erroredFilters: string[];
   restoreFilter: (id: string) => void;
   currentFilterId: string;
-  filterGroups: string[][];
+  filters: string[];
   removedFilters: Record<string, FilterRemoval>;
 }
 
@@ -61,16 +60,16 @@ const FiltureConfigurePane: React.FC<Props> = ({
   erroredFilters,
   children,
   currentFilterId,
-  filterGroups,
+  filters,
   removedFilters,
 }) => {
-  const active = filterGroups.flat().filter(id => id === currentFilterId)[0];
+  const active = filters.filter(id => id === currentFilterId)[0];
   return (
     <Container>
       <TitlesContainer>
         <FilterTitlePane
           currentFilterId={currentFilterId}
-          filterGroups={filterGroups}
+          filters={filters}
           removedFilters={removedFilters}
           erroredFilters={erroredFilters}
           getFilterTitle={getFilterTitle}
@@ -82,7 +81,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
         />
       </TitlesContainer>
       <ContentHolder>
-        {filterGroups.flat().map(id => (
+        {filters.map(id => (
           <div
             key={id}
             style={{

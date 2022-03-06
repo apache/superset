@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/embedded-sdk",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.3",
   "description": "SDK for embedding resources from Superset into your own application",
   "access": "public",
   "keywords": [
@@ -22,7 +22,7 @@
   "module": "lib/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc & babel src --out-dir lib --extensions '.ts,.tsx' & webpack --mode production",
+    "build": "tsc ; babel src --out-dir lib --extensions '.ts,.tsx' ; webpack --mode production",
     "ci:release": "node ./release-if-necessary.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -32,6 +32,9 @@
     "last 3 safari versions",
     "last 3 edge versions"
   ],
+  "dependencies": {
+    "@superset-ui/switchboard": "^0.18.26-0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.16.8",
     "@babel/core": "^7.16.12",

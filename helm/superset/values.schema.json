@@ -111,6 +111,26 @@
         "imagePullSecrets": {
             "type": "array"
         },
+        "initImage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
+                }
+            },
+            "required": [
+                "repository",
+                "tag",
+                "pullPolicy"
+            ]
+        },
         "service": {
             "type": "object",
             "additionalProperties": false,
@@ -148,6 +168,9 @@
                 },
                 "pathType": {
                     "type": "string"
+                },
+                "ingressClassName": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.networking.v1.IngressSpec/properties/ingressClassName"
                 },
                 "hosts": {
                     "type": "array",
@@ -203,6 +226,9 @@
                         "redis_host": {
                             "type": "string"
                         },
+                        "redis_password": {
+                            "type": "string"
+                        },
                         "redis_port": {
                             "type": "string"
                         },
@@ -246,6 +272,9 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 }
             },
             "required": [
@@ -273,6 +302,9 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 }
             },
             "required": [
@@ -301,6 +333,9 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
                 }
             },
             "required": [
@@ -453,23 +488,28 @@
                 "enabled": {
                     "type": "boolean"
                 },
-                "usePassword": {
-                    "type": "boolean"
-                },
-                "existingSecret": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecretKey": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "password": {
+                "architecture": {
                     "type": "string"
+                },
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "existingSecret": {
+                            "type": "string"
+                        },
+                        "existingSecretKey": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "enabled"
+                    ]
                 },
                 "master": {
                     "type": "object",
@@ -516,9 +556,8 @@
             },
             "required": [
                 "enabled",
-                "usePassword",
-                "master",
-                "cluster"
+                "architecture",
+                "master"
             ]
         },
         "nodeSelector": {

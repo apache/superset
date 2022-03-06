@@ -46,7 +46,7 @@ import { RootState } from 'src/dashboard/types';
 import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
-import { useCascadingFilters } from './state';
+import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
@@ -70,10 +70,11 @@ const FilterValue: React.FC<FilterProps> = ({
   inView = true,
   showOverflow,
   parentRef,
+  setFilterActive,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
-  const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
+  const dependencies = useFilterDependencies(id, dataMaskSelected);
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
   );
@@ -109,9 +110,8 @@ const FilterValue: React.FC<FilterProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
-      cascadingFilters,
+      dependencies,
       groupby,
-      inputRef,
       adhoc_filters,
       time_range,
     });
@@ -184,7 +184,7 @@ const FilterValue: React.FC<FilterProps> = ({
     }
   }, [
     inViewFirstTime,
-    cascadingFilters,
+    dependencies,
     datasetId,
     groupby,
     JSON.stringify(filter),
@@ -195,13 +195,8 @@ const FilterValue: React.FC<FilterProps> = ({
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {
-      // wait for Cascade Popover to open
-      const timeout = setTimeout(() => {
-        inputRef?.current?.focus();
-      }, 200);
-      return () => clearTimeout(timeout);
+      inputRef?.current?.focus();
     }
-    return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
   const setDataMask = useCallback(
@@ -219,8 +214,13 @@ const FilterValue: React.FC<FilterProps> = ({
   );
 
   const hooks = useMemo(
-    () => ({ setDataMask, setFocusedFilter, unsetFocusedFilter }),
-    [setDataMask, setFocusedFilter, unsetFocusedFilter],
+    () => ({
+      setDataMask,
+      setFocusedFilter,
+      unsetFocusedFilter,
+      setFilterActive,
+    }),
+    [setDataMask, setFilterActive, setFocusedFilter, unsetFocusedFilter],
   );
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -257,6 +257,7 @@ const FilterValue: React.FC<FilterProps> = ({
           showOverflow={showOverflow}
           formData={formData}
           parentRef={parentRef}
+          inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : queriesDataPlaceholder}
           chartType={filterType}

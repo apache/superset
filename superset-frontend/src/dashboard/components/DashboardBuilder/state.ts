@@ -27,7 +27,6 @@ import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
@@ -44,7 +43,7 @@ export const useNativeFilters = () => {
   );
 
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
 
   const nativeFiltersEnabled =
     showNativeFilters &&

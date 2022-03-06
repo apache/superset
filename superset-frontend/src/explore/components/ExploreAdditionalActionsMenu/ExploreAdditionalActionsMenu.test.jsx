@@ -21,7 +21,8 @@ import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
 
 const mockStore = configureStore([thunk]);
@@ -51,7 +52,7 @@ describe('ExploreAdditionalActionsMenu', () => {
     const wrapper = mount(
       <ExploreAdditionalActionsMenu store={store} {...defaultProps} />,
     );
-    const dropdown = wrapper.find(Dropdown);
+    const dropdown = wrapper.find(AntdDropdown);
     const menu = shallow(<div>{dropdown.prop('overlay')}</div>);
     const menuItems = menu.find(Menu.Item);
     expect(menuItems).toHaveLength(3);

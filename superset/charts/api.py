@@ -845,7 +845,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing charts?
                       type: boolean
           responses:
             200:

@@ -31,11 +31,11 @@ describe('SqlLab query tabs', () => {
       cy.get('[data-test="sql-editor-tabs"]')
         .children()
         .eq(0)
-        .contains(`Untitled Query ${initialTabCount + 1}`);
+        .contains(`Untitled Query ${initialTabCount}`);
       cy.get('[data-test="sql-editor-tabs"]')
         .children()
         .eq(0)
-        .contains(`Untitled Query ${initialTabCount + 2}`);
+        .contains(`Untitled Query ${initialTabCount + 1}`);
     });
   });
 

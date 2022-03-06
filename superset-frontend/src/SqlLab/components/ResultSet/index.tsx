@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import moment from 'moment';
-import { RadioChangeEvent } from 'antd/lib/radio';
+import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
@@ -527,13 +527,9 @@ export default class ResultSet extends React.PureComponent<
           />
           <ResultSetButtons>
             {this.props.visualize &&
-              this.props.database &&
-              this.props.database.allows_virtual_table_explore && (
+              this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={this.props.query}
                   database={this.props.database}
-                  actions={this.props.actions}
                   onClick={this.handleExploreBtnClick}
                 />
               )}
@@ -554,6 +550,7 @@ export default class ResultSet extends React.PureComponent<
                   <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
+              hideTooltip
             />
           </ResultSetButtons>
           {this.props.search && (
@@ -730,11 +727,10 @@ export default class ResultSet extends React.PureComponent<
                   </Button>
                   <ExploreCtasResultsButton
                     // @ts-ignore Redux types are difficult to work with, ignoring for now
+                    actions={this.props.actions}
                     table={tempTable}
                     schema={tempSchema}
                     dbId={exploreDBId}
-                    database={this.props.database}
-                    actions={this.props.actions}
                   />
                 </ButtonGroup>
               </>

@@ -20,7 +20,12 @@
 // when its container size changes, due to e.g., builder side panel opening
 import React, { FC, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  Filter,
+  Filters,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -31,7 +36,6 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { Filters } from '../../reducers/types';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
@@ -69,11 +73,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
-  const filterScopes = Object.values(nativeFilters ?? {}).map(filter => ({
-    id: filter.id,
-    scope: filter.scope,
-    type: filter.type,
-  }));
+  const filterScopes = Object.values(nativeFilters ?? {}).map(
+    (filter: Filter) => ({
+      id: filter.id,
+      scope: filter.scope,
+      type: filter.type,
+    }),
+  );
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
@@ -93,7 +99,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {
           scope: scope.rootPath,
-          // @ts-ignore
           immune: scope.excluded,
         },
       });

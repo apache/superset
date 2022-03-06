@@ -59,6 +59,18 @@ export const URL_PARAMS = {
     name: 'form_data_key',
     type: 'string',
   },
+  sliceId: {
+    name: 'slice_id',
+    type: 'string',
+  },
+  datasetId: {
+    name: 'dataset_id',
+    type: 'string',
+  },
+  force: {
+    name: 'force',
+    type: 'boolean',
+  },
 } as const;
 
 /**

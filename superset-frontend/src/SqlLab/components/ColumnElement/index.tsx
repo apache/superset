@@ -75,6 +75,10 @@ interface ColumnElementProps {
   };
 }
 
+const NowrapDiv = styled.div`
+  white-space: nowrap;
+`;
+
 const ColumnElement = ({ column }: ColumnElementProps) => {
   let columnName: React.ReactNode = column.name;
   let icons;
@@ -105,9 +109,9 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
         {columnName}
         {icons}
       </div>
-      <div className="pull-right text-muted">
+      <NowrapDiv className="pull-right text-muted">
         <small> {column.type}</small>
-      </div>
+      </NowrapDiv>
     </div>
   );
 };
