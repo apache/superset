@@ -39,7 +39,7 @@ from typing import (
     Union,
 )
 from urllib.error import URLError
-
+from flask_babel import force_locale
 import croniter
 import simplejson as json
 from celery.app.task import Task
@@ -320,63 +320,64 @@ def deliver_dashboard(  # pylint: disable=too-many-locals
 def _get_slice_data(
     slc: Slice, delivery_type: EmailDeliveryType, session: Session
 ) -> ReportContent:
-    slice_url = _get_url_path(
-        "Superset.explore_json", csv="true", form_data=json.dumps({"slice_id": slc.id})
-    )
-
-    # URL to include in the email
-    slice_url_user_friendly = _get_url_path(
-        "Superset.slice", slice_id=slc.id, user_friendly=True
-    )
-
-    # Login on behalf of the "reports" user in order to get cookies to deal with auth
-    auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-        get_reports_user(session)
-    )
-    # Build something like "session=cool_sess.val;other-cookie=awesome_other_cookie"
-    cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
-
-    opener = urllib.request.build_opener()
-    opener.addheaders.append(("Cookie", cookie_str))
-    response = opener.open(slice_url)
-    if response.getcode() != 200:
-        raise URLError(response.getcode())
-
-    # TODO: Move to the csv module
-    content = response.read()
-    rows = [r.split(b",") for r in content.splitlines()]
-
-    if delivery_type == EmailDeliveryType.inline:
-        data = None
-
-        # Parse the csv file and generate HTML
-        columns = rows.pop(0)
-        with app.app_context():
-            body = render_template(
-                "superset/reports/slice_data.html",
-                columns=columns,
-                rows=rows,
-                name=slc.slice_name,
-                link=slice_url_user_friendly,
-            )
-
-    elif delivery_type == EmailDeliveryType.attachment:
-        data = {__("%(name)s.csv", name=slc.slice_name): content}
-        body = __(
-            '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
-            name=slc.slice_name,
-            url=slice_url_user_friendly,
+    with force_locale(config.BABEL_DEFAULT_LOCALE):
+        slice_url = _get_url_path(
+            "Superset.explore_json", csv="true", form_data=json.dumps({"slice_id": slc.id})
         )
 
-    # how to: https://api.slack.com/reference/surfaces/formatting
-    slack_message = __(
-        """
-        *%(slice_name)s*\n
-        <%(slice_url_user_friendly)s|Explore in Superset>
-        """,
-        slice_name=slc.slice_name,
-        slice_url_user_friendly=slice_url_user_friendly,
-    )
+        # URL to include in the email
+        slice_url_user_friendly = _get_url_path(
+            "Superset.slice", slice_id=slc.id, user_friendly=True
+        )
+
+        # Login on behalf of the "reports" user in order to get cookies to deal with auth
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
+            get_reports_user(session)
+        )
+        # Build something like "session=cool_sess.val;other-cookie=awesome_other_cookie"
+        cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
+
+        opener = urllib.request.build_opener()
+        opener.addheaders.append(("Cookie", cookie_str))
+        response = opener.open(slice_url)
+        if response.getcode() != 200:
+            raise URLError(response.getcode())
+
+        # TODO: Move to the csv module
+        content = response.read()
+        rows = [r.split(b",") for r in content.splitlines()]
+
+        if delivery_type == EmailDeliveryType.inline:
+            data = None
+
+            # Parse the csv file and generate HTML
+            columns = rows.pop(0)
+            with app.app_context():
+                body = render_template(
+                    "superset/reports/slice_data.html",
+                    columns=columns,
+                    rows=rows,
+                    name=slc.slice_name,
+                    link=slice_url_user_friendly,
+                )
+
+        elif delivery_type == EmailDeliveryType.attachment:
+            data = {__("%(name)s.csv", name=slc.slice_name): content}
+            body = __(
+                '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
+                name=slc.slice_name,
+                url=slice_url_user_friendly,
+            )
+
+        # how to: https://api.slack.com/reference/surfaces/formatting
+        slack_message = __(
+            """
+            *%(slice_name)s*\n
+            <%(slice_url_user_friendly)s|Explore in Superset>
+            """,
+            slice_name=slc.slice_name,
+            slice_url_user_friendly=slice_url_user_friendly,
+        )
 
     return ReportContent(body, data, None, slack_message, content)
 
