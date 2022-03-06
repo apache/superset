@@ -215,7 +215,7 @@ const RightMenu = ({
                   >
                     {menu.childs.map((item, idx) =>
                       typeof item !== 'string' && item.name && item.perm ? (
-                        <>
+                        <div key={item.label}>
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>
                             {item.url ? (
@@ -224,7 +224,7 @@ const RightMenu = ({
                               item.label
                             )}
                           </Menu.Item>
-                        </>
+                        </div>
                       ) : null,
                     )}
                   </SubMenu>
