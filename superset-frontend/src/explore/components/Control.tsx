@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useCallback, useState } from 'react';
+import React, { ReactNode, useCallback, useState, useEffect } from 'react';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
@@ -44,6 +44,7 @@ export type ControlProps = {
   validationErrors?: any[];
   hidden?: boolean;
   renderTrigger?: boolean;
+  default?: JsonValue;
 };
 
 /**
@@ -65,6 +66,12 @@ export default function Control(props: ControlProps) {
     (value: any, errors: any[]) => setControlValue(name, value, errors),
     [name, setControlValue],
   );
+
+  useEffect(() => {
+    if (hidden && props.default) {
+      setControlValue(name, props.default);
+    }
+  }, [name, hidden, setControlValue, props.default]);
 
   if (!type) return null;
 
