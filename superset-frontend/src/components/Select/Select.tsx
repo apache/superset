@@ -17,10 +17,10 @@
  * under the License.
  */
 import React, {
+  forwardRef,
   ReactElement,
   ReactNode,
   RefObject,
-  KeyboardEvent,
   UIEvent,
   useEffect,
   useMemo,
@@ -40,7 +40,8 @@ import { isEqual } from 'lodash';
 import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { hasOption } from './utils';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import { hasOption, hasOptionIgnoreCase } from './utils';
 
 const { Option } = AntdSelect;
 
@@ -58,17 +59,14 @@ type PickedSelectProps = Pick<
   | 'onChange'
   | 'onClear'
   | 'onFocus'
+  | 'onBlur'
+  | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
   | 'value'
 >;
 
-type OptionsProps = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export interface OptionsType extends Omit<OptionsProps, 'label'> {
-  label?: string;
-  customLabel?: ReactNode;
-}
+export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
 
 export type OptionsTypePage = {
   data: OptionsType;
@@ -220,7 +218,6 @@ const StyledLoadingText = styled.div`
 
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const DEBOUNCE_TIMEOUT = 500;
 const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
 
@@ -252,6 +249,9 @@ export const propertyComparator =
     return (a[property] as number) - (b[property] as number);
   };
 
+const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
+  `${value};${page};${pageSize}`;
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -266,31 +266,35 @@ export const propertyComparator =
  * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
-const Select = ({
-  allowNewOptions = false,
-  ariaLabel,
-  fetchOnlyOnSearch,
-  filterOption = true,
-  header = null,
-  invertSelection = false,
-  labelInValue = false,
-  lazyLoading = true,
-  loading,
-  mode = 'single',
-  name,
-  notFoundContent,
-  onError,
-  onChange,
-  onClear,
-  optionFilterProps = ['label', 'value'],
-  options,
-  pageSize = DEFAULT_PAGE_SIZE,
-  placeholder = t('Select ...'),
-  showSearch = true,
-  sortComparator = defaultSortComparator,
-  value,
-  ...props
-}: SelectProps) => {
+const Select = (
+  {
+    allowNewOptions = false,
+    ariaLabel,
+    fetchOnlyOnSearch,
+    filterOption = true,
+    header = null,
+    invertSelection = false,
+    labelInValue = false,
+    lazyLoading = true,
+    loading,
+    mode = 'single',
+    name,
+    notFoundContent,
+    onError,
+    onChange,
+    onClear,
+    onDropdownVisibleChange,
+    optionFilterProps = ['label', 'value'],
+    options,
+    pageSize = DEFAULT_PAGE_SIZE,
+    placeholder = t('Select ...'),
+    showSearch = true,
+    sortComparator = defaultSortComparator,
+    value,
+    ...props
+  }: SelectProps,
+  ref: RefObject<HTMLInputElement>,
+) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
@@ -305,7 +309,6 @@ const Select = ({
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
-  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -318,6 +321,7 @@ const Select = ({
     : allowNewOptions
     ? 'tags'
     : 'multiple';
+  const allowFetch = !fetchOnlyOnSearch || searchedValue;
 
   // TODO: Don't assume that isAsync is always labelInValue
   const handleTopOptions = useCallback(
@@ -478,18 +482,16 @@ const Select = ({
   );
 
   const handlePaginatedFetch = useMemo(
-    () => (value: string, page: number, pageSize: number) => {
+    () => (value: string, page: number) => {
       if (allValuesLoaded) {
         setIsLoading(false);
-        setIsTyping(false);
         return;
       }
-      const key = `${value};${page};${pageSize}`;
+      const key = getQueryCacheKey(value, page, pageSize);
       const cachedCount = fetchedQueries.current.get(key);
-      if (cachedCount) {
+      if (cachedCount !== undefined) {
         setTotalCount(cachedCount);
         setIsLoading(false);
-        setIsTyping(false);
         return;
       }
       setIsLoading(true);
@@ -510,39 +512,56 @@ const Select = ({
         .catch(internalOnError)
         .finally(() => {
           setIsLoading(false);
-          setIsTyping(false);
         });
     },
-    [allValuesLoaded, fetchOnlyOnSearch, handleData, internalOnError, options],
+    [
+      allValuesLoaded,
+      fetchOnlyOnSearch,
+      handleData,
+      internalOnError,
+      options,
+      pageSize,
+    ],
   );
 
-  const handleOnSearch = useMemo(
+  const debouncedHandleSearch = useMemo(
     () =>
       debounce((search: string) => {
-        const searchValue = search.trim();
-        if (allowNewOptions && isSingleMode) {
-          const newOption = searchValue &&
-            !hasOption(searchValue, selectOptions) && {
-              label: searchValue,
-              value: searchValue,
-            };
-          const newOptions = newOption
-            ? [
-                newOption,
-                ...selectOptions.filter(opt => opt.value !== searchedValue),
-              ]
-            : [...selectOptions.filter(opt => opt.value !== searchedValue)];
-
-          setSelectOptions(newOptions);
-        }
-
-        if (!searchValue || searchValue === searchedValue) {
-          setIsTyping(false);
-        }
-        setSearchedValue(searchValue);
-      }, DEBOUNCE_TIMEOUT),
-    [allowNewOptions, isSingleMode, searchedValue, selectOptions],
+        // async search will be triggered in handlePaginatedFetch
+        setSearchedValue(search);
+      }, SLOW_DEBOUNCE),
+    [],
   );
+
+  const handleOnSearch = (search: string) => {
+    const searchValue = search.trim();
+    if (allowNewOptions && isSingleMode) {
+      const newOption = searchValue &&
+        !hasOptionIgnoreCase(searchValue, selectOptions) && {
+          label: searchValue,
+          value: searchValue,
+          isNewOption: true,
+        };
+      const cleanSelectOptions = selectOptions.filter(
+        opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+      );
+      const newOptions = newOption
+        ? [newOption, ...cleanSelectOptions]
+        : cleanSelectOptions;
+      setSelectOptions(newOptions);
+    }
+    if (
+      isAsync &&
+      !allValuesLoaded &&
+      loadingEnabled &&
+      !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
+    ) {
+      // if fetch only on search but search value is empty, then should not be
+      // in loading state
+      setIsLoading(!(fetchOnlyOnSearch && !searchValue));
+    }
+    return debouncedHandleSearch(search);
+  };
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
@@ -552,7 +571,7 @@ const Select = ({
 
     if (!isLoading && isAsync && hasMoreData && thresholdReached) {
       const newPage = page + 1;
-      handlePaginatedFetch(searchedValue, newPage, pageSize);
+      handlePaginatedFetch(searchedValue, newPage);
       setPage(newPage);
     }
   };
@@ -581,14 +600,31 @@ const Select = ({
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
     setIsDropdownVisible(isDropdownVisible);
 
-    if (isAsync && !loadingEnabled) {
-      setLoadingEnabled(true);
+    if (isAsync) {
+      // loading is enabled when dropdown is open,
+      // disabled when dropdown is closed
+      if (loadingEnabled !== isDropdownVisible) {
+        setLoadingEnabled(isDropdownVisible);
+      }
+      // when closing dropdown, always reset loading state
+      if (!isDropdownVisible && isLoading) {
+        // delay is for the animation of closing the dropdown
+        // so the dropdown doesn't flash between "Loading..." and "No data"
+        // before closing.
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 250);
+      }
     }
 
     // multiple or tags mode keep the dropdown visible while selecting options
     // this waits for the dropdown to be opened before sorting the top options
     if (!isSingleMode && isDropdownVisible) {
       handleTopOptions(selectValue);
+    }
+
+    if (onDropdownVisibleChange) {
+      onDropdownVisibleChange(isDropdownVisible);
     }
   };
 
@@ -598,19 +634,15 @@ const Select = ({
     if (!isDropdownVisible) {
       originNode.ref?.current?.scrollTo({ top: 0 });
     }
-    if ((isLoading && selectOptions.length === 0) || isTyping) {
+    if (isLoading && selectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
     }
     return error ? <Error error={error} /> : originNode;
   };
 
-  const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key.length === 1 && isAsync && !isTyping) {
-      setIsTyping(true);
-    }
-  };
-
-  const SuffixIcon = () => {
+  // use a function instead of component since every rerender of the
+  // Select component will create a new component
+  const getSuffixIcon = () => {
     if (isLoading) {
       return <StyledSpin size="small" />;
     }
@@ -672,22 +704,24 @@ const Select = ({
   }, [labelInValue, isAsync, selectValue]);
 
   // Stop the invocation of the debounced function after unmounting
-  useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+  useEffect(
+    () => () => {
+      debouncedHandleSearch.cancel();
+    },
+    [debouncedHandleSearch],
+  );
 
   useEffect(() => {
-    const allowFetch = !fetchOnlyOnSearch || searchedValue;
     if (isAsync && loadingEnabled && allowFetch) {
-      const page = 0;
-      handlePaginatedFetch(searchedValue, page, pageSize);
-      setPage(page);
+      handlePaginatedFetch(searchedValue, 0);
+      setPage(0);
     }
   }, [
     isAsync,
     searchedValue,
-    pageSize,
     handlePaginatedFetch,
     loadingEnabled,
-    fetchOnlyOnSearch,
+    allowFetch,
   ]);
 
   useEffect(() => {
@@ -713,16 +747,9 @@ const Select = ({
         labelInValue={isAsync || labelInValue}
         maxTagCount={MAX_TAG_COUNT}
         mode={mappedMode}
-        notFoundContent={
-          allowNewOptions && !fetchOnlyOnSearch ? (
-            <StyledLoadingText>{t('Loading...')}</StyledLoadingText>
-          ) : (
-            notFoundContent
-          )
-        }
+        notFoundContent={isLoading ? t('Loading...') : notFoundContent}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onInputKeyDown={onInputKeyDown}
         onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={shouldShowSearch ? handleOnSearch : undefined}
         onSelect={handleOnSelect}
@@ -734,7 +761,7 @@ const Select = ({
         showArrow
         tokenSeparators={TOKEN_SEPARATORS}
         value={selectValue}
-        suffixIcon={<SuffixIcon />}
+        suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={
           invertSelection ? (
             <StyledStopOutlined iconSize="m" />
@@ -742,6 +769,7 @@ const Select = ({
             <StyledCheckOutlined iconSize="m" />
           )
         }
+        ref={ref}
         {...props}
       >
         {shouldUseChildrenOptions &&
@@ -762,4 +790,4 @@ const Select = ({
   );
 };
 
-export default Select;
+export default forwardRef(Select);

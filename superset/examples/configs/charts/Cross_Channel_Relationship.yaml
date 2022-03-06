@@ -49,9 +49,6 @@ params:
     metric: metrics
   row_limit: 1000
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   viz_type: chord
   y_axis_format: SMART_NUMBER
 cache_timeout: null

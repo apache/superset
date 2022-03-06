@@ -332,8 +332,9 @@ export function runQuery(query) {
       expand_data: true,
     };
 
+    const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: '/superset/sql_json/',
+      endpoint: `/superset/sql_json/${search}`,
       body: JSON.stringify(postPayload),
       headers: { 'Content-Type': 'application/json' },
       parseMethod: 'text',
@@ -787,7 +788,11 @@ export function queryEditorSetSchema(queryEditor, schema) {
 
     return sync
       .then(() =>
-        dispatch({ type: QUERY_EDITOR_SET_SCHEMA, queryEditor, schema }),
+        dispatch({
+          type: QUERY_EDITOR_SET_SCHEMA,
+          queryEditor: queryEditor || {},
+          schema: schema || {},
+        }),
       )
       .catch(() =>
         dispatch(

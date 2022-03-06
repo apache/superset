@@ -17,11 +17,12 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Form, Row, Col, Input, TextArea } from 'src/common/components';
+import { Row, Col, Input, TextArea } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -88,7 +89,7 @@ const PropertiesModal = ({
   onSubmit = () => {},
   show = false,
 }: PropertiesModalProps) => {
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(currentColorScheme);
@@ -350,35 +351,35 @@ const PropertiesModal = ({
     ).length;
 
     return (
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <StyledFormItem label={t('Owners')}>
+      <Row gutter={ 16 }>
+        <Col xs={ 24 } md={ 12 }>
+          <h3 style={ { marginTop: '1em' } }>{ t('Access') }</h3>
+          <StyledFormItem label={ t('Owners') }>
             <Select
               allowClear
-              ariaLabel={t('Owners')}
-              disabled={isLoading}
+              ariaLabel={ t('Owners') }
+              disabled={ isLoading }
               mode="multiple"
-              onChange={handleOnChangeOwners}
-              options={(input, page, pageSize) =>
+              onChange={ handleOnChangeOwners }
+              options={ (input, page, pageSize) =>
                 loadAccessOptions('owners', input, page, pageSize)
               }
-              value={handleOwnersSelectValue()}
+              value={ handleOwnersSelectValue() }
             />
           </StyledFormItem>
           <p className="help-block">
-            {t(
+            { t(
               'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
+            ) }
           </p>
         </Col>
-        <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+        <Col xs={ 24 } md={ 12 }>
+          <h3 style={ { marginTop: '1em' } }>{ t('Colors') }</h3>
           <ColorSchemeControlWrapper
-            hasCustomLabelColors={hasCustomLabelColors}
-            onChange={onColorSchemeChange}
-            colorScheme={colorScheme}
-            labelMargin={4}
+            hasCustomLabelColors={ hasCustomLabelColors }
+            onChange={ onColorSchemeChange }
+            colorScheme={ colorScheme }
+            labelMargin={ 4 }
           />
         </Col>
       </Row>
@@ -394,59 +395,59 @@ const PropertiesModal = ({
     return (
       <>
         <Row>
-          <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+          <Col xs={ 24 } md={ 24 }>
+            <h3 style={ { marginTop: '1em' } }>{ t('Access') }</h3>
           </Col>
         </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Owners')}>
+        <Row gutter={ 16 }>
+          <Col xs={ 24 } md={ 12 }>
+            <StyledFormItem label={ t('Owners') }>
               <Select
                 allowClear
-                ariaLabel={t('Owners')}
-                disabled={isLoading}
+                ariaLabel={ t('Owners') }
+                disabled={ isLoading }
                 mode="multiple"
-                onChange={handleOnChangeOwners}
-                options={(input, page, pageSize) =>
+                onChange={ handleOnChangeOwners }
+                options={ (input, page, pageSize) =>
                   loadAccessOptions('owners', input, page, pageSize)
                 }
-                value={handleOwnersSelectValue()}
+                value={ handleOwnersSelectValue() }
               />
             </StyledFormItem>
             <p className="help-block">
-              {t(
+              { t(
                 'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
+              ) }
             </p>
           </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Roles')}>
+          <Col xs={ 24 } md={ 12 }>
+            <StyledFormItem label={ t('Roles') }>
               <Select
                 allowClear
-                ariaLabel={t('Roles')}
-                disabled={isLoading}
+                ariaLabel={ t('Roles') }
+                disabled={ isLoading }
                 mode="multiple"
-                onChange={handleOnChangeRoles}
-                options={(input, page, pageSize) =>
+                onChange={ handleOnChangeRoles }
+                options={ (input, page, pageSize) =>
                   loadAccessOptions('roles', input, page, pageSize)
                 }
-                value={handleRolesSelectValue()}
+                value={ handleRolesSelectValue() }
               />
             </StyledFormItem>
             <p className="help-block">
-              {t(
+              { t(
                 'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, then the dashboard is available to all roles.',
-              )}
+              ) }
             </p>
           </Col>
         </Row>
         <Row>
-          <Col xs={24} md={12}>
+          <Col xs={ 24 } md={ 12 }>
             <ColorSchemeControlWrapper
-              hasCustomLabelColors={hasCustomLabelColors}
-              onChange={onColorSchemeChange}
-              colorScheme={colorScheme}
-              labelMargin={4}
+              hasCustomLabelColors={ hasCustomLabelColors }
+              onChange={ onColorSchemeChange }
+              colorScheme={ colorScheme }
+              labelMargin={ 4 }
             />
           </Col>
         </Row>
@@ -482,141 +483,141 @@ const PropertiesModal = ({
 
   return (
     <Modal
-      show={show}
-      onHide={onHide}
-      title={t('Dashboard properties')}
+      show={ show }
+      onHide={ onHide }
+      title={ t('Dashboard properties') }
       footer={
         <>
           <Button
             htmlType="button"
             buttonSize="small"
-            onClick={onHide}
+            onClick={ onHide }
             data-test="properties-modal-cancel-button"
             cta
           >
-            {t('Cancel')}
+            { t('Cancel') }
           </Button>
           <Button
-            onClick={form.submit}
+            onClick={ form.submit }
             buttonSize="small"
             buttonStyle="primary"
             className="m-r-5"
             cta
           >
-            {saveLabel}
+            { saveLabel }
           </Button>
         </>
       }
       responsive
     >
-      <Form
-        form={form}
-        onFinish={onFinish}
+      <AntdForm
+        form={ form }
+        onFinish={ onFinish }
         data-test="dashboard-edit-properties-form"
         layout="vertical"
-        initialValues={dashboardInfo}
+        initialValues={ dashboardInfo }
       >
         <Row>
-          <Col xs={24} md={24}>
-            <h3>{t('Basic information')}</h3>
+          <Col xs={ 24 } md={ 24 }>
+            <h3>{ t('Basic information') }</h3>
           </Col>
         </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <FormItem label={t('Title')} name="title">
+        <Row gutter={ 16 }>
+          <Col xs={ 24 } md={ 12 }>
+            <FormItem label={ t('Title') } name="title">
               <Input
                 data-test="dashboard-title-input"
                 type="text"
-                disabled={isLoading}
+                disabled={ isLoading }
               />
             </FormItem>
           </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('URL slug')} name="slug">
-              <Input type="text" disabled={isLoading} />
+          <Col xs={ 24 } md={ 12 }>
+            <StyledFormItem label={ t('URL slug') } name="slug">
+              <Input type="text" disabled={ isLoading } />
             </StyledFormItem>
             <p className="help-block">
-              {t('A readable URL for your dashboard')}
+              { t('A readable URL for your dashboard') }
             </p>
           </Col>
         </Row>
         <Row>
-          <Col xs={24} md={24}>
-            <StyledFormItem label={t('Description')} name="description">
-              <TextArea disabled={isLoading} />
+          <Col xs={ 24 } md={ 24 }>
+            <StyledFormItem label={ t('Description') } name="description">
+              <TextArea disabled={ isLoading } />
             </StyledFormItem>
             <p className="help-block">
-              {t('A description for your dashboard')}
+              { t('A description for your dashboard') }
             </p>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+        { isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
           ? getRowsWithRoles()
-          : getRowsWithoutRoles()}
+          : getRowsWithoutRoles() }
         <Row>
-          <Col xs={24} md={24}>
-            <h3>{t('Certification')}</h3>
+          <Col xs={ 24 } md={ 24 }>
+            <h3>{ t('Certification') }</h3>
           </Col>
         </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <StyledFormItem label={t('Certified by')} name="certifiedBy">
-              <Input type="text" disabled={isLoading} />
+        <Row gutter={ 16 }>
+          <Col xs={ 24 } md={ 12 }>
+            <StyledFormItem label={ t('Certified by') } name="certifiedBy">
+              <Input type="text" disabled={ isLoading } />
             </StyledFormItem>
             <p className="help-block">
-              {t('Person or group that has certified this dashboard.')}
+              { t('Person or group that has certified this dashboard.') }
             </p>
           </Col>
-          <Col xs={24} md={12}>
+          <Col xs={ 24 } md={ 12 }>
             <StyledFormItem
-              label={t('Certification details')}
+              label={ t('Certification details') }
               name="certificationDetails"
             >
-              <Input type="text" disabled={isLoading} />
+              <Input type="text" disabled={ isLoading } />
             </StyledFormItem>
             <p className="help-block">
-              {t('Any additional detail to show in the certification tooltip.')}
+              { t('Any additional detail to show in the certification tooltip.') }
             </p>
           </Col>
         </Row>
         <Row>
-          <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>
+          <Col xs={ 24 } md={ 24 }>
+            <h3 style={ { marginTop: '1em' } }>
               <Button
                 buttonStyle="link"
-                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                onClick={ () => setIsAdvancedOpen(!isAdvancedOpen) }
               >
                 <i
-                  className={`fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}`}
-                  style={{ minWidth: '1em' }}
+                  className={ `fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}` }
+                  style={ { minWidth: '1em' } }
                 />
-                {t('Advanced')}
+                { t('Advanced') }
               </Button>
             </h3>
-            {isAdvancedOpen && (
+            { isAdvancedOpen && (
               <>
-                <StyledFormItem label={t('JSON metadata')}>
+                <StyledFormItem label={ t('JSON metadata') }>
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
-                    value={jsonMetadata}
-                    onChange={setJsonMetadata}
-                    tabSize={2}
+                    value={ jsonMetadata }
+                    onChange={ setJsonMetadata }
+                    tabSize={ 2 }
                     width="100%"
                     height="200px"
                     wrapEnabled
                   />
                 </StyledFormItem>
                 <p className="help-block">
-                  {t(
+                  { t(
                     'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
-                  )}
+                  ) }
                 </p>
               </>
-            )}
+            ) }
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 };

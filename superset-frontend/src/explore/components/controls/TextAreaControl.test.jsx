@@ -21,7 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
-import { TextArea } from 'src/common/components';
+import { TextArea } from 'src/components/Input';
 
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 

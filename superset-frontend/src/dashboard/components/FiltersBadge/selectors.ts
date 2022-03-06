@@ -17,19 +17,21 @@
  * under the License.
  */
 import {
+  DataMaskStateWithId,
+  DataMaskType,
   ensureIsArray,
   FeatureFlag,
+  Filters,
   FilterState,
   isFeatureEnabled,
+  NativeFilterType,
 } from '@superset-ui/core';
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
+import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
-import { NativeFilterType } from '../nativeFilters/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -278,7 +280,7 @@ export const selectNativeIndicatorsForChart = (
             ),
         )
         .map(nativeFilter => {
-          const column = nativeFilter.targets[0]?.column?.name;
+          const column = nativeFilter.targets?.[0]?.column?.name;
           const filterState = dataMask[nativeFilter.id]?.filterState;
           const label = extractLabel(filterState);
           return {

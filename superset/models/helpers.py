@@ -29,6 +29,7 @@ import pytz
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
+from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
@@ -510,3 +511,22 @@ class CertificationMixin:
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+
+def clone_model(
+    target: Model, ignore: Optional[List[str]] = None, **kwargs: Any
+) -> Model:
+    """
+    Clone a SQLAlchemy model.
+    """
+    ignore = ignore or []
+
+    table = target.__table__
+    data = {
+        attr: getattr(target, attr)
+        for attr in table.columns.keys()
+        if attr not in table.primary_key.columns.keys() and attr not in ignore
+    }
+    data.update(kwargs)
+
+    return target.__class__(**data)

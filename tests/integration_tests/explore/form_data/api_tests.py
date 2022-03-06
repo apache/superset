@@ -74,8 +74,6 @@ def dataset_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
-    app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "SimpleCache"}
-    cache_manager.init_app(app)
     entry: TemporaryExploreState = {
         "owner": admin_id,
         "dataset_id": dataset_id,
@@ -118,6 +116,94 @@ def test_post_access_denied(client, chart_id: int, dataset_id: int):
     assert resp.status_code == 404
 
 
+def test_post_same_key_for_same_context(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key == second_key
+
+
+def test_post_different_key_for_different_context(
+    client, chart_id: int, dataset_id: int
+):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    payload = {
+        "dataset_id": dataset_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key != second_key
+
+
+def test_post_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key == second_key
+
+
+def test_post_different_key_for_different_tab_id(
+    client, chart_id: int, dataset_id: int
+):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.post("api/v1/explore/form_data?tab_id=2", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key != second_key
+
+
+def test_post_different_key_for_no_tab_id(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key != second_key
+
+
 def test_put(client, chart_id: int, dataset_id: int):
     login(client, "admin")
     payload = {
@@ -127,6 +213,54 @@ def test_put(client, chart_id: int, dataset_id: int):
     }
     resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
     assert resp.status_code == 200
+
+
+def test_put_same_key_for_same_tab_id(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key == second_key
+
+
+def test_put_different_key_for_different_tab_id(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=1", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.put(f"api/v1/explore/form_data/{key}?tab_id=2", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key != second_key
+
+
+def test_put_different_key_for_no_tab_id(client, chart_id: int, dataset_id: int):
+    login(client, "admin")
+    payload = {
+        "dataset_id": dataset_id,
+        "chart_id": chart_id,
+        "form_data": "new form_data",
+    }
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    first_key = data.get("key")
+    resp = client.put(f"api/v1/explore/form_data/{key}", json=payload)
+    data = json.loads(resp.data.decode("utf-8"))
+    second_key = data.get("key")
+    assert first_key != second_key
 
 
 def test_put_bad_request(client, chart_id: int, dataset_id: int):

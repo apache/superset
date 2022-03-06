@@ -44,7 +44,14 @@ interface SouthPanePropTypes {
   editorQueries: any[];
   latestQueryId?: string;
   dataPreviewQueries: any[];
-  actions: Record<string, Function>;
+  actions: {
+    queryEditorSetSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
+    setActiveSouthPaneTab: Function;
+  };
   activeSouthPaneTab?: string;
   height: number;
   databases: Record<string, any>;

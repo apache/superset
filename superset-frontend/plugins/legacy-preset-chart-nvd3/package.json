@@ -37,7 +37,7 @@
     "moment": "^2.20.1",
     "nvd3-fork": "^2.0.5",
     "prop-types": "^15.6.2",
-    "urijs": "^1.18.10"
+    "urijs": "^1.19.8"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
