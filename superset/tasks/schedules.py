@@ -155,43 +155,44 @@ def _generate_report_content(
 ) -> ReportContent:
     data: Optional[Dict[str, Any]]
 
-    # how to: https://api.slack.com/reference/surfaces/formatting
-    slack_message = __(
-        """
-        *%(name)s*\n
-        <%(url)s|Explore in Superset>
-        """,
-        name=name,
-        url=url,
-    )
-
-    if delivery_type == EmailDeliveryType.attachment:
-        images = None
-        data = {"screenshot": screenshot}
-        body = __(
-            '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
-            name=name,
-            url=url,
-        )
-    elif delivery_type == EmailDeliveryType.inline:
-        # Get the domain from the 'From' address ..
-        # and make a message id without the < > in the ends
-        domain = parseaddr(config["SMTP_MAIL_FROM"])[1].split("@")[1]
-        msgid = make_msgid(domain)[1:-1]
-
-        images = {msgid: screenshot}
-        data = None
-        body = __(
+    with force_locale(config.BABEL_DEFAULT_LOCALE):
+        # how to: https://api.slack.com/reference/surfaces/formatting
+        slack_message = __(
             """
-            <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-            <img src="cid:%(msgid)s">
+            *%(name)s*\n
+            <%(url)s|Explore in Superset>
             """,
             name=name,
             url=url,
-            msgid=msgid,
         )
 
-    return ReportContent(body, data, images, slack_message, screenshot)
+        if delivery_type == EmailDeliveryType.attachment:
+            images = None
+            data = {"screenshot": screenshot}
+            body = __(
+                '<b><a href="%(url)s">Explore in Superset</a></b><p></p>',
+                name=name,
+                url=url,
+            )
+        elif delivery_type == EmailDeliveryType.inline:
+            # Get the domain from the 'From' address ..
+            # and make a message id without the < > in the ends
+            domain = parseaddr(config["SMTP_MAIL_FROM"])[1].split("@")[1]
+            msgid = make_msgid(domain)[1:-1]
+
+            images = {msgid: screenshot}
+            data = None
+            body = __(
+                """
+                <b><a href="%(url)s">Explore in Superset</a></b><p></p>
+                <img src="cid:%(msgid)s">
+                """,
+                name=name,
+                url=url,
+                msgid=msgid,
+            )
+
+        return ReportContent(body, data, images, slack_message, screenshot)
 
 
 def _get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
