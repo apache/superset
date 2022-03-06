@@ -57,21 +57,25 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
-
-    getSharedLabelColor().addSlice(cleanedValue, sliceId);
+    const sharedLabelColor = getSharedLabelColor();
 
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
+      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
       return parentColor;
     }
 
     const forcedColor = this.forcedColors[cleanedValue];
     if (forcedColor) {
+      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
       return forcedColor;
     }
 
-    return this.scale(cleanedValue);
+    const color = this.scale(cleanedValue);
+    sharedLabelColor.addSlice(cleanedValue, color, sliceId);
+
+    return color;
   }
 
   /**

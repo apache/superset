@@ -20,6 +20,7 @@ import React, { FC, useRef, useEffect, useState } from 'react';
 import {
   CategoricalColorNamespace,
   FeatureFlag,
+  getSharedLabelColor,
   isFeatureEnabled,
   t,
   useTheme,
@@ -227,6 +228,7 @@ const DashboardPage: FC = () => {
         metadata?.color_namespace,
       );
       categoricalNamespace.resetColors();
+      getSharedLabelColor().clear();
     },
     [metadata?.color_namespace],
   );

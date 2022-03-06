@@ -303,6 +303,7 @@ const PropertiesModal = ({
       const colorMap = getSharedLabelColor().getColorMap(
         metadata?.color_namespace,
         metadata?.color_scheme,
+        true,
       );
       metadata.shared_label_colors = colorMap;
       currentJsonMetadata = jsonStringify(metadata);

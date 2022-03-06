@@ -22,73 +22,104 @@ import { CategoricalColorNamespace } from '.';
 import makeSingleton from '../utils/makeSingleton';
 
 export class SharedLabelColor {
-  values: string[];
-
-  valueSliceMap: Record<string, number[]>;
+  sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
 
   constructor() {
-    // save all shared label value
-    this.values = [];
-    // { value1: [sliceId1, sliceId2], value2: [sliceId], ...}
-    this.valueSliceMap = {};
+    // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
+    this.sliceLabelColorMap = {};
   }
 
-  getColorMap(colorNamespace?: string, colorScheme?: string) {
+  getColorMap(
+    colorNamespace?: string,
+    colorScheme?: string,
+    updateColorScheme?: boolean,
+  ) {
     if (colorScheme) {
       const categoricalNamespace =
         CategoricalColorNamespace.getNamespace(colorNamespace);
       const scale = categoricalNamespace.getScale(colorScheme);
       const colors = scale.range();
-      const multiple = Math.ceil(this.values.length / colors.length);
-      const analogousColors = colors.map(color => {
-        const result = tinycolor(color).analogous(Math.max(multiple, 5));
-        return result.slice(result.length - multiple, result.length);
-      });
+      const sharedLabels = this.getSharedLabels();
       const generatedColors: tinycolor.Instance[] = [];
-      // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
-      while (analogousColors[analogousColors.length - 1]?.length) {
-        analogousColors.forEach(colors =>
-          generatedColors.push(colors.shift() as tinycolor.Instance),
+      let sharedLabelMap;
+
+      if (sharedLabels.length) {
+        const multiple = Math.ceil(sharedLabels.length / colors.length);
+        const ext = 5;
+        const analogousColors = colors.map(color => {
+          const result = tinycolor(color).analogous(multiple + ext);
+          return result.slice(ext);
+        });
+
+        // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
+        while (analogousColors[analogousColors.length - 1]?.length) {
+          analogousColors.forEach(colors =>
+            generatedColors.push(colors.shift() as tinycolor.Instance),
+          );
+        }
+        sharedLabelMap = sharedLabels.reduce(
+          (res, label, index) => ({
+            ...res,
+            [label.toString()]: generatedColors[index]?.toHexString(),
+          }),
+          {},
         );
       }
-      return this.values.reduce(
-        (res, name, index) => ({
+
+      const labelMap = Object.keys(this.sliceLabelColorMap).reduce(
+        (res, sliceId) => ({
           ...res,
-          [name.toString()]: generatedColors[index]?.toHexString(),
+          ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
+            (res, label) => ({
+              ...res,
+              [label]: updateColorScheme
+                ? undefined
+                : this.sliceLabelColorMap[sliceId][label],
+            }),
+            {},
+          ),
         }),
         {},
       );
+
+      return {
+        ...labelMap,
+        ...sharedLabelMap,
+      };
     }
     return undefined;
   }
 
-  addSlice(value: string, sliceId?: number) {
+  addSlice(label: string, color: string, sliceId?: number) {
     if (!sliceId) return;
-    const sliceIds = this.valueSliceMap[value] ?? [];
-    if (sliceIds.indexOf(sliceId) === -1) {
-      sliceIds.push(sliceId);
-    }
-    this.valueSliceMap[value] = sliceIds;
-    if (sliceIds.length > 1 && this.values.indexOf(value) === -1) {
-      this.values.push(value);
-    }
+    this.sliceLabelColorMap[sliceId] = {
+      ...this.sliceLabelColorMap[sliceId],
+      [label]: color,
+    };
   }
 
   removeSlice(sliceId: number) {
-    Object.keys(this.valueSliceMap).forEach(value => {
-      const sliceIds = this.valueSliceMap[value];
-      if (sliceIds.indexOf(sliceId) > -1) {
-        sliceIds.splice(sliceIds.indexOf(sliceId), 1);
-        if (sliceIds.length <= 1 && this.values.indexOf(value) > -1) {
-          this.values.splice(this.values.indexOf(value), 1);
-        }
-      }
-    });
+    delete this.sliceLabelColorMap[sliceId];
   }
 
   clear() {
-    this.values = [];
-    this.valueSliceMap = {};
+    this.sliceLabelColorMap = {};
+  }
+
+  getSharedLabels() {
+    const tempLabels = new Set<string>();
+    const result = new Set<string>();
+    Object.keys(this.sliceLabelColorMap).forEach(sliceId => {
+      const colorMap = this.sliceLabelColorMap[sliceId];
+      Object.keys(colorMap).forEach(label => {
+        if (tempLabels.has(label) && !result.has(label)) {
+          result.add(label);
+        } else {
+          tempLabels.add(label);
+        }
+      });
+    });
+    return [...result];
   }
 }
 

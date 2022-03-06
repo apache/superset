@@ -51,76 +51,60 @@ describe('SharedLabelColor', () => {
     expect(getSharedLabelColor()).toBeInstanceOf(SharedLabelColor);
   });
 
-  describe('.addSlice(value, sliceId)', () => {
+  describe('.addSlice(value, color, sliceId)', () => {
     it('should add to valueSliceMap when first adding label', () => {
       const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', [1]);
-      expect(sharedLabelColor.values).toHaveLength(0);
-    });
-
-    it('should not add to value when adding same sliceId', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      sharedLabelColor.addSlice('a', 1);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', [1]);
-      expect(sharedLabelColor.values).toHaveLength(0);
-    });
-
-    it('should add to value when adding same label', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      sharedLabelColor.addSlice('a', 2);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', [1, 2]);
-      expect(sharedLabelColor.values).toHaveLength(1);
+      sharedLabelColor.addSlice('a', 'red', 1);
+      expect(sharedLabelColor.sliceLabelColorMap).toHaveProperty('1', {
+        a: 'red',
+      });
     });
 
     it('do nothing when sliceId is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a');
-      expect(sharedLabelColor.valueSliceMap).toEqual({});
-      expect(sharedLabelColor.values).toHaveLength(0);
+      sharedLabelColor.addSlice('a', 'red');
+      expect(sharedLabelColor.sliceLabelColorMap).toEqual({});
     });
   });
 
   describe('.remove(sliceId)', () => {
     it('should remove sliceId', () => {
       const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
+      sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.removeSlice(1);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', []);
-    });
-
-    it('should not remove sliceId when do not have sliceId', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      sharedLabelColor.removeSlice(2);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', [1]);
-    });
-
-    it('should remove label if less than two sliceIds', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      sharedLabelColor.addSlice('a', 2);
-      sharedLabelColor.removeSlice(2);
-      expect(sharedLabelColor.valueSliceMap).toHaveProperty('a', [1]);
-      expect(sharedLabelColor.values).toHaveLength(0);
+      expect(sharedLabelColor.sliceLabelColorMap).toEqual({});
     });
   });
 
-  describe('.getColorMap(namespace, scheme)', () => {
+  describe('.getColorMap(namespace, scheme, updateColorScheme)', () => {
     it('return undefined when scheme is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       const colorMap = sharedLabelColor.getColorMap();
       expect(colorMap).toBeUndefined();
     });
 
-    it('return colorMap when scheme is defined', () => {
+    it('return undefined value if pass updateColorScheme', () => {
       const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 1);
-      sharedLabelColor.addSlice('a', 2);
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      const colorMap = sharedLabelColor.getColorMap('', 'testColors', true);
+      expect(colorMap).toEqual({ a: undefined, b: undefined });
+    });
+
+    it('return color value if not pass updateColorScheme', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 2);
       const colorMap = sharedLabelColor.getColorMap('', 'testColors');
-      expect(colorMap).not.toBeUndefined();
+      expect(colorMap).toEqual({ a: 'red', b: 'blue' });
+    });
+
+    it('return color value if shared label exit', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('a', 'blue', 2);
+      const colorMap = sharedLabelColor.getColorMap('', 'testColors');
+      expect(colorMap).not.toEqual({});
     });
   });
 });
