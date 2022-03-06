@@ -228,7 +228,7 @@ export function saveDashboardRequest(data, id, saveType) {
       owners,
       roles,
       slug,
-      description
+      description,
     } = data;
 
     const hasId = item => item.id !== undefined;
