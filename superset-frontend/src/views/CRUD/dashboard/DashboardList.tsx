@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
@@ -89,6 +89,7 @@ interface Dashboard {
   thumbnail_url: string;
   owners: Owner[];
   created_by: object;
+  description: string;
 }
 
 const Actions = styled.div`
@@ -266,6 +267,7 @@ function DashboardList(props: DashboardListProps) {
               dashboard_title: dashboardTitle,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
+              description: dashboardDescription,
             },
           },
         }: any) => (
@@ -279,6 +281,20 @@ function DashboardList(props: DashboardListProps) {
               </>
             )}
             {dashboardTitle}
+            {dashboardDescription && (
+              <>
+                {'  '}
+                <Tooltip
+                  id="dashboard-description-tooltip"
+                  title={dashboardDescription}
+                >
+                  <Icons.Info
+                    iconColor={supersetTheme.colors.primary.base}
+                    iconSize="l"
+                  />
+                </Tooltip>
+              </>
+            )}
           </Link>
         ),
         Header: t('Title'),
