@@ -59,9 +59,11 @@ TIME_GRAIN_DENYLIST = ['PT1S', 'PT1M', 'PT1H', None]
 
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
+
 REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "1")
 REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "2")
 REDIS_CACHE_DB = get_env_variable("REDIS_CACHE_DB", "3")
+
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
@@ -71,6 +73,7 @@ DATA_CACHE_CONFIG = {
     'CACHE_KEY_PREFIX': 'superset_results',
     'CACHE_REDIS_URL': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}',
 }
+
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
@@ -90,7 +93,7 @@ class CeleryConfig(object):
         },
     }
 
-
+EMAIL_REPORTS_SUBJECT_PREFIX = "[Отчет]"
 CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}

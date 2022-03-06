@@ -4,7 +4,7 @@
     "superset": {
       "": {
         "domain": "superset",
-        "plural_forms": "nplurals=1; plural=0",
+        "plural_forms": "nplurals=1; plural=0;",
         "lang": "ru"
       },
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
@@ -77,9 +77,11 @@
         "(опционально) значение по-умолчанию для фильтраю. Когда используются множественные значения, вы можете вставить список значений, разделённых символами точка с запятой."
       ],
       "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
-        ""
+        "*%(name)s*\n\n%(description)s\n\n<%(url)s|Посмотреть на сайте>\n\n%(table)s\n"
       ],
-      "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [""],
+      "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [
+        "*%(name)s*\n\n%(description)s\n\nОшибка: %(text)s\n"
+      ],
       "**Select** a dashboard OR **create** a new one": [
         "**Выберите** дашборд ИЛИ **создайте** новый"
       ],
