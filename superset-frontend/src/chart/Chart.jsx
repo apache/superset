@@ -27,6 +27,8 @@ import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 
@@ -157,7 +159,7 @@ class Chart extends React.PureComponent {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
         this.props.formData,
-        this.props.force,
+        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
@@ -167,7 +169,7 @@ class Chart extends React.PureComponent {
       // Create chart with POST request
       this.props.actions.postChartFormData(
         this.props.formData,
-        this.props.force,
+        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,

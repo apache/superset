@@ -16,39 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../assets/stylesheets/less/variables.less';
+import { sanitizeFormData } from './formData';
 
-.CRUD {
-  .text-right {
-    text-align: right;
-  }
-
-  .empty-collection {
-    padding: 10px;
-  }
-
-  .control-label {
-    font-weight: @font-weight-bold;
-  }
-
-  .tiny-cell {
-    width: 5px;
-  }
-
-  i.fa-caret-down,
-  i.fa-caret-up {
-    width: 5px;
-  }
-
-  td.expanded {
-    border-top: 0;
-    padding: 0;
-  }
-
-  .frame {
-    border: 1px solid @gray-heading;
-    border-radius: @border-radius-large;
-    padding: 10;
-    background: @gray-bg;
-  }
-}
+test('sanitizeFormData removes temporary control values', () => {
+  expect(
+    sanitizeFormData({
+      url_params: { foo: 'bar' },
+      metrics: ['foo', 'bar'],
+    }),
+  ).toEqual({ metrics: ['foo', 'bar'] });
+});

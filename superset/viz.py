@@ -397,7 +397,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "having": self.form_data.get("having", ""),
             "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
-            "time_range_endpoints": self.form_data.get("time_range_endpoints"),
             "where": self.form_data.get("where", ""),
         }
 
@@ -854,6 +853,11 @@ class TimeTableViz(BaseViz):
             raise QueryObjectValidationError(
                 _("When using 'Group By' you are limited to use a single metric")
             )
+
+        sort_by = utils.get_first_metric_name(query_obj["metrics"])
+        is_asc = not query_obj.get("order_desc")
+        query_obj["orderby"] = [(sort_by, is_asc)]
+
         return query_obj
 
     def get_data(self, df: pd.DataFrame) -> VizData:

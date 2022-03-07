@@ -58,8 +58,6 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
-let queryCount = 1;
-
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -233,7 +231,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   popNewTab() {
-    queryCount += 1;
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
@@ -255,7 +252,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    queryCount += 1;
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(
       ...Object.values(this.props.databases).map(database => database.id),
@@ -265,8 +261,23 @@ class TabbedSqlEditors extends React.PureComponent {
       : t(
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
+
+    let newTitle = 'Untitled Query 1';
+
+    if (this.props.queryEditors.length > 0) {
+      const untitledQueryNumbers = this.props.queryEditors
+        .filter(x => x.title.match(/^Untitled Query (\d+)$/))
+        .map(x => x.title.replace('Untitled Query ', ''));
+      if (untitledQueryNumbers.length > 0) {
+        // When there are query tabs open, and at least one is called "Untitled Query #"
+        // Where # is a valid number
+        const largestNumber = Math.max.apply(null, untitledQueryNumbers);
+        newTitle = t('Untitled Query %s', largestNumber + 1);
+      }
+    }
+
     const qe = {
-      title: t('Untitled Query %s', queryCount),
+      title: newTitle,
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
