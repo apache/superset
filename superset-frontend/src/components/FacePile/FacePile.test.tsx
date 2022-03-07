@@ -19,7 +19,7 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import { Avatar } from 'src/common/components';
+import { Avatar } from 'src/components';
 import FacePile from '.';
 import { getRandomColor } from './utils';
 

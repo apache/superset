@@ -18,10 +18,9 @@
  */
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
-import { Form, Row, Col } from 'src/common/components';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
@@ -39,9 +38,9 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = Form.Item;
+const FormItem = AntdForm.Item;
 
-const StyledFormItem = styled(Form.Item)`
+const StyledFormItem = styled(AntdForm.Item)`
   margin-bottom: 0;
 `;
 
@@ -57,7 +56,7 @@ function PropertiesModal({
   addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -215,7 +214,7 @@ function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -310,7 +309,7 @@ function PropertiesModal({
             </FormItem>
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 }

@@ -18,7 +18,7 @@
  */
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import React from 'react';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { MainNav as Menu } from 'src/components/Menu';
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
@@ -32,7 +32,7 @@ interface Props {
   onAdd: (type: NativeFilterType) => void;
   removedFilters: Record<string, FilterRemoval>;
   currentFilterId: string;
-  filterGroups: string[][];
+  filters: string[];
   erroredFilters: string[];
 }
 
@@ -60,7 +60,7 @@ const FilterTitlePane: React.FC<Props> = ({
   onRearrage,
   restoreFilter,
   currentFilterId,
-  filterGroups,
+  filters,
   removedFilters,
   erroredFilters,
 }) => {
@@ -90,12 +90,17 @@ const FilterTitlePane: React.FC<Props> = ({
   );
   return (
     <TabsContainer>
-      <Dropdown overlay={menu} arrow placement="topLeft" trigger={['hover']}>
+      <AntdDropdown
+        overlay={menu}
+        arrow
+        placement="topLeft"
+        trigger={['hover']}
+      >
         <StyledAddBox>
           <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
           <span>{t('Add filters and dividers')}</span>
         </StyledAddBox>
-      </Dropdown>
+      </AntdDropdown>
       <div
         css={{
           height: '100%',
@@ -104,7 +109,7 @@ const FilterTitlePane: React.FC<Props> = ({
         }}
       >
         <FilterTitleContainer
-          filterGroups={filterGroups}
+          filters={filters}
           currentFilterId={currentFilterId}
           removedFilters={removedFilters}
           getFilterTitle={getFilterTitle}
