@@ -254,7 +254,12 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         <div className={navRightStyle}>
           <Menu mode="horizontal" triggerSubMenuAction="click">
             {props.dropDownLinks?.map((link, i) => (
-              <SubMenu key={i} title={link.label} icon={<Icons.TriangleDown />}>
+              <SubMenu
+                key={i}
+                title={link.label}
+                icon={<Icons.TriangleDown />}
+                popupOffset={[10, 20]}
+              >
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
                     return (
