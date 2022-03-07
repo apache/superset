@@ -23,7 +23,6 @@ import Select, { propertyComparator } from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
-  allowTokenSeperators: PropTypes.bool,
   ariaLabel: PropTypes.string,
   autoFocus: PropTypes.bool,
   choices: PropTypes.array,
@@ -53,6 +52,7 @@ const propTypes = {
   options: PropTypes.array,
   placeholder: PropTypes.string,
   filterOption: PropTypes.func,
+  tokenSeperators: PropTypes.arrayOf(PropTypes.string),
 
   // ControlHeader props
   label: PropTypes.string,
@@ -68,7 +68,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  allowTokenSeperators: true,
   autoFocus: false,
   choices: [],
   clearable: true,
@@ -164,7 +163,6 @@ export default class SelectControl extends React.PureComponent {
 
   render() {
     const {
-      allowTokenSeperators,
       ariaLabel,
       autoFocus,
       clearable,
@@ -181,6 +179,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       showHeader,
       value,
+      tokenSeperators,
       // ControlHeader props
       description,
       renderTrigger,
@@ -225,7 +224,6 @@ export default class SelectControl extends React.PureComponent {
     };
 
     const selectProps = {
-      allowTokenSeperators,
       allowNewOptions: freeForm,
       autoFocus,
       ariaLabel:
@@ -247,6 +245,7 @@ export default class SelectControl extends React.PureComponent {
       placeholder,
       sortComparator: this.props.sortComparator || propertyComparator('order'),
       value: getValue(),
+      tokenSeperators,
     };
 
     return (

@@ -90,13 +90,6 @@ export interface SelectProps extends PickedSelectProps {
    * */
   allowNewOptions?: boolean;
   /**
-   * It enables the user to use the seperators.
-   * Can be used token seperators by defined secific characters if TRUE.
-   * Can't be use token seperators if FALSE.
-   * True by default.
-   * */
-  allowTokenSeperators?: boolean;
-  /**
    * It adds the aria-label tag for accessibility standards.
    * Must be plain English and localized.
    */
@@ -158,6 +151,11 @@ export interface SelectProps extends PickedSelectProps {
    * Undefined by default.
    */
   fetchOnlyOnSearch?: boolean;
+  /**
+   * It defines a customized token separators.
+   * If it is not defined, will use the default value.
+   */
+  tokenSeperators?: string[];
   /**
    * It provides a callback function when an error
    * is generated after a request is fired.
@@ -275,7 +273,6 @@ export const propertyComparator =
  */
 const Select = ({
   allowNewOptions = false,
-  allowTokenSeperators = true,
   ariaLabel,
   fetchOnlyOnSearch,
   filterOption = true,
@@ -297,6 +294,7 @@ const Select = ({
   showSearch = true,
   sortComparator = defaultSortComparator,
   value,
+  tokenSeperators,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -740,7 +738,7 @@ const Select = ({
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={allowTokenSeperators ? TOKEN_SEPARATORS : []}
+        tokenSeparators={tokenSeperators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={<SuffixIcon />}
         menuItemSelectedIcon={
