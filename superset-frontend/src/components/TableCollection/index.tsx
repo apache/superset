@@ -31,7 +31,7 @@ interface TableCollectionProps {
   columns: TableInstance['column'][];
   loading: boolean;
   highlightRowId?: number;
-  columnsForWrapText?: TableInstance['column'][];
+  columnsForWrapText?: string[];
 }
 
 export const Table = styled.table`
@@ -311,8 +311,8 @@ export default React.memo(
                   const columnCellProps = cell.column.cellProps || {};
                   const isWrapText =
                     columnsForWrapText &&
-                    columnsForWrapText.includes(cell.column.Header);
-                  console.log(isWrapText);
+                    columnsForWrapText.includes(cell.column.Header as string);
+
                   return (
                     <td
                       data-test="table-row-cell"
