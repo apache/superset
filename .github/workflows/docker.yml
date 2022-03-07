@@ -7,6 +7,9 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 jobs:
   docker-build:
     if: github.event.pull_request.draft == false
@@ -14,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
         with:
           persist-credentials: false
 
@@ -36,7 +39,7 @@ jobs:
 
       - name: Upload build artifacts
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
         with:
           name: build
           path: build/
