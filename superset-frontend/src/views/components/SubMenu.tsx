@@ -48,9 +48,6 @@ const StyledHeader = styled.div`
     right: 0;
     ul.ant-menu-root {
       padding: 0px;
-      .ant-menu-submenu-title > span {
-        top: ${({ theme }) => theme.gridUnit * 1.5}px;
-      }
     }
     li[role='menuitem'] {
       border: 0;
@@ -132,6 +129,13 @@ const StyledHeader = styled.div`
     .nav-right {
       position: relative;
       margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+  .ant-menu-submenu {
+    span[role='img'] {
+      position: absolute;
+      right: ${({ theme }) => -theme.gridUnit + -2}px;
+      top: ${({ theme }) => theme.gridUnit + 1}px !important;
     }
   }
 `;
