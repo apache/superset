@@ -31,6 +31,7 @@ import moment from 'moment';
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
+import sortNumberWithMixedTypes from './SortNumberWithMixedTypes';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
@@ -126,20 +127,7 @@ const TimeTable = ({
             )}
           </>
         ),
-        sortType: (rowA, rowB, columnId) => {
-          const rowAVal = rowA.values[columnId].props['data-value'];
-          const rowBVal = rowB.values[columnId].props['data-value'];
-          if (typeof rowAVal === 'number' && typeof rowBVal === 'number') {
-            return rowAVal - rowBVal;
-          }
-          if (typeof rowAVal === 'number') {
-            return 1;
-          }
-          if (typeof rowBVal === 'number') {
-            return -1;
-          }
-          return 0;
-        },
+        sortType: sortNumberWithMixedTypes,
       })),
     ],
     [columnConfigs],
