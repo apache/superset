@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, too-many-lines
 
 import unittest
 from typing import Set
@@ -25,6 +25,8 @@ import sqlparse
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
+    has_table_query,
+    insert_rls,
     ParsedQuery,
     strip_comments_from_sql,
     Table,
@@ -1111,7 +1113,8 @@ def test_sqlparse_formatting():
 
     """
     assert sqlparse.format(
-        "SELECT extract(HOUR from from_unixtime(hour_ts) AT TIME ZONE 'America/Los_Angeles') from table",
+        "SELECT extract(HOUR from from_unixtime(hour_ts) "
+        "AT TIME ZONE 'America/Los_Angeles') from table",
         reindent=True,
     ) == (
         "SELECT extract(HOUR\n               from from_unixtime(hour_ts) "
@@ -1189,3 +1192,90 @@ def test_sqlparse_issue_652():
     stmt = sqlparse.parse(r"foo = '\' AND bar = 'baz'")[0]
     assert len(stmt.tokens) == 5
     assert str(stmt.tokens[0]) == "foo = '\\'"
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        ("SELECT * FROM table", True),
+        ("SELECT a FROM (SELECT 1 AS a) JOIN (SELECT * FROM table)", True),
+        ("(SELECT COUNT(DISTINCT name) AS foo FROM    birth_names)", True),
+        ("COUNT(*)", False),
+        ("SELECT a FROM (SELECT 1 AS a)", False),
+        ("SELECT a FROM (SELECT 1 AS a) JOIN table", True),
+        ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
+        ("SELECT * FROM other_table", True),
+    ],
+)
+def test_has_table_query(sql: str, expected: bool) -> None:
+    """
+    Test if a given statement queries a table.
+
+    This is used to prevent ad-hoc metrics from querying unauthorized tables, bypassing
+    row-level security.
+    """
+    statement = sqlparse.parse(sql)[0]
+    assert has_table_query(statement) == expected
+
+
+@pytest.mark.parametrize(
+    "sql,table,rls,expected",
+    [
+        # append RLS to an existing WHERE clause
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            "other_table",
+            "id=42",
+            "SELECT * FROM other_table WHERE 1=1 AND id=42",
+        ),
+        # "table" is a reserved word; since sqlparse is too aggressive when characterizing
+        # reserved words we need to support them even when not quoted
+        (
+            "SELECT * FROM table WHERE 1=1",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE 1=1 AND id=42",
+        ),
+        # RLS applies to a different table
+        (
+            "SELECT * FROM table WHERE 1=1",
+            "other_table",
+            "id=42",
+            "SELECT * FROM table WHERE 1=1",
+        ),
+        (
+            "SELECT * FROM other_table WHERE 1=1",
+            "table",
+            "id=42",
+            "SELECT * FROM other_table WHERE 1=1",
+        ),
+        # insert the WHERE clause if there isn't one
+        ("SELECT * FROM table", "table", "id=42", "SELECT * FROM table WHERE id=42",),
+        (
+            "SELECT * FROM other_table",
+            "other_table",
+            "id=42",
+            "SELECT * FROM other_table WHERE id=42",
+        ),
+        (
+            "SELECT * FROM table ORDER BY id",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE id=42 ORDER BY id",
+        ),
+        # do not add RLS if already present
+        (
+            "SELECT * FROM table WHERE 1=1 AND id=42",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE 1=1 AND id=42",
+        ),
+    ],
+)
+def test_insert_rls(sql, table, rls, expected) -> None:
+    """
+    Insert into a statement a given RLS condition associated with a table.
+    """
+    statement = sqlparse.parse(sql)[0]
+    condition = sqlparse.parse(rls)[0]
+    assert str(insert_rls(statement, table, condition)).strip() == expected.strip()

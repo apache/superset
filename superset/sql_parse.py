@@ -27,8 +27,10 @@ from sqlparse.sql import (
     IdentifierList,
     Parenthesis,
     remove_quotes,
+    Statement,
     Token,
     TokenList,
+    Where,
 )
 from sqlparse.tokens import (
     CTE,
@@ -458,3 +460,119 @@ def validate_filter_clause(clause: str) -> None:
                 )
     if open_parens > 0:
         raise QueryClauseValidationException("Unclosed parenthesis in filter clause")
+
+
+def has_table_query(statement: Statement) -> bool:
+    """
+    Return if a stament as a query reading from a table.
+
+        >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
+        False
+        >>> has_table_query(sqlparse.parse("SELECT * FROM table")[0])
+        True
+
+    Note that queries reading from constant values return false:
+
+        >>> has_table_query(sqlparse.parse("SELECT * FROM (SELECT 1)")[0])
+        False
+
+    """
+    seen_source = False
+    tokens = statement.tokens[:]
+    while tokens:
+        token = tokens.pop(0)
+        if isinstance(token, TokenList):
+            tokens.extend(token.tokens)
+
+        if token.ttype == Keyword and token.value.lower() in ("from", "join"):
+            seen_source = True
+        elif seen_source and (
+            isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
+        ):
+            return True
+        elif seen_source and token.ttype not in (Whitespace, Punctuation):
+            seen_source = False
+
+    return False
+
+
+class InsertRLSState(str, Enum):
+    """
+    State machine that scans for WHERE clauses.
+    """
+
+    SCANNING = "SCANNING"
+    SEEN_SOURCE = "SEEN_SOURCE"
+    FOUND_TABLE = "FOUND_TABLE"
+
+
+def insert_rls(original_statement: Statement, table: str, rls: Statement) -> Statement:
+    """
+    Update a statement applying a RLS associated with a given table.
+    """
+    statement = sqlparse.parse(str(original_statement))[0]
+
+    state = InsertRLSState.SCANNING
+    tokens = statement.tokens[:]
+    while tokens:
+        token = tokens.pop(0)
+
+        # Found a source keyword (FROM/JOIN)
+        if token.ttype == Keyword and token.value.lower() in ("from", "join"):
+            state = InsertRLSState.SEEN_SOURCE
+
+        # Found identifier/keyword after FROM/JOIN, test for table
+        elif state == InsertRLSState.SEEN_SOURCE and (
+            isinstance(token, Identifier) or token.ttype == Keyword
+        ):
+            if token.value == table:
+                state = InsertRLSState.FOUND_TABLE
+
+                # found table at the end of the statement; append a WHERE clause
+                if not tokens:
+                    statement.tokens.extend(
+                        [
+                            Token(Whitespace, " "),
+                            Where(
+                                [Token(Keyword, "WHERE"), Token(Whitespace, " "), rls]
+                            ),
+                        ]
+                    )
+                    return statement
+
+        # Found WHERE clause, insert RLS if not present
+        elif state == InsertRLSState.FOUND_TABLE and isinstance(token, Where):
+            if str(rls) not in {str(t) for t in token.tokens}:
+                token.tokens.extend(
+                    [
+                        Token(Whitespace, " "),
+                        Token(Keyword, "AND"),
+                        Token(Whitespace, " "),
+                    ]
+                    + rls.tokens
+                )
+            state = InsertRLSState.SCANNING
+
+        # No WHERE clause found, insert one
+        elif state == InsertRLSState.FOUND_TABLE and token.ttype not in (
+            Whitespace,
+            Punctuation,
+        ):
+            token.parent.insert_before(
+                token, Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls,]),
+            )
+            token.parent.insert_before(token, Token(Whitespace, " "))
+            state = InsertRLSState.SCANNING
+
+        # Found nothing, leaving source
+        elif state == InsertRLSState.SEEN_SOURCE and token.ttype not in (
+            Whitespace,
+            Punctuation,
+        ):
+            state = InsertRLSState.SCANNING
+
+        # Add children nodes
+        elif isinstance(token, TokenList):
+            tokens.extend(token.tokens)
+
+    return statement
