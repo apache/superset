@@ -41,7 +41,7 @@ const StyledHeader = styled.div`
   .nav-right {
     display: flex;
     align-items: center;
-    padding: 20px 0;
+    padding: ${({ theme }) => theme.gridUnit * 3.5}px 0;
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     float: right;
     position: absolute;
@@ -50,6 +50,13 @@ const StyledHeader = styled.div`
       padding: 0px;
       .ant-menu-submenu-title > span {
         top: ${({ theme }) => theme.gridUnit * 1.5}px;
+      }
+    }
+    li[role='menuitem'] {
+      border: 0;
+      border-bottom: none;
+      &:hover {
+        border-bottom: transparent;
       }
     }
   }
@@ -66,8 +73,10 @@ const StyledHeader = styled.div`
     .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
+        border-bottom: none;
         &:hover {
           border-bottom: none;
+          text-decoration: none;
         }
       }
     }
@@ -243,13 +252,13 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           })}
         </Menu>
         <div className={navRightStyle}>
-          <Menu mode="horizontal">
+          <Menu mode="horizontal" triggerSubMenuAction="click">
             {props.dropDownLinks?.map((link, i) => (
               <SubMenu key={i} title={link.label} icon={<Icons.TriangleDown />}>
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
                     return (
-                      <DropdownMenu.Item>
+                      <DropdownMenu.Item key={item.label}>
                         <a href={item.url}>{item.label}</a>
                       </DropdownMenu.Item>
                     );
