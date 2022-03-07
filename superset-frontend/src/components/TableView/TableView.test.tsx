@@ -198,5 +198,14 @@ test('should render the right wrap content text by columnsForWrapText', () => {
     columnsForWrapText: ['Name'],
   };
   render(<TableView {...props} />);
-  expect(screen.getByTestId('table-row-cell__wrap')).toBeInTheDocument();
+
+  expect(screen.getAllByTestId('table-row-cell')[0]).toHaveClass(
+    'table-cell__nowrap',
+  );
+  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveClass(
+    'table-cell__nowrap',
+  );
+  expect(screen.getAllByTestId('table-row-cell')[2]).toHaveClass(
+    'table-cell__wrap',
+  );
 });

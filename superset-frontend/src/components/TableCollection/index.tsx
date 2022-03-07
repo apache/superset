@@ -315,7 +315,7 @@ export default React.memo(
                   console.log(isWrapText);
                   return (
                     <td
-                      data-test={`table-row-cell${isWrapText ? '__wrap' : ''}`}
+                      data-test="table-row-cell"
                       className={cx(
                         `table-cell table-cell__${
                           isWrapText ? 'wrap' : 'nowrap'
