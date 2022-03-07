@@ -31,7 +31,7 @@ interface TableCollectionProps {
   columns: TableInstance['column'][];
   loading: boolean;
   highlightRowId?: number;
-  columnsForWrapText?: any[];
+  columnsForWrapText?: TableInstance['column'][];
 }
 
 export const Table = styled.table`
