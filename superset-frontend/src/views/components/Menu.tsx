@@ -242,7 +242,7 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-') {
+          if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {
@@ -287,6 +287,7 @@ export function Menu({
             className="main-nav"
           >
             {menu.map(item => {
+              console.log('item', item)
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
