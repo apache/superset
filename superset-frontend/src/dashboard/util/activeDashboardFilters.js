@@ -18,7 +18,6 @@
  */
 import { isEmpty } from 'lodash';
 import { mapValues, flow, keyBy } from 'lodash/fp';
-
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -60,6 +59,22 @@ export function getAppliedFilterValues(chartId) {
     )(applicableFilters);
   }
   return appliedFilterValuesByChart[chartId];
+}
+export function getChartIdsInFilterScope2(filterScope, charts, layout) {
+  const layoutItems = Object.values(layout);
+  return Object.values(charts)
+    .filter(
+      chart =>
+        !filterScope.excluded.includes(chart.id) &&
+        layoutItems
+          .find(
+            layoutItem =>
+              layoutItem.type === CHART_TYPE &&
+              layoutItem.meta.chartId === chart.id,
+          )
+          ?.parents.some(elementId => filterScope.rootPath.includes(elementId)),
+    )
+    .map(chart => chart.id);
 }
 
 export function getChartIdsInFilterScope({ filterScope }) {

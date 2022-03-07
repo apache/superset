@@ -31,7 +31,6 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilt
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
-import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -274,10 +273,7 @@ export const selectNativeIndicatorsForChart = (
         .filter(
           nativeFilter =>
             nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
-            getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
-              layoutItem =>
-                dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-            ),
+            nativeFilter.chartsInScope?.includes(chartId),
         )
         .map(nativeFilter => {
           const column = nativeFilter.targets?.[0]?.column?.name;
@@ -297,10 +293,12 @@ export const selectNativeIndicatorsForChart = (
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     crossFilterIndicators = Object.values(chartConfiguration)
       .filter(chartConfig =>
-        getTreeCheckedItems(
-          chartConfig?.crossFilters?.scope,
-          dashboardLayout,
-        ).some(
+        getChartIdsInFilterScope({
+          filterScope: {
+            scope: chartConfig?.crossFilters?.scope.rootPath,
+            immune: chartConfig?.crossFilters?.scope.excluded,
+          },
+        }).some(
           layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
         ),
       )
