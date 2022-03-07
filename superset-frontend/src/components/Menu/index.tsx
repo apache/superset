@@ -16,67 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
-import {
-  Dropdown,
-  Menu as AntdMenu,
-  Input as AntdInput,
-  InputNumber as AntdInputNumber,
-  Skeleton,
-} from 'antd';
-import { DropDownProps } from 'antd/lib/dropdown';
-/*
-  Antd is re-exported from here so we can override components with Emotion as needed.
+import { Menu as AntdMenu } from 'antd';
 
-  For documentation, see https://ant.design/components/overview/
- */
-export {
-  AutoComplete,
-  Avatar,
-  Button,
-  Checkbox,
-  Col,
-  DatePicker,
-  Divider,
-  Dropdown,
-  Form,
-  Grid,
-  Empty,
-  Typography,
-  Tree,
-  Popover,
-  Slider,
-  Row,
-  Space,
-  Skeleton,
-  Steps,
-  Switch,
-  Tag,
-  Tabs,
-  Tooltip,
-  Upload,
-  Input as AntdInput,
-} from 'antd';
-export { Card as AntdCard } from 'antd';
-export { default as Modal } from 'antd/lib/modal';
-export type { ModalProps } from 'antd/lib/modal';
-export type { FormInstance } from 'antd/lib/form';
-export type { RadioChangeEvent } from 'antd/lib/radio';
-export type { TreeProps } from 'antd/lib/tree';
-export { default as Alert } from 'antd/lib/alert';
-export { default as Select } from 'antd/lib/select';
-export { default as List } from 'antd/lib/list';
-export type { AlertProps } from 'antd/lib/alert';
-export type { SelectProps } from 'antd/lib/select';
-export type { ListItemProps } from 'antd/lib/list';
-
-export { default as Collapse } from 'src/components/Collapse';
-export { default as Badge } from 'src/components/Badge';
-export { default as Card } from 'src/components/Card';
-export { default as Progress } from 'src/components/ProgressBar';
-
-export const MenuItem = styled(AntdMenu.Item)`
+const MenuItem = styled(AntdMenu.Item)`
   > a {
     text-decoration: none;
   }
@@ -119,7 +62,7 @@ export const MenuItem = styled(AntdMenu.Item)`
   }
 `;
 
-export const StyledNav = styled(AntdMenu)`
+const StyledNav = styled(AntdMenu)`
   line-height: 51px;
   border: none;
 
@@ -148,7 +91,7 @@ export const StyledNav = styled(AntdMenu)`
   }
 `;
 
-export const StyledSubMenu = styled(AntdMenu.SubMenu)`
+const StyledSubMenu = styled(AntdMenu.SubMenu)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   border-bottom: none;
   .ant-menu-submenu-open,
@@ -212,6 +155,7 @@ export declare type MenuMode =
   | 'vertical-right'
   | 'horizontal'
   | 'inline';
+
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,
 });
@@ -222,41 +166,3 @@ export const MainNav = Object.assign(StyledNav, {
   Divider: AntdMenu.Divider,
   ItemGroup: AntdMenu.ItemGroup,
 });
-
-interface ExtendedDropDownProps extends DropDownProps {
-  ref?: RefObject<HTMLDivElement>;
-}
-
-export const Input = styled(AntdInput)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
-
-export const InputNumber = styled(AntdInputNumber)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
-
-export const TextArea = styled(AntdInput.TextArea)`
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-`;
-
-// @z-index-below-dashboard-header (100) - 1 = 99
-export const NoAnimationDropdown = (
-  props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <Dropdown overlayStyle={{ zIndex: 99, animationDuration: '0s' }} {...props} />
-);
-
-export const ThinSkeleton = styled(Skeleton)`
-  h3 {
-    margin: ${({ theme }) => theme.gridUnit}px 0;
-  }
-
-  ul {
-    margin-bottom: 0;
-  }
-`;
-
-export { default as Icon } from '@ant-design/icons';

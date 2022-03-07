@@ -16,39 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../assets/stylesheets/less/variables.less';
 
-.CRUD {
-  .text-right {
-    text-align: right;
-  }
+import { NavBarProps, MenuObjectProps } from './Menu';
 
-  .empty-collection {
-    padding: 10px;
-  }
+export interface ExtentionConfigs {
+  ALLOWED_EXTENSIONS: Array<any>;
+  CSV_EXTENSIONS: Array<any>;
+  COLUMNAR_EXTENSIONS: Array<any>;
+  EXCEL_EXTENSIONS: Array<any>;
+  HAS_GSHEETS_INSTALLED: boolean;
+}
+export interface RightMenuProps {
+  align: 'flex-start' | 'flex-end';
+  settings: MenuObjectProps[];
+  navbarRight: NavBarProps;
+  isFrontendRoute: (path?: string) => boolean;
+}
 
-  .control-label {
-    font-weight: @font-weight-bold;
-  }
-
-  .tiny-cell {
-    width: 5px;
-  }
-
-  i.fa-caret-down,
-  i.fa-caret-up {
-    width: 5px;
-  }
-
-  td.expanded {
-    border-top: 0;
-    padding: 0;
-  }
-
-  .frame {
-    border: 1px solid @gray-heading;
-    border-radius: @border-radius-large;
-    padding: 10;
-    background: @gray-bg;
-  }
+export enum GlobalMenuDataOptions {
+  GOOGLE_SHEETS = 'gsheets',
+  DB_CONNECTION = 'dbconnection',
 }

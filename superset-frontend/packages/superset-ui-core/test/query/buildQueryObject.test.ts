@@ -152,6 +152,28 @@ describe('buildQueryObject', () => {
     expect(query.timeseries_limit_metric).toEqual(metric);
   });
 
+  it('should build series_limit_metric', () => {
+    const metric = 'country';
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'pivot_table_v2',
+      series_limit_metric: metric,
+    });
+    expect(query.series_limit_metric).toEqual(metric);
+  });
+
+  it('should build series_limit_metric as undefined when empty array', () => {
+    const metric: any = [];
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'pivot_table_v2',
+      series_limit_metric: metric,
+    });
+    expect(query.series_limit_metric).toEqual(undefined);
+  });
+
   it('should handle null and non-numeric row_limit and row_offset', () => {
     const baseQuery = {
       datasource: '5__table',

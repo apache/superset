@@ -51,9 +51,6 @@ params:
     sqlExpression: null
   show_bubbles: true
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: world_map
 cache_timeout: null

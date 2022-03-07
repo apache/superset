@@ -161,7 +161,6 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
         "entity": "country_code",

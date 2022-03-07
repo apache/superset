@@ -25,7 +25,7 @@ import { FilterRemoval } from './types';
 export const useRemoveCurrentFilter = (
   removedFilters: Record<string, FilterRemoval>,
   currentFilterId: string,
-  orderedFilters: string[][],
+  orderedFilters: string[],
   setCurrentFilterId: Function,
 ) => {
   useEffect(() => {

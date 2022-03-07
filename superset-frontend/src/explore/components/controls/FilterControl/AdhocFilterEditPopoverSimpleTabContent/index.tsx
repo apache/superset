@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -36,7 +36,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 
@@ -373,7 +373,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   return (
     <>
       <Select
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
@@ -395,7 +395,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...subjectSelectProps}
       />
       <Select
-        css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevant(op, subject))
           .map((option, index) => ({
