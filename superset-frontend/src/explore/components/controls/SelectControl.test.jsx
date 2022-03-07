@@ -81,7 +81,9 @@ describe('SelectControl', () => {
     it('renders with tokenSeperators', () => {
       wrapper.setProps({ tokenSeperators: ['\n', '\t', ';'] });
       expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('tokenSeperators')).toEqual(expect.arrayContaining([expect.any(String)]));
+      expect(wrapper.find(SelectComponent).prop('tokenSeperators')).toEqual(
+        expect.arrayContaining([expect.any(String)]),
+      );
     });
 
     describe('empty placeholder', () => {
