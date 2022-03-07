@@ -291,16 +291,17 @@ export const selectNativeIndicatorsForChart = (
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    const dashboardLayoutValues = Object.values(dashboardLayout);
+    const chartLayoutItem = dashboardLayoutValues.find(
+      layoutItem => layoutItem?.meta?.chartId === chartId,
+    );
     crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(chartConfig =>
-        getChartIdsInFilterScope({
-          filterScope: {
-            scope: chartConfig?.crossFilters?.scope.rootPath,
-            immune: chartConfig?.crossFilters?.scope.excluded,
-          },
-        }).some(
-          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        ),
+      .filter(
+        chartConfig =>
+          !chartConfig.crossFilters.scope.excluded.includes(chartId) &&
+          chartConfig.crossFilters.scope.rootPath.some(elementId =>
+            chartLayoutItem?.parents.includes(elementId),
+          ),
       )
       .map(chartConfig => {
         const filterState = dataMask[chartConfig.id]?.filterState;
@@ -308,7 +309,7 @@ export const selectNativeIndicatorsForChart = (
         const filtersState = filterState?.filters;
         const column = filtersState && Object.keys(filtersState)[0];
 
-        const dashboardLayoutItem = Object.values(dashboardLayout).find(
+        const dashboardLayoutItem = dashboardLayoutValues.find(
           layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
         );
         return {

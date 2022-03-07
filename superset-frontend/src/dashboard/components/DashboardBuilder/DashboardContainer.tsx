@@ -51,7 +51,7 @@ type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-const useFilterScopes = () => {
+const useNativeFilterScopes = () => {
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
@@ -70,7 +70,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const filtersScopes = useFilterScopes();
+  const nativeFiltersScopes = useNativeFilterScopes();
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -94,11 +94,11 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      filtersScopes.length === 0
+      nativeFiltersScopes.length === 0
     ) {
       return;
     }
-    const scopes = filtersScopes.map(filterScope => {
+    const scopes = nativeFiltersScopes.map(filterScope => {
       if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
         return {
           filterId: filterScope.id,
@@ -123,7 +123,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [filtersScopes, dashboardLayout, dispatch]);
+  }, [nativeFiltersScopes, dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
