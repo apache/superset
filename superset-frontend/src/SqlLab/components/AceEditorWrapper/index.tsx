@@ -167,17 +167,17 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'schema',
     }));
     const columns = {};
-    const tables = props.tables || [];
-    const extendedTables = props.extendedTables || [];
+    const tables = props.extendedTables || props.tables || [];
+
     const tableWords = tables.map(t => {
-      const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = (extendedTable && extendedTable.columns) || [];
+      const tableName = t.name;
+      const cols = t.columns || [];
       cols.forEach(col => {
         columns[col.name] = null; // using an object as a unique set
       });
+
       return {
-        name: t.label,
+        name: tableName,
         value: tableName,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
