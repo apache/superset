@@ -33,7 +33,7 @@ const TIME_GRAIN_MAP: Record<string, string> = {
   PT30M: '30min',
   PT1H: 'H',
   P1D: 'D',
-  P1M: 'M',
+  P1M: 'MS',
   P3M: 'Q',
   P1Y: 'A',
   // TODO: these need to be mapped carefully, as the first day of week
