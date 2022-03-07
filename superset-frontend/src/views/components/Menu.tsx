@@ -35,7 +35,6 @@ interface BrandProps {
   path: string;
   icon: string;
   alt: string;
-  width: string | number;
   tooltip: string;
   text: string;
 }
@@ -97,6 +96,13 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding: ${({ theme }) =>
+      `${theme.gridUnit * 3.5}px ${theme.gridUnit * 2.5}px`}};
+
+    img {
+      height: 100%;
+      width: fit-content;
+    }
   }
   .navbar-brand-text {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -273,7 +279,7 @@ export function Menu({
             arrowPointAtCenter
           >
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img src={brand.icon} alt={brand.alt} />
             </a>
           </Tooltip>
           {brand.text && (
