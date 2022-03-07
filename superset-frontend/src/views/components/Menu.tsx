@@ -287,7 +287,6 @@ export function Menu({
             className="main-nav"
           >
             {menu.map(item => {
-              console.log('item', item)
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
