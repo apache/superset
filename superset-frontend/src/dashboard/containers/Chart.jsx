@@ -29,7 +29,7 @@ import {
   addSuccessToast,
   addDangerToast,
 } from 'src/components/MessageToasts/actions';
-import { refreshChart } from 'src/chart/chartAction';
+import { refreshChart } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import {
   getActiveFilters,

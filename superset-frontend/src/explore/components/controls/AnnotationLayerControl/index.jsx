@@ -25,7 +25,7 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Popover from 'src/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { runAnnotationQuery } from 'src/chart/chartAction';
+import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 
 const AnnotationLayer = AsyncEsmComponent(

@@ -23,7 +23,7 @@ import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
