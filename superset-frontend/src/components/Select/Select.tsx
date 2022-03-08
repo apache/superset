@@ -292,7 +292,8 @@ const Select = ({
   tokenSeparators,
   value,
   ...props
-}: SelectProps) => {
+}: SelectProps,
+ref: RefObject<HTMLInputElement>,) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
