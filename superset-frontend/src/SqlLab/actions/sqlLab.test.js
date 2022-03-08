@@ -727,7 +727,7 @@ describe('async actions', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(5);
 
-        const database = { allows_preview_data: false };
+        const database = { disable_preview_data: true };
         const tableName = 'table';
         const schemaName = 'schema';
         const store = mockStore({});
@@ -755,7 +755,7 @@ describe('async actions', () => {
       });
 
       it('updates and runs data preview query when configured', () => {
-        expect.assertions(2);
+        expect.assertions(5);
 
         const results = {
           data: mockBigNumber,
@@ -766,7 +766,7 @@ describe('async actions', () => {
           overwriteRoutes: true,
         });
 
-        const database = { allows_preview_data: true, id: 1 };
+        const database = { disable_preview_data: false, id: 1 };
         const tableName = 'table';
         const schemaName = 'schema';
         const store = mockStore({});
@@ -785,7 +785,11 @@ describe('async actions', () => {
             expect(store.getActions().map(a => a.type)).toEqual(
               expectedActionTypes,
             );
-
+            expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+            expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+            expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(
+              1,
+            );
             // tab state is not updated, since the query is a data preview
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
           });

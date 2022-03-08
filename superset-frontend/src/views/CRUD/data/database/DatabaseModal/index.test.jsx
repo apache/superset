@@ -591,14 +591,14 @@ describe('DatabaseModal', () => {
       const allowDbExplorationText = screen.getByText(
         /allow this database to be explored/i,
       );
-      const allowSQLLabDataPreviewQueriesCheckbox = screen.getByRole(
+      const disableSQLLabDataPreviewQueriesCheckbox = screen.getByRole(
         'checkbox',
         {
-          name: /Allow SQL Lab data preview queries/i,
+          name: /Disable SQL Lab data preview queries/i,
         },
       );
-      const allowSQLLabDataPreviewQueriesText = screen.getByText(
-        /Allow SQL Lab data preview queries/i,
+      const disableSQLLabDataPreviewQueriesText = screen.getByText(
+        /Disable SQL Lab data preview queries/i,
       );
 
       // ---------- Assertions ----------
@@ -638,7 +638,7 @@ describe('DatabaseModal', () => {
         allowMultiSchemaMDFetchText,
         enableQueryCostEstimationText,
         allowDbExplorationText,
-        allowSQLLabDataPreviewQueriesText,
+        disableSQLLabDataPreviewQueriesText,
       ];
       // These components exist in the DOM but are not visible
       const invisibleComponents = [
@@ -649,7 +649,7 @@ describe('DatabaseModal', () => {
         allowMultiSchemaMDFetchCheckbox,
         enableQueryCostEstimationCheckbox,
         allowDbExplorationCheckbox,
-        allowSQLLabDataPreviewQueriesCheckbox,
+        disableSQLLabDataPreviewQueriesCheckbox,
       ];
 
       visibleComponents.forEach(component => {

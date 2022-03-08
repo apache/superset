@@ -213,8 +213,8 @@ class Database(
         return self.get_extra().get("explore_database_id", self.id)
 
     @property
-    def allows_preview_data(self) -> bool:
-        return bool(self.get_extra().get("allows_preview_data", True))
+    def disable_preview_data(self) -> bool:
+        return bool(self.get_extra().get("disable_preview_data", False))
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -229,7 +229,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
-            "allows_preview_data": self.allows_preview_data,
+            "disable_preview_data": self.disable_preview_data,
             "parameters_schema": self.parameters_schema,
         }
 

@@ -145,7 +145,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_ctas_schema",
         "id",
-        "allows_preview_data",
+        "disable_preview_data",
     ]
     add_columns = [
         "database_name",

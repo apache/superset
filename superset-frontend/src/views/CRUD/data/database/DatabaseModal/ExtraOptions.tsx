@@ -201,15 +201,15 @@ const ExtraOptions = ({
             <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allows_preview_data"
+                  id="disable_preview_data"
                   indeterminate={false}
-                  checked={!!db?.extra_json?.allows_preview_data}
+                  checked={!!db?.extra_json?.disable_preview_data}
                   onChange={onExtraInputChange}
-                  labelText={t('Allow SQL Lab data preview queries')}
+                  labelText={t('Disable SQL Lab data preview queries')}
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'The allows_preview_data field is a boolean specifying whether or not data ' +
+                    'The disable_preview_data field is a boolean specifying whether or not data ' +
                       'preview queries will be run when fetching table metadata in SQL Lab.',
                   )}
                 />
