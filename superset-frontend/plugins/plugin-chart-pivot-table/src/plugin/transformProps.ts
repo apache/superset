@@ -136,7 +136,10 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
-  const metricColorFormatters = getColorFormatters2(conditionalFormatting, data);
+  const metricColorFormatters = getColorFormatters2(
+    conditionalFormatting,
+    data,
+  );
 
   return {
     width,

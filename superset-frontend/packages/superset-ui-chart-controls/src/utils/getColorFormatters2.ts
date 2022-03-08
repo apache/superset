@@ -15,7 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 import { DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -27,14 +27,13 @@ import {
 export const colorToRgbaString = (rgba: any) =>
   `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a})`;
 
-
 const getColorFunction = (
   {
     operator,
     targetValue,
     targetValueLeft,
     targetValueRight,
-    colorScheme
+    colorScheme,
   }: ConditionalFormattingConfig,
   columnValues: number[],
 ) => {

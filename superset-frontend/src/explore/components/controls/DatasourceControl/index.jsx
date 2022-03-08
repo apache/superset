@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -241,7 +241,7 @@ class DatasourceControl extends React.PureComponent {
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <Dropdown
+          <AntdDropdown
             overlay={datasourceMenu}
             trigger={['click']}
             data-test="datasource-menu"
@@ -252,7 +252,7 @@ class DatasourceControl extends React.PureComponent {
                 data-test="datasource-menu-trigger"
               />
             </Tooltip>
-          </Dropdown>
+          </AntdDropdown>
         </div>
         {/* missing dataset */}
         {isMissingDatasource && isMissingParams && (

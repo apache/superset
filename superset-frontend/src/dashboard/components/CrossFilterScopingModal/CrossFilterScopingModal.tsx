@@ -21,7 +21,7 @@ import React, { FC } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { StyledModal } from 'src/components/Modal';
 import Button from 'src/components/Button';
-import { Form } from 'src/common/components';
+import { AntdForm } from 'src/components';
 import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import CrossFilterScopingForm from './CrossFilterScopingForm';
@@ -40,7 +40,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
   onClose,
 }) => {
   const dispatch = useDispatch();
-  const [form] = Form.useForm<CrossFilterScopingFormType>();
+  const [form] = AntdForm.useForm<CrossFilterScopingFormType>();
   const chartConfig = useSelector<any, ChartConfiguration>(
     ({ dashboardInfo }) => dashboardInfo?.metadata?.chart_configuration,
   );
