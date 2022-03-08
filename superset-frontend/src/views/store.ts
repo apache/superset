@@ -20,7 +20,7 @@ import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
 import thunk from 'redux-thunk';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
-import charts from 'src/chart/chartReducer';
+import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import reports from 'src/reports/reducers/reports';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';

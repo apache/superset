@@ -16,25 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
 
-import * as actions from './chartAction';
-import { logEvent } from '../logger/actions';
-import Chart from './Chart';
-import { updateDataMask } from '../dataMask/actions';
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(
-      {
-        ...actions,
-        updateDataMask,
-        logEvent,
-      },
-      dispatch,
-    ),
-  };
+/**
+ * Sort comparator with basic rankings.
+ */
+export function rankedSearchCompare(a: string, b: string, search: string) {
+  const aLower = a.toLowerCase() || '';
+  const bLower = b.toLowerCase() || '';
+  const searchLower = search.toLowerCase() || '';
+  if (!search) return a.localeCompare(b);
+  return (
+    Number(b === search) - Number(a === search) ||
+    Number(b.startsWith(search)) - Number(a.startsWith(search)) ||
+    Number(bLower === searchLower) - Number(aLower === searchLower) ||
+    Number(bLower.startsWith(searchLower)) -
+      Number(aLower.startsWith(searchLower)) ||
+    Number(b.includes(search)) - Number(a.includes(search)) ||
+    Number(bLower.includes(searchLower)) - Number(a.includes(searchLower)) ||
+    a.localeCompare(b)
+  );
 }
-
-export default connect(null, mapDispatchToProps)(Chart);

@@ -153,11 +153,12 @@ describe('SelectControl', () => {
     });
 
     describe('when select has a sortComparator prop', () => {
-      it('does not add add order key and sorts by sortComparator', () => {
+      it('does not add add order key', () => {
         const sortComparator = (a, b) => a.label.localeCompare(b.label);
-        const optionsSortedByLabel = options
-          .map(opt => ({ label: opt.label, value: opt.value }))
-          .sort(sortComparator);
+        const optionsSortedByLabel = options.map(opt => ({
+          label: opt.label,
+          value: opt.value,
+        }));
         wrapper = mount(
           <SelectControl
             {...defaultProps}
@@ -167,19 +168,6 @@ describe('SelectControl', () => {
           />,
         );
         expect(wrapper.state().options).toEqual(optionsSortedByLabel);
-      });
-    });
-
-    describe('when select does not have a sortComparator prop', () => {
-      it('adds an order key and maintains its intial order', () => {
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            value={50}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.state().options).toEqual(options);
       });
     });
   });

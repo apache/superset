@@ -16,23 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import React from 'react';
+import { shallow } from 'enzyme';
+import { SuperChart } from '@superset-ui/core';
 
-import reports from 'src/reports/reducers/reports';
-import charts from 'src/components/Chart/chartReducer';
-import dataMask from 'src/dataMask/reducer';
-import messageToasts from 'src/components/MessageToasts/reducers';
-import saveModal from './saveModalReducer';
-import explore from './exploreReducer';
+import ChartRenderer from 'src/components/Chart/ChartRenderer';
 
-const impressionId = (state = '') => state;
+const requiredProps = {
+  chartId: 1,
+  datasource: {},
+  formData: {},
+  vizType: 'foo',
+};
 
-export default combineReducers({
-  charts,
-  saveModal,
-  dataMask,
-  explore,
-  impressionId,
-  messageToasts,
-  reports,
+describe('ChartRenderer', () => {
+  it('should render SuperChart', () => {
+    const wrapper = shallow(
+      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
+    );
+    expect(wrapper.find(SuperChart)).toExist();
+  });
+
+  it('should not render SuperChart when refreshOverlayVisible is true', () => {
+    const wrapper = shallow(
+      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
+    );
+    expect(wrapper.find(SuperChart)).not.toExist();
+  });
 });
