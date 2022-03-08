@@ -484,7 +484,7 @@ class QueryContextProcessor:
             compiled_query = compile_query(self._query_context, query)
             if compiled_query.get("error"):
                 raise QueryObjectValidationError(f"Error: {compiled_query['error']}")
-            security_manager.raise_for_query_str_access(
+            security_manager.raise_for_table_access_in_query(
                 compiled_query["query"],
                 self._query_context.datasource.schema,
                 # database isn't present on BaseDatasource, but it is defined in

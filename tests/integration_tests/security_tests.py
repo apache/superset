@@ -1043,7 +1043,7 @@ class TestSecurityManager(SupersetTestCase):
             security_manager.raise_for_access(viz=test_viz)
 
     @patch("superset.security.SupersetSecurityManager.raise_for_access")
-    def test_raise_for_query_str_access(self, mock_raise_for_access):
+    def test_raise_for_table_access_in_query(self, mock_raise_for_access):
         mock_raise_for_access.side_effect = SupersetSecurityException(
             SupersetError(
                 "dummy",
@@ -1052,7 +1052,7 @@ class TestSecurityManager(SupersetTestCase):
             )
         )
         with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_query_str_access(
+            security_manager.raise_for_table_access_in_query(
                 query="SELECT * FROM foo", schema="bar", database=get_example_database()
             )
 

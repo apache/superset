@@ -1007,14 +1007,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
-    def raise_for_query_str_access(
+    def raise_for_table_access_in_query(
         self, query: str, schema: str, database: "Database",
     ) -> None:
         """
-        Parses a raw SQL query, and checks the elements of the query to see
-        if the current user can access them, namely tables aka "datasets".
+        Parses a raw sql query - or partial sql - and checks that the current user
+        can access the tables referenced by the query.
 
-        This exists separately from raise_for_access because we want to cal it from
+        This exists separately from raise_for_access because we want to call it from
         outside security manager and raise_for_access takes a SQL Lab Query model.
 
         :param query: a raw sql query that we want to check access rights for
@@ -1072,7 +1072,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
-                self.raise_for_query_str_access(query.sql, query.schema, database)
+                self.raise_for_table_access_in_query(query.sql, query.schema, database)
             elif table:
                 schema_perm = self.get_schema_perm(database, schema=table.schema)
 
