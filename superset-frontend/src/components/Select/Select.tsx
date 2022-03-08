@@ -63,6 +63,7 @@ type PickedSelectProps = Pick<
   | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
+  | 'tokenSeparators'
   | 'value'
 >;
 
@@ -149,11 +150,6 @@ export interface SelectProps extends PickedSelectProps {
    * Undefined by default.
    */
   fetchOnlyOnSearch?: boolean;
-  /**
-   * It defines a customized token separators.
-   * If it is not defined, will use the default value.
-   */
-  tokenSeperators?: string[];
   /**
    * It provides a callback function when an error
    * is generated after a request is fired.
@@ -293,8 +289,8 @@ const Select = ({
   placeholder = t('Select ...'),
   showSearch = true,
   sortComparator = defaultSortComparator,
+  tokenSeparators,
   value,
-  tokenSeperators,
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
@@ -761,7 +757,7 @@ const Select = ({
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={tokenSeperators || TOKEN_SEPARATORS}
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={

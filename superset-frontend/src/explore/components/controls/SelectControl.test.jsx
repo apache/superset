@@ -78,10 +78,10 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(false);
     });
 
-    it('renders with tokenSeperators', () => {
-      wrapper.setProps({ tokenSeperators: ['\n', '\t', ';'] });
+    it('renders with tokenSeparators', () => {
+      wrapper.setProps({ tokenSeparators: ['\n', '\t', ';'] });
       expect(wrapper.find(SelectComponent)).toExist();
-      expect(wrapper.find(SelectComponent).prop('tokenSeperators')).toEqual(
+      expect(wrapper.find(SelectComponent).prop('tokenSeparators')).toEqual(
         expect.arrayContaining([expect.any(String)]),
       );
     });
