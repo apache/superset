@@ -22,7 +22,7 @@ import sinon from 'sinon';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
