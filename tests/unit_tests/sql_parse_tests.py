@@ -25,6 +25,7 @@ import sqlparse
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
+    add_table_name,
     has_table_query,
     insert_rls,
     ParsedQuery,
@@ -1343,3 +1344,18 @@ def test_insert_rls(sql, table, rls, expected) -> None:
     statement = sqlparse.parse(sql)[0]
     condition = sqlparse.parse(rls)[0]
     assert str(insert_rls(statement, table, condition)).strip() == expected.strip()
+
+
+@pytest.mark.parametrize(
+    "rls,table,expected",
+    [
+        ("id=42", "users", "users.id=42"),
+        ("users.id=42", "users", "users.id=42"),
+        ("schema.users.id=42", "users", "schema.users.id=42"),
+        ("false", "users", "false"),
+    ],
+)
+def test_add_table_name(rls, table, expected) -> None:
+    condition = sqlparse.parse(rls)[0]
+    add_table_name(condition, table)
+    assert str(condition) == expected

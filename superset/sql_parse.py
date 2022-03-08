@@ -484,7 +484,7 @@ def has_table_query(statement: Statement) -> bool:
         if isinstance(token, TokenList):
             tokens.extend(token.tokens)
 
-        if token.ttype == Keyword and token.value.lower() in ("from", "join"):
+        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
             seen_source = True
         elif seen_source and (
             isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
