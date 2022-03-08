@@ -379,7 +379,7 @@ export function FiltersConfigModal({
       handleConfirmCancel();
     }
   };
-  const onRearrage = (dragIndex: number, targetIndex: number) => {
+  const onRearrange = (dragIndex: number, targetIndex: number) => {
     const newOrderedFilter = [...orderedFilters];
     const removed = newOrderedFilter.splice(dragIndex, 1)[0];
     newOrderedFilter.splice(targetIndex, 0, removed);
@@ -531,7 +531,7 @@ export function FiltersConfigModal({
               currentFilterId={currentFilterId}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
-              onRearrange={onRearrage}
+              onRearrange={onRearrange}
               filters={orderedFilters}
             >
               {(id: string) => getForm(id)}

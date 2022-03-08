@@ -75,7 +75,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
           getFilterTitle={getFilterTitle}
           onChange={onChange}
           onAdd={(type: NativeFilterType) => onAdd(type)}
-          onRearrage={onRearrange}
+          onRearrange={onRearrange}
           onRemove={(id: string) => onRemove(id)}
           restoreFilter={restoreFilter}
         />
