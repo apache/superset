@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { Row } from 'react-table';
 import sortFn from './SortNumberWithMixedTypes';
 
 describe('sort Number and mixed types', () => {
@@ -30,7 +30,7 @@ describe('sort Number and mixed types', () => {
         },
       },
     },
-  };
+  } as unknown as Row;
   const rowB = {
     values: {
       metric: 'Afghanistan',
@@ -40,7 +40,7 @@ describe('sort Number and mixed types', () => {
         },
       },
     },
-  };
+  } as unknown as Row;
   const rowC = {
     values: {
       metric: 'Malawi',
@@ -50,14 +50,11 @@ describe('sort Number and mixed types', () => {
         },
       },
     },
-  };
+  } as unknown as Row;
 
   it('should treat null values as smallest', () => {
-    // @ts-ignore
     expect(sortFn(rowA, rowB, columnId)).toBe(-1);
-    // @ts-ignore
     expect(sortFn(rowA, rowC, columnId)).toBe(-1);
-    // @ts-ignore
     expect(sortFn(rowB, rowC, columnId)).toBe(
       rowB.values[columnId].props['data-value'] -
         rowC.values[columnId].props['data-value'],
