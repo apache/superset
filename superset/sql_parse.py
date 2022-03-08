@@ -27,7 +27,6 @@ from sqlparse.sql import (
     IdentifierList,
     Parenthesis,
     remove_quotes,
-    Statement,
     Token,
     TokenList,
     Where,
@@ -462,7 +461,17 @@ def validate_filter_clause(clause: str) -> None:
         raise QueryClauseValidationException("Unclosed parenthesis in filter clause")
 
 
-def has_table_query(statement: Statement) -> bool:
+class InsertRLSState(str, Enum):
+    """
+    State machine that scans for WHERE and ON clauses referencing tables.
+    """
+
+    SCANNING = "SCANNING"
+    SEEN_SOURCE = "SEEN_SOURCE"
+    FOUND_TABLE = "FOUND_TABLE"
+
+
+def has_table_query(token_list: TokenList) -> bool:
     """
     Return if a stament has a query reading from a table.
 
@@ -477,21 +486,26 @@ def has_table_query(statement: Statement) -> bool:
         False
 
     """
-    seen_source = False
-    tokens = statement.tokens[:]
-    while tokens:
-        token = tokens.pop(0)
-        if isinstance(token, TokenList):
-            tokens.extend(token.tokens)
+    state = InsertRLSState.SCANNING
+    for token in token_list.tokens:
 
+        # # Recurse into child token list
+        if isinstance(token, TokenList) and has_table_query(token):
+            return True
+
+        # Found a source keyword (FROM/JOIN)
         if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
-            seen_source = True
-        elif seen_source and (
+            state = InsertRLSState.SEEN_SOURCE
+
+        # Found identifier/keyword after FROM/JOIN
+        elif state == InsertRLSState.SEEN_SOURCE and (
             isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
         ):
             return True
-        elif seen_source and token.ttype not in (Whitespace, Punctuation):
-            seen_source = False
+
+        # Found nothing, leaving source
+        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
+            state = InsertRLSState.SCANNING
 
     return False
 
@@ -512,16 +526,6 @@ def add_table_name(rls: TokenList, table: str) -> None:
             ]
         elif isinstance(token, TokenList):
             tokens.extend(token.tokens)
-
-
-class InsertRLSState(str, Enum):
-    """
-    State machine that scans for WHERE and ON clauses referencing tables.
-    """
-
-    SCANNING = "SCANNING"
-    SEEN_SOURCE = "SEEN_SOURCE"
-    FOUND_TABLE = "FOUND_TABLE"
 
 
 def matches_table_name(token: Token, table: str) -> bool:
@@ -557,7 +561,7 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
             token_list.tokens[i] = insert_rls(token, table, rls)
 
         # Found a source keyword (FROM/JOIN)
-        if token.ttype == Keyword and token.value.lower() in ("from", "join"):
+        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
             state = InsertRLSState.SEEN_SOURCE
 
         # Found identifier/keyword after FROM/JOIN, test for table
