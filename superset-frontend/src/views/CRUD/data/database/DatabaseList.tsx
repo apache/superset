@@ -188,19 +188,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       childs: [
         {
           label: t('Upload a CSV'),
-          name: 'Upload a CSV',
+          name: 'Upload a CSV file',
           url: '/csvtodatabaseview/form',
           perm: CSV_EXTENSIONS,
         },
         {
-          label: t('Upload a Columnar File'),
-          name: 'Upload a Columnar file',
+          label: t('Upload a columnar file'),
+          name: 'Upload a columnar file',
           url: '/columnartodatabaseview/form',
           perm: COLUMNAR_EXTENSIONS,
         },
         {
-          label: t('Upload Excel'),
-          name: 'Upload Excel',
+          label: t('Upload a Excel file'),
+          name: 'Upload Excel file',
           url: '/exceltodatabaseview/form',
           perm: EXCEL_EXTENSIONS,
         },

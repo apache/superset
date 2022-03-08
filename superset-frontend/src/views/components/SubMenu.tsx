@@ -21,7 +21,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Row } from 'src/common/components';
+import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -55,6 +55,11 @@ const StyledHeader = styled.div`
       &:hover {
         border-bottom: transparent;
       }
+    }
+    .dropdown-menu-links > div.ant-menu-submenu-title:hover,
+    .ant-menu-submenu-open.ant-menu-submenu-active
+      > div.ant-menu-submenu-title {
+      color: ${({ theme }) => theme.colors.primary.dark1};
     }
   }
   .nav-right-collapse {
@@ -263,6 +268,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                 title={link.label}
                 icon={<Icons.TriangleDown />}
                 popupOffset={[10, 20]}
+                className="dropdown-menu-links"
               >
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
