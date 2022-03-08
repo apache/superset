@@ -1,4 +1,3 @@
-import { ensureIsArray } from '@superset-ui/core';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,14 +16,14 @@ import { ensureIsArray } from '@superset-ui/core';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
+import { ensureIsArray } from '@superset-ui/core';
 import {
   OptionTypeBase,
   ValueType,
   OptionsType,
   GroupedOptionsType,
 } from 'react-select';
-
-import { OptionsType as AntdOptionsType } from './Select';
 
 /**
  * Find Option value that matches a possibly string value.
@@ -61,27 +60,25 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
-export function hasOption<VT extends string | number>(
-  value: VT,
-  options?: VT | VT[] | { value: VT } | { value: VT }[],
-) {
-  const optionsArray = ensureIsArray(options);
-  return (
-    optionsArray.find(x =>
-      typeof x === 'object' ? x.value === value : x === value,
-    ) !== undefined
-  );
+export function getValue(option: string | number | { value: string | number }) {
+  return typeof option === 'object' ? option.value : option;
 }
 
-export function hasOptionIgnoreCase(search: string, options: AntdOptionsType) {
-  const searchOption = search.trim().toLowerCase();
-  return options.find(opt => {
-    const { label, value } = opt;
-    const labelText = String(label);
-    const valueText = String(value);
-    return (
-      valueText.toLowerCase() === searchOption ||
-      labelText.toLowerCase() === searchOption
-    );
-  });
+type LabeledValue<V> = { label?: ReactNode; value?: V };
+
+export function hasOption<V>(
+  value: V,
+  options?: V | LabeledValue<V> | (V | LabeledValue<V>)[],
+  checkLabel = false,
+): boolean {
+  const optionsArray = ensureIsArray(options);
+  return (
+    optionsArray.find(
+      x =>
+        x === value ||
+        (typeof x === 'object' &&
+          (('value' in x && x.value === value) ||
+            (checkLabel && 'label' in x && x.label === value))),
+    ) !== undefined
+  );
 }
