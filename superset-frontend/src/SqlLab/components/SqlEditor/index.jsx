@@ -306,7 +306,8 @@ class SqlEditor extends React.PureComponent {
   getHotkeyConfig() {
     // Get the user's OS
     const userOS = detectOS();
-    return [
+
+    const base = [
       {
         name: 'runQuery1',
         key: 'ctrl+r',
@@ -346,6 +347,19 @@ class SqlEditor extends React.PureComponent {
         func: this.stopQuery,
       },
     ];
+
+    if (userOS === 'MacOS') {
+      base.push({
+        name: 'previousLine',
+        key: 'ctrl+p',
+        descr: t('Previous Line'),
+        func: editor => {
+          editor.navigateUp(1);
+        },
+      });
+    }
+
+    return base;
   }
 
   setQueryEditorSql(sql) {
