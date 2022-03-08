@@ -69,10 +69,12 @@ export function getChartIdsInFilterScope(filterScope, charts, layout) {
         layoutItems
           .find(
             layoutItem =>
-              layoutItem.type === CHART_TYPE &&
-              layoutItem.meta.chartId === chart.id,
+              layoutItem?.type === CHART_TYPE &&
+              layoutItem.meta?.chartId === chart.id,
           )
-          ?.parents.some(elementId => filterScope.rootPath.includes(elementId)),
+          ?.parents?.some(elementId =>
+            filterScope.rootPath.includes(elementId),
+          ),
     )
     .map(chart => chart.id);
 }
