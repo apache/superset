@@ -16,31 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import { SuperChart } from '@superset-ui/core';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-import ChartRenderer from 'src/chart/ChartRenderer';
+import * as actions from './chartAction';
+import { logEvent } from '../../logger/actions';
+import Chart from './Chart';
+import { updateDataMask } from '../../dataMask/actions';
 
-const requiredProps = {
-  chartId: 1,
-  datasource: {},
-  formData: {},
-  vizType: 'foo',
-};
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(
+      {
+        ...actions,
+        updateDataMask,
+        logEvent,
+      },
+      dispatch,
+    ),
+  };
+}
 
-describe('ChartRenderer', () => {
-  it('should render SuperChart', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
-    );
-    expect(wrapper.find(SuperChart)).toExist();
-  });
-
-  it('should not render SuperChart when refreshOverlayVisible is true', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
-    );
-    expect(wrapper.find(SuperChart)).not.toExist();
-  });
-});
+export default connect(null, mapDispatchToProps)(Chart);
