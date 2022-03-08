@@ -34,6 +34,7 @@ import {
   SupersetTheme,
   useTheme,
   ChartLabel,
+  ChartLabelWeight,
 } from '@superset-ui/core';
 import { Collapse, Tooltip } from 'src/common/components';
 import { Input } from 'src/components/Input';
@@ -112,8 +113,6 @@ const DEFAULT_ORDER = [
   'para',
   'country_map',
 ];
-
-const CHART_LABEL_ORDER = [ChartLabel.DEPRECATED, ChartLabel.VERIFIED];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
@@ -593,12 +592,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .search(searchInputValue)
       .map(result => result.item)
       .sort((a, b) => {
-        const aOrder = a.value?.label?.name
-          ? CHART_LABEL_ORDER.indexOf(a.value?.label?.name)
-          : 0;
-        const bOrder = b.value?.label?.name
-          ? CHART_LABEL_ORDER.indexOf(b.value?.label?.name)
-          : 0;
+        const aName = a.value?.label?.name;
+        const bName = b.value?.label?.name;
+        const aOrder =
+          aName && ChartLabelWeight[aName] ? ChartLabelWeight[aName].weight : 0;
+        const bOrder =
+          bName && ChartLabelWeight[bName] ? ChartLabelWeight[bName].weight : 0;
         return bOrder - aOrder;
       });
   }, [searchInputValue, fuse]);

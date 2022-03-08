@@ -55,6 +55,19 @@ export interface PlainObject {
 export enum ChartLabel {
   VERIFIED = 'VERIFIED',
   DEPRECATED = 'DEPRECATED',
+  FEATURED = 'FEATURED',
 }
+
+export const ChartLabelWeight = {
+  [ChartLabel.DEPRECATED]: {
+    weight: -0.1,
+  },
+  [ChartLabel.VERIFIED]: {
+    weight: 0.2,
+  },
+  [ChartLabel.FEATURED]: {
+    weight: 0.1,
+  },
+};
 
 export default {};
