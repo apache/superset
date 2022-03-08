@@ -1299,6 +1299,22 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "id=42",
             "SELECT * FROM (SELECT * FROM other_table WHERE other_table.id=42)",
         ),
+        # union
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE table.id=42 UNION ALL SELECT * FROM other_table",
+        ),
+        (
+            "SELECT * FROM table UNION ALL SELECT * FROM other_table",
+            "other_table",
+            "id=42",
+            (
+                "SELECT * FROM table UNION ALL "
+                "SELECT * FROM other_table WHERE other_table.id=42"
+            ),
+        ),
     ],
 )
 def test_insert_rls(sql, table, rls, expected) -> None:
