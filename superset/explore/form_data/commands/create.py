@@ -22,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.form_data.utils import check_access
+from superset.explore.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
 from superset.temporary_cache.utils import cache_key, random_key

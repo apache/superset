@@ -101,7 +101,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     addSuccessToast,
   } = props;
 
-  const copyTooltipText = t('Copy chart URL to clipboard');
+  const copyTooltipText = t('Copy permanent link to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
 
   const doCopyLink = async () => {

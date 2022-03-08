@@ -88,6 +88,7 @@ from superset.exceptions import (
 )
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -733,13 +734,23 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
+    @expose("/explore/p/<key>", methods=["GET"])
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
-        self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
+        self,
+        datasource_type: Optional[str] = None,
+        datasource_id: Optional[int] = None,
+        key: Optional[str] = None,
     ) -> FlaskResponse:
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
+        if key is not None:
+            key_type = config["PERMALINK_KEY_TYPE"]
+            command = GetExplorePermalinkCommand(g.user, key, key_type)
+            state = command.run()
+            if state:
+                initial_form_data = state["form_data"]
         if form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
