@@ -117,6 +117,10 @@ const config = {
             to: '/docs/contributing/contributing-page',
             from: '/docs/contributing/contribution-guidelines',
           },
+          {
+            to: '/docs/databases/yugabyte/',
+            from: '/docs/databases/yugabytedb/',
+          },
         ],
       },
     ],
