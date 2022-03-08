@@ -1226,7 +1226,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM other_table WHERE 1=1",
             "other_table",
             "id=42",
-            "SELECT * FROM other_table WHERE 1=1 AND id=42",
+            "SELECT * FROM other_table WHERE 1=1 AND other_table.id=42",
         ),
         # "table" is a reserved word; since sqlparse is too aggressive when characterizing
         # reserved words we need to support them even when not quoted
@@ -1234,7 +1234,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table WHERE 1=1",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE 1=1 AND id=42",
+            "SELECT * FROM table WHERE 1=1 AND table.id=42",
         ),
         # RLS applies to a different table
         (
@@ -1250,25 +1250,54 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM other_table WHERE 1=1",
         ),
         # insert the WHERE clause if there isn't one
-        ("SELECT * FROM table", "table", "id=42", "SELECT * FROM table WHERE id=42",),
+        (
+            "SELECT * FROM table",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE table.id=42",
+        ),
         (
             "SELECT * FROM other_table",
             "other_table",
             "id=42",
-            "SELECT * FROM other_table WHERE id=42",
+            "SELECT * FROM other_table WHERE other_table.id=42",
         ),
         (
             "SELECT * FROM table ORDER BY id",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE id=42 ORDER BY id",
+            "SELECT * FROM table WHERE table.id=42 ORDER BY id",
         ),
-        # do not add RLS if already present
+        # do not add RLS if already present...
+        (
+            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+            "table",
+            "id=42",
+            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+        ),
+        # ...but when in doubt add it
         (
             "SELECT * FROM table WHERE 1=1 AND id=42",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE 1=1 AND id=42",
+            "SELECT * FROM table WHERE 1=1 AND id=42 AND table.id=42",
+        ),
+        # test with joins
+        (
+            "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
+            "other_table",
+            "id=42",
+            (
+                "SELECT * FROM table JOIN other_table ON other_table.id=42 "
+                "AND table.id = other_table.id"
+            ),
+        ),
+        # test with inner selects
+        (
+            "SELECT * FROM (SELECT * FROM other_table)",
+            "other_table",
+            "id=42",
+            "SELECT * FROM (SELECT * FROM other_table WHERE other_table.id=42)",
         ),
     ],
 )
