@@ -280,7 +280,7 @@ export const selectNativeIndicatorsForChart = (
             ),
         )
         .map(nativeFilter => {
-          const column = nativeFilter.targets[0]?.column?.name;
+          const column = nativeFilter.targets?.[0]?.column?.name;
           const filterState = dataMask[nativeFilter.id]?.filterState;
           const label = extractLabel(filterState);
           return {

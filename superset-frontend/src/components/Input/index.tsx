@@ -16,25 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { styled } from '@superset-ui/core';
+import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd';
 
-import * as actions from './chartAction';
-import { logEvent } from '../logger/actions';
-import Chart from './Chart';
-import { updateDataMask } from '../dataMask/actions';
+export const Input = styled(AntdInput)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(
-      {
-        ...actions,
-        updateDataMask,
-        logEvent,
-      },
-      dispatch,
-    ),
-  };
-}
+export const InputNumber = styled(AntdInputNumber)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
 
-export default connect(null, mapDispatchToProps)(Chart);
+export const TextArea = styled(AntdInput.TextArea)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;

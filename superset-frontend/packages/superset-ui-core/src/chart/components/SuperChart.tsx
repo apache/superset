@@ -63,6 +63,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;
+    /** Prop for chart ref */
+    inputRef?: RefObject<any>;
     /** Chart width */
     height?: number | string;
     /** Chart height */

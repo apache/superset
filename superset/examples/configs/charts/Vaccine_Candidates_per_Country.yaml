@@ -31,9 +31,6 @@ params:
     metrics: metrics
   row_limit: 10000
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   treemap_ratio: 1.618033988749895
   url_params: {}
   viz_type: treemap

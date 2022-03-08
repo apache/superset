@@ -683,10 +683,6 @@
             "nullable": true,
             "type": "string"
           },
-          "time_range_endpoints": {
-            "items": {},
-            "type": "array"
-          },
           "where": {
             "description": "WHERE clause to be added to queries using AND operator.",
             "type": "string"

@@ -123,21 +123,10 @@ describe('Nativefilters Sanity test', () => {
       .within(() =>
         cy.get('input').type('wb_health_population{enter}', { force: true }),
       );
-    // Add following step to avoid flaky enter value in line 177
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
 
-    cy.get('.loading inline-centered css-101mkpk').should('not.exist');
-    // hack for unclickable country_name
-    cy.wait(5000);
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+    cy.get(`${nativeFilters.filtersPanel.filterInfoInput}:visible:last`)
       .last()
-      .should('be.visible', { timeout: 30000 })
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
+      .focus()
       .type('country_name');
     cy.get(nativeFilters.filtersPanel.inputDropdown)
       .should('be.visible', { timeout: 20000 })
@@ -270,7 +259,6 @@ describe('Nativefilters Sanity test', () => {
       'Filter has default value',
       'Can select multiple values',
       'Filter value is required',
-      'Filter is hierarchical',
       'Select first filter value by default',
       'Inverse selection',
       'Dynamically search all filter values',
@@ -419,7 +407,6 @@ describe('Nativefilters Sanity test', () => {
       viz_type: 'echarts_timeseries',
       datasource: '3__table',
       granularity_sqla: 'purpose__last_set',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       time_grain_sqla: 'P1D',
       time_range: 'No filter',
       metrics: ['count'],

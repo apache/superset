@@ -197,7 +197,7 @@
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^2.2.28",
     "shortid": "^2.2.6",
-    "urijs": "^1.19.6",
+    "urijs": "^1.19.8",
     "use-immer": "^0.6.0",
     "use-query-params": "^1.1.9",
     "yargs": "^15.4.1"
@@ -323,6 +323,7 @@
     "transform-loader": "^0.2.4",
     "ts-loader": "^9.2.5",
     "typescript": "^4.5.4",
+    "vm-browserify": "^1.1.2",
     "webpack": "^5.52.1",
     "webpack-bundle-analyzer": "^4.4.2",
     "webpack-cli": "^4.8.0",

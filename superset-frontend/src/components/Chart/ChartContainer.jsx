@@ -16,33 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-import CollectionTable from 'src/CRUD/CollectionTable';
-import mockDatasource from 'spec/fixtures/mockDatasource';
+import * as actions from './chartAction';
+import { logEvent } from '../../logger/actions';
+import Chart from './Chart';
+import { updateDataMask } from '../../dataMask/actions';
 
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
-};
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(
+      {
+        ...actions,
+        updateDataMask,
+        logEvent,
+      },
+      dispatch,
+    ),
+  };
+}
 
-describe('CollectionTable', () => {
-  let wrapper;
-  let el;
-
-  beforeEach(() => {
-    el = <CollectionTable {...props} />;
-    wrapper = shallow(el);
-  });
-
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
-  });
-
-  it('renders a table', () => {
-    const { length } = mockDatasource['7__table'].columns;
-    expect(wrapper.find('table')).toExist();
-    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
-  });
-});
+export default connect(null, mapDispatchToProps)(Chart);

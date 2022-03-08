@@ -22,7 +22,8 @@ import { t, SupersetTheme, css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
-import { Menu, NoAnimationDropdown } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
+import { NoAnimationDropdown } from 'src/components/Dropdown';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import DeleteModal from 'src/components/DeleteModal';

@@ -21,7 +21,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
@@ -70,7 +71,7 @@ const ExploreAdditionalActionsMenu = props => {
 
   const { slice } = props;
   return (
-    <Dropdown
+    <AntdDropdown
       trigger="click"
       data-test="query-dropdown"
       overlay={
@@ -115,7 +116,7 @@ const ExploreAdditionalActionsMenu = props => {
       >
         <i role="img" className="fa fa-bars" />
       </div>
-    </Dropdown>
+    </AntdDropdown>
   );
 };
 

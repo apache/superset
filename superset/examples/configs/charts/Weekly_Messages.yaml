@@ -38,9 +38,6 @@ params:
   subheader_font_size: 0.15
   time_grain_sqla: P1W
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   time_range_fixed: false
   url_params: {}
   viz_type: big_number
