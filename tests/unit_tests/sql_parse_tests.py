@@ -1315,6 +1315,25 @@ def test_has_table_query(sql: str, expected: bool) -> None:
                 "SELECT * FROM other_table WHERE other_table.id=42"
             ),
         ),
+        # fully qualified table names
+        (
+            "SELECT * FROM schema.table_name",
+            "table_name",
+            "id=42",
+            "SELECT * FROM schema.table_name WHERE table_name.id=42",
+        ),
+        (
+            "SELECT * FROM schema.table_name",
+            "schema.table_name",
+            "id=42",
+            "SELECT * FROM schema.table_name WHERE schema.table_name.id=42",
+        ),
+        (
+            "SELECT * FROM table_name",
+            "schema.table_name",
+            "id=42",
+            "SELECT * FROM table_name WHERE schema.table_name.id=42",
+        ),
     ],
 )
 def test_insert_rls(sql, table, rls, expected) -> None:

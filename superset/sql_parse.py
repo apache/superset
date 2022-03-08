@@ -524,6 +524,23 @@ class InsertRLSState(str, Enum):
     FOUND_TABLE = "FOUND_TABLE"
 
 
+def matches_table_name(token: Token, table: str) -> bool:
+    """
+    Return the name of a table.
+
+    A table should be represented as an identifier, but due to sqlparse's aggressive list
+    of keywords (spanning multiple dialects) often it gets classified as a keyword.
+    """
+    candidate = token.value
+
+    # match from right to left, splitting on the period, eg, schema.table == table
+    for left, right in zip(candidate.split(".")[::-1], table.split(".")[::-1]):
+        if left != right:
+            return False
+
+    return True
+
+
 def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
     """
     Update a statement inpalce applying an RLS associated with a given table.
@@ -547,7 +564,7 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
         elif state == InsertRLSState.SEEN_SOURCE and (
             isinstance(token, Identifier) or token.ttype == Keyword
         ):
-            if token.value == table:
+            if matches_table_name(token, table):
                 state = InsertRLSState.FOUND_TABLE
 
                 # found table at the end of the statement; append a WHERE clause
