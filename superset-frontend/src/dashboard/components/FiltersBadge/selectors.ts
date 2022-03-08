@@ -302,7 +302,7 @@ export const selectNativeIndicatorsForChart = (
           !chartConfig.crossFilters.scope.excluded.includes(chartId) &&
           chartConfig.crossFilters.scope.rootPath.some(
             elementId =>
-              chartLayoutItem.type === CHART_TYPE &&
+              chartLayoutItem?.type === CHART_TYPE &&
               chartLayoutItem?.parents?.includes(elementId),
           ),
       )
