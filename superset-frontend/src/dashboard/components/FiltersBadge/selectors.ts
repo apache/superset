@@ -27,7 +27,7 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
@@ -122,7 +122,7 @@ const selectIndicatorsForChartFromFilter = (
 
   return Object.keys(filter.columns)
     .filter(column =>
-      getChartIdsInFilterScope({
+      getChartIdsInFilterBoxScope({
         filterScope: filter.scopes[column],
       }).includes(chartId),
     )

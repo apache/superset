@@ -60,7 +60,7 @@ export function getAppliedFilterValues(chartId) {
   }
   return appliedFilterValuesByChart[chartId];
 }
-export function getChartIdsInFilterScope2(filterScope, charts, layout) {
+export function getChartIdsInFilterScope(filterScope, charts, layout) {
   const layoutItems = Object.values(layout);
   return Object.values(charts)
     .filter(
@@ -77,7 +77,7 @@ export function getChartIdsInFilterScope2(filterScope, charts, layout) {
     .map(chart => chart.id);
 }
 
-export function getChartIdsInFilterScope({ filterScope }) {
+export function getChartIdsInFilterBoxScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -132,7 +132,7 @@ export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
           : columns[column] !== undefined
       ) {
         // remove filter itself
-        const scope = getChartIdsInFilterScope({
+        const scope = getChartIdsInFilterBoxScope({
           filterScope: scopes[column],
         }).filter(id => chartId !== id);
 

@@ -20,12 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import React, { FC, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  Filter,
-  Filters,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { FeatureFlag, Filters, isFeatureEnabled } from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -41,7 +36,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { getChartIdsInFilterScope2 } from '../../util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
@@ -106,9 +101,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           chartsInScope: [],
         };
       }
-      const { scope } = filterScope;
-      const chartsInScope: number[] = getChartIdsInFilterScope2(
-        scope,
+      const chartsInScope: number[] = getChartIdsInFilterScope(
+        filterScope.scope,
         charts,
         dashboardLayout,
       );
