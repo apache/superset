@@ -20,7 +20,7 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import * as chartAction from 'src/chart/chartAction';
+import * as chartAction from 'src/components/Chart/chartAction';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import fetchMock from 'fetch-mock';
 import ExploreAdditionalActionsMenu from '.';
