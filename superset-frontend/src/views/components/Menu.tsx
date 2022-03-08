@@ -96,12 +96,13 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    min-height: ${({ theme }) => `${theme.gridUnit * 12.5}px`};
     padding: ${({ theme }) =>
-      `${theme.gridUnit * 3.5}px ${theme.gridUnit * 2.5}px`}};
+      `${theme.gridUnit * 3.5}px ${theme.gridUnit * 2.5}px`};
 
     img {
       height: 100%;
-      width: fit-content;
+      object-fit: contain;
     }
   }
   .navbar-brand-text {
