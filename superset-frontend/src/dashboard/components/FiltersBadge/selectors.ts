@@ -31,6 +31,7 @@ import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardF
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Layout } from '../../types';
+import { CHART_TYPE } from '../../util/componentTypes';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -299,8 +300,10 @@ export const selectNativeIndicatorsForChart = (
       .filter(
         chartConfig =>
           !chartConfig.crossFilters.scope.excluded.includes(chartId) &&
-          chartConfig.crossFilters.scope.rootPath.some(elementId =>
-            chartLayoutItem?.parents.includes(elementId),
+          chartConfig.crossFilters.scope.rootPath.some(
+            elementId =>
+              chartLayoutItem.type === CHART_TYPE &&
+              chartLayoutItem?.parents?.includes(elementId),
           ),
       )
       .map(chartConfig => {
