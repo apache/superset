@@ -61,7 +61,7 @@ export function findValue<OptionType extends OptionTypeBase>(
 }
 
 export function getValue(option: string | number | { value: string | number }) {
-  return typeof option === 'object' ? option.value : option;
+  return option && typeof option === 'object' ? option.value : option;
 }
 
 type LabeledValue<V> = { label?: ReactNode; value?: V };
