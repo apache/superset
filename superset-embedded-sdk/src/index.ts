@@ -29,6 +29,13 @@ import { Switchboard } from '@superset-ui/switchboard';
  */
 export type GuestTokenFetchFn = () => Promise<string>;
 
+export type UiConfigType = {
+  hideTitle?: boolean
+  hideTab?: boolean
+  hideNav?: boolean 
+  hideChartControls?: boolean
+}
+
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
   id: string
@@ -38,8 +45,8 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
-  /** The dashboard UI config: hideTitle: 1; hideTab: 2; hideNav: 4; hideChartControls: 8; **/
-  uiConfig?: number
+  /** The dashboard UI config: hideTitle, hideTab, hideNav, hideChartControls **/
+  uiConfig?: UiConfigType
   /** Are we in debug mode? */
   debug?: boolean
 }
@@ -72,10 +79,29 @@ export async function embedDashboard({
 
   log('embedding');
 
+  function calculateConfig() {
+    let configNumber = 0 
+    if(uiConfig) {
+      if(uiConfig.hideTitle) {
+        configNumber += 1
+      }
+      if(uiConfig.hideTab) {
+        configNumber += 2
+      }
+      if(uiConfig.hideNav) {
+        configNumber += 4
+      }
+      if(uiConfig.hideChartControls) {
+        configNumber += 8
+      }
+    }
+    return configNumber
+  }
+
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
-      const dashboardConfig = uiConfig ? `?uiConfig=${uiConfig}` : ""
+      const dashboardConfig = uiConfig ? `?uiConfig=${calculateConfig()}` : ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
