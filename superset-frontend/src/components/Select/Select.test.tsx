@@ -46,6 +46,9 @@ const OPTIONS = [
   { label: 'Irfan', value: 18, gender: 'Male' },
   { label: 'George', value: 19, gender: 'Male' },
   { label: 'Ashfaq', value: 20, gender: 'Male' },
+  { label: 'Herme', value: 21, gender: 'Male' },
+  { label: 'Cher', value: 22, gender: 'Female' },
+  { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
 
 const loadOptions = async (search: string, page: number, pageSize: number) => {
@@ -111,9 +114,21 @@ test('displays a header', async () => {
 });
 
 test('adds a new option if the value is not in the options', async () => {
-  render(<Select {...defaultProps} options={[]} value={OPTIONS[0]} />);
+  const { rerender } = render(
+    <Select {...defaultProps} options={[]} value={OPTIONS[0]} />,
+  );
   await open();
   expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+
+  rerender(
+    <Select {...defaultProps} options={[OPTIONS[1]]} value={OPTIONS[0]} />,
+  );
+  await open();
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(2);
+  options.forEach((option, i) =>
+    expect(option).toHaveTextContent(OPTIONS[i].label),
+  );
 });
 
 test('inverts the selection', async () => {
@@ -149,9 +164,9 @@ test('sort the options using a custom sort comparator', async () => {
   const options = await findAllSelectOptions();
   const optionsPage = OPTIONS.slice(0, defaultProps.pageSize);
   const sortedOptions = optionsPage.sort(sortComparator);
-  options.forEach((option, key) =>
-    expect(option).toHaveTextContent(sortedOptions[key].label),
-  );
+  options.forEach((option, key) => {
+    expect(option).toHaveTextContent(sortedOptions[key].label);
+  });
 });
 
 test('displays the selected values first', async () => {
@@ -194,10 +209,42 @@ test('searches for label or value', async () => {
   expect(options[0]).toHaveTextContent(option.label);
 });
 
+test('search order exact and startWith match first', async () => {
+  render(<Select {...defaultProps} />);
+  await type('Her');
+  const options = await findAllSelectOptions();
+  expect(options.length).toBe(4);
+  expect(options[0]?.textContent).toEqual('Her');
+  expect(options[1]?.textContent).toEqual('Herme');
+  expect(options[2]?.textContent).toEqual('Cher');
+  expect(options[3]?.textContent).toEqual('Guilherme');
+});
+
 test('ignores case when searching', async () => {
   render(<Select {...defaultProps} />);
   await type('george');
   expect(await findSelectOption('George')).toBeInTheDocument();
+});
+
+test('same case should be ranked to the top', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={[
+        { value: 'Cac' },
+        { value: 'abac' },
+        { value: 'acbc' },
+        { value: 'CAc' },
+      ]}
+    />,
+  );
+  await type('Ac');
+  const options = await findAllSelectOptions();
+  expect(options.length).toBe(4);
+  expect(options[0]?.textContent).toEqual('acbc');
+  expect(options[1]?.textContent).toEqual('CAc');
+  expect(options[2]?.textContent).toEqual('abac');
+  expect(options[3]?.textContent).toEqual('Cac');
 });
 
 test('ignores special keys when searching', async () => {
@@ -214,12 +261,13 @@ test('searches for custom fields', async () => {
   expect(options[0]).toHaveTextContent('Liam');
   await type('Female');
   options = await findAllSelectOptions();
-  expect(options.length).toBe(5);
+  expect(options.length).toBe(6);
   expect(options[0]).toHaveTextContent('Ava');
   expect(options[1]).toHaveTextContent('Charlotte');
-  expect(options[2]).toHaveTextContent('Emma');
-  expect(options[3]).toHaveTextContent('Nikole');
-  expect(options[4]).toHaveTextContent('Olivia');
+  expect(options[2]).toHaveTextContent('Cher');
+  expect(options[3]).toHaveTextContent('Emma');
+  expect(options[4]).toHaveTextContent('Nikole');
+  expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
   expect(screen.getByText(NO_DATA)).toBeInTheDocument();
 });
