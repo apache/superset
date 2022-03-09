@@ -166,8 +166,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Set[str] = set()
-    # for user messages, overridden in child classes
-    engine_name: Optional[str] = None
+    engine_name: Optional[str] = None  # for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
     column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
@@ -1579,8 +1578,7 @@ class BasicParametersMixin:
 
         return str(
             URL(
-                # type: ignore
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],

@@ -35,7 +35,7 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
 - [18970](https://github.com/apache/superset/pull/18970): Changes feature
 flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
-- [19083](https://github.com/apache/superset/pull/19083): Updates the mutator function in the config file to take a sql argument and a list of kwargs. Any `SQL_QUERY_MUTATOR` config function overrides will need to be updated to match the new set of params.
+- [19083](https://github.com/apache/superset/pull/19083): Updates the mutator function in the config file to take a sql argument and a list of kwargs. Any `SQL_QUERY_MUTATOR` config function overrides will need to be updated to match the new set of params. It is advised regardless of the dictionary args that you list in your function arguments, to keep **kwargs as the last argument to allow for any new kwargs to be passed in.
 
 ### Potential Downtime
 
