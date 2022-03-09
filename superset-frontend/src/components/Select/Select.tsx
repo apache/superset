@@ -283,6 +283,7 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
  */
 const Select = (
   {
+    allowClear,
     allowNewOptions = false,
     ariaLabel,
     fetchOnlyOnSearch,
@@ -668,6 +669,7 @@ const Select = (
     <StyledContainer>
       {header}
       <StyledSelect
+        allowClear={!isLoading && allowClear}
         aria-label={ariaLabel || name}
         dropdownRender={dropdownRender}
         filterOption={handleFilterOption}
