@@ -20,7 +20,12 @@
 // when its container size changes, due to e.g., builder side panel opening
 import React, { FC, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, Filters, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  Filter,
+  Filters,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -36,7 +41,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from '../../util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
@@ -52,11 +57,13 @@ const useNativeFilterScopes = () => {
   );
   return useMemo(
     () =>
-      Object.values(nativeFilters ?? {}).map(filter => ({
-        id: filter.id,
-        scope: filter.scope,
-        type: filter.type,
-      })),
+      nativeFilters
+        ? Object.values(nativeFilters).map((filter: Filter) => ({
+            id: filter.id,
+            scope: filter.scope,
+            type: filter.type,
+          }))
+        : [],
     [JSON.stringify(nativeFilters)],
   );
 };
@@ -65,7 +72,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFiltersScopes = useNativeFilterScopes();
+  const nativeFilterScopes = useNativeFilterScopes();
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -89,11 +96,11 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      nativeFiltersScopes.length === 0
+      nativeFilterScopes.length === 0
     ) {
       return;
     }
-    const scopes = nativeFiltersScopes.map(filterScope => {
+    const scopes = nativeFilterScopes.map(filterScope => {
       if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
         return {
           filterId: filterScope.id,
@@ -117,7 +124,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [nativeFiltersScopes, dashboardLayout, dispatch]);
+  }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children

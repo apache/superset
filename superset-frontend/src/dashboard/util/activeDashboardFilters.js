@@ -60,25 +60,10 @@ export function getAppliedFilterValues(chartId) {
   }
   return appliedFilterValuesByChart[chartId];
 }
-export function getChartIdsInFilterScope(filterScope, charts, layout) {
-  const layoutItems = Object.values(layout);
-  return Object.values(charts)
-    .filter(
-      chart =>
-        !filterScope.excluded.includes(chart.id) &&
-        layoutItems
-          .find(
-            layoutItem =>
-              layoutItem?.type === CHART_TYPE &&
-              layoutItem.meta?.chartId === chart.id,
-          )
-          ?.parents?.some(elementId =>
-            filterScope.rootPath.includes(elementId),
-          ),
-    )
-    .map(chart => chart.id);
-}
 
+// Legacy - getChartIdsInFilterBoxScope is used only by
+// components and functions related to filter box
+// Please use src/dashboard/util/getChartIdsInFilterScope instead
 export function getChartIdsInFilterBoxScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
