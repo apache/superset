@@ -38,7 +38,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
-import FiltureConfigurePane from './FilterConfigurePane';
+import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
   FilterPanels,
 } from './FiltersConfigForm/FiltersConfigForm';
@@ -522,7 +522,7 @@ export function FiltersConfigModal({
             onValuesChange={onValuesChange}
             layout="vertical"
           >
-            <FiltureConfigurePane
+            <FilterConfigurePane
               erroredFilters={erroredFilters}
               onRemove={handleRemoveItem}
               onAdd={addFilter}
@@ -535,7 +535,7 @@ export function FiltersConfigModal({
               filters={orderedFilters}
             >
               {(id: string) => getForm(id)}
-            </FiltureConfigurePane>
+            </FilterConfigurePane>
           </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>

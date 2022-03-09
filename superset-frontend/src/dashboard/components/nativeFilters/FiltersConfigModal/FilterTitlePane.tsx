@@ -81,12 +81,10 @@ const FilterTitlePane: React.FC<Props> = ({
         navList.scrollTop = navList.scrollHeight;
       }
 
-      if (filtersContainerRef?.current) {
-        filtersContainerRef.current.scroll({
-          top: filtersContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
+      filtersContainerRef?.current?.scroll?.({
+        top: filtersContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }, 0);
   };
   const menu = (

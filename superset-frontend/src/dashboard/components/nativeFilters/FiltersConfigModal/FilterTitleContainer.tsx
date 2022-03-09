@@ -194,7 +194,11 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
       return items;
     };
 
-    return <Container ref={ref}>{renderFilterGroups()}</Container>;
+    return (
+      <Container data-test="filter-title-container" ref={ref}>
+        {renderFilterGroups()}
+      </Container>
+    );
   },
 );
 
