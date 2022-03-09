@@ -27,13 +27,22 @@ import {
   MetricOption,
 } from '@superset-ui/chart-controls';
 import moment from 'moment';
+import sortNumericValues from 'src/utils/sortNumericValues';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 import './TimeTable.less';
-import sortNumberWithMixedTypes from './SortNumberWithMixedTypes';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
+
+const sortNumberWithMixedTypes = (rowA, rowB, columnId, descending) =>
+  sortNumericValues(
+    rowA.values[columnId].props['data-value'],
+    rowB.values[columnId].props['data-value'],
+    { descending, nanTreatment: 'asSmallest' },
+  ) *
+  // react-table sort function always expects -1 for smaller number
+  (descending ? -1 : 1);
 
 function colorFromBounds(value, bounds, colorBounds = ACCESSIBLE_COLOR_BOUNDS) {
   if (bounds) {
