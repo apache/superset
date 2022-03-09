@@ -267,33 +267,35 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
  * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
-const Select = ({
-  allowNewOptions = false,
-  ariaLabel,
-  fetchOnlyOnSearch,
-  filterOption = true,
-  header = null,
-  invertSelection = false,
-  labelInValue = false,
-  lazyLoading = true,
-  loading,
-  mode = 'single',
-  name,
-  notFoundContent,
-  onError,
-  onChange,
-  onClear,
-  optionFilterProps = ['label', 'value'],
-  options,
-  pageSize = DEFAULT_PAGE_SIZE,
-  placeholder = t('Select ...'),
-  showSearch = true,
-  sortComparator = defaultSortComparator,
-  tokenSeparators,
-  value,
-  ...props
-}: SelectProps,
-ref: RefObject<HTMLInputElement>,) => {
+const Select = (
+  {
+    allowNewOptions = false,
+    ariaLabel,
+    fetchOnlyOnSearch,
+    filterOption = true,
+    header = null,
+    invertSelection = false,
+    labelInValue = false,
+    lazyLoading = true,
+    loading,
+    mode = 'single',
+    name,
+    notFoundContent,
+    onError,
+    onChange,
+    onClear,
+    optionFilterProps = ['label', 'value'],
+    options,
+    pageSize = DEFAULT_PAGE_SIZE,
+    placeholder = t('Select ...'),
+    showSearch = true,
+    sortComparator = defaultSortComparator,
+    tokenSeparators,
+    value,
+    ...props
+  }: SelectProps,
+  ref: RefObject<HTMLInputElement>,
+) => {
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
