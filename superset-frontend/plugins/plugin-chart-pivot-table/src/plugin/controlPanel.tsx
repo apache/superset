@@ -66,6 +66,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.metrics,
               validators: [validateNonEmpty],
+              rerender: ['conditional_formatting'],
             },
           },
         ],
@@ -344,9 +345,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Conditional formatting'),
               description: t('Apply conditional color formatting to metrics'),
-              shouldMapStateToProps() {
-                return true;
-              },
               mapStateToProps(explore) {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
