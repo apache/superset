@@ -98,7 +98,10 @@ const StyledHeader = styled.header`
     justify-content: center;
     min-height: ${({ theme }) => `${theme.gridUnit * 12.5}px`};
     padding: ${({ theme }) =>
-      `${theme.gridUnit * 3.5}px ${theme.gridUnit * 2.5}px`};
+      `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
+        theme.gridUnit * 4
+      }px`};
+    max-width: ${({ theme }) => `${theme.gridUnit * 37}px`};
 
     img {
       height: 100%;
