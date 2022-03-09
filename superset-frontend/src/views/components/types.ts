@@ -31,7 +31,6 @@ export interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
-  addDangerToast: () => void;
 }
 
 export enum GlobalMenuDataOptions {

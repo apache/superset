@@ -25,8 +25,10 @@ from zipfile import ZipFile
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
+from sqlalchemy.orm.query import Query
 
 from superset import app, db, event_logger
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -72,7 +74,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.views.base import can_upload_with_schemas
+from superset.views.base import BaseFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -81,6 +83,19 @@ from superset.views.base_api import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+  Custom filter for the GET list that filters all certified charts
+  """
+
+    name = _("Upload Enabled")
+    arg_name = "upload_is_enabled"
+    model = Database
+
+    def apply(self, query: Query, value: any) -> Query:
+        return query.filter(Database.upload_enabled == True)
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -168,7 +183,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "server_cert",
     ]
+
     edit_columns = add_columns
+
+    search_columns = ["allow_file_upload"]
+
+    search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
@@ -1074,8 +1094,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dbs_with_uploads = (
-            db.session.query(Database).filter_by(allow_file_upload=True).all()
-        )
-        allow_uploads = can_upload_with_schemas(dbs_with_uploads)
-        return self.response(200, can_upload=allow_uploads)
+        try:
+            dbs_with_uploads = (
+                db.session.query(Database).filter_by(allow_file_upload=True).all()
+            )
+
+            allow_uploads = any(
+                len(db.get_schema_access_for_file_upload()) >= 1
+                for db in dbs_with_uploads
+            )
+
+            return self.response(200, can_upload=allow_uploads)
+        except:
+            raise DatabaseNotFoundError()

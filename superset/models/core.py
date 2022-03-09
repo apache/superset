@@ -47,7 +47,7 @@ from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import ArgumentError
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
@@ -299,6 +299,16 @@ class Database(
     @property
     def connect_args(self) -> Dict[str, Any]:
         return self.get_extra().get("engine_params", {}).get("connect_args", {})
+
+    @hybrid_property
+    def upload_enabled(self) -> bool:
+        return (
+            self.allow_file_upload and len(self.get_schema_access_for_file_upload) >= 1
+        )
+
+    @upload_enabled.expression
+    def upload_enabled(cls) -> bool:
+        return cls.allow_file_upload and len(cls.get_schema_access_for_file_upload) >= 1
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
@@ -706,6 +716,7 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
+    @property
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:
