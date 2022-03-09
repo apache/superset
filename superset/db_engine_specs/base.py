@@ -166,7 +166,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Set[str] = set()
-    engine_name: Optional[str] = None  # for user messages, overridden in child classes
+    # for user messages, overridden in child classes
+    engine_name: Optional[str] = None
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
     column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
@@ -1138,7 +1139,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         sql = parsed_query.stripped()
         sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            sql = sql_query_mutator(sql, user_name, security_manager, database)
+            sql = sql_query_mutator(
+                sql,
+                user_name=user_name,
+                security_manager=security_manager,
+                database=database,
+            )
 
         return sql
 
@@ -1573,7 +1579,8 @@ class BasicParametersMixin:
 
         return str(
             URL(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+                # type: ignore
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],

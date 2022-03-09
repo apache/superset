@@ -504,7 +504,7 @@ class TestSqlaTableModel(SupersetTestCase):
         sql = tbl.get_query_str(query_obj)
         self.assertNotIn("-- COMMENT", sql)
 
-        def mutator(*args):
+        def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator

@@ -1055,12 +1055,7 @@ DB_CONNECTION_MUTATOR = None
 #    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
-def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
-    sql: str,
-    user_name: Optional[str],
-    security_manager: LocalProxy,
-    database: "Database",
-) -> str:
+def SQL_QUERY_MUTATOR(sql: str, **kwargs) -> str:
     return sql
 
 
