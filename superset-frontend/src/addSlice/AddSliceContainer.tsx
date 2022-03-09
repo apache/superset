@@ -253,9 +253,11 @@ export default class AddSliceContainer extends React.PureComponent<
     }).then((response: JsonResponse) => {
       const list: {
         customLabel: ReactNode;
+        id: number;
         label: string;
         value: string;
       }[] = response.json.result.map((item: Dataset) => ({
+        id: item.id,
         value: `${item.id}__${item.datasource_type}`,
         customLabel: this.newLabel(item),
         label: item.table_name,
@@ -284,6 +286,7 @@ export default class AddSliceContainer extends React.PureComponent<
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
+                  optionFilterProps={['id', 'label']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
