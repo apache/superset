@@ -214,7 +214,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = {};
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
