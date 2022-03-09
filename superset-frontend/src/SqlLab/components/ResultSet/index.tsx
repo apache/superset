@@ -583,18 +583,20 @@ export default class ResultSet extends React.PureComponent<
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!this.props.user?.roles?.Admin;
+    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
+
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
       withoutAdmin: t(
         'The number of results displayed is limited to %(rows)d. ' +
           'Please add additional limits/filters, download to csv, or contact an admin ' +
           'to see more rows up to the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
     };
     const shouldUseDefaultDropdownAlert =
@@ -657,7 +659,7 @@ export default class ResultSet extends React.PureComponent<
             <Alert
               type="warning"
               onClose={this.onAlertClose}
-              message={t('%(rows)d rows returned', { rows })}
+              message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
                   ? displayMaxRowsReachedMessage.withAdmin

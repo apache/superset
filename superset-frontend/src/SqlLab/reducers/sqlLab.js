@@ -332,7 +332,7 @@ export default function sqlLabReducer(state = {}, action) {
         endDttm: now(),
         progress: 100,
         results: action.results,
-        rows: action?.results?.data?.length,
+        rows: action?.results?.query?.rows || 0,
         state: 'success',
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
