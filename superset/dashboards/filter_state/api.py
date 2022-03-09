@@ -74,7 +74,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePostSchema'
+                  $ref: '#/components/schemas/TemporaryCachePostSchema'
           responses:
             201:
               description: The value was stored successfully.
@@ -128,7 +128,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePutSchema'
+                  $ref: '#/components/schemas/TemporaryCachePutSchema'
           responses:
             200:
               description: The value was stored successfully.
