@@ -86,6 +86,18 @@ const RightMenu = ({
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
+
+  const canUploadCSV = findPermission('can_this_form_get', 'CsvToDatabaseView');
+  const canUploadColumnar = findPermission(
+    'can_this_form_get',
+    'ColumnarToDatabaseView',
+  );
+  const canUploadExcel = findPermission(
+    'can_this_form_get',
+    'ExcelToDatabaseView',
+  );
+  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
+
   const showActionDropdown = canSql || canChart || canDashboard;
   const dropdownItems: MenuObjectProps[] = [
     {
@@ -106,19 +118,19 @@ const RightMenu = ({
           label: t('Upload a CSV'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: CSV_EXTENSIONS,
+          perm: CSV_EXTENSIONS && canUploadCSV,
         },
         {
           label: t('Upload a Columnar File'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: COLUMNAR_EXTENSIONS,
+          perm: COLUMNAR_EXTENSIONS && canUploadColumnar,
         },
         {
           label: t('Upload Excel'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: EXCEL_EXTENSIONS,
+          perm: EXCEL_EXTENSIONS && canUploadExcel,
         },
       ],
     },
@@ -184,7 +196,7 @@ const RightMenu = ({
           >
             {dropdownItems.map(menu => {
               if (menu.childs) {
-                return canDatabase ? (
+                return canDatabase || canUpload ? (
                   <SubMenu
                     key="sub2"
                     className="data-menu"
