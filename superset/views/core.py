@@ -28,7 +28,7 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template, request, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
@@ -70,6 +70,8 @@ from superset.connectors.sqla.models import (
 )
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -89,6 +91,7 @@ from superset.exceptions import (
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
+from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -734,7 +737,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    @expose("/explore/p/<key>", methods=["GET"])
+    @expose("/explore/p/<key>/", methods=["GET"])
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
         self,
@@ -748,10 +751,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if key is not None:
             key_type = config["PERMALINK_KEY_TYPE"]
             command = GetExplorePermalinkCommand(g.user, key, key_type)
-            state = command.run()
-            if state:
-                initial_form_data = state["form_data"]
-        if form_data_key:
+            try:
+                state = command.run()
+                if state:
+                    initial_form_data = state["form_data"]
+            except ExplorePermalinkGetFailedError as ex:
+                return json_error_response(ex.message, status=400)
+
+        elif form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
@@ -1938,9 +1945,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         :param dashboard: added by `check_dashboard_access`
+        :param filter_state: permanent link state
         """
         if not dashboard:
             abort(404)
+
+        key = request.args.get("permalink_state_key")
+
+        filter_state: Optional[Dict[str, Any]] = {}
+        if key:
+            key_type = config["PERMALINK_KEY_TYPE"]
+            filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+            if not filter_state or dashboard_id_or_slug != filter_state["id_or_slug"]:
+                return json_error_response(
+                    _("permanent link state not found"), status=404
+                )
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
@@ -1979,6 +1998,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
+            "filter_state": filter_state,
         }
 
         return self.render_template(
@@ -1988,6 +2008,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
+
+    @expose("/dashboard/p/<key>/", methods=["GET"])
+    def dashboard_permalink(self, key: str) -> FlaskResponse:
+        key_type = config["PERMALINK_KEY_TYPE"]
+        filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+        if not filter_state:
+            return json_error_response(_("permanent link state not found"), status=404)
+        id_or_slug = filter_state["id_or_slug"]
+        return redirect(f"/superset/dashboard/{id_or_slug}?permalink_state_key={key}")
+        # return self.dashboard(dashboard_id_or_slug=str(10), filter_state=filter_state)
 
     @api
     @has_access

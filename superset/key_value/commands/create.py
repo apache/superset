@@ -31,14 +31,16 @@ logger = logging.getLogger(__name__)
 
 
 class CreateKeyValueCommand(BaseCommand):
-    def __init__(self, actor: User, value: str, key_type: KeyType):
+    def __init__(self, actor: User, resource: str, value: str, key_type: KeyType):
         """
         Create a new key-value pair
 
+        :param resource: the resource (dashboard, chart etc)
         :param value: the value to persist in the key-value store
         :param key_type: the type of the key to return
         :return: the key associated with the persisted value
         """
+        self.resource = resource
         self.actor = actor
         self.value = value
         self.key_type = key_type
@@ -55,6 +57,7 @@ class CreateKeyValueCommand(BaseCommand):
 
     def create(self) -> str:
         entry = KeyValueEntry(
+            resource=self.resource,
             value=self.value,
             created_on=datetime.datetime.now(),
             created_by_fk=None if self.actor.is_anonymous else self.actor.get_user_id(),

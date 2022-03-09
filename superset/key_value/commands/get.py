@@ -30,14 +30,16 @@ logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand):
-    def __init__(self, key: str, key_type: KeyType = "uuid"):
+    def __init__(self, resource: str, key: str, key_type: KeyType = "uuid"):
         """
         Retrieve a key value entry
 
+        :param resource: the resource (dashboard, chart etc)
         :param key: the key to retrieve
         :param key_type: the type of the key to retrieve
         :return: the value associated with the key if present
         """
+        self.resource = resource
         self.key = key
         self.key_type = key_type
 
@@ -52,7 +54,7 @@ class GetKeyValueCommand(BaseCommand):
         pass
 
     def get(self) -> Optional[str]:
-        filter_ = get_filter(self.key, self.key_type)
+        filter_ = get_filter(self.resource, self.key, self.key_type)
         entry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)

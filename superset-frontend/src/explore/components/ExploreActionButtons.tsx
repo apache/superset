@@ -21,7 +21,9 @@ import cx from 'classnames';
 import { QueryFormData, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import { getChartPermalink } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import EmbedCodeButton from './EmbedCodeButton';
 import { exportChart } from '../exploreUtils';
@@ -45,7 +47,7 @@ type ExploreActionButtonsProps = {
   chartStatus: string;
   latestQueryFormData: QueryFormData;
   queriesResponse: {};
-  slice: { slice_name: string };
+  slice: Slice;
   addDangerToast: Function;
   addSuccessToast: Function;
 };
@@ -107,7 +109,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doCopyLink = async () => {
     try {
       setCopyTooltip(t('Loading...'));
-      const url = window.location.href;
+      const url = await getChartPermalink(slice, latestQueryFormData);
       await copyTextToClipboard(url);
       setCopyTooltip(t('Copied to clipboard!'));
       addSuccessToast(t('Copied to clipboard!'));
@@ -120,7 +122,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doShareEmail = async () => {
     try {
       const subject = t('Superset Chart');
-      const url = window.location.href;
+      const url = await getChartPermalink(slice, latestQueryFormData);
       const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {

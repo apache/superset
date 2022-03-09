@@ -21,7 +21,7 @@ import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { useTabId } from 'src/hooks/useTabId';
 import { URL_PARAMS } from 'src/constants';
@@ -59,23 +59,13 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   const tabId = useTabId();
 
-  const getShortUrl = useUrlShortener(url || '');
-
   async function getCopyUrl() {
-    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
-    if (typeof risonObj === 'object' || !dashboardId) return null;
-    const prevData = await getFilterValue(
+    if (!dashboardId) return null;
+    const filterState = await getFilterValue(
       dashboardId,
       getUrlParam(URL_PARAMS.nativeFiltersKey),
     );
-    const newDataMaskKey = await createFilterKey(
-      dashboardId,
-      JSON.stringify(prevData),
-      tabId,
-    );
-    const newUrl = new URL(`${window.location.origin}${url}`);
-    newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
-    return `${newUrl.pathname}${newUrl.search}`;
+    return getDashboardPermalink(String(dashboardId), filterState);
   }
 
   async function generateUrl() {
@@ -92,7 +82,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       })}`;
     }
     const copyUrl = await getCopyUrl();
-    return getShortUrl(copyUrl);
+    return copyUrl;
   }
 
   async function onCopyLink() {

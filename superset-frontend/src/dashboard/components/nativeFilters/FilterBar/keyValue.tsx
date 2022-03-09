@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging } from '@superset-ui/core';
+import {
+  SupersetClient,
+  logging,
+  DataMaskStateWithId,
+} from '@superset-ui/core';
 
 const assembleEndpoint = (
   dashId: string | number,
@@ -69,6 +73,16 @@ export const getFilterValue = (dashId: string | number, key: string) =>
     endpoint: assembleEndpoint(dashId, key),
   })
     .then(({ json }) => JSON.parse(json.value))
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
+
+export const getPermalinkState = (key: string): DataMaskStateWithId =>
+  SupersetClient.get({
+    endpoint: `/api/v1/dashboard/permalink/${key}`,
+  })
+    .then(({ json }) => json.state)
     .catch(err => {
       logging.error(err);
       return null;

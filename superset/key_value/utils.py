@@ -19,6 +19,7 @@ from uuid import UUID
 
 from flask import current_app
 
+from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyType, KeyValueFilter
 
@@ -44,7 +45,13 @@ def extract_key(entry: KeyValueEntry, key_type: KeyType) -> str:
     return str(entry.id if key_type == "id" else entry.uuid)
 
 
-def get_filter(key: str, key_type: KeyType) -> KeyValueFilter:
-    if key_type == "uuid":
-        return {"uuid": UUID(key)}
-    return {"id": int(key)}
+def get_filter(resource: str, key: str, key_type: KeyType) -> KeyValueFilter:
+    try:
+        filter_: KeyValueFilter = {"resource": resource}
+        if key_type == "uuid":
+            filter_["uuid"] = UUID(key)
+        else:
+            filter_["id"] = int(key)
+        return filter_
+    except ValueError:
+        raise KeyValueParseKeyError()

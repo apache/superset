@@ -20,21 +20,19 @@ from flask import current_app, g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.charts.commands.exceptions import (
-    ChartAccessDeniedError,
-    ChartNotFoundError,
-)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
+from superset.dashboards.commands.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
 )
-from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
-from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
-from superset.explore.permalink.schemas import (
-    ExplorePermalinkPostSchema,
-    ExplorePermalinkPutSchema,
+from superset.dashboards.permalink.commands.create import (
+    CreateDashboardPermalinkCommand,
+)
+from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
+from superset.dashboards.permalink.schemas import (
+    DashboardPermalinkPostSchema,
+    DashboardPermalinkPutSchema,
 )
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
@@ -43,9 +41,9 @@ from superset.views.base_api import requires_json
 logger = logging.getLogger(__name__)
 
 
-class ExplorePermalinkRestApi(BaseApi):
-    add_model_schema = ExplorePermalinkPostSchema()
-    edit_model_schema = ExplorePermalinkPutSchema()
+class DashboardPermalinkRestApi(BaseApi):
+    add_model_schema = DashboardPermalinkPostSchema()
+    edit_model_schema = DashboardPermalinkPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {
         RouteMethod.POST,
@@ -54,12 +52,12 @@ class ExplorePermalinkRestApi(BaseApi):
         RouteMethod.DELETE,
     }
     allow_browser_login = True
-    class_permission_name = "ExplorePermalinkRestApi"
-    resource_name = "explore"
-    openapi_spec_tag = "Explore Permanent Link"
+    class_permission_name = "DashboardPermalinkRestApi"
+    resource_name = "dashboard"
+    openapi_spec_tag = "Dashboard Permanent Link"
     openapi_spec_component_schemas = (
-        ExplorePermalinkPostSchema,
-        ExplorePermalinkPutSchema,
+        DashboardPermalinkPostSchema,
+        DashboardPermalinkPutSchema,
     )
 
     @expose("/permalink", methods=["POST"])
@@ -81,7 +79,7 @@ class ExplorePermalinkRestApi(BaseApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ExplorePermalinkPostSchema'
+                  $ref: '#/components/schemas/DashboardPermalinkPostSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -105,26 +103,17 @@ class ExplorePermalinkRestApi(BaseApi):
         key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
             item = self.add_model_schema.load(request.json)
-            chart_id = item.get("chart_id")
-            dataset_id = item.get("dataset_id")
+            id_or_slug = item.get("id_or_slug")
             state = item.get("state")
-            key = CreateExplorePermalinkCommand(
-                actor=g.user,
-                chart_id=chart_id,
-                dataset_id=dataset_id,
-                state=state,
-                key_type=key_type,
+            key = CreateDashboardPermalinkCommand(
+                actor=g.user, id_or_slug=id_or_slug, state=state, key_type=key_type,
             ).run()
             return self.response(201, key=key)
-        except ValidationError as ex:
-            return self.response(400, message=ex.messages)
-        except (
-            ChartAccessDeniedError,
-            DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
-        ) as ex:
+        except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
+            return self.response(400, message=str(ex))
+        except (DashboardAccessDeniedError, KeyValueAccessDeniedError,) as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @expose("/permalink/<string:key>", methods=["GET"])
@@ -135,11 +124,11 @@ class ExplorePermalinkRestApi(BaseApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for chart.
+        """Retrives permanent link state for dashboard.
         ---
         get:
           description: >-
-            Retrives chart state associated with a permanent link.
+            Retrives dashboard state associated with a permanent link.
           parameters:
           - in: path
             schema:
@@ -147,7 +136,7 @@ class ExplorePermalinkRestApi(BaseApi):
             name: key
           responses:
             200:
-              description: Returns the stored form_data.
+              description: Returns the stored state.
               content:
                 application/json:
                   schema:
@@ -169,13 +158,11 @@ class ExplorePermalinkRestApi(BaseApi):
         """
         try:
             key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            state = GetExplorePermalinkCommand(g.user, key, key_type).run()
+            state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
             if not state:
                 return self.response_404()
             return self.response(200, state=state)
-        except ExplorePermalinkInvalidStateError as ex:
-            return self.response(400, message=str(ex))
-        except (ChartAccessDeniedError, DatasetAccessDeniedError,) as ex:
+        except DashboardAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))

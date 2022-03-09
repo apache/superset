@@ -21,9 +21,9 @@ from typing import Any, Dict, Optional
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
-from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.explore.utils import check_access
+from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
 from superset.key_value.types import KeyType
@@ -31,7 +31,7 @@ from superset.key_value.types import KeyType
 logger = logging.getLogger(__name__)
 
 
-class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
+class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def __init__(
         self, actor: User, key: str, key_type: KeyType,
     ):
@@ -48,17 +48,19 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             value = command.run()
             if value:
                 state = json.loads(value)
-                chart_id = state["chart_id"]
-                dataset_id = state["dataset_id"]
-                form_data = state["form_data"]
-                check_access(dataset_id, chart_id, self.actor)
-                return {"form_data": form_data}
+                id_or_slug = state["id_or_slug"]
+                filter_state = state["filter_state"]
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+                return {
+                    "id_or_slug": id_or_slug,
+                    "filter_state": filter_state,
+                }
             return None
         except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:
-            raise ExplorePermalinkGetFailedError(message=ex.message) from ex
+            raise DashboardPermalinkGetFailedError(message=ex.message) from ex
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
-            raise ExplorePermalinkGetFailedError() from ex
+            raise DashboardPermalinkGetFailedError() from ex
 
     def validate(self) -> None:
         pass

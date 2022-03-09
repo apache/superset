@@ -32,16 +32,25 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateTemporaryCacheCommand(BaseCommand):
-    def __init__(self, actor: User, key: str, value: str, key_type: KeyType = "uuid"):
+    def __init__(
+        self,
+        actor: User,
+        resource: str,
+        key: str,
+        value: str,
+        key_type: KeyType = "uuid",
+    ):
         """
         Update a key value entry
 
+        :param resource: the resource (dashboard, chart etc)
         :param key: the key to update
         :param value: the value to persist in the key-value store
         :param key_type: the type of the key to update
         :return: the key associated with the updated value
         """
         self.actor = actor
+        self.resource = resource
         self.key = key
         self.value = value
         self.key_type = key_type
@@ -57,7 +66,7 @@ class UpdateTemporaryCacheCommand(BaseCommand):
         pass
 
     def update(self) -> Optional[str]:
-        filter_ = get_filter(self.key, self.key_type)
+        filter_ = get_filter(self.resource, self.key, self.key_type)
         entry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)

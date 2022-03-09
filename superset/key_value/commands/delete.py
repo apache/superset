@@ -30,14 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCacheCommand(BaseCommand):
-    def __init__(self, actor: User, key: str, key_type: KeyType = "uuid"):
+    def __init__(
+        self, actor: User, resource: str, key: str, key_type: KeyType = "uuid"
+    ):
         """
         Delete a key-value pair
 
+        :param resource: the resource (dashboard, chart etc)
         :param key: the key to delete
         :param key_type: the type of key
         :return: was the entry deleted or not
         """
+        self.resource = resource
         self.actor = actor
         self.key = key
         self.key_type = key_type
@@ -53,7 +57,7 @@ class DeleteKeyValueCacheCommand(BaseCommand):
         pass
 
     def delete(self) -> bool:
-        filter_ = get_filter(self.key, self.key_type)
+        filter_ = get_filter(self.resource, self.key, self.key_type)
 
         entry = (
             db.session.query(KeyValueEntry)

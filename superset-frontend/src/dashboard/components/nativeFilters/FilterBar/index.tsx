@@ -179,7 +179,12 @@ const publishDataMask = debounce(
     const newParams = new URLSearchParams();
     let dataMaskKey: string;
     previousParams.forEach((value, key) => {
-      if (key !== URL_PARAMS.nativeFilters.name) {
+      if (
+        ![
+          URL_PARAMS.nativeFilters.name,
+          URL_PARAMS.permalinkStateKey.name,
+        ].includes(key)
+      ) {
         newParams.append(key, value);
       }
     });

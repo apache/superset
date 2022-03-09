@@ -29,5 +29,6 @@ KeyType = Literal["id", "uuid"]
 
 
 class KeyValueFilter(TypedDict, total=False):
+    resource: str
     id: Optional[int]
     uuid: Optional[UUID]

@@ -14,20 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
-
-
-class ExplorePermalinkPostSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
-    )
-    chart_id = fields.Integer(required=False, description="The chart ID")
-    state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")
-
-
-class ExplorePermalinkPutSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
-    )
-    chart_id = fields.Integer(required=False, description="The chart ID")
-    state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")

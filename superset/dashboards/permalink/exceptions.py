@@ -14,20 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from flask_babel import lazy_gettext as _
+
+from superset.commands.exceptions import (
+    CommandException,
+    CreateFailedError,
+    DeleteFailedError,
+    ForbiddenError,
+    UpdateFailedError,
+)
+from superset.exceptions import SupersetException
 
 
-class ExplorePermalinkPostSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
-    )
-    chart_id = fields.Integer(required=False, description="The chart ID")
-    state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")
+class DashboardPermalinkInvalidStateError(CommandException):
+    message = _("Invalid state.")
 
 
-class ExplorePermalinkPutSchema(Schema):
-    dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
-    )
-    chart_id = fields.Integer(required=False, description="The chart ID")
-    state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")
+class DashboardPermalinkCreateFailedError(CreateFailedError):
+    message = _("An error occurred while creating the value.")
+
+
+class DashboardPermalinkGetFailedError(CommandException):
+    message = _("An error occurred while accessing the value.")

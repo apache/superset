@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { getClientErrorObject } from './getClientErrorObject';
+import { Slice } from 'src/types/Chart';
 import { URL_PARAMS } from '../constants';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
@@ -72,18 +73,36 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
   }
 }
 
-export function getShortUrl(longUrl: string) {
+function getPermalink(endpoint, path, jsonPayload) {
   return SupersetClient.post({
-    endpoint: '/r/shortner/',
-    postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-    parseMethod: 'text',
-    stringify: false, // the url saves with an extra set of string quotes without this
+    endpoint,
+    jsonPayload,
   })
-    .then(({ text }) => text)
+    .then(result => {
+      return `${location.protocol}//${location.host}${path}${result.json.key}/`;
+    })
     .catch(response =>
       // @ts-ignore
       getClientErrorObject(response).then(({ error, statusText }) =>
         Promise.reject(error || statusText),
       ),
     );
+}
+
+export function getChartPermalink(chart: Slice, formData: QueryFormData) {
+  return getPermalink('/api/v1/explore/permalink', '/superset/explore/p/', {
+    chart_id: chart.slice_id,
+    dataset_id: Number(formData.datasource.split('__')[0]),
+    state: { form_data: formData },
+  });
+}
+
+export function getDashboardPermalink(
+  dashboardId: string,
+  filterState: JsonObject,
+) {
+  return getPermalink('/api/v1/dashboard/permalink', '/superset/dashboard/p/', {
+    id_or_slug: dashboardId,
+    state: { filter_state: filterState },
+  });
 }

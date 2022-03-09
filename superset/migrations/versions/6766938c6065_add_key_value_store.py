@@ -37,6 +37,7 @@ def upgrade():
     op.create_table(
         "key_value",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("resource", sa.String(32), nullable=False),
         sa.Column("value", sa.Text(), nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid4),
         sa.Column("created_on", sa.DateTime(), nullable=False),

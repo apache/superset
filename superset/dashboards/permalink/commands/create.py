@@ -16,47 +16,40 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
-from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
-from superset.explore.utils import check_access
+from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import (
+    DashboardPermalinkCreateFailedError,
+    DashboardPermalinkInvalidStateError,
+)
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.types import KeyType
 
 logger = logging.getLogger(__name__)
 
 
-class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
+class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def __init__(
-        self,
-        actor: User,
-        chart_id: Optional[int],
-        dataset_id: int,
-        state: Dict[str, Any],
-        key_type: KeyType,
+        self, actor: User, id_or_slug: str, state: Dict[str, Any], key_type: KeyType,
     ):
         self.actor = actor
-        self.chart_id = chart_id
-        self.dataset_id = dataset_id
+        self.id_or_slug = id_or_slug
         self.state = state
         self.key_type = key_type
 
     def run(self) -> str:
         self.validate()
         try:
-            check_access(self.dataset_id, self.chart_id, self.actor)
-            form_data = self.state.get("form_data", {})
+            DashboardDAO.get_by_id_or_slug(self.id_or_slug)
+            filter_state = self.state["filter_state"]
             value = json.dumps(
-                {
-                    "chart_id": self.chart_id,
-                    "dataset_id": self.dataset_id,
-                    "form_data": form_data,
-                }
+                {"id_or_slug": self.id_or_slug, "filter_state": filter_state,}
             )
             command = CreateKeyValueCommand(
                 self.actor, self.resource, value, self.key_type
@@ -65,8 +58,8 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
-            raise ExplorePermalinkCreateFailedError() from ex
+            raise DashboardPermalinkCreateFailedError() from ex
 
     def validate(self) -> None:
-        if len(self.state) != 1 or "form_data" not in self.state:
-            raise ExplorePermalinkCreateFailedError(message=_("invalid state"))
+        if len(self.state) != 1 or "filter_state" not in self.state:
+            raise DashboardPermalinkInvalidStateError(message=_("invalid state"))

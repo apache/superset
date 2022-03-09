@@ -71,6 +71,10 @@ export const URL_PARAMS = {
     name: 'force',
     type: 'boolean',
   },
+  permalinkStateKey: {
+    name: 'permalink_state_key',
+    type: 'string',
+  },
 } as const;
 
 /**

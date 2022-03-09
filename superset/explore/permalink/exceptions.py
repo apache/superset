@@ -26,6 +26,10 @@ from superset.commands.exceptions import (
 from superset.exceptions import SupersetException
 
 
+class ExplorePermalinkInvalidStateError(CreateFailedError):
+    message = _("Invalid state.")
+
+
 class ExplorePermalinkCreateFailedError(CreateFailedError):
     message = _("An error occurred while creating the value.")
 
