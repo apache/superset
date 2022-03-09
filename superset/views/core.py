@@ -1945,14 +1945,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         :param dashboard: added by `check_dashboard_access`
-        :param filter_state: permanent link state
         """
         if not dashboard:
             abort(404)
 
         key = request.args.get("permalink_state_key")
 
-        filter_state: Optional[Dict[str, Any]] = {}
         if key:
             key_type = config["PERMALINK_KEY_TYPE"]
             filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
@@ -1998,7 +1996,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
-            "filter_state": filter_state,
         }
 
         return self.render_template(

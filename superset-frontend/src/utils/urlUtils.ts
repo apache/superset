@@ -18,8 +18,8 @@
  */
 import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { getClientErrorObject } from './getClientErrorObject';
 import { Slice } from 'src/types/Chart';
+import { getClientErrorObject } from './getClientErrorObject';
 import { URL_PARAMS } from '../constants';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
@@ -78,9 +78,10 @@ function getPermalink(endpoint, path, jsonPayload) {
     endpoint,
     jsonPayload,
   })
-    .then(result => {
-      return `${location.protocol}//${location.host}${path}${result.json.key}/`;
-    })
+    .then(
+      result =>
+        `${window.location.protocol}//${window.location.host}${path}${result.json.key}/`,
+    )
     .catch(response =>
       // @ts-ignore
       getClientErrorObject(response).then(({ error, statusText }) =>
