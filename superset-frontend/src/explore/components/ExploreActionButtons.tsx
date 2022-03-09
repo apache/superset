@@ -103,13 +103,13 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     addSuccessToast,
   } = props;
 
-  const copyTooltipText = t('Copy permanent link to clipboard');
+  const copyTooltipText = t('Copy permalink to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
 
   const doCopyLink = async () => {
     try {
       setCopyTooltip(t('Loading...'));
-      const url = await getChartPermalink(slice, latestQueryFormData);
+      const url = await getChartPermalink(slice.slice_id, latestQueryFormData);
       await copyTextToClipboard(url);
       setCopyTooltip(t('Copied to clipboard!'));
       addSuccessToast(t('Copied to clipboard!'));
@@ -122,7 +122,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doShareEmail = async () => {
     try {
       const subject = t('Superset Chart');
-      const url = await getChartPermalink(slice, latestQueryFormData);
+      const url = await getChartPermalink(slice.slice_id, latestQueryFormData);
       const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
@@ -175,7 +175,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
           <ActionButton
             prefixIcon={<Icons.Email iconSize="l" />}
-            tooltip={t('Share chart by email')}
+            tooltip={t('Share permalink by email')}
             onClick={doShareEmail}
           />
           <EmbedCodeButton />

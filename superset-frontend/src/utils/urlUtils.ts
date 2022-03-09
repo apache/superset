@@ -18,7 +18,6 @@
  */
 import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from './getClientErrorObject';
 import { URL_PARAMS } from '../constants';
 
@@ -73,15 +72,12 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
   }
 }
 
-function getPermalink(endpoint, path, jsonPayload) {
+function getPermalink(endpoint, jsonPayload) {
   return SupersetClient.post({
     endpoint,
     jsonPayload,
   })
-    .then(
-      result =>
-        `${window.location.protocol}//${window.location.host}${path}${result.json.key}/`,
-    )
+    .then(result => result.json.url as string)
     .catch(response =>
       // @ts-ignore
       getClientErrorObject(response).then(({ error, statusText }) =>
@@ -90,9 +86,9 @@ function getPermalink(endpoint, path, jsonPayload) {
     );
 }
 
-export function getChartPermalink(chart: Slice, formData: QueryFormData) {
-  return getPermalink('/api/v1/explore/permalink', '/superset/explore/p/', {
-    chart_id: chart.slice_id,
+export function getChartPermalink(chartId: number, formData: QueryFormData) {
+  return getPermalink('/api/v1/explore/permalink', {
+    chart_id: chartId,
     dataset_id: Number(formData.datasource.split('__')[0]),
     state: { form_data: formData },
   });
@@ -102,7 +98,7 @@ export function getDashboardPermalink(
   dashboardId: string,
   filterState: JsonObject,
 ) {
-  return getPermalink('/api/v1/dashboard/permalink', '/superset/dashboard/p/', {
+  return getPermalink('/api/v1/dashboard/permalink', {
     id_or_slug: dashboardId,
     state: { filter_state: filterState },
   });

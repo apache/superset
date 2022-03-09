@@ -17,19 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging } from '@superset-ui/core';
+import { t, logging, QueryFormData } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
-import { postFormData } from 'src/explore/exploreUtils/formData';
-import { useTabId } from 'src/hooks/useTabId';
-import { URL_PARAMS } from 'src/constants';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
 import {
-  createFilterKey,
-  getFilterValue,
-} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+  getChartPermalink,
+  getDashboardPermalink,
+  getUrlParam,
+} from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -40,7 +37,7 @@ interface ShareMenuItemProps {
   addDangerToast: Function;
   addSuccessToast: Function;
   dashboardId?: string;
-  formData?: { slice_id: number; datasource: string };
+  formData?: QueryFormData;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -57,38 +54,32 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     ...rest
   } = props;
 
-  const tabId = useTabId();
-
-  async function getCopyUrl() {
-    if (!dashboardId) return null;
-    const filterState = await getFilterValue(
-      dashboardId,
-      getUrlParam(URL_PARAMS.nativeFiltersKey),
-    );
-    return getDashboardPermalink(String(dashboardId), filterState);
-  }
-
   async function generateUrl() {
+    // chart
     if (formData) {
-      const key = await postFormData(
-        parseInt(formData.datasource.split('_')[0], 10),
-        formData,
-        formData.slice_id,
-        tabId,
-      );
-      return `${window.location.origin}${mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-        [URL_PARAMS.sliceId.name]: formData.slice_id,
-      })}`;
+      return getChartPermalink(formData.slice_id, formData);
     }
-    const copyUrl = await getCopyUrl();
-    return copyUrl;
+    // dashboard
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    let filterState = {};
+    if (nativeFiltersKey) {
+      filterState = await getFilterValue(
+        dashboardId as number,
+        nativeFiltersKey,
+      );
+    }
+    return getDashboardPermalink(String(dashboardId), filterState);
   }
 
   async function onCopyLink() {
     try {
-      await copyTextToClipboard(await generateUrl());
-      addSuccessToast(t('Copied to clipboard!'));
+      const url = await generateUrl();
+      if (url) {
+        await copyTextToClipboard(url);
+        addSuccessToast(t('Copied to clipboard!'));
+      } else {
+        addDangerToast(t('Dashboard missing'));
+      }
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

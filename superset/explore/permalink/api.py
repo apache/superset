@@ -115,7 +115,9 @@ class ExplorePermalinkRestApi(BaseApi):
                 state=state,
                 key_type=key_type,
             ).run()
-            return self.response(201, key=key)
+            http_origin = request.headers.environ["HTTP_ORIGIN"]
+            url = f"{http_origin}/superset/explore/p/{key}/"
+            return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         except (

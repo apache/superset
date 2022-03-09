@@ -2005,6 +2005,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
+    @has_access
     @expose("/dashboard/p/<key>/", methods=["GET"])
     def dashboard_permalink(  # pylint: disable=no-self-use
         self, key: str,

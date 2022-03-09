@@ -309,8 +309,8 @@ class SliceHeaderControls extends React.PureComponent<
 
         {supersetCanShare && (
           <ShareMenuItems
-            copyMenuItemTitle={t('Copy chart URL')}
-            emailMenuItemTitle={t('Share chart by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={t('Superset chart')}
             emailBody={t('Check out this chart: ')}
             addSuccessToast={addSuccessToast}

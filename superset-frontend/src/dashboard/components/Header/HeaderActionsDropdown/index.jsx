@@ -259,8 +259,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         {userCanShare && (
           <ShareMenuItems
             url={url}
-            copyMenuItemTitle={t('Copy permanent link to clipboard')}
-            emailMenuItemTitle={t('Share dashboard by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={emailSubject}
             emailBody={emailBody}
             addSuccessToast={addSuccessToast}

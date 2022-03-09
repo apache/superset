@@ -108,7 +108,9 @@ class DashboardPermalinkRestApi(BaseApi):
             key = CreateDashboardPermalinkCommand(
                 actor=g.user, id_or_slug=id_or_slug, state=state, key_type=key_type,
             ).run()
-            return self.response(201, key=key)
+            http_origin = request.headers.environ["HTTP_ORIGIN"]
+            url = f"{http_origin}/superset/dashboard/p/{key}/"
+            return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))
         except (DashboardAccessDeniedError, KeyValueAccessDeniedError,) as ex:
