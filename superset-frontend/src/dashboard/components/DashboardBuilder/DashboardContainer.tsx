@@ -27,24 +27,25 @@ import {
   isFeatureEnabled,
 } from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
+import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
-import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import {
   ChartsState,
   DashboardLayout,
   LayoutItem,
   RootState,
 } from 'src/dashboard/types';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
+import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { getChartIdsInFilterScope } from '../../util/getChartIdsInFilterScope';
-import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 
 type DashboardContainerProps = {
@@ -58,11 +59,9 @@ const useNativeFilterScopes = () => {
   return useMemo(
     () =>
       nativeFilters
-        ? Object.values(nativeFilters).map((filter: Filter) => ({
-            id: filter.id,
-            scope: filter.scope,
-            type: filter.type,
-          }))
+        ? Object.values(nativeFilters).map((filter: Filter) =>
+            pick(filter, ['id', 'scope', 'type']),
+          )
         : [],
     [JSON.stringify(nativeFilters)],
   );
