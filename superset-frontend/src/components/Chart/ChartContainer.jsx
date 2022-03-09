@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { combineReducers } from 'redux';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-import reports from 'src/reports/reducers/reports';
-import charts from 'src/components/Chart/chartReducer';
-import dataMask from 'src/dataMask/reducer';
-import messageToasts from 'src/components/MessageToasts/reducers';
-import saveModal from './saveModalReducer';
-import explore from './exploreReducer';
+import * as actions from './chartAction';
+import { logEvent } from '../../logger/actions';
+import Chart from './Chart';
+import { updateDataMask } from '../../dataMask/actions';
 
-const impressionId = (state = '') => state;
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(
+      {
+        ...actions,
+        updateDataMask,
+        logEvent,
+      },
+      dispatch,
+    ),
+  };
+}
 
-export default combineReducers({
-  charts,
-  saveModal,
-  dataMask,
-  explore,
-  impressionId,
-  messageToasts,
-  reports,
-});
+export default connect(null, mapDispatchToProps)(Chart);
