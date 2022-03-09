@@ -32,7 +32,6 @@ export type GuestTokenFetchFn = () => Promise<string>;
 export type UiConfigType = {
   hideTitle?: boolean
   hideTab?: boolean
-  hideNav?: boolean 
   hideChartControls?: boolean
 }
 
@@ -45,8 +44,8 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
-  /** The dashboard UI config: hideTitle, hideTab, hideNav, hideChartControls **/
-  uiConfig?: UiConfigType
+  /** The dashboard UI config: hideTitle, hideTab, hideChartControls **/
+  dashboardUiConfig?: UiConfigType
   /** Are we in debug mode? */
   debug?: boolean
 }
@@ -68,7 +67,7 @@ export async function embedDashboard({
   supersetDomain,
   mountPoint,
   fetchGuestToken,
-  uiConfig,
+  dashboardUiConfig,
   debug = false
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
@@ -80,18 +79,15 @@ export async function embedDashboard({
   log('embedding');
 
   function calculateConfig() {
-    let configNumber = 0 
-    if(uiConfig) {
-      if(uiConfig.hideTitle) {
+    let configNumber = 0
+    if(dashboardUiConfig) {
+      if(dashboardUiConfig.hideTitle) {
         configNumber += 1
       }
-      if(uiConfig.hideTab) {
+      if(dashboardUiConfig.hideTab) {
         configNumber += 2
       }
-      if(uiConfig.hideNav) {
-        configNumber += 4
-      }
-      if(uiConfig.hideChartControls) {
+      if(dashboardUiConfig.hideChartControls) {
         configNumber += 8
       }
     }
@@ -101,7 +97,7 @@ export async function embedDashboard({
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
-      const dashboardConfig = uiConfig ? `?uiConfig=${calculateConfig()}` : ""
+      const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
