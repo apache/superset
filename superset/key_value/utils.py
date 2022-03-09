@@ -53,5 +53,5 @@ def get_filter(resource: str, key: str, key_type: KeyType) -> KeyValueFilter:
         else:
             filter_["id"] = int(key)
         return filter_
-    except ValueError:
-        raise KeyValueParseKeyError()
+    except ValueError as ex:
+        raise KeyValueParseKeyError() from ex

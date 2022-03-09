@@ -28,7 +28,7 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, redirect, render_template, request, Response, url_for
+from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
@@ -71,7 +71,6 @@ from superset.connectors.sqla.models import (
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
-from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -1935,7 +1934,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     def dashboard(
         self,
-        dashboard_id_or_slug: str,  # pylint: disable=unused-argument
+        dashboard_id_or_slug: str,
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
         dashboard: Optional[Dashboard] = None,
     ) -> FlaskResponse:
@@ -2007,7 +2006,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @expose("/dashboard/p/<key>/", methods=["GET"])
-    def dashboard_permalink(self, key: str) -> FlaskResponse:
+    def dashboard_permalink(  # pylint: disable=no-self-use
+        self, key: str,
+    ) -> FlaskResponse:
         key_type = config["PERMALINK_KEY_TYPE"]
         filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
         if not filter_state:

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         actor: User,
         chart_id: Optional[int],
