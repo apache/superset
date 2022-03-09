@@ -55,6 +55,7 @@ export const nativeFilters: NativeFiltersState = {
       },
       type: NativeFilterType.NATIVE_FILTER,
       description: '',
+      chartsInScope: [18],
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
@@ -85,6 +86,7 @@ export const nativeFilters: NativeFiltersState = {
       },
       type: NativeFilterType.NATIVE_FILTER,
       description: '2 letter code',
+      chartsInScope: [18],
     },
   },
 };

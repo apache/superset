@@ -26,7 +26,7 @@ import {
 } from 'src/explore/constants';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
 import { Filter, NativeFilterType, TimeGranularity } from '@superset-ui/core';
-import { getChartIdsInFilterScope } from './activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from './activeDashboardFilters';
 import getFilterConfigsFromFormdata from './getFilterConfigsFromFormdata';
 
 interface FilterConfig {
@@ -147,7 +147,7 @@ const getFilterboxDependencies = (filterScopes: FilterScopesMetadata) => {
   Object.entries(filterScopes).forEach(([key, filterFields]) => {
     filterFieldsDependencies[key] = {};
     Object.entries(filterFields).forEach(([filterField, filterScope]) => {
-      filterFieldsDependencies[key][filterField] = getChartIdsInFilterScope({
+      filterFieldsDependencies[key][filterField] = getChartIdsInFilterBoxScope({
         filterScope,
       }).filter(
         chartId => filterChartIds.includes(chartId) && String(chartId) !== key,

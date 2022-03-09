@@ -27,11 +27,11 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
+import { Layout } from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { Layout } from '../../types';
-import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -123,7 +123,7 @@ const selectIndicatorsForChartFromFilter = (
 
   return Object.keys(filter.columns)
     .filter(column =>
-      getChartIdsInFilterScope({
+      getChartIdsInFilterBoxScope({
         filterScope: filter.scopes[column],
       }).includes(chartId),
     )
@@ -274,10 +274,7 @@ export const selectNativeIndicatorsForChart = (
         .filter(
           nativeFilter =>
             nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
-            getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
-              layoutItem =>
-                dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-            ),
+            nativeFilter.chartsInScope?.includes(chartId),
         )
         .map(nativeFilter => {
           const column = nativeFilter.targets?.[0]?.column?.name;
@@ -295,14 +292,19 @@ export const selectNativeIndicatorsForChart = (
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    const dashboardLayoutValues = Object.values(dashboardLayout);
+    const chartLayoutItem = dashboardLayoutValues.find(
+      layoutItem => layoutItem?.meta?.chartId === chartId,
+    );
     crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(chartConfig =>
-        getTreeCheckedItems(
-          chartConfig?.crossFilters?.scope,
-          dashboardLayout,
-        ).some(
-          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        ),
+      .filter(
+        chartConfig =>
+          !chartConfig.crossFilters.scope.excluded.includes(chartId) &&
+          chartConfig.crossFilters.scope.rootPath.some(
+            elementId =>
+              chartLayoutItem?.type === CHART_TYPE &&
+              chartLayoutItem?.parents?.includes(elementId),
+          ),
       )
       .map(chartConfig => {
         const filterState = dataMask[chartConfig.id]?.filterState;
@@ -310,7 +312,7 @@ export const selectNativeIndicatorsForChart = (
         const filtersState = filterState?.filters;
         const column = filtersState && Object.keys(filtersState)[0];
 
-        const dashboardLayoutItem = Object.values(dashboardLayout).find(
+        const dashboardLayoutItem = dashboardLayoutValues.find(
           layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
         );
         return {
