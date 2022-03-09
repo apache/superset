@@ -108,9 +108,6 @@ const all_columns: typeof sharedControls.groupby = {
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
-  shouldMapStateToProps() {
-    return true;
-  },
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
@@ -129,9 +126,6 @@ const dnd_all_columns: typeof sharedControls.groupby = {
   label: t('Columns'),
   description: t('Columns to display'),
   default: [],
-  shouldMapStateToProps() {
-    return true;
-  },
   mapStateToProps({ datasource, controls }, controlState) {
     const newState: ExtraControlProps = {};
     if (datasource) {
@@ -158,9 +152,6 @@ const percent_metrics: typeof sharedControls.metrics = {
   ),
   multi: true,
   visibility: isAggMode,
-  shouldMapStateToProps() {
-    return true;
-  },
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],
