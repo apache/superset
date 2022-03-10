@@ -33,8 +33,9 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.test_app import app
 
-key = "test-key"
-value = json.dumps({"test": "initial value"})
+KEY = "test-key"
+INITIAL_VALUE = json.dumps({"test": "initial value"})
+UPDATED_VALUE = json.dumps({"test": "updated value"})
 
 
 @pytest.fixture
@@ -62,23 +63,32 @@ def admin_id() -> int:
 
 @pytest.fixture(autouse=True)
 def cache(dashboard_id, admin_id):
-    entry: Entry = {"owner": admin_id, "value": value}
-    cache_manager.filter_state_cache.set(cache_key(dashboard_id, key), entry)
+    entry: Entry = {"owner": admin_id, "value": INITIAL_VALUE}
+    cache_manager.filter_state_cache.set(cache_key(dashboard_id, KEY), entry)
 
 
 def test_post(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload)
     assert resp.status_code == 201
 
 
-def test_post_bad_request(client, dashboard_id: int):
+def test_post_bad_request_non_string(client, dashboard_id: int):
     login(client, "admin")
     payload = {
         "value": 1234,
+    }
+    resp = client.post(f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload)
+    assert resp.status_code == 400
+
+
+def test_post_bad_request_non_json_string(client, dashboard_id: int):
+    login(client, "admin")
+    payload = {
+        "value": "foo",
     }
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload)
     assert resp.status_code == 400
@@ -89,7 +99,7 @@ def test_post_access_denied(mock_raise_for_dashboard_access, client, dashboard_i
     login(client, "admin")
     mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload)
     assert resp.status_code == 403
@@ -98,7 +108,7 @@ def test_post_access_denied(mock_raise_for_dashboard_access, client, dashboard_i
 def test_post_same_key_for_same_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.post(
         f"api/v1/dashboard/{dashboard_id}/filter_state?tab_id=1", json=payload
@@ -116,7 +126,7 @@ def test_post_same_key_for_same_tab_id(client, dashboard_id: int):
 def test_post_different_key_for_different_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.post(
         f"api/v1/dashboard/{dashboard_id}/filter_state?tab_id=1", json=payload
@@ -134,7 +144,7 @@ def test_post_different_key_for_different_tab_id(client, dashboard_id: int):
 def test_post_different_key_for_no_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/filter_state", json=payload)
     data = json.loads(resp.data.decode("utf-8"))
@@ -148,10 +158,10 @@ def test_post_different_key_for_no_tab_id(client, dashboard_id: int):
 def test_put(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": json.dumps({"test": "new value"}),
+        "value": UPDATED_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     assert resp.status_code == 200
 
@@ -159,15 +169,15 @@ def test_put(client, dashboard_id: int):
 def test_put_same_key_for_same_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}?tab_id=1", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}?tab_id=1", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}?tab_id=1", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}?tab_id=1", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
@@ -177,15 +187,15 @@ def test_put_same_key_for_same_tab_id(client, dashboard_id: int):
 def test_put_different_key_for_different_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}?tab_id=1", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}?tab_id=1", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}?tab_id=2", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}?tab_id=2", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
@@ -195,28 +205,39 @@ def test_put_different_key_for_different_tab_id(client, dashboard_id: int):
 def test_put_different_key_for_no_tab_id(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": value,
+        "value": INITIAL_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     first_key = data.get("key")
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     data = json.loads(resp.data.decode("utf-8"))
     second_key = data.get("key")
     assert first_key != second_key
 
 
-def test_put_bad_request(client, dashboard_id: int):
+def test_put_bad_request_non_string(client, dashboard_id: int):
     login(client, "admin")
     payload = {
         "value": 1234,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
+    )
+    assert resp.status_code == 400
+
+
+def test_put_bad_request_non_json_string(client, dashboard_id: int):
+    login(client, "admin")
+    payload = {
+        "value": "foo",
+    }
+    resp = client.put(
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     assert resp.status_code == 400
 
@@ -226,10 +247,10 @@ def test_put_access_denied(mock_raise_for_dashboard_access, client, dashboard_id
     login(client, "admin")
     mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
     payload = {
-        "value": json.dumps({"test": "new value"}),
+        "value": UPDATED_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     assert resp.status_code == 403
 
@@ -237,10 +258,10 @@ def test_put_access_denied(mock_raise_for_dashboard_access, client, dashboard_id
 def test_put_not_owner(client, dashboard_id: int):
     login(client, "gamma")
     payload = {
-        "value": json.dumps({"test": "new value"}),
+        "value": UPDATED_VALUE,
     }
     resp = client.put(
-        f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
+        f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}", json=payload
     )
     assert resp.status_code == 403
 
@@ -253,29 +274,29 @@ def test_get_key_not_found(client, dashboard_id: int):
 
 def test_get_dashboard_not_found(client):
     login(client, "admin")
-    resp = client.get(f"api/v1/dashboard/{-1}/filter_state/{key}")
+    resp = client.get(f"api/v1/dashboard/{-1}/filter_state/{KEY}")
     assert resp.status_code == 404
 
 
 def test_get(client, dashboard_id: int):
     login(client, "admin")
-    resp = client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{key}")
+    resp = client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
-    assert value == data.get("value")
+    assert INITIAL_VALUE == data.get("value")
 
 
 @patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
 def test_get_access_denied(mock_raise_for_dashboard_access, client, dashboard_id):
     login(client, "admin")
     mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
-    resp = client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{key}")
+    resp = client.get(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
     assert resp.status_code == 403
 
 
 def test_delete(client, dashboard_id: int):
     login(client, "admin")
-    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{key}")
+    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
     assert resp.status_code == 200
 
 
@@ -285,11 +306,11 @@ def test_delete_access_denied(
 ):
     login(client, "admin")
     mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
-    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{key}")
+    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
     assert resp.status_code == 403
 
 
 def test_delete_not_owner(client, dashboard_id: int):
     login(client, "gamma")
-    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{key}")
+    resp = client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
     assert resp.status_code == 403

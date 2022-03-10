@@ -26,6 +26,7 @@ from superset.explore.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
 from superset.temporary_cache.utils import cache_key, random_key
+from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class CreateFormDataCommand(BaseCommand):
         self._cmd_params = cmd_params
 
     def run(self) -> str:
+        self.validate()
         try:
             dataset_id = self._cmd_params.dataset_id
             chart_id = self._cmd_params.chart_id
@@ -61,4 +63,5 @@ class CreateFormDataCommand(BaseCommand):
             raise TemporaryCacheCreateFailedError() from ex
 
     def validate(self) -> None:
-        pass
+        if self._cmd_params.form_data:
+            validate_json(self._cmd_params.form_data)
