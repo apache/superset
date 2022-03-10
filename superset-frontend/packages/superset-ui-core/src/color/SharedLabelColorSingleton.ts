@@ -37,8 +37,7 @@ export class SharedLabelColor {
     if (colorScheme) {
       const categoricalNamespace =
         CategoricalColorNamespace.getNamespace(colorNamespace);
-      const scale = categoricalNamespace.getScale(colorScheme);
-      const colors = scale.range();
+      const colors = categoricalNamespace.getScale(colorScheme).range();
       const sharedLabels = this.getSharedLabels();
       const generatedColors: tinycolor.Instance[] = [];
       let sharedLabelMap;
@@ -67,18 +66,21 @@ export class SharedLabelColor {
       }
 
       const labelMap = Object.keys(this.sliceLabelColorMap).reduce(
-        (res, sliceId) => ({
-          ...res,
-          ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
-            (res, label) => ({
-              ...res,
-              [label]: updateColorScheme
-                ? undefined
-                : this.sliceLabelColorMap[sliceId][label],
-            }),
-            {},
-          ),
-        }),
+        (res, sliceId) => {
+          const colorScale = categoricalNamespace.getScale(colorScheme);
+          return {
+            ...res,
+            ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
+              (res, label) => ({
+                ...res,
+                [label]: updateColorScheme
+                  ? colorScale(label)
+                  : this.sliceLabelColorMap[sliceId][label],
+              }),
+              {},
+            ),
+          };
+        },
         {},
       );
 

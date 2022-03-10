@@ -300,8 +300,8 @@ const PropertiesModal = ({
         delete metadata.shared_label_colors;
       }
       const colorMap = getSharedLabelColor().getColorMap(
-        metadata?.color_namespace,
-        metadata?.color_scheme,
+        colorNamespace,
+        currentColorScheme,
         true,
       );
       metadata.shared_label_colors = colorMap;
