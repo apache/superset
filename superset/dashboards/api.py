@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-lines
 import json
 import logging
 from datetime import datetime
@@ -143,6 +144,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "owners.email",
         "roles.id",
         "roles.name",
     ]
@@ -952,7 +954,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing dashboards?
                       type: boolean
           responses:
             200:

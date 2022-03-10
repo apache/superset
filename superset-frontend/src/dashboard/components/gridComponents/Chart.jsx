@@ -23,7 +23,7 @@ import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -242,10 +242,15 @@ export default class Chart extends React.Component {
 
   onExploreChart = async () => {
     try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
       const key = await postFormData(
         this.props.datasource.id,
         this.props.formData,
         this.props.slice.slice_id,
+        nextTabId,
       );
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -269,6 +274,7 @@ export default class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: 'csv',
+      force: true,
     });
   }
 

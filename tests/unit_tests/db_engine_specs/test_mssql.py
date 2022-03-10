@@ -180,6 +180,88 @@ def test_column_datatype_to_string(
     assert actual == expected
 
 
+@pytest.mark.parametrize(
+    "original,expected",
+    [
+        (
+            dedent(
+                """
+with currency as (
+select 'INR' as cur
+),
+currency_2 as (
+select 'EUR' as cur
+)
+select * from currency union all select * from currency_2
+"""
+            ),
+            dedent(
+                """WITH currency as (
+select 'INR' as cur
+),
+currency_2 as (
+select 'EUR' as cur
+),
+__cte AS (
+select * from currency union all select * from currency_2
+)"""
+            ),
+        ),
+        ("SELECT 1 as cnt", None,),
+        (
+            dedent(
+                """
+select 'INR' as cur
+union
+select 'AUD' as cur
+union
+select 'USD' as cur
+"""
+            ),
+            None,
+        ),
+    ],
+)
+def test_cte_query_parsing(
+    app_context: AppContext, original: TypeEngine, expected: str
+) -> None:
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    actual = MssqlEngineSpec.get_cte_query(original)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "original,expected,top",
+    [
+        ("SEL TOP 1000 * FROM My_table", "SEL TOP 100 * FROM My_table", 100),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 100 * FROM My_table", 100),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 10000),
+        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 1000),
+        (
+            """with abc as (select * from test union select * from test1)
+select TOP 100 * from currency""",
+            """WITH abc as (select * from test union select * from test1)
+select TOP 100 * from currency""",
+            1000,
+        ),
+        ("SELECT 1 as cnt", "SELECT TOP 10 1 as cnt", 10),
+        (
+            "select TOP 1000 * from abc where id=1",
+            "select TOP 10 * from abc where id=1",
+            10,
+        ),
+    ],
+)
+def test_top_query_parsing(
+    app_context: AppContext, original: TypeEngine, expected: str, top: int
+) -> None:
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    actual = MssqlEngineSpec.apply_top_to_sql(original, top)
+    assert actual == expected
+
+
 def test_extract_errors(app_context: AppContext) -> None:
     """
     Test that custom error messages are extracted correctly.

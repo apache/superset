@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Typography, Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown, Typography } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import React, { FC } from 'react';
 import {
   DataMaskState,
@@ -109,7 +110,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
             />
           )}
           {onDelete && (
-            <Dropdown
+            <AntdDropdown
               overlay={menu}
               placement="bottomRight"
               trigger={['click']}
@@ -125,7 +126,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
               >
                 <EllipsisOutlined />
               </HeaderButton>
-            </Dropdown>
+            </AntdDropdown>
           )}
         </IconsBlock>
       </TitleText>

@@ -20,7 +20,7 @@
 import React, { FC, useCallback, useState } from 'react';
 import { NativeFilterScope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
-import { Form, Typography } from 'src/common/components';
+import { AntdForm, Typography } from 'src/components';
 import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
@@ -46,7 +46,7 @@ const Wrapper = styled.div`
   padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const CleanFormItem = styled(Form.Item)`
+const CleanFormItem = styled(AntdForm.Item)`
   margin-bottom: 0;
 `;
 

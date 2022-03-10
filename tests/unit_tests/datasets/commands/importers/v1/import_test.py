@@ -22,15 +22,14 @@ from typing import Any, Dict
 
 from sqlalchemy.orm.session import Session
 
-from superset.datasets.schemas import ImportV1DatasetSchema
 
-
-def test_import_(app_context: None, session: Session) -> None:
+def test_import_dataset(app_context: None, session: Session) -> None:
     """
     Test importing a dataset.
     """
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     engine = session.get_bind()
@@ -120,11 +119,11 @@ def test_import_(app_context: None, session: Session) -> None:
     assert len(sqla_table.columns) == 1
     assert sqla_table.columns[0].column_name == "profit"
     assert sqla_table.columns[0].verbose_name is None
-    assert sqla_table.columns[0].is_dttm is False
-    assert sqla_table.columns[0].is_active is True
+    assert sqla_table.columns[0].is_dttm is None
+    assert sqla_table.columns[0].is_active is None
     assert sqla_table.columns[0].type == "INTEGER"
-    assert sqla_table.columns[0].groupby is True
-    assert sqla_table.columns[0].filterable is True
+    assert sqla_table.columns[0].groupby is None
+    assert sqla_table.columns[0].filterable is None
     assert sqla_table.columns[0].expression == "revenue-expenses"
     assert sqla_table.columns[0].description is None
     assert sqla_table.columns[0].python_date_format is None
@@ -139,6 +138,7 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
     """
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.datasets.commands.importers.v1.utils import import_dataset
+    from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     engine = session.get_bind()

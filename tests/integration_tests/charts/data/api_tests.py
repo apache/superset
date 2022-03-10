@@ -483,16 +483,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
-    def test_with_invalid_time_range_endpoints_enum_value__400(self):
-        self.query_context_payload["queries"][0]["extras"]["time_range_endpoints"] = [
-            "abc",
-            "EXCLUSIVE",
-        ]
-
-        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
-
-        assert rv.status_code == 400
-
     def test_with_not_permitted_actor__403(self):
         """
         Chart data API: Test chart data query not allowed
@@ -771,12 +761,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
                         "granularity": "ds",
                         "filters": [],
-                        "extras": {
-                            "time_range_endpoints": ["inclusive", "exclusive"],
-                            "having": "",
-                            "having_druid": [],
-                            "where": "",
-                        },
+                        "extras": {"having": "", "having_druid": [], "where": "",},
                         "applied_time_extras": {},
                         "columns": ["gender"],
                         "metrics": ["sum__num"],

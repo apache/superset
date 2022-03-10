@@ -66,6 +66,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.metrics,
               validators: [validateNonEmpty],
+              rerender: ['conditional_formatting'],
             },
           },
         ],

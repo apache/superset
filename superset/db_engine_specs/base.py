@@ -54,6 +54,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
+from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
@@ -78,6 +79,9 @@ ColumnTypeMapping = Tuple[
 ]
 
 logger = logging.getLogger()
+
+
+CTE_ALIAS = "__cte"
 
 
 class TimeGrain(NamedTuple):
@@ -291,6 +295,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the True is safely for most database
     # But for backward compatibility, False by default
     allows_hidden_cc_in_orderby = False
+
+    # Whether allow CTE as subquery or regular CTE
+    # If True, then it will allow  in subquery ,
+    # if False it will allow as regular CTE
+    allows_cte_in_subquery = True
+    # Whether allow LIMIT clause in the SQL
+    # If True, then the database engine is allowed for LIMIT clause
+    # If False, then the database engine is allowed for TOP clause
+    allow_limit_clause = True
+    # This set will give keywords for select statements
+    # to consider for the engines with TOP SQL parsing
+    select_keywords: Set[str] = {"SELECT"}
+    # This set will give the keywords for data limit statements
+    # to consider for the engines with TOP SQL parsing
+    top_keywords: Set[str] = {"TOP"}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -641,6 +660,71 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
+    def apply_top_to_sql(cls, sql: str, limit: int) -> str:
+        """
+        Alters the SQL statement to apply a TOP clause
+        :param limit: Maximum number of rows to be returned by the query
+        :param sql: SQL query
+        :return: SQL query with top clause
+        """
+
+        cte = None
+        sql_remainder = None
+        sql = sql.strip(" \t\n;")
+        sql_statement = sqlparse.format(sql, strip_comments=True)
+        query_limit: Optional[int] = sql_parse.extract_top_from_query(
+            sql_statement, cls.top_keywords
+        )
+        if not limit:
+            final_limit = query_limit
+        elif int(query_limit or 0) < limit and query_limit is not None:
+            final_limit = query_limit
+        else:
+            final_limit = limit
+        if not cls.allows_cte_in_subquery:
+            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql_statement)
+        if cte:
+            str_statement = str(sql_remainder)
+            cte = cte + "\n"
+        else:
+            cte = ""
+            str_statement = str(sql)
+        str_statement = str_statement.replace("\n", " ").replace("\r", "")
+
+        tokens = str_statement.rstrip().split(" ")
+        tokens = [token for token in tokens if token]
+        if cls.top_not_in_sql(str_statement):
+            selects = [
+                i
+                for i, word in enumerate(tokens)
+                if word.upper() in cls.select_keywords
+            ]
+            first_select = selects[0]
+            tokens.insert(first_select + 1, "TOP")
+            tokens.insert(first_select + 2, str(final_limit))
+
+        next_is_limit_token = False
+        new_tokens = []
+
+        for token in tokens:
+            if token in cls.top_keywords:
+                next_is_limit_token = True
+            elif next_is_limit_token:
+                if token.isdigit():
+                    token = str(final_limit)
+                    next_is_limit_token = False
+            new_tokens.append(token)
+        sql = " ".join(new_tokens)
+        return cte + sql
+
+    @classmethod
+    def top_not_in_sql(cls, sql: str) -> bool:
+        for top_word in cls.top_keywords:
+            if top_word.upper() in sql.upper():
+                return False
+        return True
+
+    @classmethod
     def get_limit_from_sql(cls, sql: str) -> Optional[int]:
         """
         Extract limit from SQL query
@@ -662,6 +746,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
+
+    @classmethod
+    def get_cte_query(cls, sql: str) -> Optional[str]:
+        """
+        Convert the input CTE based SQL to the SQL for virtual table conversion
+
+        :param sql: SQL query
+        :return: CTE with the main select query aliased as `__cte`
+
+        """
+        if not cls.allows_cte_in_subquery:
+            stmt = sqlparse.parse(sql)[0]
+
+            # The first meaningful token for CTE will be with WITH
+            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
+            if not (token and token.ttype == CTE):
+                return None
+            idx, token = stmt.token_next(idx)
+            idx = stmt.token_index(token) + 1
+
+            # extract rest of the SQLs after CTE
+            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
+            return f"WITH {token.value},\n{CTE_ALIAS} AS (\n{remainder}\n)"
+
+        return None
 
     @classmethod
     def df_to_sql(
