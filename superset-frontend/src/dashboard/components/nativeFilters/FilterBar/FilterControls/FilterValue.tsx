@@ -43,6 +43,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { RootState } from 'src/dashboard/types';
+import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
 import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
@@ -62,6 +63,18 @@ const StyledDiv = styled.div`
 const queriesDataPlaceholder = [{ data: [{}] }];
 const behaviors = [Behavior.NATIVE_FILTER];
 
+const useShouldFilterRefresh = () => {
+  const isDashboardRefreshing = useSelector<RootState, boolean>(
+    state => state.dashboardState.isRefreshing,
+  );
+  const isFilterRefreshing = useSelector<RootState, boolean>(
+    state => state.dashboardState.isFiltersRefreshing,
+  );
+
+  // trigger filter requests only after charts requests were triggered
+  return !isDashboardRefreshing && isFilterRefreshing;
+};
+
 const FilterValue: React.FC<FilterProps> = ({
   dataMaskSelected,
   filter,
@@ -75,9 +88,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
-  const isDashboardRefreshing = useSelector<RootState, boolean>(
-    state => state.dashboardState.isRefreshing,
-  );
+  const shouldRefresh = useShouldFilterRefresh();
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -96,6 +107,14 @@ const FilterValue: React.FC<FilterProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
+
+  const handleFilterLoadFinish = useCallback(() => {
+    setIsRefreshing(false);
+    setIsLoading(false);
+    if (shouldRefresh) {
+      dispatch(onFiltersRefreshSuccess());
+    }
+  }, [dispatch, shouldRefresh]);
 
   useEffect(() => {
     if (!inViewFirstTime && inView) {
@@ -127,7 +146,7 @@ const FilterValue: React.FC<FilterProps> = ({
       !isRefreshing &&
       (!isEqualWith(formData, newFormData, customizer) ||
         !isEqual(ownState, filterOwnState) ||
-        isDashboardRefreshing)
+        shouldRefresh)
     ) {
       setFormData(newFormData);
       setOwnState(filterOwnState);
@@ -147,22 +166,19 @@ const FilterValue: React.FC<FilterProps> = ({
             const result = 'result' in json ? json.result[0] : json;
 
             if (response.status === 200) {
-              setIsRefreshing(false);
-              setIsLoading(false);
               setState([result]);
+              handleFilterLoadFinish();
             } else if (response.status === 202) {
               waitForAsyncData(result)
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setIsRefreshing(false);
-                  setIsLoading(false);
                   setState(asyncResult);
+                  handleFilterLoadFinish();
                 })
                 .catch((error: ClientErrorObject) => {
                   setError(
                     error.message || error.error || t('Check configuration'),
                   );
-                  setIsRefreshing(false);
-                  setIsLoading(false);
+                  handleFilterLoadFinish();
                 });
             } else {
               throw new Error(
@@ -172,14 +188,12 @@ const FilterValue: React.FC<FilterProps> = ({
           } else {
             setState(json.result);
             setError('');
-            setIsRefreshing(false);
-            setIsLoading(false);
+            handleFilterLoadFinish();
           }
         })
         .catch((error: Response) => {
           setError(error.statusText);
-          setIsRefreshing(false);
-          setIsLoading(false);
+          handleFilterLoadFinish();
         });
     }
   }, [
@@ -187,10 +201,11 @@ const FilterValue: React.FC<FilterProps> = ({
     dependencies,
     datasetId,
     groupby,
+    handleFilterLoadFinish,
     JSON.stringify(filter),
     hasDataSource,
     isRefreshing,
-    isDashboardRefreshing,
+    shouldRefresh,
   ]);
 
   useEffect(() => {

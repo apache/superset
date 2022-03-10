@@ -422,6 +422,16 @@ const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
     resolve();
   });
 
+export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
+export function onFiltersRefresh() {
+  return { type: ON_FILTERS_REFRESH };
+}
+
+export const ON_FILTERS_REFRESH_SUCCESS = 'ON_FILTERS_REFRESH_SUCCESS';
+export function onFiltersRefreshSuccess() {
+  return { type: ON_FILTERS_REFRESH_SUCCESS };
+}
+
 export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
 export function onRefreshSuccess() {
   return { type: ON_REFRESH_SUCCESS };
@@ -436,8 +446,11 @@ export function onRefresh(
 ) {
   return dispatch => {
     dispatch({ type: ON_REFRESH });
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(() =>
-      dispatch({ type: ON_REFRESH_SUCCESS }),
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
+      () => {
+        dispatch(onRefreshSuccess());
+        dispatch(onFiltersRefresh());
+      },
     );
   };
 }
