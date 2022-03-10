@@ -21,7 +21,6 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { styledShallow as shallow } from 'spec/helpers/theming';
 import { render, screen, act } from 'spec/helpers/testing-library';
-// import userEvent from '@testing-library/user-event';
 import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import '@testing-library/jest-dom/extend-expect';
