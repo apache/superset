@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Alert from 'src/components/Alert';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import { t } from '@superset-ui/core';
 import { Query } from 'src/SqlLab/types';
 import QueryTable from 'src/SqlLab/components/QueryTable';
@@ -52,7 +52,10 @@ const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
       displayLimit={displayLimit}
     />
   ) : (
-    <Alert type="info" message={t('No query history yet...')} />
+    <EmptyStateBig
+      title={t('Run a query to display query history')}
+      image="document.svg"
+    />
   );
 
 export default QueryHistory;

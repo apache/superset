@@ -20,6 +20,7 @@ import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -161,7 +162,10 @@ export default function SouthPane({
       }
     } else {
       results = (
-        <Alert type="info" message={t('Run a query to display results here')} />
+        <EmptyStateBig
+          title={t('Run a query to display results')}
+          image="document.svg"
+        />
       );
     }
     return results;
