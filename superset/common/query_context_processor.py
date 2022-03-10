@@ -26,7 +26,7 @@ from flask_babel import _
 from pandas import DateOffset
 from typing_extensions import TypedDict
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat

@@ -1223,18 +1223,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return ids
 
     def get_guest_rls_filters_str(self, table: "BaseDatasource") -> List[str]:
-        strings = [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
-        return strings
+        return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
-    def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[Union[str, int]]:
+    def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[str]:
+        # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
 
-        rls = []
-
+        rls_ids = []
         if is_feature_enabled("ROW_LEVEL_SECURITY") and datasource.is_rls_supported:
-            rls = self.get_rls_ids(datasource)
+            rls_ids = self.get_rls_ids(datasource)
+        rls_str = [str(rls_id) for rls_id in rls_ids]
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls
+        return guest_rls + rls_str
 
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
