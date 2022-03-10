@@ -177,7 +177,7 @@ const getSort = function (sorters, attr) {
   return naturalSort;
 };
 
-// aggregator templates default to US number formatting but this is overrideable
+// aggregator templates default to US number formatting but this is overridable
 const usFmt = numberFormat();
 const usFmtInt = numberFormat({ digitsAfterDecimal: 0 });
 const usFmtPct = numberFormat({
@@ -229,14 +229,16 @@ const baseAggregatorTemplates = {
         return {
           sum: 0,
           push(record) {
-            if (!Number.isNaN(parseFloat(record[attr]))) {
+            if (Number.isNaN(parseFloat(record[attr]))) {
+              this.sum = record[attr];
+            } else {
               this.sum += parseFloat(record[attr]);
             }
           },
           value() {
             return this.sum;
           },
-          format: formatter,
+          format: x => (typeof x === 'string' ? x : formatter(x)),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
@@ -255,18 +257,23 @@ const baseAggregatorTemplates = {
           push(record) {
             let x = record[attr];
             if (['min', 'max'].includes(mode)) {
-              x = parseFloat(x);
-              if (!Number.isNaN(x)) {
+              x = isNaN(x) ? x : parseFloat(parsed);
+              if (isNaN(x)) {
+                this.val =
+                  !this.val ||
+                  (mode === 'min' && x < this.val) ||
+                  (mode === 'max' && x > this.val)
+                    ? x
+                    : this.val;
+              } else {
                 this.val = Math[mode](x, this.val !== null ? this.val : x);
               }
-            }
-            if (
+            } else if (
               mode === 'first' &&
               this.sorter(x, this.val !== null ? this.val : x) <= 0
             ) {
               this.val = x;
-            }
-            if (
+            } else if (
               mode === 'last' &&
               this.sorter(x, this.val !== null ? this.val : x) >= 0
             ) {
@@ -277,7 +284,7 @@ const baseAggregatorTemplates = {
             return this.val;
           },
           format(x) {
-            if (Number.isNaN(x)) {
+            if (isNaN(x)) {
               return x;
             }
             return formatter(x);
@@ -321,9 +328,12 @@ const baseAggregatorTemplates = {
           n: 0.0,
           m: 0.0,
           s: 0.0,
+          strValue: null,
           push(record) {
             const x = parseFloat(record[attr]);
             if (Number.isNaN(x)) {
+              this.strValue =
+                typeof record[attr] === 'string' ? record[attr] : this.strValue;
               return;
             }
             this.n += 1.0;
@@ -335,6 +345,10 @@ const baseAggregatorTemplates = {
             this.m = mNew;
           },
           value() {
+            if (this.strValue) {
+              return this.strValue;
+            }
+
             if (mode === 'mean') {
               if (this.n === 0) {
                 return 0 / 0;
@@ -353,7 +367,7 @@ const baseAggregatorTemplates = {
                 throw new Error('unknown mode for runningStat');
             }
           },
-          format: formatter,
+          format: x => (typeof x === 'string' ? x : formatter(x)),
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
       };
