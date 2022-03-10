@@ -127,6 +127,8 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
 
   onEditorLoad(editor: any) {
+    editor.commands.removeCommand('find');
+
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
@@ -134,6 +136,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         this.onAltEnter();
       },
     });
+
     this.props.hotkeys.forEach(keyConfig => {
       editor.commands.addCommand({
         name: keyConfig.name,
@@ -141,6 +144,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         exec: keyConfig.func,
       });
     });
+
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();
@@ -173,17 +177,17 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'schema',
     }));
     const columns = {};
-    const tables = props.tables || [];
-    const extendedTables = props.extendedTables || [];
+    const tables = props.extendedTables || props.tables || [];
+
     const tableWords = tables.map(t => {
-      const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = (extendedTable && extendedTable.columns) || [];
+      const tableName = t.name;
+      const cols = t.columns || [];
       cols.forEach(col => {
         columns[col.name] = null; // using an object as a unique set
       });
+
       return {
-        name: t.label,
+        name: tableName,
         value: tableName,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',

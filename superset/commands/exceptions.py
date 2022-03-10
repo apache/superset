@@ -66,6 +66,9 @@ class CommandInvalidError(CommandException):
     def add_list(self, exceptions: List[ValidationError]) -> None:
         self._invalid_exceptions.extend(exceptions)
 
+    def get_list_classnames(self) -> List[str]:
+        return list(sorted({ex.__class__.__name__ for ex in self._invalid_exceptions}))
+
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}
         for exception in self._invalid_exceptions:

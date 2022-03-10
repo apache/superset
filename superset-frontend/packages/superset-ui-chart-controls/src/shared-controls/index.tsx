@@ -336,6 +336,15 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   description: t('Limits the number of rows that get displayed.'),
 };
 
+const order_desc: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort Descending'),
+  default: true,
+  description: t('Whether to sort descending or ascending'),
+  visibility: ({ controls }) =>
+    Boolean(controls?.timeseries_limit_metric.value),
+};
+
 const limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
@@ -507,6 +516,7 @@ const sharedControls = {
   limit,
   timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   orderby: enableExploreDnd ? dnd_sort_by : sort_by,
+  order_desc,
   series: enableExploreDnd ? dndSeries : series,
   entity: enableExploreDnd ? dndEntity : entity,
   x: enableExploreDnd ? dnd_x : x,
