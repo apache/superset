@@ -174,6 +174,8 @@ describe('DatasourceEditor', () => {
         name: /toggle expand/i,
       });
 
+      // log screen here
+
       userEvent.click(getToggles[0]);
       const getTextboxes = screen.getAllByRole('textbox');
       expect(getTextboxes.length).toEqual(6);
