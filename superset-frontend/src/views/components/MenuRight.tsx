@@ -87,17 +87,23 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const canUploadCSV = findPermission('can_this_form_get', 'CsvToDatabaseView');
+  const canUploadCSV = findPermission(
+    'can_this_form_get',
+    'CsvToDatabaseView',
+    roles,
+  );
   const canUploadColumnar = findPermission(
     'can_this_form_get',
     'ColumnarToDatabaseView',
+    roles,
   );
   const canUploadExcel = findPermission(
     'can_this_form_get',
     'ExcelToDatabaseView',
+    roles,
   );
-  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
 
+  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
   const dropdownItems: MenuObjectProps[] = [
     {
