@@ -58,21 +58,3 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
 
         flash("URL to nowhere...", "danger")
         return redirect("/")
-
-    @event_logger.log_this
-    @has_access_api
-    @expose("/shortner/", methods=["POST"])
-    def shortner(self) -> FlaskResponse:
-        url = request.form.get("data")
-        if not self._validate_url(url):
-            logger.warning("Invalid URL")
-            return Response("Invalid URL", 400)
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return Response(
-            "{scheme}://{request.headers[Host]}/r/{obj.id}".format(
-                scheme=request.scheme, request=request, obj=obj
-            ),
-            mimetype="text/plain",
-        )
