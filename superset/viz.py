@@ -458,12 +458,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        cache_dict["rls"] = (
-            security_manager.get_rls_ids(self.datasource)
-            if is_feature_enabled("ROW_LEVEL_SECURITY")
-            and self.datasource.is_rls_supported
-            else []
-        )
+        cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)

@@ -159,10 +159,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_ids(datasource)
-                if is_feature_enabled("ROW_LEVEL_SECURITY")
-                and datasource.is_rls_supported
-                else [],
+                rls=security_manager.get_rls_cache_key(datasource),
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
