@@ -56,7 +56,7 @@ const StyledHeader = styled.div`
         border-bottom: transparent;
       }
     }
-    .dropdown-menu-links > div.ant-menu-submenu-title:hover,
+    .dropdown-menu-links > div.ant-menu-submenu-title,
     .ant-menu-submenu-open.ant-menu-submenu-active
       > div.ant-menu-submenu-title {
       color: ${({ theme }) => theme.colors.primary.dark1};
