@@ -93,7 +93,7 @@ def test_update_native_filter_config_scope_excluded(app_context: None):
             },
         },
         "metadata": {
-            "native_filter_configuration": [{"scope": {"excluded": [101, 102]}}],
+            "native_filter_configuration": [{"scope": {"excluded": [101, 102, 103]}}],
         },
     }
     chart_ids = {"uuid1": 1, "uuid2": 2}
