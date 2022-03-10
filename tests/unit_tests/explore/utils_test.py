@@ -30,8 +30,8 @@ from superset.datasets.commands.exceptions import (
 
 dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
 chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
-is_user_admin = "superset.explore.form_data.utils.is_user_admin"
-is_owner = "superset.explore.form_data.utils.is_owner"
+is_user_admin = "superset.explore.utils.is_user_admin"
+is_owner = "superset.explore.utils.is_owner"
 can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )
@@ -112,7 +112,7 @@ def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> N
     mocker.patch(can_access_datasource, return_value=True)
     mocker.patch(is_user_admin, return_value=True)
     mocker.patch(chart_find_by_id, return_value=Slice())
-    assert check_access(dataset_id=1, chart_id=1, actor=User()) == True
+    assert check_access(dataset_id=1, chart_id=1, actor=User()) is True
 
 
 def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> None:
