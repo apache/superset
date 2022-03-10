@@ -23,7 +23,7 @@ import React, {
   useMemo,
   useEffect,
 } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { JsonObject, styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -34,6 +34,8 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+
+import { isPrestoDatabase } from '../DatabaseSelector/utils';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -87,12 +89,15 @@ interface TableSelectorProps {
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: () => void;
+  onCatalogsLoad?: () => void;
+  onCatalagChange?: (catalog?: string) => void;
   onTableChange?: (tableName?: string, schema?: string) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
   tableName?: string;
+  catalog?: string;
 }
 
 interface Table {
@@ -156,12 +161,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   schema,
   sqlLabMode = true,
   tableName,
+  catalog,
+  onCatalogsLoad,
+  onCatalagChange,
 }) => {
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
   >(database);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
+  );
+  const [currentCatalog, setCurrentCatalog] = useState<string | undefined>(
+    catalog,
   );
   const [currentTable, setCurrentTable] = useState<TableOption | undefined>();
   const [refresh, setRefresh] = useState(0);
@@ -174,57 +185,72 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     // reset selections
     if (database === undefined) {
       setCurrentDatabase(undefined);
+      setCurrentCatalog(undefined);
       setCurrentSchema(undefined);
       setCurrentTable(undefined);
     }
   }, [database]);
 
   useEffect(() => {
-    if (currentDatabase && currentSchema) {
+    if (shouldLoadTables(currentDatabase)) {
       setLoadingTables(true);
-      const encodedSchema = encodeURIComponent(currentSchema);
       const forceRefresh = refresh !== previousRefresh;
-      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-      const endpoint = encodeURI(
-        `/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
-      );
-
-      if (previousRefresh !== refresh) {
-        setPreviousRefresh(refresh);
-      }
-
-      SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options: TableOption[] = [];
-          let currentTable;
-          json.options.forEach((table: Table) => {
-            const option = {
-              value: table.value,
-              label: <TableOption table={table} />,
-              text: table.label,
-            };
-            options.push(option);
-            if (table.label === tableName) {
-              currentTable = option;
-            }
-          });
-          if (onTablesLoad) {
-            onTablesLoad(json.options);
-          }
-          setTableOptions(options);
-          setCurrentTable(currentTable);
-          setLoadingTables(false);
-          if (forceRefresh) addSuccessToast('List updated');
-        })
-        .catch(e => {
-          setLoadingTables(false);
-          handleError(t('There was an error loading the tables'));
-        });
+      const endpoint = getEndpoint({
+        forceRefresh,
+        schema: currentSchema || '',
+        databaseId: currentDatabase?.id || 0,
+      });
+      const encodedEndpoint = encodeURI(endpoint);
+      if (previousRefresh !== refresh) setPreviousRefresh(refresh);
+      fetchTables(encodedEndpoint, forceRefresh);
     }
-    // We are using the refresh state to re-trigger the query
-    // previousRefresh should be out of dependencies array
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDatabase, currentSchema, onTablesLoad, refresh]);
+  }, [[refresh, currentDatabase, currentCatalog, currentSchema, onTablesLoad]]);
+
+  function getEndpoint({
+    schema,
+    databaseId,
+    forceRefresh,
+  }: {
+    schema: string;
+    databaseId: number;
+    forceRefresh: boolean;
+  }) {
+    const encodedSchema = encodeURIComponent(schema);
+    return `/superset/tables/${databaseId}/${encodedSchema}/undefined/${forceRefresh}/`;
+  }
+
+  function shouldLoadTables(database: DatabaseObject | undefined) {
+    return isPrestoDatabase(database)
+      ? currentDatabase && currentCatalog && currentSchema
+      : currentDatabase && currentSchema;
+  }
+
+  function mapAndSetTables(json: JsonObject, forceRefresh: boolean) {
+    let currentTable;
+    const options: TableOption[] = json.options.map((table: Table) => {
+      const option = {
+        value: table.value,
+        text: table.label,
+        label: <TableOption table={table} />,
+      };
+      if (table.label === tableName) currentTable = option;
+      return option;
+    });
+    if (onTablesLoad) onTablesLoad(json.options);
+    setTableOptions(options);
+    setCurrentTable(currentTable);
+    setLoadingTables(false);
+    if (forceRefresh) addSuccessToast('List updated');
+  }
+
+  function fetchTables(endpoint: string, forceRefresh: boolean) {
+    SupersetClient.get({ endpoint })
+      .then(({ json }) => mapAndSetTables(json, forceRefresh))
+      .catch(e => {
+        setLoadingTables(false);
+        handleError(t('There was an error loading the tables'));
+      });
+  }
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
@@ -247,6 +273,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (onDbChange) {
       onDbChange(db);
     }
+  };
+
+  const internalCatalogChange = (catalog?: string) => {
+    setCurrentCatalog(catalog);
+    if (onCatalagChange) {
+      onCatalagChange(catalog);
+    }
+    internalSchemaChange(undefined);
+    internalTableChange(undefined);
   };
 
   const internalSchemaChange = (schema?: string) => {
@@ -272,6 +307,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        catalog={currentCatalog}
+        onCatalogLoad={onCatalogsLoad}
+        onCatalogChange={readOnly ? undefined : internalCatalogChange}
       />
     );
   }

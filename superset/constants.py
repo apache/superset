@@ -110,6 +110,8 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related": "read",
     "related_objects": "read",
     "schemas": "read",
+    "catalogs": "read",
+    "catalog_schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
     "test_connection": "read",
