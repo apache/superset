@@ -585,6 +585,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
+    allows_virtual_table_explore = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
