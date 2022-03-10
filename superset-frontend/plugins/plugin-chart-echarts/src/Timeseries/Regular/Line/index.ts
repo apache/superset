@@ -19,6 +19,7 @@
 import {
   AnnotationType,
   Behavior,
+  ChartLabel,
   ChartMetadata,
   ChartPlugin,
   FeatureFlag,
@@ -85,6 +86,12 @@ export default class EchartsTimeseriesLineChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
+        label: {
+          name: ChartLabel.FEATURED,
+          description: t(
+            'This chart was tested and verified, so the overall experience should be stable.',
+          ),
+        },
       }),
       transformProps: lineTransformProps,
     });

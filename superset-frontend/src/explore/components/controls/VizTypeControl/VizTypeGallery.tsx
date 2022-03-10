@@ -33,6 +33,8 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
+  ChartLabel,
+  ChartLabelWeight,
 } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -412,10 +414,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
-      {type.label && (
+      {type.label?.name && (
         <ThumbnailLabelWrapper>
           <HighlightLabel>
-            <div>{type.label.name}</div>
+            <div>{t(type.label?.name)}</div>
           </HighlightLabel>
         </ThumbnailLabelWrapper>
       )}
@@ -501,7 +503,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       .map(([key, value]) => ({ key, value }))
       .filter(
         ({ value }) =>
-          nativeFilterGate(value.behaviors || []) && !value.deprecated,
+          nativeFilterGate(value.behaviors || []) &&
+          value.label?.name !== ChartLabel.DEPRECATED,
       );
     result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
     return result;
@@ -589,9 +592,15 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return fuse
       .search(searchInputValue)
       .map(result => result.item)
-      .sort(
-        (a, b) => (b.value?.searchWeight || 0) - (a.value?.searchWeight || 0),
-      );
+      .sort((a, b) => {
+        const aName = a.value?.label?.name;
+        const bName = b.value?.label?.name;
+        const aOrder =
+          aName && ChartLabelWeight[aName] ? ChartLabelWeight[aName].weight : 0;
+        const bOrder =
+          bName && ChartLabelWeight[bName] ? ChartLabelWeight[bName].weight : 0;
+        return bOrder - aOrder;
+      });
   }, [searchInputValue, fuse]);
 
   const focusSearch = useCallback(() => {
@@ -789,15 +798,15 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               `}
             >
               {selectedVizMetadata?.name}
-              {selectedVizMetadata?.label && (
+              {selectedVizMetadata?.label?.name && (
                 <Tooltip
                   id="viz-badge-tooltip"
                   placement="top"
-                  title={selectedVizMetadata?.label.description}
+                  title={selectedVizMetadata.label?.description}
                 >
                   <TitleLabelWrapper>
                     <HighlightLabel>
-                      <div>{selectedVizMetadata.label.name}</div>
+                      <div>{t(selectedVizMetadata.label?.name)}</div>
                     </HighlightLabel>
                   </TitleLabelWrapper>
                 </Tooltip>
