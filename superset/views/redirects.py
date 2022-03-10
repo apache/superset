@@ -17,9 +17,8 @@
 import logging
 from typing import Optional
 
-from flask import flash, request, Response
+from flask import flash
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access_api
 from werkzeug.utils import redirect
 
 from superset import db, event_logger
