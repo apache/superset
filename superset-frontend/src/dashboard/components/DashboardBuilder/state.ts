@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { Filter } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useCallback, useEffect, useState, useContext } from 'react';
 import { URL_PARAMS } from 'src/constants';
@@ -44,7 +43,7 @@ export const useNativeFilters = () => {
   );
 
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
 
   const nativeFiltersEnabled =
     showNativeFilters &&

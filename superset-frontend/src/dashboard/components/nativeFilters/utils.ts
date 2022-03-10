@@ -29,7 +29,6 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Charts, DashboardLayout } from 'src/dashboard/types';
-import { RefObject } from 'react';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
@@ -37,9 +36,8 @@ import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
 export const getFormData = ({
   datasetId,
-  cascadingFilters = {},
+  dependencies = {},
   groupby,
-  inputRef,
   defaultDataMask,
   controlValues,
   filterType,
@@ -50,8 +48,7 @@ export const getFormData = ({
   type,
 }: Partial<Filter> & {
   datasetId?: number;
-  inputRef?: RefObject<HTMLInputElement>;
-  cascadingFilters?: object;
+  dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
@@ -75,18 +72,16 @@ export const getFormData = ({
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
-    extra_form_data: cascadingFilters,
+    extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
     row_limit: 1000,
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
-    time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: extractUrlParams('regular'),
     inView: true,
     viz_type: filterType,
-    inputRef,
     type,
   };
 };

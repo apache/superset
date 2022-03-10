@@ -128,7 +128,6 @@ class TestAsyncQueries(SupersetTestCase):
         form_data = {
             "datasource": f"{table.id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],

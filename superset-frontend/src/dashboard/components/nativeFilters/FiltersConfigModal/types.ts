@@ -40,17 +40,13 @@ export interface NativeFiltersFormItem {
   };
   defaultValue: any;
   defaultDataMask: DataMask;
-  parentFilter?: {
-    value: string;
-    label: string;
-  };
+  dependencies?: string[];
   sortMetric: string | null;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
-  hierarchicalFilter?: boolean;
 }
 export interface NativeFilterDivider {
   id: string;
@@ -71,6 +67,3 @@ export type FilterRemoval =
       timerId: number; // id of the timer that finally removes the filter
     }
   | { isPending: false };
-
-export type FilterHierarchyNode = { id: string; parentId: string | null };
-export type FilterHierarchy = FilterHierarchyNode[];
