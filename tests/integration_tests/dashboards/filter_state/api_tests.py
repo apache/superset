@@ -34,7 +34,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.test_app import app
 
 key = "test-key"
-value = "test"
+value = json.dumps({"test": "initial value"})
 
 
 @pytest.fixture
@@ -148,7 +148,7 @@ def test_post_different_key_for_no_tab_id(client, dashboard_id: int):
 def test_put(client, dashboard_id: int):
     login(client, "admin")
     payload = {
-        "value": "new value",
+        "value": json.dumps({"test": "new value"}),
     }
     resp = client.put(
         f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
@@ -226,7 +226,7 @@ def test_put_access_denied(mock_raise_for_dashboard_access, client, dashboard_id
     login(client, "admin")
     mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
     payload = {
-        "value": "new value",
+        "value": json.dumps({"test": "new value"}),
     }
     resp = client.put(
         f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
@@ -237,7 +237,7 @@ def test_put_access_denied(mock_raise_for_dashboard_access, client, dashboard_id
 def test_put_not_owner(client, dashboard_id: int):
     login(client, "gamma")
     payload = {
-        "value": "new value",
+        "value": json.dumps({"test": "new value"}),
     }
     resp = client.put(
         f"api/v1/dashboard/{dashboard_id}/filter_state/{key}", json=payload
