@@ -60,7 +60,7 @@ class DashboardPermalinkRestApi(BaseApi):
         DashboardPermalinkPutSchema,
     )
 
-    @expose("/permalink", methods=["POST"])
+    @expose("/<pk>/permalink", methods=["POST"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -68,12 +68,17 @@ class DashboardPermalinkRestApi(BaseApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self, pk: str) -> Response:
         """Stores a new permanent link.
         ---
         post:
           description: >-
             Stores a new permanent link.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: pk
           requestBody:
             required: true
             content:
@@ -103,10 +108,10 @@ class DashboardPermalinkRestApi(BaseApi):
         key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
             item = self.add_model_schema.load(request.json)
-            id_or_slug = item.get("id_or_slug")
-            state = item.get("state")
+            state = item["state"]
+            hash_ = state.get("hash")
             key = CreateDashboardPermalinkCommand(
-                actor=g.user, id_or_slug=id_or_slug, state=state, key_type=key_type,
+                actor=g.user, id_or_slug=pk, state=state, key_type=key_type,
             ).run()
             http_origin = request.headers.environ["HTTP_ORIGIN"]
             url = f"{http_origin}/superset/dashboard/p/{key}/"

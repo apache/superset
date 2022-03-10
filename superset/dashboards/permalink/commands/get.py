@@ -50,10 +50,12 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 state = json.loads(value)
                 id_or_slug = state["id_or_slug"]
                 filter_state = state["filter_state"]
+                hash_ = state.get("hash")
                 DashboardDAO.get_by_id_or_slug(id_or_slug)
                 return {
                     "id_or_slug": id_or_slug,
                     "filter_state": filter_state,
+                    "hash": hash_,
                 }
             return None
         except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:

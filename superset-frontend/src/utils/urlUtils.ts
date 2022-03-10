@@ -97,9 +97,9 @@ export function getChartPermalink(chartId: number, formData: QueryFormData) {
 export function getDashboardPermalink(
   dashboardId: string,
   filterState: JsonObject,
+  hash?: string,
 ) {
-  return getPermalink('/api/v1/dashboard/permalink', {
-    id_or_slug: dashboardId,
-    state: { filter_state: filterState },
+  return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
+    state: { filter_state: filterState, hash },
   });
 }

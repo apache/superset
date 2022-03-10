@@ -21,14 +21,15 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getShortUrl } from 'src/utils/urlUtils';
+import { getDashboardPermalink } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 const propTypes = {
-  url: PropTypes.string,
+  addDangerToast: PropTypes.func.isRequired,
+  anchorLinkId: PropTypes.string,
+  dashboardId: PropTypes.number,
   emailSubject: PropTypes.string,
   emailContent: PropTypes.string,
-  addDangerToast: PropTypes.func.isRequired,
   placement: PropTypes.oneOf(['right', 'left', 'top', 'bottom']),
 };
 
@@ -50,7 +51,11 @@ class URLShortLinkButton extends React.Component {
 
   getCopyUrl(e) {
     e.stopPropagation();
-    getShortUrl(this.props.url)
+    getDashboardPermalink(
+      String(this.props.dashboardId),
+      {},
+      this.props.anchorLinkId,
+    )
       .then(this.onShortUrlSuccess)
       .catch(this.props.addDangerToast);
   }

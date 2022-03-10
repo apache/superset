@@ -48,8 +48,13 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         try:
             DashboardDAO.get_by_id_or_slug(self.id_or_slug)
             filter_state = self.state["filter_state"]
+            hash_ = self.state.get("hash")
             value = json.dumps(
-                {"id_or_slug": self.id_or_slug, "filter_state": filter_state,}
+                {
+                    "id_or_slug": self.id_or_slug,
+                    "filter_state": filter_state,
+                    "hash": hash_,
+                }
             )
             command = CreateKeyValueCommand(
                 self.actor, self.resource, value, self.key_type
@@ -61,5 +66,5 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             raise DashboardPermalinkCreateFailedError() from ex
 
     def validate(self) -> None:
-        if len(self.state) != 1 or "filter_state" not in self.state:
+        if len(self.state) > 2 or "filter_state" not in self.state:
             raise DashboardPermalinkInvalidStateError(message=_("invalid state"))

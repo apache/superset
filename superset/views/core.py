@@ -2014,8 +2014,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
         if not filter_state:
             return json_error_response(_("permanent link state not found"), status=404)
+        hash_ = filter_state.get("hash")
         id_or_slug = filter_state["id_or_slug"]
-        return redirect(f"/superset/dashboard/{id_or_slug}?permalink_state_key={key}")
+        url = f"/superset/dashboard/{id_or_slug}?permalink_state_key={key}"
+        if hash_:
+            url = f"{url}#{hash_}"
+        return redirect(url)
         # return self.dashboard(dashboard_id_or_slug=str(10), filter_state=filter_state)
 
     @api

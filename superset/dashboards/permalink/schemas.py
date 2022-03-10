@@ -18,14 +18,8 @@ from marshmallow import fields, Schema
 
 
 class DashboardPermalinkPostSchema(Schema):
-    id_or_slug = fields.String(
-        required=True, allow_none=False, description="Dashboard id",
-    )
     state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")
 
 
 class DashboardPermalinkPutSchema(Schema):
-    id_or_slug = fields.String(
-        required=True, allow_none=False, description="Dashboard id",
-    )
     state = fields.Dict(required=True, allow_none=False, description="Any type of JSON")
