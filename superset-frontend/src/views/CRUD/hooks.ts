@@ -448,7 +448,10 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.errors.map(payload => payload.message).join('\n'),
+                  [
+                    ...error.errors.map(payload => payload.message),
+                    'Please re-export your file and try importing again',
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -464,7 +467,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [],
+    [handleErrorMsg, resourceLabel, resourceName],
   );
 
   return { state, importResource };
