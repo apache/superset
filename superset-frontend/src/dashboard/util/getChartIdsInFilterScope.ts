@@ -16,25 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { NativeFilterScope } from '@superset-ui/core';
+import { CHART_TYPE } from './componentTypes';
+import { ChartsState, Layout } from '../types';
 
-import * as actions from './chartAction';
-import { logEvent } from '../logger/actions';
-import Chart from './Chart';
-import { updateDataMask } from '../dataMask/actions';
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(
-      {
-        ...actions,
-        updateDataMask,
-        logEvent,
-      },
-      dispatch,
-    ),
-  };
+export function getChartIdsInFilterScope(
+  filterScope: NativeFilterScope,
+  charts: ChartsState,
+  layout: Layout,
+) {
+  const layoutItems = Object.values(layout);
+  return Object.values(charts)
+    .filter(
+      chart =>
+        !filterScope.excluded.includes(chart.id) &&
+        layoutItems
+          .find(
+            layoutItem =>
+              layoutItem?.type === CHART_TYPE &&
+              layoutItem.meta?.chartId === chart.id,
+          )
+          ?.parents?.some(elementId =>
+            filterScope.rootPath.includes(elementId),
+          ),
+    )
+    .map(chart => chart.id);
 }
-
-export default connect(null, mapDispatchToProps)(Chart);

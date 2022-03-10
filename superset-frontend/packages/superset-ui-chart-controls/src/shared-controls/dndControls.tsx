@@ -80,7 +80,7 @@ export const dndEntity: typeof dndGroupByControl = {
 export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
   type: 'DndFilterSelect',
   label: t('Filters'),
-  default: null,
+  default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],

@@ -62,15 +62,6 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
           description: t('Extra parameters for use in jinja templated queries'),
         },
       },
-      {
-        name: 'time_range_endpoints',
-        config: {
-          type: 'HiddenControl',
-          label: t('Time range endpoints'),
-          hidden: true,
-          description: t('Time range endpoints (SIP-15)'),
-        },
-      },
     ],
   ],
 };

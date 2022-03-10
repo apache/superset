@@ -16,9 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
-import { DataMask, Filter } from '@superset-ui/core';
+import * as actions from './chartAction';
+import { logEvent } from '../../logger/actions';
+import Chart from './Chart';
+import { updateDataMask } from '../../dataMask/actions';
 
-export type CascadeFilter = Filter & { dataMask?: DataMask } & {
-  cascadeChildren: CascadeFilter[];
-};
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(
+      {
+        ...actions,
+        updateDataMask,
+        logEvent,
+      },
+      dispatch,
+    ),
+  };
+}
+
+export default connect(null, mapDispatchToProps)(Chart);

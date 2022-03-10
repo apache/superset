@@ -17,12 +17,11 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Form, Row, Col } from 'src/common/components';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -89,7 +88,7 @@ const PropertiesModal = ({
   onSubmit = () => {},
   show = false,
 }: PropertiesModalProps) => {
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(currentColorScheme);
@@ -523,7 +522,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -620,7 +619,7 @@ const PropertiesModal = ({
             )}
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 };

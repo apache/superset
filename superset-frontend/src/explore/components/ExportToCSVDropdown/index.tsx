@@ -19,7 +19,7 @@
 import React, { ReactChild, useCallback } from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 
 enum MENU_KEYS {
@@ -66,7 +66,7 @@ export const ExportToCSVDropdown = ({
   );
 
   return (
-    <Dropdown
+    <AntdDropdown
       trigger={['click']}
       overlay={
         <Menu onClick={handleMenuClick} selectable={false}>
@@ -86,6 +86,6 @@ export const ExportToCSVDropdown = ({
       }
     >
       {children}
-    </Dropdown>
+    </AntdDropdown>
   );
 };

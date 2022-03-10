@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import { SuperChart } from '@superset-ui/core';
 
-import ChartRenderer from 'src/chart/ChartRenderer';
-
-const requiredProps = {
-  chartId: 1,
-  datasource: {},
-  formData: {},
-  vizType: 'foo',
-};
-
-describe('ChartRenderer', () => {
-  it('should render SuperChart', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
-    );
-    expect(wrapper.find(SuperChart)).toExist();
-  });
-
-  it('should not render SuperChart when refreshOverlayVisible is true', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
-    );
-    expect(wrapper.find(SuperChart)).not.toExist();
-  });
-});
+/**
+ * Sort comparator with basic rankings.
+ */
+export function rankedSearchCompare(a: string, b: string, search: string) {
+  const aLower = a.toLowerCase() || '';
+  const bLower = b.toLowerCase() || '';
+  const searchLower = search.toLowerCase() || '';
+  if (!search) return a.localeCompare(b);
+  return (
+    Number(b === search) - Number(a === search) ||
+    Number(b.startsWith(search)) - Number(a.startsWith(search)) ||
+    Number(bLower === searchLower) - Number(aLower === searchLower) ||
+    Number(bLower.startsWith(searchLower)) -
+      Number(aLower.startsWith(searchLower)) ||
+    Number(b.includes(search)) - Number(a.includes(search)) ||
+    Number(bLower.includes(searchLower)) - Number(a.includes(searchLower)) ||
+    a.localeCompare(b)
+  );
+}

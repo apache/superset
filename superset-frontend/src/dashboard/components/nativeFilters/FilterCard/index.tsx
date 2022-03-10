@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Popover from 'src/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
 import { FilterCardProps } from './types';
@@ -30,6 +30,11 @@ export const FilterCard = ({
 }: FilterCardProps) => {
   const [internalIsVisible, setInternalIsVisible] = useState(false);
 
+  useEffect(() => {
+    if (!externalIsVisible) {
+      setInternalIsVisible(false);
+    }
+  }, [externalIsVisible]);
   return (
     <Popover
       placement="right"
@@ -37,7 +42,7 @@ export const FilterCard = ({
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
       onVisibleChange={visible => {
-        setInternalIsVisible(visible);
+        setInternalIsVisible(externalIsVisible && visible);
       }}
       visible={externalIsVisible && internalIsVisible}
       content={<FilterCardContent filter={filter} />}

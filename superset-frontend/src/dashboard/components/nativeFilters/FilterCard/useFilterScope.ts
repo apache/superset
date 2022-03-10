@@ -29,9 +29,9 @@ import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { useMemo } from 'react';
 
 const extractTabLabel = (tab?: LayoutItem) =>
-  tab?.meta?.text || tab?.meta?.defaultText;
+  tab?.meta?.text || tab?.meta?.defaultText || '';
 const extractChartLabel = (chart?: LayoutItem) =>
-  chart?.meta?.sliceNameOverride || chart?.meta?.sliceName || chart?.id;
+  chart?.meta?.sliceNameOverride || chart?.meta?.sliceName || chart?.id || '';
 
 const useCharts = () => {
   const charts = useSelector<RootState, ChartsState>(state => state.charts);
@@ -67,13 +67,17 @@ export const useFilterScope = (filter: Filter) => {
             filter.scope.rootPath.includes(topLevelTab),
           )))
     ) {
-      return [t('All charts')];
+      return { all: [t('All charts')] };
     }
 
     // no charts excluded and not every top level tab in scope
     // returns "TAB1, TAB2"
     if (filter.scope.excluded.length === 0 && topLevelTabs) {
-      return filter.scope.rootPath.map(tabId => extractTabLabel(layout[tabId]));
+      return {
+        tabs: filter.scope.rootPath
+          .map(tabId => extractTabLabel(layout[tabId]))
+          .filter(Boolean),
+      };
     }
 
     const layoutCharts = Object.values(layout).filter(
@@ -83,15 +87,17 @@ export const useFilterScope = (filter: Filter) => {
     // no top level tabs, charts excluded
     // returns "CHART1, CHART2"
     if (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID) {
-      return charts
-        .filter(chart => !filter.scope.excluded.includes(chart.id))
-        .map(chart => {
-          const layoutElement = layoutCharts.find(
-            layoutChart => layoutChart.meta.chartId === chart.id,
-          );
-          return extractChartLabel(layoutElement);
-        })
-        .filter(Boolean);
+      return {
+        charts: charts
+          .filter(chart => !filter.scope.excluded.includes(chart.id))
+          .map(chart => {
+            const layoutElement = layoutCharts.find(
+              layoutChart => layoutChart.meta.chartId === chart.id,
+            );
+            return extractChartLabel(layoutElement);
+          })
+          .filter(Boolean),
+      };
     }
 
     // top level tabs, charts excluded
@@ -133,9 +139,12 @@ export const useFilterScope = (filter: Filter) => {
           return acc;
         }, []);
       // Join tab names and chart names
-      return topLevelTabsInFullScope
-        .map(tabId => extractTabLabel(layout[tabId]))
-        .concat(chartsInExcludedTabs.map(extractChartLabel));
+      return {
+        tabs: topLevelTabsInFullScope
+          .map(tabId => extractTabLabel(layout[tabId]))
+          .filter(Boolean),
+        charts: chartsInExcludedTabs.map(extractChartLabel).filter(Boolean),
+      };
     }
 
     return undefined;

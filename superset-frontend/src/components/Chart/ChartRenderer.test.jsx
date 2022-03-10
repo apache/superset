@@ -16,39 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../assets/stylesheets/less/variables.less';
+import React from 'react';
+import { shallow } from 'enzyme';
+import { SuperChart } from '@superset-ui/core';
 
-.CRUD {
-  .text-right {
-    text-align: right;
-  }
+import ChartRenderer from 'src/components/Chart/ChartRenderer';
 
-  .empty-collection {
-    padding: 10px;
-  }
+const requiredProps = {
+  chartId: 1,
+  datasource: {},
+  formData: {},
+  vizType: 'foo',
+};
 
-  .control-label {
-    font-weight: @font-weight-bold;
-  }
+describe('ChartRenderer', () => {
+  it('should render SuperChart', () => {
+    const wrapper = shallow(
+      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
+    );
+    expect(wrapper.find(SuperChart)).toExist();
+  });
 
-  .tiny-cell {
-    width: 5px;
-  }
-
-  i.fa-caret-down,
-  i.fa-caret-up {
-    width: 5px;
-  }
-
-  td.expanded {
-    border-top: 0;
-    padding: 0;
-  }
-
-  .frame {
-    border: 1px solid @gray-heading;
-    border-radius: @border-radius-large;
-    padding: 10;
-    background: @gray-bg;
-  }
-}
+  it('should not render SuperChart when refreshOverlayVisible is true', () => {
+    const wrapper = shallow(
+      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
+    );
+    expect(wrapper.find(SuperChart)).not.toExist();
+  });
+});

@@ -20,7 +20,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FormInstance } from 'src/common/components';
+import { FormInstance } from 'src/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 

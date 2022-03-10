@@ -326,7 +326,6 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   ),
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
-    endpoints: form_data?.time_range_endpoints || null,
   }),
 };
 
@@ -338,6 +337,15 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
+};
+
+const order_desc: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort Descending'),
+  default: true,
+  description: t('Whether to sort descending or ascending'),
+  visibility: ({ controls }) =>
+    Boolean(controls?.timeseries_limit_metric.value),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -462,7 +470,7 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   type: 'AdhocFilterControl',
   label: t('Filters'),
-  default: null,
+  default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],
@@ -511,6 +519,7 @@ const sharedControls = {
   limit,
   timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   orderby: enableExploreDnd ? dnd_sort_by : sort_by,
+  order_desc,
   series: enableExploreDnd ? dndSeries : series,
   entity: enableExploreDnd ? dndEntity : entity,
   x: enableExploreDnd ? dnd_x : x,

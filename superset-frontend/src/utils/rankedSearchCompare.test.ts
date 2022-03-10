@@ -16,33 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
 
-import CollectionTable from 'src/CRUD/CollectionTable';
-import mockDatasource from 'spec/fixtures/mockDatasource';
+import { rankedSearchCompare } from './rankedSearchCompare';
 
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
-};
+const searchSort = (search: string) => (a: string, b: string) =>
+  rankedSearchCompare(a, b, search);
 
-describe('CollectionTable', () => {
-  let wrapper;
-  let el;
+test('Sort exact match first', async () => {
+  expect(['abc', 'bc', 'bcd', 'cbc'].sort(searchSort('bc'))).toEqual([
+    'bc',
+    'bcd',
+    'abc',
+    'cbc',
+  ]);
+});
 
-  beforeEach(() => {
-    el = <CollectionTable {...props} />;
-    wrapper = shallow(el);
-  });
+test('Sort starts with first', async () => {
+  expect(['her', 'Cher', 'Her', 'Hermon'].sort(searchSort('Her'))).toEqual([
+    'Her',
+    'Hermon',
+    'her',
+    'Cher',
+  ]);
+  expect(
+    ['abc', 'ab', 'aaabc', 'bbabc', 'BBabc'].sort(searchSort('abc')),
+  ).toEqual(['abc', 'aaabc', 'bbabc', 'BBabc', 'ab']);
+});
 
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
-  });
-
-  it('renders a table', () => {
-    const { length } = mockDatasource['7__table'].columns;
-    expect(wrapper.find('table')).toExist();
-    expect(wrapper.find('tbody tr.row')).toHaveLength(length);
-  });
+test('Sort same case first', async () => {
+  expect(['%f %B', '%F %b'].sort(searchSort('%F'))).toEqual(['%F %b', '%f %B']);
 });

@@ -38,9 +38,11 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
+    inputRef,
   } = props;
-  const { defaultValue, inputRef, multiSelect } = formData;
+  const { defaultValue, multiSelect } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -116,6 +118,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onFocus={setFocusedFilter}
           ref={inputRef}
           options={options}
+          onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
     </FilterPluginStyle>
