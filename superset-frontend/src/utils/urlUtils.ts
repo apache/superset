@@ -72,7 +72,7 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
   }
 }
 
-function getPermalink(endpoint, jsonPayload) {
+function getPermalink(endpoint: string, jsonPayload: JsonObject) {
   return SupersetClient.post({
     endpoint,
     jsonPayload,
@@ -86,7 +86,10 @@ function getPermalink(endpoint, jsonPayload) {
     );
 }
 
-export function getChartPermalink(chartId: number, formData: QueryFormData) {
+export function getChartPermalink(
+  chartId: number,
+  formData: Pick<QueryFormData, 'datasource'>,
+) {
   return getPermalink('/api/v1/explore/permalink', {
     chart_id: chartId,
     dataset_id: Number(formData.datasource.split('__')[0]),

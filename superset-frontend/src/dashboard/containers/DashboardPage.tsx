@@ -172,7 +172,9 @@ const DashboardPage: FC = () => {
       // check if key from temporary_cache api and get datamask
       if (permalinkStateKey) {
         const permalinkState = await getPermalinkState(permalinkStateKey);
-        dataMaskFromUrl = permalinkState.filter_state;
+        if (permalinkState) {
+          dataMaskFromUrl = permalinkState.filter_state;
+        }
       } else if (nativeFilterKeyValue) {
         dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }

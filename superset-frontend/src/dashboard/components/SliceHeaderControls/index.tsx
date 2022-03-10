@@ -21,6 +21,7 @@ import moment from 'moment';
 import {
   Behavior,
   getChartMetadataRegistry,
+  QueryFormData,
   styled,
   t,
 } from '@superset-ui/core';
@@ -98,7 +99,7 @@ export interface SliceHeaderControlsProps {
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
-  formData: { slice_id: number; datasource: string };
+  formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
   onExploreChart: () => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;

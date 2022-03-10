@@ -109,7 +109,6 @@ class DashboardPermalinkRestApi(BaseApi):
         try:
             item = self.add_model_schema.load(request.json)
             state = item["state"]
-            hash_ = state.get("hash")
             key = CreateDashboardPermalinkCommand(
                 actor=g.user, id_or_slug=pk, state=state, key_type=key_type,
             ).run()

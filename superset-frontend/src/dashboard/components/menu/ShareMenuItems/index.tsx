@@ -37,12 +37,11 @@ interface ShareMenuItemProps {
   addDangerToast: Function;
   addSuccessToast: Function;
   dashboardId?: string;
-  formData?: QueryFormData;
+  formData?: Pick<QueryFormData, 'slice_id' | 'datasource'>;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
   const {
-    url,
     copyMenuItemTitle,
     emailMenuItemTitle,
     emailSubject,
@@ -62,11 +61,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     // dashboard
     const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     let filterState = {};
-    if (nativeFiltersKey) {
-      filterState = await getFilterValue(
-        dashboardId as number,
-        nativeFiltersKey,
-      );
+    if (nativeFiltersKey && dashboardId) {
+      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
     }
     return getDashboardPermalink(String(dashboardId), filterState);
   }

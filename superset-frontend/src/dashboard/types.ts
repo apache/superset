@@ -144,3 +144,9 @@ type ActiveFilter = {
 export type ActiveFilters = {
   [key: string]: ActiveFilter;
 };
+
+export type DashboardPermalinkState = {
+  id_or_slug: string;
+  filter_state: DataMaskStateWithId;
+  hash: string;
+};

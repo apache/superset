@@ -101,7 +101,6 @@ class URLShortLinkButton extends React.Component {
 }
 
 URLShortLinkButton.defaultProps = {
-  url: window.location.href.substring(window.location.origin.length),
   placement: 'left',
   emailSubject: '',
   emailContent: '',
