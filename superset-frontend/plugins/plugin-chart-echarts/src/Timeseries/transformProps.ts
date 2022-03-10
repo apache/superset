@@ -55,6 +55,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -125,6 +126,7 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
@@ -282,8 +284,8 @@ export default function transformProps(
     legendMargin,
     addXAxisLabelOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
 
   const legendData = rawSeries
@@ -304,7 +306,7 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: true,
@@ -322,7 +324,7 @@ export default function transformProps(
       axisLabel: { formatter },
       scale: truncateYAxis,
       name: yAxisTitle,
-      nameGap: yAxisTitleMargin,
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
