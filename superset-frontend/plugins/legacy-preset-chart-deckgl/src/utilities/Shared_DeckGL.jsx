@@ -46,7 +46,6 @@ const jsFunctionInfo = (
 );
 
 const jsControlConfig = isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS);
-console.log(jsControlConfig,"!!!!!!!");
 
 function jsFunctionControl(
   label,
