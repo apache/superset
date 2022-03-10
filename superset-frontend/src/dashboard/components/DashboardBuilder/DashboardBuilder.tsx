@@ -151,6 +151,7 @@ const StyledContent = styled.div<{
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
+  nativeFiltersEnabled: boolean;
 }>`
   display: flex;
   flex-direction: row;
@@ -171,8 +172,13 @@ const StyledDashboardContent = styled.div<{
     margin-top: ${({ theme }) => theme.gridUnit * 6}px;
     margin-right: ${({ theme }) => theme.gridUnit * 8}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-    margin-left: ${({ theme, dashboardFiltersOpen, editMode }) => {
-      if (!dashboardFiltersOpen && !editMode) {
+    margin-left: ${({
+      theme,
+      dashboardFiltersOpen,
+      editMode,
+      nativeFiltersEnabled,
+    }) => {
+      if (!dashboardFiltersOpen && !editMode && nativeFiltersEnabled) {
         return 0;
       }
       return theme.gridUnit * 8;
@@ -289,9 +295,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const draggableStyle = useMemo(
     () => ({
-      marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
+      marginLeft:
+        dashboardFiltersOpen || editMode || !nativeFiltersEnabled ? 0 : -32,
     }),
-    [dashboardFiltersOpen, editMode],
+    [dashboardFiltersOpen, editMode, nativeFiltersEnabled],
   );
 
   const renderDraggableContent = useCallback(
@@ -402,6 +409,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             className="dashboard-content"
             dashboardFiltersOpen={dashboardFiltersOpen}
             editMode={editMode}
+            nativeFiltersEnabled={nativeFiltersEnabled}
           >
             {showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />
