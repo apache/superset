@@ -215,10 +215,9 @@ class Database(
     @property
     def disable_preview_data(self) -> bool:
         # this will prevent any 'trash value' strings from going through
-        if (self.get_extra().get("disable_preview_data", False) is not True):
+        if self.get_extra().get("disable_preview_data", False) is not True:
             return False
-        else:
-            return True
+        return True
 
     @property
     def data(self) -> Dict[str, Any]:
