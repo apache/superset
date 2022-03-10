@@ -1228,6 +1228,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[Union[str, int]]:
         from superset import is_feature_enabled
+
         rls = []
 
         if is_feature_enabled("ROW_LEVEL_SECURITY") and datasource.is_rls_supported:
