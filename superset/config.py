@@ -358,7 +358,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
     # Allow users to modify column data types in new dataset editor
-    "ENABLE_EDIT_COLUMN_TYPE": True,
+    "ENABLE_EDIT_COLUMN_TYPE": False,
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,

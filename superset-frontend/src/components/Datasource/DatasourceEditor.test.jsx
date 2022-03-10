@@ -114,7 +114,6 @@ describe('DatasourceEditor', () => {
   });
 
   describe('disable edit column data type', () => {
-
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
@@ -133,9 +132,11 @@ describe('DatasourceEditor', () => {
       const getToggles = screen.getAllByRole('button', {
         name: /toggle expand/i,
       });
+
       userEvent.click(getToggles[0]);
       const getTextboxes = screen.getAllByRole('textbox');
       expect(getTextboxes.length).toEqual(5);
+      expect(screen.queryByTestId('column-data-type-select')).toBeNull();
 
       const inputLabel = screen.getByPlaceholderText('Label');
       const inputDescription = screen.getByPlaceholderText('Description');
@@ -154,7 +155,6 @@ describe('DatasourceEditor', () => {
   });
 
   describe('enable edit column data type', () => {
-
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
@@ -174,15 +174,14 @@ describe('DatasourceEditor', () => {
         name: /toggle expand/i,
       });
 
-      // log screen here
-
       userEvent.click(getToggles[0]);
       const getTextboxes = screen.getAllByRole('textbox');
-      expect(getTextboxes.length).toEqual(6);
+      expect(getTextboxes.length).toEqual(5);
+      expect(screen.queryByTestId('column-data-type-select')).toBeTruthy();
 
       const inputLabel = screen.getByPlaceholderText('Label');
       const inputDescription = screen.getByPlaceholderText('Description');
-      // const inputDataType = screen.getByPlaceholderTest('');
+      const inputDataType = screen.getByTestId('column-data-type-select');
       const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
       const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
       const inputCertDetails = screen.getByPlaceholderText(
@@ -191,7 +190,7 @@ describe('DatasourceEditor', () => {
 
       userEvent.type(await inputLabel, 'test_lable');
       userEvent.type(await inputDescription, 'test');
-      // userEvent.type(await inputDataType, 'test');
+      userEvent.type(await inputDataType, 'test');
       userEvent.type(await inputDtmFormat, 'test');
       userEvent.type(await inputCertifiedBy, 'test');
       userEvent.type(await inputCertDetails, 'test');
