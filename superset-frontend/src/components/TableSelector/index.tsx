@@ -90,7 +90,7 @@ interface TableSelectorProps {
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: () => void;
   onCatalogsLoad?: () => void;
-  onCatalagChange?: (catalog?: string) => void;
+  onCatalogChange?: (catalog?: string) => void;
   onTableChange?: (tableName?: string, schema?: string) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
@@ -163,7 +163,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableName,
   catalog,
   onCatalogsLoad,
-  onCatalagChange,
+  onCatalogChange,
 }) => {
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
@@ -277,8 +277,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   const internalCatalogChange = (catalog?: string) => {
     setCurrentCatalog(catalog);
-    if (onCatalagChange) {
-      onCatalagChange(catalog);
+    if (onCatalogChange) {
+      onCatalogChange(catalog);
     }
     internalSchemaChange(undefined);
     internalTableChange(undefined);
