@@ -483,6 +483,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_not_permitted_actor__403(self):
         """
         Chart data API: Test chart data query not allowed

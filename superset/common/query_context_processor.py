@@ -477,6 +477,7 @@ class QueryContextProcessor:
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
+        security_manager.raise_for_access(query_context=self._query_context)
         for query in self._query_context.queries:
             query.validate()
             # the dict returned from compile_query can have 3 keys:
@@ -491,4 +492,3 @@ class QueryContextProcessor:
                 # all child classes
                 self._query_context.datasource.database,
             )
-        security_manager.raise_for_access(query_context=self._query_context)
