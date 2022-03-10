@@ -33,6 +33,9 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
+Note : All the components required (headless browser, redis, postgres db, celery worker and celery beat) are present in the docker image if you are following [Installing Superset Locally](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose/).
+All you need to do is add the required config (See `Detailed Config`). Set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py) to disable dry-run mode and start receiving email/slack notifications.
+
 #### Slack integration
 
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
