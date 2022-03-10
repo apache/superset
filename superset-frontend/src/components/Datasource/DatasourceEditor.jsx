@@ -1272,6 +1272,7 @@ class DatasourceEditor extends React.PureComponent {
                   this.setColumns({ databaseColumns })
                 }
                 onDatasourceChange={this.onDatasourceChange}
+                allowEditDataType={isFeatureEnabled(FeatureFlag.ENABLE_EDIT_COLUMN_TYPE)}
               />
               {this.state.metadataLoading && <Loading />}
             </StyledColumnsTabWrapper>

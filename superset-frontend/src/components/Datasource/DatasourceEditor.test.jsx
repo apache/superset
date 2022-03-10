@@ -69,7 +69,11 @@ describe('DatasourceEditor', () => {
     }));
 
   // to add, remove and modify columns accordingly
-  it('can modify columns', async () => {
+  it('can modify columns except data type when feature flag is disabled', async () => {
+    const isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => false);
+
     const columnsTab = screen.getByTestId('collection-tab-Columns');
     userEvent.click(columnsTab);
 
@@ -93,6 +97,45 @@ describe('DatasourceEditor', () => {
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
     userEvent.type(await inputCertDetails, 'test');
+
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  // to add, remove and modify columns accordingly
+  it('can modify column data type when feature flag enabled', async () => {
+    const isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+
+    const columnsTab = screen.getByTestId('collection-tab-Columns');
+    userEvent.click(columnsTab);
+
+    const getToggles = screen.getAllByRole('button', {
+      name: /toggle expand/i,
+    });
+    userEvent.click(getToggles[0]);
+    const getTextboxes = screen.getAllByRole('textbox');
+    expect(getTextboxes.length).toEqual(6);
+
+    const inputLabel = screen.getByPlaceholderText('Label');
+    const inputDescription = screen.getByPlaceholderText('Description');
+    // const inputDataType = screen.getByPlaceholderTest('');
+    const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
+    const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
+    const inputCertDetails = screen.getByPlaceholderText(
+      'Certification details',
+    );
+
+    screen.debug();
+
+    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputDescription, 'test');
+    // userEvent.type(await inputDataType, 'test');
+    userEvent.type(await inputDtmFormat, 'test');
+    userEvent.type(await inputCertifiedBy, 'test');
+    userEvent.type(await inputCertDetails, 'test');
+
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('can delete columns', async () => {
