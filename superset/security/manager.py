@@ -64,7 +64,7 @@ from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -1008,7 +1008,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
     def raise_for_table_access_in_query(
-        self, query: str, schema: str, database: "Database",
+        self, query: str, database: "Database", schema: Optional[str],
     ) -> None:
         """
         Parses a raw sql query - or partial sql - and checks that the current user
@@ -1072,7 +1072,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
-                self.raise_for_table_access_in_query(query.sql, query.schema, database)
+                self.raise_for_table_access_in_query(query.sql, database, query.schema)
             elif table:
                 schema_perm = self.get_schema_perm(database, schema=table.schema)
 
@@ -1090,14 +1090,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             self.get_table_access_error_object({table})
                         )
 
-        if datasource or query_context or viz:
-            if query_context:
-                datasource = query_context.datasource
-            elif viz:
-                datasource = viz.datasource
+        if query_context:
+            self.raise_for_access(datasource=query_context.datasource)
+            from superset.common.chart_data import ChartDataResultType
+            from superset.common.query_actions import compile_query
 
-            assert datasource
+            for qry in query_context.queries:
+                if qry.result_type in [
+                    ChartDataResultType.COLUMNS,
+                    ChartDataResultType.TIMEGRAINS,
+                    ChartDataResultType.QUERY,
+                ]:
+                    continue  # table access does not apply to these types
+                compiled_query = compile_query(query_context, qry)
+                if compiled_query.get("error"):
+                    raise QueryObjectValidationError(
+                        f"Error: {compiled_query['error']}"
+                    )
+                self.raise_for_table_access_in_query(
+                    compiled_query["query"],
+                    # database isn't present on BaseDatasource, but it is defined in
+                    # all child classes
+                    query_context.datasource.database,
+                    query_context.datasource.schema,
+                )
 
+        if viz:
+            self.raise_for_access(datasource=viz.datasource)
+
+        if datasource:
             should_check_dashboard_access = (
                 feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
                 or self.is_guest_user()

@@ -480,15 +480,3 @@ class QueryContextProcessor:
         security_manager.raise_for_access(query_context=self._query_context)
         for query in self._query_context.queries:
             query.validate()
-            # the dict returned from compile_query can have 3 keys:
-            # "language", "query", "error"
-            compiled_query = compile_query(self._query_context, query)
-            if compiled_query.get("error"):
-                raise QueryObjectValidationError(f"Error: {compiled_query['error']}")
-            security_manager.raise_for_table_access_in_query(
-                compiled_query["query"],
-                self._query_context.datasource.schema,
-                # database isn't present on BaseDatasource, but it is defined in
-                # all child classes
-                self._query_context.datasource.database,
-            )
