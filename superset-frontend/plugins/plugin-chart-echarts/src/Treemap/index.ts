@@ -19,7 +19,6 @@
  */
 import {
   Behavior,
-  ChartLabel,
   ChartMetadata,
   ChartPlugin,
   t,
