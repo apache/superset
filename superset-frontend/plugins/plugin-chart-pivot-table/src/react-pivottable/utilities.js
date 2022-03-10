@@ -257,8 +257,8 @@ const baseAggregatorTemplates = {
           push(record) {
             let x = record[attr];
             if (['min', 'max'].includes(mode)) {
-              x = isNaN(x) ? x : parseFloat(parsed);
-              if (isNaN(x)) {
+              const coercedValue = parseFloat(x);
+              if (Number.isNaN(coercedValue)) {
                 this.val =
                   !this.val ||
                   (mode === 'min' && x < this.val) ||
@@ -266,7 +266,7 @@ const baseAggregatorTemplates = {
                     ? x
                     : this.val;
               } else {
-                this.val = Math[mode](x, this.val !== null ? this.val : x);
+                this.val = Math[mode](coercedValue, this.val !== null ? this.val : coercedValue);
               }
             } else if (
               mode === 'first' &&
@@ -284,10 +284,10 @@ const baseAggregatorTemplates = {
             return this.val;
           },
           format(x) {
-            if (isNaN(x)) {
-              return x;
+            if (typeof x === 'number') {
+              return formatter(x);
             }
-            return formatter(x);
+            return x;
           },
           numInputs: typeof attr !== 'undefined' ? 0 : 1,
         };
