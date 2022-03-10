@@ -50,6 +50,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -251,8 +252,8 @@ export default function transformProps(
     null,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
   const labelMap = rawSeriesA.reduce((acc, datum) => {
     const label = datum.name as string;
@@ -282,7 +283,7 @@ export default function transformProps(
     xAxis: {
       type: 'time',
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         formatter: xAxisFormatter,
@@ -300,7 +301,7 @@ export default function transformProps(
         axisLabel: { formatter },
         scale: truncateYAxis,
         name: yAxisTitle,
-        nameGap: yAxisTitleMargin,
+        nameGap: convertInteger(yAxisTitleMargin),
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
