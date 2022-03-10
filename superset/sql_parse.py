@@ -23,6 +23,7 @@ from urllib import parse
 
 import sqlparse
 from sqlparse.sql import (
+    Comparison,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -530,10 +531,13 @@ def add_table_name(rls: TokenList, table: str) -> None:
 
 def matches_table_name(token: Token, table: str) -> bool:
     """
-    Return the name of a table.
+    Returns if the token represents a reference to the table.
 
-    A table should be represented as an identifier, but due to sqlparse's aggressive list
-    of keywords (spanning multiple dialects) often it gets classified as a keyword.
+    Tables can be fully qualified with periods.
+
+    Note that in theory a table should be represented as an identifier, but due to
+    sqlparse's aggressive list of keywords (spanning multiple dialects) often it gets
+    classified as a keyword.
     """
     candidate = token.value
 
@@ -571,44 +575,59 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
             if matches_table_name(token, table):
                 state = InsertRLSState.FOUND_TABLE
 
-                # found table at the end of the statement; append a WHERE clause
-                if token == token_list[-1]:
-                    token_list.tokens.extend(
-                        [
-                            Token(Whitespace, " "),
-                            Where(
-                                [Token(Keyword, "WHERE"), Token(Whitespace, " "), rls]
-                            ),
-                        ]
-                    )
-                    return token_list
-
-        # Found WHERE clause, insert RLS if not present
+        # Found WHERE clause, insert RLS. Note that we insert it even it already exists,
+        # to be on the safe side: it could be present in a clause like `1=1 OR RLS`.
         elif state == InsertRLSState.FOUND_TABLE and isinstance(token, Where):
-            if str(rls) not in {str(t) for t in token.tokens}:
-                token.tokens.extend(
-                    [
-                        Token(Whitespace, " "),
-                        Token(Keyword, "AND"),
-                        Token(Whitespace, " "),
-                    ]
-                    + rls.tokens
-                )
+            if token.tokens[1].ttype != Whitespace:
+                token.tokens.insert(1, Token(Whitespace, " "))
+            token.tokens.insert(2, Token(Punctuation, "("))
+            token.tokens.extend(
+                [
+                    Token(Punctuation, ")"),
+                    Token(Whitespace, " "),
+                    Token(Keyword, "AND"),
+                    Token(Whitespace, " "),
+                ]
+                + rls.tokens
+            )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS if not present
+        # Found ON clause, insert RLS
         elif (
             state == InsertRLSState.FOUND_TABLE
             and token.ttype == Keyword
             and token.value.upper() == "ON"
         ):
-            i = token_list.tokens.index(token)
-            token.parent.tokens[i + 1 : i + 1] = [
+            tokens = [
                 Token(Whitespace, " "),
                 rls,
                 Token(Whitespace, " "),
                 Token(Keyword, "AND"),
+                Token(Whitespace, " "),
+                Token(Punctuation, "("),
             ]
+            i = token_list.tokens.index(token)
+            token.parent.tokens[i + 1 : i + 1] = tokens
+            i += len(tokens) + 2
+
+            # close parenthesis after last existing comparison
+            j = 0
+            for j, sibling in enumerate(token_list.tokens[i:]):
+                if (
+                    sibling.ttype == Keyword
+                    and not imt(
+                        sibling, m=[(Keyword, "AND"), (Keyword, "OR"), (Keyword, "NOT")]
+                    )
+                    or isinstance(sibling, Where)
+                ):
+                    j -= 1
+                    break
+            token.parent.tokens[i + j + 1 : i + j + 1] = [
+                Token(Whitespace, " "),
+                Token(Punctuation, ")"),
+                Token(Whitespace, " "),
+            ]
+
             state = InsertRLSState.SCANNING
 
         # Found table but no WHERE clause found, insert one
@@ -637,5 +656,14 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
         # Found nothing, leaving source
         elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
             state = InsertRLSState.SCANNING
+
+    # found table at the end of the statement; append a WHERE clause
+    if state == InsertRLSState.FOUND_TABLE:
+        if token_list.tokens[-1].ttype != Whitespace:
+            token_list.tokens.append(Token(Whitespace, " "))
+
+        token_list.tokens.append(
+            Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls])
+        )
 
     return token_list

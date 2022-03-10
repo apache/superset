@@ -1222,22 +1222,32 @@ def test_has_table_query(sql: str, expected: bool) -> None:
 @pytest.mark.parametrize(
     "sql,table,rls,expected",
     [
-        # append RLS to an existing WHERE clause
+        # Basic test: append RLS (some_table.id=42) to an existing WHERE clause.
         (
-            "SELECT * FROM other_table WHERE 1=1",
-            "other_table",
+            "SELECT * FROM some_table WHERE 1=1",
+            "some_table",
             "id=42",
-            "SELECT * FROM other_table WHERE 1=1 AND other_table.id=42",
+            "SELECT * FROM some_table WHERE (1=1) AND some_table.id=42",
         ),
-        # "table" is a reserved word; since sqlparse is too aggressive when characterizing
-        # reserved words we need to support them even when not quoted
+        # Any existing predicates MUST to be wrapped in parenthesis because AND has higher
+        # precedence than OR. If the RLS it `1=0` and we didn't add parenthesis a user
+        # could bypass it by crafting a query with `WHERE TRUE OR FALSE`, since
+        # `WHERE TRUE OR FALSE AND 1=0` evaluates to `WHERE TRUE OR (FALSE AND 1=0)`.
+        (
+            "SELECT * FROM some_table WHERE TRUE OR FALSE",
+            "some_table",
+            "1=0",
+            "SELECT * FROM some_table WHERE (TRUE OR FALSE) AND 1=0",
+        ),
+        # Here "table" is a reserved word; since sqlparse is too aggressive when
+        # characterizing reserved words we need to support them even when not quoted.
         (
             "SELECT * FROM table WHERE 1=1",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+            "SELECT * FROM table WHERE (1=1) AND table.id=42",
         ),
-        # RLS applies to a different table
+        # RLS is only applied to queries reading from the associated table.
         (
             "SELECT * FROM table WHERE 1=1",
             "other_table",
@@ -1250,7 +1260,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "id=42",
             "SELECT * FROM other_table WHERE 1=1",
         ),
-        # insert the WHERE clause if there isn't one
+        # If there's no pre-existing WHERE clause we create one.
         (
             "SELECT * FROM table",
             "table",
@@ -1258,10 +1268,10 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table WHERE table.id=42",
         ),
         (
-            "SELECT * FROM other_table",
-            "other_table",
+            "SELECT * FROM some_table",
+            "some_table",
             "id=42",
-            "SELECT * FROM other_table WHERE other_table.id=42",
+            "SELECT * FROM some_table WHERE some_table.id=42",
         ),
         (
             "SELECT * FROM table ORDER BY id",
@@ -1269,38 +1279,82 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "id=42",
             "SELECT * FROM table WHERE table.id=42 ORDER BY id",
         ),
-        # do not add RLS if already present...
+        (
+            "SELECT * FROM some_table;",
+            "some_table",
+            "id=42",
+            "SELECT * FROM some_table WHERE some_table.id=42;",
+        ),
+        (
+            "SELECT * FROM some_table       ;",
+            "some_table",
+            "id=42",
+            "SELECT * FROM some_table       WHERE some_table.id=42;",
+        ),
+        (
+            "SELECT * FROM some_table       ",
+            "some_table",
+            "id=42",
+            "SELECT * FROM some_table       WHERE some_table.id=42",
+        ),
+        # We add the RLS even if it's already present, to be conservative. It should have
+        # no impact on the query, and it's easier than testing if the RLS is already
+        # present (it could be present in an OR clause, eg).
         (
             "SELECT * FROM table WHERE 1=1 AND table.id=42",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE 1=1 AND table.id=42",
+            "SELECT * FROM table WHERE (1=1 AND table.id=42) AND table.id=42",
         ),
-        # ...but when in doubt add it
+        (
+            (
+                "SELECT * FROM table JOIN other_table ON "
+                "table.id = other_table.id AND other_table.id=42"
+            ),
+            "other_table",
+            "id=42",
+            (
+                "SELECT * FROM table JOIN other_table ON other_table.id=42 "
+                "AND ( table.id = other_table.id AND other_table.id=42 )"
+            ),
+        ),
         (
             "SELECT * FROM table WHERE 1=1 AND id=42",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE 1=1 AND id=42 AND table.id=42",
+            "SELECT * FROM table WHERE (1=1 AND id=42) AND table.id=42",
         ),
-        # test with joins
+        # For joins we apply the RLS to the ON clause, since it's easier and prevents
+        # leaking information about number of rows on OUTER JOINs.
         (
             "SELECT * FROM table JOIN other_table ON table.id = other_table.id",
             "other_table",
             "id=42",
             (
                 "SELECT * FROM table JOIN other_table ON other_table.id=42 "
-                "AND table.id = other_table.id"
+                "AND ( table.id = other_table.id )"
             ),
         ),
-        # test with inner selects
+        (
+            (
+                "SELECT * FROM table JOIN other_table ON table.id = other_table.id "
+                "WHERE 1=1"
+            ),
+            "other_table",
+            "id=42",
+            (
+                "SELECT * FROM table JOIN other_table ON other_table.id=42 "
+                "AND ( table.id = other_table.id  ) WHERE 1=1"
+            ),
+        ),
+        # Subqueries also work, as expected.
         (
             "SELECT * FROM (SELECT * FROM other_table)",
             "other_table",
             "id=42",
             "SELECT * FROM (SELECT * FROM other_table WHERE other_table.id=42)",
         ),
-        # union
+        # As well as UNION.
         (
             "SELECT * FROM table UNION ALL SELECT * FROM other_table",
             "table",
@@ -1316,7 +1370,9 @@ def test_has_table_query(sql: str, expected: bool) -> None:
                 "SELECT * FROM other_table WHERE other_table.id=42"
             ),
         ),
-        # fully qualified table names
+        # When comparing fully qualified table names (eg, schema.table) to simple names
+        # (eg, table) we are also conservative, assuming the schema is the same, since
+        # we don't have information on the default schema.
         (
             "SELECT * FROM schema.table_name",
             "table_name",
