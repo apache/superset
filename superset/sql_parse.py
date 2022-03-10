@@ -23,7 +23,6 @@ from urllib import parse
 
 import sqlparse
 from sqlparse.sql import (
-    Comparison,
     Identifier,
     IdentifierList,
     Parenthesis,
@@ -578,9 +577,7 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
         # Found WHERE clause, insert RLS. Note that we insert it even it already exists,
         # to be on the safe side: it could be present in a clause like `1=1 OR RLS`.
         elif state == InsertRLSState.FOUND_TABLE and isinstance(token, Where):
-            if token.tokens[1].ttype != Whitespace:
-                token.tokens.insert(1, Token(Whitespace, " "))
-            token.tokens.insert(2, Token(Punctuation, "("))
+            token.tokens[1:1] = [Token(Whitespace, " "), Token(Punctuation, "(")]
             token.tokens.extend(
                 [
                     Token(Punctuation, ")"),
@@ -592,7 +589,9 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
             )
             state = InsertRLSState.SCANNING
 
-        # Found ON clause, insert RLS
+        # Found ON clause, insert RLS. The logic for ON is more complicated than the logic
+        # for WHERE because in the former the comparisons are siblings, while on the
+        # latter they are children.
         elif (
             state == InsertRLSState.FOUND_TABLE
             and token.ttype == Keyword
@@ -613,6 +612,7 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
             # close parenthesis after last existing comparison
             j = 0
             for j, sibling in enumerate(token_list.tokens[i:]):
+                # scan until we hit a non-comparison keyword (like ORDER BY) or a WHERE
                 if (
                     sibling.ttype == Keyword
                     and not imt(
@@ -633,23 +633,11 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
         # Found table but no WHERE clause found, insert one
         elif state == InsertRLSState.FOUND_TABLE and token.ttype != Whitespace:
             i = token_list.tokens.index(token)
-
-            # Left pad with space, if needed
-            if i > 0 and token_list.tokens[i - 1].ttype != Whitespace:
-                token_list.tokens.insert(i, Token(Whitespace, " "))
-                i += 1
-
-            # Insert predicate
-            token_list.tokens.insert(
-                i, Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls]),
-            )
-
-            # Right pad with space, if needed
-            if (
-                i < len(token_list.tokens) - 2
-                and token_list.tokens[i + 2] != Whitespace
-            ):
-                token_list.tokens.insert(i + 1, Token(Whitespace, " "))
+            token_list.tokens[i:i] = [
+                Token(Whitespace, " "),
+                Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls]),
+                Token(Whitespace, " "),
+            ]
 
             state = InsertRLSState.SCANNING
 
@@ -659,11 +647,11 @@ def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
 
     # found table at the end of the statement; append a WHERE clause
     if state == InsertRLSState.FOUND_TABLE:
-        if token_list.tokens[-1].ttype != Whitespace:
-            token_list.tokens.append(Token(Whitespace, " "))
-
-        token_list.tokens.append(
-            Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls])
+        token_list.tokens.extend(
+            [
+                Token(Whitespace, " "),
+                Where([Token(Keyword, "WHERE"), Token(Whitespace, " "), rls]),
+            ]
         )
 
     return token_list

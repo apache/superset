@@ -1227,7 +1227,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM some_table WHERE 1=1",
             "some_table",
             "id=42",
-            "SELECT * FROM some_table WHERE (1=1) AND some_table.id=42",
+            "SELECT * FROM some_table WHERE ( 1=1) AND some_table.id=42",
         ),
         # Any existing predicates MUST to be wrapped in parenthesis because AND has higher
         # precedence than OR. If the RLS it `1=0` and we didn't add parenthesis a user
@@ -1237,7 +1237,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM some_table WHERE TRUE OR FALSE",
             "some_table",
             "1=0",
-            "SELECT * FROM some_table WHERE (TRUE OR FALSE) AND 1=0",
+            "SELECT * FROM some_table WHERE ( TRUE OR FALSE) AND 1=0",
         ),
         # Here "table" is a reserved word; since sqlparse is too aggressive when
         # characterizing reserved words we need to support them even when not quoted.
@@ -1245,7 +1245,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table WHERE 1=1",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE (1=1) AND table.id=42",
+            "SELECT * FROM table WHERE ( 1=1) AND table.id=42",
         ),
         # RLS is only applied to queries reading from the associated table.
         (
@@ -1277,25 +1277,25 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table ORDER BY id",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE table.id=42 ORDER BY id",
+            "SELECT * FROM table  WHERE table.id=42 ORDER BY id",
         ),
         (
             "SELECT * FROM some_table;",
             "some_table",
             "id=42",
-            "SELECT * FROM some_table WHERE some_table.id=42;",
+            "SELECT * FROM some_table WHERE some_table.id=42 ;",
         ),
         (
             "SELECT * FROM some_table       ;",
             "some_table",
             "id=42",
-            "SELECT * FROM some_table       WHERE some_table.id=42;",
+            "SELECT * FROM some_table        WHERE some_table.id=42 ;",
         ),
         (
             "SELECT * FROM some_table       ",
             "some_table",
             "id=42",
-            "SELECT * FROM some_table       WHERE some_table.id=42",
+            "SELECT * FROM some_table        WHERE some_table.id=42",
         ),
         # We add the RLS even if it's already present, to be conservative. It should have
         # no impact on the query, and it's easier than testing if the RLS is already
@@ -1304,7 +1304,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table WHERE 1=1 AND table.id=42",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE (1=1 AND table.id=42) AND table.id=42",
+            "SELECT * FROM table WHERE ( 1=1 AND table.id=42) AND table.id=42",
         ),
         (
             (
@@ -1322,7 +1322,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM table WHERE 1=1 AND id=42",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE (1=1 AND id=42) AND table.id=42",
+            "SELECT * FROM table WHERE ( 1=1 AND id=42) AND table.id=42",
         ),
         # For joins we apply the RLS to the ON clause, since it's easier and prevents
         # leaking information about number of rows on OUTER JOINs.
@@ -1352,14 +1352,14 @@ def test_has_table_query(sql: str, expected: bool) -> None:
             "SELECT * FROM (SELECT * FROM other_table)",
             "other_table",
             "id=42",
-            "SELECT * FROM (SELECT * FROM other_table WHERE other_table.id=42)",
+            "SELECT * FROM (SELECT * FROM other_table WHERE other_table.id=42 )",
         ),
         # As well as UNION.
         (
             "SELECT * FROM table UNION ALL SELECT * FROM other_table",
             "table",
             "id=42",
-            "SELECT * FROM table WHERE table.id=42 UNION ALL SELECT * FROM other_table",
+            "SELECT * FROM table  WHERE table.id=42 UNION ALL SELECT * FROM other_table",
         ),
         (
             "SELECT * FROM table UNION ALL SELECT * FROM other_table",
