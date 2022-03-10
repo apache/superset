@@ -36,7 +36,7 @@ import {
   getColtypesMapping,
   sanitizeHtml,
 } from '../utils/series';
-import { convertInteger } from '../utils/helper';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';

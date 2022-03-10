@@ -50,7 +50,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
-import { convertInteger } from '../utils/helper';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
