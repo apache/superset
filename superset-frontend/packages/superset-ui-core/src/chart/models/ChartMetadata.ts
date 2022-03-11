@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Behavior } from '../types/Base';
+import { Behavior, ChartLabel } from '../types/Base';
 
 interface LookupTable {
   [key: string]: boolean;
@@ -40,10 +40,13 @@ export interface ChartMetadataConfig {
   thumbnail: string;
   useLegacyApi?: boolean;
   behaviors?: Behavior[];
-  deprecated?: boolean;
   exampleGallery?: ExampleImage[];
   tags?: string[];
   category?: string | null;
+  label?: {
+    name?: ChartLabel;
+    description?: string;
+  } | null;
 }
 
 export default class ChartMetadata {
@@ -71,13 +74,16 @@ export default class ChartMetadata {
 
   enableNoResults: boolean;
 
-  deprecated: boolean;
-
   exampleGallery: ExampleImage[];
 
   tags: string[];
 
   category: string | null;
+
+  label?: {
+    name?: ChartLabel;
+    description?: string;
+  } | null;
 
   constructor(config: ChartMetadataConfig) {
     const {
@@ -92,10 +98,10 @@ export default class ChartMetadata {
       behaviors = [],
       datasourceCount = 1,
       enableNoResults = true,
-      deprecated = false,
       exampleGallery = [],
       tags = [],
       category = null,
+      label = null,
     } = config;
 
     this.name = name;
@@ -118,10 +124,10 @@ export default class ChartMetadata {
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
     this.enableNoResults = enableNoResults;
-    this.deprecated = deprecated;
     this.exampleGallery = exampleGallery;
     this.tags = tags;
     this.category = category;
+    this.label = label;
   }
 
   canBeAnnotationType(type: string): boolean {
