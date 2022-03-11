@@ -38,7 +38,7 @@ describe('SharedLabelColor', () => {
         'testColors2',
         new CategoricalScheme({
           id: 'testColors2',
-          colors: ['red', 'green', 'blue'],
+          colors: ['yellow', 'green', 'blue'],
         }),
       );
   });
@@ -87,8 +87,8 @@ describe('SharedLabelColor', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 2);
-      const colorMap = sharedLabelColor.getColorMap('', 'testColors', true);
-      expect(colorMap).toEqual({ a: undefined, b: undefined });
+      const colorMap = sharedLabelColor.getColorMap('', 'testColors2', true);
+      expect(colorMap).toEqual({ a: 'yellow', b: 'yellow' });
     });
 
     it('return color value if not pass updateColorScheme', () => {
