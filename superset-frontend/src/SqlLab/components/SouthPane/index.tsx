@@ -20,7 +20,7 @@ import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyStateMedium } from 'src/components/EmptyState';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -94,6 +94,16 @@ const StyledPane = styled.div`
   }
 `;
 
+const StyledEmptyStateWrapper = styled.div`
+  .ant-empty-image img {
+    margin-right: 28px;
+  }
+
+  p {
+    margin-right: 28px;
+  }
+`;
+
 export default function SouthPane({
   editorQueries,
   latestQueryId,
@@ -162,10 +172,12 @@ export default function SouthPane({
       }
     } else {
       results = (
-        <EmptyStateBig
-          title={t('Run a query to display results')}
-          image="document.svg"
-        />
+        <StyledEmptyStateWrapper>
+          <EmptyStateMedium
+            title={t('Run a query to display results')}
+            image="document.svg"
+          />
+        </StyledEmptyStateWrapper>
       );
     }
     return results;
