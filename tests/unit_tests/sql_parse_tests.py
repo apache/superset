@@ -28,6 +28,7 @@ from superset.sql_parse import (
     add_table_name,
     has_table_query,
     insert_rls,
+    matches_table_name,
     ParsedQuery,
     strip_comments_from_sql,
     Table,
@@ -1206,6 +1207,7 @@ def test_sqlparse_issue_652():
         ("SELECT a FROM (SELECT 1 AS a) JOIN table", True),
         ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
         ("SELECT * FROM other_table", True),
+        ("extract(HOUR from from_unixtime(hour_ts)", False),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:
@@ -1393,7 +1395,7 @@ def test_has_table_query(sql: str, expected: bool) -> None:
         ),
     ],
 )
-def test_insert_rls(sql, table, rls, expected) -> None:
+def test_insert_rls(sql: str, table: str, rls: str, expected: str) -> None:
     """
     Insert into a statement a given RLS condition associated with a table.
     """
@@ -1411,7 +1413,22 @@ def test_insert_rls(sql, table, rls, expected) -> None:
         ("false", "users", "false"),
     ],
 )
-def test_add_table_name(rls, table, expected) -> None:
+def test_add_table_name(rls: str, table: str, expected: str) -> None:
     condition = sqlparse.parse(rls)[0]
     add_table_name(condition, table)
     assert str(condition) == expected
+
+
+@pytest.mark.parametrize(
+    "candidate,table,expected",
+    [
+        ("table", "table", True),
+        ("schema.table", "table", True),
+        ("table", "schema.table", True),
+        ('schema."my table"', '"my table"', True),
+        ('schema."my.table"', '"my.table"', True),
+    ],
+)
+def test_matches_table_name(candidate: str, table: str, expected: bool) -> None:
+    token = sqlparse.parse(candidate)[0].tokens[0]
+    assert matches_table_name(token, table) == expected

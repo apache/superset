@@ -528,7 +528,7 @@ def add_table_name(rls: TokenList, table: str) -> None:
             tokens.extend(token.tokens)
 
 
-def matches_table_name(token: Token, table: str) -> bool:
+def matches_table_name(candidate: Token, table: str) -> bool:
     """
     Returns if the token represents a reference to the table.
 
@@ -538,11 +538,16 @@ def matches_table_name(token: Token, table: str) -> bool:
     sqlparse's aggressive list of keywords (spanning multiple dialects) often it gets
     classified as a keyword.
     """
-    candidate = token.value
+    if not isinstance(candidate, Identifier):
+        candidate = Identifier([Token(Name, candidate.value)])
+
+    target = sqlparse.parse(table)[0].tokens[0]
+    if not isinstance(target, Identifier):
+        target = Identifier([Token(Name, target.value)])
 
     # match from right to left, splitting on the period, eg, schema.table == table
-    for left, right in zip(candidate.split(".")[::-1], table.split(".")[::-1]):
-        if left != right:
+    for left, right in zip(candidate.tokens[::-1], target.tokens[::-1]):
+        if left.value != right.value:
             return False
 
     return True
@@ -550,7 +555,7 @@ def matches_table_name(token: Token, table: str) -> bool:
 
 def insert_rls(token_list: TokenList, table: str, rls: TokenList) -> TokenList:
     """
-    Update a statement inpalce applying an RLS associated with a given table.
+    Update a statement inplace applying an RLS associated with a given table.
     """
     # make sure the identifier has the table name
     add_table_name(rls, table)
