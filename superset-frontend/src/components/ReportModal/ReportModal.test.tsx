@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import * as React from 'react';
 import userEvent from '@testing-library/user-event';
+import sinon from 'sinon';
+import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import * as featureFlags from 'src/featureFlags';
+import * as actions from 'src/reports/actions/reports';
 import { FeatureFlag } from '@superset-ui/core';
 import ReportModal from '.';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
+
+const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
+fetchMock.get(REPORT_ENDPOINT, {});
 
 const NOOP = () => {};
 
@@ -33,16 +39,13 @@ const defaultProps = {
   addReport: NOOP,
   onHide: NOOP,
   onReportAdd: NOOP,
-  show: true,
+  showModal: true,
   userId: 1,
   userEmail: 'test@test.com',
   dashboardId: 1,
-  creationMethod: 'charts_dashboards',
-  props: {
-    chart: {
-      sliceFormData: {
-        viz_type: 'table',
-      },
+  chart: {
+    sliceFormData: {
+      viz_type: 'table',
     },
   },
 };
@@ -106,5 +109,70 @@ describe('Email Report Modal', () => {
     // Add button should now be disabled, blocking user from creation
     expect(reportNameTextbox).toHaveDisplayValue('');
     expect(addButton).toBeDisabled();
+  });
+
+  describe('Email Report Modal', () => {
+    let isFeatureEnabledMock: any;
+    let dispatch: any;
+
+    beforeEach(async () => {
+      isFeatureEnabledMock = jest
+        .spyOn(featureFlags, 'isFeatureEnabled')
+        .mockImplementation(() => true);
+      dispatch = sinon.spy();
+    });
+
+    afterAll(() => {
+      isFeatureEnabledMock.mockRestore();
+    });
+
+    it('creates a new email report', async () => {
+      // ---------- Render/value setup ----------
+      const reportValues = {
+        id: 1,
+        result: {
+          active: true,
+          creation_method: 'dashboards',
+          crontab: '0 12 * * 1',
+          dashboard: 1,
+          name: 'Weekly Report',
+          owners: [1],
+          recipients: [
+            {
+              recipient_config_json: {
+                target: 'test@test.com',
+              },
+              type: 'Email',
+            },
+          ],
+          type: 'Report',
+        },
+      };
+      // This is needed to structure the reportValues to match the fetchMock return
+      const stringyReportValues = `{"id":1,"result":{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${1},"name":"Weekly Report","owners":[${1}],"recipients":[{"recipient_config_json":{"target":"test@test.com"},"type":"Email"}],"type":"Report"}}`;
+      // Watch for report POST
+      fetchMock.post(REPORT_ENDPOINT, reportValues);
+
+      // Click "Add" button to create a new email report
+      const addButton = screen.getByRole('button', { name: /add/i });
+      userEvent.click(addButton);
+
+      // Mock addReport from Redux
+      const makeRequest = () => {
+        const request = actions.addReport(reportValues);
+        return request(dispatch);
+      };
+
+      return makeRequest().then(() => {
+        // 🐞 ----- There are 2 POST calls at this point ----- 🐞
+
+        // addReport's mocked POST return should match the mocked values
+        expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
+        // Dispatch should be called once for addReport
+        expect(dispatch.callCount).toBe(2);
+        const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
+        expect(reportCalls).toHaveLength(2);
+      });
+    });
   });
 });

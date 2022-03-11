@@ -25,8 +25,8 @@ import {
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
-export function setReport(report) {
-  return { type: SET_REPORT, report };
+export function setReport(report, resourceId, creationMethod) {
+  return { type: SET_REPORT, report, resourceId, creationMethod };
 }
 
 export const DELETE_REPORT = 'DELETE_REPORT';
@@ -64,7 +64,7 @@ export function fetchUISpecificReport({
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        dispatch(setReport(json));
+        dispatch(setReport(json, resourceId, creationMethod));
       })
       .catch(() =>
         dispatch(

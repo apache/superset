@@ -20,7 +20,6 @@ import React, {
   useState,
   useEffect,
   useReducer,
-  FunctionComponent,
   useCallback,
   useMemo,
 } from 'react';
@@ -28,20 +27,17 @@ import { t, SupersetTheme } from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
-
 import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
-import {
-  ReportCreationMethod,
-  ReportRecipientType,
-  ReportScheduleType,
-} from 'src/reports/types';
+import { ReportCreationMethod, ReportType } from 'src/reports/types';
+import { ReportObject, NOTIFICATION_FORMATS } from 'src/views/CRUD/alert/types';
+import { reportSelector } from 'src/views/CRUD/hooks';
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -59,29 +55,6 @@ import {
   StyledRadio,
   StyledRadioGroup,
 } from './styles';
-
-export interface ReportObject {
-  id?: number;
-  active: boolean;
-  crontab: string;
-  dashboard?: number;
-  chart?: number;
-  description?: string;
-  log_retention: number;
-  name: string;
-  owners: number[];
-  recipients: [
-    { recipient_config_json: { target: string }; type: ReportRecipientType },
-  ];
-  report_format: string;
-  timezone: string;
-  type: ReportScheduleType;
-  validator_config_json: {} | null;
-  validator_type: string;
-  working_timeout: number;
-  creation_method: string;
-  force_screenshot: boolean;
-}
 
 interface ReportProps {
   onHide: () => {};
@@ -105,12 +78,6 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'paired_ttest',
 ];
 
-const NOTIFICATION_FORMATS = {
-  TEXT: 'TEXT',
-  PNG: 'PNG',
-  CSV: 'CSV',
-};
-
 const INITIAL_STATE = {
   crontab: '0 12 * * 1',
 };
@@ -123,7 +90,7 @@ type ReportObjectState = Partial<ReportObject> & {
   isSubmitting?: boolean;
 };
 
-const ReportModal: FunctionComponent<ReportProps> = ({
+function ReportModal({
   onReportAdd,
   onHide,
   show = false,
@@ -132,8 +99,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   userId,
   userEmail,
   creationMethod,
-  ...props
-}) => {
+  dashboardName,
+  chartName,
+}: ReportProps) {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
   const isTextBasedChart =
@@ -141,7 +109,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const defaultNotificationFormat = isTextBasedChart
     ? NOTIFICATION_FORMATS.TEXT
     : NOTIFICATION_FORMATS.PNG;
-  const entityName = props.dashboardName || props.chartName;
+  const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
       ...INITIAL_STATE,
@@ -172,18 +140,22 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const [cronError, setCronError] = useState<CronError>();
 
   const dispatch = useDispatch();
-  const reports = useSelector<any, ReportObject>(state => state.reports);
-  const isEditMode = reports && Object.keys(reports).length;
+  // Report fetch logic
+  const report = useSelector<any, ReportObject>(state => {
+    const resourceType = dashboardId
+      ? ReportType.DASHBOARDS
+      : ReportType.CHARTS;
+    return reportSelector(state, resourceType, dashboardId || chart?.id);
+  });
+  const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
     if (isEditMode) {
-      const reportsIds = Object.keys(reports);
-      const report = reports[reportsIds[0]];
       setCurrentReport(report);
     } else {
       setCurrentReport('reset');
     }
-  }, [isEditMode, reports]);
+  }, [isEditMode, report]);
 
   const onSave = async () => {
     // Create new Report
@@ -369,6 +341,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       )}
     </StyledModal>
   );
-};
+}
 
 export default withToasts(ReportModal);

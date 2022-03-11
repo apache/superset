@@ -24,3 +24,8 @@ export type ReportScheduleType = 'Alert' | 'Report';
 export type ReportCreationMethod = 'charts' | 'dashboards' | 'alerts_reports';
 
 export type ReportRecipientType = 'Email' | 'Slack';
+
+export enum ReportType {
+  DASHBOARDS = 'dashboards',
+  CHARTS = 'charts',
+}
