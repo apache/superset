@@ -539,7 +539,6 @@ describe('Nativefilters Sanity test', () => {
 
     cy.get(nativeFilters.filtersPanel.filterTypeInput)
       .click({ scrollBehavior: false })
-      .clear()
       .type('{home}Value{enter}', { scrollBehavior: false });
     cy.get(nativeFilters.filtersPanel.filterTypeInput)
       .find(nativeFilters.filtersPanel.filterTypeItem)
