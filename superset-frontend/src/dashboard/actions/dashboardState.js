@@ -19,8 +19,12 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
-import { addChart, removeChart, refreshChart } from 'src/chart/chartAction';
-import { chart as initChart } from 'src/chart/chartReducer';
+import {
+  addChart,
+  removeChart,
+  refreshChart,
+} from 'src/components/Chart/chartAction';
+import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
@@ -418,6 +422,16 @@ const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
     resolve();
   });
 
+export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
+export function onFiltersRefresh() {
+  return { type: ON_FILTERS_REFRESH };
+}
+
+export const ON_FILTERS_REFRESH_SUCCESS = 'ON_FILTERS_REFRESH_SUCCESS';
+export function onFiltersRefreshSuccess() {
+  return { type: ON_FILTERS_REFRESH_SUCCESS };
+}
+
 export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
 export function onRefreshSuccess() {
   return { type: ON_REFRESH_SUCCESS };
@@ -432,8 +446,11 @@ export function onRefresh(
 ) {
   return dispatch => {
     dispatch({ type: ON_REFRESH });
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(() =>
-      dispatch({ type: ON_REFRESH_SUCCESS }),
+    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
+      () => {
+        dispatch(onRefreshSuccess());
+        dispatch(onFiltersRefresh());
+      },
     );
   };
 }

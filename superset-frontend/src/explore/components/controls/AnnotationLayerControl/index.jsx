@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/common/components';
+import { List } from 'src/components';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Popover from 'src/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { runAnnotationQuery } from 'src/chart/chartAction';
+import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 
 const AnnotationLayer = AsyncEsmComponent(

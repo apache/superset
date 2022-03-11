@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../assets/stylesheets/less/variables.less';
+import { NativeFilterScope } from '@superset-ui/core';
+import { CHART_TYPE } from './componentTypes';
+import { ChartsState, Layout } from '../types';
 
-.CRUD {
-  .text-right {
-    text-align: right;
-  }
-
-  .empty-collection {
-    padding: 10px;
-  }
-
-  .control-label {
-    font-weight: @font-weight-bold;
-  }
-
-  .tiny-cell {
-    width: 5px;
-  }
-
-  i.fa-caret-down,
-  i.fa-caret-up {
-    width: 5px;
-  }
-
-  td.expanded {
-    border-top: 0;
-    padding: 0;
-  }
-
-  .frame {
-    border: 1px solid @gray-heading;
-    border-radius: @border-radius-large;
-    padding: 10;
-    background: @gray-bg;
-  }
+export function getChartIdsInFilterScope(
+  filterScope: NativeFilterScope,
+  charts: ChartsState,
+  layout: Layout,
+) {
+  const layoutItems = Object.values(layout);
+  return Object.values(charts)
+    .filter(
+      chart =>
+        !filterScope.excluded.includes(chart.id) &&
+        layoutItems
+          .find(
+            layoutItem =>
+              layoutItem?.type === CHART_TYPE &&
+              layoutItem.meta?.chartId === chart.id,
+          )
+          ?.parents?.some(elementId =>
+            filterScope.rootPath.includes(elementId),
+          ),
+    )
+    .map(chart => chart.id);
 }

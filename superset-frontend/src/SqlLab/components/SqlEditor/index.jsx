@@ -31,7 +31,7 @@ import StyledModal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
-import { Dropdown, Switch } from 'src/common/components';
+import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -306,7 +306,8 @@ class SqlEditor extends React.PureComponent {
   getHotkeyConfig() {
     // Get the user's OS
     const userOS = detectOS();
-    return [
+
+    const base = [
       {
         name: 'runQuery1',
         key: 'ctrl+r',
@@ -346,6 +347,19 @@ class SqlEditor extends React.PureComponent {
         func: this.stopQuery,
       },
     ];
+
+    if (userOS === 'MacOS') {
+      base.push({
+        name: 'previousLine',
+        key: 'ctrl+p',
+        descr: t('Previous Line'),
+        func: editor => {
+          editor.navigateUp(1);
+        },
+      });
+    }
+
+    return base;
   }
 
   setQueryEditorSql(sql) {
@@ -533,7 +547,7 @@ class SqlEditor extends React.PureComponent {
         <Menu.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
-          <Switch
+          <AntdSwitch
             checked={this.state.autocompleteEnabled}
             onChange={this.handleToggleAutocompleteEnabled}
             name="autocomplete-switch"
@@ -667,7 +681,7 @@ class SqlEditor extends React.PureComponent {
             )}
           <span>
             <LimitSelectStyled>
-              <Dropdown overlay={this.renderQueryLimit()} trigger="click">
+              <AntdDropdown overlay={this.renderQueryLimit()} trigger="click">
                 <a onClick={e => e.preventDefault()}>
                   <span>LIMIT:</span>
                   <span className="limitDropdown">
@@ -678,7 +692,7 @@ class SqlEditor extends React.PureComponent {
                   </span>
                   <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
                 </a>
-              </Dropdown>
+              </AntdDropdown>
             </LimitSelectStyled>
           </span>
           {this.props.latestQuery && (
@@ -703,9 +717,9 @@ class SqlEditor extends React.PureComponent {
           <span>
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
-          <Dropdown overlay={this.renderDropdown()} trigger="click">
+          <AntdDropdown overlay={this.renderDropdown()} trigger="click">
             <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
-          </Dropdown>
+          </AntdDropdown>
         </div>
       </StyledToolbar>
     );
