@@ -136,7 +136,6 @@ export interface PostProcessingRolling {
     window: number;
     min_periods: number;
     columns: string[];
-    is_pivot_df?: boolean;
   };
 }
 
@@ -145,7 +144,6 @@ export interface PostProcessingCum {
   options: {
     columns: string[];
     operator: NumpyFunction;
-    is_pivot_df?: boolean;
   };
 }
 
@@ -172,10 +170,13 @@ export interface PostProcessingResample {
     method: string;
     rule: string;
     fill_value?: number | null;
-    time_column: string;
-    // If AdhocColumn doesn't have a label, it will be undefined.
-    // todo: we have to give an explicit label for AdhocColumn.
-    groupby_columns?: Array<string | undefined>;
+  };
+}
+
+export interface PostProcessingFlat {
+  operation: 'flat';
+  options?: {
+    reset_index?: boolean;
   };
 }
 
@@ -194,7 +195,8 @@ export type PostProcessingRule =
   | PostProcessingCum
   | PostProcessingCompare
   | PostProcessingSort
-  | PostProcessingResample;
+  | PostProcessingResample
+  | PostProcessingFlat;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,

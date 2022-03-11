@@ -22,18 +22,18 @@ import {
   ensureIsArray,
   QueryFormData,
   normalizeOrderBy,
-  RollingType,
   PostProcessingPivot,
 } from '@superset-ui/core';
 import {
   rollingWindowOperator,
   timeCompareOperator,
   isValidTimeCompare,
-  sortOperator,
   pivotOperator,
   resampleOperator,
   contributionOperator,
   prophetOperator,
+  timeComparePivotOperator,
+  flatOperator,
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
@@ -41,23 +41,13 @@ export default function buildQuery(formData: QueryFormData) {
   const is_timeseries = x_axis === DTTM_ALIAS || !x_axis;
   return buildQueryContext(formData, baseQueryObject => {
     const pivotOperatorInRuntime: PostProcessingPivot | undefined =
-      pivotOperator(formData, {
-        ...baseQueryObject,
-        index: x_axis,
-        is_timeseries,
-      });
-    if (
-      pivotOperatorInRuntime &&
-      Object.values(RollingType).includes(formData.rolling_type)
-    ) {
-      pivotOperatorInRuntime.options = {
-        ...pivotOperatorInRuntime.options,
-        ...{
-          flatten_columns: false,
-          reset_index: false,
-        },
-      };
-    }
+      isValidTimeCompare(formData, baseQueryObject)
+        ? timeComparePivotOperator(formData, baseQueryObject)
+        : pivotOperator(formData, {
+            ...baseQueryObject,
+            index: x_axis,
+            is_timeseries,
+          });
 
     return [
       {
@@ -71,12 +61,11 @@ export default function buildQuery(formData: QueryFormData) {
           ? formData.time_compare
           : [],
         post_processing: [
-          resampleOperator(formData, baseQueryObject),
-          timeCompareOperator(formData, baseQueryObject),
-          sortOperator(formData, { ...baseQueryObject, is_timeseries: true }),
-          // in order to be able to rolling in multiple series, must do pivot before rollingOperator
           pivotOperatorInRuntime,
+          resampleOperator(formData, baseQueryObject),
           rollingWindowOperator(formData, baseQueryObject),
+          timeCompareOperator(formData, baseQueryObject),
+          flatOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
           prophetOperator(formData, baseQueryObject),
         ],
