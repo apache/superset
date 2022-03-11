@@ -20,7 +20,12 @@
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
 
@@ -45,7 +50,9 @@ const jsFunctionInfo = (
   </div>
 );
 
-const jsControlConfig = isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS);
+const jsControlConfig = isFeatureEnabled(
+  FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS,
+);
 
 function jsFunctionControl(
   label,
