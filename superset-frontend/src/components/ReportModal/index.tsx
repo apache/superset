@@ -93,6 +93,7 @@ interface ReportProps {
   addReport: (report?: ReportObject) => {};
   onHide: () => {};
   onReportAdd: (report?: ReportObject) => {};
+  addDangerToast: (msg: string) => void;
   show: boolean;
   userId: number;
   userEmail: string;
@@ -250,9 +251,16 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         await dispatch(addReport(newReportValues as ReportObject));
         onHide();
       } catch (e) {
-        const parsedError = await getClientErrorObject(e);
-        const errorMessage = parsedError.message;
-        onReducerChange(ActionType.error, errorMessage);
+        const { error } = await getClientErrorObject(e);
+        if (error) {
+          const errorText = t(
+            'A report already exists for this %s.',
+            props.props.dashboardId
+              ? 'dashboard'
+              : props.props.chart?.id && 'chart',
+          );
+          props.addDangerToast(errorText);
+        }
       }
     }
 
