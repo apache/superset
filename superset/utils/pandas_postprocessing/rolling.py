@@ -22,7 +22,6 @@ from pandas import DataFrame
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.pandas_postprocessing.utils import (
     _append_columns,
-    _flatten_column_after_pivot,
     DENYLIST_ROLLING_FUNCTIONS,
     validate_column_args,
 )
@@ -32,13 +31,12 @@ from superset.utils.pandas_postprocessing.utils import (
 def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     rolling_type: str,
-    columns: Optional[Dict[str, str]] = None,
+    columns: Dict[str, str],
     window: Optional[int] = None,
     rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
     min_periods: Optional[int] = None,
-    is_pivot_df: bool = False,
 ) -> DataFrame:
     """
     Apply a rolling window on the dataset. See the Pandas docs for further details:
@@ -58,16 +56,12 @@ def rolling(  # pylint: disable=too-many-arguments
     :param win_type: Type of window function.
     :param min_periods: The minimum amount of periods required for a row to be included
                         in the result set.
-    :param is_pivot_df: Dataframe is pivoted or not
     :return: DataFrame with the rolling columns
     :raises QueryObjectValidationError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
-    columns = columns or {}
-    if is_pivot_df:
-        df_rolling = df
-    else:
-        df_rolling = df[columns.keys()]
+    df_rolling = df.loc[:, columns.keys()]
+
     kwargs: Dict[str, Union[str, int]] = {}
     if window is None:
         raise QueryObjectValidationError(_("Undefined window for rolling operation"))
@@ -100,15 +94,7 @@ def rolling(  # pylint: disable=too-many-arguments
             )
         ) from ex
 
-    if is_pivot_df:
-        agg_in_pivot_df = df.columns.get_level_values(0).drop_duplicates().to_list()
-        agg: Dict[str, Dict[str, Any]] = {col: {} for col in agg_in_pivot_df}
-        df_rolling.columns = [
-            _flatten_column_after_pivot(col, agg) for col in df_rolling.columns
-        ]
-        df_rolling.reset_index(level=0, inplace=True)
-    else:
-        df_rolling = _append_columns(df, df_rolling, columns)
+    df_rolling = _append_columns(df, df_rolling, columns)
 
     if min_periods:
         df_rolling = df_rolling[min_periods:]

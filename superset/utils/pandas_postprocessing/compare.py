@@ -31,7 +31,7 @@ def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
-    compare_type: Optional[PandasPostprocessingCompare],
+    compare_type: PandasPostprocessingCompare,
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,
 ) -> DataFrame:
@@ -60,17 +60,23 @@ def compare(  # pylint: disable=too-many-arguments
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
+        s_df = df.loc[:, [s_col]]
+        s_df.rename(columns={s_col: "__intermediate"}, inplace=True)
+        c_df = df.loc[:, [c_col]]
+        c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
-            diff_series = df[s_col] - df[c_col]
+            diff_df = s_df - c_df
         elif compare_type == PandasPostprocessingCompare.PCT:
-            diff_series = (
-                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
-            )
+            diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
         else:
             # compare_type == "ratio"
-            diff_series = (df[s_col] / df[c_col]).astype(float).round(precision)
-        diff_df = diff_series.to_frame(
-            name=TIME_COMPARISION.join([compare_type, s_col, c_col])
+            diff_df = (s_df / c_df).astype(float).round(precision)
+
+        diff_df.rename(
+            columns={
+                "__intermediate": TIME_COMPARISION.join([compare_type, s_col, c_col])
+            },
+            inplace=True,
         )
         df = pd.concat([df, diff_df], axis=1)
 
