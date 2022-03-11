@@ -136,7 +136,9 @@ describe('DatasourceEditor', () => {
       userEvent.click(getToggles[0]);
       const getTextboxes = screen.getAllByRole('textbox');
       expect(getTextboxes.length).toEqual(5);
-      expect(screen.queryByTestId('column-data-type-select')).toBeNull();
+      expect(
+        screen.queryByTestId('column-data-type-select'),
+      ).not.toBeInTheDocument();
 
       const inputLabel = screen.getByPlaceholderText('Label');
       const inputDescription = screen.getByPlaceholderText('Description');
@@ -177,7 +179,9 @@ describe('DatasourceEditor', () => {
       userEvent.click(getToggles[0]);
       const getTextboxes = screen.getAllByRole('textbox');
       expect(getTextboxes.length).toEqual(5);
-      expect(screen.queryByTestId('column-data-type-select')).toBeTruthy();
+      expect(
+        screen.queryByTestId('column-data-type-select'),
+      ).toBeInTheDocument();
 
       const inputLabel = screen.getByPlaceholderText('Label');
       const inputDescription = screen.getByPlaceholderText('Description');

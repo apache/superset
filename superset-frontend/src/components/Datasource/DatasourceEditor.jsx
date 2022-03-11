@@ -234,7 +234,7 @@ function ColumnCollectionTable({
                 label={t('Data type')}
                 control={
                   <Select
-                    data-test={`column-data-type-select`}
+                    data-test="column-data-type-select"
                     ariaLabel={t('Data type')}
                     options={DATA_TYPES}
                     name="type"
