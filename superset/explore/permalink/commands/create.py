@@ -30,9 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(  # pylint: disable=too-many-arguments
-        self, actor: User, state: Dict[str, Any], key_type: KeyType,
-    ):
+    def __init__(self, actor: User, state: Dict[str, Any], key_type: KeyType):
         self.actor = actor
         self.chart_id: Optional[int] = state["formData"].get("chart_id")
         self.dataset: str = state["formData"]["datasource"]
@@ -51,8 +49,7 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
             command = CreateKeyValueCommand(
                 self.actor, self.resource, value, self.key_type
             )
-            key = command.run()
-            return key
+            return command.run()
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise ExplorePermalinkCreateFailedError() from ex

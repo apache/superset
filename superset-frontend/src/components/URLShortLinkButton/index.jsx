@@ -21,7 +21,6 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { URL_PARAMS } from '../../constants';

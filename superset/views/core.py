@@ -1937,7 +1937,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     def dashboard(
         self,
-        dashboard_id_or_slug: str,
+        dashboard_id_or_slug: str,  # pylint: disable=unused-argument
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
         dashboard: Optional[Dashboard] = None,
     ) -> FlaskResponse:
