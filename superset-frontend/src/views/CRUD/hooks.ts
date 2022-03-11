@@ -758,3 +758,14 @@ export function useDatabaseValidation() {
 
   return [validationErrors, getValidation, setValidationErrors] as const;
 }
+
+export const reportSelector = (
+  state: Record<string, any>,
+  resourceType: string,
+  resourceId?: number,
+) => {
+  if (resourceId) {
+    return state.reports[resourceType]?.[resourceId];
+  }
+  return {};
+};

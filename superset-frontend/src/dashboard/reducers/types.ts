@@ -34,6 +34,16 @@ export type ChartConfiguration = {
   };
 };
 
+export type User = {
+  email: string;
+  firstName: string;
+  isActive: boolean;
+  lastName: string;
+  permissions: Record<string, any>;
+  roles: Record<string, any>;
+  userId: number;
+  username: string;
+};
 export interface DashboardInfo {
   id: number;
   json_metadata: string;
