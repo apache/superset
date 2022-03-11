@@ -157,7 +157,7 @@ setup(
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.8.10, <0.9"],
         "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.11, <2"
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
         ],
         "snowflake": [
             "snowflake-sqlalchemy==1.2.4"
