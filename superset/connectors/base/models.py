@@ -72,7 +72,8 @@ class BaseDatasource(
     # class attributes to define when deriving BaseDatasource
     # ---------------------------------------------------------------
     __tablename__: Optional[str] = None  # {connector_name}_datasource
-    baselink: Optional[str] = None  # url portion pointing to ModelView endpoint
+    # url portion pointing to ModelView endpoint
+    baselink: Optional[str] = None
 
     @property
     def column_class(self) -> Type["BaseColumn"]:
@@ -327,6 +328,7 @@ class BaseDatasource(
             # for legacy dashboard imports which have the wrong query_context in them
             try:
                 query_context = slc.get_query_context()
+                print("SDLKJWEIFSLDKJ")
             except DatasetNotFoundError:
                 query_context = None
 

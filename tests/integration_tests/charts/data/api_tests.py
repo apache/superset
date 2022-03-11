@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from superset.columns.models import Column
 import unittest
 import copy
 from datetime import datetime
@@ -35,6 +36,7 @@ from tests.integration_tests.base_tests import (
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_dashboard_with_sl_slices,
     load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
@@ -43,6 +45,7 @@ import pytest
 
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
+from superset.datasets.models import Dataset
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
@@ -115,6 +118,16 @@ class BaseTestChartDataApi(SupersetTestCase):
 class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_valid_qc__data_is_returned(self):
+        # arrange
+        expected_row_count = self.get_expected_row_count("client_id_1")
+        # act
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        # assert
+        assert rv.status_code == 200
+        self.assert_row_count(rv, expected_row_count)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_sl_slices")
+    def test_with_valid_qc__data_is_returned_on_sl_data(self):
         # arrange
         expected_row_count = self.get_expected_row_count("client_id_1")
         # act
@@ -513,6 +526,27 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
         assert rv.status_code == 400
+
+    def test_with_sl_datasource(self):
+
+        column = Column(name="name", type="foobar", expression="name")
+
+        dataset = Dataset(
+            name="sl_dataset_1",
+            expression="select ':foo' as foo, ':bar:' as bar, state, num from birth_names",
+            columns=[column],
+        )
+        db.session.add(dataset)
+        db.session.commit()
+
+        self.query_context_payload["datasource"] = {
+            "type": "sl_dataset",
+            "id": dataset.id,
+        }
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.get_data() == 200
 
     def test_with_not_permitted_actor__403(self):
         """

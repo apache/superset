@@ -136,7 +136,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     # See https://github.com/apache/superset/issues/16051.
                     continue
 
-                dataset_info[str(dataset.uuid)] = {
+                dataset_info[str(dataset.uuid)] = {  # todo sip 68
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",
                     "datasource_name": dataset.table_name,

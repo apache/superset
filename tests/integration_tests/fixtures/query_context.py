@@ -30,6 +30,7 @@ def get_query_context(
     add_postprocessing_operations: bool = False,
     add_time_offsets: bool = False,
     form_data: Optional[Dict[str, Any]] = None,
+    table_type: str = None,
 ) -> Dict[str, Any]:
     """
     Create a request payload for retrieving a QueryContext object via the
@@ -47,4 +48,5 @@ def get_query_context(
         add_postprocessing_operations=add_postprocessing_operations,
         add_time_offsets=add_time_offsets,
         form_data=form_data,
+        table_type=table_type,
     )

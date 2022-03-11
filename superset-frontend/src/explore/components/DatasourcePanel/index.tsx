@@ -173,7 +173,7 @@ export default function DataSourcePanel({
   actions,
   shouldForceUpdate,
 }: Props) {
-  const { columns: _columns, metrics } = datasource;
+  const { columns: _columns = [], metrics } = datasource;
 
   // display temporal column first
   const columns = useMemo(
@@ -274,7 +274,7 @@ export default function DataSourcePanel({
     () =>
       showAllMetrics
         ? lists.metrics
-        : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
+        : lists.metrics?.slice(0, DEFAULT_MAX_METRICS_LENGTH),
     [lists.metrics, showAllMetrics],
   );
   const columnSlice = useMemo(
@@ -313,11 +313,11 @@ export default function DataSourcePanel({
               <div className="field-length">
                 {t(
                   `Showing %s of %s`,
-                  metricSlice.length,
-                  lists.metrics.length,
+                  metricSlice?.length,
+                  lists.metrics?.length,
                 )}
               </div>
-              {metricSlice.map(m => (
+              {metricSlice?.map(m => (
                 <LabelContainer
                   key={m.metric_name + String(shouldForceUpdate)}
                   className="column"
@@ -332,7 +332,7 @@ export default function DataSourcePanel({
                   )}
                 </LabelContainer>
               ))}
-              {lists.metrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
+              {(lists.metrics?.length || 0) > DEFAULT_MAX_METRICS_LENGTH ? (
                 <ButtonContainer>
                   <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
                     {showAllMetrics ? t('Show less...') : t('Show all...')}
@@ -386,7 +386,7 @@ export default function DataSourcePanel({
       columnSlice,
       inputValue,
       lists.columns.length,
-      lists.metrics.length,
+      lists.metrics?.length,
       metricSlice,
       search,
       showAllColumns,

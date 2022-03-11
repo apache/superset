@@ -23,6 +23,7 @@ from pandas import DataFrame
 
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.models import Dataset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -43,6 +44,18 @@ def get_table(
     )
 
 
+def get_sl_table(
+    table_name: str, database: Database, schema: Optional[str] = None,
+):
+    schema = schema or get_example_default_schema()
+    table_source = ConnectorRegistry.sources["sl_table"]
+    return (
+        db.session.query(table_source)
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .one_or_none()
+    )
+
+
 def create_table_metadata(
     table_name: str,
     database: Database,
@@ -55,6 +68,29 @@ def create_table_metadata(
     table = get_table(table_name, database, schema)
     if not table:
         table_source = ConnectorRegistry.sources["table"]
+        table = table_source(schema=schema, table_name=table_name)
+    if fetch_values_predicate:
+        table.fetch_values_predicate = fetch_values_predicate
+    table.database = database
+    table.description = table_description
+    db.session.merge(table)
+    db.session.commit()
+
+    return table
+
+
+def create_sl_table_metadata(
+    table_name: str,
+    database: Database,
+    table_description: str = "",
+    fetch_values_predicate: Optional[str] = None,
+    schema: Optional[str] = None,
+) -> Dataset:
+    schema = schema or get_example_default_schema()
+
+    table = get_table(table_name, database, schema)
+    if not table:
+        table_source = ConnectorRegistry.sources["sl_table"]
         table = table_source(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate

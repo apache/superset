@@ -487,7 +487,7 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.columns.filter(c => c.filterable) || [],
+    columns: datasource?.columns?.filter(c => c.filterable) || [],
     savedMetrics: datasource?.metrics || [],
     // current active adhoc metrics
     selectedMetrics:

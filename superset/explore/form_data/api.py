@@ -105,6 +105,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
+
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
@@ -113,6 +114,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 form_data=item["form_data"],
+                datasource=item["datasource"],
             )
             key = CreateFormDataCommand(args).run()
             return self.response(201, key=key)

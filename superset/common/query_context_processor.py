@@ -184,7 +184,7 @@ class QueryContextProcessor:
 
         # The datasource here can be different backend but the interface is common
         result = query_context.datasource.query(query_object.to_dict())
-        query = result.query + ";\n\n"
+        query = (result.query or "") + ";\n\n"
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported

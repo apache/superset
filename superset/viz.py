@@ -729,8 +729,10 @@ class TableViz(BaseViz):
             else QueryMode.AGGREGATE
         )
 
-        columns: List[str]  # output columns sans time and percent_metric column
-        percent_columns: List[str] = []  # percent columns that needs extra computation
+        # output columns sans time and percent_metric column
+        columns: List[str]
+        # percent columns that needs extra computation
+        percent_columns: List[str] = []
 
         if self.query_mode == QueryMode.RAW:
             columns = get_metric_names(self.form_data.get("all_columns"))
@@ -1742,9 +1744,7 @@ class HistogramViz(BaseViz):
             raise QueryObjectValidationError(
                 _("Must have at least one numeric column specified")
             )
-        self.columns = (  #  pylint: disable=attribute-defined-outside-init
-            numeric_columns
-        )
+        self.columns = numeric_columns  # pylint: disable=attribute-defined-outside-init
         query_obj["columns"] = numeric_columns + self.groupby
         # override groupby entry to avoid aggregation
         query_obj["groupby"] = None
@@ -2389,9 +2389,11 @@ class MapboxViz(BaseViz):
         has_custom_metric = label_col is not None and len(label_col) > 0
         metric_col = [None] * len(df.index)
         if has_custom_metric:
-            if label_col[0] == self.form_data.get("all_columns_x"):  # type: ignore
+            # type: ignore
+            if label_col[0] == self.form_data.get("all_columns_x"):
                 metric_col = df[self.form_data.get("all_columns_x")]
-            elif label_col[0] == self.form_data.get("all_columns_y"):  # type: ignore
+            # type: ignore
+            elif label_col[0] == self.form_data.get("all_columns_y"):
                 metric_col = df[self.form_data.get("all_columns_y")]
             else:
                 metric_col = df[label_col[0]]  # type: ignore

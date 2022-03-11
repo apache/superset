@@ -1229,9 +1229,9 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("get_table_datasource")
     def test_explore_json_with_table_dataset(self):
-        dataset_id = self.sl_dataset_ids.get("students")
+        tbl_id = self.table_ids.get("students")
         form_data = {
-            "datasource": f"{dataset_id}__sl_table",
+            "datasource": f"{tbl_id}__sl_table",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
@@ -1251,9 +1251,9 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("get_sl_dataset")
     def test_explore_json_with_sl_dataset(self):
-        tbl_id = self.sl_table_ids.get("students")
+        dataset_id = self.sl_dataset_ids.get("students_ds")
         form_data = {
-            "datasource": f"{tbl_id}__sl_dataset",
+            "datasource": f"{dataset_id}__sl_dataset",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
@@ -1267,7 +1267,6 @@ class TestCore(SupersetTestCase):
         rv = self.client.post(
             "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
         )
-        print(rv.get_data())
         data = json.loads(rv.data.decode("utf-8"))
 
         self.assertEqual(rv.status_code, 200)

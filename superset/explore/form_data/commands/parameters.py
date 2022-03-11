@@ -28,3 +28,4 @@ class CommandParameters:
     tab_id: Optional[int] = None
     key: Optional[str] = None
     form_data: Optional[str] = None
+    datasource: Optional[str] = None

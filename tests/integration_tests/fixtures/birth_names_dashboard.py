@@ -51,6 +51,14 @@ def load_birth_names_dashboard_with_slices(load_birth_names_data):
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
+@pytest.fixture()
+def load_birth_names_dashboard_with_sl_slices(load_birth_names_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = _create_sl_dashboards()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
 @pytest.fixture(scope="module")
 def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
     with app.app_context():
@@ -61,6 +69,22 @@ def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
 
 def _create_dashboards():
     table = _create_table(
+        table_name=BIRTH_NAMES_TBL_NAME,
+        database=get_example_database(),
+        fetch_values_predicate="123 = 123",
+    )
+
+    from superset.examples.birth_names import create_dashboard, create_slices
+
+    slices, _ = create_slices(table, admin_owner=False)
+    dash = create_dashboard(slices)
+    slices_ids_to_delete = [slice.id for slice in slices]
+    dash_id_to_delete = dash.id
+    return dash_id_to_delete, slices_ids_to_delete
+
+
+def _create_sl_dashboards():
+    table = _create_sl_table(
         table_name=BIRTH_NAMES_TBL_NAME,
         database=get_example_database(),
         fetch_values_predicate="123 = 123",
@@ -89,6 +113,25 @@ def _create_table(
 
     _set_table_metadata(table, database)
     _add_table_metrics(table)
+    db.session.commit()
+    return table
+
+
+def _create_sl_table(
+    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
+):
+    table = create_table_metadata(
+        table_name=table_name,
+        database=database,
+        fetch_values_predicate=fetch_values_predicate,
+    )
+    from superset.examples.birth_names import (
+        _add_sl_table_metrics,
+        _set_sl_table_metadata,
+    )
+
+    _set_sl_table_metadata(table, database)
+    _add_sl_table_metrics(table)
     db.session.commit()
     return table
 

@@ -48,11 +48,20 @@ from superset.typing import QueryObjectDict
 # todo - move this
 class SqlaQuery(NamedTuple):
     applied_template_filters: List[str]
-    query: Query = None
-    status: str = None
-    errors = []
-    df = pd.DataFrame()
-    empty = False
+    cte: Optional[str]
+    extra_cache_keys: List[Any]
+    labels_expected: List[str]
+    prequeries: List[str]
+    sqla_query: Select
+
+
+# class SqlaQuery(NamedTuple):
+#     applied_template_filters: List[str]
+#     query: Query = None
+#     status: str = None
+#     errors = []
+#     df = pd.DataFrame()
+#     empty = False
 
 
 association_table = sa.Table(

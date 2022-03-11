@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetAccessDeniedError
+from superset.datasets.models import Dataset
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
@@ -43,7 +44,8 @@ UPDATED_FORM_DATA = json.dumps({"test": "updated value"})
 def chart_id(load_world_bank_dashboard_with_slices) -> int:
     with app.app_context() as ctx:
         session: Session = ctx.app.appbuilder.get_session
-        chart = session.query(Slice).filter_by(slice_name="World's Population").one()
+        chart = session.query(Slice).filter_by(
+            slice_name="World's Population").one()
         return chart.id
 
 
@@ -67,6 +69,15 @@ def dataset_id() -> int:
         return dataset.id
 
 
+@pytest.fixture
+def sl_dataset_id() -> int:
+    with app.app_context() as ctx:
+        session: Session = ctx.app.appbuilder.get_session
+        dataset = session.query(Dataset).filter_by(
+            expression="birth_names").first()
+        return dataset.id
+
+
 @pytest.fixture(autouse=True)
 def cache(chart_id, admin_id, dataset_id):
     entry: TemporaryExploreState = {
@@ -84,6 +95,26 @@ def test_post(client, chart_id: int, dataset_id: int):
         "dataset_id": dataset_id,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
+    }
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    assert resp.status_code == 201
+
+
+def test_post_with_sl_dataset(client, chart_id: int, sl_dataset_id: int):
+    login(client, "admin")
+    form_data = {
+        "adhoc_filters": [],
+        "viz_type": "sankey",
+        "groupby": ["target"],
+        "metric": "sum__value",
+        "row_limit": 5000,
+        "slice_id": chart_id,
+        "time_range_endpoints": ["inclusive", "exclusive"],
+    }
+    payload = {
+        "dataset_id": sl_dataset_id,
+        "chart_id": chart_id,
+        "form_data": json.dumps(form_data),
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 201

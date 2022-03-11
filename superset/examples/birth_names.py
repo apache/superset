@@ -25,6 +25,7 @@ from sqlalchemy.sql import column
 
 from superset import app, db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.datasets.models import Dataset
 from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -135,6 +136,36 @@ def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
 
 
 def _add_table_metrics(datasource: SqlaTable) -> None:
+    if not any(col.column_name == "num_california" for col in datasource.columns):
+        col_state = str(column("state").compile(db.engine))
+        col_num = str(column("num").compile(db.engine))
+        datasource.columns.append(
+            TableColumn(
+                column_name="num_california",
+                expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
+            )
+        )
+
+    if not any(col.metric_name == "sum__num" for col in datasource.metrics):
+        col = str(column("num").compile(db.engine))
+        datasource.metrics.append(
+            SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
+        )
+
+    for col in datasource.columns:
+        if col.column_name == "ds":
+            col.is_dttm = True
+            break
+
+
+def _set_sl_table_metadata(datasource: Dataset, database: "Database") -> None:
+    datasource.main_dttm_col = "ds"
+    datasource.database = database
+    datasource.filter_select_enabled = True
+    datasource.fetch_metadata()
+
+
+def _add_sl_table_metrics(datasource: Dataset) -> None:
     if not any(col.column_name == "num_california" for col in datasource.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))

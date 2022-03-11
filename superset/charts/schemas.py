@@ -999,7 +999,7 @@ class ChartDataDatasourceSchema(Schema):
     )
     type = fields.String(
         description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+        validate=validate.OneOf(choices=("druid", "table", "sl_table", "sl_dataset")),
     )
 
 

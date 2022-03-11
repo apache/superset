@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.extensions import db
 
 if TYPE_CHECKING:
     from collections import OrderedDict
@@ -56,6 +57,27 @@ class ConnectorRegistry:
 
         datasource = (
             session.query(cls.sources[datasource_type])
+            .filter_by(id=datasource_id)
+            .one_or_none()
+        )
+
+        if not datasource:
+            raise DatasetNotFoundError()
+
+        return datasource
+
+    @classmethod
+    def get_datasource_no_session(
+        cls, datasource_type: str, datasource_id: int
+    ) -> "BaseDatasource":
+        """Safely get a datasource instance, raises `DatasetNotFoundError` if
+        `datasource_type` is not registered or `datasource_id` does not
+        exist."""
+        if datasource_type not in cls.sources:
+            raise DatasetNotFoundError()
+
+        datasource = (
+            db.session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one_or_none()
         )

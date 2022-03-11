@@ -28,7 +28,7 @@ export default class DatasourceKey {
     const [idStr, typeStr] = key.split('__');
     this.id = parseInt(idStr, 10);
     this.type =
-      typeStr === 'table' ? DatasourceType.Table : DatasourceType.Druid;
+      typeStr === 'table' ? DatasourceType.Table : DatasourceType.SLDataset;
   }
 
   public toString() {
