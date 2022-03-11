@@ -18,60 +18,100 @@
  */
 import React from 'react';
 import moment from 'moment-timezone';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimezoneSelector from './index';
 
-describe('TimezoneSelector', () => {
-  let timezone: string | undefined;
-  const onTimezoneChange = jest.fn(zone => {
-    timezone = zone;
-  });
-  beforeEach(() => {
-    timezone = undefined;
-  });
-  it('renders a TimezoneSelector with a default if undefined', () => {
-    jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
-    render(
-      <TimezoneSelector
-        onTimezoneChange={onTimezoneChange}
-        timezone={timezone}
-      />,
-    );
-    expect(onTimezoneChange).toHaveBeenCalledWith('America/Nassau');
-  });
-  it('should properly select values from the offsetsToName map', async () => {
-    jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
-    render(
-      <TimezoneSelector
-        onTimezoneChange={onTimezoneChange}
-        timezone={timezone}
-      />,
-    );
+jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
 
-    const select = screen.getByRole('combobox', {
-      name: 'Timezone selector',
-    });
-    expect(select).toBeInTheDocument();
-    userEvent.click(select);
+const getSelectOptions = () =>
+  waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
 
-    const isDaylight = moment('now').isDST();
-    let findTitle = 'GMT -07:00 (Mountain Standard Time)';
-    if (isDaylight) {
-      findTitle = 'GMT -06:00 (Mountain Daylight Time)';
-    }
-    const selection = await screen.findByTitle(findTitle);
-    expect(selection).toBeInTheDocument();
-    userEvent.click(selection);
-    expect(selection).toBeVisible();
+it('use the timezone from `moment` if no timezone provided', () => {
+  const onTimezoneChange = jest.fn();
+  render(<TimezoneSelector onTimezoneChange={onTimezoneChange} />);
+  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
+  expect(onTimezoneChange).toHaveBeenCalledWith('America/Nassau');
+});
+
+it('update to closest deduped timezone when timezone is provided', async () => {
+  const onTimezoneChange = jest.fn();
+  render(
+    <TimezoneSelector
+      onTimezoneChange={onTimezoneChange}
+      timezone="America/Los_Angeles"
+    />,
+  );
+  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
+  expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Vancouver');
+});
+
+it('use the default timezone when an invalid timezone is provided', async () => {
+  const onTimezoneChange = jest.fn();
+  render(
+    <TimezoneSelector onTimezoneChange={onTimezoneChange} timezone="UTC" />,
+  );
+  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
+  expect(onTimezoneChange).toHaveBeenLastCalledWith('Africa/Abidjan');
+});
+
+it('can select a timezone values and returns canonical value', async () => {
+  const onTimezoneChange = jest.fn();
+  render(
+    <TimezoneSelector
+      onTimezoneChange={onTimezoneChange}
+      timezone="America/Nassau"
+    />,
+  );
+
+  const searchInput = screen.getByRole('combobox', {
+    name: 'Timezone selector',
   });
-  it('renders a TimezoneSelector with the closest value if passed in', async () => {
-    render(
-      <TimezoneSelector
-        onTimezoneChange={onTimezoneChange}
-        timezone="America/Los_Angeles"
-      />,
-    );
-    expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Vancouver');
-  });
+  expect(searchInput).toBeInTheDocument();
+  userEvent.click(searchInput);
+  const isDaylight = moment(moment.now()).isDST();
+
+  const selectedTimezone = isDaylight
+    ? 'GMT -04:00 (Eastern Daylight Time)'
+    : 'GMT -05:00 (Eastern Standard Time)';
+
+  // selected option ranks first
+  const options = await getSelectOptions();
+  expect(options[0]).toHaveTextContent(selectedTimezone);
+
+  // others are ranked by offset
+  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
+  expect(options[2]).toHaveTextContent('GMT -10:00 (Hawaii Standard Time)');
+  expect(options[3]).toHaveTextContent('GMT -10:00 (America/Adak)');
+
+  // search for mountain time
+  await userEvent.type(searchInput, 'mou', { delay: 10 });
+
+  const findTitle = isDaylight
+    ? 'GMT -06:00 (Mountain Daylight Time)'
+    : 'GMT -07:00 (Mountain Standard Time)';
+  const selectOption = await screen.findByTitle(findTitle);
+  expect(selectOption).toBeInTheDocument();
+  userEvent.click(selectOption);
+  expect(onTimezoneChange).toHaveBeenCalledTimes(1);
+  expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Cambridge_Bay');
+});
+
+it('can update props and rerender with different values', async () => {
+  const onTimezoneChange = jest.fn();
+  const { rerender } = render(
+    <TimezoneSelector
+      onTimezoneChange={onTimezoneChange}
+      timezone="Asia/Dubai"
+    />,
+  );
+  expect(screen.getByTitle('GMT +04:00 (Asia/Dubai)')).toBeInTheDocument();
+  rerender(
+    <TimezoneSelector
+      onTimezoneChange={onTimezoneChange}
+      timezone="Australia/Perth"
+    />,
+  );
+  expect(screen.getByTitle('GMT +08:00 (Australia/Perth)')).toBeInTheDocument();
+  expect(onTimezoneChange).toHaveBeenCalledTimes(0);
 });
