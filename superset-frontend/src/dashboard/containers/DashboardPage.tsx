@@ -169,7 +169,6 @@ const DashboardPage: FC = () => {
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-      // check if key from temporary_cache api and get datamask
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {
