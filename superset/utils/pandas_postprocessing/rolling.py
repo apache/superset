@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Union
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
     _append_columns,
     DENYLIST_ROLLING_FUNCTIONS,
@@ -57,16 +57,16 @@ def rolling(  # pylint: disable=too-many-arguments
     :param min_periods: The minimum amount of periods required for a row to be included
                         in the result set.
     :return: DataFrame with the rolling columns
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
     df_rolling = df.loc[:, columns.keys()]
 
     kwargs: Dict[str, Union[str, int]] = {}
     if window is None:
-        raise QueryObjectValidationError(_("Undefined window for rolling operation"))
+        raise InvalidPostProcessingError(_("Undefined window for rolling operation"))
     if window == 0:
-        raise QueryObjectValidationError(_("Window must be > 0"))
+        raise InvalidPostProcessingError(_("Window must be > 0"))
 
     kwargs["window"] = window
     if min_periods is not None:
@@ -80,13 +80,13 @@ def rolling(  # pylint: disable=too-many-arguments
     if rolling_type not in DENYLIST_ROLLING_FUNCTIONS or not hasattr(
         df_rolling, rolling_type
     ):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("Invalid rolling_type: %(type)s", type=rolling_type)
         )
     try:
         df_rolling = getattr(df_rolling, rolling_type)(**rolling_type_options)
     except TypeError as ex:
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _(
                 "Invalid options for %(rolling_type)s: %(options)s",
                 rolling_type=rolling_type,

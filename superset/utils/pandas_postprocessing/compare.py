@@ -21,7 +21,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import TIME_COMPARISION
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
@@ -46,14 +46,14 @@ def compare(  # pylint: disable=too-many-arguments
            compare columns.
     :param precision: Round a change rate to a variable number of decimal places.
     :return: DataFrame with compared columns.
-    :raises QueryObjectValidationError: If the request in incorrect.
+    :raises InvalidPostProcessingError: If the request in incorrect.
     """
     if len(source_columns) != len(compare_columns):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("`compare_columns` must have the same length as `source_columns`.")
         )
     if compare_type not in tuple(PandasPostprocessingCompare):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("`compare_type` must be `difference`, `percentage` or `ratio`")
         )
     if len(source_columns) == 0:

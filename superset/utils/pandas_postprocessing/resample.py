@@ -36,7 +36,7 @@ def resample(
     :param method: How to fill the NaN value after resample.
     :param fill_value: What values do fill missing.
     :return: DataFrame after resample
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     if not isinstance(df.index, pd.DatetimeIndex):
         raise InvalidPostProcessingError(_("Resample operation requires DatetimeIndex"))

@@ -19,7 +19,7 @@ from typing import Dict
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
     _append_columns,
     ALLOWLIST_CUMULATIVE_FUNCTIONS,
@@ -47,7 +47,7 @@ def cum(df: DataFrame, operator: str, columns: Dict[str, str],) -> DataFrame:
     if operation not in ALLOWLIST_CUMULATIVE_FUNCTIONS or not hasattr(
         df_cum, operation
     ):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("Invalid cumulative operator: %(operator)s", operator=operator)
         )
     df_cum = _append_columns(df, getattr(df_cum, operation)(), columns)

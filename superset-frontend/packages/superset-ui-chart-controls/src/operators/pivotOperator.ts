@@ -33,9 +33,9 @@ export const pivotOperator: PostProcessingFactory<
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    if (isValidTimeCompare(formData, queryObject)) {
-      return timeComparePivotOperator(formData, queryObject);
-    }
+    // if (isValidTimeCompare(formData, queryObject)) {
+    //   return timeComparePivotOperator(formData, queryObject);
+    // }
 
     return {
       operation: 'pivot',

@@ -22,7 +22,7 @@ import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame, NamedAgg, Timestamp
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 
 NUMPY_FUNCTIONS = {
     "average": np.average,
@@ -135,7 +135,7 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
                 if name in options and not all(
                     elem in columns for elem in options.get(name) or []
                 ):
-                    raise QueryObjectValidationError(
+                    raise InvalidPostProcessingError(
                         _("Referenced columns not available in DataFrame.")
                     )
             return func(df, **options)
@@ -160,14 +160,14 @@ def _get_aggregate_funcs(
     for name, agg_obj in aggregates.items():
         column = agg_obj.get("column", name)
         if column not in df:
-            raise QueryObjectValidationError(
+            raise InvalidPostProcessingError(
                 _(
                     "Column referenced by aggregate is undefined: %(column)s",
                     column=column,
                 )
             )
         if "operator" not in agg_obj:
-            raise QueryObjectValidationError(
+            raise InvalidPostProcessingError(
                 _("Operator undefined for aggregator: %(name)s", name=name,)
             )
         operator = agg_obj["operator"]
@@ -176,7 +176,7 @@ def _get_aggregate_funcs(
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _("Invalid numpy function: %(operator)s", operator=operator,)
                 )
             options = agg_obj.get("options", {})
