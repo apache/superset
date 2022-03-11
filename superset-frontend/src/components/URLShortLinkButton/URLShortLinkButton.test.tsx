@@ -23,18 +23,28 @@ import fetchMock from 'fetch-mock';
 import URLShortLinkButton from 'src/components/URLShortLinkButton';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
-const payload = {
+const DASHBOARD_ID = 10;
+const PERMALINK_PAYLOAD = {
   key: '123',
   url: 'http://fakeurl.com/123',
 };
-
-const DASHBOARD_ID = 10;
+const FILTER_STATE_PAYLOAD = {
+  value: '{}',
+};
 
 const props = {
   dashboardId: DASHBOARD_ID,
 };
 
-fetchMock.post(`glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`, payload);
+fetchMock.get(
+  `glob:*/api/v1/dashboard/${DASHBOARD_ID}/filter_state*`,
+  FILTER_STATE_PAYLOAD,
+);
+
+fetchMock.post(
+  `glob:*/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
+  PERMALINK_PAYLOAD,
+);
 
 test('renders with default props', () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
@@ -50,7 +60,9 @@ test('renders overlay on click', async () => {
 test('obtains short url', async () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
   userEvent.click(screen.getByRole('button'));
-  expect(await screen.findByRole('tooltip')).toHaveTextContent(payload.url);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    PERMALINK_PAYLOAD.url,
+  );
 });
 
 test('creates email anchor', async () => {
@@ -68,7 +80,7 @@ test('creates email anchor', async () => {
     },
   );
 
-  const href = `mailto:?Subject=${subject}%20&Body=${content}${payload.url}`;
+  const href = `mailto:?Subject=${subject}%20&Body=${content}${PERMALINK_PAYLOAD.url}`;
   userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('link')).toHaveAttribute('href', href);
 });

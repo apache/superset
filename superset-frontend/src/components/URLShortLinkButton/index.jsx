@@ -54,7 +54,7 @@ class URLShortLinkButton extends React.Component {
   getCopyUrl(e) {
     e.stopPropagation();
     const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
-    if (nativeFiltersKey && this.props.dashboardId) {
+    if (this.props.dashboardId) {
       getFilterValue(this.props.dashboardId, nativeFiltersKey)
         .then(filterState =>
           getDashboardPermalink(
