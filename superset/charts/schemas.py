@@ -767,6 +767,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "diff",
                 "compare",
                 "resample",
+                "flat",
             )
         ),
         example="aggregate",
