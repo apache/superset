@@ -973,17 +973,17 @@ class TestSecurityManager(SupersetTestCase):
 
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_datasource(self, mock_can_access_schema, mock_can_access):
+    def test_raise_for_datasource_access(self, mock_can_access_schema, mock_can_access):
         datasource = self.get_datasource_mock()
 
         mock_can_access_schema.return_value = True
-        security_manager.raise_for_access(datasource=datasource)
+        security_manager.raise_for_datasource_access(datasource)
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(datasource=datasource)
+            security_manager.raise_for_datasource_access(datasource)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_query(self, mock_can_access):

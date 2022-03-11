@@ -560,7 +560,7 @@ class BaseDatasource(
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(datasource=self)
+        security_manager.raise_for_datasource_access(self)
 
     @classmethod
     def get_datasource_by_name(

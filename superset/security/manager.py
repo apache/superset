@@ -367,7 +367,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         try:
-            self.raise_for_access(datasource=datasource)
+            self.raise_for_datasource_access(datasource)
         except SupersetSecurityException:
             return False
 
@@ -1036,11 +1036,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if denied:
             raise SupersetSecurityException(self.get_table_access_error_object(denied))
 
+    def raise_for_datasource_access(self, datasource: "BaseDatasource") -> None:
+        """
+        Raise an exception if the user cannot access the datasource
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import feature_flag_manager
+
+        should_check_dashboard_access = (
+            feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+            or self.is_guest_user()
+        )
+
+        if not (
+            self.can_access_schema(datasource)
+            or self.can_access("datasource_access", datasource.perm or "")
+            or (
+                should_check_dashboard_access
+                and self.can_access_based_on_dashboard(datasource)
+            )
+        ):
+            raise SupersetSecurityException(
+                self.get_datasource_access_error_object(datasource)
+            )
+
     def raise_for_access(
         # pylint: disable=too-many-arguments
         self,
         database: Optional["Database"] = None,
-        datasource: Optional["BaseDatasource"] = None,
         query: Optional["Query"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
@@ -1050,7 +1073,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Raise an exception if the user cannot access the resource.
 
         :param database: The Superset database
-        :param datasource: The Superset datasource
         :param query: The SQL Lab query
         :param query_context: The query context
         :param table: The Superset table (requires database)
@@ -1060,7 +1082,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
-        from superset.extensions import feature_flag_manager
 
         if database and table or query:
             if query:
@@ -1081,7 +1102,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         self.get_session, database, table.table, schema=table.schema
                     )
 
-                    # Access to any datasource is suffice.
+                    # Access to any datasource is considered sufficient.
+                    # This is actually not a great security model.
+                    # Datasources are definitionally subsets of the tables backing them,
+                    # so this relationship is backwards.
+                    # If some future traveller changes this, please be aware that
+                    # the chart data endpoint (get_sqla_query) will also need to change
+                    # to partially compile the query so that virtual datasets
+                    # don't result in false negatives.
                     for datasource_ in datasources:
                         if self.can_access("datasource_access", datasource_.perm):
                             break
@@ -1091,7 +1119,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         )
 
         if query_context:
-            self.raise_for_access(datasource=query_context.datasource)
+            self.raise_for_datasource_access(query_context.datasource)
             from superset.common.chart_data import ChartDataResultType
             from superset.common.query_actions import compile_query
 
@@ -1116,25 +1144,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
         if viz:
-            self.raise_for_access(datasource=viz.datasource)
-
-        if datasource:
-            should_check_dashboard_access = (
-                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
-                or self.is_guest_user()
-            )
-
-            if not (
-                self.can_access_schema(datasource)
-                or self.can_access("datasource_access", datasource.perm or "")
-                or (
-                    should_check_dashboard_access
-                    and self.can_access_based_on_dashboard(datasource)
-                )
-            ):
-                raise SupersetSecurityException(
-                    self.get_datasource_access_error_object(datasource)
-                )
+            self.raise_for_datasource_access(viz.datasource)
 
     def get_user_by_username(
         self, username: str, session: Session = None
