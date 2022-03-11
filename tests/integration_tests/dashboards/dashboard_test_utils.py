@@ -19,6 +19,7 @@ import random
 import string
 from typing import Any, Dict, List, Optional, Tuple
 
+from integration_tests.test_utils import random_str
 from sqlalchemy import func
 
 from superset import appbuilder, db, security_manager
@@ -80,10 +81,6 @@ def get_slice_by_name(slice_name: str) -> Slice:
     return db.session.query(Slice).filter_by(slice_name=slice_name).first()
 
 
-def get_sql_table_by_name(table_name: str):
-    return db.session.query(SqlaTable).filter_by(table_name=table_name).one()
-
-
 def count_dashboards() -> int:
     return db.session.query(func.count(Dashboard.id)).first()[0]
 
@@ -94,17 +91,6 @@ def random_title():
 
 def random_slug():
     return f"slug{random_str()}"
-
-
-def get_random_string(length):
-    letters = string.ascii_lowercase
-    result_str = "".join(random.choice(letters) for i in range(length))
-    print("Random string of length", length, "is:", result_str)
-    return result_str
-
-
-def random_str():
-    return get_random_string(8)
 
 
 def grant_access_to_dashboard(dashboard, role_name):

@@ -27,6 +27,7 @@ from zipfile import ZipFile
 
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
+from superset import security_manager
 from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
@@ -37,7 +38,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_data,
+    load_energy_table_with_slice,
+)
 from tests.integration_tests.test_app import app
+from tests.integration_tests.test_utils import get_sql_table_by_name, random_str
 
 import pytest
 
@@ -882,3 +888,36 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice",
+    )
+    def test_chart_data_with_disallowed_table_in_subquery(self):
+        username = random_str()
+        new_role_name = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role_name], should_create_roles=True)
+        new_role = security_manager.find_role(new_role_name)
+        all_data_access_perm = security_manager.find_permission_view_menu(
+            "all_datasource_access", "all_datasource_access"
+        )
+        chart_perm = security_manager.find_permission_view_menu("can_read", "Chart")
+        # the user will have access to make a birth names query,
+        # but doesn't have access to the energy usage table they are trying to query
+        table = get_sql_table_by_name("birth_names")
+        self.grant_role_access_to_table(table, new_role_name)
+        security_manager.add_permission_role(new_role, chart_perm)
+        security_manager.del_permission_role(new_role, all_data_access_perm)
+        self.logout()
+        self.login(username)
+
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["columns"] = [
+            {
+                "hasCustomLabel": True,
+                "label": "custom_subquery",
+                "sqlExpression": "(select count(*) from energy_usage)",
+            }
+        ]
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assert403(rv)

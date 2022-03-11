@@ -20,6 +20,7 @@ import json
 import prison
 import pytest
 from flask import escape
+from integration_tests.test_utils import get_sql_table_by_name
 
 from superset import app
 from superset.models import core as models
