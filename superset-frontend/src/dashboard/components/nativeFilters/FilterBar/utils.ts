@@ -18,33 +18,11 @@
  */
 
 import { areObjectsEqual } from 'src/reduxUtils';
-import {
-  DataMaskStateWithId,
-  Filter,
-  FilterState,
-  Divider,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
 
 export enum TabIds {
   AllFilters = 'allFilters',
   FilterSets = 'filterSets',
-}
-
-export function mapParentFiltersToChildren(filters: Array<Filter | Divider>): {
-  [id: string]: Filter[];
-} {
-  const cascadeChildren = {};
-  filters.forEach(filter => {
-    const [parentId] =
-      ('cascadeParentIds' in filter && filter.cascadeParentIds) || [];
-    if (parentId) {
-      if (!cascadeChildren[parentId]) {
-        cascadeChildren[parentId] = [];
-      }
-      cascadeChildren[parentId].push(filter);
-    }
-  });
-  return cascadeChildren;
 }
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>

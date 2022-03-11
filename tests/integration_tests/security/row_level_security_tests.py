@@ -256,7 +256,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
+        self.assertRegex(sql, RLS_ALICE_REGEX)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_does_not_alter_unrelated_query(self):
@@ -271,7 +271,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertNotRegexpMatches(sql, RLS_ALICE_REGEX)
+        self.assertNotRegex(sql, RLS_ALICE_REGEX)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multiple_rls_filters_are_unionized(self):
@@ -287,8 +287,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         sql = tbl.get_query_str(self.query_obj)
 
-        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
-        self.assertRegexpMatches(sql, RLS_GENDER_REGEX)
+        self.assertRegex(sql, RLS_ALICE_REGEX)
+        self.assertRegex(sql, RLS_GENDER_REGEX)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -301,8 +301,8 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         births_sql = births.get_query_str(self.query_obj)
         energy_sql = energy.get_query_str(self.query_obj)
 
-        self.assertRegexpMatches(births_sql, RLS_ALICE_REGEX)
-        self.assertRegexpMatches(energy_sql, RLS_ALICE_REGEX)
+        self.assertRegex(births_sql, RLS_ALICE_REGEX)
+        self.assertRegex(energy_sql, RLS_ALICE_REGEX)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_dataset_id_can_be_string(self):
@@ -313,4 +313,4 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
         )
         sql = dataset.get_query_str(self.query_obj)
 
-        self.assertRegexpMatches(sql, RLS_ALICE_REGEX)
+        self.assertRegex(sql, RLS_ALICE_REGEX)

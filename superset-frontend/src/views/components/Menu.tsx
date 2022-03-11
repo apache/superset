@@ -21,7 +21,7 @@ import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/common/components';
+import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
@@ -242,7 +242,7 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-') {
+          if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {

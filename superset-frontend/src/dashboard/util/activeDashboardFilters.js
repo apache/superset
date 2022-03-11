@@ -18,7 +18,6 @@
  */
 import { isEmpty } from 'lodash';
 import { mapValues, flow, keyBy } from 'lodash/fp';
-
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -62,7 +61,10 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({ filterScope }) {
+// Legacy - getChartIdsInFilterBoxScope is used only by
+// components and functions related to filter box
+// Please use src/dashboard/util/getChartIdsInFilterScope instead
+export function getChartIdsInFilterBoxScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -117,7 +119,7 @@ export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
           : columns[column] !== undefined
       ) {
         // remove filter itself
-        const scope = getChartIdsInFilterScope({
+        const scope = getChartIdsInFilterBoxScope({
           filterScope: scopes[column],
         }).filter(id => chartId !== id);
 

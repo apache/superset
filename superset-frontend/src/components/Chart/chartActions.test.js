@@ -23,7 +23,7 @@ import sinon from 'sinon';
 import * as chartlib from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as actions from 'src/chart/chartAction';
+import * as actions from 'src/components/Chart/chartAction';
 
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';

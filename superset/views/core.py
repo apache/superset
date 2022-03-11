@@ -28,7 +28,7 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, Markup, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
@@ -43,7 +43,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
-from werkzeug.urls import Href
 
 from superset import (
     app,
@@ -769,35 +768,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         query_context = request.form.get("query_context")
-        # Flash the SIP-15 message if the slice is owned by the current user and has not
-        # been updated, i.e., is not using the [start, end) interval.
-        if (
-            config["SIP_15_ENABLED"]
-            and slc
-            and g.user in slc.owners
-            and (
-                not form_data.get("time_range_endpoints")
-                or form_data["time_range_endpoints"]
-                != (
-                    utils.TimeRangeEndpoint.INCLUSIVE,
-                    utils.TimeRangeEndpoint.EXCLUSIVE,
-                )
-            )
-        ):
-            url = Href("/superset/explore/")(
-                {
-                    "form_data": json.dumps(
-                        {
-                            "slice_id": slc.id,
-                            "time_range_endpoints": (
-                                utils.TimeRangeEndpoint.INCLUSIVE.value,
-                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
-                            ),
-                        }
-                    )
-                }
-            )
-            flash(Markup(config["SIP_15_TOAST_MESSAGE"].format(url=url)))
 
         try:
             datasource_id, datasource_type = get_datasource_info(

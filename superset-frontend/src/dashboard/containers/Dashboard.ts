@@ -26,7 +26,7 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 
-import { triggerQuery } from 'src/chart/chartAction';
+import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import {
