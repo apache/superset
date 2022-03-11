@@ -51,7 +51,7 @@ class DashboardPermalinkRestApi(BaseApi):
     class_permission_name = "DashboardPermalinkRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Permanent Link"
-    openapi_spec_component_schemas = DashboardPermalinkPostSchema
+    openapi_spec_component_schemas = (DashboardPermalinkPostSchema,)
 
     @expose("/<pk>/permalink", methods=["POST"])
     @protect()
@@ -159,7 +159,9 @@ class DashboardPermalinkRestApi(BaseApi):
         """
         try:
             key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+            value = GetDashboardPermalinkCommand(
+                actor=g.user, key=key, key_type=key_type
+            ).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

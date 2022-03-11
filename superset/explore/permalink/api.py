@@ -53,7 +53,7 @@ class ExplorePermalinkRestApi(BaseApi):
     class_permission_name = "ExplorePermalinkRestApi"
     resource_name = "explore"
     openapi_spec_tag = "Explore Permanent Link"
-    openapi_spec_component_schemas = ExplorePermalinkPostSchema
+    openapi_spec_component_schemas = (ExplorePermalinkPostSchema,)
 
     @expose("/permalink", methods=["POST"])
     @protect()
@@ -160,7 +160,9 @@ class ExplorePermalinkRestApi(BaseApi):
         """
         try:
             key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            value = GetExplorePermalinkCommand(g.user, key, key_type).run()
+            value = GetExplorePermalinkCommand(
+                actor=g.user, key=key, key_type=key_type
+            ).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

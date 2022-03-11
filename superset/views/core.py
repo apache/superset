@@ -2013,7 +2013,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
-        # return self.dashboard(dashboard_id_or_slug=str(10), filter_state=filter_state)
 
     @api
     @has_access
