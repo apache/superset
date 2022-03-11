@@ -20,7 +20,6 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
@@ -28,9 +27,8 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
-import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
+import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
@@ -273,7 +271,7 @@ export class ExploreChartHeader extends React.PureComponent {
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
           />
-          <HeaderReportActionsDropdown
+          <HeaderReportDropdown
             chart={this.props.chart}
             toggleActive={this.props.toggleActive}
             deleteActiveReport={this.props.deleteActiveReport}

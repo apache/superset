@@ -34,7 +34,7 @@ import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
-import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
+import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -538,7 +538,7 @@ class Header extends React.PureComponent {
                   <Icons.EditAlt />
                 </span>
               )}
-              <HeaderReportActionsDropdown
+              <HeaderReportDropdown
                 key={dashboardInfo.id}
                 toggleActive={this.props.toggleActive}
                 deleteActiveReport={this.props.deleteActiveReport}
@@ -550,28 +550,13 @@ class Header extends React.PureComponent {
           {this.state.showingPropertiesModal && (
             <PropertiesModal
               dashboardId={dashboardInfo.id}
+              dashboardInfo={dashboardInfo}
+              dashboardTitle={dashboardTitle}
               show={this.state.showingPropertiesModal}
               onHide={this.hidePropertiesModal}
               colorScheme={this.props.colorScheme}
-              onSubmit={updates => {
-                const {
-                  dashboardInfoChanged,
-                  dashboardTitleChanged,
-                } = this.props;
-                dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                });
-                setColorSchemeAndUnsavedChanges(updates.colorScheme);
-                dashboardTitleChanged(updates.title);
-                if (updates.slug) {
-                  window.history.pushState(
-                    { event: 'dashboard_properties_changed' },
-                    '',
-                    `/superset/dashboard/${updates.slug}/`,
-                  );
-                }
-              }}
+              onSubmit={handleOnPropertiesChange}
+              onlyApply
             />
           )}
 
