@@ -40,7 +40,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-
 from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
