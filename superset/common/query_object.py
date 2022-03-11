@@ -398,7 +398,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :raises QueryObjectValidationError: If the post processing operation
                  is incorrect
         """
-        logger.debug("post_processing: %s", pformat(self.post_processing))
+        logger.debug("post_processing: \n %s", pformat(self.post_processing))
         for post_process in self.post_processing:
             operation = post_process.get("operation")
             if not operation:
