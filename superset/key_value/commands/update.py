@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import json
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -37,7 +38,7 @@ class UpdateTemporaryCacheCommand(BaseCommand):
         actor: User,
         resource: str,
         key: str,
-        value: str,
+        value: Dict[str, Any],
         key_type: KeyType = "uuid",
     ):
         """
@@ -67,14 +68,14 @@ class UpdateTemporaryCacheCommand(BaseCommand):
 
     def update(self) -> Optional[str]:
         filter_ = get_filter(self.resource, self.key, self.key_type)
-        entry = (
+        entry: KeyValueEntry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)
             .autoflush(False)
             .first()
         )
         if entry:
-            entry.value = self.value
+            entry.value = json.dumps(self.value)
             entry.changed_on = datetime.datetime.now()
             entry.changed_by_fk = (
                 None if self.actor.is_anonymous else self.actor.get_user_id()

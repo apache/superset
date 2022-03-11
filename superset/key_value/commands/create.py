@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import json
 import logging
+from typing import Any, Dict
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,7 +33,9 @@ logger = logging.getLogger(__name__)
 
 
 class CreateKeyValueCommand(BaseCommand):
-    def __init__(self, actor: User, resource: str, value: str, key_type: KeyType):
+    def __init__(
+        self, actor: User, resource: str, value: Dict[str, Any], key_type: KeyType,
+    ):
         """
         Create a new key-value pair
 
@@ -58,7 +62,7 @@ class CreateKeyValueCommand(BaseCommand):
     def create(self) -> str:
         entry = KeyValueEntry(
             resource=self.resource,
-            value=self.value,
+            value=json.dumps(self.value),
             created_on=datetime.datetime.now(),
             created_by_fk=None if self.actor.is_anonymous else self.actor.get_user_id(),
         )

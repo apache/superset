@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, Optional
 
@@ -23,6 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
+from superset.explore.permalink.types import ExplorePermalinkValue
 from superset.explore.utils import check_access
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
@@ -39,20 +39,18 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
         self.key = key
         self.key_type = key_type
 
-    def run(self) -> Optional[Dict[str, Any]]:
+    def run(self) -> Optional[ExplorePermalinkValue]:
         self.validate()
         try:
-            command = GetKeyValueCommand(
+            value: Optional[ExplorePermalinkValue] = GetKeyValueCommand(
                 self.resource, self.key, key_type=self.key_type
-            )
-            value = command.run()
+            ).run()
             if value:
-                state = json.loads(value)
-                chart_id = state["chart_id"]
-                dataset_id = state["dataset_id"]
-                form_data = state["form_data"]
+                form_data = value["state"]["formData"]
+                chart_id: Optional[int] = form_data.get("chart_id")
+                dataset_id = int(form_data["datasource"].split("__")[0])
                 check_access(dataset_id, chart_id, self.actor)
-                return {"form_data": form_data}
+                return value
             return None
         except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:
             raise ExplorePermalinkGetFailedError(message=ex.message) from ex

@@ -58,16 +58,14 @@ class DeleteKeyValueCacheCommand(BaseCommand):
 
     def delete(self) -> bool:
         filter_ = get_filter(self.resource, self.key, self.key_type)
-
         entry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)
             .autoflush(False)
             .first()
         )
-
         if entry:
-            db.delete(entry)
+            db.session.delete(entry)
             db.session.commit()
             return True
         return False

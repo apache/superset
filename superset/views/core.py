@@ -751,12 +751,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             key_type = config["PERMALINK_KEY_TYPE"]
             command = GetExplorePermalinkCommand(g.user, key, key_type)
             try:
-                state = command.run()
-                if state:
-                    initial_form_data = state["form_data"]
+                permalink_value = command.run()
+                if permalink_value:
+                    initial_form_data = permalink_value["state"]["formData"]
+                else:
+                    return json_error_response(
+                        _("permalink state not found"), status=404
+                    )
             except ExplorePermalinkGetFailedError as ex:
                 return json_error_response(ex.message, status=400)
-
         elif form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -1948,16 +1951,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
-        key = request.args.get("permalink_state_key")
-
-        if key:
-            key_type = config["PERMALINK_KEY_TYPE"]
-            filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
-            if not filter_state or dashboard_id_or_slug != filter_state["id_or_slug"]:
-                return json_error_response(
-                    _("permanent link state not found"), status=404
-                )
-
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
                 datasource = ConnectorRegistry.get_datasource(
@@ -2011,12 +2004,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, key: str,
     ) -> FlaskResponse:
         key_type = config["PERMALINK_KEY_TYPE"]
-        filter_state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
-        if not filter_state:
-            return json_error_response(_("permanent link state not found"), status=404)
-        hash_ = filter_state.get("hash")
-        id_or_slug = filter_state["id_or_slug"]
-        url = f"/superset/dashboard/{id_or_slug}?permalink_state_key={key}"
+        value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+        if not value:
+            return json_error_response(_("permalink state not found"), status=404)
+        hash_ = value["state"].get("hash")
+        dashboard_id = value["dashboardId"]
+        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)

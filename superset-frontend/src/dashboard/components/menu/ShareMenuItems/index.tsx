@@ -56,7 +56,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   async function generateUrl() {
     // chart
     if (formData) {
-      return getChartPermalink(formData.slice_id, formData);
+      return getChartPermalink(formData);
     }
     // dashboard
     const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);

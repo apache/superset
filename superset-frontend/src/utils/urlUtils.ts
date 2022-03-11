@@ -86,15 +86,8 @@ function getPermalink(endpoint: string, jsonPayload: JsonObject) {
     );
 }
 
-export function getChartPermalink(
-  chartId: number,
-  formData: Pick<QueryFormData, 'datasource'>,
-) {
-  return getPermalink('/api/v1/explore/permalink', {
-    chart_id: chartId,
-    dataset_id: Number(formData.datasource.split('__')[0]),
-    state: { form_data: formData },
-  });
+export function getChartPermalink(formData: Pick<QueryFormData, 'datasource'>) {
+  return getPermalink('/api/v1/explore/permalink', { formData });
 }
 
 export function getDashboardPermalink(
@@ -103,6 +96,7 @@ export function getDashboardPermalink(
   hash?: string,
 ) {
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
-    state: { filter_state: filterState, hash },
+    filterState,
+    hash,
   });
 }

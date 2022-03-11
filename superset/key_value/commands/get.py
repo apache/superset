@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -43,7 +44,7 @@ class GetKeyValueCommand(BaseCommand):
         self.key = key
         self.key_type = key_type
 
-    def run(self) -> Optional[str]:
+    def run(self) -> Optional[Dict[str, Any]]:
         try:
             return self.get()
         except SQLAlchemyError as ex:
@@ -53,7 +54,7 @@ class GetKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def get(self) -> Optional[str]:
+    def get(self) -> Optional[Dict[str, Any]]:
         filter_ = get_filter(self.resource, self.key, self.key_type)
         entry = (
             db.session.query(KeyValueEntry)
@@ -62,5 +63,5 @@ class GetKeyValueCommand(BaseCommand):
             .first()
         )
         if entry:
-            return entry.value
+            return json.loads(entry.value)
         return None

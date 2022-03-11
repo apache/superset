@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from typing import Any, Dict, Optional, TypedDict
 
 
-class DashboardPermalinkPostSchema(Schema):
-    filterState = fields.Dict(
-        required=True, allow_none=False, description="Native filter state",
-    )
-    hash = fields.String(
-        required=False, allow_none=True, description="Optional anchor link"
-    )
+class DashboardPermalinkState(TypedDict):
+    filterState: Dict[str, Any]
+    hash: Optional[str]
+
+
+class DashboardPermalinkValue(TypedDict):
+    dashboardId: str
+    state: DashboardPermalinkState

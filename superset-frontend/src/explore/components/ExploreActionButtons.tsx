@@ -109,20 +109,20 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const doCopyLink = async () => {
     try {
       setCopyTooltip(t('Loading...'));
-      const url = await getChartPermalink(slice.slice_id, latestQueryFormData);
+      const url = await getChartPermalink(latestQueryFormData);
       await copyTextToClipboard(url);
       setCopyTooltip(t('Copied to clipboard!'));
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      setCopyTooltip(t('Sorry, your browser does not support copying.'));
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      setCopyTooltip(t('Copying permalink failed.'));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   };
 
   const doShareEmail = async () => {
     try {
       const subject = t('Superset Chart');
-      const url = await getChartPermalink(slice.slice_id, latestQueryFormData);
+      const url = await getChartPermalink(latestQueryFormData);
       const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
@@ -178,7 +178,10 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             tooltip={t('Share permalink by email')}
             onClick={doShareEmail}
           />
-          <EmbedCodeButton />
+          <EmbedCodeButton
+            formData={latestQueryFormData}
+            addDangerToast={addDangerToast}
+          />
           <ActionButton
             prefixIcon={<Icons.FileTextOutlined iconSize="m" />}
             text=".JSON"

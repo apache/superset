@@ -32,10 +32,7 @@ from superset.datasets.commands.exceptions import (
 from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
-from superset.explore.permalink.schemas import (
-    ExplorePermalinkPostSchema,
-    ExplorePermalinkPutSchema,
-)
+from superset.explore.permalink.schemas import ExplorePermalinkPostSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
 from superset.views.base_api import requires_json
@@ -45,7 +42,6 @@ logger = logging.getLogger(__name__)
 
 class ExplorePermalinkRestApi(BaseApi):
     add_model_schema = ExplorePermalinkPostSchema()
-    edit_model_schema = ExplorePermalinkPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {
         RouteMethod.POST,
@@ -57,10 +53,7 @@ class ExplorePermalinkRestApi(BaseApi):
     class_permission_name = "ExplorePermalinkRestApi"
     resource_name = "explore"
     openapi_spec_tag = "Explore Permanent Link"
-    openapi_spec_component_schemas = (
-        ExplorePermalinkPostSchema,
-        ExplorePermalinkPutSchema,
-    )
+    openapi_spec_component_schemas = ExplorePermalinkPostSchema
 
     @expose("/permalink", methods=["POST"])
     @protect()
@@ -93,6 +86,9 @@ class ExplorePermalinkRestApi(BaseApi):
                       key:
                         type: string
                         description: The key to retrieve the permanent link data.
+                      url:
+                        type: string
+                        description: pemanent link.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -104,18 +100,11 @@ class ExplorePermalinkRestApi(BaseApi):
         """
         key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
-            item = self.add_model_schema.load(request.json)
-            chart_id = item.get("chart_id")
-            dataset_id = item.get("dataset_id")
-            state = item.get("state")
+            state = self.add_model_schema.load(request.json)
             key = CreateExplorePermalinkCommand(
-                actor=g.user,
-                chart_id=chart_id,
-                dataset_id=dataset_id,
-                state=state,
-                key_type=key_type,
+                actor=g.user, state=state, key_type=key_type,
             ).run()
-            http_origin = request.headers.environ["HTTP_ORIGIN"]
+            http_origin = request.headers.environ.get("HTTP_ORIGIN")
             url = f"{http_origin}/superset/explore/p/{key}/"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
@@ -171,10 +160,10 @@ class ExplorePermalinkRestApi(BaseApi):
         """
         try:
             key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            state = GetExplorePermalinkCommand(g.user, key, key_type).run()
-            if not state:
+            value = GetExplorePermalinkCommand(g.user, key, key_type).run()
+            if not value:
                 return self.response_404()
-            return self.response(200, state=state)
+            return self.response(200, **value)
         except ExplorePermalinkInvalidStateError as ex:
             return self.response(400, message=str(ex))
         except (ChartAccessDeniedError, DatasetAccessDeniedError,) as ex:

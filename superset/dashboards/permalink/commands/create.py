@@ -14,20 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict
 
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
-from superset.dashboards.permalink.exceptions import (
-    DashboardPermalinkCreateFailedError,
-    DashboardPermalinkInvalidStateError,
-)
+from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
+from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.types import KeyType
 
@@ -36,35 +32,31 @@ logger = logging.getLogger(__name__)
 
 class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def __init__(
-        self, actor: User, id_or_slug: str, state: Dict[str, Any], key_type: KeyType,
+        self,
+        actor: User,
+        dashboard_id: str,
+        state: DashboardPermalinkState,
+        key_type: KeyType,
     ):
         self.actor = actor
-        self.id_or_slug = id_or_slug
+        self.dashboard_id = dashboard_id
         self.state = state
         self.key_type = key_type
 
     def run(self) -> str:
         self.validate()
         try:
-            DashboardDAO.get_by_id_or_slug(self.id_or_slug)
-            filter_state = self.state["filter_state"]
-            hash_ = self.state.get("hash")
-            value = json.dumps(
-                {
-                    "id_or_slug": self.id_or_slug,
-                    "filter_state": filter_state,
-                    "hash": hash_,
-                }
-            )
-            command = CreateKeyValueCommand(
+            DashboardDAO.get_by_id_or_slug(self.dashboard_id)
+            value = {
+                "dashboardId": self.dashboard_id,
+                "state": self.state,
+            }
+            return CreateKeyValueCommand(
                 self.actor, self.resource, value, self.key_type
-            )
-            key = command.run()
-            return key
+            ).run()
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise DashboardPermalinkCreateFailedError() from ex
 
     def validate(self) -> None:
-        if len(self.state) > 2 or "filter_state" not in self.state:
-            raise DashboardPermalinkInvalidStateError(message=_("invalid state"))
+        pass

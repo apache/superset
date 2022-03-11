@@ -51,7 +51,7 @@ import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
 import {
   getFilterValue,
-  getPermalinkState,
+  getPermalinkValue,
 } from '../components/nativeFilters/FilterBar/keyValue';
 import { filterCardPopoverStyle } from '../styles';
 
@@ -164,16 +164,16 @@ const DashboardPage: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
-      const permalinkStateKey = getUrlParam(URL_PARAMS.permalinkStateKey);
+      const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
       // check if key from temporary_cache api and get datamask
-      if (permalinkStateKey) {
-        const permalinkState = await getPermalinkState(permalinkStateKey);
-        if (permalinkState) {
-          dataMaskFromUrl = permalinkState.filter_state;
+      if (permalinkKey) {
+        const permalinkValue = await getPermalinkValue(permalinkKey);
+        if (permalinkValue) {
+          dataMaskFromUrl = permalinkValue.state.filterState;
         }
       } else if (nativeFilterKeyValue) {
         dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);

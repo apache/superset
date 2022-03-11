@@ -30,10 +30,7 @@ from superset.dashboards.permalink.commands.create import (
 )
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
-from superset.dashboards.permalink.schemas import (
-    DashboardPermalinkPostSchema,
-    DashboardPermalinkPutSchema,
-)
+from superset.dashboards.permalink.schemas import DashboardPermalinkPostSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
 from superset.views.base_api import requires_json
@@ -43,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 class DashboardPermalinkRestApi(BaseApi):
     add_model_schema = DashboardPermalinkPostSchema()
-    edit_model_schema = DashboardPermalinkPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {
         RouteMethod.POST,
@@ -55,10 +51,7 @@ class DashboardPermalinkRestApi(BaseApi):
     class_permission_name = "DashboardPermalinkRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Permanent Link"
-    openapi_spec_component_schemas = (
-        DashboardPermalinkPostSchema,
-        DashboardPermalinkPutSchema,
-    )
+    openapi_spec_component_schemas = DashboardPermalinkPostSchema
 
     @expose("/<pk>/permalink", methods=["POST"])
     @protect()
@@ -96,6 +89,9 @@ class DashboardPermalinkRestApi(BaseApi):
                       key:
                         type: string
                         description: The key to retrieve the permanent link data.
+                      url:
+                        type: string
+                        description: permanent link.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -107,12 +103,11 @@ class DashboardPermalinkRestApi(BaseApi):
         """
         key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
-            item = self.add_model_schema.load(request.json)
-            state = item["state"]
+            state = self.add_model_schema.load(request.json)
             key = CreateDashboardPermalinkCommand(
-                actor=g.user, id_or_slug=pk, state=state, key_type=key_type,
+                actor=g.user, dashboard_id=pk, state=state, key_type=key_type,
             ).run()
-            http_origin = request.headers.environ["HTTP_ORIGIN"]
+            http_origin = request.headers.environ.get("HTTP_ORIGIN")
             url = f"{http_origin}/superset/dashboard/p/{key}/"
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
@@ -164,10 +159,10 @@ class DashboardPermalinkRestApi(BaseApi):
         """
         try:
             key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            state = GetDashboardPermalinkCommand(g.user, key, key_type).run()
-            if not state:
+            value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+            if not value:
                 return self.response_404()
-            return self.response(200, state=state)
+            return self.response(200, **value)
         except DashboardAccessDeniedError as ex:
             return self.response(403, message=str(ex))
         except DashboardNotFoundError as ex:

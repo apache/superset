@@ -24,6 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
+from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
 from superset.key_value.types import KeyType
@@ -39,24 +40,16 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.key = key
         self.key_type = key_type
 
-    def run(self) -> Optional[Dict[str, Any]]:
+    def run(self) -> Optional[DashboardPermalinkValue]:
         self.validate()
         try:
             command = GetKeyValueCommand(
                 self.resource, self.key, key_type=self.key_type
             )
-            value = command.run()
+            value: Optional[DashboardPermalinkValue] = command.run()
             if value:
-                state = json.loads(value)
-                id_or_slug = state["id_or_slug"]
-                filter_state = state["filter_state"]
-                hash_ = state.get("hash")
-                DashboardDAO.get_by_id_or_slug(id_or_slug)
-                return {
-                    "id_or_slug": id_or_slug,
-                    "filter_state": filter_state,
-                    "hash": hash_,
-                }
+                DashboardDAO.get_by_id_or_slug(value["dashboardId"])
+                return value
             return None
         except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:
             raise DashboardPermalinkGetFailedError(message=ex.message) from ex

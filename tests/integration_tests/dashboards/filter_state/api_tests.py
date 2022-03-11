@@ -27,6 +27,7 @@ from superset.models.dashboard import Dashboard
 from superset.temporary_cache.commands.entry import Entry
 from superset.temporary_cache.utils import cache_key
 from tests.integration_tests.base_tests import login
+from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -36,13 +37,6 @@ from tests.integration_tests.test_app import app
 KEY = "test-key"
 INITIAL_VALUE = json.dumps({"test": "initial value"})
 UPDATED_VALUE = json.dumps({"test": "updated value"})
-
-
-@pytest.fixture
-def client():
-    with app.test_client() as client:
-        with app.app_context():
-            yield client
 
 
 @pytest.fixture

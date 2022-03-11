@@ -167,7 +167,7 @@ export interface FiltersBarProps {
 
 const EXCLUDED_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
-  URL_PARAMS.permalinkStateKey.name,
+  URL_PARAMS.permalinkKey.name,
 ];
 
 const publishDataMask = debounce(

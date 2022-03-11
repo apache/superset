@@ -87,7 +87,6 @@ const renderDraggableContentTop = dropProps =>
 
 export default class Tab extends React.PureComponent {
   constructor(props) {
-    console.log('$$', props);
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleDrop = this.handleDrop.bind(this);

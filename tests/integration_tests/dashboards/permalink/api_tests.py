@@ -14,13 +14,59 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pytest
+import json
 
+import pytest
+from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.orm import Session
+
+from superset import db
+from superset.key_value.models import KeyValueEntry
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from tests.integration_tests.base_tests import login
+from tests.integration_tests.fixtures.client import client
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
+)
 from tests.integration_tests.test_app import app
+
+STATE = {
+    "filterState": {"FILTER_1": "foo",},
+    "hash": "my-anchor",
+}
 
 
 @pytest.fixture
-def client():
-    with app.test_client() as client:
-        with app.app_context():
-            yield client
+def dashboard_id(load_world_bank_dashboard_with_slices) -> int:
+    with app.app_context() as ctx:
+        session: Session = ctx.app.appbuilder.get_session
+        dashboard = session.query(Dashboard).filter_by(slug="world_health").one()
+        return dashboard.id
+
+
+def test_post(client, dashboard_id: int):
+    login(client, "admin")
+    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
+    assert resp.status_code == 201
+    data = json.loads(resp.data.decode("utf-8"))
+    key = data["key"]
+    url = data["url"]
+    assert key in url
+    db.session.query(KeyValueEntry).filter_by(uuid=key).delete()
+    db.session.commit()
+
+
+def test_get(client, dashboard_id: int):
+    login(client, "admin")
+    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
+    data = json.loads(resp.data.decode("utf-8"))
+    key = data["key"]
+    resp = client.get(f"api/v1/dashboard/permalink/{key}")
+    assert resp.status_code == 200
+    result = json.loads(resp.data.decode("utf-8"))
+    assert result["dashboardId"] == str(dashboard_id)
+    assert result["state"] == STATE
+    db.session.query(KeyValueEntry).filter_by(uuid=key).delete()
+    db.session.commit()

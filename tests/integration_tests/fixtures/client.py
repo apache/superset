@@ -14,13 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+import pytest
+
+from tests.integration_tests.test_app import app
 
 
-class DashboardPermalinkPostSchema(Schema):
-    filterState = fields.Dict(
-        required=True, allow_none=False, description="Native filter state",
-    )
-    hash = fields.String(
-        required=False, allow_none=True, description="Optional anchor link"
-    )
+@pytest.fixture
+def client():
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
