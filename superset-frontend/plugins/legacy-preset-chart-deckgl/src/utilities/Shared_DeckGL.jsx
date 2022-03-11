@@ -50,10 +50,6 @@ const jsFunctionInfo = (
   </div>
 );
 
-const jsControlConfig = isFeatureEnabled(
-  FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS,
-);
-
 function jsFunctionControl(
   label,
   description,
@@ -75,15 +71,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    mapStateToProps: state => ({
-      // eslint-disable-next-line no-negated-condition
-      warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
-        ? t(
-            'This functionality is disabled in your environment for security reasons.',
-          )
-        : null,
-      readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
-    }),
+    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+      ? t(
+          'This functionality is disabled in your environment for security reasons.',
+        )
+      : null,
+    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
   };
 }
 
