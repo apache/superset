@@ -95,6 +95,7 @@ const StyledPane = styled.div`
 `;
 
 const StyledEmptyStateWrapper = styled.div`
+  height: 100%;
   .ant-empty-image img {
     margin-right: 28px;
   }
