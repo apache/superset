@@ -55,7 +55,6 @@ stats_logger = app.config["STATS_LOGGER"]
 
 
 REJECTED_FORM_DATA_KEYS: List[str] = []
-
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
