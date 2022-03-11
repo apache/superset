@@ -70,8 +70,10 @@ def flat(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
     2  2021-01-03        1        1        1        1
     """
     if _is_multi_index_on_columns(df):
+        # every cell should be converted to string
         df.columns = [
-            FLAT_COLUMN_SEPARATOR.join(col) for col in df.columns.to_flat_index()
+            FLAT_COLUMN_SEPARATOR.join([str(cell) for cell in series])
+            for series in df.columns.to_flat_index()
         ]
 
     if reset_index and not isinstance(df.index, pd.RangeIndex):

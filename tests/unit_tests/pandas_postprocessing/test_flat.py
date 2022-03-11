@@ -47,7 +47,7 @@ def test_flat_should_flat_datetime_index():
 def test_flat_should_flat_multiple_index():
     index = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03"])
     index.name = "__timestamp"
-    iterables = [["foo", "bar"], ["one", "two"]]
+    iterables = [["foo", "bar"], [1, "two"]]
     columns = pd.MultiIndex.from_product(iterables, names=["level1", "level2"])
     df = pd.DataFrame(index=index, columns=columns, data=1)
 
@@ -55,9 +55,9 @@ def test_flat_should_flat_multiple_index():
         pd.DataFrame(
             {
                 "__timestamp": index,
-                FLAT_COLUMN_SEPARATOR.join(["foo", "one"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["foo", "1"]): [1, 1, 1],
                 FLAT_COLUMN_SEPARATOR.join(["foo", "two"]): [1, 1, 1],
-                FLAT_COLUMN_SEPARATOR.join(["bar", "one"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["bar", "1"]): [1, 1, 1],
                 FLAT_COLUMN_SEPARATOR.join(["bar", "two"]): [1, 1, 1],
             }
         )
