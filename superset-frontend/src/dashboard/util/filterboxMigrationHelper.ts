@@ -510,7 +510,8 @@ export default function getNativeFilterConfig(
               childComponent.filterType as FILTER_COMPONENT_FILTER_TYPES,
             )
           ) {
-            childComponent.cascadeParentIds ||= [];
+            childComponent.cascadeParentIds =
+              childComponent.cascadeParentIds || [];
             childComponent.cascadeParentIds.push(parentComponentId);
           }
         });

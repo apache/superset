@@ -106,8 +106,6 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
       'and series limit to limit the number of fetched and rendered series.',
   ),
-  sortComparator: (a: { label: string }, b: { label: string }) =>
-    a.label.localeCompare(b.label),
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',

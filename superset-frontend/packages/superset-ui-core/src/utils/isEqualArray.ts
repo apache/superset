@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
-export { default as ensureIsArray } from './ensureIsArray';
-export { default as ensureIsInt } from './ensureIsInt';
-export { default as isDefined } from './isDefined';
-export { default as isRequired } from './isRequired';
-export { default as isEqualArray } from './isEqualArray';
-export { default as makeSingleton } from './makeSingleton';
-export { default as promiseTimeout } from './promiseTimeout';
-export { default as logging } from './logging';
-export { default as removeDuplicates } from './removeDuplicates';
-export * from './featureFlags';
-export * from './random';
+export default function isEqualArray<T extends unknown[] | undefined | null>(
+  arrA: T,
+  arrB: T,
+) {
+  return (
+    arrA === arrB ||
+    (!arrA && !arrB) ||
+    !!(
+      arrA &&
+      arrB &&
+      arrA.length === arrB.length &&
+      arrA.every((x, i) => x === arrB[i])
+    )
+  );
+}

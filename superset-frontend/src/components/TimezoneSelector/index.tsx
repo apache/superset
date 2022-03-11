@@ -99,6 +99,7 @@ const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
   moment.tz(currentDate, a.timezoneName).utcOffset() -
   moment.tz(currentDate, b.timezoneName).utcOffset();
 
+// pre-sort timezone options by time offset
 TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
 
 const matchTimezoneToOptions = (timezone: string) =>

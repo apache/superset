@@ -87,37 +87,30 @@ const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
     value: '<',
-    order: 0,
   },
   {
     label: t('> (Larger than)'),
     value: '>',
-    order: 1,
   },
   {
     label: t('<= (Smaller or equal)'),
     value: '<=',
-    order: 2,
   },
   {
     label: t('>= (Larger or equal)'),
     value: '>=',
-    order: 3,
   },
   {
     label: t('== (Is equal)'),
     value: '==',
-    order: 4,
   },
   {
     label: t('!= (Is not equal)'),
     value: '!=',
-    order: 5,
   },
   {
     label: t('Not null'),
     value: 'not null',
-    order: 6,
   },
 ];
 
@@ -1194,7 +1187,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
-                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
