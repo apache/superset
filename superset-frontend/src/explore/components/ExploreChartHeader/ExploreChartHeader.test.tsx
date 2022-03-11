@@ -24,7 +24,9 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import ExploreHeader from '.';
 
-fetchMock.get('http://localhost/api/v1/chart/318', {});
+const chartEndpoint = 'glob:*api/v1/chart/*';
+
+fetchMock.get(chartEndpoint, { json: 'foo' });
 
 const createProps = () => ({
   chart: {

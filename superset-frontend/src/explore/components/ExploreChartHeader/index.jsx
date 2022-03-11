@@ -20,7 +20,6 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
@@ -33,6 +32,7 @@ import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
 import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';

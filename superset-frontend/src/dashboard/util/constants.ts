@@ -77,3 +77,8 @@ export enum DashboardStandaloneMode {
   HIDE_NAV_AND_TITLE = 2,
   REPORT = 3,
 }
+
+export enum ReportType {
+  DASHBOARDS = 'dashboards',
+  CHARTS = 'charts',
+}

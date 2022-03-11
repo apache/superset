@@ -18,153 +18,52 @@
  */
 /* eslint-disable camelcase */
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { report } from 'process';
-import {
-  SET_REPORT,
-  ADD_REPORT,
-  EDIT_REPORT,
-  DELETE_REPORT,
-} from '../actions/reports';
-
-/* -- Report schema --
-reports: {
-  dashboards: {
-    [dashboardId]: {...reportObject}
-  },
-  charts: {
-    [chartId]: {...reportObject}
-  },
-}
-*/
+import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
-      // Grabs the first report with a dashboard id that
-      // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result?.find(
-        report => !!report.dashboard_id,
-      );
-      // Grabs the first report with a chart id that
-      // matches the parameter report's chart.id
-      const reportWithChart = action.report.result?.find(
-        report => !!report.chart?.id,
-      );
+      const { report, resourceId, creationMethod } = action;
 
-      // This organizes report by its type, dashboard or chart
-      // and indexes it by the dashboard/chart id
-      if (reportWithDashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [reportWithDashboard.dashboard_id]: reportWithDashboard,
-          },
-        };
-      }
-      if (reportWithChart) {
-        return {
-          ...state,
-          charts: {
-            ...state.chart,
-            [reportWithChart.chart.id]: reportWithChart,
-          },
-        };
-      }
+      const reportObject = report.result?.find(report => !!report[resourceId]);
+
       return {
         ...state,
+        [creationMethod]: {
+          ...state[creationMethod],
+          [resourceId]: reportObject,
+        },
       };
     },
 
     [ADD_REPORT]() {
       const { result, id } = action.json;
       const report = { ...result, id };
+      const reportId = report.dashboard || report.chart;
 
-      if (result.dashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [report.id]: report,
-          },
-        };
-      }
-      if (result.chart) {
-        return {
-          ...state,
-          charts: {
-            ...state.chart,
-            [report.id]: report,
-          },
-        };
-      }
       return {
         ...state,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportId]: report,
+        },
       };
     },
 
     [EDIT_REPORT]() {
-      // Grab first matching report by matching dashboard id
-      // FIX THESE, THEY'RE OBJECTS, NOT ARRAYS, NO FIND
-      const reportWithDashboard = action.json.result?.find(
-        report => !!report.dashboard_id,
-      );
-      // Assign the report's id
-      reportWithDashboard.id = action.json.id;
+      const report = {
+        ...action.json.result,
+        id: action.json.id,
+      };
+      const reportId = report.dashboard || report.chart;
 
-      // Grab first matching report by matching chart id
-      const reportWithChart = action.json.result?.find(
-        report => !!report.chart.id,
-      );
-      // Assign the report's id
-      reportWithChart.id = action.json.id;
-
-      // This updates the report by its type, dashboard or chart
-      if (reportWithDashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards,
-            [reportWithDashboard.dashboard_id]: report,
-          },
-        };
-      }
       return {
         ...state,
-        charts: {
-          ...state.chart,
-          [reportWithChart.chart.id]: report,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportId]: report,
         },
       };
-    },
-
-    [DELETE_REPORT]() {
-      // Grabs the first report with a dashboard id that
-      // matches the parameter report's dashboard_id
-      const reportWithDashboard = action.report.result?.find(
-        report => !!report.dashboard_id,
-      );
-
-      // This deletes the report by its type, dashboard or chart
-      if (reportWithDashboard) {
-        return {
-          ...state,
-          dashboards: {
-            ...state.dashboards.filter(report => report.id !== action.reportId),
-          },
-        };
-      }
-      return {
-        ...state,
-        charts: {
-          ...state.charts.filter(chart => chart.id !== action.reportId),
-        },
-      };
-
-      // state.users.filter(item => item.id !== action.payload)
-      // return {
-      //   ...state.filter(report => report.id !== action.reportId),
-      // };
     },
   };
 
