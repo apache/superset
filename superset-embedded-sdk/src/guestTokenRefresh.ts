@@ -26,7 +26,6 @@ export function getGuestTokenRefreshTiming(currentGuestToken: string) {
   const parsedJwt = JSON.parse(Buffer.from(currentGuestToken.split('.')[1], 'base64').toString());
   // if exp is int, it is in seconds, but Date() takes milliseconds
   const exp = new Date(/[^0-9\.]/g.test(parsedJwt.exp) ? parsedJwt.exp : parseFloat(parsedJwt.exp) * 1000);
-  console.log(exp);
   const isValidDate = exp.toString() !== 'Invalid Date';
   const ttl = isValidDate ? Math.max(MIN_REFRESH_WAIT_MS, exp.getTime() - Date.now()) : DEFAULT_TOKEN_EXP_MS;
   return ttl - REFRESH_TIMING_BUFFER_MS;
