@@ -44,14 +44,26 @@ describe("guest token refresh", () => {
   }
 
   it("schedules refresh with an epoch exp", () => {
-    const ttl = 500000;
-    const exp = Date.now() + ttl;
+    // exp is in seconds
+    const ttl = 1300;
+    const exp = Date.now() / 1000 + ttl;
     const fakeToken = makeFakeJWT({ exp });
 
     const timing = getGuestTokenRefreshTiming(fakeToken);
 
-    expect(timing).toBeGreaterThan(1000);
-    expect(timing).toBe(ttl - REFRESH_TIMING_BUFFER_MS);
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("schedules refresh with an epoch exp containing a decimal", () => {
+    const ttl = 1300.123;
+    const exp = Date.now() / 1000 + ttl;
+    const fakeToken = makeFakeJWT({ exp });
+
+    const timing = getGuestTokenRefreshTiming(fakeToken);
+
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
+    expect(timing).toBe(ttl * 1000 - REFRESH_TIMING_BUFFER_MS);
   });
 
   it("schedules refresh with iso exp", () => {
@@ -61,16 +73,15 @@ describe("guest token refresh", () => {
     const timing = getGuestTokenRefreshTiming(fakeToken);
     const expectedTiming = 1000 * 60 * 9 - REFRESH_TIMING_BUFFER_MS;
 
-    expect(timing).toBeGreaterThan(1000);
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(expectedTiming);
   });
 
   it("avoids refresh spam", () => {
-    const fakeToken = makeFakeJWT({ exp: Date.now() });
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 });
 
     const timing = getGuestTokenRefreshTiming(fakeToken);
 
-    expect(timing).toBeGreaterThan(1000);
     expect(timing).toBe(MIN_REFRESH_WAIT_MS - REFRESH_TIMING_BUFFER_MS);
   });
 
@@ -79,7 +90,7 @@ describe("guest token refresh", () => {
 
     const timing = getGuestTokenRefreshTiming(fakeToken);
 
-    expect(timing).toBeGreaterThan(1000);
+    expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
   });
 });
