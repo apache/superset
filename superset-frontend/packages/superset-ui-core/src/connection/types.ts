@@ -81,6 +81,7 @@ export interface RequestBase {
   fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   host?: Host;
+  ignoreUnauthorized?: boolean;
   mode?: Mode;
   method?: Method;
   jsonPayload?: Payload;
@@ -89,7 +90,6 @@ export interface RequestBase {
   signal?: Signal;
   stringify?: Stringify;
   timeout?: ClientTimeout;
-  ignoreUnauthorized?: boolean;
 }
 
 export interface CallApi extends RequestBase {
