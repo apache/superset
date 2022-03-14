@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function isEqualArray<T extends unknown[] | undefined | null>(
-  arrA: T,
-  arrB: T,
-) {
-  return (
-    arrA === arrB ||
-    (!arrA && !arrB) ||
-    (arrA &&
-      arrB &&
-      arrA.length === arrB.length &&
-      arrA.every((x, i) => x === arrB[i]))
-  );
-}
+export const convertInteger = (value: string | number) => {
+  if (typeof value !== 'number') return parseInt(value, 10) || 0;
+  return value;
+};

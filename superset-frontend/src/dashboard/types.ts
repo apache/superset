@@ -63,6 +63,7 @@ export type DashboardState = {
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
   isRefreshing: boolean;
+  isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
 export type DashboardInfo = {

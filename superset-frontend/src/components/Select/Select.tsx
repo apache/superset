@@ -157,6 +157,10 @@ export interface SelectProps extends PickedSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
+  /**
+   * Customize how filtered options are sorted while users search.
+   * Will not apply to predefined `options` array when users are not searching.
+   */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
 }
 
@@ -300,6 +304,7 @@ const Select = (
     onError,
     onChange,
     onClear,
+    onDropdownVisibleChange,
     optionFilterProps = ['label', 'value'],
     options,
     pageSize = DEFAULT_PAGE_SIZE,
@@ -315,8 +320,6 @@ const Select = (
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
-  const initialOptions =
-    options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
@@ -347,13 +350,27 @@ const Select = (
       sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
     [inputValue, sortComparator, sortSelectedFirst],
   );
-  const sortComparatorWithoutSearch = useCallback(
+  const sortComparatorForNoSearch = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) || sortComparator(a, b, ''),
-    [sortComparator, sortSelectedFirst],
+      sortSelectedFirst(a, b) ||
+      // Only apply the custom sorter in async mode because we should
+      // preserve the options order as much as possible.
+      (isAsync ? sortComparator(a, b, '') : 0),
+    [isAsync, sortComparator, sortSelectedFirst],
   );
+
+  const initialOptions = useMemo(
+    () => (options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
+    [options],
+  );
+  const initialOptionsSorted = useMemo(
+    () => initialOptions.slice().sort(sortComparatorForNoSearch),
+    [initialOptions, sortComparatorForNoSearch],
+  );
+
   const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptions);
+    useState<OptionsType>(initialOptionsSorted);
+
   // add selected values to options list if they are not in it
   const fullSelectOptions = useMemo(() => {
     const missingValues: OptionsType = ensureIsArray(selectValue)
@@ -434,13 +451,13 @@ const Select = (
           mergedData = prevOptions
             .filter(previousOption => !dataValues.has(previousOption.value))
             .concat(data)
-            .sort(sortComparatorWithoutSearch);
+            .sort(sortComparatorForNoSearch);
           return mergedData;
         });
       }
       return mergedData;
     },
-    [sortComparatorWithoutSearch],
+    [sortComparatorForNoSearch],
   );
 
   const fetchPage = useMemo(
@@ -576,11 +593,13 @@ const Select = (
     }
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
-    if (isDropdownVisible && !inputValue && fullSelectOptions.length > 0) {
-      const sortedOptions = [...fullSelectOptions].sort(
-        sortComparatorWithSearch,
-      );
-      if (!isEqual(sortedOptions, fullSelectOptions)) {
+    if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+      const sortedOptions = isAsync
+        ? selectOptions.slice().sort(sortComparatorForNoSearch)
+        : // if not in async mode, revert to the original select options
+          // (with selected options still sorted to the top)
+          initialOptionsSorted;
+      if (!isEqual(sortedOptions, selectOptions)) {
         setSelectOptions(sortedOptions);
       }
     }
@@ -625,10 +644,8 @@ const Select = (
     // when `options` list is updated from component prop, reset states
     fetchedQueries.current.clear();
     setAllValuesLoaded(false);
-    setSelectOptions(
-      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
-    );
-  }, [options]);
+    setSelectOptions(initialOptions);
+  }, [initialOptions]);
 
   useEffect(() => {
     setSelectValue(value);
