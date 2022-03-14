@@ -96,7 +96,8 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: ${({ theme }) => `${theme.gridUnit * 12.5}px`};
+    /* must be exactly the height of the Antd navbar */
+    min-height: 50px;
     padding: ${({ theme }) =>
       `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
         theme.gridUnit * 4
