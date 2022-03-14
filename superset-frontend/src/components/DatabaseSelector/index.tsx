@@ -265,8 +265,8 @@ export default function DatabaseSelector({
             ],
           };
     return rison.encode({
-      page,
       ...filters,
+      page,
       page_size: pageSize,
       order_direction: 'asc',
       order_columns: 'database_name',

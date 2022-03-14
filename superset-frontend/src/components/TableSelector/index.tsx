@@ -204,7 +204,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       if (previousRefresh !== refresh) setPreviousRefresh(refresh);
       fetchTables(encodedEndpoint, forceRefresh);
     }
-  }, [[refresh, currentDatabase, currentCatalog, currentSchema, onTablesLoad]]);
+  }, [refresh, currentDatabase, currentCatalog, currentSchema, onTablesLoad]);
 
   function getEndpoint({
     schema,
@@ -366,7 +366,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     <TableSelectorWrapper>
       {renderDatabaseSelector()}
       {sqlLabMode && !formMode && <div className="divider" />}
-      {renderTableSelect()}
+      {shouldLoadTables(database) && renderTableSelect()}
     </TableSelectorWrapper>
   );
 };
