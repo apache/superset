@@ -68,7 +68,7 @@ export default function Control(props: ControlProps) {
   );
 
   useEffect(() => {
-    if (hidden && props.default) {
+    if (hidden && props.default && setControlValue) {
       setControlValue(name, props.default);
     }
   }, [name, hidden, setControlValue, props.default]);
