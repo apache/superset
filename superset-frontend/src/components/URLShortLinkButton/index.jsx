@@ -25,6 +25,7 @@ import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { URL_PARAMS } from '../../constants';
 import { getFilterValue } from '../../dashboard/components/nativeFilters/FilterBar/keyValue';
+import { getActiveFilters } from '../../dashboard/util/activeDashboardFilters';
 
 const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
@@ -60,6 +61,7 @@ class URLShortLinkButton extends React.Component {
           getDashboardPermalink(
             String(this.props.dashboardId),
             filterState,
+            getActiveFilters(),
             this.props.anchorLinkId,
           )
             .then(this.onShortUrlSuccess)

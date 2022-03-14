@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional, TypedDict
 class DashboardPermalinkState(TypedDict):
     filterState: Dict[str, Any]
     hash: Optional[str]
+    legacyFilterState: Optional[str]
 
 
 class DashboardPermalinkValue(TypedDict):

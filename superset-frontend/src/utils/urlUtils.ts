@@ -20,6 +20,7 @@ import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { getClientErrorObject } from './getClientErrorObject';
 import { URL_PARAMS } from '../constants';
+import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilterValues';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
@@ -93,10 +94,14 @@ export function getChartPermalink(formData: Pick<QueryFormData, 'datasource'>) {
 export function getDashboardPermalink(
   dashboardId: string,
   filterState: JsonObject,
+  legacyFilterState: JsonObject,
   hash?: string,
 ) {
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
     filterState,
+    legacyFilterState: JSON.stringify(
+      serializeActiveFilterValues(legacyFilterState),
+    ),
     hash,
   });
 }

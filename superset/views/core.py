@@ -2007,9 +2007,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
+        legacy_filter_state = value["state"].get("legacyFilterState")
         hash_ = value["state"].get("hash")
         dashboard_id = value["dashboardId"]
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        if legacy_filter_state:
+            url = f"{url}&preselect_filters={legacy_filter_state}"
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)

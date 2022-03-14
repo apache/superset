@@ -27,6 +27,7 @@ import {
 } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -64,7 +65,11 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     if (nativeFiltersKey && dashboardId) {
       filterState = await getFilterValue(dashboardId, nativeFiltersKey);
     }
-    return getDashboardPermalink(String(dashboardId), filterState);
+    return getDashboardPermalink(
+      String(dashboardId),
+      filterState,
+      getActiveFilters(),
+    );
   }
 
   async function onCopyLink() {
