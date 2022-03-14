@@ -116,8 +116,6 @@ const all_columns: typeof sharedControls.groupby = {
         ? [t('must have a value')]
         : [],
   }),
-  sortComparator: (a: { label: string }, b: { label: string }) =>
-    a.label.localeCompare(b.label),
   visibility: isRawMode,
 };
 
@@ -279,8 +277,6 @@ const config: ControlPanelConfig = {
                 choices: datasource?.order_by_choices || [],
               }),
               visibility: isRawMode,
-              sortComparator: (a: { label: string }, b: { label: string }) =>
-                a.label.localeCompare(b.label),
             },
           },
         ],

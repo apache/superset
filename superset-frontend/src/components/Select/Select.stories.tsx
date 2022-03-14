@@ -187,10 +187,10 @@ export const InteractiveSelect = ({
 );
 
 InteractiveSelect.args = {
-  autoFocus: false,
+  autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
-  showSearch: false,
+  showSearch: true,
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
