@@ -152,7 +152,7 @@ export default function SouthPane({
             query={latestQuery}
             actions={actions}
             user={user}
-            height={innerTabContentHeight}
+            height={innerTabContentHeight + 24}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
             defaultQueryLimit={defaultQueryLimit}
