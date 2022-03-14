@@ -211,6 +211,5 @@ def _append_columns(
         _base_df = base_df.copy()
         _base_df.loc[:, columns.keys()] = append_df
         return _base_df
-    else:
-        append_df = append_df.rename(columns=columns)
-        return pd.concat([base_df, append_df], axis="columns")
+    append_df = append_df.rename(columns=columns)
+    return pd.concat([base_df, append_df], axis="columns")
