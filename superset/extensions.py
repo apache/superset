@@ -83,6 +83,7 @@ class UIManifestProcessor:
         return dict(
             js_manifest=lambda bundle: get_files(bundle, "js"),
             css_manifest=lambda bundle: get_files(bundle, "css"),
+            assets_prefix=self.app.config["STATIC_ASSETS_PREFIX"] if self.app else "",
         )
 
     def apply_resource_prefix(self, file: str) -> str:

@@ -40,6 +40,7 @@ def test_get_manifest_with_prefix():
         "https://cool.url/here/static/dist/styles-js.js"
     ]
     assert manifest["css_manifest"]("styles") == []
+    assert manifest["assets_prefix"] == "https://cool.url/here"
 
 
 def test_get_manifest_no_prefix():
@@ -53,3 +54,4 @@ def test_get_manifest_no_prefix():
     assert manifest["css_manifest"]("main") == ["/static/dist/main-css.css"]
     assert manifest["js_manifest"]("styles") == ["/static/dist/styles-js.js"]
     assert manifest["css_manifest"]("styles") == []
+    assert manifest["assets_prefix"] == ""
