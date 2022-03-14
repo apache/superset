@@ -48,58 +48,6 @@ def assert_cli_fails_properly(response, caplog):
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_export_dashboards_original(app_context, fs):
-    """
-    Test that a JSON file is exported.
-    """
-    # pylint: disable=reimported, redefined-outer-name
-    import superset.cli.importexport  # noqa: F811
-
-    # reload to define export_dashboards correctly based on the
-    # feature flags
-    importlib.reload(superset.cli.importexport)
-
-    runner = app.test_cli_runner()
-    response = runner.invoke(
-        superset.cli.importexport.export_dashboards, ("-f", "dashboards.json")
-    )
-
-    assert response.exit_code == 0
-    assert Path("dashboards.json").exists()
-
-    # check that file is valid JSON
-    with open("dashboards.json") as fp:
-        contents = fp.read()
-    json.loads(contents)
-
-
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_export_datasources_original(app_context, fs):
-    """
-    Test that a YAML file is exported.
-    """
-    # pylint: disable=reimported, redefined-outer-name
-    import superset.cli.importexport  # noqa: F811
-
-    # reload to define export_dashboards correctly based on the
-    # feature flags
-    importlib.reload(superset.cli.importexport)
-
-    runner = app.test_cli_runner()
-    response = runner.invoke(
-        superset.cli.importexport.export_datasources, ("-f", "datasources.yaml")
-    )
-
-    assert response.exit_code == 0
-    assert Path("datasources.yaml").exists()
-
-    # check that file is valid JSON
-    with open("datasources.yaml") as fp:
-        contents = fp.read()
-    yaml.safe_load(contents)
-
-
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch.dict(
     "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": True}, clear=True
 )
@@ -333,41 +281,6 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
     assert response.exit_code == 0
     expected_contents = {"dataset.yaml": "hello: world"}
     import_datasets_command.assert_called_with(expected_contents, overwrite=True)
-
-
-@mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
-)
-@mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
-def test_import_datasets_sync_argument_columns_metrics(
-    import_datasets_command, app_context, fs
-):
-    """
-    Test that the --sync command line argument syncs dataset in superset
-    with YAML file. Using both columns and metrics with the --sync flag
-    """
-    # pylint: disable=reimported, redefined-outer-name
-    import superset.cli.importexport  # noqa: F811
-
-    # reload to define export_datasets correctly based on the
-    # feature flags
-    importlib.reload(superset.cli.importexport)
-
-    # write YAML file
-    with open("dataset.yaml", "w") as fp:
-        fp.write("hello: world")
-
-    runner = app.test_cli_runner()
-    response = runner.invoke(
-        superset.cli.importexport.import_datasources,
-        ["-p", "dataset.yaml", "-s", "metrics,columns"],
-    )
-
-    assert response.exit_code == 0
-    expected_contents = {"dataset.yaml": "hello: world"}
-    import_datasets_command.assert_called_with(
-        expected_contents, sync_columns=True, sync_metrics=True,
-    )
 
 
 @mock.patch.dict(
