@@ -119,6 +119,13 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
+### (The following is required to address a backward-compatibility issue with the `markupsafe` dependency)
+
+```
+pip uninstall -y markupsafe
+pip install markupsafe==2.0.1
+```
+
 Then, you need to initialize the database:
 
 ```
