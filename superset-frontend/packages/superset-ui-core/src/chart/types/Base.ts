@@ -59,12 +59,10 @@ export enum ChartLabel {
 }
 
 export const chartLabelExplanations: Record<ChartLabel, string> = {
-  [ChartLabel.DEPRECATED]: t(
+  [ChartLabel.DEPRECATED]:
     'This chart uses features or modules which are no longer actively maintained. It will eventually be replaced or removed.',
-  ),
-  [ChartLabel.FEATURED]: t(
+  [ChartLabel.FEATURED]:
     'This chart was tested and verified, so the overall experience should be stable.',
-  ),
 };
 
 export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
