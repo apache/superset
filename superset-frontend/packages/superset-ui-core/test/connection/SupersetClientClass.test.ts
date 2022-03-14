@@ -505,6 +505,7 @@ describe('SupersetClientClass', () => {
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
+    const mockHref = 'http://localhost' + mockRequestPath + mockRequestSearch;
 
     beforeEach(() => {
       originalLocation = window.location;
@@ -514,7 +515,7 @@ describe('SupersetClientClass', () => {
       window.location = {
         pathname: mockRequestPath,
         search: mockRequestSearch,
-        href: mockRequestPath + mockRequestSearch,
+        href: mockHref,
       };
       authSpy = jest
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
@@ -561,7 +562,7 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         // unchanged href, no redirect
-        expect(window.location.href).toBe(mockRequestPath + mockRequestSearch);
+        expect(window.location.href).toBe(mockHref);
         expect(error.status).toBe(401);
       }
     });
@@ -575,13 +576,12 @@ describe('SupersetClientClass', () => {
         await client.request({
           url: mockRequestUrl,
           method: 'GET',
-          ignoreUnauthorized: true,
         });
       } catch (err) {
         error = err;
       } finally {
         // unchanged href, no redirect
-        expect(window.location.href).toBe(mockRequestPath + mockRequestSearch);
+        expect(window.location.href).toBe(mockHref);
         expect(error.status).toBe(401);
         expect(unauthorizedHandler).toHaveBeenCalledTimes(1);
       }

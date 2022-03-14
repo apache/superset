@@ -174,7 +174,7 @@ export default class SupersetClientClass {
       timeout: timeout ?? this.timeout,
       fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
     }).catch(res => {
-      if (res?.status === 401) {
+      if (res?.status === 401 && !ignoreUnauthorized) {
         this.handleUnauthorized();
       }
       return Promise.reject(res);
