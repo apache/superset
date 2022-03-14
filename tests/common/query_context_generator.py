@@ -172,7 +172,7 @@ POSTPROCESSING_OPERATIONS = {
         {
             "operation": "aggregate",
             "options": {
-                "groupby": ["gender"],
+                "groupby": ["name"],
                 "aggregates": {
                     "q1": {
                         "operator": "percentile",
@@ -183,7 +183,7 @@ POSTPROCESSING_OPERATIONS = {
                 },
             },
         },
-        {"operation": "sort", "options": {"columns": {"q1": False, "gender": True},},},
+        {"operation": "sort", "options": {"columns": {"q1": False, "name": True},},},
     ]
 }
 
