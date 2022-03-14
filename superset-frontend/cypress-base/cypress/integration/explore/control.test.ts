@@ -255,10 +255,13 @@ describe('Groupby control', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=groupby]').within(() => {
-      cy.get('.ant-select').click();
-      cy.get('input[type=search]').type('state{enter}');
-    });
+    cy.get('[data-test=groupby]')
+      .contains('Drop columns here or click')
+      .click();
+    cy.get('[id="adhoc-metric-edit-tabs-tab-simple"]').click();
+    cy.get('input[aria-label="Column"]').click().type('state{enter}');
+    cy.get('[data-test="ColumnEdit#save"]').contains('Save').click();
+
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });
   });
