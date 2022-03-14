@@ -17,7 +17,7 @@
 from os.path import dirname
 from unittest.mock import Mock
 
-from extensions import UIManifestProcessor
+from superset.extensions import UIManifestProcessor
 
 APP_DIR = f"{dirname(__file__)}/fixtures"
 
