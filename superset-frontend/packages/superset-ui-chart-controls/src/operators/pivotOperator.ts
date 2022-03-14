@@ -25,9 +25,10 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const pivotOperator: PostProcessingFactory<
-  PostProcessingPivot | undefined
-> = (formData, queryObject) => {
+export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
+  formData,
+  queryObject,
+) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {

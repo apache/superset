@@ -20,9 +20,10 @@
 import { PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const resampleOperator: PostProcessingFactory<
-  PostProcessingResample | undefined
-> = (formData, queryObject) => {
+export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
+  formData,
+  queryObject,
+) => {
   const resampleZeroFill = formData.resample_method === 'zerofill';
   const resampleMethod = resampleZeroFill ? 'asfreq' : formData.resample_method;
   const resampleRule = formData.resample_rule;

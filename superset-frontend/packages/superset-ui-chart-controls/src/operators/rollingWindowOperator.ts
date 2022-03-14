@@ -28,7 +28,7 @@ import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const rollingWindowOperator: PostProcessingFactory<
-  PostProcessingRolling | PostProcessingCum | undefined
+  PostProcessingRolling | PostProcessingCum
 > = (formData, queryObject) => {
   let columns: (string | undefined)[];
   if (isValidTimeCompare(formData, queryObject)) {

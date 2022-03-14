@@ -60,14 +60,16 @@ export default function buildQuery(formData: QueryFormData) {
           2015-03-01      318.0         0.0
 
      */
-    const pivotOperatorInRuntime: PostProcessingPivot | undefined =
-      isValidTimeCompare(formData, baseQueryObject)
-        ? timeComparePivotOperator(formData, baseQueryObject)
-        : pivotOperator(formData, {
-            ...baseQueryObject,
-            index: x_axis,
-            is_timeseries,
-          });
+    const pivotOperatorInRuntime: PostProcessingPivot = isValidTimeCompare(
+      formData,
+      baseQueryObject,
+    )
+      ? timeComparePivotOperator(formData, baseQueryObject)
+      : pivotOperator(formData, {
+          ...baseQueryObject,
+          index: x_axis,
+          is_timeseries,
+        });
 
     return [
       {

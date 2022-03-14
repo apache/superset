@@ -20,6 +20,7 @@
 import { PostProcessingFlat } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const flatOperator: PostProcessingFactory<
-  PostProcessingFlat | undefined
-> = (formData, queryObject) => ({ operation: 'flat' });
+export const flatOperator: PostProcessingFactory<PostProcessingFlat> = (
+  formData,
+  queryObject,
+) => ({ operation: 'flat' });
