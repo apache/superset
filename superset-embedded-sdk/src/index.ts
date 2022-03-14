@@ -21,6 +21,7 @@ import { IFRAME_COMMS_MESSAGE_TYPE } from './const';
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
+import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
 
 /**
  * The function to fetch a guest token from your Host App's backend server.
@@ -142,6 +143,14 @@ export async function embedDashboard({
 
   ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
+
+  async function refreshGuestToken() {
+    const newGuestToken = await fetchGuestToken();
+    ourPort.emit('guestToken', { guestToken: newGuestToken });
+    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+  }
+
+  setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   function unmount() {
     log('unmounting');
