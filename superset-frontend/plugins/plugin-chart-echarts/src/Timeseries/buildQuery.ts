@@ -40,6 +40,26 @@ export default function buildQuery(formData: QueryFormData) {
   const { x_axis, groupby } = formData;
   const is_timeseries = x_axis === DTTM_ALIAS || !x_axis;
   return buildQueryContext(formData, baseQueryObject => {
+    /* the `pivotOperatorInRuntime` determines how to pivot the dataframe returned from the raw query.
+       1. If it's a time compared query, there will return a pivoted dataframe that append time compared metrics. for instance:
+
+                            MAX(value) MAX(value)__1 year ago MIN(value) MIN(value)__1 year ago
+          city               LA                     LA         LA                     LA
+          __timestamp
+          2015-01-01      568.0                  671.0        5.0                    6.0
+          2015-02-01      407.0                  649.0        4.0                    3.0
+          2015-03-01      318.0                  465.0        0.0                    3.0
+
+       2. If it's a normal query, there will return a pivoted dataframe.
+
+                     MAX(value)  MIN(value)
+          city               LA          LA
+          __timestamp
+          2015-01-01      568.0         5.0
+          2015-02-01      407.0         4.0
+          2015-03-01      318.0         0.0
+
+     */
     const pivotOperatorInRuntime: PostProcessingPivot | undefined =
       isValidTimeCompare(formData, baseQueryObject)
         ? timeComparePivotOperator(formData, baseQueryObject)
@@ -60,6 +80,10 @@ export default function buildQuery(formData: QueryFormData) {
         time_offsets: isValidTimeCompare(formData, baseQueryObject)
           ? formData.time_compare
           : [],
+        /* Note that:
+          1. The resample, rolling, cum, timeCompare operators should be after pivot.
+          2. the flatOperator makes multiIndex Dataframe into flat Dataframe
+        */
         post_processing: [
           pivotOperatorInRuntime,
           resampleOperator(formData, baseQueryObject),
