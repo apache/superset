@@ -33,7 +33,6 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
-  ChartLabel,
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
