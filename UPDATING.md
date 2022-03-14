@@ -36,6 +36,7 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
 - [18970](https://github.com/apache/superset/pull/18970): Changes feature
 flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
 
 ### Potential Downtime
 
