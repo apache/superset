@@ -32,7 +32,7 @@ from superset.key_value.utils import extract_key, get_filter
 logger = logging.getLogger(__name__)
 
 
-class UpdateTemporaryCacheCommand(BaseCommand):
+class UpdateKeyValueCommand(BaseCommand):
     def __init__(
         self,
         actor: User,
@@ -77,9 +77,7 @@ class UpdateTemporaryCacheCommand(BaseCommand):
         if entry:
             entry.value = json.dumps(self.value)
             entry.changed_on = datetime.datetime.now()
-            entry.changed_by_fk = (
-                None if self.actor.is_anonymous else self.actor.get_user_id()
-            )
+            entry.changed_by_fk = None if self.actor.is_anonymous else self.actor.id
             db.session.merge(entry)
             db.session.commit()
             return extract_key(entry, self.key_type)

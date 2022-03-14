@@ -29,7 +29,7 @@ from superset.key_value.utils import get_filter
 logger = logging.getLogger(__name__)
 
 
-class DeleteKeyValueCacheCommand(BaseCommand):
+class DeleteKeyValueCommand(BaseCommand):
     def __init__(
         self, actor: User, resource: str, key: str, key_type: KeyType = "uuid"
     ):

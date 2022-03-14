@@ -64,7 +64,7 @@ class CreateKeyValueCommand(BaseCommand):
             resource=self.resource,
             value=json.dumps(self.value),
             created_on=datetime.datetime.now(),
-            created_by_fk=None if self.actor.is_anonymous else self.actor.get_user_id(),
+            created_by_fk=None if self.actor.is_anonymous else self.actor.id,
         )
         db.session.add(entry)
         db.session.commit()

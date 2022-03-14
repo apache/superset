@@ -40,7 +40,7 @@ def upgrade():
         sa.Column("resource", sa.String(32), nullable=False),
         sa.Column("value", sa.Text(), nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid4),
-        sa.Column("created_on", sa.DateTime(), nullable=False),
+        sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
