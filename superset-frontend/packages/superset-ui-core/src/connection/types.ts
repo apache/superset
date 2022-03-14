@@ -150,7 +150,7 @@ export interface SupersetClientInterface
     | 'isAuthenticated'
     | 'reAuthenticate'
   > {
-  configure: (config?: ClientConfig) => SupersetClientClass;
+  configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
 }
 
