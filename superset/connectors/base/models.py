@@ -29,7 +29,7 @@ from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.typing import FilterValue, FilterValues, QueryObjectDict
+from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
