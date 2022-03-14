@@ -89,6 +89,7 @@ export interface RequestBase {
   signal?: Signal;
   stringify?: Stringify;
   timeout?: ClientTimeout;
+  ignoreUnauthorized?: boolean;
 }
 
 export interface CallApi extends RequestBase {
@@ -136,6 +137,7 @@ export interface ClientConfig {
   headers?: Headers;
   mode?: Mode;
   timeout?: ClientTimeout;
+  unauthorizedHandler?: () => void;
 }
 
 export interface SupersetClientInterface
