@@ -19,6 +19,7 @@
 
 import { ExtraFormData } from '../../query';
 import { JsonObject } from '../..';
+import { t } from '../../translation';
 
 export type HandlerFunction = (...args: unknown[]) => void;
 
@@ -53,17 +54,22 @@ export interface PlainObject {
 }
 
 export enum ChartLabel {
-  VERIFIED = 'VERIFIED',
   DEPRECATED = 'DEPRECATED',
   FEATURED = 'FEATURED',
 }
 
-export const ChartLabelWeight = {
+export const chartLabelExplanations: Record<ChartLabel, string> = {
+  [ChartLabel.DEPRECATED]: t(
+    'This chart uses features or modules which are no longer actively maintained. It will eventually be replaced or removed.',
+  ),
+  [ChartLabel.FEATURED]: t(
+    'This chart was tested and verified, so the overall experience should be stable.',
+  ),
+};
+
+export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
   [ChartLabel.DEPRECATED]: {
     weight: -0.1,
-  },
-  [ChartLabel.VERIFIED]: {
-    weight: 0.2,
   },
   [ChartLabel.FEATURED]: {
     weight: 0.1,
