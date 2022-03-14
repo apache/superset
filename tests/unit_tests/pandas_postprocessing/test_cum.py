@@ -17,7 +17,7 @@
 import pandas as pd
 import pytest
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils import pandas_postprocessing as pp
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import (
@@ -55,7 +55,7 @@ def test_cum():
     assert series_to_list(post_df["y"]) == [1.0, 1.0, 1.0, 1.0]
 
     # invalid operator
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         pp.cum(
             df=timeseries_df, columns={"y": "y"}, operator="abc",
         )
