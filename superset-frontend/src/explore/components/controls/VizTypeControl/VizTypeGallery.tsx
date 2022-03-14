@@ -415,10 +415,10 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
-      {type.label?.name && (
+      {type.label && (
         <ThumbnailLabelWrapper>
           <HighlightLabel>
-            <div>{t(type.label?.name)}</div>
+            <div>{t(type.label)}</div>
           </HighlightLabel>
         </ThumbnailLabelWrapper>
       )}
