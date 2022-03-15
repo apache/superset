@@ -177,7 +177,10 @@ POSTPROCESSING_OPERATIONS = {
                     "q1": {
                         "operator": "percentile",
                         "column": "sum__num",
-                        "options": {"q": 25},
+                        # todo: rename "interpolation" to "method" when we updated
+                        #  numpy.
+                        #  https://numpy.org/doc/stable/reference/generated/numpy.percentile.html
+                        "options": {"q": 25, "interpolation": "lower"},
                     },
                     "median": {"operator": "median", "column": "sum__num",},
                 },
