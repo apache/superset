@@ -151,6 +151,13 @@ export interface SelectProps extends PickedSelectProps {
    */
   fetchOnlyOnSearch?: boolean;
   /**
+   * It determines that filterOption consider the case sensitive or insensitive. in case of d3 format selector, case sensitive.
+   * If True, case sensitive
+   * If False, case insensitive
+   * False by default
+   */
+  caseSensitive?: boolean;
+  /**
    * It provides a callback function when an error
    * is generated after a request is fired.
    * Works in async mode only (See the options property).
@@ -311,6 +318,7 @@ const Select = (
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
     value,
+    caseSensitive,
     ...props
   }: SelectProps,
   ref: RefObject<HTMLInputElement>,
@@ -556,11 +564,13 @@ const Select = (
     }
 
     if (filterOption) {
-      const searchValue = search.trim().toLowerCase();
+      const searchValue = caseSensitive ? search : search.trim().toLowerCase();
       if (optionFilterProps && optionFilterProps.length) {
         return optionFilterProps.some(prop => {
           const optionProp = option?.[prop]
-            ? String(option[prop]).trim().toLowerCase()
+            ? caseSensitive
+              ? String(option[prop])
+              : String(option[prop]).trim().toLowerCase()
             : '';
           return optionProp.includes(searchValue);
         });

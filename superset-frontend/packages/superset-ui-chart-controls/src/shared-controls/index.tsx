@@ -438,6 +438,7 @@ const y_axis_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_NUMBER_FORMAT,
   choices: D3_FORMAT_OPTIONS,
   description: D3_FORMAT_DOCS,
+  caseSensitive: true,
   mapStateToProps: state => {
     const showWarning = state.controls?.comparison_type?.value === 'percentage';
     return {
@@ -460,6 +461,7 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
+  caseSensitive: true,
 };
 
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
