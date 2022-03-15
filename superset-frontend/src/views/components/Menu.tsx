@@ -194,7 +194,7 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
-  const uiConig = useUiConfig();
+  const uiConfig = useUiConfig();
   const theme = useTheme();
 
   useEffect(() => {
@@ -210,7 +210,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone || uiConig.hideNav) return <></>;
+  if (standalone || uiConfig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,
@@ -286,8 +286,9 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map(item => {
+            {menu.map((item, index) => {
               const props = {
+                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
