@@ -530,6 +530,42 @@ describe('Nativefilters Sanity test', () => {
       .contains('year')
       .should('be.visible');
   });
+  it('User can create a value filter', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+      .should('be.visible')
+      .click();
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    cy.get('body').type('{home}');
+
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .click({ scrollBehavior: false })
+      .type('{home}Value{enter}', { scrollBehavior: false });
+    cy.get(nativeFilters.filtersPanel.filterTypeInput)
+      .find(nativeFilters.filtersPanel.filterTypeItem)
+      .should('have.text', 'Value');
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click({ scrollBehavior: false })
+      .clear()
+      .type('country_name', { scrollBehavior: false });
+
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type('country_name {enter}');
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .should('be.visible', { timeout: 40000 })
+      .contains('country_name');
+  });
 });
 
 xdescribe('Nativefilters', () => {
