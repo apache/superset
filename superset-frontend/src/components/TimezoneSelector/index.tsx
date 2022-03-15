@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import moment from 'moment-timezone';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
@@ -45,27 +45,14 @@ const offsetsToName = {
   '060': ['GMT Standard Time - London', 'British Summer Time'],
 };
 
-const currentDate = moment();
 const JANUARY = moment([2021, 1]);
 const JULY = moment([2021, 7]);
 
+// january and july are assumed to be reliable differentiators to determine DST.
+// There is definitely no way this assumption could come back to bite us :grin:
 const getOffsetKey = (name: string) =>
   JANUARY.tz(name).utcOffset().toString() +
   JULY.tz(name).utcOffset().toString();
-
-const getTimezoneName = (name: string) => {
-  const offsets = getOffsetKey(name);
-  return (
-    (currentDate.tz(name).isDST()
-      ? offsetsToName[offsets]?.[1]
-      : offsetsToName[offsets]?.[0]) || name
-  );
-};
-
-export interface TimezoneProps {
-  onTimezoneChange: (value: string) => void;
-  timezone?: string | null;
-}
 
 const ALL_ZONES = moment.tz
   .countries()
@@ -83,33 +70,61 @@ ALL_ZONES.forEach(zone => {
   }
 });
 
-const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
-  label: `GMT ${moment
-    .tz(currentDate, zone.name)
-    .format('Z')} (${getTimezoneName(zone.name)})`,
-  value: zone.name,
-  offsets: getOffsetKey(zone.name),
-  timezoneName: zone.name,
-}));
+export interface TimezoneProps {
+  onTimezoneChange: (value: string) => void;
+  timezone?: string | null;
+}
 
-const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
-  a: typeof TIMEZONE_OPTIONS[number],
-  b: typeof TIMEZONE_OPTIONS[number],
-) =>
-  moment.tz(currentDate, a.timezoneName).utcOffset() -
-  moment.tz(currentDate, b.timezoneName).utcOffset();
-
-// pre-sort timezone options by time offset
-TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
-
-const matchTimezoneToOptions = (timezone: string) =>
-  TIMEZONE_OPTIONS.find(option => option.offsets === getOffsetKey(timezone))
-    ?.value || DEFAULT_TIMEZONE.value;
+interface TimezoneOption {
+  label: string;
+  value: string;
+  offsets: string;
+  timezoneName: string;
+}
 
 const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
+  const currentDate = useMemo(moment, []);
+
+  const getTimezoneName = useCallback(
+    (name: string) => {
+      const offsets = getOffsetKey(name);
+      return (
+        (currentDate.tz(name).isDST()
+          ? offsetsToName[offsets]?.[1]
+          : offsetsToName[offsets]?.[0]) || name
+      );
+    },
+    [currentDate],
+  );
+
+  const sortComparator = useCallback(
+    (a: TimezoneOption, b: TimezoneOption) =>
+      moment.tz(currentDate, a.timezoneName).utcOffset() -
+      moment.tz(currentDate, b.timezoneName).utcOffset(),
+    [currentDate],
+  );
+
+  const timezoneOptions = useMemo(() => {
+    const options = TIMEZONES.map(zone => ({
+      label: `GMT ${moment
+        .tz(currentDate, zone.name)
+        .format('Z')} (${getTimezoneName(zone.name)})`,
+      value: zone.name,
+      offsets: getOffsetKey(zone.name),
+      timezoneName: zone.name,
+    }));
+    // pre-sort timezone options by time offset
+    options.sort(sortComparator);
+    return options;
+  }, [currentDate, sortComparator]);
+
   const validTimezone = useMemo(
-    () => matchTimezoneToOptions(timezone || moment.tz.guess()),
-    [timezone],
+    () =>
+      timezoneOptions.find(
+        option =>
+          option.offsets === getOffsetKey(timezone || moment.tz.guess()),
+      )?.value || DEFAULT_TIMEZONE.value,
+    [timezoneOptions, timezone],
   );
 
   // force trigger a timezone update if provided `timezone` is not invalid
@@ -125,8 +140,8 @@ const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
       css={{ minWidth: MIN_SELECT_WIDTH }} // smallest size for current values
       onChange={tz => onTimezoneChange(tz as string)}
       value={validTimezone}
-      options={TIMEZONE_OPTIONS}
-      sortComparator={TIMEZONE_OPTIONS_SORT_COMPARATOR}
+      options={timezoneOptions}
+      sortComparator={sortComparator}
     />
   );
 };
