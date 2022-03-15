@@ -148,7 +148,7 @@ class AsyncQueryManager:
 
     def generate_jwt(self, data: Dict[str, Any]) -> str:
         encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
-        return encoded_jwt.decode("utf-8")
+        return encoded_jwt
 
     def parse_jwt(self, token: str) -> Dict[str, Any]:
         data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
