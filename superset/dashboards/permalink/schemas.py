@@ -21,8 +21,19 @@ class DashboardPermalinkPostSchema(Schema):
     filterState = fields.Dict(
         required=True, allow_none=False, description="Native filter state",
     )
-    legacyFilterState = fields.String(
-        required=False, allow_none=True, description="Filter Box state",
+    urlParams = fields.List(
+        fields.Tuple(
+            (
+                fields.String(required=True, allow_none=True, description="Key",),
+                fields.String(required=True, allow_none=True, description="Value",),
+            ),
+            required=False,
+            allow_none=True,
+            description="URL Parameter key-value pair",
+        ),
+        required=False,
+        allow_none=True,
+        description="URL Parameters",
     )
     hash = fields.String(
         required=False, allow_none=True, description="Optional anchor link"

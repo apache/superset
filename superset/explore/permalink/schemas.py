@@ -21,3 +21,17 @@ class ExplorePermalinkPostSchema(Schema):
     formData = fields.Dict(
         required=True, allow_none=False, description="Chart form data",
     )
+    urlParams = fields.List(
+        fields.Tuple(
+            (
+                fields.String(required=True, allow_none=True, description="Key",),
+                fields.String(required=True, allow_none=True, description="Value",),
+            ),
+            required=False,
+            allow_none=True,
+            description="URL Parameter key-value pair",
+        ),
+        required=False,
+        allow_none=True,
+        description="URL Parameters",
+    )

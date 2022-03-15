@@ -25,9 +25,10 @@ import {
   getDashboardPermalink,
   getUrlParam,
 } from 'src/utils/urlUtils';
-import { URL_PARAMS } from 'src/constants';
+import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -57,7 +58,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   async function generateUrl() {
     // chart
     if (formData) {
-      return getChartPermalink(formData);
+      // we need to remove reserved dashboard url params
+      return getChartPermalink(formData, RESERVED_DASHBOARD_URL_PARAMS);
     }
     // dashboard
     const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
@@ -68,7 +70,9 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     return getDashboardPermalink(
       String(dashboardId),
       filterState,
-      getActiveFilters(),
+      `preselect_filters=${JSON.stringify(
+        serializeActiveFilterValues(getActiveFilters()),
+      )}`,
     );
   }
 

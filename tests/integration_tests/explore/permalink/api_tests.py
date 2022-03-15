@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from typing import Any, Dict
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
@@ -42,7 +43,7 @@ def chart(load_world_bank_dashboard_with_slices) -> Slice:
 
 
 @pytest.fixture
-def form_data(chart):
+def form_data(chart) -> Dict[str, Any]:
     datasource = f"{chart.datasource.id}__{chart.datasource.type}"
     return {
         "chart_id": chart.id,

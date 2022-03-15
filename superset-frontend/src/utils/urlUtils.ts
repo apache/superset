@@ -18,8 +18,14 @@
  */
 import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { isEmpty } from 'lodash';
 import { getClientErrorObject } from './getClientErrorObject';
-import { URL_PARAMS } from '../constants';
+import {
+  RESERVED_CHART_URL_PARAMS,
+  RESERVED_DASHBOARD_URL_PARAMS,
+  URL_PARAMS,
+} from '../constants';
+import { getActiveFilters } from '../dashboard/util/activeDashboardFilters';
 import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilterValues';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
@@ -73,6 +79,49 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
   }
 }
 
+function getUrlParams(excludedParams: string[]): URLSearchParams {
+  const urlParams = new URLSearchParams();
+  const currentParams = new URLSearchParams(window.location.search);
+  currentParams.forEach((value, key) => {
+    if (!excludedParams.includes(key)) urlParams.append(key, value);
+  });
+  return urlParams;
+}
+
+type UrlParamEntries = [string, string][];
+
+function getUrlParamEntries(urlParams: URLSearchParams): UrlParamEntries {
+  const urlEntries: [string, string][] = [];
+  urlParams.forEach((value, key) => urlEntries.push([key, value]));
+  return urlEntries;
+}
+
+function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
+  const excludedParams = excludedUrlParams || RESERVED_CHART_URL_PARAMS;
+  const urlParams = getUrlParams(excludedParams);
+  const filterBoxFilters = getActiveFilters();
+  if (
+    !isEmpty(filterBoxFilters) &&
+    !excludedParams.includes(URL_PARAMS.preselectFilters.name)
+  )
+    urlParams.append(
+      URL_PARAMS.preselectFilters.name,
+      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+    );
+  return getUrlParamEntries(urlParams);
+}
+
+function getDashboardUrlParams(): UrlParamEntries {
+  const urlParams = getUrlParams(RESERVED_DASHBOARD_URL_PARAMS);
+  const filterBoxFilters = getActiveFilters();
+  if (!isEmpty(filterBoxFilters))
+    urlParams.append(
+      URL_PARAMS.preselectFilters.name,
+      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+    );
+  return getUrlParamEntries(urlParams);
+}
+
 function getPermalink(endpoint: string, jsonPayload: JsonObject) {
   return SupersetClient.post({
     endpoint,
@@ -87,21 +136,25 @@ function getPermalink(endpoint: string, jsonPayload: JsonObject) {
     );
 }
 
-export function getChartPermalink(formData: Pick<QueryFormData, 'datasource'>) {
-  return getPermalink('/api/v1/explore/permalink', { formData });
+export function getChartPermalink(
+  formData: Pick<QueryFormData, 'datasource'>,
+  excludedUrlParams?: string[],
+) {
+  return getPermalink('/api/v1/explore/permalink', {
+    formData,
+    urlParams: getChartUrlParams(excludedUrlParams),
+  });
 }
 
 export function getDashboardPermalink(
   dashboardId: string,
   filterState: JsonObject,
-  legacyFilterState: JsonObject,
   hash?: string,
 ) {
+  // only encode filter box state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
     filterState,
-    legacyFilterState: JSON.stringify(
-      serializeActiveFilterValues(legacyFilterState),
-    ),
+    urlParams: getDashboardUrlParams(),
     hash,
   });
 }

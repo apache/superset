@@ -753,7 +753,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             try:
                 permalink_value = command.run()
                 if permalink_value:
-                    initial_form_data = permalink_value["state"]["formData"]
+                    state = permalink_value["state"]
+                    initial_form_data = state["formData"]
+                    url_params = state.get("urlParams")
+                    if url_params:
+                        initial_form_data["url_params"] = {
+                            key: value for key, value in url_params
+                        }
                 else:
                     return json_error_response(
                         _("permalink state not found"), status=404
@@ -2007,12 +2013,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        legacy_filter_state = value["state"].get("legacyFilterState")
-        hash_ = value["state"].get("hash")
         dashboard_id = value["dashboardId"]
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        if legacy_filter_state:
-            url = f"{url}&preselect_filters={legacy_filter_state}"
+        url_params = value["state"].get("urlParams")
+        if url_params:
+            params = parse.urlencode([(key, value) for key, value in url_params])
+            url = f"{url}&{params}"
+        hash_ = value["state"].get("hash")
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
