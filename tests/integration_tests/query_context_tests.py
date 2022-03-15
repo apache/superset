@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import logging
 import re
 import time
 from typing import Any, Dict
@@ -91,8 +92,9 @@ class TestQueryContext(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
-        table = self.get_table(name=table_name)
-        payload = get_query_context(table_name, table.id)
+        payload = get_query_context(
+            query_name=table_name, add_postprocessing_operations=True,
+        )
         payload["force"] = True
 
         query_context = ChartDataQueryContextSchema().load(payload)
