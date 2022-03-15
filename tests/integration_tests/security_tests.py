@@ -938,14 +938,14 @@ class TestSecurityManager(SupersetTestCase):
     Testing the Security Manager.
     """
 
-    @patch("superset.security.SupersetSecurityManager.raise_for_access")
-    def test_can_access_datasource(self, mock_raise_for_access):
+    @patch("superset.security.SupersetSecurityManager.raise_for_datasource_access")
+    def test_can_access_datasource(self, mock_raise_for_datasource_access):
         datasource = self.get_datasource_mock()
 
-        mock_raise_for_access.return_value = None
-        self.assertTrue(security_manager.can_access_datasource(datasource=datasource))
+        mock_raise_for_datasource_access.return_value = None
+        self.assertTrue(security_manager.can_access_datasource(datasource))
 
-        mock_raise_for_access.side_effect = SupersetSecurityException(
+        mock_raise_for_datasource_access.side_effect = SupersetSecurityException(
             SupersetError(
                 "dummy",
                 SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -953,7 +953,7 @@ class TestSecurityManager(SupersetTestCase):
             )
         )
 
-        self.assertFalse(security_manager.can_access_datasource(datasource=datasource))
+        self.assertFalse(security_manager.can_access_datasource(datasource))
 
     @patch("superset.security.SupersetSecurityManager.raise_for_access")
     def test_can_access_table(self, mock_raise_for_access):
