@@ -24,11 +24,11 @@ dataset, new models for columns, metrics, and tables were also introduced.
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import column_property, relationship
 
 from superset.columns.models import Column
 from superset.models.helpers import (
@@ -90,3 +90,53 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
+
+    # todo(hugh): Figure how to use this field and populate
+    # default_schema = Column()
+
+    # String representing the permissions for a given dataset
+    # todo(hugh): compute these columns based upon the original SqlaTable models
+    perm = column_property(name)
+    schema_perm = column_property(name)
+
+    """
+    Legacy Properties used to main backwards compatibility for
+    the current API schema
+    """
+
+    @property
+    def datasource_type(self) -> Optional[str]:
+        return self.__tablename__
+
+    @property
+    def kind(self) -> Optional[str]:
+        # https://github.com/apache/superset/blob/79a7a5d1b1682f79f1aab1723f76a34dcb9bf030/superset/connectors/base/models.py#L121
+        return "virtual" if self.is_physical else "physical"
+
+    @property
+    def schema(self) -> Optional[str]:
+        return None
+
+    @property
+    def sql(self) -> Optional[str]:
+        return self.expression
+
+    @property
+    def table_name(self) -> Optional[str]:
+        return self.name
+
+    @property
+    def explore_url(self) -> Optional[str]:
+        return "todo"
+
+    @property
+    def changed_by_url(self) -> Optional[str]:
+        return "todo"
+
+    @property
+    def default_endpoint(self) -> Optional[str]:
+        return "todo"
+
+    @property
+    def description(self) -> Optional[str]:
+        return "todo"
