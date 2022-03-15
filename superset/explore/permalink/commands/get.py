@@ -20,6 +20,7 @@ from typing import Optional
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.permalink.types import ExplorePermalinkValue
@@ -52,7 +53,11 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 check_access(dataset_id, chart_id, self.actor)
                 return value
             return None
-        except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:
+        except (
+            DatasetNotFoundError,
+            KeyValueGetFailedError,
+            KeyValueParseKeyError,
+        ) as ex:
             raise ExplorePermalinkGetFailedError(message=ex.message) from ex
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")

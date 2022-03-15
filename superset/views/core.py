@@ -71,6 +71,7 @@ from superset.connectors.sqla.models import (
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -758,14 +759,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     url_params = state.get("urlParams")
                     if url_params:
                         initial_form_data["url_params"] = {
-                            key: value for key, value in url_params
+                            item[0]: item[1] for item in url_params
                         }
                 else:
                     return json_error_response(
-                        _("permalink state not found"), status=404
+                        _("Error: permalink state not found"), status=404
                     )
             except ExplorePermalinkGetFailedError as ex:
-                return json_error_response(ex.message, status=400)
+                flash(__("Error: %(msg)s", msg=ex.message), "danger")
+                return redirect("/chart/list/")
         elif form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
@@ -2010,14 +2012,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, key: str,
     ) -> FlaskResponse:
         key_type = config["PERMALINK_KEY_TYPE"]
-        value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+        try:
+            value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+        except DashboardPermalinkGetFailedError as ex:
+            flash(__("Error: %(msg)s", msg=ex.message), "danger")
+            return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id = value["dashboardId"]
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
         url_params = value["state"].get("urlParams")
         if url_params:
-            params = parse.urlencode([(key, value) for key, value in url_params])
+            params = parse.urlencode([(item[0], item[1]) for item in url_params])
             url = f"{url}&{params}"
         hash_ = value["state"].get("hash")
         if hash_:

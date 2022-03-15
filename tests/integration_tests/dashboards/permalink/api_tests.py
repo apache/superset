@@ -58,6 +58,20 @@ def test_post(client, dashboard_id: int):
     db.session.commit()
 
 
+def test_post_access_denied(client, dashboard_id: int):
+    login(client, "gamma")
+    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
+    assert resp.status_code == 404
+
+
+def test_post_invalid_schema(client, dashboard_id: int):
+    login(client, "admin")
+    resp = client.post(
+        f"api/v1/dashboard/{dashboard_id}/permalink", json={"foo": "bar"}
+    )
+    assert resp.status_code == 400
+
+
 def test_get(client, dashboard_id: int):
     login(client, "admin")
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)

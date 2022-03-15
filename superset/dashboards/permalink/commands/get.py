@@ -20,6 +20,7 @@ from typing import Optional
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
@@ -50,7 +51,11 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 DashboardDAO.get_by_id_or_slug(value["dashboardId"])
                 return value
             return None
-        except (KeyValueGetFailedError, KeyValueParseKeyError) as ex:
+        except (
+            DashboardNotFoundError,
+            KeyValueGetFailedError,
+            KeyValueParseKeyError,
+        ) as ex:
             raise DashboardPermalinkGetFailedError(message=ex.message) from ex
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")

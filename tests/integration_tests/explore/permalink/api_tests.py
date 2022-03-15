@@ -18,12 +18,10 @@ import json
 from typing import Any, Dict
 
 import pytest
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset import db
 from superset.key_value.models import KeyValueEntry
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.client import client
@@ -61,6 +59,18 @@ def test_post(client, form_data):
     assert key in url
     db.session.query(KeyValueEntry).filter_by(uuid=key).delete()
     db.session.commit()
+
+
+def test_post_access_denied(client, form_data):
+    login(client, "gamma")
+    resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
+    assert resp.status_code == 404
+
+
+def test_post_invalid_schema(client):
+    login(client, "admin")
+    resp = client.post(f"api/v1/explore/permalink", json={"abc": 123})
+    assert resp.status_code == 400
 
 
 def test_get(client, form_data):
