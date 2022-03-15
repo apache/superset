@@ -29,7 +29,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend
+from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -100,6 +100,10 @@ class TestQueryContext(SupersetTestCase):
         query_cache_key = query_context.query_cache_key(query_object)
 
         response = query_context.get_payload(cache_query_context=True)
+        # MUST BE a successful query
+        query_dump = response["queries"][0]
+        assert query_dump["status"] == QueryStatus.SUCCESS
+
         cache_key = response["cache_key"]
         assert cache_key is not None
 
