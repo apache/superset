@@ -20,7 +20,6 @@ import json
 import prison
 import pytest
 from flask import escape
-from integration_tests.test_utils import get_sql_table_by_name
 
 from superset import app
 from superset.models import core as models
@@ -32,6 +31,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
 )
+from tests.integration_tests.test_utils import get_sql_table_by_name
 
 
 class TestDashboardDatasetSecurity(DashboardTestCase):

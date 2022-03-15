@@ -15,18 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import random
-import string
 from typing import Any, Dict, List, Optional, Tuple
 
-from integration_tests.test_utils import random_str
 from sqlalchemy import func
 
 from superset import appbuilder, db, security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.dashboards.consts import DEFAULT_DASHBOARD_SLUG_TO_TEST
+from tests.integration_tests.test_utils import random_str
 
 logger = logging.getLogger(__name__)
 

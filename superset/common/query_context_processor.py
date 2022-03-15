@@ -31,7 +31,7 @@ from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_actions import compile_query, get_query_results
+from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils as df_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
