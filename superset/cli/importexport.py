@@ -23,7 +23,6 @@ from zipfile import is_zipfile, ZipFile
 
 import click
 import yaml
-from deprecation import deprecated
 from flask import g
 from flask.cli import with_appcontext
 
@@ -198,7 +197,6 @@ else:
         default=False,
         help="Print JSON to stdout",
     )
-    @deprecated
     def export_dashboards(
         dashboard_file: Optional[str], print_stdout: bool = False
     ) -> None:
@@ -243,7 +241,6 @@ else:
         default=False,
         help="Include fields containing defaults",
     )
-    @deprecated
     def export_datasources(
         datasource_file: Optional[str],
         print_stdout: bool = False,
