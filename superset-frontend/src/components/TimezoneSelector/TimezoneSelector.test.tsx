@@ -22,9 +22,6 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimezoneSelector from './index';
 
-jest.useFakeTimers('modern');
-jest.setSystemTime(new Date('2022-01-01'));
-
 jest.spyOn(moment.tz, 'guess').mockReturnValue('America/New_York');
 
 const getSelectOptions = () =>
@@ -72,10 +69,15 @@ it('can select a timezone values and returns canonical value', async () => {
   });
   expect(searchInput).toBeInTheDocument();
   userEvent.click(searchInput);
+  const isDaylight = moment(moment.now()).isDST();
+
+  const selectedTimezone = isDaylight
+    ? 'GMT -04:00 (Eastern Daylight Time)'
+    : 'GMT -05:00 (Eastern Standard Time)';
 
   // selected option ranks first
   const options = await getSelectOptions();
-  expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
+  expect(options[0]).toHaveTextContent(selectedTimezone);
 
   // others are ranked by offset
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
@@ -85,9 +87,10 @@ it('can select a timezone values and returns canonical value', async () => {
   // search for mountain time
   await userEvent.type(searchInput, 'mou', { delay: 10 });
 
-  const selectOption = await screen.findByTitle(
-    'GMT -07:00 (Mountain Standard Time)',
-  );
+  const findTitle = isDaylight
+    ? 'GMT -06:00 (Mountain Daylight Time)'
+    : 'GMT -07:00 (Mountain Standard Time)';
+  const selectOption = await screen.findByTitle(findTitle);
   expect(selectOption).toBeInTheDocument();
   userEvent.click(selectOption);
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
