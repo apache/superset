@@ -107,7 +107,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
     not_found = DashboardNotFoundError
 
     @staticmethod
-    def _export(model: Dashboard) -> Iterator[Tuple[str, str]]:
+    def _export(
+        model: Dashboard, export_related: bool = True
+    ) -> Iterator[Tuple[str, str]]:
         dashboard_slug = secure_filename(model.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
@@ -138,7 +140,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 if dataset_id is not None:
                     dataset = DatasetDAO.find_by_id(dataset_id)
                     target["datasetUuid"] = str(dataset.uuid)
-                    yield from ExportDatasetsCommand([dataset_id]).run()
+                    if export_related:
+                        yield from ExportDatasetsCommand([dataset_id]).run()
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
@@ -160,5 +163,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        chart_ids = [chart.id for chart in model.slices]
-        yield from ExportChartsCommand(chart_ids).run()
+        if export_related:
+            chart_ids = [chart.id for chart in model.slices]
+            yield from ExportChartsCommand(chart_ids).run()

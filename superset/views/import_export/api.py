@@ -19,11 +19,12 @@ from datetime import datetime
 from io import BytesIO
 from zipfile import ZipFile
 
-from flask import Response, request, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import BaseApi, expose, protect
 
 from superset.commands.export import ExportAssetsCommand
 from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
 from superset.views.base_api import requires_form_data
@@ -74,7 +75,6 @@ class ImportExportRestApi(BaseApi):
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
-            # XXX ExportAssetsCommand should pass export_children=False to subcommands
             for file_name, file_content in ExportAssetsCommand().run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
                     fp.write(file_content.encode())
