@@ -26,7 +26,7 @@ from flask_babel import _
 from pandas import DateOffset
 from typing_extensions import TypedDict
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
@@ -159,10 +159,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_ids(datasource)
-                if is_feature_enabled("ROW_LEVEL_SECURITY")
-                and datasource.is_rls_supported
-                else [],
+                rls=security_manager.get_rls_cache_key(datasource),
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
