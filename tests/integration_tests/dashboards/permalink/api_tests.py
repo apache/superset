@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from unittest.mock import patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset import db
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -58,10 +60,12 @@ def test_post(client, dashboard_id: int):
     db.session.commit()
 
 
-def test_post_access_denied(client, dashboard_id: int):
-    login(client, "gamma")
+@patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
+def test_post_access_denied(mock_raise_for_dashboard_access, client, dashboard_id: int):
+    login(client, "admin")
+    mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
     resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_post_invalid_schema(client, dashboard_id: int):
