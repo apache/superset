@@ -22,7 +22,7 @@ from zipfile import ZipFile
 from flask import request, Response, send_file
 from flask_appbuilder.api import BaseApi, expose, protect
 
-from superset.commands.export import ExportAssetsCommand
+from superset.commands.export.assets import ExportAssetsCommand
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle

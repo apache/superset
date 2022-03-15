@@ -29,7 +29,7 @@ from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.commands.importers.v1.utils import find_chart_uuids
 from superset.dashboards.dao import DashboardDAO
-from superset.commands.export import ExportModelsCommand
+from superset.commands.export.models import ExportModelsCommand
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.dao import DatasetDAO
 from superset.models.dashboard import Dashboard

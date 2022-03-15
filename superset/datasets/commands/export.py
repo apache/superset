@@ -23,7 +23,7 @@ from typing import Iterator, Tuple
 import yaml
 from werkzeug.utils import secure_filename
 
-from superset.commands.export import ExportModelsCommand
+from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
