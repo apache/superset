@@ -19,7 +19,6 @@
 
 import { ExtraFormData } from '../../query';
 import { JsonObject } from '../..';
-import { t } from '../../translation';
 
 export type HandlerFunction = (...args: unknown[]) => void;
 
