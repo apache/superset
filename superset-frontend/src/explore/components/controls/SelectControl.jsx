@@ -64,7 +64,6 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
-  caseSensitive: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -189,7 +188,6 @@ export default class SelectControl extends React.PureComponent {
       tooltipOnClick,
       warning,
       danger,
-      caseSensitive,
     } = this.props;
 
     const headerProps = {
@@ -228,7 +226,6 @@ export default class SelectControl extends React.PureComponent {
       ariaLabel:
         ariaLabel || (typeof label === 'string' ? label : t('Select ...')),
       allowClear: clearable,
-      caseSensitive,
       disabled,
       filterOption:
         filterOption && typeof filterOption === 'function'
