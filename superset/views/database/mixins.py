@@ -146,7 +146,7 @@ class DatabaseMixin:
             "This should be used with Presto DBs so that the syntax is correct<br/>"
             "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
             "whether or not the Explore button in SQL Lab results is shown<br/>"
-            "6. The ``disable_preview_data`` field is a boolean specifying whether or"
+            "6. The ``disable_data_preview`` field is a boolean specifying whether or"
             "not data preview queries will be run when fetching table metadata in"
             "SQL Lab.",
             True,

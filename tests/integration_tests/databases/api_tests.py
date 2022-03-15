@@ -179,7 +179,7 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
-            "disable_preview_data",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",

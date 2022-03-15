@@ -213,9 +213,9 @@ class Database(
         return self.get_extra().get("explore_database_id", self.id)
 
     @property
-    def disable_preview_data(self) -> bool:
+    def disable_data_preview(self) -> bool:
         # this will prevent any 'trash value' strings from going through
-        if self.get_extra().get("disable_preview_data", False) is not True:
+        if self.get_extra().get("disable_data_preview", False) is not True:
             return False
         return True
 
@@ -232,7 +232,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
-            "disable_preview_data": self.disable_preview_data,
+            "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
         }
 
