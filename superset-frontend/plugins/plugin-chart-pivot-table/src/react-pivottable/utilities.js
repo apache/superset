@@ -255,7 +255,7 @@ const baseAggregatorTemplates = {
             attr,
           ),
           push(record) {
-            let x = record[attr];
+            const x = record[attr];
             if (['min', 'max'].includes(mode)) {
               const coercedValue = parseFloat(x);
               if (Number.isNaN(coercedValue)) {
@@ -266,7 +266,10 @@ const baseAggregatorTemplates = {
                     ? x
                     : this.val;
               } else {
-                this.val = Math[mode](coercedValue, this.val !== null ? this.val : coercedValue);
+                this.val = Math[mode](
+                  coercedValue,
+                  this.val !== null ? this.val : coercedValue,
+                );
               }
             } else if (
               mode === 'first' &&
