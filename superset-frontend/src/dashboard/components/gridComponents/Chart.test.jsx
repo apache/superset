@@ -93,6 +93,14 @@ describe('Chart', () => {
     expect(wrapper.find('.slice_description')).toExist();
   });
 
+  it('should calculate the description height if it has one and isExpanded=true', () => {
+    const spy = jest.spyOn(Chart.prototype, 'getDescriptionHeight');
+    const wrapper = setup({ isExpanded: true });
+
+    expect(wrapper.find('.slice_description')).toExist();
+    expect(spy).toHaveBeenCalled();
+  });
+
   it('should call refreshChart when SliceHeader calls forceRefresh', () => {
     const refreshChart = sinon.spy();
     const wrapper = setup({ refreshChart });
