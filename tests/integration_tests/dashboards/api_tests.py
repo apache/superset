@@ -1345,7 +1345,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         # freeze time to ensure filename is deterministic
         with freeze_time("2020-01-01T00:00:00Z"):
-            rv = self.get_assert_metric(uri, "export")
+            rv = self.client.get(uri)
             headers = generate_download_headers("json")["Content-Disposition"]
 
         assert rv.status_code == 200

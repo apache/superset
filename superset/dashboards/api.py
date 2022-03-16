@@ -752,12 +752,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 except DashboardNotFoundError:
                     return self.response_404()
             buf.seek(0)
-
             response = send_file(
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=filename,
+                download_name=filename,
             )
             if token:
                 response.set_cookie(token, "done", max_age=600)
