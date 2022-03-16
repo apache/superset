@@ -857,9 +857,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
-    if (isEmpty(dbErrors)) {
-      return <></>;
-    }
     if (isEmpty(dbErrors) === false) {
       const message: Array<string> =
         typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
@@ -872,6 +869,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       );
     }
+    return <></>;
   };
 
   const renderFinishState = () => {
