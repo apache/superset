@@ -17,6 +17,7 @@
 from contextlib import closing
 from typing import Dict, List, Optional, TYPE_CHECKING
 
+import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql.type_api import TypeEngine
@@ -28,7 +29,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import has_table_query, ParsedQuery
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -119,3 +120,10 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
     return cols
+
+
+def allow_adhoc_subquery(raw_sql: str) -> bool:
+    statement = sqlparse.parse(raw_sql)[0]
+    if has_table_query(statement):
+        raise SupersetGenericDBErrorException(message="test")
+    return True
