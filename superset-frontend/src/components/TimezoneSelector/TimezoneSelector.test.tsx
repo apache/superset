@@ -70,7 +70,9 @@ it('can select a timezone values and returns canonical value', async () => {
   expect(searchInput).toBeInTheDocument();
   userEvent.click(searchInput);
   const isDST = moment(moment.now()).isDST();
-
+  const expectedOptionThree = isDST
+    ? 'GMT -09:30 (Pacific/Marquesas)'
+    : 'GMT -10:00 (America/Adak)';
   const selectedTimezone = isDST
     ? 'GMT -04:00 (Eastern Daylight Time)'
     : 'GMT -05:00 (Eastern Standard Time)';
@@ -82,12 +84,7 @@ it('can select a timezone values and returns canonical value', async () => {
   // others are ranked by offset
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
   expect(options[2]).toHaveTextContent('GMT -10:00 (Hawaii Standard Time)');
-
-  if (isDST) {
-    expect(options[3]).toHaveTextContent('GMT -09:30 (Pacific/Marquesas)');
-  } else {
-    expect(options[3]).toHaveTextContent('GMT -10:00 (America/Adak)');
-  }
+  expect(options[3]).toHaveTextContent(expectedOptionThree);
 
   // search for mountain time
   await userEvent.type(searchInput, 'mou', { delay: 10 });
