@@ -25,6 +25,7 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
+import { getChartPermalink } from 'src/utils/urlUtils';
 
 export default class EmbedCodeButton extends React.Component {
   constructor(props) {
@@ -32,8 +33,11 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
+      url: '',
+      errorMessage: '',
     };
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.updateUrl = this.updateUrl.bind(this);
   }
 
   handleInputChange(e) {
@@ -43,8 +47,21 @@ export default class EmbedCodeButton extends React.Component {
     this.setState(data);
   }
 
+  updateUrl() {
+    this.setState({ url: '' });
+    getChartPermalink(this.props.formData)
+      .then(url => this.setState({ errorMessage: '', url }))
+      .catch(() => {
+        this.setState({ errorMessage: t('Error') });
+        this.props.addDangerToast(
+          t('Sorry, something went wrong. Try again later.'),
+        );
+      });
+  }
+
   generateEmbedHTML() {
-    const srcLink = `${window.location.href}&${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
+    if (!this.state.url) return '';
+    const srcLink = `${this.state.url}?${URL_PARAMS.standalone.name}=1&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -60,6 +77,8 @@ export default class EmbedCodeButton extends React.Component {
 
   renderPopoverContent() {
     const html = this.generateEmbedHTML();
+    const text =
+      this.state.errorMessage || html || t('Generating link, please wait..');
     return (
       <div id="embed-code-popover" data-test="embed-code-popover">
         <div className="row">
@@ -67,7 +86,8 @@ export default class EmbedCodeButton extends React.Component {
             <textarea
               data-test="embed-code-textarea"
               name="embedCode"
-              value={html}
+              disabled={!html}
+              value={text}
               rows="4"
               readOnly
               className="form-control input-sm"
@@ -125,6 +145,7 @@ export default class EmbedCodeButton extends React.Component {
       <Popover
         trigger="click"
         placement="left"
+        onClick={this.updateUrl}
         content={this.renderPopoverContent()}
       >
         <Tooltip
