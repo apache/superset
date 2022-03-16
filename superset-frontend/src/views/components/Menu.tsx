@@ -74,7 +74,7 @@ interface MenuObjectChildProps {
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
-  perm?: string | Array<any> | boolean;
+  perm?: string | boolean;
   view?: string;
 }
 

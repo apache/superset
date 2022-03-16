@@ -79,7 +79,6 @@ const RightMenu = ({
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-
   const [showModal, setShowModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
@@ -124,19 +123,25 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: CSV_EXTENSIONS && canUploadCSV,
+          perm:
+            checkUploadExtensions(CSV_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadCSV,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: COLUMNAR_EXTENSIONS && canUploadColumnar,
+          perm:
+            checkUploadExtensions(COLUMNAR_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadColumnar,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: EXCEL_EXTENSIONS && canUploadExcel,
+          perm:
+            checkUploadExtensions(EXCEL_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadExcel,
         },
       ],
     },
@@ -209,9 +214,7 @@ const RightMenu = ({
                     title={menuIconAndLabel(menu)}
                   >
                     {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' &&
-                      item.name &&
-                      checkUploadExtensions(item.perm, ALLOWED_EXTENSIONS) ? (
+                      typeof item !== 'string' && item.name && item.perm ? (
                         <>
                           {idx === 2 && <Menu.Divider />}
                           <Menu.Item key={item.name}>

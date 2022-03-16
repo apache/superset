@@ -71,7 +71,7 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis: redis.Redis  # type: ignore
+        self._redis: redis.Redis
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
