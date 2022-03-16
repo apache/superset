@@ -631,13 +631,13 @@ def test_should_generate_closed_and_open_time_filter_range():
             }
         )
         """ >>> result_object.query
-            SELECT datetime_col AS __timestamp,
-                   count(*) AS count
-            FROM
-              (SELECT '2022-03-10' as datetime_col) AS virtual_table
-            WHERE datetime_col >= '2022-01-01 00:00:00.000000'
-              AND datetime_col < '2023-01-01 00:00:00.000000'
-            GROUP BY datetime_col
+                SELECT datetime_col AS __timestamp,
+                       count(*) AS count
+                FROM
+                  (SELECT '2022-03-10'::timestamp as datetime_col) AS virtual_table
+                WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+                  AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+                GROUP BY datetime_col
         """
         unformat_sql = result_object.query.replace("\n", " ")
         unformat_sql = re.sub(r"(\s){2,}", " ", unformat_sql)
