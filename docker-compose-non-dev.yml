@@ -47,8 +47,8 @@ services:
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
     restart: unless-stopped
-    ports:
-      - 8088:8088
+    # ports:
+    #   - 8088:8088
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -80,6 +80,18 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+
+  nginx-superset:
+    image: nginx:latest
+    container_name: nginx-superset
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./conf/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./ssl/openelisci.crt:/etc/nginx/serverCerts/openelisci.crt
+      - ./ssl/openelisci.key:/etc/nginx/serverCerts/openelisci.key    
 
 volumes:
   superset_home:
