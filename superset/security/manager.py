@@ -1334,7 +1334,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
-        exp = now + (exp_seconds * 1000)
+        exp = now + exp_seconds
         claims = {
             "user": user,
             "resources": resources,
