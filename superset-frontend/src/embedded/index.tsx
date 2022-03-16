@@ -75,14 +75,12 @@ if (!window.parent) {
 //   );
 // }
 
-async function start(guestToken: string) {
-  // the preamble configures a client, but we need to configure a new one
-  // now that we have the guest token
+function setupGuestClient(guestToken: string) {
+  // need to reconfigure SupersetClient to use the guest token
   setupClient({
     guestToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
   });
-  ReactDOM.render(<EmbeddedApp />, appMountPoint);
 }
 
 function validateMessageEvent(event: MessageEvent) {
@@ -103,7 +101,7 @@ function validateMessageEvent(event: MessageEvent) {
   }
 }
 
-window.addEventListener('message', function (event) {
+window.addEventListener('message', function embeddedPageInitializer(event) {
   try {
     validateMessageEvent(event);
   } catch (err) {
@@ -121,8 +119,14 @@ window.addEventListener('message', function (event) {
       debug: debugMode,
     });
 
+    let started = false;
+
     switchboard.defineMethod('guestToken', ({ guestToken }) => {
-      start(guestToken);
+      setupGuestClient(guestToken);
+      if (!started) {
+        ReactDOM.render(<EmbeddedApp />, appMountPoint);
+        started = true;
+      }
     });
 
     switchboard.defineMethod('getScrollSize', () => ({
