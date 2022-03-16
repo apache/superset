@@ -55,7 +55,7 @@ it('use the default timezone when an invalid timezone is provided', async () => 
   expect(onTimezoneChange).toHaveBeenLastCalledWith('Africa/Abidjan');
 });
 
-it('can select a timezone values and returns canonical value', async () => {
+it.skip('can select a timezone values and returns canonical value', async () => {
   const onTimezoneChange = jest.fn();
   render(
     <TimezoneSelector

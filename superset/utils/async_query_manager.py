@@ -20,8 +20,8 @@ import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
+import redis
 from flask import Flask, g, request, Request, Response, session
-from redis import Redis
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class AsyncQueryManager:
 
     def __init__(self) -> None:
         super().__init__()
-        self._redis: Optional[Any] = None
+        self._redis: redis.Redis
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
@@ -98,7 +98,7 @@ class AsyncQueryManager:
                 "Please provide a JWT secret at least 32 bytes long"
             )
 
-        self._redis = Redis(
+        self._redis = redis.Redis(
             **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
         )
         self._stream_prefix = config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"]
@@ -176,11 +176,7 @@ class AsyncQueryManager:
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = (
-            self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
-            if self._redis
-            else None
-        )
+        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
@@ -201,8 +197,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        if self._redis:
-            self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-            self._redis.xadd(
-                full_stream_name, event_data, "*", self._stream_limit_firehose
-            )
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
