@@ -16,16 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function isEqualArray<T extends unknown[] | undefined | null>(
-  arrA: T,
-  arrB: T,
-) {
-  return (
-    arrA === arrB ||
-    (!arrA && !arrB) ||
-    (arrA &&
-      arrB &&
-      arrA.length === arrB.length &&
-      arrA.every((x, i) => x === arrB[i]))
-  );
-}
+
+import { rankedSearchCompare } from './rankedSearchCompare';
+
+const searchSort = (search: string) => (a: string, b: string) =>
+  rankedSearchCompare(a, b, search);
+
+test('Sort exact match first', async () => {
+  expect(['abc', 'bc', 'bcd', 'cbc'].sort(searchSort('bc'))).toEqual([
+    'bc',
+    'bcd',
+    'abc',
+    'cbc',
+  ]);
+});
+
+test('Sort starts with first', async () => {
+  expect(['her', 'Cher', 'Her', 'Hermon'].sort(searchSort('Her'))).toEqual([
+    'Her',
+    'Hermon',
+    'her',
+    'Cher',
+  ]);
+  expect(
+    ['abc', 'ab', 'aaabc', 'bbabc', 'BBabc'].sort(searchSort('abc')),
+  ).toEqual(['abc', 'aaabc', 'bbabc', 'BBabc', 'ab']);
+});
+
+test('Sort same case first', async () => {
+  expect(['%f %B', '%F %b'].sort(searchSort('%F'))).toEqual(['%F %b', '%f %B']);
+});

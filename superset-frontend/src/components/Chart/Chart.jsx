@@ -298,7 +298,11 @@ class Chart extends React.PureComponent {
             className={`slice_container ${isFaded ? ' faded' : ''}`}
             data-test="slice-container"
           >
-            <ChartRenderer {...this.props} data-test={this.props.vizType} />
+            <ChartRenderer
+              {...this.props}
+              source={this.props.dashboardId ? 'dashboard' : 'explore'}
+              data-test={this.props.vizType}
+            />
           </div>
 
           {!isLoading && !chartAlert && isFaded && (

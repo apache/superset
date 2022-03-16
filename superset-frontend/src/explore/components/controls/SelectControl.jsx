@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { css, t } from '@superset-ui/core';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import { css, isEqualArray, t } from '@superset-ui/core';
+import Select from 'src/components/Select/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -94,8 +94,8 @@ export default class SelectControl extends React.PureComponent {
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     if (
-      nextProps.choices !== this.props.choices ||
-      nextProps.options !== this.props.options
+      !isEqualArray(nextProps.choices, this.props.choices) ||
+      !isEqualArray(nextProps.options, this.props.options)
     ) {
       const options = this.getOptions(nextProps);
       this.setState({ options });
@@ -133,10 +133,9 @@ export default class SelectControl extends React.PureComponent {
       }));
     } else if (choices) {
       // Accepts different formats of input
-      options = choices.map((c, i) => {
+      options = choices.map(c => {
         if (Array.isArray(c)) {
           const [value, label] = c.length > 1 ? c : [c[0], c[0]];
-          if (!this.props.sortComparator) return { value, label, order: i };
           return {
             value,
             label,
@@ -241,7 +240,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
-      sortComparator: this.props.sortComparator || propertyComparator('order'),
+      sortComparator: this.props.sortComparator,
       value: getValue(),
     };
 
