@@ -41,6 +41,7 @@ from superset.utils.core import (
     FilterOperator,
     GenericDataType,
     TemporalType,
+    backend,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -603,6 +604,54 @@ def test_filter_on_text_column(text_column_table):
         }
     )
     assert result_object.df["count"][0] == 1
+
+
+def test_should_generate_closed_and_open_time_filter_range():
+    with app.app_context():
+        if backend() in ["sqlite", "mysql"]:
+            pytest.skip(f"{backend()} has different dialect for datetime column")
+
+        table = SqlaTable(
+            table_name="temporal_column_table",
+            sql=("SELECT '2022-03-10'::timestamp as datetime_col"),
+            database=get_example_database(),
+        )
+        TableColumn(
+            column_name="datetime_col", type="TIMESTAMP", table=table, is_dttm=True,
+        )
+        SqlMetric(metric_name="count", expression="count(*)", table=table)
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "is_timeseries": True,
+                "filter": [],
+                "from_dttm": datetime(2022, 1, 1),
+                "to_dttm": datetime(2023, 1, 1),
+                "granularity": "datetime_col",
+            }
+        )
+        """ >>> result_object.query
+            SELECT datetime_col AS __timestamp,
+                   count(*) AS count
+            FROM
+              (SELECT '2022-03-10' as datetime_col) AS virtual_table
+            WHERE datetime_col >= '2022-01-01 00:00:00.000000'
+              AND datetime_col < '2023-01-01 00:00:00.000000'
+            GROUP BY datetime_col
+        """
+        unformat_sql = result_object.query.replace("\n", " ")
+        unformat_sql = re.sub(r"(\s){2,}", " ", unformat_sql)
+        assert (
+            "WHERE "
+            "datetime_col "
+            ">= "
+            "TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US') "
+            "AND "
+            "datetime_col < "
+            "TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')"
+            in unformat_sql
+        )
+        assert result_object.df.iloc[0]["count"] == 1
 
 
 @pytest.mark.parametrize(
