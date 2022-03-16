@@ -613,7 +613,10 @@ def test_should_generate_closed_and_open_time_filter_range():
 
         table = SqlaTable(
             table_name="temporal_column_table",
-            sql=("SELECT '2022-03-10'::timestamp as datetime_col"),
+            sql=(
+                "SELECT '2022-01-01'::timestamp as datetime_col"
+                " UNION SELECT '2023-01-01'::timestamp"
+            ),
             database=get_example_database(),
         )
         TableColumn(
@@ -623,7 +626,7 @@ def test_should_generate_closed_and_open_time_filter_range():
         result_object = table.query(
             {
                 "metrics": ["count"],
-                "is_timeseries": True,
+                "is_timeseries": False,
                 "filter": [],
                 "from_dttm": datetime(2022, 1, 1),
                 "to_dttm": datetime(2023, 1, 1),
@@ -631,27 +634,13 @@ def test_should_generate_closed_and_open_time_filter_range():
             }
         )
         """ >>> result_object.query
-                SELECT datetime_col AS __timestamp,
-                       count(*) AS count
+                SELECT count(*) AS count
                 FROM
-                  (SELECT '2022-03-10'::timestamp as datetime_col) AS virtual_table
+                  (SELECT '2022-01-01'::timestamp as datetime_col
+                   UNION SELECT '2023-01-01'::timestamp) AS virtual_table
                 WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
                   AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-                GROUP BY datetime_col
         """
-        unformat_sql = result_object.query.replace("\n", " ")
-        unformat_sql = re.sub(r"(\s){2,}", " ", unformat_sql)
-        assert (
-            "WHERE "
-            "datetime_col "
-            ">= "
-            "TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US') "
-            "AND "
-            "datetime_col "
-            "< "
-            "TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')"
-            in unformat_sql
-        )
         assert result_object.df.iloc[0]["count"] == 1
 
 
