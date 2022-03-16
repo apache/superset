@@ -27,8 +27,6 @@ import {
 } from 'src/utils/urlUtils';
 import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
-import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 
 interface ShareMenuItemProps {
   url?: string;
