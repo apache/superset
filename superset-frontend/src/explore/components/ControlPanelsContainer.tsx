@@ -279,13 +279,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           undefined),
       name,
     };
-    const { validationErrors, hidden, ...restProps } =
-      controlData as ControlState & {
-        validationErrors?: any[];
-      };
+    const { validationErrors, ...restProps } = controlData as ControlState & {
+      validationErrors?: any[];
+    };
 
-    const isHidden =
-      (visibility && !visibility.call(config, props, controlData)) || hidden;
+    const isVisibility = visibility
+      ? visibility.call(config, props, controlData)
+      : undefined;
 
     return (
       <Control
@@ -293,7 +293,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         name={name}
         validationErrors={validationErrors}
         actions={props.actions}
-        hidden={isHidden}
+        isVisibility={isVisibility}
         {...restProps}
       />
     );
