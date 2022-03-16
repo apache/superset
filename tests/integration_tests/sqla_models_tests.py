@@ -647,7 +647,8 @@ def test_should_generate_closed_and_open_time_filter_range():
             ">= "
             "TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US') "
             "AND "
-            "datetime_col < "
+            "datetime_col "
+            "< "
             "TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')"
             in unformat_sql
         )
