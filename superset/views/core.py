@@ -758,9 +758,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     initial_form_data = state["formData"]
                     url_params = state.get("urlParams")
                     if url_params:
-                        initial_form_data["url_params"] = {
-                            item[0]: item[1] for item in url_params
-                        }
+                        initial_form_data["url_params"] = dict(url_params)
                 else:
                     return json_error_response(
                         _("Error: permalink state not found"), status=404
@@ -2023,7 +2021,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
         url_params = value["state"].get("urlParams")
         if url_params:
-            params = parse.urlencode([(item[0], item[1]) for item in url_params])
+            params = parse.urlencode(url_params)
             url = f"{url}&{params}"
         hash_ = value["state"].get("hash")
         if hash_:

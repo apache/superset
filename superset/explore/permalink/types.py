@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 
 class ExplorePermalinkState(TypedDict, total=False):
     formData: Dict[str, Any]
-    urlParams: Optional[List[List[str]]]
+    urlParams: Optional[List[Tuple[str, str]]]
 
 
 class ExplorePermalinkValue(TypedDict):
