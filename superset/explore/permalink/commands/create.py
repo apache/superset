@@ -32,18 +32,20 @@ logger = logging.getLogger(__name__)
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
     def __init__(self, actor: User, state: Dict[str, Any], key_type: KeyType):
         self.actor = actor
-        self.chart_id: Optional[int] = state["formData"].get("chart_id")
-        self.dataset: str = state["formData"]["datasource"]
+        self.chart_id: Optional[int] = state["formData"].get("slice_id")
+        self.datasource: str = state["formData"]["datasource"]
         self.state = state
         self.key_type = key_type
 
     def run(self) -> str:
         self.validate()
         try:
-            check_access(int(self.dataset.split("__")[0]), self.chart_id, self.actor)
+            dataset_id = int(self.datasource.split("__")[0])
+            check_access(dataset_id, self.chart_id, self.actor)
             value = {
                 "chartId": self.chart_id,
-                "datasource": self.dataset,
+                "datasetId": dataset_id,
+                "datasource": self.datasource,
                 "state": self.state,
             }
             command = CreateKeyValueCommand(

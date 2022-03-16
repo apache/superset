@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import pickle
 from typing import Any, Dict
+from uuid import UUID
 
 import pytest
 from sqlalchemy.orm import Session
@@ -65,6 +67,35 @@ def test_post_access_denied(client, form_data):
     login(client, "gamma")
     resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 404
+
+
+def test_get_missing_chart(client, chart):
+    from superset.key_value.models import KeyValueEntry
+
+    key = 1234
+    uuid_key = "e2ea9d19-7988-4862-aa69-c3a1a7628cb9"
+    entry = KeyValueEntry(
+        id=int(key),
+        uuid=UUID("e2ea9d19-7988-4862-aa69-c3a1a7628cb9"),
+        resource="explore_permalink",
+        value=pickle.dumps(
+            {
+                "chartId": key,
+                "datasetId": chart.datasource.id,
+                "formData": {
+                    "slice_id": key,
+                    "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
+                },
+            }
+        ),
+    )
+    db.session.add(entry)
+    db.session.commit()
+    login(client, "admin")
+    resp = client.get(f"api/v1/explore/permalink/{uuid_key}")
+    assert resp.status_code == 404
+    db.session.delete(entry)
+    db.session.commit()
 
 
 def test_post_invalid_schema(client):

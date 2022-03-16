@@ -57,6 +57,7 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
@@ -763,7 +764,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     return json_error_response(
                         _("Error: permalink state not found"), status=404
                     )
-            except ExplorePermalinkGetFailedError as ex:
+            except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
                 return redirect("/chart/list/")
         elif form_data_key:

@@ -47,9 +47,8 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 self.resource, self.key, key_type=self.key_type
             ).run()
             if value:
-                form_data = value["state"]["formData"]
-                chart_id: Optional[int] = form_data.get("chart_id")
-                dataset_id = int(form_data["datasource"].split("__")[0])
+                chart_id: Optional[int] = value.get("chartId")
+                dataset_id = value["datasetId"]
                 check_access(dataset_id, chart_id, self.actor)
                 return value
             return None

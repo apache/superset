@@ -24,5 +24,6 @@ class ExplorePermalinkState(TypedDict, total=False):
 
 class ExplorePermalinkValue(TypedDict):
     chartId: Optional[int]
+    datasetId: int
     datasource: str
     state: ExplorePermalinkState
