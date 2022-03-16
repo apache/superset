@@ -17,25 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { useArgs } from '@storybook/client-api';
-import TimezoneSelector, { TimezoneSelectorProps } from './index';
+import { render, screen } from 'spec/helpers/testing-library';
+import QueryHistory from 'src/SqlLab/components/QueryHistory';
 
-export default {
-  title: 'TimezoneSelector',
-  component: TimezoneSelector,
+const NOOP = () => {};
+const mockedProps = {
+  queries: [],
+  actions: {
+    queryEditorSetSql: NOOP,
+    cloneQueryToNewTab: NOOP,
+    fetchQueryResults: NOOP,
+    clearQueryResults: NOOP,
+    removeQuery: NOOP,
+  },
+  displayLimit: 1000,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const InteractiveTimezoneSelector = (args: TimezoneSelectorProps) => {
-  const [{ timezone }, updateArgs] = useArgs();
-  const onTimezoneChange = (value: string) => {
-    updateArgs({ timezone: value });
-  };
-  return (
-    <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
-  );
-};
+const setup = (overrides = {}) => (
+  <QueryHistory {...mockedProps} {...overrides} />
+);
 
-InteractiveTimezoneSelector.args = {
-  timezone: 'America/Los_Angeles',
-};
+describe('QueryHistory', () => {
+  it('Renders an empty state for query history', () => {
+    render(setup());
+
+    const emptyStateText = screen.getByText(
+      /run a query to display query history/i,
+    );
+
+    expect(emptyStateText).toBeVisible();
+  });
+});
