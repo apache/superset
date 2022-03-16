@@ -97,7 +97,6 @@ def test_export_datasources_original(app_context, fs):
     )
 
     assert response.exit_code == 0
-    # this api is deprecated, so it shows a response of 1 instead of 0
 
     assert Path("datasources.yaml").exists()
 
