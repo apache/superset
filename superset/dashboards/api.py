@@ -756,7 +756,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
-                download_name=filename,
+                attachment_filename=filename,
             )
             if token:
                 response.set_cookie(token, "done", max_age=600)
