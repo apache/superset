@@ -73,9 +73,7 @@ class UIManifestProcessor:
 
         def get_files(bundle: str, asset_type: str = "js") -> List[str]:
             files = self.get_manifest_files(bundle, asset_type)
-            filtered_files = [
-                self.apply_resource_prefix(f) for f in files if f not in loaded_chunks
-            ]
+            filtered_files = [f for f in files if f not in loaded_chunks]
             for f in filtered_files:
                 loaded_chunks.add(f)
             return filtered_files
@@ -85,12 +83,6 @@ class UIManifestProcessor:
             css_manifest=lambda bundle: get_files(bundle, "css"),
             assets_prefix=self.app.config["STATIC_ASSETS_PREFIX"] if self.app else "",
         )
-
-    def apply_resource_prefix(self, file: str) -> str:
-        if self.app:
-            return f"{self.app.config['STATIC_ASSETS_PREFIX']}{file}"
-
-        return file
 
     def parse_manifest_json(self) -> None:
         try:
