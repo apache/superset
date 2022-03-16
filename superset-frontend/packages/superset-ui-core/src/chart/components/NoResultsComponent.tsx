@@ -18,15 +18,9 @@
  */
 
 import React, { CSSProperties, useMemo } from 'react';
+import { css } from '@superset-ui/core';
 import { t } from '../../translation';
 
-const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
-const TITLE_STYLES: CSSProperties = {
-  fontSize: 16,
-  fontWeight: 'bold',
-  paddingBottom: 8,
-};
-const BODY_STYLES: CSSProperties = { fontSize: 14 };
 const MIN_WIDTH_FOR_BODY = 250;
 
 const generateContainerStyles: (
@@ -71,9 +65,25 @@ const NoResultsComponent = ({ className, height, id, width }: Props) => {
       style={containerStyles}
       title={shouldRenderBody ? undefined : BODY_STRING}
     >
-      <div style={MESSAGE_STYLES}>
-        <div style={TITLE_STYLES}>{t('No Results')}</div>
-        {shouldRenderBody && <div style={BODY_STYLES}>{BODY_STRING}</div>}
+      <div style={{ maxWidth: '800px' }}>
+        <div
+          css={theme => css`
+            font-size: ${theme.typography.sizes.l}px;
+            font-weight: ${theme.typography.weights.bold};
+            padding-bottom: ${theme.gridUnit * 2}px;
+          `}
+        >
+          {t('No Results')}
+        </div>
+        {shouldRenderBody && (
+          <div
+            css={theme => css`
+              font-size: ${theme.typography.sizes.m}px;
+            `}
+          >
+            {BODY_STRING}
+          </div>
+        )}
       </div>
     </div>
   );
