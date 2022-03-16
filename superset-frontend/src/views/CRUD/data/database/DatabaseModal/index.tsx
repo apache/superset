@@ -89,10 +89,6 @@ const engineSpecificAlertMapping = {
 };
 
 const errorAlertMapping = {
-  CONNECTION_MISSING_PARAMETERS_ERROR: {
-    message: t('Missing Required Fields'),
-    description: t('Please complete all required fields.'),
-  },
   CONNECTION_INVALID_HOSTNAME_ERROR: {
     message: t('Could not verify the host'),
     description: t(
@@ -122,10 +118,10 @@ const errorAlertMapping = {
     description: t('Please make sure all fields are filled out correctly'),
   },
   TABLE_DOES_NOT_EXIST_ERROR: {
-    message: t('URL could not be identified'),
-    description: t(
+    message: t(
       'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
     ),
+    description: t('test'),
   },
 };
 interface DatabaseModalProps {
@@ -214,7 +210,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = { allows_virtual_table_explore: true };
+  let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -467,6 +463,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+  console.log('dberrors', dbErrors);
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
@@ -528,6 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
       await getValidation(dbToUpdate, true);
+      console.log('validationErrors', validationErrors);
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
@@ -896,42 +894,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const errorAlert = () => {
-    if (
-      isEmpty(dbErrors) ||
-      (isEmpty(validationErrors) &&
-        !(validationErrors?.error_type in errorAlertMapping))
-    ) {
+    console.log('dbError', dbErrors);
+    console.log('validationErrors', validationErrors);
+    console.log('----- validationErrors & db error ends----');
+    // console.log('dbError', dbErrors)
+
+    console.log('isEmpty', isEmpty(dbErrors));
+    if (isEmpty(dbErrors)) {
       return <></>;
     }
-
-    if (validationErrors) {
+    if (isEmpty(dbErrors) === false) {
+      console.log('dbError check --====>', isEmpty(dbErrors))
+      console.log('dbErrors did you work', dbErrors);
+      const message: Array<string> =
+        typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
       return (
         <Alert
           type="error"
           css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={
-            errorAlertMapping[validationErrors?.error_type]?.message ||
-            validationErrors?.error_type
-          }
-          description={
-            errorAlertMapping[validationErrors?.error_type]?.description ||
-            JSON.stringify(validationErrors)
-          }
-          showIcon
-          closable={false}
+          message={t('Database Creation Error')}
+          description={message?.[0] || dbErrors}
         />
       );
     }
-    const message: Array<string> =
-      typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
-    return (
-      <Alert
-        type="error"
-        css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-        message={t('Database Creation Error')}
-        description={message?.[0] || dbErrors}
-      />
-    );
   };
 
   const renderFinishState = () => {
