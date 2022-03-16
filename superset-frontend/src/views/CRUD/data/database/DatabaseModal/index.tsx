@@ -88,42 +88,6 @@ const engineSpecificAlertMapping = {
   },
 };
 
-const errorAlertMapping = {
-  CONNECTION_INVALID_HOSTNAME_ERROR: {
-    message: t('Could not verify the host'),
-    description: t(
-      'The host is invalid. Please verify that this field is entered correctly.',
-    ),
-  },
-  CONNECTION_PORT_CLOSED_ERROR: {
-    message: t('Port is closed'),
-    description: t('Please verify that port is open to connect.'),
-  },
-  CONNECTION_INVALID_PORT_ERROR: {
-    message: t('Invalid Port Number'),
-    description: t(
-      'The port must be a whole number less than or equal to 65535.',
-    ),
-  },
-  CONNECTION_ACCESS_DENIED_ERROR: {
-    message: t('Invalid account information'),
-    description: t('Either the username or password is incorrect.'),
-  },
-  CONNECTION_INVALID_PASSWORD_ERROR: {
-    message: t('Invalid account information'),
-    description: t('Either the username or password is incorrect.'),
-  },
-  INVALID_PAYLOAD_SCHEMA_ERROR: {
-    message: t('Incorrect Fields'),
-    description: t('Please make sure all fields are filled out correctly'),
-  },
-  TABLE_DOES_NOT_EXIST_ERROR: {
-    message: t(
-      'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
-    ),
-    description: t('test'),
-  },
-};
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -463,7 +427,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  console.log('dberrors', dbErrors);
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
@@ -525,7 +488,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
       await getValidation(dbToUpdate, true);
-      console.log('validationErrors', validationErrors);
       if (validationErrors && !isEmpty(validationErrors)) {
         return;
       }
@@ -893,19 +855,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  // eslint-disable-next-line consistent-return
   const errorAlert = () => {
-    console.log('dbError', dbErrors);
-    console.log('validationErrors', validationErrors);
-    console.log('----- validationErrors & db error ends----');
-    // console.log('dbError', dbErrors)
-
-    console.log('isEmpty', isEmpty(dbErrors));
     if (isEmpty(dbErrors)) {
       return <></>;
     }
     if (isEmpty(dbErrors) === false) {
-      console.log('dbError check --====>', isEmpty(dbErrors))
-      console.log('dbErrors did you work', dbErrors);
       const message: Array<string> =
         typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
       return (

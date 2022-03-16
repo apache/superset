@@ -656,12 +656,10 @@ export function useDatabaseValidation() {
         headers: { 'Content-Type': 'application/json' },
       })
         .then(() => {
-          console.log('=======getValidation request good =====')
           setValidationErrors(null);
         })
         // eslint-disable-next-line consistent-return
         .catch(e => {
-          console.log('typeOfe', e)
           if (typeof e.json === 'function') {
             return e.json().then(({ errors = [] }: JsonObject) => {
               const parsedErrors = errors
@@ -745,7 +743,6 @@ export function useDatabaseValidation() {
                         ),
                       };
                     }
-                    console.log('obj-------> err', obj)
                     return obj;
                   },
                   {},
