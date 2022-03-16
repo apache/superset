@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import AdhocFilter, {
   EXPRESSION_TYPES,
