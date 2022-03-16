@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import json
 from unittest.mock import patch
 
@@ -24,14 +25,20 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import is_valid_config
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,
-    dashboard_metadata_config,
     database_config,
     dataset_config,
 )
+
+metadata_config = {
+    "version": "1.0.0",
+    "type": "assets",
+    "timestamp": "2020-11-04T21:27:44.423819+00:00",
+}
 
 
 class TestCommandsExceptions(SupersetTestCase):
@@ -53,10 +60,10 @@ class TestImportersV1Utils(SupersetTestCase):
 class TestImportAssetsCommand(SupersetTestCase):
     @patch("superset.dashboards.commands.importers.v1.utils.g")
     def test_import_v1_dashboard(self, mock_g):
-        """Test that we can import a dashboard"""
+        """Test that we can import multiple assets"""
         mock_g.user = security_manager.find_user("admin")
         contents = {
-            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "metadata.yaml": yaml.safe_dump(metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
@@ -145,3 +152,34 @@ class TestImportAssetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
+
+    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    def test_import_v1_dashboard_overwrite(self, mock_g):
+        """Test that assets can be overwritten"""
+        mock_g.user = security_manager.find_user("admin")
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        }
+        command = ImportAssetsCommand(contents)
+        command.run()
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        assert chart.cache_timeout is None
+
+        modified_chart_config = copy.deepcopy(chart_config)
+        modified_chart_config["cache_timeout"] = 3600
+        contents = {
+            "metadata.yaml": yaml.safe_dump(metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(modified_chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        }
+        command = ImportAssetsCommand(contents)
+        command.run()
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        assert chart.cache_timeout == 3600
