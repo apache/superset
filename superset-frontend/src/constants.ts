@@ -71,7 +71,23 @@ export const URL_PARAMS = {
     name: 'force',
     type: 'boolean',
   },
+  permalinkKey: {
+    name: 'permalink_key',
+    type: 'string',
+  },
 } as const;
+
+export const RESERVED_CHART_URL_PARAMS: string[] = [
+  URL_PARAMS.formDataKey.name,
+  URL_PARAMS.sliceId.name,
+  URL_PARAMS.datasetId.name,
+];
+export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
+  URL_PARAMS.nativeFilters.name,
+  URL_PARAMS.nativeFiltersKey.name,
+  URL_PARAMS.permalinkKey.name,
+  URL_PARAMS.preselectFilters.name,
+];
 
 /**
  * Faster debounce delay for inputs without expensive operation.

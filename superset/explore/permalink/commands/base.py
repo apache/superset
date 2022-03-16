@@ -14,16 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from abc import ABC
+
+from superset.commands.base import BaseCommand
 
 
-class KeyValuePostSchema(Schema):
-    value = fields.String(
-        required=True, allow_none=False, description="Any type of JSON supported text."
-    )
-
-
-class KeyValuePutSchema(Schema):
-    value = fields.String(
-        required=True, allow_none=False, description="Any type of JSON supported text."
-    )
+class BaseExplorePermalinkCommand(BaseCommand, ABC):
+    resource = "explore_permalink"

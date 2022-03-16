@@ -37,17 +37,20 @@ from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
-from superset.key_value.commands.parameters import CommandParameters
-from superset.key_value.schemas import KeyValuePostSchema, KeyValuePutSchema
+from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
+from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.temporary_cache.schemas import (
+    TemporaryCachePostSchema,
+    TemporaryCachePutSchema,
+)
 from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class KeyValueRestApi(BaseApi, ABC):
-    add_model_schema = KeyValuePostSchema()
-    edit_model_schema = KeyValuePutSchema()
+class TemporaryCacheRestApi(BaseApi, ABC):
+    add_model_schema = TemporaryCachePostSchema()
+    edit_model_schema = TemporaryCachePutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {
         RouteMethod.POST,
@@ -60,10 +63,10 @@ class KeyValueRestApi(BaseApi, ABC):
     def add_apispec_components(self, api_spec: APISpec) -> None:
         try:
             api_spec.components.schema(
-                KeyValuePostSchema.__name__, schema=KeyValuePostSchema,
+                TemporaryCachePostSchema.__name__, schema=TemporaryCachePostSchema,
             )
             api_spec.components.schema(
-                KeyValuePutSchema.__name__, schema=KeyValuePutSchema,
+                TemporaryCachePutSchema.__name__, schema=TemporaryCachePutSchema,
             )
         except DuplicateComponentNameError:
             pass
@@ -85,7 +88,7 @@ class KeyValueRestApi(BaseApi, ABC):
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
@@ -111,7 +114,7 @@ class KeyValueRestApi(BaseApi, ABC):
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
@@ -128,7 +131,7 @@ class KeyValueRestApi(BaseApi, ABC):
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:
@@ -145,7 +148,7 @@ class KeyValueRestApi(BaseApi, ABC):
             ChartAccessDeniedError,
             DashboardAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DashboardNotFoundError, DatasetNotFoundError) as ex:

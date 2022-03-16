@@ -136,11 +136,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_sets.api import FilterSetRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
+        from superset.dashboards.permalink.api import DashboardPermalinkRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
+        from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
@@ -208,12 +210,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
+        appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
+        appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(FilterSetRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)

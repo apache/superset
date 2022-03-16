@@ -135,8 +135,8 @@ test('should show the share actions', async () => {
   };
   render(setup(canShareProps));
   await openDropdown();
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getByText('Copy permalink to clipboard')).toBeInTheDocument();
+  expect(screen.getByText('Share permalink by email')).toBeInTheDocument();
 });
 
 test('should render the "Save Modal" when user can save', async () => {
