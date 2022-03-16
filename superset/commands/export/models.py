@@ -14,10 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 
-from datetime import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Iterator, List, Tuple, Type
 
 import yaml
@@ -36,14 +34,15 @@ class ExportModelsCommand(BaseCommand):
     dao: Type[BaseDAO] = BaseDAO
     not_found: Type[CommandException] = CommandException
 
-    def __init__(self, model_ids: List[int]):
+    def __init__(self, model_ids: List[int], export_related: bool = True):
         self.model_ids = model_ids
+        self.export_related = export_related
 
         # this will be set when calling validate()
         self._models: List[Model] = []
 
     @staticmethod
-    def _export(model: Model) -> Iterator[Tuple[str, str]]:
+    def _export(model: Model, export_related: bool = True) -> Iterator[Tuple[str, str]]:
         raise NotImplementedError("Subclasses MUST implement _export")
 
     def run(self) -> Iterator[Tuple[str, str]]:
@@ -58,7 +57,7 @@ class ExportModelsCommand(BaseCommand):
 
         seen = {METADATA_FILE_NAME}
         for model in self._models:
-            for file_name, file_content in self._export(model):
+            for file_name, file_content in self._export(model, self.export_related):
                 if file_name not in seen:
                     yield file_name, file_content
                     seen.add(file_name)
