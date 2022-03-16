@@ -152,35 +152,36 @@ class TestSqlLab(SupersetTestCase):
             ]
         }
 
-    # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    # def test_sql_json_to_saved_query_info(self):
-    #     """
-    #     SQLLab: Test SQLLab query execution info propagation to saved queries
-    #     """
-    #     from freezegun import freeze_time
-    #
-    #     self.login("admin")
-    #
-    #     sql_statement = "SELECT * FROM birth_names LIMIT 10"
-    #     examples_db_id = get_example_database().id
-    #     saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
-    #     db.session.add(saved_query)
-    #     db.session.commit()
-    #
-    #     with freeze_time("2020-01-01T00:00:00Z"):
-    #         self.run_sql(sql_statement, "1")
-    #         saved_query_ = (
-    #             db.session.query(SavedQuery)
-    #             .filter(
-    #                 SavedQuery.db_id == examples_db_id, SavedQuery.sql == sql_statement
-    #             )
-    #             .one_or_none()
-    #         )
-    #         assert saved_query_.rows is not None
-    #         assert saved_query_.last_run == datetime.now()
-    #         # Rollback changes
-    #         db.session.delete(saved_query_)
-    #         db.session.commit()
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_to_saved_query_info(self):
+        """
+        SQLLab: Test SQLLab query execution info propagation to saved queries
+        """
+        from freezegun import freeze_time
+
+        self.login("admin")
+
+        sql_statement = "SELECT * FROM birth_names LIMIT 10"
+        examples_db_id = get_example_database().id
+        saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
+        db.session.add(saved_query)
+        db.session.commit()
+
+        current_time = datetime.now()
+        with freeze_time(current_time):
+            self.run_sql(sql_statement, "1")
+            saved_query_ = (
+                db.session.query(SavedQuery)
+                .filter(
+                    SavedQuery.db_id == examples_db_id, SavedQuery.sql == sql_statement
+                )
+                .one_or_none()
+            )
+            assert saved_query_.rows is not None
+            assert saved_query_.last_run == current_time
+        # Rollback changes
+        db.session.delete(saved_query_)
+        db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

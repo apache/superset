@@ -1343,7 +1343,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
-        rv = self.client.get(uri)
+        rv = self.get_assert_metric(uri, "export")
         headers = generate_download_headers("json")["Content-Disposition"]
 
         assert rv.status_code == 200
