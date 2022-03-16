@@ -17,7 +17,8 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, Optional
+import pickle
+from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,12 +34,18 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand):
+    actor: User
+    resource: str
+    value: Any
+    key: str
+    key_type: KeyType
+
     def __init__(
         self,
         actor: User,
         resource: str,
         key: str,
-        value: Dict[str, Any],
+        value: Any,
         key_type: KeyType = "uuid",
     ):
         """
@@ -75,7 +82,7 @@ class UpdateKeyValueCommand(BaseCommand):
             .first()
         )
         if entry:
-            entry.value = json.dumps(self.value)
+            entry.value = pickle.dumps(self.value)
             entry.changed_on = datetime.datetime.now()
             entry.changed_by_fk = None if self.actor.is_anonymous else self.actor.id
             db.session.merge(entry)

@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-import json
+import pickle
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
 
 
-NEW_VALUE = {"abc": "def"}
+NEW_VALUE = "new value"
 
 
 def test_update_id_entry(
@@ -52,7 +52,7 @@ def test_update_id_entry(
     entry = (
         db.session.query(KeyValueEntry).filter_by(id=int(ID_KEY)).autoflush(False).one()
     )
-    assert entry.value == json.dumps(NEW_VALUE)
+    assert pickle.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
 
@@ -72,7 +72,7 @@ def test_update_uuid_entry(
         .autoflush(False)
         .one()
     )
-    assert entry.value == json.dumps(NEW_VALUE)
+    assert pickle.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
 

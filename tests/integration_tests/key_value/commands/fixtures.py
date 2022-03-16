@@ -17,8 +17,7 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime
+import pickle
 from typing import Generator, TYPE_CHECKING
 from uuid import UUID
 
@@ -43,7 +42,10 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
-        id=int(ID_KEY), uuid=UUID(UUID_KEY), resource=RESOURCE, value=json.dumps(VALUE),
+        id=int(ID_KEY),
+        uuid=UUID(UUID_KEY),
+        resource=RESOURCE,
+        value=pickle.dumps(VALUE),
     )
     db.session.add(entry)
     db.session.commit()

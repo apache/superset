@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder import Model
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
@@ -28,7 +28,7 @@ class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
     __tablename__ = "key_value"
     id = Column(Integer, primary_key=True)
     resource = Column(String(32), nullable=False)
-    value = Column(Text(), nullable=False)
+    value = Column(LargeBinary(), nullable=False)
     created_on = Column(DateTime, nullable=True)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     changed_on = Column(DateTime, nullable=True)

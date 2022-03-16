@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand):
+    actor: User
+    key: str
+    key_type: KeyType
+    resource: str
+
     def __init__(
         self, actor: User, resource: str, key: str, key_type: KeyType = "uuid"
     ):

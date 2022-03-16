@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-import json
+import pickle
 from uuid import UUID
 
 from flask.ctx import AppContext
@@ -42,7 +42,7 @@ def test_create_id_entry(app_context: AppContext, admin: User) -> None:
     entry = (
         db.session.query(KeyValueEntry).filter_by(id=int(key)).autoflush(False).one()
     )
-    assert entry.value == json.dumps(VALUE)
+    assert pickle.loads(entry.value) == VALUE
     assert entry.created_by_fk == admin.id
     db.session.delete(entry)
     db.session.commit()
@@ -58,7 +58,7 @@ def test_create_uuid_entry(app_context: AppContext, admin: User) -> None:
     entry = (
         db.session.query(KeyValueEntry).filter_by(uuid=UUID(key)).autoflush(False).one()
     )
-    assert entry.value == json.dumps(VALUE)
+    assert pickle.loads(entry.value) == VALUE
     assert entry.created_by_fk == admin.id
     db.session.delete(entry)
     db.session.commit()

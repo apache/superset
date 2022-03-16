@@ -16,7 +16,8 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, Optional
+import pickle
+from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,6 +32,10 @@ logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand):
+    key: str
+    key_type: KeyType
+    resource: str
+
     def __init__(self, resource: str, key: str, key_type: KeyType = "uuid"):
         """
         Retrieve a key value entry
@@ -44,7 +49,7 @@ class GetKeyValueCommand(BaseCommand):
         self.key = key
         self.key_type = key_type
 
-    def run(self) -> Optional[Dict[str, Any]]:
+    def run(self) -> Any:
         try:
             return self.get()
         except SQLAlchemyError as ex:
@@ -54,7 +59,7 @@ class GetKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def get(self) -> Optional[Dict[str, Any]]:
+    def get(self) -> Optional[Any]:
         filter_ = get_filter(self.resource, self.key, self.key_type)
         entry = (
             db.session.query(KeyValueEntry)
@@ -63,5 +68,5 @@ class GetKeyValueCommand(BaseCommand):
             .first()
         )
         if entry:
-            return json.loads(entry.value)
+            return pickle.loads(entry.value)
         return None
