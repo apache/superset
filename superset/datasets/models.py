@@ -96,8 +96,8 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     # String representing the permissions for a given dataset
     # todo(hugh): compute these columns based upon the original SqlaTable models
-    perm = column_property(name)
-    schema_perm = column_property(name)
+    # perm = column_property(name)
+    # schema_perm = column_property(name)
 
     """
     Legacy Properties used to main backwards compatibility for

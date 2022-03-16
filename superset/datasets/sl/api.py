@@ -11,7 +11,21 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
     # todo(hugh): this should be a DatasetFilter instead of Datsource
     #  base_filters = [["id", DatasourceFilter, lambda: []]]
 
-    resource_name = "sl_dataset"
+    resource_name = "datasets"
     allow_browser_login = True
     class_permission_name = "Dataset"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    list_columns = [
+        "changed_by",
+        "changed_by_name",
+        "changed_by_url",
+        # "changed_on_delta_humanized", getting errors for these
+        # "changed_on_utc",
+        "id",
+        "name",
+        "expression",
+    ]
+
+
+# get this working end to end with the frontend client
+# then comeback and fix the test around it

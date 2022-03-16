@@ -74,6 +74,7 @@ class TestDatasetApi(SupersetTestCase):
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
+
         table = SqlaTable(
             table_name=table_name,
             schema=schema,
