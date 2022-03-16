@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+
 import logging
 import pickle
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -67,6 +68,6 @@ class GetKeyValueCommand(BaseCommand):
             .autoflush(False)
             .first()
         )
-        if entry:
+        if entry and (entry.expires_on is None or entry.expires_on > datetime.now()):
             return pickle.loads(entry.value)
         return None

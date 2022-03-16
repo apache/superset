@@ -32,6 +32,7 @@ class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
     created_on = Column(DateTime, nullable=True)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     changed_on = Column(DateTime, nullable=True)
+    expires_on = Column(DateTime, nullable=True)
     changed_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     created_by = relationship(security_manager.user_model, foreign_keys=[created_by_fk])
     changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])

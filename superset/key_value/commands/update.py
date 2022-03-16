@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
-import json
+
 import logging
 import pickle
+from datetime import datetime
 from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
@@ -39,6 +39,7 @@ class UpdateKeyValueCommand(BaseCommand):
     value: Any
     key: str
     key_type: KeyType
+    expires_on: Optional[datetime]
 
     def __init__(
         self,
@@ -47,6 +48,7 @@ class UpdateKeyValueCommand(BaseCommand):
         key: str,
         value: Any,
         key_type: KeyType = "uuid",
+        expires_on: Optional[datetime] = None,
     ):
         """
         Update a key value entry
@@ -55,6 +57,7 @@ class UpdateKeyValueCommand(BaseCommand):
         :param key: the key to update
         :param value: the value to persist in the key-value store
         :param key_type: the type of the key to update
+        :param expires_on: entry expiration time
         :return: the key associated with the updated value
         """
         self.actor = actor
@@ -62,6 +65,7 @@ class UpdateKeyValueCommand(BaseCommand):
         self.key = key
         self.value = value
         self.key_type = key_type
+        self.expires_on = expires_on
 
     def run(self) -> Optional[str]:
         try:
@@ -83,7 +87,8 @@ class UpdateKeyValueCommand(BaseCommand):
         )
         if entry:
             entry.value = pickle.dumps(self.value)
-            entry.changed_on = datetime.datetime.now()
+            entry.expires_on = self.expires_on
+            entry.changed_on = datetime.now()
             entry.changed_by_fk = None if self.actor.is_anonymous else self.actor.id
             db.session.merge(entry)
             db.session.commit()

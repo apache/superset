@@ -44,13 +44,18 @@ def upgrade():
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
+        sa.Column("expires_on", sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_key_value_uuid"), "key_value", ["uuid"], unique=True)
+    op.create_index(
+        op.f("ix_key_value_expires_on"), "key_value", ["expires_on"], unique=False
+    )
 
 
 def downgrade():
+    op.drop_index(op.f("ix_key_value_expires_on"), table_name="key_value")
     op.drop_index(op.f("ix_key_value_uuid"), table_name="key_value")
     op.drop_table("key_value")

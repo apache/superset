@@ -16,10 +16,14 @@
 # under the License.
 from __future__ import annotations
 
+import pickle
+import uuid
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from flask.ctx import AppContext
 
+from superset.extensions import db
 from tests.integration_tests.key_value.commands.fixtures import (
     ID_KEY,
     key_value_entry,
@@ -55,3 +59,42 @@ def test_get_id_entry_missing(
 
     value = GetKeyValueCommand(resource=RESOURCE, key="456", key_type="id").run()
     assert value is None
+
+
+def test_get_expired_entry(app_context: AppContext) -> None:
+    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.key_value.models import KeyValueEntry
+
+    entry = KeyValueEntry(
+        id=678,
+        uuid=uuid.uuid4(),
+        resource=RESOURCE,
+        value=pickle.dumps(VALUE),
+        expires_on=datetime.now() - timedelta(days=1),
+    )
+    db.session.add(entry)
+    db.session.commit()
+    value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, key_type="id").run()
+    assert value is None
+    db.session.delete(entry)
+    db.session.commit()
+
+
+def test_get_future_expiring_entry(app_context: AppContext) -> None:
+    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.key_value.models import KeyValueEntry
+
+    id_ = 789
+    entry = KeyValueEntry(
+        id=id_,
+        uuid=uuid.uuid4(),
+        resource=RESOURCE,
+        value=pickle.dumps(VALUE),
+        expires_on=datetime.now() + timedelta(days=1),
+    )
+    db.session.add(entry)
+    db.session.commit()
+    value = GetKeyValueCommand(resource=RESOURCE, key=str(id_), key_type="id").run()
+    assert value == VALUE
+    db.session.delete(entry)
+    db.session.commit()
