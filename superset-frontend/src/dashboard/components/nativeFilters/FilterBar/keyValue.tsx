@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SupersetClient, logging } from '@superset-ui/core';
+import { DashboardPermalinkValue } from 'src/dashboard/types';
 
 const assembleEndpoint = (
   dashId: string | number,
@@ -58,7 +59,7 @@ export const createFilterKey = (
     endpoint: assembleEndpoint(dashId, undefined, tabId),
     jsonPayload: { value },
   })
-    .then(r => r.json.key)
+    .then(r => r.json.key as string)
     .catch(err => {
       logging.error(err);
       return null;
@@ -69,6 +70,16 @@ export const getFilterValue = (dashId: string | number, key: string) =>
     endpoint: assembleEndpoint(dashId, key),
   })
     .then(({ json }) => JSON.parse(json.value))
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
+
+export const getPermalinkValue = (key: string) =>
+  SupersetClient.get({
+    endpoint: `/api/v1/dashboard/permalink/${key}`,
+  })
+    .then(({ json }) => json as DashboardPermalinkValue)
     .catch(err => {
       logging.error(err);
       return null;

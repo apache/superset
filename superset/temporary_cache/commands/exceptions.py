@@ -25,21 +25,21 @@ from superset.commands.exceptions import (
 )
 
 
-class KeyValueCreateFailedError(CreateFailedError):
+class TemporaryCacheCreateFailedError(CreateFailedError):
     message = _("An error occurred while creating the value.")
 
 
-class KeyValueGetFailedError(CommandException):
+class TemporaryCacheGetFailedError(CommandException):
     message = _("An error occurred while accessing the value.")
 
 
-class KeyValueDeleteFailedError(DeleteFailedError):
+class TemporaryCacheDeleteFailedError(DeleteFailedError):
     message = _("An error occurred while deleting the value.")
 
 
-class KeyValueUpdateFailedError(UpdateFailedError):
+class TemporaryCacheUpdateFailedError(UpdateFailedError):
     message = _("An error occurred while updating the value.")
 
 
-class KeyValueAccessDeniedError(ForbiddenError):
+class TemporaryCacheAccessDeniedError(ForbiddenError):
     message = _("You don't have permission to modify the value.")
