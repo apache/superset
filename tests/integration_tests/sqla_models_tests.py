@@ -608,7 +608,7 @@ def test_filter_on_text_column(text_column_table):
 
 def test_should_generate_closed_and_open_time_filter_range():
     with app.app_context():
-        if backend() in ["sqlite", "mysql"]:
+        if backend() != "postgresql":
             pytest.skip(f"{backend()} has different dialect for datetime column")
 
         table = SqlaTable(
