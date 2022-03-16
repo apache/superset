@@ -1343,8 +1343,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
-        # freeze time to ensure filename is deterministic
-        # with freeze_time("2020-01-01T00:00:00Z"):
         rv = self.client.get(uri)
         headers = generate_download_headers("json")["Content-Disposition"]
 
