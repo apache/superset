@@ -128,6 +128,8 @@ export default class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.getChartHeight = this.getChartHeight.bind(this);
+    this.getDescriptionHeight = this.getDescriptionHeight.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -178,19 +180,29 @@ export default class Chart extends React.Component {
     return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
   }
 
+  componentDidMount() {
+    if (this.props.isExpanded) {
+      const descriptionHeight = this.getDescriptionHeight();
+      this.setState({ descriptionHeight });
+    }
+  }
+
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.isExpanded !== prevProps.isExpanded) {
-      const descriptionHeight =
-        this.props.isExpanded && this.descriptionRef
-          ? this.descriptionRef.offsetHeight
-          : 0;
+      const descriptionHeight = this.getDescriptionHeight();
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ descriptionHeight });
     }
+  }
+
+  getDescriptionHeight() {
+    return this.props.isExpanded && this.descriptionRef
+      ? this.descriptionRef.offsetHeight
+      : 0;
   }
 
   getChartHeight() {
