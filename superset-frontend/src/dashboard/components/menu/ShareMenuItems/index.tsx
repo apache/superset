@@ -67,13 +67,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     if (nativeFiltersKey && dashboardId) {
       filterState = await getFilterValue(dashboardId, nativeFiltersKey);
     }
-    return getDashboardPermalink(
-      String(dashboardId),
-      filterState,
-      `preselect_filters=${JSON.stringify(
-        serializeActiveFilterValues(getActiveFilters()),
-      )}`,
-    );
+    return getDashboardPermalink(String(dashboardId), filterState);
   }
 
   async function onCopyLink() {
