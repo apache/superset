@@ -22,11 +22,11 @@ import { List } from 'src/components';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Popover from 'src/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const AnnotationLayer = AsyncEsmComponent(
   () => import('./AnnotationLayer'),
@@ -167,10 +167,9 @@ class AnnotationLayerControl extends React.PureComponent {
     const addedAnnotation = this.props.value[addedAnnotationIndex];
 
     const annotations = this.props.value.map((anno, i) => (
-      <Popover
+      <ControlPopover
         key={i}
         trigger="click"
-        placement="right"
         title={t('Edit annotation layer')}
         css={theme => ({
           '&:hover': {
@@ -190,7 +189,7 @@ class AnnotationLayerControl extends React.PureComponent {
           <span>{anno.name}</span>
           <span style={{ float: 'right' }}>{this.renderInfo(anno)}</span>
         </CustomListItem>
-      </Popover>
+      </ControlPopover>
     ));
 
     const addLayerPopoverKey = 'add';
@@ -198,9 +197,8 @@ class AnnotationLayerControl extends React.PureComponent {
       <div>
         <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
-          <Popover
+          <ControlPopover
             trigger="click"
-            placement="right"
             content={this.renderPopover(addLayerPopoverKey, addedAnnotation)}
             title={t('Add annotation layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
@@ -216,7 +214,7 @@ class AnnotationLayerControl extends React.PureComponent {
               />{' '}
               &nbsp; {t('Add annotation layer')}
             </CustomListItem>
-          </Popover>
+          </ControlPopover>
         </List>
       </div>
     );
