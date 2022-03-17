@@ -654,14 +654,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         force=force,
                     )
                     payload = viz_obj.get_payload()
+                    # If the chart query has already been cached, return it immediately.
+                    if payload is not None:
+                        return self.send_data_payload_response(viz_obj, payload)
                 except CacheLoadError:
-                    payload = None  # type: ignore
-
-                already_cached_result = payload is not None
-
-                # If the chart query has already been cached, return it immediately.
-                if already_cached_result:
-                    return self.send_data_payload_response(viz_obj, payload)
+                    pass
 
                 # Otherwise, kick off a background job to run the chart query.
                 # Clients will either poll or be notified of query completion,
