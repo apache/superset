@@ -41,7 +41,7 @@ class DeleteExpiredKeyValueCommand(BaseCommand):
 
     def run(self) -> None:
         try:
-            self.delete_all()
+            self.delete_expired()
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
@@ -50,7 +50,7 @@ class DeleteExpiredKeyValueCommand(BaseCommand):
         pass
 
     @staticmethod
-    def delete_all() -> None:
+    def delete_expired() -> None:
         (
             db.session.query(KeyValueEntry)
             .filter(KeyValueEntry.expires_on <= datetime.now())
