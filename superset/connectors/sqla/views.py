@@ -374,15 +374,6 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
 
-    @staticmethod
-    def is_enabled() -> bool:
-        return is_feature_enabled("ROW_LEVEL_SECURITY")
-
-    @before_request
-    def ensure_enabled(self) -> None:
-        if not self.is_enabled():
-            raise NotFound()
-
 
 class TableModelView(  # pylint: disable=too-many-ancestors
     DatasourceModelView, DeleteMixin, YamlExportMixin
