@@ -21,6 +21,7 @@
   ],
 
   "exclude": [
+    "**/*.test.ts",
     "tests",
     "dist",
     "lib",

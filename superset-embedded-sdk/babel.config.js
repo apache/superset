@@ -23,4 +23,7 @@ module.exports = {
     "@babel/preset-env"
   ],
   sourceMaps: true,
+  ignore: [
+    "**/*.test.ts"
+  ]
 };
