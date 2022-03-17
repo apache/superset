@@ -16,6 +16,7 @@
 # under the License.
 from typing import List, Optional
 
+import pytest
 from flask import escape, Response
 
 from superset.models.dashboard import Dashboard
@@ -39,6 +40,7 @@ class BaseTestDashboardSecurity(DashboardTestCase):
         expected_dashboards: Optional[List[Dashboard]] = None,
         not_expected_dashboards: Optional[List[Dashboard]] = None,
     ) -> None:
+        pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
         self.assert200(response)
         response_html = response.data.decode("utf-8")
         if expected_counts == 0:
