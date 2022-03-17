@@ -92,6 +92,34 @@ postgresql:
   postgresqlPassword: superset
 ```
 
+Make sure you are giving your own SECRET_KEY for the encryption instead of default SECRET_KEY.
+
+- To generate a good key you can run, `openssl rand -base64 42`
+
+```yaml
+configOverrides:
+  secret: |
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+
+If you want to change the previous secret key then you should rotate the keys.
+Default secret key for kubernetes deployment is `thisISaSECRET_1234`
+
+```yaml
+configOverrides:
+  my_override: |
+    PREVIOUS_SECRET_KEY = 'YOUR_PREVIOUS_SECRET_KEY'
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+init:
+  command:
+    - /bin/sh
+    - -c
+    - |
+      . {{ .Values.configMountPath }}/superset_bootstrap.sh
+      superset re-encrypt-secrets
+      . {{ .Values.configMountPath }}/superset_init.sh
+```
+
 #### Dependencies
 
 Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
