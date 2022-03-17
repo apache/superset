@@ -18,12 +18,14 @@
  */
 
 import React from 'react';
-import { mount } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
+// @ts-ignore
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { styledMount as mount } from 'spec/helpers/theming';
 import RealSuperChart, {
   WrapperProps,
 } from '../../../src/chart/components/SuperChart';
@@ -303,6 +305,7 @@ describe('SuperChart', () => {
           height="125"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
       return promiseTimeout(() => {
@@ -328,6 +331,7 @@ describe('SuperChart', () => {
           height="25%"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
       return promiseTimeout(() => {

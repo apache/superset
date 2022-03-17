@@ -101,6 +101,7 @@ export const defaultTheme: (theme: SupersetTheme) => PartialThemeConfig =
       fontSize: 14,
       minWidth: '6.5em',
     },
+    weights: theme.typography.weights,
   });
 
 // let styles accept serialized CSS, too
@@ -219,7 +220,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
       theme: {
         colors,
         spacing: { lineHeight, fontSize },
-        typography: { weights },
+        weights,
       },
     },
   ) => {

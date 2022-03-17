@@ -17,25 +17,38 @@
  * under the License.
  */
 
-import React, { CSSProperties, useMemo } from 'react';
-import { css } from '@superset-ui/core';
+import React, { CSSProperties } from 'react';
+import { css, styled } from '../../style';
 import { t } from '../../translation';
 
+const MESSAGE_STYLES: CSSProperties = { maxWidth: 800 };
 const MIN_WIDTH_FOR_BODY = 250;
 
-const generateContainerStyles: (
-  height: number | string,
-  width: number | string,
-) => CSSProperties = (height: number | string, width: number | string) => ({
-  alignItems: 'center',
-  display: 'flex',
-  flexDirection: 'column',
-  height,
-  justifyContent: 'center',
-  padding: 16,
-  textAlign: 'center',
-  width,
-});
+const Container = styled.div<{
+  width: number | string;
+  height: number | string;
+}>`
+  ${({ theme, width, height }) => css`
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    height: ${height}px;
+    width: ${width}px;
+    //padding: ${theme.gridUnit * 4}px;
+
+    & .no-results-title {
+      font-size: ${theme.typography.sizes.l}px;
+      font-weight: ${theme.typography.weights.bold};
+      padding-bottom: ${theme.gridUnit * 2};
+    }
+
+    & .no-results-body {
+      font-size: ${theme.typography.sizes.m}px;
+    }
+  `}
+`;
 
 type Props = {
   className?: string;
@@ -45,11 +58,6 @@ type Props = {
 };
 
 const NoResultsComponent = ({ className, height, id, width }: Props) => {
-  const containerStyles = useMemo(
-    () => generateContainerStyles(height, width),
-    [height, width],
-  );
-
   // render the body if the width is auto/100% or greater than 250 pixels
   const shouldRenderBody =
     typeof width === 'string' || width > MIN_WIDTH_FOR_BODY;
@@ -60,29 +68,16 @@ const NoResultsComponent = ({ className, height, id, width }: Props) => {
 
   return (
     <div
+      height={height}
+      width={width}
       className={className}
       id={id}
-      style={containerStyles}
       title={shouldRenderBody ? undefined : BODY_STRING}
     >
-      <div style={{ maxWidth: '800px' }}>
-        <div
-          css={theme => css`
-            font-size: ${theme.typography.sizes.l}px;
-            font-weight: ${theme.typography.weights.bold};
-            padding-bottom: ${theme.gridUnit * 2}px;
-          `}
-        >
-          {t('No Results')}
-        </div>
+      <div style={MESSAGE_STYLES}>
+        <div className="no-results-title">{t('No Results')}</div>
         {shouldRenderBody && (
-          <div
-            css={theme => css`
-              font-size: ${theme.typography.sizes.m}px;
-            `}
-          >
-            {BODY_STRING}
-          </div>
+          <div className="no-results-body">{BODY_STRING}</div>
         )}
       </div>
     </div>
