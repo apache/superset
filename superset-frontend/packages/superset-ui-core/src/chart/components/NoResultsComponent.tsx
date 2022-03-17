@@ -67,7 +67,7 @@ const NoResultsComponent = ({ className, height, id, width }: Props) => {
   );
 
   return (
-    <div
+    <Container
       height={height}
       width={width}
       className={className}
@@ -80,7 +80,7 @@ const NoResultsComponent = ({ className, height, id, width }: Props) => {
           <div className="no-results-body">{BODY_STRING}</div>
         )}
       </div>
-    </div>
+    </Container>
   );
 };
 

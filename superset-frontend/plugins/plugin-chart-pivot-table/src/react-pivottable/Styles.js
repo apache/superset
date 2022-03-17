@@ -38,6 +38,7 @@ export const Styles = styled.div`
 
     table.pvtTable thead tr th,
     table.pvtTable tbody tr th {
+      background-color: ${theme.colors.grayscale.light5};
       border-top: 1px solid ${theme.colors.grayscale.light2};
       border-left: 1px solid ${theme.colors.grayscale.light2};
       font-size: ${theme.typography.sizes.s}px;
@@ -98,6 +99,7 @@ export const Styles = styled.div`
     table.pvtTable tbody tr td {
       color: #2a3f5f;
       padding: ${theme.gridUnit}px;
+      background-color: ${theme.colors.grayscale.light5};
       border-top: 1px solid ${theme.colors.grayscale.light2};
       border-left: 1px solid ${theme.colors.grayscale.light2};
       vertical-align: top;
