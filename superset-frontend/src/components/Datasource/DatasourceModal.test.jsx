@@ -121,19 +121,3 @@ describe('DatasourceModal', () => {
     ).toExist();
   });
 });
-
-describe('DatasourceModal without legacy data btn', () => {
-  let wrapper;
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    fetchMock.reset();
-    wrapper = await mountAndWait();
-  });
-
-  afterAll(() => {
-    isFeatureEnabledMock.restore();
-  });
-});
