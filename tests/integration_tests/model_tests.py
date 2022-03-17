@@ -15,10 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import textwrap
 import unittest
+from pprint import pprint
 from unittest import mock
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -577,6 +580,23 @@ class TestSqlaTableModel(SupersetTestCase):
             "name",
             "state",
         }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_adhoc_column(self):
+        tbl = self.get_table(name="birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(
+                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Boys",
+            )
+            .first()
+        )
+        form_data = json.loads(slc.params)
+        form_data["groupby"].append({"label": "adhoc_column", "sqlExpression": "name"})
+        slc.params = json.dumps(form_data)
+        ds: SqlaTable = slc.datasource
+        datasource_info = ds.data_for_slices([slc])
+        assert "database" in datasource_info
 
 
 def test_literal_dttm_type_factory():
