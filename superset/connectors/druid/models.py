@@ -58,7 +58,7 @@ from superset.exceptions import SupersetException
 from superset.extensions import encrypted_field_factory
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
-from superset.typing import (
+from superset.superset_typing import (
     AdhocMetric,
     AdhocMetricColumn,
     FilterValues,

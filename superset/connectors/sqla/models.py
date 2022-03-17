@@ -96,8 +96,14 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.sql_parse import ParsedQuery
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    OrderBy,
+    QueryObjectDict,
+)
 from superset.tables.models import Table as NewTable
-from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,

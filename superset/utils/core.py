@@ -98,7 +98,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import (
+from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,

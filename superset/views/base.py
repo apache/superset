@@ -73,8 +73,8 @@ from superset.exceptions import (
 )
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
+from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data

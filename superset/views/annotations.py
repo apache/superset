@@ -26,7 +26,7 @@ from wtforms.validators import StopValidation
 from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import SupersetModelView
 
 

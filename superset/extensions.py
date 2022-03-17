@@ -63,22 +63,26 @@ class UIManifestProcessor:
         self.app = app
         # Preload the cache
         self.parse_manifest_json()
+        self.register_processor(app)
 
-        @app.context_processor
-        def get_manifest() -> Dict[str, Callable[[str], List[str]]]:
-            loaded_chunks = set()
+    def register_processor(self, app: Flask) -> None:
+        app.template_context_processors[None].append(self.get_manifest)
 
-            def get_files(bundle: str, asset_type: str = "js") -> List[str]:
-                files = self.get_manifest_files(bundle, asset_type)
-                filtered_files = [f for f in files if f not in loaded_chunks]
-                for f in filtered_files:
-                    loaded_chunks.add(f)
-                return filtered_files
+    def get_manifest(self) -> Dict[str, Callable[[str], List[str]]]:
+        loaded_chunks = set()
 
-            return dict(
-                js_manifest=lambda bundle: get_files(bundle, "js"),
-                css_manifest=lambda bundle: get_files(bundle, "css"),
-            )
+        def get_files(bundle: str, asset_type: str = "js") -> List[str]:
+            files = self.get_manifest_files(bundle, asset_type)
+            filtered_files = [f for f in files if f not in loaded_chunks]
+            for f in filtered_files:
+                loaded_chunks.add(f)
+            return filtered_files
+
+        return dict(
+            js_manifest=lambda bundle: get_files(bundle, "js"),
+            css_manifest=lambda bundle: get_files(bundle, "css"),
+            assets_prefix=self.app.config["STATIC_ASSETS_PREFIX"] if self.app else "",
+        )
 
     def parse_manifest_json(self) -> None:
         try:

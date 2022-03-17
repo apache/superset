@@ -31,7 +31,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
 )
 from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, OrderBy
+from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,

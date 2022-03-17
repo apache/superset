@@ -38,7 +38,7 @@ from superset.datasets.commands.exceptions import (
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import (
     api,
     BaseSupersetView,

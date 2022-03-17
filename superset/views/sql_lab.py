@@ -24,7 +24,7 @@ from flask_babel import lazy_gettext as _
 from superset import db, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 
 from .base import BaseSupersetView, DeleteMixin, json_success, SupersetModelView
