@@ -727,28 +727,18 @@ describe('async actions', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(5);
 
-        const results = {
-          data: mockBigNumber,
-          query: { sqlEditorId: 'null' },
-          query_id: 'efgh',
-        };
-        fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
-          overwriteRoutes: true,
-        });
-
+        const database = { disable_data_preview: true };
         const tableName = 'table';
         const schemaName = 'schema';
         const store = mockStore({});
         const expectedActionTypes = [
           actions.MERGE_TABLE, // addTable
           actions.MERGE_TABLE, // getTableMetadata
-          actions.START_QUERY, // runQuery (data preview)
           actions.MERGE_TABLE, // getTableExtendedMetadata
-          actions.QUERY_SUCCESS, // querySuccess
           actions.MERGE_TABLE, // addTable
         ];
         return store
-          .dispatch(actions.addTable(query, tableName, schemaName))
+          .dispatch(actions.addTable(query, database, tableName, schemaName))
           .then(() => {
             expect(store.getActions().map(a => a.type)).toEqual(
               expectedActionTypes,
@@ -759,6 +749,47 @@ describe('async actions', () => {
               1,
             );
 
+            // tab state is not updated, since no query was run
+            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+          });
+      });
+
+      it('updates and runs data preview query when configured', () => {
+        expect.assertions(5);
+
+        const results = {
+          data: mockBigNumber,
+          query: { sqlEditorId: 'null', dbId: 1 },
+          query_id: 'efgh',
+        };
+        fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
+          overwriteRoutes: true,
+        });
+
+        const database = { disable_data_preview: false, id: 1 };
+        const tableName = 'table';
+        const schemaName = 'schema';
+        const store = mockStore({});
+        const expectedActionTypes = [
+          actions.MERGE_TABLE, // addTable
+          actions.MERGE_TABLE, // getTableMetadata
+          actions.MERGE_TABLE, // getTableExtendedMetadata
+          actions.MERGE_TABLE, // addTable (data preview)
+          actions.START_QUERY, // runQuery (data preview)
+          actions.MERGE_TABLE, // addTable
+          actions.QUERY_SUCCESS, // querySuccess
+        ];
+        return store
+          .dispatch(actions.addTable(query, database, tableName, schemaName))
+          .then(() => {
+            expect(store.getActions().map(a => a.type)).toEqual(
+              expectedActionTypes,
+            );
+            expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
+            expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+            expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(
+              1,
+            );
             // tab state is not updated, since the query is a data preview
             expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
           });

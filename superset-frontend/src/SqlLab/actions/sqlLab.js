@@ -1018,28 +1018,13 @@ function getTableMetadata(table, query, dispatch) {
     ),
   })
     .then(({ json }) => {
-      const dataPreviewQuery = {
-        id: shortid.generate(),
-        dbId: query.dbId,
-        sql: json.selectStar,
-        tableName: table.name,
-        sqlEditorId: null,
-        tab: '',
-        runAsync: false,
-        ctas: false,
-        isDataPreview: true,
-      };
       const newTable = {
         ...table,
         ...json,
         expanded: true,
         isMetadataLoading: false,
-        dataPreviewQueryId: dataPreviewQuery.id,
       };
-      Promise.all([
-        dispatch(mergeTable(newTable, dataPreviewQuery)), // Merge table to tables in state
-        dispatch(runQuery(dataPreviewQuery)), // Run query to get preview data for table
-      ]);
+      dispatch(mergeTable(newTable)); // Merge table to tables in state
       return newTable;
     })
     .catch(() =>
@@ -1082,7 +1067,7 @@ function getTableExtendedMetadata(table, query, dispatch) {
     );
 }
 
-export function addTable(query, tableName, schemaName) {
+export function addTable(query, database, tableName, schemaName) {
   return function (dispatch) {
     const table = {
       dbId: query.dbId,
@@ -1109,6 +1094,32 @@ export function addTable(query, tableName, schemaName) {
             postPayload: { table: { ...newTable, ...json } },
           })
         : Promise.resolve({ json: { id: shortid.generate() } });
+
+      if (!database.disable_data_preview && database.id === query.dbId) {
+        const dataPreviewQuery = {
+          id: shortid.generate(),
+          dbId: query.dbId,
+          sql: newTable.selectStar,
+          tableName: table.name,
+          sqlEditorId: null,
+          tab: '',
+          runAsync: database.allow_run_async,
+          ctas: false,
+          isDataPreview: true,
+        };
+        Promise.all([
+          dispatch(
+            mergeTable(
+              {
+                ...newTable,
+                dataPreviewQueryId: dataPreviewQuery.id,
+              },
+              dataPreviewQuery,
+            ),
+          ),
+          dispatch(runQuery(dataPreviewQuery)),
+        ]);
+      }
 
       return sync
         .then(({ json: resultJson }) =>
