@@ -26,7 +26,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
-import { checkUploadExtensions } from '../CRUD/utils';
+import { checkUploadExtensions, uploadUserPerms } from '../CRUD/utils';
 import {
   ExtentionConfigs,
   GlobalMenuDataOptions,
@@ -86,21 +86,8 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const canUploadCSV = findPermission(
-    'can_this_form_get',
-    'CsvToDatabaseView',
-    roles,
-  );
-  const canUploadColumnar = findPermission(
-    'can_this_form_get',
-    'ColumnarToDatabaseView',
-    roles,
-  );
-  const canUploadExcel = findPermission(
-    'can_this_form_get',
-    'ExcelToDatabaseView',
-    roles,
-  );
+  const { canUploadCSV, canUploadColumnar, canUploadExcel } =
+    uploadUserPerms(roles);
 
   const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
