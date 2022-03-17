@@ -688,6 +688,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        showSearch
       >
         {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>

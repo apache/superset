@@ -21,12 +21,12 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import Popover from 'src/components/Popover';
 import FormRow from 'src/components/FormRow';
 import { Select } from 'src/components';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import { FILTER_CONFIG_ATTRIBUTES } from 'src/explore/constants';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const INTEGRAL_TYPES = new Set([
   'TINYINT',
@@ -275,9 +275,8 @@ export default class FilterBoxItemControl extends React.Component {
     return (
       <span data-test="FilterBoxItemControl">
         {this.textSummary()}{' '}
-        <Popover
+        <ControlPopover
           trigger="click"
-          placement="right"
           content={this.renderPopover()}
           title={t('Filter configuration')}
         >
@@ -286,7 +285,7 @@ export default class FilterBoxItemControl extends React.Component {
             className="text-primary"
             label="edit-ts-column"
           />
-        </Popover>
+        </ControlPopover>
       </span>
     );
   }
