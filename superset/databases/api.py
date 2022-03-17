@@ -70,7 +70,7 @@ from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
