@@ -20,6 +20,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
+from sqlalchemy import and_
 
 from superset import db, is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -228,6 +229,29 @@ class TabStateView(BaseSupersetView):
     def delete_query(  # pylint: disable=no-self-use
         self, tab_state_id: int, client_id: str
     ) -> FlaskResponse:
+        # Before deleting the query, ensure it's not tied to any
+        # active tab as the last query. If so, replace the query
+        # with the latest one created in that tab
+        tab_state_query = db.session.query(TabState).filter_by(
+            id=tab_state_id, latest_query_id=client_id
+        )
+        if tab_state_query.count():
+            query = (
+                db.session.query(Query)
+                .filter(
+                    and_(
+                        Query.client_id != client_id,
+                        Query.user_id == g.user.get_id(),
+                        Query.sql_editor_id == str(tab_state_id),
+                    ),
+                )
+                .order_by(Query.id.desc())
+                .first()
+            )
+            tab_state_query.update(
+                {"latest_query_id": query.client_id if query else None}
+            )
+
         db.session.query(Query).filter_by(
             client_id=client_id,
             user_id=g.user.get_id(),
