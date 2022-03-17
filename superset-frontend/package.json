@@ -126,6 +126,7 @@
     "d3-scale": "^2.1.2",
     "dom-to-image": "^2.6.0",
     "emotion-rgba": "0.0.9",
+    "eslint-plugin-literal-colors": "file:eslint/eslint-plugin-literal-colors",
     "fast-glob": "^3.2.7",
     "fontsource-fira-code": "^3.0.5",
     "fontsource-inter": "^3.0.5",
