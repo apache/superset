@@ -134,7 +134,7 @@ def allow_adhoc_subquery(raw_sql: str) -> bool:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                message=_("Custom SQL does not allow subquery."),
+                message=_("Custom SQL fields cannot contain subqueries."),
                 level=ErrorLevel.ERROR,
             )
         )
