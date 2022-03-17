@@ -24,9 +24,9 @@ from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from random import random
 from unittest import mock
-from superset.extensions import db
 import prison
 
+from freezegun import freeze_time
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
@@ -34,16 +34,12 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
-from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql_lab import (
     cancel_query,
     execute_sql_statements,
-    execute_sql_statement,
-    get_sql_results,
-    SqlLabException,
     apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
@@ -157,8 +153,6 @@ class TestSqlLab(SupersetTestCase):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
         """
-        from freezegun import freeze_time
-
         self.login("admin")
 
         sql_statement = "SELECT * FROM birth_names LIMIT 10"
@@ -167,8 +161,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.add(saved_query)
         db.session.commit()
 
-        current_time = datetime.now()
-        with freeze_time(current_time):
+        with freeze_time(datetime.now().isoformat(timespec="seconds")):
             self.run_sql(sql_statement, "1")
             saved_query_ = (
                 db.session.query(SavedQuery)

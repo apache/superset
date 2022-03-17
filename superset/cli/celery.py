@@ -39,11 +39,9 @@ def worker(workers: int) -> None:
         "worker' command instead."
     )
     if workers:
-        celery_app.conf.update(CELERYD_CONCURRENCY=workers)
+        celery_app.conf.update(worker_concurrency=workers)
     elif app.config["SUPERSET_CELERY_WORKERS"]:
-        celery_app.conf.update(
-            CELERYD_CONCURRENCY=app.config["SUPERSET_CELERY_WORKERS"]
-        )
+        celery_app.conf.update(worker_concurrency=app.config["SUPERSET_CELERY_WORKERS"])
 
     local_worker = celery_app.Worker(optimization="fair")
     local_worker.start()
