@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -41,7 +41,10 @@ interface actionsTypes {
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
   queryEditorSetSchemaOptions: () => void;
-  queryEditorSetTableOptions: (options: Array<any>) => void;
+  queryEditorSetTableOptions: (
+    queryEditor: QueryEditor,
+    options: Array<any>,
+  ) => void;
   resetState: () => void;
 }
 
@@ -86,6 +89,13 @@ export default function SqlEditorLeftBar({
   tables = [],
   height = 500,
 }: SqlEditorLeftBarProps) {
+  // Ref needed to avoid infinite rerenders on handlers
+  // that require and modify the queryEditor
+  const queryEditorRef = useRef<QueryEditor>(queryEditor);
+  useEffect(() => {
+    queryEditorRef.current = queryEditor;
+  }, [queryEditor]);
+
   const onDbChange = ({ id: dbId }: { id: number }) => {
     actions.queryEditorSetDb(queryEditor, dbId);
     actions.queryEditorSetFunctionNames(queryEditor, dbId);
@@ -132,9 +142,23 @@ export default function SqlEditorLeftBar({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
-  const onSchemaChange = (schema: string) => {
-    actions.queryEditorSetSchema(queryEditor, schema);
-  };
+  const handleSchemaChange = useCallback(
+    (schema: string) => {
+      if (queryEditorRef.current) {
+        actions.queryEditorSetSchema(queryEditorRef.current, schema);
+      }
+    },
+    [actions],
+  );
+
+  const handleTablesLoad = React.useCallback(
+    (options: Array<any>) => {
+      if (queryEditorRef.current) {
+        actions.queryEditorSetTableOptions(queryEditorRef.current, options);
+      }
+    },
+    [actions],
+  );
 
   return (
     <div className="SqlEditorLeftBar">
@@ -143,10 +167,10 @@ export default function SqlEditorLeftBar({
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
-        onSchemaChange={onSchemaChange}
+        onSchemaChange={handleSchemaChange}
         onSchemasLoad={actions.queryEditorSetSchemaOptions}
         onTableChange={onTableChange}
-        onTablesLoad={actions.queryEditorSetTableOptions}
+        onTablesLoad={handleTablesLoad}
         schema={queryEditor.schema}
         sqlLabMode
       />
