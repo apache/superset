@@ -48,7 +48,7 @@ import React, {
 } from 'react';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/chart/chartAction';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input, TextArea } from 'src/components/Input';
 import { Select, FormInstance } from 'src/components';
 import Collapse from 'src/components/Collapse';

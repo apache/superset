@@ -24,7 +24,7 @@ import {
   getChartMetadataRegistry,
 } from '@superset-ui/core';
 
-import { chart } from 'src/chart/chartReducer';
+import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
@@ -406,6 +406,7 @@ export const hydrateDashboard =
           maxUndoHistoryExceeded: false,
           lastModifiedTime: dashboardData.changed_on,
           isRefreshing: false,
+          isFiltersRefreshing: false,
           activeTabs: dashboardState?.activeTabs || [],
           filterboxMigrationState,
         },
