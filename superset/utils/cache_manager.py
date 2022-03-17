@@ -40,10 +40,12 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if app.debug and cache_type is None:
-            cache_threshold = cache_config.get("CACHE_THRESHOLD", math.inf)
+        if cache_type is None:
             cache_config.update(
-                {"CACHE_TYPE": "SimpleCache", "CACHE_THRESHOLD": cache_threshold,}
+                {
+                    "CACHE_TYPE": "superset.key_value.cache.SupersetCache",
+                    "CACHE_OPTIONS": {"CACHE_KEY_PREFIX": cache_config_key,},
+                }
             )
 
         if "CACHE_DEFAULT_TIMEOUT" not in cache_config:

@@ -27,7 +27,7 @@ interface QueryString {
   native_filters_key: string;
 }
 
-xdescribe('nativefiler url param key', () => {
+describe('nativefiler url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.login();
