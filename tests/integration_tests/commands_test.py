@@ -59,7 +59,7 @@ class TestImportersV1Utils(SupersetTestCase):
 
 class TestImportAssetsCommand(SupersetTestCase):
     @patch("superset.dashboards.commands.importers.v1.utils.g")
-    def test_import_v1_dashboard(self, mock_g):
+    def test_import_assets(self, mock_g):
         """Test that we can import multiple assets"""
         mock_g.user = security_manager.find_user("admin")
         contents = {
@@ -183,3 +183,20 @@ class TestImportAssetsCommand(SupersetTestCase):
         command.run()
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
         assert chart.cache_timeout == 3600
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+        chart = dashboard.slices[0]
+        dataset = chart.table
+        database = dataset.database
+        dashboard.owners = []
+
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()

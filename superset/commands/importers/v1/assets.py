@@ -101,9 +101,10 @@ class ImportAssetsCommand(BaseCommand):
         # import charts
         chart_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
-            config.update(dataset_info[config["dataset_uuid"]])
-            chart = import_chart(session, config, overwrite=True)
-            chart_ids[str(chart.uuid)] = chart.id
+            if file_name.startswith("charts/"):
+                config.update(dataset_info[config["dataset_uuid"]])
+                chart = import_chart(session, config, overwrite=True)
+                chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
         existing_relationships = session.execute(
