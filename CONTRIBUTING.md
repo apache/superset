@@ -804,7 +804,6 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
 export SUPERSET_TESTENV=true
-export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users

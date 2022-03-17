@@ -24,7 +24,7 @@ import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider, FeatureFlag } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import Modal from 'src/components/Modal';
@@ -70,11 +70,7 @@ describe('DatasourceModal', () => {
   let wrapper;
   let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(
-        featureFlag => featureFlag === FeatureFlag.ENABLE_REACT_CRUD_VIEWS,
-      );
+    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled');
     fetchMock.reset();
     wrapper = await mountAndWait();
   });

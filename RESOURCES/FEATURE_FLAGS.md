@@ -64,4 +64,3 @@ These features flags currently default to True and **will be removed in a future
 
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
-- ENABLE_REACT_CRUD_VIEWS
