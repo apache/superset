@@ -40,10 +40,10 @@ class SupersetCache(BaseCache):
         cls, app: Flask, config: Dict[str, Any], args: List[Any], kwargs: Dict[str, Any]
     ) -> BaseCache:
         # base namespace for generating deterministic UUIDs
-        m = md5()
+        md5_obj = md5()
         seed = kwargs.get("CACHE_KEY_PREFIX", "")
-        m.update(seed.encode("utf-8"))
-        namespace = UUID(m.hexdigest())
+        md5_obj.update(seed.encode("utf-8"))
+        namespace = UUID(md5_obj.hexdigest())
         return cls(
             namespace=namespace, default_timeout=kwargs.get("default_timeout", 300)
         )
@@ -53,6 +53,7 @@ class SupersetCache(BaseCache):
 
     @staticmethod
     def _purge() -> None:
+        # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.delete_expired import (
             DeleteExpiredKeyValueCommand,
         )
@@ -63,6 +64,7 @@ class SupersetCache(BaseCache):
         return datetime.now() + timedelta(seconds=timeout or self.default_timeout)
 
     def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
+        # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.delete import DeleteKeyValueCommand
 
         try:
@@ -74,6 +76,7 @@ class SupersetCache(BaseCache):
         return self.add(key, value, timeout)
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
+        # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.create import CreateKeyValueCommand
 
         try:
@@ -90,6 +93,7 @@ class SupersetCache(BaseCache):
             return False
 
     def get(self, key: str) -> Any:
+        # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.get import GetKeyValueCommand
 
         return GetKeyValueCommand(
@@ -97,6 +101,7 @@ class SupersetCache(BaseCache):
         ).run()
 
     def has(self, key: str) -> bool:
+        # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.get import GetKeyValueCommand
 
         entry = GetKeyValueCommand(
