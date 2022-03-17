@@ -123,7 +123,19 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
 
 
 def allow_adhoc_subquery(raw_sql: str) -> bool:
+    # pylint: disable=import-outside-toplevel
+    from superset import is_feature_enabled
+
+    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+        return True
+
     statement = sqlparse.parse(raw_sql)[0]
     if has_table_query(statement):
-        raise SupersetGenericDBErrorException(message="test")
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Custom SQL does not allow subquery."),
+                level=ErrorLevel.ERROR,
+            )
+        )
     return True

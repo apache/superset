@@ -902,9 +902,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         """
         label = utils.get_column_name(col)
         expression = col["sqlExpression"]
+        sqla_metric = None
         if template_processor and expression:
             expression = template_processor.process_template(expression)
-        if allow_adhoc_subquery(expression):
+        if expression and allow_adhoc_subquery(expression):
             sqla_metric = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_metric, label)
 
@@ -1175,12 +1176,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                # if allow_adhoc_subquery(selected):
-                    select_exprs.append(
-                        columns_by_name[selected].get_sqla_col()
-                        if selected in columns_by_name
-                        else self.make_sqla_column_compatible(literal_column(selected))
-                    )
+                select_exprs.append(
+                    columns_by_name[selected].get_sqla_col()
+                    if selected in columns_by_name
+                    and allow_adhoc_subquery(selected["sqlExpression"])
+                    else self.make_sqla_column_compatible(literal_column(selected))
+                )
             metrics_exprs = []
 
         if granularity:
@@ -1249,7 +1250,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             sqla_col: Optional[Column] = None
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
-            elif is_adhoc_column(flt_col) or allow_adhoc_subquery(flt_col):
+            elif is_adhoc_column(flt_col):
                 sqla_col = self.adhoc_column_to_sqla(flt_col)
             else:
                 col_obj = columns_by_name.get(flt_col)
@@ -1386,9 +1387,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 db_engine_spec.allows_alias_in_select
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
+                and allow_adhoc_subquery(col.expression)
             ):
-                if allow_adhoc_subquery(col.name):
-                    col = literal_column(col.name)
+                col = literal_column(col.name)
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
 
