@@ -214,6 +214,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 @mock.patch("superset.views.database.views.event_logger.log_with_context")
 def test_import_csv_enforced_schema(mock_event_logger):
+    pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
@@ -272,6 +273,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
+    pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
     schema = utils.get_example_default_schema()
     full_table_name = (
         f"{schema}.{CSV_UPLOAD_TABLE_W_EXPLORE}"
@@ -293,6 +295,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 @mock.patch("superset.views.database.views.event_logger.log_with_context")
 def test_import_csv(mock_event_logger):
+    pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
     schema = utils.get_example_default_schema()
     full_table_name = f"{schema}.{CSV_UPLOAD_TABLE}" if schema else CSV_UPLOAD_TABLE
     success_msg_f1 = f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"'
@@ -381,6 +384,7 @@ def test_import_csv(mock_event_logger):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 @mock.patch("superset.views.database.views.event_logger.log_with_context")
 def test_import_excel(mock_event_logger):
+    pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't excel upload.")
 
@@ -442,6 +446,7 @@ def test_import_excel(mock_event_logger):
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 @mock.patch("superset.views.database.views.event_logger.log_with_context")
 def test_import_parquet(mock_event_logger):
+    pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't allow parquet upload.")
 

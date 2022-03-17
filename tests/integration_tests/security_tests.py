@@ -554,6 +554,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertNotIn("/superset/dashboard/births/", data)
 
     def test_gamma_user_schema_access_to_tables(self):
+        pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
         self.login(username="gamma")
         data = str(self.client.get("tablemodelview/list/").data)
         self.assertIn("wb_health_population", data)
@@ -561,6 +562,7 @@ class TestRolePermission(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_gamma_user_schema_access_to_charts(self):
+        pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
         self.login(username="gamma")
         data = str(self.client.get("api/v1/chart/").data)
         self.assertIn(

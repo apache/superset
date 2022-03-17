@@ -429,6 +429,7 @@ class TestCore(SupersetTestCase):
             self.assertEqual(resp.status_code, 200)
 
     def test_tablemodelview_list(self):
+        pytest.skip("Depends on ENABLE_REACT_CRUD_VIEWS=False")
         self.login(username="admin")
 
         url = "/tablemodelview/list/"

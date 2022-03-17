@@ -136,13 +136,4 @@ describe('DatasourceModal without legacy data btn', () => {
   afterAll(() => {
     isFeatureEnabledMock.restore();
   });
-
-  it('hides legacy data source btn', () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    expect(
-      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
-    ).not.toExist();
-  });
 });
