@@ -33,3 +33,12 @@ export const PLACEHOLDER_DATASOURCE: Datasource = {
   main_dttm_col: '',
   description: '',
 };
+
+export const MAIN_HEADER_HEIGHT = 53;
+export const TABS_HEIGHT = 50;
+export const HEADER_HEIGHT = 72;
+export const CLOSED_FILTER_BAR_WIDTH = 32;
+export const OPEN_FILTER_BAR_WIDTH = 260;
+export const FILTER_BAR_HEADER_HEIGHT = 80;
+export const FILTER_BAR_TABS_HEIGHT = 46;
+export const BUILDER_SIDEPANEL_WIDTH = 374;

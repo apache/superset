@@ -98,7 +98,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import (
+from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
@@ -312,22 +312,6 @@ class ReservedUrlParameters(str, Enum):
 class RowLevelSecurityFilterType(str, Enum):
     REGULAR = "Regular"
     BASE = "Base"
-
-
-class TimeRangeEndpoint(str, Enum):
-    """
-    The time range endpoint types which represent inclusive, exclusive, or unknown.
-
-    Unknown represents endpoints which are ill-defined as though the interval may be
-    [start, end] the filter may behave like (start, end] due to mixed data types and
-    lexicographical ordering.
-
-    :see: https://github.com/apache/superset/issues/6360
-    """
-
-    EXCLUSIVE = "exclusive"
-    INCLUSIVE = "inclusive"
-    UNKNOWN = "unknown"
 
 
 class TemporalType(str, Enum):
@@ -1097,11 +1081,13 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
     )
     if append_filters:
-        adhoc_filters.extend(
-            simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
-            for fltr in append_filters
-            if fltr
-        )
+        for key, value in form_data.items():
+            if re.match("adhoc_filter.*", key):
+                value.extend(
+                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
+                    for fltr in append_filters
+                    if fltr
+                )
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:

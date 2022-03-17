@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import pkg_resources
@@ -44,8 +44,9 @@ from werkzeug.local import LocalProxy
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.key_value.types import KeyType
 from superset.stats_logger import DummyStatsLogger
-from superset.typing import CacheConfig
+from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -335,6 +336,7 @@ LANGUAGES = {
     "ko": {"flag": "kr", "name": "Korean"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "nl": {"flag": "nl", "name": "Dutch"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -362,7 +364,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # With Superset 2.0, we are updating the default so that the legacy datasource
     # editor no longer shows. Currently this is set to false so that the editor
     # option does show, but we will be depreciating it.
-    "DISABLE_LEGACY_DATASOURCE_EDITOR": False,
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
     # For some security concerns, you may need to enforce CSRF protection on
     # all query request to explore_json endpoint. In Superset, we use
     # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
@@ -373,6 +375,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
+    # Allow for javascript controls components
+    # this enables programmers to customize certain charts (like the
+    # geospatial ones) by inputing javascript in controls. This exposes
+    # an XSS security vulnerability
+    "ENABLE_JAVASCRIPT_CONTROLS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
@@ -416,9 +423,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
-    "ENABLE_DND_WITH_CLICK_UX": False,
+    "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -435,6 +442,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
     "UX_BETA": False,
+    "GENERIC_CHART_AXES": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -543,7 +551,7 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "null",
+    "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
 }
 
@@ -580,31 +588,31 @@ IMG_UPLOAD_URL = "/static/uploads/"
 CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Default cache for Superset objects
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
-# Cache for filters state
+# Cache for dashboard filter state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 FILTER_STATE_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=90).total_seconds()),
-    "CACHE_THRESHOLD": 0,
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
-# Cache for chart form data
+# Cache for explore form data state (`CACHE_TYPE` defaults to `SimpleCache` when
+#  running in debug mode unless overridden)
 EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
-    "CACHE_TYPE": "FileSystemCache",
-    "CACHE_DIR": os.path.join(DATA_DIR, "cache"),
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
-    "CACHE_THRESHOLD": 0,
+    # should the timeout be reset when retrieving a cached value
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+PERMALINK_KEY_TYPE: KeyType = "uuid"
 
 # CORS Options
 ENABLE_CORS = False
@@ -1021,12 +1029,6 @@ PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 # }
 ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {}
 
-# Allow for javascript controls components
-# this enables programmers to customize certain charts (like the
-# geospatial ones) by inputing javascript in controls. This exposes
-# an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
-
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
@@ -1250,6 +1252,10 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
+# Optional prefix to be added to all static asset paths when rendering the UI.
+# This is useful for hosting assets in an external CDN, for example
+STATIC_ASSETS_PREFIX = ""
+
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
@@ -1258,22 +1264,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# SIP-15 should be enabled for all new Superset deployments which ensures that the time
-# range endpoints adhere to [start, end). For existing deployments admins should provide
-# a dedicated period of time to allow chart producers to update their charts before
-# mass migrating all charts to use the [start, end) interval.
-#
-# Note if no end date for the grace period is specified then the grace period is
-# indefinite.
-SIP_15_ENABLED = True
-SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
-SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
-SIP_15_TOAST_MESSAGE = (
-    "Action Required: Preview then save your chart using the "
-    'new time range endpoints <a target="_blank" href="{url}" '
-    'class="alert-link">here</a>.'
-)
 
 # Turn this key to False to disable ownership check on the old dataset MVC and
 # datasource API /datasource/save.
@@ -1316,6 +1306,8 @@ GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
 GUEST_TOKEN_JWT_ALGO = "HS256"
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+# Guest token audience for the embedded superset, either string or callable
+GUEST_TOKEN_JWT_AUDIENCE: Optional[Union[Callable[[], str], str]] = None
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
@@ -1350,10 +1342,6 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # Do not show user info or profile in the menu
 MENU_HIDE_USER_INFO = False
-
-# SQLalchemy link doc reference
-SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
-SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True

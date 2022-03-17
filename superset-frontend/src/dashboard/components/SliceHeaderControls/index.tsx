@@ -21,10 +21,12 @@ import moment from 'moment';
 import {
   Behavior,
   getChartMetadataRegistry,
+  QueryFormData,
   styled,
   t,
 } from '@superset-ui/core';
-import { Menu, NoAnimationDropdown } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
+import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -97,7 +99,7 @@ export interface SliceHeaderControlsProps {
   isExpanded?: boolean;
   updatedDttm: number | null;
   isFullSize?: boolean;
-  formData: { slice_id: number; datasource: string };
+  formData: Pick<QueryFormData, 'slice_id' | 'datasource'>;
   onExploreChart: () => void;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
@@ -308,8 +310,8 @@ class SliceHeaderControls extends React.PureComponent<
 
         {supersetCanShare && (
           <ShareMenuItems
-            copyMenuItemTitle={t('Copy chart URL')}
-            emailMenuItemTitle={t('Share chart by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={t('Superset chart')}
             emailBody={t('Check out this chart: ')}
             addSuccessToast={addSuccessToast}

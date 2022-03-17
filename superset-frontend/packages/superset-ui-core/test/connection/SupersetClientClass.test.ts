@@ -501,11 +501,16 @@ describe('SupersetClientClass', () => {
 
   it('should redirect Unauthorized', async () => {
     const mockRequestUrl = 'https://host/get/url';
+    const mockRequestPath = '/get/url';
+    const mockRequestSearch = '?param=1&param=2';
     const { location } = window;
     // @ts-ignore
     delete window.location;
     // @ts-ignore
-    window.location = { href: mockRequestUrl };
+    window.location = {
+      pathname: mockRequestPath,
+      search: mockRequestSearch,
+    };
     const authSpy = jest
       .spyOn(SupersetClientClass.prototype, 'ensureAuth')
       .mockImplementation();
@@ -523,7 +528,9 @@ describe('SupersetClientClass', () => {
       error = err;
     } finally {
       const redirectURL = window.location.href;
-      expect(redirectURL).toBe(`/login?next=${mockRequestUrl}`);
+      expect(redirectURL).toBe(
+        `/login?next=${mockRequestPath + mockRequestSearch}`,
+      );
       expect(error.status).toBe(401);
     }
 

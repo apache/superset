@@ -20,9 +20,14 @@
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
-import { sharedControls } from '@superset-ui/chart-controls';
-import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from './controls';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
+import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
+import { columnChoices, PRIMARY_COLOR } from './controls';
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -66,15 +71,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    mapStateToProps: state => ({
-      // eslint-disable-next-line no-negated-condition
-      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS
-        ? t(
-            'This functionality is disabled in your environment for security reasons.',
-          )
-        : null,
-      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
-    }),
+    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+      ? t(
+          'This functionality is disabled in your environment for security reasons.',
+        )
+      : null,
+    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
   };
 }
 
@@ -161,9 +163,10 @@ export const legendFormat = {
     description: t('Choose the format for legend values'),
     type: 'SelectControl',
     clearable: false,
-    default: D3_FORMAT_OPTIONS[0],
+    default: D3_FORMAT_OPTIONS[0][0],
     choices: D3_FORMAT_OPTIONS,
     renderTrigger: true,
+    freeForm: true,
   },
 };
 

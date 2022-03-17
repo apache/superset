@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
-from superset.commands.export import ExportModelsCommand
+from superset.commands.export.models import ExportModelsCommand
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 # keys present in the standard export that are not needed
-REMOVE_KEYS = ["datasource_type", "datasource_name", "query_context"]
+REMOVE_KEYS = ["datasource_type", "datasource_name", "query_context", "url_params"]
 
 
 class ExportChartsCommand(ExportModelsCommand):
@@ -43,7 +43,7 @@ class ExportChartsCommand(ExportModelsCommand):
     not_found = ChartNotFoundError
 
     @staticmethod
-    def _export(model: Slice) -> Iterator[Tuple[str, str]]:
+    def _export(model: Slice, export_related: bool = True) -> Iterator[Tuple[str, str]]:
         chart_slug = secure_filename(model.slice_name)
         file_name = f"charts/{chart_slug}_{model.id}.yaml"
 
@@ -72,5 +72,5 @@ class ExportChartsCommand(ExportModelsCommand):
         file_content = yaml.safe_dump(payload, sort_keys=False)
         yield file_name, file_content
 
-        if model.table:
+        if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()

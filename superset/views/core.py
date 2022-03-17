@@ -28,7 +28,7 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
-from flask import abort, flash, g, Markup, redirect, render_template, request, Response
+from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import (
@@ -43,7 +43,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
-from werkzeug.urls import Href
 
 from superset import (
     app,
@@ -58,6 +57,7 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
@@ -71,6 +71,8 @@ from superset.connectors.sqla.models import (
 )
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -89,6 +91,8 @@ from superset.exceptions import (
 )
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
+from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
+from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -119,8 +123,8 @@ from superset.sqllab.sql_json_executer import (
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
+from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
@@ -178,6 +182,7 @@ DATABASE_KEYS = [
     "expose_in_sqllab",
     "force_ctas_schema",
     "id",
+    "disable_data_preview",
 ]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -734,63 +739,63 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
+    @expose("/explore/p/<key>/", methods=["GET"])
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
-        self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
+        self,
+        datasource_type: Optional[str] = None,
+        datasource_id: Optional[int] = None,
+        key: Optional[str] = None,
     ) -> FlaskResponse:
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
-        if form_data_key:
-            parameters = CommandParameters(actor=g.user, key=form_data_key,)
+        if key is not None:
+            key_type = config["PERMALINK_KEY_TYPE"]
+            command = GetExplorePermalinkCommand(g.user, key, key_type)
+            try:
+                permalink_value = command.run()
+                if permalink_value:
+                    state = permalink_value["state"]
+                    initial_form_data = state["formData"]
+                    url_params = state.get("urlParams")
+                    if url_params:
+                        initial_form_data["url_params"] = dict(url_params)
+                else:
+                    return json_error_response(
+                        _("Error: permalink state not found"), status=404
+                    )
+            except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
+                flash(__("Error: %(msg)s", msg=ex.message), "danger")
+                return redirect("/chart/list/")
+        elif form_data_key:
+            parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()
-            if value:
-                initial_form_data = json.loads(value)
+            initial_form_data = json.loads(value) if value else {}
 
         if not initial_form_data:
             slice_id = request.args.get("slice_id")
             dataset_id = request.args.get("dataset_id")
             if slice_id:
                 initial_form_data["slice_id"] = slice_id
-                flash(_("Form data not found in cache, reverting to chart metadata."))
+                if form_data_key:
+                    flash(
+                        _("Form data not found in cache, reverting to chart metadata.")
+                    )
             elif dataset_id:
                 initial_form_data["datasource"] = f"{dataset_id}__table"
-                flash(_("Form data not found in cache, reverting to dataset metadata."))
+                if form_data_key:
+                    flash(
+                        _(
+                            "Form data not found in cache, reverting to dataset metadata."
+                        )
+                    )
 
         form_data, slc = get_form_data(
             use_slice_data=True, initial_form_data=initial_form_data
         )
 
         query_context = request.form.get("query_context")
-        # Flash the SIP-15 message if the slice is owned by the current user and has not
-        # been updated, i.e., is not using the [start, end) interval.
-        if (
-            config["SIP_15_ENABLED"]
-            and slc
-            and g.user in slc.owners
-            and (
-                not form_data.get("time_range_endpoints")
-                or form_data["time_range_endpoints"]
-                != (
-                    utils.TimeRangeEndpoint.INCLUSIVE,
-                    utils.TimeRangeEndpoint.EXCLUSIVE,
-                )
-            )
-        ):
-            url = Href("/superset/explore/")(
-                {
-                    "form_data": json.dumps(
-                        {
-                            "slice_id": slc.id,
-                            "time_range_endpoints": (
-                                utils.TimeRangeEndpoint.INCLUSIVE.value,
-                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
-                            ),
-                        }
-                    )
-                }
-            )
-            flash(Markup(config["SIP_15_TOAST_MESSAGE"].format(url=url)))
 
         try:
             datasource_id, datasource_type = get_datasource_info(
@@ -2000,6 +2005,30 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
+
+    @has_access
+    @expose("/dashboard/p/<key>/", methods=["GET"])
+    def dashboard_permalink(  # pylint: disable=no-self-use
+        self, key: str,
+    ) -> FlaskResponse:
+        key_type = config["PERMALINK_KEY_TYPE"]
+        try:
+            value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+        except DashboardPermalinkGetFailedError as ex:
+            flash(__("Error: %(msg)s", msg=ex.message), "danger")
+            return redirect("/dashboard/list/")
+        if not value:
+            return json_error_response(_("permalink state not found"), status=404)
+        dashboard_id = value["dashboardId"]
+        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url_params = value["state"].get("urlParams")
+        if url_params:
+            params = parse.urlencode(url_params)
+            url = f"{url}&{params}"
+        hash_ = value["state"].get("hash")
+        if hash_:
+            url = f"{url}#{hash_}"
+        return redirect(url)
 
     @api
     @has_access

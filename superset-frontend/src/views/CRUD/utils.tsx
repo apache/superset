@@ -27,11 +27,41 @@ import {
   css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { intersection } from 'lodash';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { Dashboard, Filters } from './types';
+
+// Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
+// Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
+(() => {
+  const risonRef: {
+    not_idchar: string;
+    not_idstart: string;
+    id_ok: RegExp;
+    next_id: RegExp;
+  } = rison as any;
+
+  const l = [];
+  for (let hi = 0; hi < 16; hi += 1) {
+    for (let lo = 0; lo < 16; lo += 1) {
+      if (hi + lo === 0) continue;
+      const c = String.fromCharCode(hi * 16 + lo);
+      if (!/\w|[-_./~]/.test(c))
+        l.push(`\\u00${hi.toString(16)}${lo.toString(16)}`);
+    }
+  }
+
+  risonRef.not_idchar = l.join('');
+  risonRef.not_idstart = '-0123456789';
+
+  const idrx = `[^${risonRef.not_idstart}${risonRef.not_idchar}][^${risonRef.not_idchar}]*`;
+
+  risonRef.id_ok = new RegExp(`^${idrx}$`);
+  risonRef.next_id = new RegExp(idrx, 'g');
+})();
 
 const createFetchResourceMethod =
   (method: string) =>
@@ -43,7 +73,7 @@ const createFetchResourceMethod =
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-    const queryParams = rison.encode({
+    const queryParams = rison.encode_uri({
       filter: filterValue,
       page,
       page_size: pageSize,
@@ -380,3 +410,13 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
             isNeedsPassword(payload) || isAlreadyExists(payload),
         ),
   );
+
+export const checkUploadExtensions = (
+  perm: Array<string>,
+  cons: Array<string>,
+) => {
+  if (perm !== undefined) {
+    return intersection(perm, cons).length > 0;
+  }
+  return false;
+};

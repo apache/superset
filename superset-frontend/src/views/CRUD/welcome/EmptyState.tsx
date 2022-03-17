@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { WelcomeTable } from './types';
 

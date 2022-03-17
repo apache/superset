@@ -37,7 +37,7 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
-from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
 from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,11 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         post:
           description: >-
             Stores a new form_data.
+          parameters:
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
@@ -101,10 +106,12 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         """
         try:
             item = self.add_model_schema.load(request.json)
+            tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
                 dataset_id=item["dataset_id"],
                 chart_id=item.get("chart_id"),
+                tab_id=tab_id,
                 form_data=item["form_data"],
             )
             key = CreateFormDataCommand(args).run()
@@ -114,7 +121,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -139,6 +146,10 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
@@ -153,9 +164,9 @@ class ExploreFormDataRestApi(BaseApi, ABC):
                   schema:
                     type: object
                     properties:
-                      message:
+                      key:
                         type: string
-                        description: The result of the operation
+                        description: The key to retrieve the form_data.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -169,23 +180,25 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         """
         try:
             item = self.edit_model_schema.load(request.json)
+            tab_id = request.args.get("tab_id")
             args = CommandParameters(
                 actor=g.user,
                 dataset_id=item["dataset_id"],
                 chart_id=item.get("chart_id"),
+                tab_id=tab_id,
                 key=key,
                 form_data=item["form_data"],
             )
             result = UpdateFormDataCommand(args).run()
             if not result:
                 return self.response_404()
-            return self.response(200, message="Value updated successfully.")
+            return self.response(200, key=result)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -240,7 +253,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -296,7 +309,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:

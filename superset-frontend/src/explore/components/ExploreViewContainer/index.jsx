@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
-
+import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
@@ -36,14 +36,15 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { URL_PARAMS } from 'src/constants';
+import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
-import * as chartActions from 'src/chart/chartAction';
+import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -164,7 +165,7 @@ function useWindowSize({ delayMs = 250 } = {}) {
 }
 
 const updateHistory = debounce(
-  async (formData, datasetId, isReplace, standalone, force, title) => {
+  async (formData, datasetId, isReplace, standalone, force, title, tabId) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
     const additionalParam = {};
@@ -174,15 +175,22 @@ const updateHistory = debounce(
       additionalParam[URL_PARAMS.datasetId.name] = datasetId;
     }
 
+    const urlParams = payload?.url_params || {};
+    Object.entries(urlParams).forEach(([key, value]) => {
+      if (!RESERVED_CHART_URL_PARAMS.includes(key)) {
+        additionalParam[key] = value;
+      }
+    });
+
     try {
       let key;
       let stateModifier;
       if (isReplace) {
-        key = await postFormData(datasetId, formData, chartId);
+        key = await postFormData(datasetId, formData, chartId, tabId);
         stateModifier = 'replaceState';
       } else {
         key = getUrlParam(URL_PARAMS.formDataKey);
-        await putFormData(datasetId, key, formData, chartId);
+        await putFormData(datasetId, key, formData, chartId, tabId);
         stateModifier = 'pushState';
       }
       const url = mountExploreUrl(
@@ -218,6 +226,7 @@ function ExploreViewContainer(props) {
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
+  const tabId = useTabId();
 
   const theme = useTheme();
   const width = `${windowSize.width}px`;
@@ -248,6 +257,7 @@ function ExploreViewContainer(props) {
         props.standalone,
         props.force,
         title,
+        tabId,
       );
     },
     [
@@ -256,6 +266,7 @@ function ExploreViewContainer(props) {
       props.datasource.id,
       props.standalone,
       props.force,
+      tabId,
     ],
   );
 
@@ -322,7 +333,12 @@ function ExploreViewContainer(props) {
 
   useComponentDidMount(() => {
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
-    addHistory({ isReplace: true });
+  });
+
+  useChangeEffect(tabId, (previous, current) => {
+    if (current) {
+      addHistory({ isReplace: true });
+    }
   });
 
   const previousHandlePopstate = usePrevious(handlePopstate);

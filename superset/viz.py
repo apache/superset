@@ -55,7 +55,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -70,7 +70,13 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
+from superset.superset_typing import (
+    Column,
+    Metric,
+    QueryObjectDict,
+    VizData,
+    VizPayload,
+)
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -397,7 +403,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "having": self.form_data.get("having", ""),
             "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
-            "time_range_endpoints": self.form_data.get("time_range_endpoints"),
             "where": self.form_data.get("where", ""),
         }
 
@@ -459,12 +464,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        cache_dict["rls"] = (
-            security_manager.get_rls_ids(self.datasource)
-            if is_feature_enabled("ROW_LEVEL_SECURITY")
-            and self.datasource.is_rls_supported
-            else []
-        )
+        cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)
@@ -854,6 +854,11 @@ class TimeTableViz(BaseViz):
             raise QueryObjectValidationError(
                 _("When using 'Group By' you are limited to use a single metric")
             )
+
+        sort_by = utils.get_first_metric_name(query_obj["metrics"])
+        is_asc = not query_obj.get("order_desc")
+        query_obj["orderby"] = [(sort_by, is_asc)]
+
         return query_obj
 
     def get_data(self, df: pd.DataFrame) -> VizData:

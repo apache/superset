@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { MainNav as Menu } from 'src/common/components';
+import React, { useState } from 'react';
+import { MainNav as Menu } from 'src/components/Menu';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
@@ -25,31 +25,14 @@ import findPermission from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
-import { NavBarProps, MenuObjectProps } from './Menu';
-
-export const dropdownItems = [
-  {
-    label: t('SQL query'),
-    url: '/superset/sqllab?new=true',
-    icon: 'fa-fw fa-search',
-    perm: 'can_sqllab',
-    view: 'Superset',
-  },
-  {
-    label: t('Chart'),
-    url: '/chart/add',
-    icon: 'fa-fw fa-bar-chart',
-    perm: 'can_write',
-    view: 'Chart',
-  },
-  {
-    label: t('Dashboard'),
-    url: '/dashboard/new',
-    icon: 'fa-fw fa-dashboard',
-    perm: 'can_write',
-    view: 'Dashboard',
-  },
-];
+import DatabaseModal from '../CRUD/data/database/DatabaseModal';
+import { checkUploadExtensions } from '../CRUD/utils';
+import {
+  ExtentionConfigs,
+  GlobalMenuDataOptions,
+  RightMenuProps,
+} from './types';
+import { MenuObjectProps } from './Menu';
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -80,13 +63,6 @@ const StyledAnchor = styled.a`
 
 const { SubMenu } = Menu;
 
-interface RightMenuProps {
-  align: 'flex-start' | 'flex-end';
-  settings: MenuObjectProps[];
-  navbarRight: NavBarProps;
-  isFrontendRoute: (path?: string) => boolean;
-}
-
 const RightMenu = ({
   align,
   settings,
@@ -96,15 +72,131 @@ const RightMenu = ({
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-
-  // if user has any of these roles the dropdown will appear
+  const {
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
+    HAS_GSHEETS_INSTALLED,
+  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
+  const canDatabase = findPermission('can_write', 'Database', roles);
+
+  const canUploadCSV = findPermission(
+    'can_this_form_get',
+    'CsvToDatabaseView',
+    roles,
+  );
+  const canUploadColumnar = findPermission(
+    'can_this_form_get',
+    'ColumnarToDatabaseView',
+    roles,
+  );
+  const canUploadExcel = findPermission(
+    'can_this_form_get',
+    'ExcelToDatabaseView',
+    roles,
+  );
+
+  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
+  const dropdownItems: MenuObjectProps[] = [
+    {
+      label: t('Data'),
+      icon: 'fa-database',
+      childs: [
+        {
+          label: t('Connect database'),
+          name: GlobalMenuDataOptions.DB_CONNECTION,
+          perm: canDatabase,
+        },
+        {
+          label: t('Connect Google Sheet'),
+          name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+          perm: canDatabase && HAS_GSHEETS_INSTALLED,
+        },
+        {
+          label: t('Upload CSV to database'),
+          name: 'Upload a CSV',
+          url: '/csvtodatabaseview/form',
+          perm:
+            checkUploadExtensions(CSV_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadCSV,
+        },
+        {
+          label: t('Upload columnar file to database'),
+          name: 'Upload a Columnar file',
+          url: '/columnartodatabaseview/form',
+          perm:
+            checkUploadExtensions(COLUMNAR_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadColumnar,
+        },
+        {
+          label: t('Upload Excel file to database'),
+          name: 'Upload Excel',
+          url: '/exceltodatabaseview/form',
+          perm:
+            checkUploadExtensions(EXCEL_EXTENSIONS, ALLOWED_EXTENSIONS) &&
+            canUploadExcel,
+        },
+      ],
+    },
+    {
+      label: t('SQL query'),
+      url: '/superset/sqllab?new=true',
+      icon: 'fa-fw fa-search',
+      perm: 'can_sqllab',
+      view: 'Superset',
+    },
+    {
+      label: t('Chart'),
+      url: '/chart/add',
+      icon: 'fa-fw fa-bar-chart',
+      perm: 'can_write',
+      view: 'Chart',
+    },
+    {
+      label: t('Dashboard'),
+      url: '/dashboard/new',
+      icon: 'fa-fw fa-dashboard',
+      perm: 'can_write',
+      view: 'Dashboard',
+    },
+  ];
+
+  const menuIconAndLabel = (menu: MenuObjectProps) => (
+    <>
+      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
+      {menu.label}
+    </>
+  );
+
+  const handleMenuSelection = (itemChose: any) => {
+    if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
+      setShowModal(true);
+    } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+      setShowModal(true);
+      setEngine('Google Sheets');
+    }
+  };
+
+  const handleOnHideModal = () => {
+    setEngine('');
+    setShowModal(false);
+  };
+
   return (
     <StyledDiv align={align}>
-      <Menu mode="horizontal">
+      <DatabaseModal
+        onHide={handleOnHideModal}
+        show={showModal}
+        dbEngine={engine}
+      />
+      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -113,9 +205,37 @@ const RightMenu = ({
             }
             icon={<Icons.TriangleDown />}
           >
-            {dropdownItems.map(
-              menu =>
-                findPermission(menu.perm, menu.view, roles) && (
+            {dropdownItems.map(menu => {
+              if (menu.childs) {
+                return canDatabase || canUpload ? (
+                  <SubMenu
+                    key="sub2"
+                    className="data-menu"
+                    title={menuIconAndLabel(menu)}
+                  >
+                    {menu.childs.map((item, idx) =>
+                      typeof item !== 'string' && item.name && item.perm ? (
+                        <>
+                          {idx === 2 && <Menu.Divider />}
+                          <Menu.Item key={item.name}>
+                            {item.url ? (
+                              <a href={item.url}> {item.label} </a>
+                            ) : (
+                              item.label
+                            )}
+                          </Menu.Item>
+                        </>
+                      ) : null,
+                    )}
+                  </SubMenu>
+                ) : null;
+              }
+              return (
+                findPermission(
+                  menu.perm as string,
+                  menu.view as string,
+                  roles,
+                ) && (
                   <Menu.Item key={menu.label}>
                     <a href={menu.url}>
                       <i
@@ -125,8 +245,9 @@ const RightMenu = ({
                       {menu.label}
                     </a>
                   </Menu.Item>
-                ),
-            )}
+                )
+              );
+            })}
           </SubMenu>
         )}
         <SubMenu

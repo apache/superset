@@ -23,7 +23,7 @@ import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -128,6 +128,8 @@ export default class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.getChartHeight = this.getChartHeight.bind(this);
+    this.getDescriptionHeight = this.getDescriptionHeight.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -178,19 +180,29 @@ export default class Chart extends React.Component {
     return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
   }
 
+  componentDidMount() {
+    if (this.props.isExpanded) {
+      const descriptionHeight = this.getDescriptionHeight();
+      this.setState({ descriptionHeight });
+    }
+  }
+
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.isExpanded !== prevProps.isExpanded) {
-      const descriptionHeight =
-        this.props.isExpanded && this.descriptionRef
-          ? this.descriptionRef.offsetHeight
-          : 0;
+      const descriptionHeight = this.getDescriptionHeight();
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ descriptionHeight });
     }
+  }
+
+  getDescriptionHeight() {
+    return this.props.isExpanded && this.descriptionRef
+      ? this.descriptionRef.offsetHeight
+      : 0;
   }
 
   getChartHeight() {
@@ -242,10 +254,15 @@ export default class Chart extends React.Component {
 
   onExploreChart = async () => {
     try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
       const key = await postFormData(
         this.props.datasource.id,
         this.props.formData,
         this.props.slice.slice_id,
+        nextTabId,
       );
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
@@ -269,6 +286,7 @@ export default class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: 'csv',
+      force: true,
     });
   }
 

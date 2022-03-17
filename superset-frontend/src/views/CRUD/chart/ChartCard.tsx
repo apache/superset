@@ -25,7 +25,8 @@ import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from '../utils';
@@ -169,9 +170,9 @@ export default function ChartCard({
               saveFaveStar={saveFavoriteStatus}
               isStarred={favoriteStatus}
             />
-            <Dropdown overlay={menu}>
+            <AntdDropdown overlay={menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </Dropdown>
+            </AntdDropdown>
           </ListViewCard.Actions>
         }
       />

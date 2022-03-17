@@ -26,7 +26,9 @@ from superset import db, event_logger, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
+from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.exceptions import (
+    DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
@@ -62,6 +64,43 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+
+
+class TestCreateDatabaseCommand(SupersetTestCase):
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_create_duplicate_error(self, mock_logger):
+        example_db = get_example_database()
+        command = CreateDatabaseCommand(
+            security_manager.find_user("admin"),
+            {"database_name": example_db.database_name},
+        )
+        with pytest.raises(DatabaseInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == ("Database parameters are invalid.")
+        # logger should list classnames of all errors
+        mock_logger.assert_called_with(
+            action="db_connection_failed."
+            "DatabaseInvalidError."
+            "DatabaseExistsValidationError."
+            "DatabaseRequiredFieldValidationError"
+        )
+
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_multiple_error_logging(self, mock_logger):
+        command = CreateDatabaseCommand(security_manager.find_user("admin"), {})
+        with pytest.raises(DatabaseInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == ("Database parameters are invalid.")
+        # logger should list a unique set of errors with no duplicates
+        mock_logger.assert_called_with(
+            action="db_connection_failed."
+            "DatabaseInvalidError."
+            "DatabaseRequiredFieldValidationError"
+        )
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
@@ -318,6 +357,26 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "uuid",
             "version",
         ]
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
+    def test_export_database_command_no_related(self, mock_g):
+        """
+        Test that only databases are exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+        db_uuid = example_db.uuid
+
+        command = ExportDatabasesCommand([example_db.id], export_related=False)
+        contents = dict(command.run())
+        prefixes = {path.split("/")[0] for path in contents}
+        assert "metadata.yaml" in prefixes
+        assert "databases" in prefixes
+        assert "datasets" not in prefixes
 
 
 class TestImportDatabasesCommand(SupersetTestCase):

@@ -50,6 +50,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -175,9 +176,11 @@ export default function transformProps(
       stack,
       yAxisIndex,
       filterState,
+      seriesKey: entry.name,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
+
   rawSeriesB.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area: areaB,
@@ -189,6 +192,9 @@ export default function transformProps(
       stack: stackB,
       yAxisIndex: yAxisIndexB,
       filterState,
+      seriesKey: primarySeries.has(entry.name as string)
+        ? `${entry.name} (1)`
+        : entry.name,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -246,8 +252,8 @@ export default function transformProps(
     null,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
   const labelMap = rawSeriesA.reduce((acc, datum) => {
     const label = datum.name as string;
@@ -277,7 +283,7 @@ export default function transformProps(
     xAxis: {
       type: 'time',
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         formatter: xAxisFormatter,
@@ -295,7 +301,7 @@ export default function transformProps(
         axisLabel: { formatter },
         scale: truncateYAxis,
         name: yAxisTitle,
-        nameGap: yAxisTitleMargin,
+        nameGap: convertInteger(yAxisTitleMargin),
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },

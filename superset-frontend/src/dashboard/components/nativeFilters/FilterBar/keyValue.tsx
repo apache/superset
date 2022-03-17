@@ -17,10 +17,31 @@
  * under the License.
  */
 import { SupersetClient, logging } from '@superset-ui/core';
+import { DashboardPermalinkValue } from 'src/dashboard/types';
 
-export const updateFilterKey = (dashId: string, value: string, key: string) =>
+const assembleEndpoint = (
+  dashId: string | number,
+  key?: string,
+  tabId?: string,
+) => {
+  let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  if (key) {
+    endpoint = endpoint.concat(`/${key}`);
+  }
+  if (tabId) {
+    endpoint = endpoint.concat(`?tab_id=${tabId}`);
+  }
+  return endpoint;
+};
+
+export const updateFilterKey = (
+  dashId: string,
+  value: string,
+  key: string,
+  tabId?: string,
+) =>
   SupersetClient.put({
-    endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}/`,
+    endpoint: assembleEndpoint(dashId, key, tabId),
     jsonPayload: { value },
   })
     .then(r => r.json.message)
@@ -29,25 +50,36 @@ export const updateFilterKey = (dashId: string, value: string, key: string) =>
       return null;
     });
 
-export const createFilterKey = (dashId: string | number, value: string) =>
+export const createFilterKey = (
+  dashId: string | number,
+  value: string,
+  tabId?: string,
+) =>
   SupersetClient.post({
-    endpoint: `api/v1/dashboard/${dashId}/filter_state`,
+    endpoint: assembleEndpoint(dashId, undefined, tabId),
     jsonPayload: { value },
   })
-    .then(r => r.json.key)
+    .then(r => r.json.key as string)
     .catch(err => {
       logging.error(err);
       return null;
     });
 
-export const getFilterValue = (
-  dashId: string | number | undefined,
-  key: string,
-) =>
+export const getFilterValue = (dashId: string | number, key: string) =>
   SupersetClient.get({
-    endpoint: `api/v1/dashboard/${dashId}/filter_state/${key}/`,
+    endpoint: assembleEndpoint(dashId, key),
   })
     .then(({ json }) => JSON.parse(json.value))
+    .catch(err => {
+      logging.error(err);
+      return null;
+    });
+
+export const getPermalinkValue = (key: string) =>
+  SupersetClient.get({
+    endpoint: `/api/v1/dashboard/permalink/${key}`,
+  })
+    .then(({ json }) => json as DashboardPermalinkValue)
     .catch(err => {
       logging.error(err);
       return null;

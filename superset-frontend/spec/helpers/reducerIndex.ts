@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import charts from 'src/chart/chartReducer';
+import charts from 'src/components/Chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';

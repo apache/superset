@@ -19,11 +19,20 @@
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
+
+const debugMode = process.env.WEBPACK_MODE === 'development';
+
+function log(...info: unknown[]) {
+  if (debugMode) {
+    console.debug(`[superset]`, ...info);
+  }
+}
 
 const LazyDashboardPage = lazy(
   () =>
@@ -66,14 +75,12 @@ if (!window.parent) {
 //   );
 // }
 
-async function start(guestToken: string) {
-  // the preamble configures a client, but we need to configure a new one
-  // now that we have the guest token
+function setupGuestClient(guestToken: string) {
+  // need to reconfigure SupersetClient to use the guest token
   setupClient({
     guestToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
   });
-  ReactDOM.render(<EmbeddedApp />, appMountPoint);
 }
 
 function validateMessageEvent(event: MessageEvent) {
@@ -94,24 +101,41 @@ function validateMessageEvent(event: MessageEvent) {
   }
 }
 
-window.addEventListener('message', function (event) {
+window.addEventListener('message', function embeddedPageInitializer(event) {
   try {
     validateMessageEvent(event);
   } catch (err) {
-    console.info('[superset] ignoring message', err, event);
+    log('ignoring message', err, event);
     return;
   }
 
-  console.info('[superset] received message', event);
-  const hostAppPort = event.ports?.[0];
-  if (hostAppPort) {
-    hostAppPort.onmessage = function receiveMessage(event) {
-      console.info('[superset] received message event', event.data);
-      if (event.data.guestToken) {
-        start(event.data.guestToken);
+  const port = event.ports?.[0];
+  if (event.data.handshake === 'port transfer' && port) {
+    log('message port received', event);
+
+    const switchboard = new Switchboard({
+      port,
+      name: 'superset',
+      debug: debugMode,
+    });
+
+    let started = false;
+
+    switchboard.defineMethod('guestToken', ({ guestToken }) => {
+      setupGuestClient(guestToken);
+      if (!started) {
+        ReactDOM.render(<EmbeddedApp />, appMountPoint);
+        started = true;
       }
-    };
+    });
+
+    switchboard.defineMethod('getScrollSize', () => ({
+      width: document.body.scrollWidth,
+      height: document.body.scrollHeight,
+    }));
+
+    switchboard.start();
   }
 });
 
-console.info('[superset] embed page is ready to receive messages');
+log('embed page is ready to receive messages');
