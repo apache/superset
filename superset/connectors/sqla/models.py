@@ -308,7 +308,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         if start_dttm:
             l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
-            l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm)))
+            l.append(col < self.table.text(self.dttm_sql_literal(end_dttm)))
         return and_(*l)
 
     def get_timestamp_expression(
