@@ -265,7 +265,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     active = Column(Boolean, default=False)
 
     # selected DB and schema
-    database_id = Column(Integer, ForeignKey("dbs.id"))
+    database_id = Column(Integer, ForeignKey("dbs.id", ondelete="CASCADE"))
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
 
@@ -282,7 +282,9 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     query_limit = Column(Integer)
 
     # latest query that was run
-    latest_query_id = Column(Integer, ForeignKey("query.client_id"))
+    latest_query_id = Column(
+        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+    )
     latest_query = relationship("Query")
 
     # other properties
@@ -322,7 +324,9 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tab_state_id = Column(Integer, ForeignKey("tab_state.id", ondelete="CASCADE"))
 
-    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database_id = Column(
+        Integer, ForeignKey("dbs.id", ondelete="CASCADE"), nullable=False
+    )
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
     table = Column(String(256))
