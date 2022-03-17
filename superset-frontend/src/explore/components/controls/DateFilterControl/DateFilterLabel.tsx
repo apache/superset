@@ -37,7 +37,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
-import Popover from 'src/components/Popover';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
@@ -48,6 +47,7 @@ import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
 import { noOp } from 'src/utils/common';
 import { FrameType } from './types';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 import {
   CommonFrame,
@@ -95,7 +95,7 @@ const fetchTimeRange = async (
   }
 };
 
-const StyledPopover = styled(Popover)``;
+const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
   width: 272px;
 `;
