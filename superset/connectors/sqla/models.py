@@ -97,8 +97,14 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.sql_parse import ParsedQuery
+from superset.superset_typing import (
+    AdhocColumn,
+    AdhocMetric,
+    Metric,
+    OrderBy,
+    QueryObjectDict,
+)
 from superset.tables.models import Table as NewTable
-from superset.typing import AdhocColumn, AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
@@ -309,7 +315,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         if start_dttm:
             l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
-            l.append(col <= self.table.text(self.dttm_sql_literal(end_dttm)))
+            l.append(col < self.table.text(self.dttm_sql_literal(end_dttm)))
         return and_(*l)
 
     def get_timestamp_expression(

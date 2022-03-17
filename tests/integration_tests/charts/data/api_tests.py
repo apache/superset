@@ -47,7 +47,7 @@ from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
-from superset.typing import AdhocColumn
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
     get_example_default_schema,

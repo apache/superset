@@ -70,7 +70,13 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
+from superset.superset_typing import (
+    Column,
+    Metric,
+    QueryObjectDict,
+    VizData,
+    VizPayload,
+)
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
