@@ -70,7 +70,7 @@ class ImportExportRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-        root = f"superset_export_{timestamp}"
+        root = f"assets_export_{timestamp}"
         filename = f"{root}.zip"
 
         buf = BytesIO()
@@ -96,6 +96,47 @@ class ImportExportRestApi(BaseApi):
     )
     @requires_form_data
     def import_(self) -> Response:
+        """Import multiple assets
+        ---
+        post:
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    bundle:
+                      description: upload file (ZIP or JSON)
+                      type: string
+                      format: binary
+                    passwords:
+                      description: >-
+                        JSON map of passwords for each featured database in the
+                        ZIP file. If the ZIP includes a database config in the path
+                        `databases/MyDatabase.yaml`, the password should be provided
+                        in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+          responses:
+            200:
+              description: Dashboard import result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         upload = request.files.get("bundle")
         if not upload:
             return self.response_400()
