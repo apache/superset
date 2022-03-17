@@ -752,6 +752,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 except DashboardNotFoundError:
                     return self.response_404()
             buf.seek(0)
+
             response = send_file(
                 buf,
                 mimetype="application/zip",
