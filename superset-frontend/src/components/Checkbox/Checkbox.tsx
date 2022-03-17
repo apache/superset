@@ -49,5 +49,3 @@ export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
     </Styles>
   );
 }
-
-export type { CheckboxProps };
