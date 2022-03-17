@@ -290,12 +290,13 @@ class TestDatasetApi(SupersetTestCase):
                 )
             )
             schema_values = [
-                "admin_database",
+                # "admin_database", Depends on ENABLE_REACT_CRUD_VIEWS=False (one of the removed tests altered the db for this test)
+                # see changes at https://github.com/apache/superset/pull/19231/files
                 "information_schema",
                 "public",
             ]
             expected_response = {
-                "count": 3,
+                "count": 2,
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -321,8 +322,10 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 3,
-                    "result": [{"text": "admin_database", "value": "admin_database"}],
+                    "count": 2,
+                    "result": [
+                        {"text": "information_schema", "value": "information_schema"}
+                    ],
                 },
             )
 
