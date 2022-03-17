@@ -139,7 +139,7 @@ ISSUE_CODES = {
     1034: _("The port number is invalid."),
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
-    1037: _("Custom SQL fields cannot contain subqueries."),
+    1037: _("Custom SQL fields cannot contain sub-queries."),
 }
 
 

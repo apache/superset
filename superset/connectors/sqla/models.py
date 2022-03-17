@@ -1392,7 +1392,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 db_engine_spec.allows_alias_in_select
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
-                and validate_adhoc_subquery(col.expression)
+                and validate_adhoc_subquery(str(col.expression))
             ):
                 col = literal_column(col.name)
             direction = asc if ascending else desc
