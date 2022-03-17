@@ -18,7 +18,6 @@
  */
 import React, { ReactNode } from 'react';
 import { Datasource, Metric } from '@superset-ui/core';
-import Popover from 'src/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import AdhocMetricEditPopover, {
@@ -26,6 +25,7 @@ import AdhocMetricEditPopover, {
 } from './AdhocMetricEditPopover';
 import AdhocMetric from './AdhocMetric';
 import { savedMetricType } from './types';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
@@ -223,7 +223,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     );
 
     return (
-      <Popover
+      <ControlPopover
         placement="right"
         trigger="click"
         content={overlayContent}
@@ -234,7 +234,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         destroyTooltipOnHide
       >
         {this.props.children}
-      </Popover>
+      </ControlPopover>
     );
   }
 }
