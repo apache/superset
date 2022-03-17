@@ -1179,7 +1179,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
                     if selected in columns_by_name
-                    and allow_adhoc_subquery(selected["sqlExpression"])
+                    and allow_adhoc_subquery(selected)
                     else self.make_sqla_column_compatible(literal_column(selected))
                 )
             metrics_exprs = []
