@@ -647,7 +647,4 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
