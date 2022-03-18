@@ -22,11 +22,7 @@ import { useSelector } from 'react-redux';
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import {
-  createErrorHandler,
-  checkUploadExtensions,
-  uploadUserPerms,
-} from 'src/views/CRUD/utils';
+import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
