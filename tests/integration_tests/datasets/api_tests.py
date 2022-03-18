@@ -290,8 +290,6 @@ class TestDatasetApi(SupersetTestCase):
                 )
             )
             schema_values = [
-                # "admin_database", Depends on ENABLE_REACT_CRUD_VIEWS=False (one of the removed tests altered the db for this test)
-                # see changes at https://github.com/apache/superset/pull/19231/files
                 "information_schema",
                 "public",
             ]
