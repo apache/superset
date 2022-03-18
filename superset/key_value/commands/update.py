@@ -71,6 +71,7 @@ class UpdateKeyValueCommand(BaseCommand):
         try:
             return self.update()
         except SQLAlchemyError as ex:
+            db.session.rollback()
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
 
@@ -93,4 +94,5 @@ class UpdateKeyValueCommand(BaseCommand):
             db.session.merge(entry)
             db.session.commit()
             return extract_key(entry, self.key_type)
+
         return None

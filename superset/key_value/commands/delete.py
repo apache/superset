@@ -54,6 +54,7 @@ class DeleteKeyValueCommand(BaseCommand):
         try:
             return self.delete()
         except SQLAlchemyError as ex:
+            db.session.rollback()
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
 

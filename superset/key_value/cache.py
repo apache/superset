@@ -31,7 +31,7 @@ KEY_TYPE: KeyType = "uuid"
 
 
 class SupersetCache(BaseCache):
-    def __init__(self, namespace: UUID, default_timeout: int) -> None:
+    def __init__(self, namespace: UUID, default_timeout: int = 300) -> None:
         super().__init__(default_timeout)
         self.namespace = namespace or uuid4()
 
@@ -41,12 +41,10 @@ class SupersetCache(BaseCache):
     ) -> BaseCache:
         # base namespace for generating deterministic UUIDs
         md5_obj = md5()
-        seed = kwargs.get("CACHE_KEY_PREFIX", "")
+        seed = config.get("CACHE_KEY_PREFIX", "")
         md5_obj.update(seed.encode("utf-8"))
-        namespace = UUID(md5_obj.hexdigest())
-        return cls(
-            namespace=namespace, default_timeout=kwargs.get("default_timeout", 300)
-        )
+        kwargs["namespace"] = UUID(md5_obj.hexdigest())
+        return cls(*args, **kwargs)
 
     def get_key(self, key: str) -> str:
         return str(uuid3(self.namespace, key))
@@ -110,3 +108,11 @@ class SupersetCache(BaseCache):
         if entry:
             return True
         return False
+
+    def delete(self, key: str) -> Any:
+        # pylint: disable=import-outside-toplevel
+        from superset.key_value.commands.delete import DeleteKeyValueCommand
+
+        return DeleteKeyValueCommand(
+            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
+        ).run()

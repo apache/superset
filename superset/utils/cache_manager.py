@@ -40,11 +40,20 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if cache_type is None:
+        if required and cache_type in (None, "SupersetCache"):
+            if cache_type is None:
+                logger.warning(
+                    "Falling back to built-in key-value cache for following "
+                    "cache: `%s`. It is recommended to use `RedisCache`, "
+                    "`MemcachedCache` or another dedicated caching backend for "
+                    "production deployments",
+                    cache_config_key,
+                )
+            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
             cache_config.update(
                 {
                     "CACHE_TYPE": "superset.key_value.cache.SupersetCache",
-                    "CACHE_OPTIONS": {"CACHE_KEY_PREFIX": cache_config_key,},
+                    "CACHE_KEY_PREFIX": cache_key_prefix,
                 }
             )
 
@@ -52,17 +61,6 @@ class CacheManager:
             default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
             cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
 
-        if required and cache_type in ("null", "NullCache"):
-            raise Exception(
-                _(
-                    "The CACHE_TYPE `%(cache_type)s` for `%(cache_config_key)s` is not "
-                    "supported. It is recommended to use `RedisCache`, "
-                    "`MemcachedCache` or another dedicated caching backend for "
-                    "production deployments",
-                    cache_type=cache_config["CACHE_TYPE"],
-                    cache_config_key=cache_config_key,
-                ),
-            )
         cache.init_app(app, cache_config)
 
     def init_app(self, app: Flask) -> None:
