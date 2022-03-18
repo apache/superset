@@ -249,7 +249,7 @@ class TestDatabaseModel(SupersetTestCase):
                 {
                     "expressionType": AdhocMetricExpressionType.SQL,
                     "sqlExpression": "(SELECT (SELECT * from birth_names) "
-                                     "from test_validate_adhoc_sql)",
+                    "from test_validate_adhoc_sql)",
                     "label": "adhoc_metrics",
                 }
             ],

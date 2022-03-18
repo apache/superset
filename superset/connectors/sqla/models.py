@@ -886,8 +886,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             tp = self.get_template_processor()
             expression = tp.process_template(cast(str, metric["sqlExpression"]))
-            if validate_adhoc_subquery(expression):
-                sqla_metric = literal_column(expression)
+            validate_adhoc_subquery(expression)
+            sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
@@ -908,10 +908,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         """
         label = utils.get_column_name(col)
         expression = col["sqlExpression"]
-        sqla_metric = None
         if template_processor and expression:
             expression = template_processor.process_template(expression)
-        validate_adhoc_subquery(expression)
+        if expression:
+            validate_adhoc_subquery(expression)
         sqla_metric = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_metric, label)
 
@@ -1183,9 +1183,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                validate_adhoc_subquery(selected)
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name and validate_adhoc_subquery(selected)
+                    if selected in columns_by_name
                     else self.make_sqla_column_compatible(literal_column(selected))
                 )
             metrics_exprs = []
@@ -1393,8 +1394,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 db_engine_spec.allows_alias_in_select
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
-                and validate_adhoc_subquery(str(col.expression))
             ):
+                validate_adhoc_subquery(str(col.expression))
                 col = literal_column(col.name)
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
