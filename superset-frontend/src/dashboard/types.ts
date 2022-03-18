@@ -63,6 +63,7 @@ export type DashboardState = {
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
   isRefreshing: boolean;
+  isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
 export type DashboardInfo = {
@@ -142,4 +143,12 @@ type ActiveFilter = {
 
 export type ActiveFilters = {
   [key: string]: ActiveFilter;
+};
+
+export type DashboardPermalinkValue = {
+  dashboardId: string;
+  state: {
+    filterState: DataMaskStateWithId;
+    hash: string;
+  };
 };

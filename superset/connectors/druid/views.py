@@ -34,7 +34,7 @@ from superset.connectors.base.views import BS3TextFieldROWidget, DatasourceModel
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid import models
 from superset.constants import RouteMethod
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,

@@ -43,8 +43,9 @@ from typing_extensions import Literal
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.key_value.types import KeyType
 from superset.stats_logger import DummyStatsLogger
-from superset.typing import CacheConfig
+from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -373,6 +374,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
+    # Allow for javascript controls components
+    # this enables programmers to customize certain charts (like the
+    # geospatial ones) by inputing javascript in controls. This exposes
+    # an XSS security vulnerability
+    "ENABLE_JAVASCRIPT_CONTROLS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
@@ -384,13 +390,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": False,
+    "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
-    # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/superset/issues/8976
-    # (SIP-34). This is a work in progress so not all features available in FAB have
-    # been implemented.
-    "ENABLE_REACT_CRUD_VIEWS": True,
     # When True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
@@ -401,7 +402,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
-    "VERSIONED_EXPORT": False,
+    "VERSIONED_EXPORT": True,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
     # But, if users create a specific role with access to RowLevelSecurityFilter MVC
@@ -413,8 +414,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    # Enable experimental feature to search for other dashboards
-    "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
@@ -436,6 +435,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALLOW_FULL_CSV_EXPORT": False,
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
+    "ALLOW_ADHOC_SUBQUERY": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -604,6 +604,8 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+PERMALINK_KEY_TYPE: KeyType = "uuid"
 
 # CORS Options
 ENABLE_CORS = False
@@ -1020,12 +1022,6 @@ PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 # }
 ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {}
 
-# Allow for javascript controls components
-# this enables programmers to customize certain charts (like the
-# geospatial ones) by inputing javascript in controls. This exposes
-# an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
-
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
@@ -1249,6 +1245,10 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
+# Optional prefix to be added to all static asset paths when rendering the UI.
+# This is useful for hosting assets in an external CDN, for example
+STATIC_ASSETS_PREFIX = ""
+
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
@@ -1335,10 +1335,6 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # Do not show user info or profile in the menu
 MENU_HIDE_USER_INFO = False
-
-# SQLalchemy link doc reference
-SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
-SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True

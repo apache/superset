@@ -37,7 +37,6 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/components/Input';
-import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
@@ -405,16 +404,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             order: index,
           }))}
         {...operatorSelectProps}
-        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
           labelText={labelText}
           options={suggestions}
           {...comparatorSelectProps}
-          sortComparator={propertyComparator(
-            typeof suggestions[0] === 'number' ? 'value' : 'label',
-          )}
         />
       ) : (
         <StyledInput

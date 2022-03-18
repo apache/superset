@@ -406,6 +406,7 @@ export const hydrateDashboard =
           maxUndoHistoryExceeded: false,
           lastModifiedTime: dashboardData.changed_on,
           isRefreshing: false,
+          isFiltersRefreshing: false,
           activeTabs: dashboardState?.activeTabs || [],
           filterboxMigrationState,
         },
