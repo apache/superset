@@ -64,6 +64,7 @@ type PickedSelectProps = Pick<
   | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
+  | 'tokenSeparators'
   | 'value'
 >;
 
@@ -310,6 +311,7 @@ const Select = (
     placeholder = t('Select ...'),
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
+    tokenSeparators,
     value,
     ...props
   }: SelectProps,
@@ -706,7 +708,7 @@ const Select = (
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={TOKEN_SEPARATORS}
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={

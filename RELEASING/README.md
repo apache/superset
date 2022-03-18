@@ -287,6 +287,8 @@ cd ~/src/superset/
 git branch
 # Create the release tag
 git tag -f ${SUPERSET_VERSION}
+# push the tag to the remote
+git push upstream ${SUPERSET_VERSION}
 ```
 
 ### Update CHANGELOG and UPDATING on superset

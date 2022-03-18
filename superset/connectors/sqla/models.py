@@ -78,6 +78,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
+    validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
@@ -888,11 +889,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             tp = self.get_template_processor()
             expression = tp.process_template(cast(str, metric["sqlExpression"]))
+            validate_adhoc_subquery(expression)
             try:
                 expression = sanitize_clause(expression)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -917,6 +918,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if template_processor and expression:
             expression = template_processor.process_template(expression)
         if expression:
+            validate_adhoc_subquery(expression)
             try:
                 expression = sanitize_clause(expression)
             except QueryClauseValidationException as ex:
@@ -1179,6 +1181,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     elif selected in columns_by_name:
                         outer = columns_by_name[selected].get_sqla_col()
                     else:
+                        validate_adhoc_subquery(selected)
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
@@ -1191,6 +1194,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
+                validate_adhoc_subquery(selected)
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
                     if selected in columns_by_name
@@ -1402,6 +1406,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
+                validate_adhoc_subquery(str(col.expression))
                 col = literal_column(col.name)
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
