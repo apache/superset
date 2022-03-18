@@ -448,6 +448,7 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     default: DEFAULT_NUMBER_FORMAT,
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+    tokenSeparators: ['\n', '\t', ';'],
     filterOption: ({ data: option }, search) =>
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {
