@@ -519,7 +519,7 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       {
-        Header: t('Viz type'),
+        Header: t('Chart type'),
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
