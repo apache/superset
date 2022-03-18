@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
@@ -182,7 +181,6 @@ const frontEndRoutes = routes
   );
 
 export function isFrontendRoute(path?: string) {
-  if (!isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) return false;
   if (path) {
     const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
     return !!frontEndRoutes[basePath];
