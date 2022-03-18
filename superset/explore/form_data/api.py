@@ -126,8 +126,6 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
-        except Exception as ex:
-            raise ex
 
     @expose("/form_data/<string:key>", methods=["PUT"])
     @protect()

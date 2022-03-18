@@ -15,10 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import math
 
 from flask import Flask
-from flask_babel import gettext as _
 from flask_caching import Cache
 
 logger = logging.getLogger(__name__)
@@ -43,7 +41,7 @@ class CacheManager:
         if required and cache_type in (None, "SupersetCache"):
             if cache_type is None:
                 logger.warning(
-                    "Falling back to built-in key-value cache for following "
+                    "Falling back to built-in key-value cache for the following "
                     "cache: `%s`. It is recommended to use `RedisCache`, "
                     "`MemcachedCache` or another dedicated caching backend for "
                     "production deployments",
