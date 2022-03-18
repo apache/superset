@@ -49,7 +49,10 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
-import { getFilterValue } from '../components/nativeFilters/FilterBar/keyValue';
+import {
+  getFilterValue,
+  getPermalinkValue,
+} from '../components/nativeFilters/FilterBar/keyValue';
 import { filterCardPopoverStyle } from '../styles';
 
 export const MigrationContext = React.createContext(
@@ -161,12 +164,17 @@ const DashboardPage: FC = () => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
+      const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       let dataMaskFromUrl = nativeFilterKeyValue || {};
 
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-      // check if key from key_value api and get datamask
-      if (nativeFilterKeyValue) {
+      if (permalinkKey) {
+        const permalinkValue = await getPermalinkValue(permalinkKey);
+        if (permalinkValue) {
+          dataMaskFromUrl = permalinkValue.state.filterState;
+        }
+      } else if (nativeFilterKeyValue) {
         dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {

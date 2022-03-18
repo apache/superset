@@ -17,14 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { render } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { shallow } from 'enzyme';
+import sinon from 'sinon';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import QueryAutoRefresh from 'src/SqlLab/components/QueryAutoRefresh';
 import { initialState, runningQuery } from 'src/SqlLab/fixtures';
-import fetchMock from 'fetch-mock';
-import * as actions from 'src/SqlLab/actions/sqlLab';
 
 describe('QueryAutoRefresh', () => {
   const middlewares = [thunk];
@@ -40,29 +38,31 @@ describe('QueryAutoRefresh', () => {
     sqlLab,
   };
   const store = mockStore(state);
-  const setup = (overrides = {}) => (
-    <ThemeProvider theme={supersetTheme}>
-      <QueryAutoRefresh store={store} {...overrides} />
-    </ThemeProvider>
-  );
-
-  const mockFetch = fetchMock.get('glob:*/superset/queries/*', {});
+  const getWrapper = () =>
+    shallow(<QueryAutoRefresh store={store} />)
+      .dive()
+      .dive();
+  let wrapper;
 
   it('shouldCheckForQueries', () => {
-    render(setup(), {
-      useRedux: true,
-    });
-
-    expect(mockFetch.called()).toBe(true);
+    wrapper = getWrapper();
+    expect(wrapper.instance().shouldCheckForQueries()).toBe(true);
   });
 
   it('setUserOffline', () => {
-    const spy = jest.spyOn(actions, 'setUserOffline');
+    wrapper = getWrapper();
+    const spy = sinon.spy(wrapper.instance().props.actions, 'setUserOffline');
 
-    render(setup(), {
-      useRedux: true,
+    // state not changed
+    wrapper.setState({
+      offline: false,
     });
+    expect(spy.called).toBe(false);
 
-    expect(spy).toHaveBeenCalled();
+    // state is changed
+    wrapper.setState({
+      offline: true,
+    });
+    expect(spy.callCount).toBe(1);
   });
 });

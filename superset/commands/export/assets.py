@@ -14,56 +14,51 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 
-from datetime import datetime
-from datetime import timezone
-from typing import Iterator, List, Tuple, Type
+from datetime import datetime, timezone
+from typing import Iterator, Tuple
 
 import yaml
-from flask_appbuilder import Model
 
+from superset.charts.commands.export import ExportChartsCommand
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import CommandException
-from superset.dao.base import BaseDAO
+from superset.dashboards.commands.export import ExportDashboardsCommand
+from superset.databases.commands.export import ExportDatabasesCommand
+from superset.datasets.commands.export import ExportDatasetsCommand
+from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
 
 
-class ExportModelsCommand(BaseCommand):
-
-    dao: Type[BaseDAO] = BaseDAO
-    not_found: Type[CommandException] = CommandException
-
-    def __init__(self, model_ids: List[int]):
-        self.model_ids = model_ids
-
-        # this will be set when calling validate()
-        self._models: List[Model] = []
-
-    @staticmethod
-    def _export(model: Model) -> Iterator[Tuple[str, str]]:
-        raise NotImplementedError("Subclasses MUST implement _export")
+class ExportAssetsCommand(BaseCommand):
+    """
+    Command that exports all databases, datasets, charts, dashboards and saved queries.
+    """
 
     def run(self) -> Iterator[Tuple[str, str]]:
-        self.validate()
 
         metadata = {
             "version": EXPORT_VERSION,
-            "type": self.dao.model_cls.__name__,  # type: ignore
+            "type": "assets",
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
         yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
-
         seen = {METADATA_FILE_NAME}
-        for model in self._models:
-            for file_name, file_content in self._export(model):
+
+        commands = [
+            ExportDatabasesCommand,
+            ExportDatasetsCommand,
+            ExportChartsCommand,
+            ExportDashboardsCommand,
+            ExportSavedQueriesCommand,
+        ]
+        for command in commands:
+            ids = [model.id for model in command.dao.find_all()]
+            for file_name, file_content in command(ids, export_related=False).run():
                 if file_name not in seen:
                     yield file_name, file_content
                     seen.add(file_name)
 
     def validate(self) -> None:
-        self._models = self.dao.find_by_ids(self.model_ids)
-        if len(self._models) != len(self.model_ids):
-            raise self.not_found()
+        pass

@@ -44,8 +44,9 @@ from werkzeug.local import LocalProxy
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.key_value.types import KeyType
 from superset.stats_logger import DummyStatsLogger
-from superset.typing import CacheConfig
+from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -390,7 +391,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": False,
+    "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
     # designs introduced in https://github.com/apache/superset/issues/8976
@@ -407,7 +408,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
-    "VERSIONED_EXPORT": False,
+    "VERSIONED_EXPORT": True,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
     # But, if users create a specific role with access to RowLevelSecurityFilter MVC
@@ -610,6 +611,8 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+PERMALINK_KEY_TYPE: KeyType = "uuid"
 
 # CORS Options
 ENABLE_CORS = False
@@ -1249,6 +1252,10 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
+# Optional prefix to be added to all static asset paths when rendering the UI.
+# This is useful for hosting assets in an external CDN, for example
+STATIC_ASSETS_PREFIX = ""
+
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
@@ -1335,10 +1342,6 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # Do not show user info or profile in the menu
 MENU_HIDE_USER_INFO = False
-
-# SQLalchemy link doc reference
-SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
-SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True
