@@ -40,7 +40,6 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing_extensions import Literal
-from werkzeug.local import LocalProxy
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
@@ -1048,14 +1047,14 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
+#    def SQL_QUERY_MUTATOR(sql, user_name=user_name, security_manager=security_manager, database=database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+# For backward compatibility, you can unpack any of the above arguments in your
+# function definition, but keep the **kwargs as the last argument to allow new args
+# to be added later without any errors.
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
-    sql: str,
-    user_name: Optional[str],
-    security_manager: LocalProxy,
-    database: "Database",
+    sql: str, **kwargs: Any
 ) -> str:
     return sql
 
