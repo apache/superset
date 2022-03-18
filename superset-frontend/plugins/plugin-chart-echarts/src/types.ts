@@ -38,10 +38,16 @@ export interface EchartsProps {
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
+  transition?: EchartTransition;
 }
 
 export interface EchartsHandler {
   getEchartInstance: () => ECharts | undefined;
+}
+
+export interface EchartTransition {
+  newEchartOptions: EChartsCoreOption,
+  timeout: number
 }
 
 export enum ForecastSeriesEnum {

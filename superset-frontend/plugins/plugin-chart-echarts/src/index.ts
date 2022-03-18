@@ -26,6 +26,7 @@ export { default as EchartsTimeseriesSmoothLineChartPlugin } from './Timeseries/
 export { default as EchartsTimeseriesStepChartPlugin } from './Timeseries/Step';
 export { default as EchartsMixedTimeseriesChartPlugin } from './MixedTimeseries';
 export { default as EchartsPieChartPlugin } from './Pie';
+export { default as EchartsBarChartPlugin } from './Bar';
 export { default as EchartsGraphChartPlugin } from './Graph';
 export { default as EchartsGaugeChartPlugin } from './Gauge';
 export { default as EchartsRadarChartPlugin } from './Radar';
@@ -40,6 +41,7 @@ export { default as GaugeTransformProps } from './Gauge/transformProps';
 export { default as GraphTransformProps } from './Graph/transformProps';
 export { default as MixedTimeseriesTransformProps } from './MixedTimeseries/transformProps';
 export { default as PieTransformProps } from './Pie/transformProps';
+export { default as BarTransformProps } from './Bar/transformProps';
 export { default as RadarTransformProps } from './Radar/transformProps';
 export { default as TimeseriesTransformProps } from './Timeseries/transformProps';
 export { default as TreeTransformProps } from './Tree/transformProps';

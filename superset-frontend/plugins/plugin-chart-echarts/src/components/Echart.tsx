@@ -32,6 +32,10 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+const OptionsJSON = styled.code`
+  white-space: pre-line;
+`;
+
 function Echart(
   {
     width,
@@ -40,6 +44,7 @@ function Echart(
     eventHandlers,
     zrEventHandlers,
     selectedValues = {},
+    transition,
   }: EchartsProps,
   ref: React.Ref<EchartsHandler>,
 ) {
@@ -93,12 +98,32 @@ function Echart(
   }, [currentSelection]);
 
   useEffect(() => {
+    if (transition) {
+      let currentOption = echartOptions;
+      setInterval(function () {
+        currentOption =
+          currentOption === echartOptions
+            ? transition.newEchartOptions
+            : echartOptions;
+        chartRef.current?.setOption(currentOption, true);
+      }, transition.timeout);
+    }
+  }, [echartOptions, transition]);
+
+  useEffect(() => {
     if (chartRef.current) {
       chartRef.current.resize({ width, height });
     }
   }, [width, height]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  return (
+    <div>
+      <Styles ref={divRef} height={height} width={width} />
+      {/* <OptionsJSON>
+        {JSON.stringify(echartOptions, null, 2)}
+      </OptionsJSON> */}
+    </div>
+  );
 }
 
 export default forwardRef(Echart);
