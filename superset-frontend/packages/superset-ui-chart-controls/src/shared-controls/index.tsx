@@ -43,6 +43,7 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  JsonArray,
 } from '@superset-ui/core';
 
 import {
@@ -346,7 +347,10 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   default: true,
   description: t('Whether to sort descending or ascending'),
   visibility: ({ controls }) =>
-    Boolean(controls?.timeseries_limit_metric.value),
+    Boolean(
+      controls?.timeseries_limit_metric.value &&
+        (controls?.timeseries_limit_metric.value as JsonArray).length,
+    ),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
