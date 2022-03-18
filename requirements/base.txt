@@ -33,7 +33,7 @@ brotli==1.0.9
     # via flask-compress
 cachelib==0.4.1
     # via apache-superset
-celery==5.2.3
+celery==5.2.2
     # via apache-superset
 cffi==1.14.6
     # via cryptography
