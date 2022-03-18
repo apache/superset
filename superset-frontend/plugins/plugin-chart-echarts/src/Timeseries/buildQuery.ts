@@ -88,9 +88,9 @@ export default function buildQuery(formData: QueryFormData) {
         */
         post_processing: [
           pivotOperatorInRuntime,
-          resampleOperator(formData, baseQueryObject),
           rollingWindowOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),
+          resampleOperator(formData, baseQueryObject),
           flatOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
           prophetOperator(formData, baseQueryObject),
