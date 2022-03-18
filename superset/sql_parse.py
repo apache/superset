@@ -32,6 +32,7 @@ from sqlparse.sql import (
     Where,
 )
 from sqlparse.tokens import (
+    Comment,
     CTE,
     DDL,
     DML,
@@ -441,24 +442,34 @@ class ParsedQuery:
         return str_res
 
 
-def validate_filter_clause(clause: str) -> None:
-    if sqlparse.format(clause, strip_comments=True) != sqlparse.format(clause):
-        raise QueryClauseValidationException("Filter clause contains comment")
-
+def sanitize_clause(clause: str) -> str:
+    # clause = sqlparse.format(clause, strip_comments=True)
     statements = sqlparse.parse(clause)
     if len(statements) != 1:
-        raise QueryClauseValidationException("Filter clause contains multiple queries")
+        raise QueryClauseValidationException("Clause contains multiple statements")
     open_parens = 0
 
+    previous_token = None
     for token in statements[0]:
+        if token.value == "/" and previous_token and previous_token.value == "*":
+            raise QueryClauseValidationException("Closing unopened multiline comment")
+        if token.value == "*" and previous_token and previous_token.value == "/":
+            raise QueryClauseValidationException("Unclosed multiline comment")
         if token.value in (")", "("):
             open_parens += 1 if token.value == "(" else -1
             if open_parens < 0:
                 raise QueryClauseValidationException(
                     "Closing unclosed parenthesis in filter clause"
                 )
+        previous_token = token
     if open_parens > 0:
         raise QueryClauseValidationException("Unclosed parenthesis in filter clause")
+
+    if previous_token and previous_token.ttype in Comment:
+        if previous_token.value[-1] != "\n":
+            clause = f"{clause}\n"
+
+    return clause
 
 
 class InsertRLSState(str, Enum):

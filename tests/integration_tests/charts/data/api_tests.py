@@ -466,6 +466,28 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_where_parameter_including_comment___200(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"]["where"] = "1 = 1 -- abc"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_orderby_parameter_with_second_query__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["orderby"] = [
+            [
+                {"expressionType": "SQL", "sqlExpression": "sum__num; select 1, 1",},
+                True,
+            ],
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_having_parameter_closing_and_comment__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
         self.query_context_payload["queries"][0]["extras"][

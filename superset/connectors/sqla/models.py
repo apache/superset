@@ -82,7 +82,10 @@ from superset.connectors.sqla.utils import (
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import (
+    QueryClauseValidationException,
+    QueryObjectValidationError,
+)
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -96,7 +99,7 @@ from superset.models.helpers import (
     clone_model,
     QueryResult,
 )
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -918,6 +921,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             tp = self.get_template_processor()
             expression = tp.process_template(cast(str, metric["sqlExpression"]))
             validate_adhoc_subquery(expression)
+            try:
+                expression = sanitize_clause(expression)
+            except QueryClauseValidationException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
@@ -943,6 +950,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             expression = template_processor.process_template(expression)
         if expression:
             validate_adhoc_subquery(expression)
+            try:
+                expression = sanitize_clause(expression)
+            except QueryClauseValidationException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
         sqla_metric = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_metric, label)
 
@@ -1388,7 +1399,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             where = extras.get("where")
             if where:
                 try:
-                    where = template_processor.process_template(where)
+                    where = template_processor.process_template(f"({where})")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1396,11 +1407,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                where_clause_and += [self.text(f"({where})")]
+                where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
                 try:
-                    having = template_processor.process_template(having)
+                    having = template_processor.process_template(f"({having})")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1408,7 +1419,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
-                having_clause_and += [self.text(f"({having})")]
+                having_clause_and += [self.text(having)]
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:

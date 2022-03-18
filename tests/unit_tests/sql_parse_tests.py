@@ -30,9 +30,9 @@ from superset.sql_parse import (
     insert_rls,
     matches_table_name,
     ParsedQuery,
+    sanitize_clause,
     strip_comments_from_sql,
     Table,
-    validate_filter_clause,
 )
 
 
@@ -1142,52 +1142,46 @@ def test_strip_comments_from_sql() -> None:
     )
 
 
-def test_validate_filter_clause_valid():
+def test_sanitize_clause_valid():
     # regular clauses
-    assert validate_filter_clause("col = 1") is None
-    assert validate_filter_clause("1=\t\n1") is None
-    assert validate_filter_clause("(col = 1)") is None
-    assert validate_filter_clause("(col1 = 1) AND (col2 = 2)") is None
+    assert sanitize_clause("col = 1") == "col = 1"
+    assert sanitize_clause("1=\t\n1") == "1=\t\n1"
+    assert sanitize_clause("(col = 1)") == "(col = 1)"
+    assert sanitize_clause("(col1 = 1) AND (col2 = 2)") == "(col1 = 1) AND (col2 = 2)"
+    assert sanitize_clause("col = 'abc' -- comment") == "col = 'abc' -- comment\n"
 
-    # Valid literal values that appear to be invalid
-    assert validate_filter_clause("col = 'col1 = 1) AND (col2 = 2'") is None
-    assert validate_filter_clause("col = 'select 1; select 2'") is None
-    assert validate_filter_clause("col = 'abc -- comment'") is None
+    # Valid literal values that at could be flagged as invalid by a naive query parser
+    assert (
+        sanitize_clause("col = 'col1 = 1) AND (col2 = 2'")
+        == "col = 'col1 = 1) AND (col2 = 2'"
+    )
+    assert sanitize_clause("col = 'select 1; select 2'") == "col = 'select 1; select 2'"
+    assert sanitize_clause("col = 'abc -- comment'") == "col = 'abc -- comment'"
 
 
-def test_validate_filter_clause_closing_unclosed():
+def test_sanitize_clause_closing_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("col1 = 1) AND (col2 = 2)")
+        sanitize_clause("col1 = 1) AND (col2 = 2)")
 
 
-def test_validate_filter_clause_unclosed():
+def test_sanitize_clause_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(col1 = 1) AND (col2 = 2")
+        sanitize_clause("(col1 = 1) AND (col2 = 2")
 
 
-def test_validate_filter_clause_closing_and_unclosed():
+def test_sanitize_clause_closing_and_unclosed():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("col1 = 1) AND (col2 = 2")
+        sanitize_clause("col1 = 1) AND (col2 = 2")
 
 
-def test_validate_filter_clause_closing_and_unclosed_nested():
+def test_sanitize_clause_closing_and_unclosed_nested():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(col1 = 1)) AND ((col2 = 2)")
+        sanitize_clause("(col1 = 1)) AND ((col2 = 2)")
 
 
-def test_validate_filter_clause_multiple():
+def test_sanitize_clause_multiple():
     with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("TRUE; SELECT 1")
-
-
-def test_validate_filter_clause_comment():
-    with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("1 = 1 -- comment")
-
-
-def test_validate_filter_clause_subquery_comment():
-    with pytest.raises(QueryClauseValidationException):
-        validate_filter_clause("(1 = 1 -- comment\n)")
+        sanitize_clause("TRUE; SELECT 1")
 
 
 def test_sqlparse_issue_652():
