@@ -165,6 +165,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
   const [currentTable, setCurrentTable] = useState<TableOption | undefined>();
   const [refresh, setRefresh] = useState(0);
+  /**
+   * When a table is selected in SQL Lab, the select should not retain
+   * the value, rather update other component.
+   * Setting it to `undefined` is not enough, because that changes
+   * the component to an uncontrolled mode an the value is still
+   * displayed.
+   * By using a key and updating it, this component can capture
+   * the selected value without the select retaining it.
+   */
+  const [currentTableKey, setCurrentTableKey] = useState(0);
   const [previousRefresh, setPreviousRefresh] = useState(0);
   const [loadingTables, setLoadingTables] = useState(false);
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
@@ -235,7 +245,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }
 
   const internalTableChange = (table?: TableOption) => {
-    setCurrentTable(table);
+    if (sqlLabMode) {
+      setCurrentTableKey(key => key + 1);
+    } else {
+      setCurrentTable(table);
+    }
+
     if (onTableChange && currentSchema) {
       onTableChange(table?.value, currentSchema);
     }
@@ -297,6 +312,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const select = (
       <Select
+        key={currentTableKey}
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
         filterOption={handleFilterOption}

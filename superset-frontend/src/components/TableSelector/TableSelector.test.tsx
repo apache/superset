@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -58,6 +58,11 @@ const getTableMockFunction = async () =>
       ],
     },
   } as any);
+
+const getSelectItemContainer = (select: HTMLElement) =>
+  select.parentElement?.parentElement?.getElementsByClassName(
+    'ant-select-selection-item',
+  );
 
 test('renders with default props', async () => {
   SupersetClientGet.mockImplementation(getTableMockFunction);
@@ -147,4 +152,77 @@ test('table options are notified after schema selection', async () => {
       { label: 'table_b', value: 'table_b' },
     ]);
   });
+});
+
+test('table select retain value if not in SQL Lab mode', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+
+  const callback = jest.fn();
+  const props = createProps({
+    onTableChange: callback,
+    sqlLabMode: false,
+  });
+
+  render(<TableSelector {...props} />, { useRedux: true });
+
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type table name',
+  });
+
+  expect(screen.queryByText('table_a')).not.toBeInTheDocument();
+  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
+
+  userEvent.click(tableSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
+
+  act(() => {
+    userEvent.click(screen.getAllByText('table_a')[1]);
+  });
+
+  expect(callback).toHaveBeenCalled();
+
+  const selectedValueContainer = getSelectItemContainer(tableSelect);
+
+  expect(selectedValueContainer).toHaveLength(1);
+  expect(
+    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
+      'table_a',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('table select does not retain value in SQL Lab mode', async () => {
+  SupersetClientGet.mockImplementation(getTableMockFunction);
+  document.body.innerHTML = '';
+
+  const callback = jest.fn();
+  const props = createProps({
+    onTableChange: callback,
+    sqlLabMode: true,
+  });
+
+  render(<TableSelector {...props} />, { useRedux: true });
+
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type table name',
+  });
+
+  expect(screen.queryByText('table_a')).not.toBeInTheDocument();
+  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
+
+  userEvent.click(tableSelect);
+
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
+
+  act(() => {
+    userEvent.click(screen.getAllByText('table_a')[1]);
+  });
+
+  expect(callback).toHaveBeenCalled();
+  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 });
