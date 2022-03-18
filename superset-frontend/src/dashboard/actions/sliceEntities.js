@@ -39,35 +39,14 @@ export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
-const FETCH_SLICES_PAGE_SIZE = 200;
-export function fetchAllSlices(userId, excludeFilterBox = false) {
-  return (dispatch, getState) => {
-    const { sliceEntities } = getState();
-    if (sliceEntities.lastUpdated === 0) {
-      dispatch(fetchAllSlicesStarted());
-      return fetchSlices(userId, excludeFilterBox, dispatch, undefined);
-    }
-
-    return dispatch(setAllSlices(sliceEntities.slices));
-  };
-}
-
-export function fetchSortedSlices(userId, excludeFilterBox = false, order_column) {
-  return (dispatch) => {
-    dispatch(fetchAllSlicesStarted());
-    return fetchSlices(userId, excludeFilterBox, dispatch, undefined, order_column);
-  }
-}
-
-export function fetchFilteredSlices(userId, excludeFilterBox = false, filter_value) {
-  return (dispatch, getState) => {
-    dispatch(fetchAllSlicesStarted());
-    const { sliceEntities } = getState();
-    return fetchSlices(userId, excludeFilterBox, dispatch, filter_value, undefined, sliceEntities.slices);
-  }  
-}
-
-function fetchSlices(userId, excludeFilterBox, dispatch, filter_value, sortColumn = 'changed_on_delta_humanized', slices = {}) {
+function fetchSlices(
+  userId,
+  excludeFilterBox,
+  dispatch,
+  filter_value,
+  sortColumn = 'changed_on_delta_humanized',
+  slices = {}
+) {
   const additional_filters = filter_value ? [
     { col: 'slice_name', opr: 'sw', value: filter_value },
     { col: 'viz_type', opr: 'sw', value: filter_value },
@@ -153,4 +132,61 @@ function fetchSlices(userId, excludeFilterBox, dispatch, filter_value, sortColum
           );
         }),
     );
+}
+
+const FETCH_SLICES_PAGE_SIZE = 200;
+export function fetchAllSlices(
+  userId,
+  excludeFilterBox = false
+) {
+  return (dispatch, getState) => {
+    const { sliceEntities } = getState();
+    if (sliceEntities.lastUpdated === 0) {
+      dispatch(fetchAllSlicesStarted());
+      return fetchSlices(
+        userId,
+        excludeFilterBox,
+        dispatch,
+        undefined
+      );
+    }
+
+    return dispatch(setAllSlices(sliceEntities.slices));
+  };
+}
+
+export function fetchSortedSlices(
+  userId,
+  excludeFilterBox = false,
+  order_column
+) {
+  return dispatch => {
+    dispatch(fetchAllSlicesStarted());
+    return fetchSlices(
+      userId,
+      excludeFilterBox,
+      dispatch,
+      undefined,
+      order_column
+    );
+  }
+}
+
+export function fetchFilteredSlices(
+  userId,
+  excludeFilterBox = false,
+  filter_value
+) {
+  return (dispatch, getState) => {
+    dispatch(fetchAllSlicesStarted());
+    const { sliceEntities } = getState();
+    return fetchSlices(
+      userId,
+      excludeFilterBox,
+      dispatch,
+      filter_value,
+      undefined,
+      sliceEntities.slices
+    );
+  }  
 }
