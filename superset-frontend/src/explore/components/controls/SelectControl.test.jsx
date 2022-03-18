@@ -78,6 +78,14 @@ describe('SelectControl', () => {
       expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(false);
     });
 
+    it('renders with tokenSeparators', () => {
+      wrapper.setProps({ tokenSeparators: ['\n', '\t', ';'] });
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(SelectComponent).prop('tokenSeparators')).toEqual(
+        expect.arrayContaining([expect.any(String)]),
+      );
+    });
+
     describe('empty placeholder', () => {
       describe('withMulti', () => {
         it('does not show a placeholder if there are no choices', () => {

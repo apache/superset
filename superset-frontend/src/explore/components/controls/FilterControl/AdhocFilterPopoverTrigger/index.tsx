@@ -17,12 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import Popover from 'src/components/Popover';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { Operators } from 'src/explore/constants';
+import ControlPopover from '../../ControlPopover/ControlPopover';
 
 interface AdhocFilterPopoverTriggerProps {
   sections?: string[];
@@ -101,8 +101,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
     );
 
     return (
-      <Popover
-        placement="right"
+      <ControlPopover
         trigger="click"
         content={overlayContent}
         defaultVisible={visible}
@@ -111,7 +110,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
         destroyTooltipOnHide
       >
         {this.props.children}
-      </Popover>
+      </ControlPopover>
     );
   }
 }

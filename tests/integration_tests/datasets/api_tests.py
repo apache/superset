@@ -1456,11 +1456,6 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 200
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_dataset_bundle(self):
         """
@@ -1483,11 +1478,6 @@ class TestDatasetApi(SupersetTestCase):
         buf = BytesIO(rv.data)
         assert is_zipfile(buf)
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     def test_export_dataset_bundle_not_found(self):
         """
         Dataset API: Test export dataset not found
@@ -1500,11 +1490,6 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 404
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     @pytest.mark.usefixtures("create_datasets")
     def test_export_dataset_bundle_gamma(self):
         """
