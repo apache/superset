@@ -122,11 +122,10 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     return cols
 
 
-def validate_adhoc_subquery(raw_sql: str) -> bool:
+def validate_adhoc_subquery(raw_sql: str) -> None:
     """
-    check adhoc SQL contains sub-queries or nested sub-queries with table
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table
     :param raw_sql: adhoc sql expression
-    :return True if sql contains no sub-queries or nested sub-queries with table
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
@@ -134,7 +133,7 @@ def validate_adhoc_subquery(raw_sql: str) -> bool:
     from superset import is_feature_enabled
 
     if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-        return True
+        return
 
     for statement in sqlparse.parse(raw_sql):
         if has_table_query(statement):
@@ -145,4 +144,4 @@ def validate_adhoc_subquery(raw_sql: str) -> bool:
                     level=ErrorLevel.ERROR,
                 )
             )
-    return True
+    return
