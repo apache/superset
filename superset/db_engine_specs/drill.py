@@ -90,4 +90,4 @@ class DrillEngineSpec(BaseEngineSpec):
             elif url.drivername in ["drill+sadrill", "drill+jdbc"]:
                 url.query["impersonation_target"] = username
             else:
-                logger.warn(f"impersonation is not supported for {url.drivername}.")
+                logger.warning("impersonation is not supported for %s", url.drivername)
