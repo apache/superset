@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [19046](https://github.com/apache/superset/pull/19046): Enables the drag and drop interface in Explore control panel by default. Flips `ENABLE_EXPLORE_DRAG_AND_DROP` and `ENABLE_DND_WITH_CLICK_UX` feature flags to `True`.
 - [18936](https://github.com/apache/superset/pull/18936): Removes legacy SIP-15 interm logic/flags—specifically the `SIP_15_ENABLED`, `SIP_15_GRACE_PERIOD_END`, `SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS`, and `SIP_15_TOAST_MESSAGE` flags. Time range endpoints are no longer configurable and strictly adhere to the `[start, end)` paradigm, i.e., inclusive of the start and exclusive of the end. Additionally this change removes the now obsolete `time_range_endpoints` from the form-data and resulting in the cache being busted.
 
 ### Breaking Changes
@@ -34,9 +35,10 @@ assists people when migrating to a new version.
 - [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
 - [15254](https://github.com/apache/superset/pull/15254): Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in the `config.py` file. These should now be defined as a top-level config, with the feature flag dictionary being reserved for boolean only values.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
-- [18970](https://github.com/apache/superset/pull/18970): Changes feature
-flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [18970](https://github.com/apache/superset/pull/18970): Changes feature flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
+- [19142](https://github.com/apache/superset/pull/19142): Changes feature flag for versioned export(VERSIONED_EXPORT) to be true.
+- [19107](https://github.com/apache/superset/pull/19107): Feature flag `SQLLAB_BACKEND_PERSISTENCE` is now on by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
 
 ### Potential Downtime
 

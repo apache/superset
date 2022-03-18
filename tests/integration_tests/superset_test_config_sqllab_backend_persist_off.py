@@ -14,23 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import app, talisman
-from superset.superset_typing import FlaskResponse
+# flake8: noqa
+# type: ignore
+import os
+from copy import copy
 
+from .superset_test_config import *
 
-@talisman(force_https=False)
-@app.route("/ping")
-def ping() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/healthcheck")
-def healthcheck() -> FlaskResponse:
-    return "OK"
-
-
-@talisman(force_https=False)
-@app.route("/health")
-def health() -> FlaskResponse:
-    return "OK"
+FEATURE_FLAGS = {"SQLLAB_BACKEND_PERSISTENCE": False}
