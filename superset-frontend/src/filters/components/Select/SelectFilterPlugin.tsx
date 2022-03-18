@@ -209,7 +209,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
-      const values = ensureIsArray(value);
+      const values = value === null ? [null] : ensureIsArray(value);
+
       if (values.length === 0) {
         updateDataMask(null);
       } else {

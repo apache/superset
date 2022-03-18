@@ -94,6 +94,11 @@ type Control = {
   default?: unknown;
 };
 
+type SelectDefaultOption = {
+  label: string;
+  value: string;
+};
+
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
   label: t('Group by'),
@@ -430,29 +435,36 @@ const size: SharedControlConfig<'MetricsControl'> = {
   default: null,
 };
 
-const y_axis_format: SharedControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  freeForm: true,
-  label: t('Y Axis Format'),
-  renderTrigger: true,
-  default: DEFAULT_NUMBER_FORMAT,
-  choices: D3_FORMAT_OPTIONS,
-  description: D3_FORMAT_DOCS,
-  mapStateToProps: state => {
-    const showWarning = state.controls?.comparison_type?.value === 'percentage';
-    return {
-      warning: showWarning
-        ? t(
-            'When `Calculation type` is set to "Percentage change", the Y ' +
-              'Axis Format is forced to `.1%`',
-          )
-        : null,
-      disabled: showWarning,
-    };
-  },
-};
+const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
+  {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Y Axis Format'),
+    renderTrigger: true,
+    default: DEFAULT_NUMBER_FORMAT,
+    choices: D3_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+    filterOption: ({ data: option }, search) =>
+      option.label.includes(search) || option.value.includes(search),
+    mapStateToProps: state => {
+      const showWarning =
+        state.controls?.comparison_type?.value === 'percentage';
+      return {
+        warning: showWarning
+          ? t(
+              'When `Calculation type` is set to "Percentage change", the Y ' +
+                'Axis Format is forced to `.1%`',
+            )
+          : null,
+        disabled: showWarning,
+      };
+    },
+  };
 
-const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
+const x_axis_time_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Time format'),
@@ -460,6 +472,8 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
 };
 
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {

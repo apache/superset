@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import textwrap
 import unittest
 from unittest import mock
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -577,6 +579,38 @@ class TestSqlaTableModel(SupersetTestCase):
             "name",
             "state",
         }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_adhoc_column(self):
+        # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
+        # column and legacy chart
+        tbl = self.get_table(name="birth_names")
+        dashboard = self.get_dash_by_slug("births")
+        slc = Slice(
+            slice_name="slice with adhoc column",
+            datasource_type="table",
+            viz_type="table",
+            params=json.dumps(
+                {
+                    "adhoc_filters": [],
+                    "granularity_sqla": "ds",
+                    "groupby": [
+                        "name",
+                        {"label": "adhoc_column", "sqlExpression": "name"},
+                    ],
+                    "metrics": ["sum__num"],
+                    "time_range": "No filter",
+                    "viz_type": "table",
+                }
+            ),
+            datasource_id=tbl.id,
+        )
+        dashboard.slices.append(slc)
+        datasource_info = slc.datasource.data_for_slices([slc])
+        assert "database" in datasource_info
+
+        # clean up and auto commit
+        metadata_db.session.delete(slc)
 
 
 def test_literal_dttm_type_factory():
