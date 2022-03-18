@@ -47,7 +47,7 @@ from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
-from superset.typing import AdhocColumn
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
     get_example_default_schema,
@@ -461,6 +461,28 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             "where"
         ] = "state = 'CA') OR (state = 'NY'"
 
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_where_parameter_including_comment___200(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"]["where"] = "1 = 1 -- abc"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_orderby_parameter_with_second_query__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["orderby"] = [
+            [
+                {"expressionType": "SQL", "sqlExpression": "sum__num; select 1, 1",},
+                True,
+            ],
+        ]
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
         assert rv.status_code == 400
