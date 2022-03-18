@@ -391,7 +391,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": False,
+    "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
     # designs introduced in https://github.com/apache/superset/issues/8976
