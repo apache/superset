@@ -14,11 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# flake8: noqa
-# type: ignore
-import os
-from copy import copy
-
-from .superset_test_config import *
-
-FEATURE_FLAGS = {"SQLLAB_BACKEND_PERSISTENCE": True}
