@@ -184,10 +184,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.schedules import (
-            DashboardEmailScheduleView,
-            SliceEmailScheduleView,
-        )
         from superset.views.sql_lab import (
             SavedQueryView,
             SavedQueryViewApi,
@@ -400,24 +396,24 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_separator(
             "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
         )
-        appbuilder.add_view(
-            DashboardEmailScheduleView,
-            "Dashboard Email Schedules",
-            label=__("Dashboard Emails"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-        appbuilder.add_view(
-            SliceEmailScheduleView,
-            "Chart Emails",
-            label=__("Chart Email Schedules"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
+        #appbuilder.add_view(
+        #    DashboardEmailScheduleView,
+        #    "Dashboard Email Schedules",
+        #    label=__("Dashboard Emails"),
+        #    category="Manage",
+        #    category_label=__("Manage"),
+        #    icon="fa-search",
+        #    menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        #)
+        #appbuilder.add_view(
+        #    SliceEmailScheduleView,
+        #    "Chart Emails",
+        #    label=__("Chart Email Schedules"),
+        #    category="Manage",
+        #    category_label=__("Manage"),
+        #    icon="fa-search",
+        #    menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        #)
 
         if self.config["ENABLE_ALERTS"]:
             logging.warning(
