@@ -776,7 +776,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             username = utils.get_username()
-            sql = sql_query_mutator(sql, username, security_manager, self.database)
+            sql = sql_query_mutator(
+                sql,
+                user_name=username,
+                security_manager=security_manager,
+                database=self.database,
+            )
         return sql
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:

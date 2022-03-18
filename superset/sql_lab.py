@@ -225,7 +225,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+    sql = SQL_QUERY_MUTATOR(
+        sql, user_name=user_name, security_manager=security_manager, database=database
+    )
     try:
         query.executed_sql = sql
         if log_query:
