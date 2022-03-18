@@ -911,8 +911,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sqla_metric = None
         if template_processor and expression:
             expression = template_processor.process_template(expression)
-        if expression and validate_adhoc_subquery(expression):
-            sqla_metric = literal_column(expression)
+        validate_adhoc_subquery(expression)
+        sqla_metric = literal_column(expression)
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     def make_sqla_column_compatible(
@@ -1169,7 +1169,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
                         outer = columns_by_name[selected].get_sqla_col()
-                    elif validate_adhoc_subquery(selected):
+                    else:
+                        validate_adhoc_subquery(selected)
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
