@@ -48,7 +48,10 @@ export const COMMON_RANGE_VALUES_SET = new Set(
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
-  { value: PreviousCalendarMonth, label: t('previous calendar month') },
+  {
+    value: PreviousCalendarMonth,
+    label: t('previous calendar month'),
+  },
   { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
@@ -56,14 +59,14 @@ export const CALENDAR_RANGE_VALUES_SET = new Set(
 );
 
 const GRAIN_OPTIONS = [
-  { value: 'second', label: (rel: string) => `${t('Seconds')} ${rel}` },
-  { value: 'minute', label: (rel: string) => `${t('Minutes')} ${rel}` },
-  { value: 'hour', label: (rel: string) => `${t('Hours')} ${rel}` },
-  { value: 'day', label: (rel: string) => `${t('Days')} ${rel}` },
-  { value: 'week', label: (rel: string) => `${t('Weeks')} ${rel}` },
-  { value: 'month', label: (rel: string) => `${t('Months')} ${rel}` },
-  { value: 'quarter', label: (rel: string) => `${t('Quarters')} ${rel}` },
-  { value: 'year', label: (rel: string) => `${t('Years')} ${rel}` },
+  { value: 'second', label: (rel: string) => t('Seconds %s', rel) },
+  { value: 'minute', label: (rel: string) => t('Minutes %s', rel) },
+  { value: 'hour', label: (rel: string) => t('Hours %s', rel) },
+  { value: 'day', label: (rel: string) => t('Days %s', rel) },
+  { value: 'week', label: (rel: string) => t('Weeks %s', rel) },
+  { value: 'month', label: (rel: string) => t('Months %s', rel) },
+  { value: 'quarter', label: (rel: string) => t('Quarters %s', rel) },
+  { value: 'year', label: (rel: string) => t('Years %s', rel) },
 ];
 
 export const SINCE_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
@@ -87,7 +90,8 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'today', label: t('Midnight') },
 ];
 
-export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
+export const UNTIL_MODE_OPTIONS: SelectOptionType[] =
+  SINCE_MODE_OPTIONS.slice();
 
 export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
   'Last day',

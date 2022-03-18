@@ -25,7 +25,7 @@ import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
   ListViewProps,
@@ -73,19 +73,13 @@ function AnnotationLayersList({
     addDangerToast,
   );
 
-  const [
-    annotationLayerModalOpen,
-    setAnnotationLayerModalOpen,
-  ] = useState<boolean>(false);
-  const [
-    currentAnnotationLayer,
-    setCurrentAnnotationLayer,
-  ] = useState<AnnotationLayerObject | null>(null);
+  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] =
+    useState<boolean>(false);
+  const [currentAnnotationLayer, setCurrentAnnotationLayer] =
+    useState<AnnotationLayerObject | null>(null);
 
-  const [
-    layerCurrentlyDeleting,
-    setLayerCurrentlyDeleting,
-  ] = useState<AnnotationLayerObject | null>(null);
+  const [layerCurrentlyDeleting, setLayerCurrentlyDeleting] =
+    useState<AnnotationLayerObject | null>(null);
 
   const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
     SupersetClient.delete({

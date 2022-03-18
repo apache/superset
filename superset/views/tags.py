@@ -33,7 +33,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 
 from .base import BaseSupersetView, json_success
 

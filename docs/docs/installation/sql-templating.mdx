@@ -1,0 +1,273 @@
+---
+title: SQL Templating
+hide_title: true
+sidebar_position: 10
+version: 1
+---
+
+## SQL Templating
+
+### Jinja Templates
+
+SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` feature flag needs to be enabled in
+`superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
+in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
+made available in the Jinja context:
+
+- `columns`: columns which to group by in the query
+- `filter`: filters applied in the query
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined)
+- `groupby`: columns which to group by in the query (deprecated)
+- `metrics`: aggregate expressions in the query
+- `row_limit`: row limit of the query
+- `row_offset`: row offset of the query
+- `table_columns`: columns available in the dataset
+- `time_column`: temporal column of the query (`None` if undefined)
+- `time_grain`: selected time grain (`None` if undefined)
+
+For example, to add a time range to a virtual dataset, you can write the following:
+
+```sql
+SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+```
+
+To add custom functionality to the Jinja context, you need to to to overload the default Jinja
+context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
+(`superset_config.py`). Objects referenced in this dictionary are made available for users to use
+where the Jinja context is made available.
+
+```python
+JINJA_CONTEXT_ADDONS = {
+    'my_crazy_macro': lambda x: x*2,
+}
+```
+
+Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
+the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
+overwrite the default Jinja template processors of the specified database engine. The example below
+configures a custom presto template processor which implements its own logic of processing macro
+template with regex parsing. It uses the `$` style macro instead of `{{ }}` style in Jinja
+templating.
+
+By configuring it with `CUSTOM_TEMPLATE_PROCESSORS`, a SQL template on a presto database is
+processed by the custom one rather than the default one.
+
+```python
+def DATE(
+    ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
+) -> str:
+    """Current day as a string."""
+    day_offset, hour_offset = int(day_offset), int(hour_offset)
+    offset_day = (ts + timedelta(days=day_offset, hours=hour_offset)).date()
+    return str(offset_day)
+
+class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
+    """A custom presto template processor."""
+
+    engine = "presto"
+
+    def process_template(self, sql: str, **kwargs) -> str:
+        """Processes a sql template with $ style macro using regex."""
+        # Add custom macros functions.
+        macros = {
+            "DATE": partial(DATE, datetime.utcnow())
+        }  # type: Dict[str, Any]
+        # Update with macros defined in context and kwargs.
+        macros.update(self.context)
+        macros.update(kwargs)
+
+        def replacer(match):
+            """Expand $ style macros with corresponding function calls."""
+            macro_name, args_str = match.groups()
+            args = [a.strip() for a in args_str.split(",")]
+            if args == [""]:
+                args = []
+            f = macros[macro_name[1:]]
+            return f(*args)
+
+        macro_names = ["$" + name for name in macros.keys()]
+        pattern = r"(%s)\s*\(([^()]*)\)" % "|".join(map(re.escape, macro_names))
+        return re.sub(pattern, replacer, sql)
+
+CUSTOM_TEMPLATE_PROCESSORS = {
+    CustomPrestoTemplateProcessor.engine: CustomPrestoTemplateProcessor
+}
+```
+
+SQL Lab also includes a live query validation feature with pluggable backends. You can configure
+which validation implementation is used with which database engine by adding a block like the
+following to your configuration file:
+
+```python
+FEATURE_FLAGS = {
+    'SQL_VALIDATORS_BY_ENGINE': {
+        'presto': 'PrestoDBSQLValidator',
+    }
+}
+```
+
+The available validators and names can be found in
+[sql_validators](https://github.com/apache/superset/tree/master/superset/sql_validators).
+
+### Available Macros
+
+In this section, we'll walkthrough the pre-defined Jinja macros in Superset.
+
+**Current Username**
+
+The `{{ current_username() }}` macro returns the username of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by default the the `username` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `username` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_username(add_to_cache_keys=False) }}
+```
+
+**Current User ID**
+
+The `{{ current_user_id() }}` macro returns the user_id of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by defaul the the `user_id` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `user_id` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_user_id(add_to_cache_keys=False) }}
+```
+
+**Custom URL Parameters**
+
+The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
+parameters and reference them in your SQL code.
+
+Here's a concrete example:
+
+- You write the following query in SQL Lab:
+
+  ```
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = '{{ url_param('countrycode') }}'
+  ```
+
+- You're hosting Superset at the domain www.example.com and you send your
+  coworker in Spain the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=ES`
+  and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
+- For your coworker in Spain, the SQL Lab query will be rendered as:
+
+  ```
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = 'ES'
+  ```
+
+- For your coworker in the USA, the SQL Lab query will be rendered as:
+
+  ```
+  SELECT count(*)
+  FROM ORDERS
+  WHERE country_code = 'US'
+  ```
+
+**Explicitly Including Values in Cache Key**
+
+The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
+accumulated list of values used in the the calculation of the cache key.
+
+This function is only needed when you want to wrap your own custom function return values
+in the cache key. You can gain more context
+[here](https://github.com/apache/superset/blob/efd70077014cbed62e493372d33a2af5237eaadf/superset/jinja_context.py#L133-L148).
+
+Note that this function powers the caching of the `user_id` and `username` values
+in the `current_user_id()` and `current_username()` function calls (if you have caching enabled).
+
+**Filter Values**
+
+You can retrieve the value for a specific filter as a list using `{{ filter_values() }}`.
+
+This is useful if:
+
+- You want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
+- You want to have the ability for filter inside the main query for performance purposes
+
+Here's a concrete example:
+
+```
+SELECT action, count(*) as times
+FROM logs
+WHERE
+    action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+GROUP BY action
+```
+
+**Filters for a Specific Column**
+
+The `{{ get_filters() }}` macro returns the filters applied to a given column. In addition to
+returning the values (similar to how `filter_values()` does), the `get_filters()` macro
+returns the operator specified in the Explore UI.
+
+This is useful if:
+
+- You want to handle more than the IN operator in your SQL clause
+- You want to handle generating custom SQL conditions for a filter
+- You want to have the ability to filter inside the main query for speed purposes
+
+Here's a concrete example:
+
+```
+ WITH RECURSIVE
+    superiors(employee_id, manager_id, full_name, level, lineage) AS (
+    SELECT
+        employee_id,
+        manager_id,
+        full_name,
+    1 as level,
+    employee_id as lineage
+    FROM
+        employees
+    WHERE
+    1=1
+
+    {# Render a blank line #}
+    {%- for filter in get_filters('full_name', remove_filter=True) -%}
+
+    {%- if filter.get('op') == 'IN' -%}
+        AND
+        full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+    {%- endif -%}
+
+    {%- if filter.get('op') == 'LIKE' -%}
+        AND
+        full_name LIKE {{ "'" + filter.get('val') + "'" }}
+    {%- endif -%}
+
+    {%- endfor -%}
+    UNION ALL
+        SELECT
+            e.employee_id,
+            e.manager_id,
+            e.full_name,
+    s.level + 1 as level,
+    s.lineage
+        FROM
+            employees e,
+        superiors s
+        WHERE s.manager_id = e.employee_id
+    )
+
+    SELECT
+    employee_id, manager_id, full_name, level, lineage
+    FROM
+    superiors
+    order by lineage, level
+```

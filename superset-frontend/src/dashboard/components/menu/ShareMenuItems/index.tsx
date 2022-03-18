@@ -17,51 +17,77 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t } from '@superset-ui/core';
-import { Menu } from 'src/common/components';
+import { t, logging, QueryFormData } from '@superset-ui/core';
+import { Menu } from 'src/components/Menu';
+import {
+  getChartPermalink,
+  getDashboardPermalink,
+  getUrlParam,
+} from 'src/utils/urlUtils';
+import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
-  url: string;
+  url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
   emailSubject: string;
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
+  dashboardId?: string;
+  formData?: Pick<QueryFormData, 'slice_id' | 'datasource'>;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
   const {
-    url,
     copyMenuItemTitle,
     emailMenuItemTitle,
     emailSubject,
     emailBody,
     addDangerToast,
     addSuccessToast,
+    dashboardId,
+    formData,
     ...rest
   } = props;
 
-  const getShortUrl = useUrlShortener(url);
+  async function generateUrl() {
+    // chart
+    if (formData) {
+      // we need to remove reserved dashboard url params
+      return getChartPermalink(formData, RESERVED_DASHBOARD_URL_PARAMS);
+    }
+    // dashboard
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    let filterState = {};
+    if (nativeFiltersKey && dashboardId) {
+      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
+    }
+    return getDashboardPermalink(String(dashboardId), filterState);
+  }
 
   async function onCopyLink() {
     try {
-      const shortUrl = await getShortUrl();
-      await copyTextToClipboard(shortUrl);
+      const url = await generateUrl();
+      await copyTextToClipboard(url);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      addDangerToast(t('Sorry, your browser does not support copying.'));
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }
 
   async function onShareByEmail() {
     try {
-      const shortUrl = await getShortUrl();
-      const bodyWithLink = `${emailBody}${shortUrl}`;
-      window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
+      const encodedBody = encodeURIComponent(
+        `${emailBody}${await generateUrl()}`,
+      );
+      const encodedSubject = encodeURIComponent(emailSubject);
+      window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {
+      logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }

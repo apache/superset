@@ -66,7 +66,7 @@ beforeEach(() => {
           description_columns: {},
           ids: [1, 2],
           label_columns: {
-            allow_csv_upload: 'Allow Csv Upload',
+            allow_file_upload: 'Allow Csv Upload',
             allow_ctas: 'Allow Ctas',
             allow_cvas: 'Allow Cvas',
             allow_dml: 'Allow Dml',
@@ -76,6 +76,7 @@ beforeEach(() => {
             allows_cost_estimate: 'Allows Cost Estimate',
             allows_subquery: 'Allows Subquery',
             allows_virtual_table_explore: 'Allows Virtual Table Explore',
+            disable_data_preview: 'Disables SQL Lab Data Preview',
             backend: 'Backend',
             changed_on: 'Changed On',
             changed_on_delta_humanized: 'Changed On Delta Humanized',
@@ -88,7 +89,7 @@ beforeEach(() => {
             id: 'Id',
           },
           list_columns: [
-            'allow_csv_upload',
+            'allow_file_upload',
             'allow_ctas',
             'allow_cvas',
             'allow_dml',
@@ -97,6 +98,7 @@ beforeEach(() => {
             'allows_cost_estimate',
             'allows_subquery',
             'allows_virtual_table_explore',
+            'disable_data_preview',
             'backend',
             'changed_on',
             'changed_on_delta_humanized',
@@ -110,7 +112,7 @@ beforeEach(() => {
           ],
           list_title: 'List Database',
           order_columns: [
-            'allow_csv_upload',
+            'allow_file_upload',
             'allow_dml',
             'allow_run_async',
             'changed_on',
@@ -121,7 +123,7 @@ beforeEach(() => {
           ],
           result: [
             {
-              allow_csv_upload: false,
+              allow_file_upload: false,
               allow_ctas: false,
               allow_cvas: false,
               allow_dml: false,
@@ -130,6 +132,7 @@ beforeEach(() => {
               allows_cost_estimate: null,
               allows_subquery: true,
               allows_virtual_table_explore: true,
+              disable_data_preview: false,
               backend: 'postgresql',
               changed_on: '2021-03-09T19:02:07.141095',
               changed_on_delta_humanized: 'a day ago',
@@ -150,6 +153,7 @@ beforeEach(() => {
               allows_cost_estimate: null,
               allows_subquery: true,
               allows_virtual_table_explore: true,
+              disable_data_preview: false,
               backend: 'mysql',
               changed_on: '2021-03-09T19:02:07.141095',
               changed_on_delta_humanized: 'a day ago',
@@ -169,14 +173,14 @@ beforeEach(() => {
 
 test('Should render', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
 test('Refresh should work', async () => {
   const props = createProps();
 
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
 
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
@@ -211,7 +215,7 @@ test('Refresh should work', async () => {
 
 test('Should database select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -222,7 +226,7 @@ test('Should database select display options', async () => {
 
 test('Should schema select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
   });
@@ -238,7 +242,7 @@ test('Should schema select display options', async () => {
 
 test('Sends the correct db when changing the database', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
@@ -259,7 +263,7 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />);
+  render(<DatabaseSelector {...props} />, { useRedux: true });
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type schema name',
   });

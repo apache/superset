@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -36,7 +36,8 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
+import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -225,17 +226,19 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     isOperatorRelevant,
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
-  const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [suggestions, setSuggestions] = useState<
+    Record<'label' | 'value', any>[]
+  >([]);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
-  const [
-    loadingComparatorSuggestions,
-    setLoadingComparatorSuggestions,
-  ] = useState(false);
+  const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
+    useState(false);
 
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    onComparatorChange(event.target.value);
+    const { value } = event.target;
+    setComparator(value);
+    onComparatorChange(value);
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
@@ -345,7 +348,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         })
           .then(({ json }) => {
-            setSuggestions(json);
+            setSuggestions(
+              json.map((suggestion: null | number | boolean | string) => ({
+                value: suggestion,
+                label: optionLabel(suggestion),
+              })),
+            );
             setLoadingComparatorSuggestions(false);
           })
           .catch(() => {
@@ -364,7 +372,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   return (
     <>
       <Select
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
@@ -386,23 +394,21 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...subjectSelectProps}
       />
       <Select
-        css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevant(op, subject))
-          .map(option => ({
+          .map((option, index) => ({
             value: option,
             label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
             key: option,
+            order: index,
           }))}
         {...operatorSelectProps}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <SelectWithLabel
           labelText={labelText}
-          options={suggestions.map((suggestion: string) => ({
-            value: suggestion,
-            label: String(suggestion),
-          }))}
+          options={suggestions}
           {...comparatorSelectProps}
         />
       ) : (

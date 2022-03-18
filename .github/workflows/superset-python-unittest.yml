@@ -35,6 +35,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements/testing.txt'
 # TODO: separated requiermentes.txt file just for unit tests
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
@@ -43,12 +45,13 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
+            pip install wheel
             pip install -r requirements/testing.txt
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
         run: |
-          pytest ./tests/unit_tests --cache-clear
+          pytest --durations=0 ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { NativeFilterType, styled } from '@superset-ui/core';
 import React from 'react';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
@@ -25,12 +25,13 @@ interface Props {
   children: (filterId: string) => React.ReactNode;
   getFilterTitle: (filterId: string) => string;
   onChange: (activeKey: string) => void;
-  onEdit: (filterId: string, action: 'add' | 'remove') => void;
+  onAdd: (type: NativeFilterType) => void;
+  onRemove: (id: string) => void;
   onRearrange: (dragIndex: number, targetIndex: number) => void;
   erroredFilters: string[];
   restoreFilter: (id: string) => void;
   currentFilterId: string;
-  filterGroups: string[][];
+  filters: string[];
   removedFilters: Record<string, FilterRemoval>;
 }
 
@@ -49,37 +50,38 @@ const TitlesContainer = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
-const FiltureConfigurePane: React.FC<Props> = ({
+const FilterConfigurePane: React.FC<Props> = ({
   getFilterTitle,
   onChange,
-  onEdit,
+  onRemove,
   onRearrange,
   restoreFilter,
+  onAdd,
   erroredFilters,
   children,
   currentFilterId,
-  filterGroups,
+  filters,
   removedFilters,
 }) => {
-  const active = filterGroups.flat().filter(id => id === currentFilterId)[0];
+  const active = filters.filter(id => id === currentFilterId)[0];
   return (
     <Container>
       <TitlesContainer>
         <FilterTitlePane
           currentFilterId={currentFilterId}
-          filterGroups={filterGroups}
+          filters={filters}
           removedFilters={removedFilters}
           erroredFilters={erroredFilters}
           getFilterTitle={getFilterTitle}
           onChange={onChange}
-          onEdit={onEdit}
-          onRearrage={onRearrange}
-          onRemove={(id: string) => onEdit(id, 'remove')}
+          onAdd={(type: NativeFilterType) => onAdd(type)}
+          onRearrange={onRearrange}
+          onRemove={(id: string) => onRemove(id)}
           restoreFilter={restoreFilter}
         />
       </TitlesContainer>
       <ContentHolder>
-        {filterGroups.flat().map(id => (
+        {filters.map(id => (
           <div
             key={id}
             style={{
@@ -96,4 +98,4 @@ const FiltureConfigurePane: React.FC<Props> = ({
   );
 };
 
-export default FiltureConfigurePane;
+export default FilterConfigurePane;

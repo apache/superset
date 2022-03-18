@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
-  useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
+  useListViewResource,
 } from 'src/views/CRUD/hooks';
 import {
-  setInLocalStorage,
-  getFromLocalStorage,
+  getItem,
+  setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
@@ -34,15 +35,15 @@ import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
-import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
+import { WelcomeTable } from './types';
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -64,8 +65,11 @@ function ChartTable({
   examples,
 }: ChartTableProps) {
   const history = useHistory();
-  const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const initialFilter = filterStore || TableTabTypes.EXAMPLES;
+  const filterStore = getItem(
+    LocalStorageKeys.homepage_chart_filter,
+    TableTabTypes.EXAMPLES,
+  );
+  const initialFilter = filterStore;
 
   const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
@@ -161,7 +165,7 @@ function ChartTable({
       label: t('Favorite'),
       onClick: () => {
         setChartFilter(TableTabTypes.FAVORITE);
-        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.FAVORITE);
       },
     },
     {
@@ -169,7 +173,7 @@ function ChartTable({
       label: t('Mine'),
       onClick: () => {
         setChartFilter(TableTabTypes.MINE);
-        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.MINE);
       },
     },
   ];
@@ -179,7 +183,7 @@ function ChartTable({
       label: t('Examples'),
       onClick: () => {
         setChartFilter(TableTabTypes.EXAMPLES);
-        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.EXAMPLES);
       },
     });
   }
@@ -213,7 +217,7 @@ function ChartTable({
             },
           },
           {
-            name: 'View All »',
+            name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
               const target =
@@ -249,7 +253,7 @@ function ChartTable({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName="CHARTS" tab={chartFilter} />
+        <EmptyState tableName={WelcomeTable.Charts} tab={chartFilter} />
       )}
       {preparingExport && <Loading />}
     </ErrorBoundary>

@@ -28,3 +28,8 @@ src/dashboard/deprecated/*
 src/temp/*
 **/node_modules
 *.d.ts
+coverage/
+esm/
+lib/
+tmp/
+storybook-static/

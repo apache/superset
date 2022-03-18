@@ -17,4 +17,60 @@
  * under the License.
  */
 
+/*
+ * Re-exporting of components in src/components to facilitate
+ * their imports by other components.
+ * E.g. import { Select } from 'src/components'
+ */
 export { default as Select } from './Select/Select';
+
+/*
+ * Components that don't conflict with the ones in src/components.
+ * As Superset progresses to support full theming, this list should
+ * decrease in favor of the components defined in src/components.
+ */
+export {
+  AutoComplete,
+  Avatar,
+  Col,
+  Divider,
+  Empty,
+  Grid,
+  List,
+  Row,
+  Skeleton,
+  Space,
+  Steps,
+  Tag,
+  Tree,
+  Typography,
+  Upload,
+} from 'antd';
+
+/*
+ * Components that conflict with the ones in src/components.
+ * We should try to avoid using Ant Design directly. The components
+ * listed bellow may need review. Avoid incrementing this list by using
+ * or extending the components in src/components.
+ */
+export {
+  Button as AntdButton,
+  Card as AntdCard,
+  Checkbox as AntdCheckbox,
+  Collapse as AntdCollapse,
+  Dropdown as AntdDropdown,
+  Form as AntdForm,
+  Input as AntdInput,
+  Modal as AntdModal,
+  Select as AntdSelect,
+  Slider as AntdSlider,
+  Switch as AntdSwitch,
+  Tabs as AntdTabs,
+  Tooltip as AntdTooltip,
+} from 'antd';
+
+// Exported types
+export type { FormInstance } from 'antd/lib/form';
+export type { ListItemProps } from 'antd/lib/list';
+export type { ModalProps as AntdModalProps } from 'antd/lib/modal';
+export type { RadioChangeEvent } from 'antd/lib/radio';

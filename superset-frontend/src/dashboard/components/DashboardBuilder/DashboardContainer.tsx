@@ -18,39 +18,64 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  Filter,
+  Filters,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { ParentSize } from '@vx/responsive';
+import pick from 'lodash/pick';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import {
+  ChartsState,
+  DashboardLayout,
+  LayoutItem,
+  RootState,
+} from 'src/dashboard/types';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
-import { DashboardLayout, LayoutItem, RootState } from 'src/dashboard/types';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
+import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
-import { Filters } from '../../reducers/types';
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
-import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
+import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
+};
+
+const useNativeFilterScopes = () => {
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
+  return useMemo(
+    () =>
+      nativeFilters
+        ? Object.values(nativeFilters).map((filter: Filter) =>
+            pick(filter, ['id', 'scope', 'type']),
+          )
+        : [],
+    [JSON.stringify(nativeFilters)],
+  );
 };
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
-  );
+  const nativeFilterScopes = useNativeFilterScopes();
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
   const [tabIndex, setTabIndex] = useState(
     getRootLevelTabIndex(dashboardLayout, directPathToChild),
   );
@@ -67,27 +92,26 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     }
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
-  // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
-  const filterScopes = Object.values(nativeFilters ?? {}).map(filter => ({
-    id: filter.id,
-    scope: filter.scope,
-  }));
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      filterScopes.length === 0
+      nativeFilterScopes.length === 0
     ) {
       return;
     }
-    const scopes = filterScopes.map(filterScope => {
-      const { scope } = filterScope;
-      const chartsInScope: number[] = getChartIdsInFilterScope({
-        filterScope: {
-          scope: scope.rootPath,
-          // @ts-ignore
-          immune: scope.excluded,
-        },
-      });
+    const scopes = nativeFilterScopes.map(filterScope => {
+      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
+        return {
+          filterId: filterScope.id,
+          tabsInScope: [],
+          chartsInScope: [],
+        };
+      }
+      const chartsInScope: number[] = getChartIdsInFilterScope(
+        filterScope.scope,
+        charts,
+        dashboardLayout,
+      );
       const tabsInScope = findTabsWithChartsInScope(
         dashboardLayout,
         chartsInScope,
@@ -99,7 +123,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [JSON.stringify(filterScopes), dashboardLayout, dispatch]);
+  }, [nativeFilterScopes, dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children

@@ -1,0 +1,54 @@
+{
+  "name": "@superset-ui/legacy-preset-chart-deckgl",
+  "version": "0.4.13",
+  "description": "Superset Legacy Chart - deck.gl",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui-plugins-deckgl#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui-plugins-deckgl/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui-plugins-deckgl.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "sideEffects": true,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "dependencies": {
+    "@math.gl/web-mercator": "^3.2.2",
+    "@types/d3-array": "^2.0.0",
+    "bootstrap-slider": "^10.0.0",
+    "d3-array": "^1.2.4",
+    "d3-color": "^1.4.1",
+    "d3-scale": "^3.0.0",
+    "deck.gl": "8.5.2",
+    "jquery": "^3.4.1",
+    "lodash": "^4.17.15",
+    "moment": "^2.20.1",
+    "mousetrap": "^1.6.1",
+    "prop-types": "^15.6.0",
+    "react-bootstrap-slider": "2.1.5",
+    "underscore": "^1.8.3",
+    "urijs": "^1.19.8",
+    "xss": "^1.0.10"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-map-gl": "^4.0.10",
+    "mapbox-gl": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

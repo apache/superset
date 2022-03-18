@@ -69,10 +69,10 @@ little bit helps, and credit will always be given.
   - [Git Hooks](#git-hooks)
   - [Linting](#linting)
   - [Conventions](#conventions)
-    - [Python](#python)
+    - [Python](#python-conventions)
   - [Typing](#typing)
-    - [Python](#python-1)
-    - [TypeScript](#typescript)
+    - [Python](#python-typing)
+    - [TypeScript](#typeScript-typing)
   - [Testing](#testing)
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
@@ -82,12 +82,10 @@ little bit helps, and credit will always be given.
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
-    - [Extracting new strings for translation](#extracting-new-strings-for-translation)
     - [Updating language files](#updating-language-files)
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
-    - [Improving visualizations](#improving-visualizations)
     - [Visualization Plugins](#visualization-plugins)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
@@ -117,17 +115,6 @@ Here's a list of repositories that contain Superset-related packages:
   also includes Superset's main TypeScript/JavaScript bundles and react apps under
   the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
-- [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
-  contains core Superset's
-  [npm packages](https://github.com/apache-superset/superset-ui/tree/master/packages).
-  These packages are shared across the React apps in the main repository,
-  and in visualization plugins.
-- [apache-superset/superset-ui-plugins](https://github.com/apache-superset/superset-ui-plugins)
-  contains the code for the default visualizations that ship with Superset
-  and are maintained by the core community.
-- [apache-superset/superset-ui-plugins-deckgl](https://github.com/apache-superset/superset-ui-plugins-deckgl)
-  contains the code for the geospatial visualizations that ship with Superset
-  and are maintained by the core community.
 - [github.com/apache-superset](https://github.com/apache-superset) is the
   Github organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
@@ -372,7 +359,7 @@ In the event a community member discovers a security flaw in Superset, it is imp
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
-- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable time frame, this would counter-indicate reverting.
 - **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
@@ -420,7 +407,7 @@ For example, the image referenced above actually lives in `superset-frontend/src
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.  
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.7 or 3.8, then proceed with:
@@ -436,11 +423,11 @@ pip install -r requirements/testing.txt
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-superset fab create-admin
-
 # Initialize the database
 superset db upgrade
+
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
+superset fab create-admin
 
 # Create default roles and permissions
 superset init
@@ -489,6 +476,20 @@ $ python3 -m pip install -r requirements/integration.txt
 $ pip-compile-multi --no-upgrade
 ```
 
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+
+```bash
+$ pip-compile-multi -P my-package
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+
+```bash
+$ pip-compile-multi
+```
+
+This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
+
 #### Logging to the browser console
 
 This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
@@ -523,6 +524,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 ##### nvm and node
 
 First, be sure you are using the following versions of Node.js and npm:
+
 - `Node.js`: Version 16
 - `npm`: Version 7
 
@@ -573,7 +575,7 @@ The dev server by default starts at `http://localhost:9000` and proxies the back
 npm run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --devserverPort=9001
+npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081
@@ -682,7 +684,7 @@ If using the eslint extension with vscode, put the following in your workspace `
 
 ## Conventions
 
-### Python
+### Python Conventions
 
 Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assumed to always be defined and thus should be accessed directly via,
 
@@ -700,7 +702,7 @@ or similar as the later will cause typing issues. The former is of type `List[Ca
 
 ## Typing
 
-### Python
+### Python Typing
 
 To ensure clarity, consistency, all readability, _all_ new functions should use
 [type hints](https://docs.python.org/3/library/typing.html) and include a
@@ -727,7 +729,7 @@ def sqrt(x: Union[float, int]) -> Union[float, int]:
     return math.sqrt(x)
 ```
 
-### TypeScript
+### TypeScript Typing
 
 TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/superset/pull/9162) and [#9180](https://github.com/apache/superset/pull/9180).
 
@@ -765,13 +767,19 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all tests for example, run this script from the root directory:
+To run all integration tests for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
 ```
 
 ### Frontend Testing
@@ -904,7 +912,7 @@ apt install -y net-tools
 pip install debugpy
 ```
 
-Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
 
 ```bash
 ps -ef
@@ -957,7 +965,7 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 }
 ```
 
-VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wake up" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
 
 ### Debugging Server App in Kubernetes Environment
 
@@ -975,7 +983,7 @@ Once the pod is running as root and has the SYS_PTRACE capability it will be abl
 
 You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
-Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
 ```
 kubectl port-forward  pod/superset-<some random id> 5678:5678
@@ -1032,22 +1040,15 @@ LANGUAGES = {
 }
 ```
 
-### Extracting new strings for translation
-
-```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
-```
-
-This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
-this file with the appropriate license information.
-
 ### Updating language files
 
 ```bash
- pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+./scripts/babel_update.sh
 ```
 
-This will update language files with the new extracted strings.
+This script will
+1. update the template file `superset/translations/messages.pot` with current application strings.
+2. update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
@@ -1089,7 +1090,7 @@ pip install -r superset/translations/requirements.txt
 pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
 ```
 
-Then, [extract strings for the new language](#extracting-new-strings-for-translation).
+Then, [Updating language files](#updating-language-files).
 
 ## Tips
 
@@ -1111,44 +1112,13 @@ Then, [extract strings for the new language](#extracting-new-strings-for-transla
 
    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
 
-### Improving visualizations
-
-To edit the frontend code for visualizations, you will have to check out a copy of [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui):
-
-```bash
-git clone https://github.com/apache-superset/superset-ui.git
-cd superset-ui
-yarn
-yarn build
-```
-
-Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
-
-```bash
-# Since npm 7, you have to install plugin dependencies separately, too
-cd ../../superset-ui/plugins/[PLUGIN NAME] && npm install --legacy-peer-deps
-
-cd superset/superset-frontend
-npm link ../../superset-ui/plugins/[PLUGIN NAME]
-
-# Or to link all core superset-ui and plugin packages:
-# npm link ../../superset-ui/{packages,plugins}/*
-
-# Start developing
-npm run dev-server
-```
-
-When `superset-ui` packages are linked with `npm link`, the dev server will automatically load a package's source code from its `/src` directory, instead of the built modules in `lib/` or `esm/`.
-
-Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
-
 ### Visualization Plugins
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
+[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
 
-To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
+To contribute a plugin to Superset, your plugin must meet the following criteria:
 
 - The plugin should be applicable to the community at large, not a particularly specialized use case
 - The plugin should be written with TypeScript
@@ -1339,16 +1309,16 @@ More information on the async query feature can be found in [SIP-39](https://git
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
 
-The following tables provide a non-exhausive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
+The following tables provide a non-exhaustive list of the various fields which can be present in the JSON object grouped by the Explorer pane sections. These values were obtained by extracting the distinct fields from a legacy deployment consisting of tens of thousands of charts and thus some fields may be missing whilst others may be deprecated.
 
-Note not all fields are correctly catagorized. The fields vary based on visualization type and may apprear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsucessful and thus future work may be required to clean up the form-data.
+Note not all fields are correctly categorized. The fields vary based on visualization type and may appear in different sections depending on the type. Verified deprecated columns may indicate a missing migration and/or prior migrations which were unsuccessful and thus future work may be required to clean up the form-data.
 
 ### Datasource & Chart Type
 
 | Field             | Type     | Notes                               |
 | ----------------- | -------- | ----------------------------------- |
 | `database_name`   | _string_ | _Deprecated?_                       |
-| `datasource`      | _string_ | `<datasouce_id>__<datasource_type>` |
+| `datasource`      | _string_ | `<datasource_id>__<datasource_type>` |
 | `datasource_id`   | _string_ | _Deprecated?_ See `datasource`      |
 | `datasource_name` | _string_ | _Deprecated?_                       |
 | `datasource_type` | _string_ | _Deprecated?_ See `datasource`      |
@@ -1402,7 +1372,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
-| `metric`<br>`metric_2`<br>`metrics`<br>`percent_mertics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
+| `metric`<br>`metric_2`<br>`metrics`<br>`percent_metrics`<br>`secondary_metric`<br>`size`<br>`x`<br>`y` | _string_,_object_,_array(string)_,_array(object)_ | The metric(s) depending on the visualization type |
 | `order_asc`                                                                                            | _boolean_                                         | The **Sort Descending** widget                    |
 | `row_limit`                                                                                            | _number_                                          | The **Row limit** widget                          |
 | `timeseries_limit_metric`                                                                              | _object_                                          | The **Sort By** widget                            |

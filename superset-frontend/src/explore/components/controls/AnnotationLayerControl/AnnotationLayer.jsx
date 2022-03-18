@@ -58,6 +58,7 @@ const propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   overrides: PropTypes.object,
   show: PropTypes.bool,
+  showLabel: PropTypes.bool,
   titleColumn: PropTypes.string,
   descriptionColumns: PropTypes.arrayOf(PropTypes.string),
   timeColumn: PropTypes.string,
@@ -85,6 +86,7 @@ const defaultProps = {
   overrides: {},
   colorScheme: 'd3Category10',
   show: true,
+  showLabel: false,
   titleColumn: '',
   descriptionColumns: [],
   timeColumn: '',
@@ -111,6 +113,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       titleColumn,
       descriptionColumns,
       timeColumn,
@@ -142,6 +145,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       // slice
       titleColumn,
       descriptionColumns,
@@ -164,9 +168,8 @@ export default class AnnotationLayer extends React.PureComponent {
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
-    this.handleAnnotationSourceType = this.handleAnnotationSourceType.bind(
-      this,
-    );
+    this.handleAnnotationSourceType =
+      this.handleAnnotationSourceType.bind(this);
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
   }
@@ -324,6 +327,7 @@ export default class AnnotationLayer extends React.PureComponent {
         'value',
         'overrides',
         'show',
+        'showLabel',
         'titleColumn',
         'descriptionColumns',
         'timeColumn',
@@ -690,7 +694,8 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType, sourceType, show } = this.state;
+    const { isNew, name, annotationType, sourceType, show, showLabel } =
+      this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
@@ -725,6 +730,14 @@ export default class AnnotationLayer extends React.PureComponent {
                 label={t('Hide layer')}
                 value={!show}
                 onChange={v => this.setState({ show: !v })}
+              />
+              <CheckboxControl
+                name="annotation-label-show"
+                label={t('Show label')}
+                value={showLabel}
+                hovered
+                description={t('Whether to always show the annotation label')}
+                onChange={v => this.setState({ showLabel: v })}
               />
               <SelectControl
                 ariaLabel={t('Annotation layer type')}

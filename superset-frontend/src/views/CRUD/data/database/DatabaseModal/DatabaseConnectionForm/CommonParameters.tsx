@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Switch } from 'src/common/components';
+import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '.';
@@ -42,9 +42,9 @@ export const hostField = ({
     )}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.host}
-    placeholder="e.g. 127.0.0.1"
+    placeholder={t('e.g. 127.0.0.1')}
     className="form-group-w-50"
-    label="Host"
+    label={t('Host')}
     onChange={changeMethods.onParametersChange}
   />
 );
@@ -64,7 +64,7 @@ export const portField = ({
       value={db?.parameters?.port as number}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.port}
-      placeholder="e.g. 5432"
+      placeholder={t('e.g. 5432')}
       className="form-group-w-50"
       label="Port"
       onChange={changeMethods.onParametersChange}
@@ -85,8 +85,8 @@ export const databaseField = ({
     value={db?.parameters?.database}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database}
-    placeholder="e.g. world_population"
-    label="Database name"
+    placeholder={t('e.g. world_population')}
+    label={t('Database name')}
     onChange={changeMethods.onParametersChange}
     helpText={t('Copy the name of the  database you are trying to connect to.')}
   />
@@ -105,8 +105,8 @@ export const usernameField = ({
     value={db?.parameters?.username}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.username}
-    placeholder="e.g. Analytics"
-    label="Username"
+    placeholder={t('e.g. Analytics')}
+    label={t('Username')}
     onChange={changeMethods.onParametersChange}
   />
 );
@@ -126,8 +126,8 @@ export const passwordField = ({
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}
-    placeholder="e.g. ********"
-    label="Password"
+    placeholder={t('e.g. ********')}
+    label={t('Password')}
     onChange={changeMethods.onParametersChange}
   />
 );
@@ -169,8 +169,8 @@ export const queryField = ({
     value={db?.query_input || ''}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
-    placeholder="e.g. param1=value1&param2=value2"
-    label="Additional Parameters"
+    placeholder={t('e.g. param1=value1&param2=value2')}
+    label={t('Additional Parameters')}
     onChange={changeMethods.onQueryChange}
     helpText={t('Add additional custom parameters')}
   />
@@ -183,7 +183,7 @@ export const forceSSLField = ({
   sslForced,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
+    <AntdSwitch
       disabled={sslForced && !isEditMode}
       checked={db?.parameters?.encryption || sslForced}
       onChange={changed => {

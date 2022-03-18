@@ -18,12 +18,9 @@
  */
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FormInstance } from 'src/common/components';
-import {
-  Filter,
-  NativeFilterType,
-} from 'src/dashboard/components/nativeFilters/types';
+import { FormInstance } from 'src/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 
@@ -64,6 +61,7 @@ const filterMock: Filter = {
   targets: [{}],
   controlValues: {},
   type: NativeFilterType.NATIVE_FILTER,
+  description: '',
 };
 
 const createProps: () => ControlItemsProps = () => ({
@@ -119,6 +117,16 @@ test('Should render null when has no "formFilter.filterType" is falsy value', ()
 test('Should render null empty when "getControlItems" return []', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([]);
+  const controlItemsMap = getControlItemsMap(props);
+  const { container } = renderControlItems(controlItemsMap);
+  expect(container.children).toHaveLength(0);
+});
+
+test('Should render null empty when "getControlItems" return enableSingleValue', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    { name: 'enableSingleValue', config: { renderTrigger: true } },
+  ]);
   const controlItemsMap = getControlItemsMap(props);
   const { container } = renderControlItems(controlItemsMap);
   expect(container.children).toHaveLength(0);

@@ -32,6 +32,7 @@ from tests.integration_tests.dashboards.filter_sets.utils import (
 
 if TYPE_CHECKING:
     from flask.testing import FlaskClient
+
     from superset.models.filter_set import FilterSet
 
 
@@ -60,7 +61,7 @@ class TestDeleteFilterSet:
 
     def test_with_dashboard_not_exists_filterset_not_exists__404(
         self,
-        not_exists_dashboard: int,
+        not_exists_dashboard_id: int,
         filtersets: Dict[str, List[FilterSet]],
         client: FlaskClient[Any],
     ):
@@ -69,14 +70,14 @@ class TestDeleteFilterSet:
         filter_set_id = max(collect_all_ids(filtersets)) + 1
 
         response = call_delete_filter_set(
-            client, {"id": filter_set_id}, not_exists_dashboard
+            client, {"id": filter_set_id}, not_exists_dashboard_id
         )
         # assert
         assert response.status_code == 404
 
     def test_with_dashboard_not_exists_filterset_exists__404(
         self,
-        not_exists_dashboard: int,
+        not_exists_dashboard_id: int,
         dashboard_based_filter_set_dict: Dict[str, Any],
         client: FlaskClient[Any],
     ):
@@ -85,7 +86,7 @@ class TestDeleteFilterSet:
 
         # act
         response = call_delete_filter_set(
-            client, dashboard_based_filter_set_dict, not_exists_dashboard
+            client, dashboard_based_filter_set_dict, not_exists_dashboard_id
         )
         # assert
         assert response.status_code == 404

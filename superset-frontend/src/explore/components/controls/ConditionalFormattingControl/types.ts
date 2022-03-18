@@ -19,7 +19,7 @@
 
 import { ReactNode } from 'react';
 import { PopoverProps } from 'antd/lib/popover';
-import { ControlComponentProps } from '@superset-ui/chart-controls/lib/shared-controls/components/types';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
 
 export enum COMPARATOR {
   NONE = 'None',

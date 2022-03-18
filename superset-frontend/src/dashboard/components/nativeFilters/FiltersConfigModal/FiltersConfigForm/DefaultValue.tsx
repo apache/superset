@@ -24,7 +24,7 @@ import {
   AppSection,
   t,
 } from '@superset-ui/core';
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
 import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
@@ -51,7 +51,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const loading = hasDataset && queriesData === null;
-  const value = formFilter.defaultDataMask?.filterState.value;
+  const value = formFilter.defaultDataMask?.filterState?.value;
   const isMissingRequiredValue =
     hasDefaultValue && (value === null || value === undefined);
   return loading ? (

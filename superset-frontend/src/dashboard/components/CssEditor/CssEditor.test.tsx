@@ -19,12 +19,12 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
-import { AceEditorProps } from 'react-ace';
+import { IAceEditorProps } from 'react-ace';
 import userEvent from '@testing-library/user-event';
 import CssEditor from '.';
 
 jest.mock('src/components/AsyncAceEditor', () => ({
-  CssEditor: ({ value, onChange }: AceEditorProps) => (
+  CssEditor: ({ value, onChange }: IAceEditorProps) => (
     <textarea
       defaultValue={value}
       onChange={value => onChange?.(value.target.value)}

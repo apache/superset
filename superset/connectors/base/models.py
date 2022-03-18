@@ -25,10 +25,11 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 
 from superset import is_feature_enabled, security_manager
-from superset.constants import NULL_STRING
+from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.typing import FilterValue, FilterValues, QueryObjectDict
+from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -109,6 +110,8 @@ class BaseDatasource(
     params = Column(String(1000))
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
 
     sql: Optional[str] = None
     owners: List[User]
@@ -282,7 +285,9 @@ class BaseDatasource(
             "select_star": self.select_star,
         }
 
-    def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
+    def data_for_slices(  # pylint: disable=too-many-locals
+        self, slices: List[Slice]
+    ) -> Dict[str, Any]:
         """
         The representation of the datasource containing only the required data
         to render the provided slices.
@@ -317,11 +322,28 @@ class BaseDatasource(
                 if "column" in filter_config
             )
 
-            column_names.update(
-                column
-                for column_param in COLUMN_FORM_DATA_PARAMS
-                for column in utils.get_iterable(form_data.get(column_param) or [])
-            )
+            # for legacy dashboard imports which have the wrong query_context in them
+            try:
+                query_context = slc.get_query_context()
+            except DatasetNotFoundError:
+                query_context = None
+
+            # legacy charts don't have query_context charts
+            if query_context:
+                column_names.update(
+                    [
+                        utils.get_column_name(column)
+                        for query in query_context.queries
+                        for column in query.columns
+                    ]
+                    or []
+                )
+            else:
+                column_names.update(
+                    column
+                    for column_param in COLUMN_FORM_DATA_PARAMS
+                    for column in utils.get_iterable(form_data.get(column_param) or [])
+                )
 
         filtered_metrics = [
             metric
@@ -376,7 +398,7 @@ class BaseDatasource(
             ):
                 return datetime.utcfromtimestamp(value / 1000)
             if isinstance(value, str):
-                value = value.strip("\t\n'\"")
+                value = value.strip("\t\n")
 
                 if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
@@ -384,7 +406,7 @@ class BaseDatasource(
                     return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
-                if value == "<empty string>":
+                if value == EMPTY_STRING:
                     return ""
             if target_column_type == utils.GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
@@ -419,9 +441,7 @@ class BaseDatasource(
         """
         raise NotImplementedError()
 
-    def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Given a column, returns an iterable of distinct values
 
         This is used to populate the dropdown showing a list of
@@ -558,7 +578,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     column_name = Column(String(255), nullable=False)
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
-    type = Column(String(32))
+    type = Column(Text)
     groupby = Column(Boolean, default=True)
     filterable = Column(Boolean, default=True)
     description = Column(Text)
@@ -639,7 +659,6 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
 
 
 class BaseMetric(AuditMixinNullable, ImportExportMixin):
-
     """Interface for Metrics"""
 
     __tablename__: Optional[str] = None  # {connector_name}_metric

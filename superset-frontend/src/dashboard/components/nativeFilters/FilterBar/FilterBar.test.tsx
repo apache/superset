@@ -88,12 +88,12 @@ const addFilterFlow = async () => {
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
-  await screen.findByText('All Filters (1)');
+  await screen.findByText('All filters (1)');
 };
 
 const addFilterSetFlow = async () => {
   // add filter set
-  userEvent.click(screen.getByText('Filter Sets (0)'));
+  userEvent.click(screen.getByText('Filter sets (0)'));
 
   // check description
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
@@ -241,9 +241,9 @@ describe('FilterBar', () => {
     expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
-  it('should render the "Apply" option', () => {
+  it('should render the "Apply filters" option', () => {
     renderWrapper();
-    expect(screen.getByText('Apply')).toBeInTheDocument();
+    expect(screen.getByText('Apply filters')).toBeInTheDocument();
   });
 
   it('should render the collapse icon', () => {
@@ -301,6 +301,40 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
+  it('renders dividers', async () => {
+    const divider = {
+      id: 'NATIVE_FILTER_DIVIDER-1',
+      type: 'DIVIDER',
+      scope: {
+        rootPath: ['ROOT_ID'],
+        excluded: [],
+      },
+      title: 'Select time range',
+      description: 'Select year/month etc..',
+      chartsInScope: [],
+      tabsInScope: [],
+    };
+    const stateWithDivider = {
+      ...stateWithoutNativeFilters,
+      nativeFilters: {
+        filters: {
+          'NATIVE_FILTER_DIVIDER-1': divider,
+        },
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithDivider);
+
+    const title = await screen.findByText('Select time range');
+    const description = await screen.findByText('Select year/month etc..');
+
+    expect(title.tagName).toBe('H3');
+    expect(description.tagName).toBe('P');
+    // Do not enable buttons if there are not filters
+    expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  });
+
   it('create filter and apply it flow', async () => {
     // @ts-ignore
     global.featureFlags = {
@@ -332,7 +366,7 @@ describe('FilterBar', () => {
 
     // change filter
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-    userEvent.click(await screen.findByText('All Filters (1)'));
+    userEvent.click(await screen.findByText('All filters (1)'));
     await changeFilterValue();
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 

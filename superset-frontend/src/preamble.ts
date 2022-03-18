@@ -20,21 +20,27 @@ import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
 // eslint-disable-next-line no-restricted-imports
-import { configure, supersetTheme } from '@superset-ui/core';
+import { configure, makeApi, supersetTheme } from '@superset-ui/core';
 import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
+import setupDashboardComponents from './setup/setupDasboardComponents';
+import { User } from './types/bootstrapTypes';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
-let bootstrapData: any;
+// eslint-disable-next-line import/no-mutable-exports
+export let bootstrapData: {
+  user?: User | undefined;
+  common?: any;
+  config?: any;
+} = {};
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-
   bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
@@ -60,7 +66,30 @@ setupColors(
 // Setup number formatters
 setupFormatters();
 
+setupDashboardComponents();
+
 export const theme = merge(
   supersetTheme,
   bootstrapData?.common?.theme_overrides ?? {},
 );
+
+const getMe = makeApi<void, User>({
+  method: 'GET',
+  endpoint: '/api/v1/me/',
+});
+
+/**
+ * When you re-open the window, we check if you are still logged in.
+ * If your session expired or you signed out, we'll redirect to login.
+ * If you aren't logged in in the first place (!isActive), then we shouldn't do this.
+ */
+if (bootstrapData.user?.isActive) {
+  document.addEventListener('visibilitychange', () => {
+    // we only care about the tab becoming visible, not vice versa
+    if (document.visibilityState !== 'visible') return;
+
+    getMe().catch(() => {
+      // ignore error, SupersetClient will redirect to login on a 401
+    });
+  });
+}

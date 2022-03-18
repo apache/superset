@@ -30,7 +30,7 @@ import AsyncAceEditor, {
   AsyncAceEditorOptions,
 } from 'src/components/AsyncAceEditor';
 
-const selector = '[id="brace-editor"]';
+const selector = '[id="ace-editor"]';
 
 test('renders SQLEditor', async () => {
   const { container } = render(<SQLEditor />);

@@ -19,6 +19,7 @@ import pytest
 from datetime import datetime
 from typing import Optional
 
+
 from superset import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
