@@ -27,9 +27,10 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
+from superset import db
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import ConfigurationMethod, PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -54,7 +55,7 @@ allow_run_async_description = (
     "as a results backend. Refer to the installation docs "
     "for more information."
 )
-allow_csv_upload_description = (
+allow_file_upload_description = (
     "Allow to upload CSV file data into this database"
     "If selected, please set the schemas allowed for csv upload in Extra."
 )
@@ -108,16 +109,18 @@ extra_description = markdown(
     '"table_cache_timeout": 600}**. '
     "If unset, cache will not be enabled for the functionality. "
     "A timeout of 0 indicates that the cache never expires.<br/>"
-    "3. The ``schemas_allowed_for_csv_upload`` is a comma separated list "
+    "3. The ``schemas_allowed_for_file_upload`` is a comma separated list "
     "of schemas that CSVs are allowed to upload to. "
-    'Specify it as **"schemas_allowed_for_csv_upload": '
+    'Specify it as **"schemas_allowed_for_file_upload": '
     '["public", "csv_upload"]**. '
     "If database flavor does not support schema or any schema is allowed "
     "to be accessed, just leave the list empty<br/>"
-    "4. the ``version`` field is a string specifying the this db's version. "
+    "4. The ``version`` field is a string specifying the this db's version. "
     "This should be used with Presto DBs so that the syntax is correct<br/>"
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
-    "whether or not the Explore button in SQL Lab results is shown.",
+    "whether or not the Explore button in SQL Lab results is shown.<br/>"
+    "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
+    "preview queries will be run when fetching table metadata in SQL Lab.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -355,7 +358,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -397,7 +400,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
-    allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
+    allow_file_upload = fields.Boolean(description=allow_file_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
@@ -558,11 +561,19 @@ class ImportV1DatabaseExtraSchema(Schema):
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
-        Fix ``schemas_allowed_for_csv_upload`` being a string.
-
-        Due to a bug in the database modal, some databases might have been
-        saved and exported with a string for ``schemas_allowed_for_csv_upload``.
+        Fixes for ``schemas_allowed_for_csv_upload``.
         """
+        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
+        # changed the V1 schema. We need to support exports made after that PR and
+        # before this PR.
+        if "schemas_allowed_for_file_upload" in data:
+            data["schemas_allowed_for_csv_upload"] = data.pop(
+                "schemas_allowed_for_file_upload"
+            )
+
+        # Fix ``schemas_allowed_for_csv_upload`` being a string.
+        # Due to a bug in the database modal, some databases might have been
+        # saved and exported with a string for ``schemas_allowed_for_csv_upload``.
         schemas_allowed_for_csv_upload = data.get("schemas_allowed_for_csv_upload")
         if isinstance(schemas_allowed_for_csv_upload, str):
             data["schemas_allowed_for_csv_upload"] = json.loads(
@@ -576,9 +587,26 @@ class ImportV1DatabaseExtraSchema(Schema):
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
+    allows_virtual_table_explore = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def fix_allow_csv_upload(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Fix for ``allow_csv_upload`` .
+        """
+        # Fix for https://github.com/apache/superset/pull/16756, which temporarily
+        # changed the V1 schema. We need to support exports made after that PR and
+        # before this PR.
+        if "allow_file_upload" in data:
+            data["allow_csv_upload"] = data.pop("allow_file_upload")
+
+        return data
+
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
@@ -596,13 +624,28 @@ class ImportV1DatabaseSchema(Schema):
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
+        uuid = data["uuid"]
+        existing = db.session.query(Database).filter_by(uuid=uuid).first()
+        if existing:
+            return
+
         uri = data["sqlalchemy_uri"]
         password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
 
 
-class EncryptedField(fields.String):
+class EncryptedField:  # pylint: disable=too-few-public-methods
+    """
+    A database field that should be stored in encrypted_extra.
+    """
+
+
+class EncryptedString(EncryptedField, fields.String):
+    pass
+
+
+class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 

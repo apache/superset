@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Row, Col } from 'src/common/components';
+import { Row, Col } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import FormRow from 'src/components/FormRow';
 

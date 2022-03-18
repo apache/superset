@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import rison from 'rison';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
-import { Steps } from 'src/common/components';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Steps } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 
@@ -193,7 +192,6 @@ export default class AddSliceContainer extends React.PureComponent<
     this.gotoSlice = this.gotoSlice.bind(this);
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
-    this.handleFilterOption = this.handleFilterOption.bind(this);
   }
 
   exploreUrl() {
@@ -254,31 +252,21 @@ export default class AddSliceContainer extends React.PureComponent<
       endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
+        customLabel: ReactNode;
+        id: number;
         label: string;
         value: string;
-      }[] = response.json.result
-        .map((item: Dataset) => ({
-          value: `${item.id}__${item.datasource_type}`,
-          label: this.newLabel(item),
-          labelText: item.table_name,
-        }))
-        .sort((a: { labelText: string }, b: { labelText: string }) =>
-          a.labelText.localeCompare(b.labelText),
-        );
+      }[] = response.json.result.map((item: Dataset) => ({
+        id: item.id,
+        value: `${item.id}__${item.datasource_type}`,
+        customLabel: this.newLabel(item),
+        label: item.table_name,
+      }));
       return {
         data: list,
         totalCount: response.json.count,
       };
     });
-  }
-
-  handleFilterOption(
-    search: string,
-    option: { label: string; value: number; labelText: string },
-  ) {
-    const searchValue = search.trim().toLowerCase();
-    const { labelText } = option;
-    return labelText.toLowerCase().includes(searchValue);
   }
 
   render() {
@@ -296,9 +284,9 @@ export default class AddSliceContainer extends React.PureComponent<
                   autoFocus
                   ariaLabel={t('Dataset')}
                   name="select-datasource"
-                  filterOption={this.handleFilterOption}
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
+                  optionFilterProps={['id', 'label']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
@@ -308,7 +296,7 @@ export default class AddSliceContainer extends React.PureComponent<
                     'Instructions to add a dataset are available in the Superset tutorial.',
                   )}{' '}
                   <a
-                    href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
+                    href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
                     rel="noopener noreferrer"
                     target="_blank"
                   >

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=invalid-name, no-self-use, too-many-public-methods, too-many-arguments
 """Unit tests for Superset"""
 import dataclasses
 import json
@@ -44,17 +43,20 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -64,6 +66,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
+    load_unicode_data,
 )
 from tests.integration_tests.test_app import app
 
@@ -162,10 +165,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_columns = [
-            "allow_csv_upload",
             "allow_ctas",
             "allow_cvas",
             "allow_dml",
+            "allow_file_upload",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
@@ -176,12 +179,14 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
@@ -233,7 +238,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -266,7 +271,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -297,7 +302,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -387,7 +392,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         self.login(username="admin")
         database_data = {
@@ -745,9 +750,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_get_invalid_database_table_metadata(self):
         """
@@ -907,7 +910,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
@@ -1100,7 +1103,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 33)
+        self.assertEqual(response["charts"]["count"], 34)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -1144,9 +1147,7 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        # export only requires can_read now, but gamma need to have explicit access to
-        # view the database
-        assert rv.status_code == 404
+        assert rv.status_code == 403
 
     def test_export_database_non_existing(self):
         """
@@ -1189,6 +1190,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1258,6 +1261,8 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1573,7 +1578,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
-                        "properties": {"catalog": {"type": "object"},},
+                        "properties": {
+                            "catalog": {"type": "object"},
+                            "service_account_info": {
+                                "description": "Contents of GSheets JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
+                        },
                         "type": "object",
                     },
                     "preferred": False,
@@ -1979,3 +1991,13 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert "charts" in rv.json
+        assert "dashboards" in rv.json
+        assert "sqllab_tab_states" in rv.json

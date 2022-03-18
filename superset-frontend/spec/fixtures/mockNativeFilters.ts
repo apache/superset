@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData } from '@superset-ui/core';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from '../../src/dataMask/types';
+import {
+  DataMaskStateWithId,
+  ExtraFormData,
+  NativeFiltersState,
+  NativeFilterType,
+} from '@superset-ui/core';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -50,6 +53,9 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
+      type: NativeFilterType.NATIVE_FILTER,
+      description: '',
+      chartsInScope: [18],
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
@@ -78,6 +84,9 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
+      type: NativeFilterType.NATIVE_FILTER,
+      description: '2 letter code',
+      chartsInScope: [18],
     },
   },
 };
@@ -445,3 +454,39 @@ export const mockQueryDataForCountries = [
   { country_name: 'Zambia', 'SUM(SP_POP_TOTL)': 438847085 },
   { country_name: 'Zimbabwe', 'SUM(SP_POP_TOTL)': 509866860 },
 ];
+
+export const buildNativeFilter = (
+  id: string,
+  name: string,
+  dependencies: string[],
+) => ({
+  id,
+  controlValues: {
+    multiSelect: true,
+    enableEmptyFilter: false,
+    defaultToFirstItem: false,
+    inverseSelection: false,
+    searchAllOptions: false,
+  },
+  name,
+  filterType: 'filter_select',
+  targets: [
+    {
+      datasetId: 1,
+      column: {
+        name,
+      },
+    },
+  ],
+  defaultDataMask: {
+    extraFormData: {},
+    filterState: {},
+    ownState: {},
+  },
+  cascadeParentIds: dependencies,
+  scope: {
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+  },
+  type: 'NATIVE_FILTER',
+});

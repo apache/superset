@@ -18,10 +18,8 @@
  */
 
 import shortid from 'shortid';
-import { t } from '@superset-ui/core';
+import { DataMaskState, FilterSet, t } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { DataMaskState } from 'src/dataMask/types';
-import { FilterSet } from 'src/dashboard/reducers/types';
 
 export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
 
@@ -58,6 +56,7 @@ export const findExistingFilterSet = ({
       const isEqual = areObjectsEqual(
         filterFromSelectedFilters.filterState,
         dataMaskFromFilterSet?.[id]?.filterState,
+        { ignoreUndefined: true, ignoreNull: true },
       );
       const hasSamePropsNumber =
         dataMaskSelectedEntries.length ===

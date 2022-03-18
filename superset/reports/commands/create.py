@@ -25,12 +25,13 @@ from marshmallow import ValidationError
 from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
-from superset.models.reports import ReportScheduleType
+from superset.models.reports import ReportCreationMethodType, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
     ReportScheduleAlertRequiredDatabaseValidationError,
     ReportScheduleCreateFailedError,
+    ReportScheduleCreationMethodUniquenessValidationError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleRequiredTypeValidationError,
@@ -59,6 +60,10 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         owner_ids: Optional[List[int]] = self._properties.get("owners")
         name = self._properties.get("name", "")
         report_type = self._properties.get("type")
+        creation_method = self._properties.get("creation_method")
+        chart_id = self._properties.get("chart")
+        dashboard_id = self._properties.get("dashboard")
+        user_id = self._actor.id
 
         # Validate type is required
         if not report_type:
@@ -83,6 +88,17 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions)
+        self._validate_report_extra(exceptions)
+
+        # Validate that each chart or dashboard only has one report with
+        # the respective creation method.
+        if (
+            creation_method != ReportCreationMethodType.ALERTS_REPORTS
+            and not ReportScheduleDAO.validate_unique_creation_method(
+                user_id, dashboard_id, chart_id
+            )
+        ):
+            raise ReportScheduleCreationMethodUniquenessValidationError()
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(
@@ -98,3 +114,22 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             exception = ReportScheduleInvalidError()
             exception.add_list(exceptions)
             raise exception
+
+    def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
+        extra = self._properties.get("extra")
+        dashboard = self._properties.get("dashboard")
+
+        if extra is None or dashboard is None:
+            return
+
+        dashboard_tab_ids = extra.get("dashboard_tab_ids")
+        if dashboard_tab_ids is None:
+            return
+        position_data = json.loads(dashboard.position_json)
+        invalid_tab_ids = [
+            tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
+        ]
+        if invalid_tab_ids:
+            exceptions.append(
+                ValidationError(f"Invalid tab IDs selected: {invalid_tab_ids}", "extra")
+            )

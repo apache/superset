@@ -110,6 +110,7 @@ class Column extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      onChangeTab,
       isComponentVisible,
     } = this.props;
 
@@ -191,6 +192,7 @@ class Column extends React.PureComponent {
                     onResize={onResize}
                     onResizeStop={onResizeStop}
                     isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
                   />
                 ))}
 

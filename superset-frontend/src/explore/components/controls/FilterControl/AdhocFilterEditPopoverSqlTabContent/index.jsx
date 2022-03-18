@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { NativeSelect as Select } from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { styled, t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
@@ -44,17 +44,23 @@ const propTypes = {
   activeKey: PropTypes.string.isRequired,
 };
 
+const StyledSelect = styled(Select)`
+  ${({ theme }) => `
+    width: ${theme.gridUnit * 30}px;
+    marginRight: ${theme.gridUnit}px;
+  `}
+`;
+
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
   constructor(props) {
     super(props);
     this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);
-    this.onSqlExpressionClauseChange = this.onSqlExpressionClauseChange.bind(
-      this,
-    );
+    this.onSqlExpressionClauseChange =
+      this.onSqlExpressionClauseChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      name: 'select-column',
+      ariaLabel: t('Select column'),
     };
   }
 
@@ -111,22 +117,19 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
         })
         .filter(Boolean),
     );
+    const selectOptions = Object.keys(CLAUSES).map(clause => ({
+      label: clause,
+      value: clause,
+    }));
 
     return (
       <span>
         <div className="filter-edit-clause-section">
-          <Select
+          <StyledSelect
+            options={selectOptions}
             {...this.selectProps}
             {...clauseSelectProps}
-            className="filter-edit-clause-dropdown"
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-          >
-            {Object.keys(CLAUSES).map(clause => (
-              <Select.Option value={clause} key={clause}>
-                {clause}
-              </Select.Option>
-            ))}
-          </Select>
+          />
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}
             <br />

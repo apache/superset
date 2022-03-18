@@ -16,7 +16,6 @@
 # under the License.
 import logging
 from collections import defaultdict
-from datetime import date
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
@@ -24,7 +23,7 @@ from urllib import parse
 import msgpack
 import pyarrow as pa
 import simplejson as json
-from flask import g, request
+from flask import g, has_request_context, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -32,6 +31,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import app, dataframe, db, result_set, viz
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -40,14 +40,13 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.typing import FormData
-from superset.utils.core import QueryStatus, TimeRangeEndpoint
+from superset.superset_typing import FormData
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -56,8 +55,17 @@ stats_logger = app.config["STATS_LOGGER"]
 
 
 REJECTED_FORM_DATA_KEYS: List[str] = []
-if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
+if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+def sanitize_datasource_data(datasource_data: Dict[str, Any]) -> Dict[str, Any]:
+    if datasource_data:
+        datasource_database = datasource_data.get("database")
+        if datasource_database:
+            datasource_database["parameters"] = {}
+
+    return datasource_data
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, Any]:
@@ -71,6 +79,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
             "lastName": user.last_name,
             "userId": user.id,
             "isActive": user.is_active,
+            "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
         }
@@ -127,49 +136,57 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
 
 
 def get_form_data(  # pylint: disable=too-many-locals
-    slice_id: Optional[int] = None, use_slice_data: bool = False
+    slice_id: Optional[int] = None,
+    use_slice_data: bool = False,
+    initial_form_data: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data: Dict[str, Any] = {}
-    # chart data API requests are JSON
-    request_json_data = (
-        request.json["queries"][0]
-        if request.is_json and "queries" in request.json
-        else None
-    )
+    form_data: Dict[str, Any] = initial_form_data or {}
 
-    add_sqllab_custom_filters(form_data)
+    if has_request_context():  # type: ignore
+        # chart data API requests are JSON
+        request_json_data = (
+            request.json["queries"][0]
+            if request.is_json and "queries" in request.json
+            else None
+        )
 
-    request_form_data = request.form.get("form_data")
-    request_args_data = request.args.get("form_data")
-    if request_json_data:
-        form_data.update(request_json_data)
-    if request_form_data:
-        parsed_form_data = loads_request_json(request_form_data)
-        # some chart data api requests are form_data
-        queries = parsed_form_data.get("queries")
-        if isinstance(queries, list):
-            form_data.update(queries[0])
-        else:
-            form_data.update(parsed_form_data)
-    # request params can overwrite the body
-    if request_args_data:
-        form_data.update(loads_request_json(request_args_data))
+        add_sqllab_custom_filters(form_data)
 
-    # Fallback to using the Flask globals (used for cache warmup) if defined.
+        request_form_data = request.form.get("form_data")
+        request_args_data = request.args.get("form_data")
+        if request_json_data:
+            form_data.update(request_json_data)
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            # some chart data api requests are form_data
+            queries = parsed_form_data.get("queries")
+            if isinstance(queries, list):
+                form_data.update(queries[0])
+            else:
+                form_data.update(parsed_form_data)
+        # request params can overwrite the body
+        if request_args_data:
+            form_data.update(loads_request_json(request_args_data))
+
+    # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
         form_data = getattr(g, "form_data")
+        # chart data API requests are JSON
+        json_data = form_data["queries"][0] if "queries" in form_data else {}
+        form_data.update(json_data)
 
-    url_id = request.args.get("r")
-    if url_id:
-        saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-        if saved_url:
-            url_str = parse.unquote_plus(
-                saved_url.url.split("?")[1][10:], encoding="utf-8"
-            )
-            url_form_data = loads_request_json(url_str)
-            # allow form_date in request override saved url
-            url_form_data.update(form_data)
-            form_data = url_form_data
+    if has_request_context():  # type: ignore
+        url_id = request.args.get("r")
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split("?")[1][10:], encoding="utf-8"
+                )
+                url_form_data = loads_request_json(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
@@ -192,12 +209,6 @@ def get_form_data(  # pylint: disable=too-many-locals
             form_data = slice_form_data
 
     update_time_range(form_data)
-
-    if app.config["SIP_15_ENABLED"]:
-        form_data["time_range_endpoints"] = get_time_range_endpoints(
-            form_data, slc, slice_id
-        )
-
     return form_data, slc
 
 
@@ -281,59 +292,6 @@ def apply_display_max_row_limit(
         sql_results["data"] = sql_results["data"][:display_limit]
         sql_results["displayLimitReached"] = True
     return sql_results
-
-
-def get_time_range_endpoints(
-    form_data: FormData, slc: Optional[Slice] = None, slice_id: Optional[int] = None
-) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
-    """
-    Get the slice aware time range endpoints from the form-data falling back to the SQL
-    database specific definition or default if not defined.
-
-    Note under certain circumstances the slice object may not exist, however the slice
-    ID may be defined which serves as a fallback.
-
-    When SIP-15 is enabled all new slices will use the [start, end) interval. If the
-    grace period is defined and has ended all slices will adhere to the [start, end)
-    interval.
-
-    :param form_data: The form-data
-    :param slc: The slice
-    :param slice_id: The slice ID
-    :returns: The time range endpoints tuple
-    """
-
-    if (
-        app.config["SIP_15_GRACE_PERIOD_END"]
-        and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
-    ):
-        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
-
-    endpoints = form_data.get("time_range_endpoints")
-
-    if (slc or slice_id) and not endpoints:
-        try:
-            _, datasource_type = get_datasource_info(None, None, form_data)
-        except SupersetException:
-            return None
-
-        if datasource_type == "table":
-            if not slc:
-                slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
-
-            if slc and slc.datasource:
-                endpoints = slc.datasource.database.get_extra().get(
-                    "time_range_endpoints"
-                )
-
-            if not endpoints:
-                endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
-
-    if endpoints:
-        start, end = endpoints
-        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
-
-    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
 
 
 # see all dashboard components type in

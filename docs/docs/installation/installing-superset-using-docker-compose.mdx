@@ -1,0 +1,119 @@
+---
+title: Installing Locally Using Docker Compose
+hide_title: true
+sidebar_position: 1
+version: 1
+---
+
+## Installing Superset Locally Using Docker Compose
+
+The fastest way to try Superset locally is using Docker and Docker Compose on a Linux or Mac OSX
+computer. Superset does not have official support for Windows, so we have provided a VM workaround
+below.
+
+### 1. Install a Docker Engine and Docker Compose
+
+**Mac OSX**
+
+[Install Docker for Mac](https://docs.docker.com/docker-for-mac/install/), which includes the Docker
+engine and a recent version of `docker-compose` out of the box.
+
+Once you have Docker for Mac installed, open up the preferences pane for Docker, go to the
+"Resources" section and increase the allocated memory to 6GB. With only the 2GB of RAM allocated by
+default, Superset will fail to start.
+
+**Linux**
+
+[Install Docker on Linux](https://docs.docker.com/engine/install/) by following Docker’s
+instructions for whichever flavor of Linux suits you. Because `docker-compose` is not installed as
+part of the base Docker installation on Linux, once you have a working engine, follow the
+[docker-compose installation instructions](https://docs.docker.com/compose/install/) for Linux.
+
+**Windows**
+
+Superset is not officially supported on Windows unfortunately. One option for Windows users to
+try out Superset locally is to install an Ubuntu Desktop VM via
+[VirtualBox](https://www.virtualbox.org/) and proceed with the Docker on Linux instructions inside
+of that VM. We recommend assigning at least 8GB of RAM to the virtual machine as well as
+provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and
+all of the required dependencies. Docker Desktop [recently added support for Windows Subsystem for Linux (WSL) 2](https://docs.docker.com/docker-for-windows/wsl/), which may be another option.
+
+### 2. Clone Superset's Github repository
+
+[Clone Superset's repo](https://github.com/apache/superset) in your terminal with the
+following command:
+
+```bash
+$ git clone https://github.com/apache/superset.git
+```
+
+Once that command completes successfully, you should see a new `superset` folder in your
+current directory.
+
+### 3. Launch Superset Through Docker Compose
+
+Navigate to the folder you created in step 1:
+
+```bash
+$ cd superset
+```
+
+When working on master branch, run the following commands:
+
+```bash
+$ docker-compose -f docker-compose-non-dev.yml pull
+$ docker-compose -f docker-compose-non-dev.yml up
+```
+
+Alternatively, you can also run a specific version of Superset by first checking out
+the branch/tag, and then starting `docker-compose` with the `TAG` variable.
+For example, to run the 1.4.0 version, run the following commands:
+
+```bash
+% git checkout 1.4.0
+$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml pull
+$ TAG=1.4.0 docker-compose -f docker-compose-non-dev.yml up
+```
+
+You should see a wall of logging output from the containers being launched on your machine. Once
+this output slows, you should have a running instance of Superset on your local machine!
+
+**Note:** This will bring up superset in a non-dev mode, changes to the codebase will not be reflected.
+If you would like to run superset in dev mode to test local changes, simply replace the previous command with: `docker-compose up`,
+and wait for the `superset_node` container to finish building the assets.
+
+#### Configuring Docker Compose
+
+The following is for users who want to configure how Superset starts up in Docker Compose; otherwise, you can skip to the next section.
+
+You can configure the Docker Compose settings for dev and non-dev mode with `docker/.env` and `docker/.env-non-dev` respectively. These environment files set the environment for most containers in the Docker Compose setup, and some variables affect multiple containers and others only single ones.
+
+One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init` container will load example data and visualizations into the database and Superset. These examples are quite helpful for most people, but probably unnecessary for experienced users. The loading process can sometimes take a few minutes and a good amount of CPU, so you may want to disable it on a resource-constrained device.
+
+**Note:** Users often want to connect to other databases from Superset. Currently, the easiest way to do this is to modify the `docker-compose-non-dev.yml` file and add your database as a service that the other services depend on (via `x-superset-depends-on`). Others have attempted to set `network_mode: host` on the Superset services, but these generally break the installation, because the configuration requires use of the Docker Compose DNS resolver for the service names. If you have a good solution for this, let us know!
+
+### 4. Log in to Superset
+
+Your local Superset instance also includes a Postgres server to store your data and is already
+pre-loaded with some example datasets that ship with Superset. You can access Superset now via your
+web browser by visiting `http://localhost:8088`. Note that many browsers now default to `https` - if
+yours is one of them, please make sure it uses `http`.
+
+Log in with the default username and password:
+
+```bash
+username: admin
+```
+
+```bash
+password: admin
+```
+
+### 5. Connecting your local database instance to superset
+
+When running Superset using `docker` or `docker-compose` it runs in its own docker container, as if the Superset was running in a separate machine entirely. Therefore attempts to connect to your local database with hostname `localhost` won't work as `localhost` refers to the docker container Superset is running in, and not your actual host machine. Fortunately, docker provides an easy way to access network resources in the host machine from inside a container, and we will leverage this capability to connect to our local database instance.
+
+Here the instructions are for connecting to postgresql (which is running on your host machine) from Superset (which is running in its docker container). Other databases may have slightly different configurations but gist would be same and boils down to 2 steps -
+
+1. **(Mac users may skip this step)** Configuring the local postgresql/database instance to accept public incoming connections. By default postgresql only allows incoming connections from `localhost` only, but re-iterating once again, `localhosts` are different for host machine and docker container. For postgresql this involves make one-line changes to the files `postgresql.conf` and `pg_hba.conf`, you can find helpful links tailored to your OS / PG version on the web easily for this task. For docker it suffices to only whitelist IPs `172.0.0.0/8` instead of `*`, but in any case you are _warned_ that doing this in a production database _may_ have disastrous consequences as you are opening your database to the public internet.
+2. Instead of `localhost`, try using `host.docker.internal` (Mac users) or `172.18.0.1` (Linux users) as the host name when attempting to connect to the database. This is docker internal detail, what is happening is that in Mac systems docker creates a dns entry for the host name `host.docker.internal` which resolves to the correct address for the host machine, whereas in linux this is not the case (at least by default). If neither of these 2 hostnames work then you may want to find the exact host name you want to use, for that you can do `ifconfig` or `ip addr show` and look at the IP address of `docker0` interface that must have been created by docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo) `docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP address.

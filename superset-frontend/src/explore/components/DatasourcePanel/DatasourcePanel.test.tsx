@@ -24,8 +24,11 @@ import userEvent from '@testing-library/user-event';
 import DatasourcePanel, {
   Props as DatasourcePanelProps,
 } from 'src/explore/components/DatasourcePanel';
-import { columns, metrics } from 'spec/javascripts/datasource/fixtures';
-import { DatasourceType } from '@superset-ui/core/lib/query/types/Datasource';
+import {
+  columns,
+  metrics,
+} from 'src/explore/components/DatasourcePanel/fixtures';
+import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
 const datasource = {

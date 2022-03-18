@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=isinstance-second-argument-not-valid-type
 from typing import Any, Dict, List, Optional, Type
 
 from flask_appbuilder.models.filters import BaseFilter
@@ -90,6 +91,19 @@ class BaseDAO:
         return query.all()
 
     @classmethod
+    def find_one_or_none(cls, **filter_by: Any) -> Optional[Model]:
+        """
+        Get the first that fit the `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
+        return query.filter_by(**filter_by).one_or_none()
+
+    @classmethod
     def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
         """
         Generic for creating models
@@ -108,6 +122,27 @@ class BaseDAO:
             db.session.rollback()
             raise DAOCreateFailedError(exception=ex) from ex
         return model
+
+    @classmethod
+    def save(cls, instance_model: Model, commit: bool = True) -> Model:
+        """
+        Generic for saving models
+        :raises: DAOCreateFailedError
+        """
+        if cls.model_cls is None:
+            raise DAOConfigError()
+        if not isinstance(instance_model, cls.model_cls):
+            raise DAOCreateFailedError(
+                "the instance model is not a type of the model class"
+            )
+        try:
+            db.session.add(instance_model)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()
+            raise DAOCreateFailedError(exception=ex) from ex
+        return instance_model
 
     @classmethod
     def update(

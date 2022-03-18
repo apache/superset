@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.models.reports import (
     ReportDataFormat,
@@ -40,7 +41,6 @@ from superset.models.reports import (
 )
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
-    ReportScheduleAlertEndGracePeriodError,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
@@ -65,7 +65,6 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
-from superset.utils.core import ChartDataResultFormat, ChartDataResultType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import (
     BaseScreenshot,
@@ -73,6 +72,7 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
 )
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
 
@@ -146,27 +146,33 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        force = "true" if self._report_schedule.force_screenshot else "false"
         if self._report_schedule.chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.JSON,
             }:
                 return get_url_path(
-                    "ChartRestApi.get_data",
+                    "ChartDataRestApi.get_data",
                     pk=self._report_schedule.chart_id,
                     format=result_format.value,
                     type=ChartDataResultType.POST_PROCESSED.value,
+                    force=force,
                 )
             return get_url_path(
-                "Superset.slice",
+                "Superset.explore",
                 user_friendly=user_friendly,
-                slice_id=self._report_schedule.chart_id,
+                form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+                standalone="true",
+                force=force,
                 **kwargs,
             )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            standalone=DashboardStandaloneMode.REPORT.value,
+            force=force,
             **kwargs,
         )
 
@@ -180,41 +186,55 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshot(self) -> bytes:
+    def _get_screenshots(self) -> List[bytes]:
         """
-        Get a chart or dashboard screenshot
-
+        Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot: Optional[BaseScreenshot] = None
+        image_data = []
+        screenshots: List[BaseScreenshot] = []
         if self._report_schedule.chart:
-            url = self._get_url(standalone="true")
-            logger.info("Screenshotting chart at %s", url)
-            screenshot = ChartScreenshot(
-                url,
-                self._report_schedule.chart.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-            )
-        else:
             url = self._get_url()
-            logger.info("Screenshotting dashboard at %s", url)
-            screenshot = DashboardScreenshot(
-                url,
-                self._report_schedule.dashboard.digest,
-                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            logger.info("Screenshotting chart at %s", url)
+            screenshots = [
+                ChartScreenshot(
+                    url,
+                    self._report_schedule.chart.digest,
+                    window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                )
+            ]
+        else:
+            tabs: Optional[List[str]] = json.loads(self._report_schedule.extra).get(
+                "dashboard_tab_ids", None
             )
+            dashboard_base_url = self._get_url()
+            if tabs is None:
+                urls = [dashboard_base_url]
+            else:
+                urls = [f"{dashboard_base_url}#{tab_id}" for tab_id in tabs]
+            screenshots = [
+                DashboardScreenshot(
+                    url,
+                    self._report_schedule.dashboard.digest,
+                    window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                )
+                for url in urls
+            ]
         user = self._get_user()
-        try:
-            image_data = screenshot.get_screenshot(user=user)
-        except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
-            raise ReportScheduleScreenshotTimeout() from ex
-        except Exception as ex:
-            raise ReportScheduleScreenshotFailedError(
-                f"Failed taking a screenshot {str(ex)}"
-            ) from ex
+        for screenshot in screenshots:
+            try:
+                image = screenshot.get_screenshot(user=user)
+            except SoftTimeLimitExceeded as ex:
+                logger.warning("A timeout occurred while taking a screenshot.")
+                raise ReportScheduleScreenshotTimeout() from ex
+            except Exception as ex:
+                raise ReportScheduleScreenshotFailedError(
+                    f"Failed taking a screenshot {str(ex)}"
+                ) from ex
+            if image is not None:
+                image_data.append(image)
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
         return image_data
@@ -278,7 +298,7 @@ class BaseReportState:
         context.
         """
         try:
-            self._get_screenshot()
+            self._get_screenshots()
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
@@ -298,14 +318,14 @@ class BaseReportState:
         csv_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = None
+        screenshot_data = []
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
             if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
-                screenshot_data = self._get_screenshot()
+                screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
             elif (
@@ -339,7 +359,7 @@ class BaseReportState:
         return NotificationContent(
             name=name,
             url=url,
-            screenshot=screenshot_data,
+            screenshots=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
@@ -403,7 +423,7 @@ class BaseReportState:
 
     def is_in_grace_period(self) -> bool:
         """
-        Checks if an alert is on it's grace period
+        Checks if an alert is in it's grace period
         """
         last_success = ReportScheduleDAO.find_last_success_log(
             self._report_schedule, session=self._session
@@ -418,7 +438,7 @@ class BaseReportState:
 
     def is_in_error_grace_period(self) -> bool:
         """
-        Checks if an alert/report on error is on it's notification grace period
+        Checks if an alert/report on error is in it's notification grace period
         """
         last_success = ReportScheduleDAO.find_last_error_notification(
             self._report_schedule, session=self._session
@@ -435,7 +455,7 @@ class BaseReportState:
 
     def is_on_working_timeout(self) -> bool:
         """
-        Checks if an alert is on a working timeout
+        Checks if an alert is in a working timeout
         """
         last_working = ReportScheduleDAO.find_last_entered_working_log(
             self._report_schedule, session=self._session
@@ -533,7 +553,6 @@ class ReportSuccessState(BaseReportState):
     current_states = [ReportState.SUCCESS, ReportState.GRACE]
 
     def next(self) -> None:
-        self.set_state_and_log(ReportState.WORKING)
         if self._report_schedule.type == ReportScheduleType.ALERT:
             if self.is_in_grace_period():
                 self.set_state_and_log(
@@ -541,11 +560,23 @@ class ReportSuccessState(BaseReportState):
                     error_message=str(ReportScheduleAlertGracePeriodError()),
                 )
                 return
-            self.set_state_and_log(
-                ReportState.NOOP,
-                error_message=str(ReportScheduleAlertEndGracePeriodError()),
-            )
-            return
+            self.set_state_and_log(ReportState.WORKING)
+            try:
+                if not AlertCommand(self._report_schedule).run():
+                    self.set_state_and_log(ReportState.NOOP)
+                    return
+            except CommandException as ex:
+                self.send_error(
+                    f"Error occurred for {self._report_schedule.type}:"
+                    f" {self._report_schedule.name}",
+                    str(ex),
+                )
+                self.set_state_and_log(
+                    ReportState.ERROR,
+                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                )
+                raise ex
+
         try:
             self.send()
             self.set_state_and_log(ReportState.SUCCESS)

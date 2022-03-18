@@ -20,7 +20,7 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import * as chartAction from 'src/chart/chartAction';
+import * as chartAction from 'src/components/Chart/chartAction';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import fetchMock from 'fetch-mock';
 import ExploreAdditionalActionsMenu from '.';
@@ -31,7 +31,6 @@ const createProps = () => ({
     datasource: '49__table',
     slice_id: 318,
     url_params: {},
-    time_range_endpoints: ['inclusive', 'exclusive'],
     granularity_sqla: 'time_start',
     time_range: 'No filter',
     all_columns_x: ['age'],
@@ -65,7 +64,6 @@ const createProps = () => ({
       row_limit: 10000,
       slice_id: 318,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
       viz_type: 'histogram',
       x_axis_label: 'age',

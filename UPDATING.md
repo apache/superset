@@ -24,32 +24,93 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [19046](https://github.com/apache/superset/pull/19046): Enables the drag and drop interface in Explore control panel by default. Flips `ENABLE_EXPLORE_DRAG_AND_DROP` and `ENABLE_DND_WITH_CLICK_UX` feature flags to `True`.
+- [18936](https://github.com/apache/superset/pull/18936): Removes legacy SIP-15 interm logic/flags—specifically the `SIP_15_ENABLED`, `SIP_15_GRACE_PERIOD_END`, `SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS`, and `SIP_15_TOAST_MESSAGE` flags. Time range endpoints are no longer configurable and strictly adhere to the `[start, end)` paradigm, i.e., inclusive of the start and exclusive of the end. Additionally this change removes the now obsolete `time_range_endpoints` from the form-data and resulting in the cache being busted.
+
 ### Breaking Changes
+
+- [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
+- [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` setting has moved from app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
+- [18976](https://github.com/apache/superset/pull/18976): When running the app in debug mode, the app will default to use `SimpleCache` for `FILTER_STATE_CACHE_CONFIG` and `EXPLORE_FORM_DATA_CACHE_CONFIG`. When running in non-debug mode, a cache backend will need to be defined, otherwise the application will fail to start. For installations using Redis or other caching backends, it is recommended to use the same backend for both cache configs.
+- [17881](https://github.com/apache/superset/pull/17881): Previously simple adhoc filter values on string columns were stripped of enclosing single and double quotes. To fully support literal quotes in filters, both single and double quotes will no longer be removed from filter values.
+- [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
+- [15254](https://github.com/apache/superset/pull/15254): Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in the `config.py` file. These should now be defined as a top-level config, with the feature flag dictionary being reserved for boolean only values.
+- [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
+- [18970](https://github.com/apache/superset/pull/18970): Changes feature flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
+- [19142](https://github.com/apache/superset/pull/19142): Changes feature flag for versioned export(VERSIONED_EXPORT) to be true.
+- [19107](https://github.com/apache/superset/pull/19107): Feature flag `SQLLAB_BACKEND_PERSISTENCE` is now on by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
+
 ### Potential Downtime
+
+- [16756](https://github.com/apache/incubator-superset/pull/16756): a change which renames the `dbs.allow_csv_upload` column to `dbs.allow_file_upload` via a (potentially locking) DDL operation.
+- [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands
+  (init, load_examples and etc) require setting the FLASK_APP environment variable
+  (which is set by default when .flaskenv is loaded)
+- [17360](https://github.com/apache/superset/pull/17360): changes the column type from `VARCHAR(32)` to `TEXT` in table `table_columns`, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
+- [17543](https://github.com/apache/superset/pull/17543): introduces new models from SIP-68. The database migration migrates the old models (`SqlaTable`, `TableColumn`, `SqlMetric`) to the new models (`Column`, `Table`, `Dataset`), and the PR introduces logic to keep the old models in sync with the new ones until they are fully removed. The migration might take considerable time depending on the number of datasets.
+
 ### Deprecations
+
+- [19078](https://github.com/apache/superset/pull/19078): Creation of old shorturl links has been deprecated in favor of a new permalink feature that solves the long url problem (old shorturls will still work, though!). By default, new permalinks use UUID4 as the key. However, to use serial ids similar to the old shorturls, add the following to your `superset_config.py`: `PERMALINK_KEY_TYPE = "id"`.
+- [18960](https://github.com/apache/superset/pull/18960): Persisting URL params in chart metadata is no longer supported. To set a default value for URL params in Jinja code, use the optional second argument: `url_param("my-param", "my-default-value")`.
+
 ### Other
+
+- [17589](https://github.com/apache/superset/pull/17589): It is now possible to limit access to users' recent activity data by setting the `ENABLE_BROAD_ACTIVITY_ACCESS` config flag to false, or customizing the `raise_for_user_activity_access` method in the security manager.
+- [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
+- [17882](https://github.com/apache/superset/pull/17882): introduced a key-value endpoint to store Explore form data. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `EXPLORE_FORM_DATA_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
+
+## 1.4.1
+
+### Breaking Changes
+- [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
+
+### Potential Downtime
+
+### Deprecations
+
+### Other
+
+## 1.4.0
+
+### Breaking Changes
+
+- [16660](https://github.com/apache/superset/pull/16660): The `columns` Jinja parameter has been renamed `table_columns` to make the `columns` query object parameter available in the Jinja context.
+- [16711](https://github.com/apache/superset/pull/16711): The `url_param` Jinja function will now by default escape the result. For instance, the value `O'Brien` will now be changed to `O''Brien`. To disable this behavior, call `url_param` with `escape_result` set to `False`: `url_param("my_key", "my default", escape_result=False)`.
+
+### Potential Downtime
+
+### Deprecations
+
+### Other
+
+- [16809](https://github.com/apache/superset/pull/16809): When building the superset frontend assets manually, you should now use Node 16 (previously Node 14 was required/recommended). Node 14 will most likely still work for at least some time, but is no longer actively tested for on CI.
 
 ## 1.3.0
 
 ### Breaking Changes
 
-- [15909](https://github.com/apache/incubator-superset/pull/15909): a change which
-drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
+- [15909](https://github.com/apache/superset/pull/15909): a change which
+  drops a uniqueness criterion (which may or may not have existed) to the tables table. This constraint was obsolete as it is handled by the ORM due to differences in how MySQL, PostgreSQL, etc. handle uniqueness for NULL values.
 
 ### Potential Downtime
-- [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficed table, potential service downtime may be required.
+
+- [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficked table, potential service downtime may be required.
+
+-[16454](https://github.com/apache/superset/pull/16454): Adds the `extra` column to the `table_columns` table. Users using MySQL will either need to schedule downtime or use the percona toolkit (or similar) to perform the migration.
 
 ## 1.2.0
 
 ### Deprecations
 
 - [13440](https://github.com/apache/superset/pull/13440): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
-    - ENABLE_ALERTS
-    - SCHEDULED_EMAIL_DEBUG_MODE
-    - EMAIL_REPORTS_CRON_RESOLUTION
-    - EMAIL_ASYNC_TIME_LIMIT_SEC
-    - EMAIL_REPORT_BCC_ADDRESS
-    - EMAIL_REPORTS_USER
+  - ENABLE_ALERTS
+  - SCHEDULED_EMAIL_DEBUG_MODE
+  - EMAIL_REPORTS_CRON_RESOLUTION
+  - EMAIL_ASYNC_TIME_LIMIT_SEC
+  - EMAIL_REPORT_BCC_ADDRESS
+  - EMAIL_REPORTS_USER
 
 ### Other
 
@@ -84,19 +145,21 @@ drops a uniqueness criterion (which may or may not have existed) to the tables t
 ## 1.0.0
 
 ### Breaking Changes
+
 - [11509](https://github.com/apache/superset/pull/12491): Dataset metadata updates check user ownership, only owners or an Admin are allowed.
 - Security simplification (SIP-19), the following permission domains were simplified:
-    - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
-    - [12036](https://github.com/apache/superset/pull/12036): `Database` with `can_read`, `can_write`.
-    - [12012](https://github.com/apache/superset/pull/12036): `Dashboard` with `can_read`, `can_write`.
-    - [12061](https://github.com/apache/superset/pull/12061): `Log` with `can_read`, `can_write`.
-    - [12000](https://github.com/apache/superset/pull/12000): `Dataset` with `can_read`, `can_write`.
-    - [12014](https://github.com/apache/superset/pull/12014): `Annotation` with `can_read`, `can_write`.
-    - [11981](https://github.com/apache/superset/pull/11981): `Chart` with `can_read`, `can_write`.
-    - [11853](https://github.com/apache/superset/pull/11853): `ReportSchedule` with `can_read`, `can_write`.
-    - [11856](https://github.com/apache/superset/pull/11856): `CssTemplate` with `can_read`, `can_write`.
-    - [11764](https://github.com/apache/superset/pull/11764): `SavedQuery` with `can_read`, `can_write`.
-   Old permissions will be automatically migrated to these new permissions and applied to all existing security Roles.
+
+  - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
+  - [12036](https://github.com/apache/superset/pull/12036): `Database` with `can_read`, `can_write`.
+  - [12012](https://github.com/apache/superset/pull/12036): `Dashboard` with `can_read`, `can_write`.
+  - [12061](https://github.com/apache/superset/pull/12061): `Log` with `can_read`, `can_write`.
+  - [12000](https://github.com/apache/superset/pull/12000): `Dataset` with `can_read`, `can_write`.
+  - [12014](https://github.com/apache/superset/pull/12014): `Annotation` with `can_read`, `can_write`.
+  - [11981](https://github.com/apache/superset/pull/11981): `Chart` with `can_read`, `can_write`.
+  - [11853](https://github.com/apache/superset/pull/11853): `ReportSchedule` with `can_read`, `can_write`.
+  - [11856](https://github.com/apache/superset/pull/11856): `CssTemplate` with `can_read`, `can_write`.
+  - [11764](https://github.com/apache/superset/pull/11764): `SavedQuery` with `can_read`, `can_write`.
+    Old permissions will be automatically migrated to these new permissions and applied to all existing security Roles.
 
 - [11499](https://github.com/apache/superset/pull/11499): Breaking change: `STORE_CACHE_KEYS_IN_METADATA_DB` config flag added (default=`False`) to write `CacheKey` records to the metadata DB. `CacheKey` recording was enabled by default previously.
 
@@ -111,42 +174,44 @@ drops a uniqueness criterion (which may or may not have existed) to the tables t
 - [11244](https://github.com/apache/superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
 - [11172](https://github.com/apache/superset/pull/11172): Turning
-off language selectors by default as i18n is incomplete in most languages
-and requires more work. You can easily turn on the languages you want
-to expose in your environment in superset_config.py
+  off language selectors by default as i18n is incomplete in most languages
+  and requires more work. You can easily turn on the languages you want
+  to expose in your environment in superset_config.py
 
 - [11172](https://github.com/apache/superset/pull/11172): Breaking change: SQL templating is turned off by default. To turn it on set `ENABLE_TEMPLATE_PROCESSING` to True on `FEATURE_FLAGS`
 
 ### Potential Downtime
+
 - [11920](https://github.com/apache/superset/pull/11920): Undos the DB migration from [11714](https://github.com/apache/superset/pull/11714) to prevent adding new columns to the logs table. Deploying a sha between these two PRs may result in locking your DB.
 
 - [11714](https://github.com/apache/superset/pull/11714): Logs
-significantly more analytics events (roughly double?), and when
-using DBEventLogger (default) could result in stressing the metadata
-database more.
+  significantly more analytics events (roughly double?), and when
+  using DBEventLogger (default) could result in stressing the metadata
+  database more.
 
 - [11098](https://github.com/apache/superset/pull/11098): includes a database migration that adds a `uuid` column to most models, and updates `Dashboard.position_json` to include chart UUIDs. Depending on number of objects, the migration may take up to 5 minutes, requiring planning for downtime.
 
 ### Deprecations
+
 - [11155](https://github.com/apache/superset/pull/11155): The `FAB_UPDATE_PERMS` config parameter is no longer required as the Superset application correctly informs FAB under which context permissions should be updated.
 
 ## 0.38.0
 
-* [10887](https://github.com/apache/superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
+- [10887](https://github.com/apache/superset/pull/10887): Breaking change: The custom cache backend changed in order to support the Flask-Caching factory method approach and thus must be registered as a custom type. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
 
-* [10674](https://github.com/apache/superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set to whatever role you want.
+- [10674](https://github.com/apache/superset/pull/10674): Breaking change: PUBLIC_ROLE_LIKE_GAMMA was removed is favour of the new PUBLIC_ROLE_LIKE so it can be set to whatever role you want.
 
-* [10590](https://github.com/apache/superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
+- [10590](https://github.com/apache/superset/pull/10590): Breaking change: this PR will convert iframe chart into dashboard markdown component, and remove all `iframe`, `separator`, and `markup` slices (and support) from Superset. If you have important data in those slices, please backup manually.
 
-* [10562](https://github.com/apache/superset/pull/10562): EMAIL_REPORTS_WEBDRIVER is deprecated use WEBDRIVER_TYPE instead.
+- [10562](https://github.com/apache/superset/pull/10562): EMAIL_REPORTS_WEBDRIVER is deprecated use WEBDRIVER_TYPE instead.
 
-* [10567](https://github.com/apache/superset/pull/10567): Default WEBDRIVER_OPTION_ARGS are Chrome-specific. If you're using FF, should be `--headless` only
+- [10567](https://github.com/apache/superset/pull/10567): Default WEBDRIVER_OPTION_ARGS are Chrome-specific. If you're using FF, should be `--headless` only
 
-* [10241](https://github.com/apache/superset/pull/10241): change on Alpha role, users started to have access to "Annotation Layers", "Css Templates" and "Import Dashboards".
+- [10241](https://github.com/apache/superset/pull/10241): change on Alpha role, users started to have access to "Annotation Layers", "Css Templates" and "Import Dashboards".
 
-* [10324](https://github.com/apache/superset/pull/10324): Facebook Prophet has been introduced as an optional dependency to add support for timeseries forecasting in the chart data API. To enable this feature, install Superset with the optional dependency `prophet` or directly `pip install fbprophet`.
+- [10324](https://github.com/apache/superset/pull/10324): Facebook Prophet has been introduced as an optional dependency to add support for timeseries forecasting in the chart data API. To enable this feature, install Superset with the optional dependency `prophet` or directly `pip install fbprophet`.
 
-* [10320](https://github.com/apache/superset/pull/10320): References to blacklst/whitelist language have been replaced with more appropriate alternatives. All configs refencing containing `WHITE`/`BLACK` have been replaced with `ALLOW`/`DENY`. Affected config variables that need to be updated: `TIME_GRAIN_BLACKLIST`, `VIZ_TYPE_BLACKLIST`, `DRUID_DATA_SOURCE_BLACKLIST`.
+- [10320](https://github.com/apache/superset/pull/10320): References to blacklst/whitelist language have been replaced with more appropriate alternatives. All configs refencing containing `WHITE`/`BLACK` have been replaced with `ALLOW`/`DENY`. Affected config variables that need to be updated: `TIME_GRAIN_BLACKLIST`, `VIZ_TYPE_BLACKLIST`, `DRUID_DATA_SOURCE_BLACKLIST`.
 
 ## 0.37.1
 
@@ -214,7 +279,7 @@ database more.
 - [8699](https://github.com/apache/superset/pull/8699): A `row_level_security_filters`
   table has been added, which is many-to-many with `tables` and `ab_roles`. The applicable filters
   are added to the sqla query, and the RLS ids are added to the query cache keys. If RLS is enabled in config.py (`ENABLE_ROW_LEVEL_SECURITY = True`; by default, it is disabled), they can be
-  accessed through the `Security` menu, or when editting a table.
+  accessed through the `Security` menu, or when editing a table.
 
 - [8732](https://github.com/apache/superset/pull/8732): Swagger user interface is now enabled by default.
   A new permission `show on SwaggerView` is created by `superset init` and given to the `Admin` Role. To disable the UI,
@@ -393,7 +458,7 @@ Superset 0.25.0 contains a backwards incompatible changes.
 If you run a production system you should schedule downtime for this
 upgrade.
 
-The PRs bellow have more information around the breaking changes:
+The PRs below have more information around the breaking changes:
 
 - [9825](https://github.com/apache/superset/pull/9825): Support for Excel sheet upload added. To enable support, install Superset with the optional dependency `excel`
 

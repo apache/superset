@@ -68,11 +68,8 @@ params:
   show_legend: false
   slice_id: 668
   time_compare: null
-  time_grain_sqla: P0.25Y
+  time_grain_sqla: P3M
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: bar
   x_axis_format: '%m/%d/%Y'

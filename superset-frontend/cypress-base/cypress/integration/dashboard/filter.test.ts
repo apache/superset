@@ -30,7 +30,7 @@ describe('Dashboard filter', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
-  it('should apply filter', () => {
+  xit('should apply filter', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliasesBySpec(
       WORLD_HEALTH_CHARTS.filter(({ viz }) => viz !== 'filter_box'),

@@ -23,6 +23,7 @@ export type User = {
   email: string;
   firstName: string;
   isActive: boolean;
+  isAnonymous: boolean;
   lastName: string;
   userId: number;
   username: string;

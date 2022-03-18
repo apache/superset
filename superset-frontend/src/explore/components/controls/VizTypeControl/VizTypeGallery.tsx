@@ -33,8 +33,12 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
+  chartLabelWeight,
+  chartLabelExplanations,
 } from '@superset-ui/core';
-import { Collapse, Input } from 'src/common/components';
+import { AntdCollapse } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
+import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
@@ -125,17 +129,23 @@ const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
-const VizPickerLayout = styled.div`
-  display: grid;
-  grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
-  // em is used here because the sidebar should be sized to fit the longest standard tag
-  grid-template-columns: minmax(14em, auto) 5fr;
-  grid-template-areas:
-    'sidebar search'
-    'sidebar main'
-    'details details';
-  height: 70vh;
-  overflow: auto;
+const VizPickerLayout = styled.div<{ isSelectedVizMetadata: boolean }>`
+  ${({ isSelectedVizMetadata }) => `
+    display: grid;
+    grid-template-rows: ${
+      isSelectedVizMetadata
+        ? `auto minmax(100px, 1fr) minmax(200px, 35%)`
+        : 'auto minmax(100px, 1fr)'
+    };
+    // em is used here because the sidebar should be sized to fit the longest standard tag
+    grid-template-columns: minmax(14em, auto) 5fr;
+    grid-template-areas:
+      'sidebar search'
+      'sidebar main'
+      'details details';
+    height: 70vh;
+    overflow: auto;
+  `}
 `;
 
 const SectionTitle = styled.h3`
@@ -269,15 +279,6 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
     'description examples';
 `;
 
-const DetailsEmpty = (theme: SupersetTheme) => css`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-style: italic;
-  color: ${theme.colors.grayscale.light1};
-`;
-
 // overflow hidden on the details pane and overflow auto on the description
 // (plus grid layout) enables the description to scroll while the header stays in place.
 const TagsWrapper = styled.div`
@@ -312,6 +313,7 @@ const Examples = styled.div`
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+  position: relative;
 
   img {
     min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
@@ -333,6 +335,38 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
     margin-top: ${theme.gridUnit * 2}px;
     text-align: center;
   }
+`;
+
+const HighlightLabel = styled.div`
+  ${({ theme }) => `
+    border: 1px solid ${theme.colors.primary.dark1};
+    box-sizing: border-box;
+    border-radius: ${theme.gridUnit}px;
+    background: ${theme.colors.grayscale.light5};
+    line-height: ${theme.gridUnit * 2.5}px;
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
+    text-align: center;
+    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
+    text-transform: uppercase;
+    cursor: pointer;
+
+    div {
+      transform: scale(0.83,0.83);
+    }
+  `}
+`;
+
+const ThumbnailLabelWrapper = styled.div`
+  position: absolute;
+  right: ${({ theme }) => theme.gridUnit}px;
+  top: ${({ theme }) => theme.gridUnit * 19}px;
+`;
+
+const TitleLabelWrapper = styled.div`
+  display: inline-block !important;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 function vizSortFactor(entry: VizEntry) {
@@ -380,6 +414,13 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
+      {type.label && (
+        <ThumbnailLabelWrapper>
+          <HighlightLabel>
+            <div>{t(type.label)}</div>
+          </HighlightLabel>
+        </ThumbnailLabelWrapper>
+      )}
     </div>
   );
 };
@@ -547,7 +588,22 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (searchInputValue.trim() === '') {
       return [];
     }
-    return fuse.search(searchInputValue).map(result => result.item);
+    return fuse
+      .search(searchInputValue)
+      .map(result => result.item)
+      .sort((a, b) => {
+        const aLabel = a.value?.label;
+        const bLabel = b.value?.label;
+        const aOrder =
+          aLabel && chartLabelWeight[aLabel]
+            ? chartLabelWeight[aLabel].weight
+            : 0;
+        const bOrder =
+          bLabel && chartLabelWeight[bLabel]
+            ? chartLabelWeight[bLabel].weight
+            : 0;
+        return bOrder - aOrder;
+      });
   }, [searchInputValue, fuse]);
 
   const focusSearch = useCallback(() => {
@@ -642,7 +698,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   };
 
   return (
-    <VizPickerLayout className={className}>
+    <VizPickerLayout
+      className={className}
+      isSelectedVizMetadata={Boolean(selectedVizMetadata)}
+    >
       <LeftPane>
         <Selector
           css={({ gridUnit }) =>
@@ -662,7 +721,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <Collapse
+        <AntdCollapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Object.keys(sectionMap)}
@@ -671,7 +730,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             const section = sectionMap[sectionId];
 
             return (
-              <Collapse.Panel
+              <AntdCollapse.Panel
                 header={<span className="header">{section.title}</span>}
                 key={sectionId}
               >
@@ -689,10 +748,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                     onClick={clickSelector}
                   />
                 ))}
-              </Collapse.Panel>
+              </AntdCollapse.Panel>
             );
           })}
-        </Collapse>
+        </AntdCollapse>
       </LeftPane>
 
       <SearchWrapper>
@@ -738,9 +797,26 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             <SectionTitle
               css={css`
                 grid-area: viz-name;
+                position: relative;
               `}
             >
               {selectedVizMetadata?.name}
+              {selectedVizMetadata?.label && (
+                <Tooltip
+                  id="viz-badge-tooltip"
+                  placement="top"
+                  title={
+                    selectedVizMetadata.labelExplanation ??
+                    chartLabelExplanations[selectedVizMetadata.label]
+                  }
+                >
+                  <TitleLabelWrapper>
+                    <HighlightLabel>
+                      <div>{t(selectedVizMetadata.label)}</div>
+                    </HighlightLabel>
+                  </TitleLabelWrapper>
+                </Tooltip>
+              )}
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
@@ -769,16 +845,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </Examples>
           </>
         </div>
-      ) : (
-        <div
-          css={(theme: SupersetTheme) => [
-            DetailsPane(theme),
-            DetailsEmpty(theme),
-          ]}
-        >
-          {t('Select a visualization type')}
-        </div>
-      )}
+      ) : null}
     </VizPickerLayout>
   );
 }

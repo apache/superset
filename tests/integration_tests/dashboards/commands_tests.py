@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=no-self-use, invalid-name
-
 import itertools
 import json
 from unittest.mock import MagicMock, patch
@@ -50,6 +48,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
@@ -424,6 +423,28 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "DASHBOARD_VERSION_KEY": "v2",
         }
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_no_related(self, mock_g1, mock_g2):
+        """
+        Test that only the dashboard is exported when export_related=False.
+        """
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
+        command = ExportDashboardsCommand([example_dashboard.id], export_related=False)
+        contents = dict(command.run())
+
+        expected_paths = {
+            "metadata.yaml",
+            "dashboards/World_Banks_Data.yaml",
+        }
+        assert expected_paths == set(contents.keys())
+
 
 class TestImportDashboardsCommand(SupersetTestCase):
     def test_import_v0_dashboard_cli_export(self):
@@ -465,8 +486,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    def test_import_v1_dashboard(self):
+    @patch("superset.dashboards.commands.importers.v1.utils.g")
+    def test_import_v1_dashboard(self, mock_g):
         """Test that we can import a dashboard"""
+        mock_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -546,6 +569,12 @@ class TestImportDashboardsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
+        assert dashboard.owners == [mock_g.user]
+
+        dashboard.owners = []
+        chart.owners = []
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)

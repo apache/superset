@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [1.4](release-notes-1-4/README.md)
 - [1.3](release-notes-1-3/README.md)
 - [1.2](release-notes-1-2/README.md)
 - [1.1](release-notes-1-1/README.md)
@@ -179,7 +180,7 @@ the tag and create a signed source tarball from it:
 Note that `make_tarball.sh`:
 
 - By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
-This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
+This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
@@ -286,6 +287,8 @@ cd ~/src/superset/
 git branch
 # Create the release tag
 git tag -f ${SUPERSET_VERSION}
+# push the tag to the remote
+git push upstream ${SUPERSET_VERSION}
 ```
 
 ### Update CHANGELOG and UPDATING on superset

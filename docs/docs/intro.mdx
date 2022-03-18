@@ -1,0 +1,60 @@
+---
+title: Introduction
+hide_title: true
+sidebar_position: 1
+---
+
+## What is Apache Superset?
+
+Apache Superset is a modern, enterprise-ready business intelligence web application. It
+is fast, lightweight, intuitive, and loaded with options that make it easy for users of all skill
+sets to explore and visualize their data, from simple pie charts to highly detailed deck.gl
+geospatial charts.
+
+Here are a **few different ways you can get started with Superset**:
+
+- Download the [source from Apache Foundation's website](https://dist.apache.org/repos/dist/release/superset/1.4.1/)
+- Download the latest Superset version from [Pypi here](https://pypi.org/project/apache-superset/)
+- Setup Superset locally with one command
+  using [Docker Compose](installation/installing-superset-using-docker-compose)
+- Download the [Docker image](https://hub.docker.com/r/apache/superset) from Dockerhub
+- Install the latest version of Superset
+  [from Github](https://github.com/apache/superset/tree/latest)
+
+Superset provides:
+
+- An intuitive interface for visualizing datasets and crafting interactive dashboards
+- A wide array of beautiful visualizations to showcase your data
+- Code-free visualization builder to extract and present datasets
+- A world-class SQL IDE for preparing data for visualization, including a rich metadata browser
+- A lightweight semantic layer which empowers data analysts to quickly define custom dimensions and metrics
+- Out-of-the-box support for most SQL-speaking databases
+- Seamless, in-memory asynchronous caching and queries
+- An extensible security model that allows configuration of very intricate rules on on who can access which product features and datasets.
+- Integration with major authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, etc)
+- The ability to add custom visualization plugins
+- An API for programmatic customization
+- A cloud-native architecture designed from the ground up for scale
+
+Superset is cloud-native and designed to be highly available. It was designed to scale out to large,
+distributed environments and works very well inside containers. While you can easily test drive
+Superset on a modest setup or simply on your laptop, there’s virtually no limit around scaling out
+the platform.
+
+Superset is also cloud-native in the sense that it is flexible and lets you choose the:
+
+- web server (Gunicorn, Nginx, Apache),
+- metadata database engine (MySQL, Postgres, MariaDB, etc),
+- message queue (Redis, RabbitMQ, SQS, etc),
+- results backend (S3, Redis, Memcached, etc),
+- caching layer (Memcached, Redis, etc),
+
+Superset also works well with services like NewRelic, StatsD and DataDog, and has the ability to run
+analytic workloads against most popular database technologies.
+
+Superset is currently run at scale at many companies. For example, Superset is run in Airbnb’s
+production environment inside Kubernetes and serves 600+ daily active users viewing over 100K charts
+a day.
+
+You can find a partial list of industries and companies embracing Superset
+[on this page in GitHub](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md).

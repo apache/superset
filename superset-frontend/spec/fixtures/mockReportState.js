@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { user } from 'src/SqlLab/fixtures';
 import dashboardInfo from './mockDashboardInfo';
-import { user } from '../javascripts/sqllab/fixtures';
 
 export default {
   active: true,

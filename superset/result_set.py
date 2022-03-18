@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from superset import db_engine_specs
-from superset.typing import DbapiDescription, DbapiResult
+from superset.db_engine_specs import BaseEngineSpec
+from superset.superset_typing import DbapiDescription, DbapiResult
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ class SupersetResultSet:
         self,
         data: DbapiResult,
         cursor_description: DbapiDescription,
-        db_engine_spec: Type[db_engine_specs.BaseEngineSpec],
+        db_engine_spec: Type[BaseEngineSpec],
     ):
         self.db_engine_spec = db_engine_spec
         data = data or []

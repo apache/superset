@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import pandas as pd
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, inspect
 
+import superset.utils.database as database_utils
 from superset import db
-from superset.utils import core as utils
 
 from .helpers import get_example_data, get_table_connector_registry
 
@@ -26,7 +26,9 @@ from .helpers import get_example_data, get_table_connector_registry
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "flights"
-    database = utils.get_example_database()
+    database = database_utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
@@ -47,7 +49,8 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
         pdf = pdf.join(airports, on="DESTINATION_AIRPORT", rsuffix="_DEST")
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={"ds": DateTime},
@@ -57,7 +60,7 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = "Random set of flights in the US"
     tbl.database = database
     tbl.filter_select_enabled = True

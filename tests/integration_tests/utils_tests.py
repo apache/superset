@@ -26,6 +26,7 @@ from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import numpy as np
@@ -47,12 +48,12 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
+    extract_dataframe_dtypes,
     format_timedelta,
     GenericDataType,
     get_form_data_token,
     get_iterable,
     get_email_address_list,
-    get_or_create_db,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -60,26 +61,23 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
+    NO_TIME_RANGE,
     normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
-    extract_dataframe_dtypes,
     split,
-    TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
 )
+from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
-from superset.views.utils import (
-    build_extra_filters,
-    get_form_data,
-    get_time_range_endpoints,
-)
+from superset.views.utils import build_extra_filters, get_form_data
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 from .fixtures.certificates import ssl_certificate
@@ -116,6 +114,7 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
+        assert isinstance(base_json_conv(time()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
 
     def test_zlib_compression(self):
@@ -740,58 +739,6 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
-    def test_get_time_range_endpoints(self):
-        self.assertEqual(
-            get_time_range_endpoints(form_data={}),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
-        self.assertEqual(
-            get_time_range_endpoints(
-                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}
-            ),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1_druid"}),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
-        slc = Mock()
-        slc.datasource.database.get_extra.return_value = {}
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-            (TimeRangeEndpoint.UNKNOWN, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        slc.datasource.database.get_extra.return_value = {
-            "time_range_endpoints": ["inclusive", "inclusive"]
-        }
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        self.assertIsNone(get_time_range_endpoints(form_data={}, slc=slc))
-
-        with app.app_context():
-            app.config["SIP_15_GRACE_PERIOD_END"] = date.today() + timedelta(days=1)
-
-            self.assertEqual(
-                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-            )
-
-            app.config["SIP_15_GRACE_PERIOD_END"] = date.today()
-
-            self.assertEqual(
-                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-            )
-
     def test_get_iterable(self):
         self.assertListEqual(get_iterable(123), [123])
         self.assertListEqual(get_iterable([123]), [123])
@@ -848,6 +795,47 @@ class TestUtils(SupersetTestCase):
         merge_extra_form_data(form_data)
         self.assertEqual(
             form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+        )
+
+    def test_merge_extra_filters_with_unset_legacy_time_range(self):
+        """
+        Make sure native filter is applied if filter box time range is unset.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [
+                {"col": "__time_range", "op": "==", "val": NO_TIME_RANGE},
+            ],
+            "extra_form_data": {"time_range": "Last year"},
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last year",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_conflicting_time_ranges(self):
+        """
+        Make sure filter box takes precedence if both native filter and filter box
+        time ranges are set.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
+            "extra_form_data": {"time_range": "Last year",},
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last week",
+                "applied_time_extras": {"__time_range": "Last week"},
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_extras(self):
@@ -913,12 +901,6 @@ class TestUtils(SupersetTestCase):
     def test_get_form_data_default(self) -> None:
         with app.test_request_context():
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
-            )
-
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_args(self) -> None:
@@ -926,29 +908,13 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": json.dumps({"foo": "bar"})}
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_form(self) -> None:
         with app.test_request_context(data={"form_data": json.dumps({"foo": "bar"})}):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_form_with_queries(self) -> None:
@@ -960,15 +926,7 @@ class TestUtils(SupersetTestCase):
             }
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "url_params": {"foo": "bar"},
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"url_params": {"foo": "bar"}})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_args_and_form(self) -> None:
@@ -977,16 +935,7 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": json.dumps({"baz": "bar"})},
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "baz": "bar",
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"baz": "bar", "foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_globals(self) -> None:
@@ -994,15 +943,7 @@ class TestUtils(SupersetTestCase):
             g.form_data = {"foo": "bar"}
             form_data, slc = get_form_data()
             delattr(g, "form_data")
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_corrupted_json(self) -> None:
@@ -1011,12 +952,7 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": '{"baz": "bar"'},
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
-            )
-
+            self.assertEqual(form_data, {})
             self.assertEqual(slc, None)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1078,7 +1014,9 @@ class TestUtils(SupersetTestCase):
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
+        slc = self.get_slice("Girls", db.session)
         cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
@@ -1104,10 +1042,13 @@ class TestUtils(SupersetTestCase):
             ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
             ("bool_null", GenericDataType.BOOLEAN, [None, False]),
             ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+            # Non-timestamp columns should be identified as temporal if
+            # `is_dttm` is set to `True` in the underlying datasource
+            ("ds", GenericDataType.TEMPORAL, [None, {"ds": "2017-01-01"}]),
         )
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
-        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+        assert extract_dataframe_dtypes(df, slc.datasource) == [col[1] for col in cols]
 
     def test_normalize_dttm_col(self):
         def normalize_col(

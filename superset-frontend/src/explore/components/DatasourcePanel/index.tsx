@@ -17,12 +17,16 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
+import {
+  ControlConfig,
+  DatasourceMeta,
+  ColumnMeta,
+} from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { css, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -41,6 +45,8 @@ export interface Props {
     datasource: DatasourceControl;
   };
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
+  // we use this props control force update when this panel resize
+  shouldForceUpdate?: number;
 }
 
 const Button = styled.button`
@@ -119,32 +125,11 @@ const LabelContainer = (props: {
   className: string;
 }) => {
   const labelRef = useRef<HTMLDivElement>(null);
-  const [showTooltip, setShowTooltip] = useState(true);
-  const isLabelTruncated = () =>
-    !!(
-      labelRef &&
-      labelRef.current &&
-      labelRef.current.scrollWidth > labelRef.current.clientWidth
-    );
-  const handleShowTooltip = () => {
-    const shouldShowTooltip = isLabelTruncated();
-    if (shouldShowTooltip !== showTooltip) {
-      setShowTooltip(shouldShowTooltip);
-    }
-  };
-  const handleResetTooltip = () => {
-    setShowTooltip(true);
-  };
   const extendedProps = {
     labelRef,
-    showTooltip,
   };
   return (
-    <LabelWrapper
-      onMouseEnter={handleShowTooltip}
-      onMouseLeave={handleResetTooltip}
-      className={props.className}
-    >
+    <LabelWrapper className={props.className}>
       {React.cloneElement(props.children, extendedProps)}
     </LabelWrapper>
   );
@@ -158,6 +143,7 @@ export default function DataSourcePanel({
   datasource,
   controls: { datasource: datasourceControl },
   actions,
+  shouldForceUpdate,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
 
@@ -253,6 +239,9 @@ export default function DataSourcePanel({
     setInputValue('');
   }, [columns, datasource, metrics]);
 
+  const sortCertifiedFirst = (slice: ColumnMeta[]) =>
+    slice.sort((a, b) => b.is_certified - a.is_certified);
+
   const metricSlice = useMemo(
     () =>
       showAllMetrics
@@ -263,8 +252,10 @@ export default function DataSourcePanel({
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? lists.columns
-        : lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+        ? sortCertifiedFirst(lists.columns)
+        : sortCertifiedFirst(
+            lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+          ),
     [lists.columns, showAllColumns],
   );
 
@@ -300,7 +291,10 @@ export default function DataSourcePanel({
                 )}
               </div>
               {metricSlice.map(m => (
-                <LabelContainer key={m.metric_name} className="column">
+                <LabelContainer
+                  key={m.metric_name + String(shouldForceUpdate)}
+                  className="column"
+                >
                   {enableExploreDnd ? (
                     <DatasourcePanelDragOption
                       value={m}
@@ -333,7 +327,10 @@ export default function DataSourcePanel({
                 )}
               </div>
               {columnSlice.map(col => (
-                <LabelContainer key={col.column_name} className="column">
+                <LabelContainer
+                  key={col.column_name + String(shouldForceUpdate)}
+                  className="column"
+                >
                   {enableExploreDnd ? (
                     <DatasourcePanelDragOption
                       value={col}
@@ -367,6 +364,7 @@ export default function DataSourcePanel({
       search,
       showAllColumns,
       showAllMetrics,
+      shouldForceUpdate,
     ],
   );
 

@@ -39,6 +39,8 @@ import {
   UNSET_FOCUSED_FILTER_FIELD,
   SET_ACTIVE_TABS,
   SET_FULL_SIZE_CHART_ID,
+  ON_FILTERS_REFRESH,
+  ON_FILTERS_REFRESH_SUCCESS,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -136,6 +138,18 @@ export default function dashboardStateReducer(state = {}, action) {
         isRefreshing: true,
       };
     },
+    [ON_FILTERS_REFRESH]() {
+      return {
+        ...state,
+        isFiltersRefreshing: true,
+      };
+    },
+    [ON_FILTERS_REFRESH_SUCCESS]() {
+      return {
+        ...state,
+        isFiltersRefreshing: false,
+      };
+    },
     [ON_REFRESH_SUCCESS]() {
       return {
         ...state,
@@ -150,9 +164,12 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_ACTIVE_TABS]() {
+      const newActiveTabs = new Set(state.activeTabs);
+      newActiveTabs.delete(action.prevTabId);
+      newActiveTabs.add(action.tabId);
       return {
         ...state,
-        activeTabs: action.tabIds,
+        activeTabs: Array.from(newActiveTabs),
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

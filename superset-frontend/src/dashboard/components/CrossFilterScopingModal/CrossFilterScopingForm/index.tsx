@@ -17,16 +17,16 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
+import { NativeFilterScope } from '@superset-ui/core';
 import FilterScope from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
 import { setCrossFilterFieldValues } from 'src/dashboard/components/CrossFilterScopingModal/utils';
-import { Scope } from 'src/dashboard/components/nativeFilters/types';
 import { useForceUpdate } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
 import { CrossFilterScopingFormType } from 'src/dashboard/components/CrossFilterScopingModal/types';
 
 type CrossFilterScopingFormProps = {
   chartId: number;
-  scope: Scope;
+  scope: NativeFilterScope;
   form: FormInstance<CrossFilterScopingFormType>;
 };
 

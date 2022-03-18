@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
 import { JsonObject, t, styled } from '@superset-ui/core';
@@ -26,7 +26,8 @@ import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
-import { CreatableSelect } from 'src/components/Select';
+import { Select } from 'src/components';
+import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
@@ -89,7 +90,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       let recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
 
-      if (!recentDashboard && this.props.dashboardId) {
+      if (this.props.dashboardId) {
         recentDashboard = this.props.dashboardId;
       }
 
@@ -108,10 +109,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardSelectChange(event: Record<string, any>) {
-    const newDashboardName = event ? event.label : null;
+  onDashboardSelectChange(selected: SelectValue) {
+    const newDashboardName = selected ? String(selected) : undefined;
     const saveToDashboardId =
-      event && typeof event.value === 'number' ? event.value : null;
+      selected && typeof selected === 'number' ? selected : null;
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
@@ -137,9 +138,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.slice_name = this.state.newSliceName;
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
+    const { url_params, ...formData } = this.props.form_data || {};
 
     this.props.actions
-      .saveSlice(this.props.form_data, sliceParams)
+      .saveSlice(formData, sliceParams)
       .then((data: JsonObject) => {
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
@@ -147,7 +149,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        if (url_params) {
+          const prefix = url.includes('?') ? '&' : '?';
+          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
+        }
         window.location.assign(url);
       });
     this.props.onHide();
@@ -163,9 +169,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   render() {
     const dashboardSelectValue =
       this.state.saveToDashboardId || this.state.newDashboardName;
-    const valueObj = dashboardSelectValue
-      ? { value: dashboardSelectValue }
-      : null;
     return (
       <StyledModal
         show
@@ -260,16 +263,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             label={t('Add to dashboard')}
             data-test="save-chart-modal-select-dashboard-form"
           >
-            <CreatableSelect
-              id="dashboard-creatable-select"
-              className="save-modal-selector"
-              menuPosition="fixed"
+            <Select
+              allowClear
+              allowNewOptions
+              ariaLabel={t('Select a dashboard')}
               options={this.props.dashboards}
-              clearable
-              creatable
               onChange={this.onDashboardSelectChange}
-              autoSize={false}
-              value={valueObj}
+              value={dashboardSelectValue || undefined}
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown

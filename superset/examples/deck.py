@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-statements
 import json
 
 from superset import db
@@ -172,7 +171,7 @@ POSITION_JSON = """\
 }"""
 
 
-def load_deck_dash() -> None:
+def load_deck_dash() -> None:  # pylint: disable=too-many-statements
     print("Loading deck.gl dashboard")
     slices = []
     table = get_table_connector_registry()
@@ -191,7 +190,6 @@ def load_deck_dash() -> None:
         "max_radius": 250,
         "row_limit": 5000,
         "time_range": " : ",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "size": "count",
         "time_grain_sqla": None,
         "viewport": {

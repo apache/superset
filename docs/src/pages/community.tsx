@@ -17,12 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { css } from '@emotion/core';
-import { Card, List } from 'antd';
-import { GithubOutlined } from '@ant-design/icons';
-import SEO from '../components/seo';
-import Layout from '../components/layout';
-import { pmc } from '../resources/data';
+import styled from '@emotion/styled';
+import { List } from 'antd';
+import Layout from '@theme/Layout';
 
 const links = [
   [
@@ -62,60 +59,41 @@ const links = [
   ],
 ];
 
-const communityContainer = css`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  margin: 0 auto;
-  overflow: auto;
-  .communityCard {
-    font-size: 12px;
-    overflow: hidden;
-    margin: 10px 10px;
-    .ant-card-meta-title {
-      text-overflow: clip;
-      white-space: normal;
-    }
-    .ant-card-body {
-      padding: 8px;
-      display:inline-block;
-      white-space: nowrap;
+const StyledMain = styled('main')`
+  padding-bottom: 60px;
+  padding-left: 16px;
+  padding-right: 16px;
+  section {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 60px 0 0 0;
+    font-size: 17px;
+    &:first-of-type{
+      padding: 40px;
+      background-image: linear-gradient(120deg, #d6f2f8, #52c6e3);
+      border-radius: 0 0 10px;
     }
   }
 `;
 
-const getInvolvedContainer = css`
+const StyledGetInvolved = styled('div')`
   margin-bottom: 25px;
 `;
 
 const Community = () => {
-  const pmcList = pmc.map((e) => {
-    const name = e.name.indexOf(' ');
-    return (
-      <a href={e.github} target="_blank" rel="noreferrer" key={name}>
-        <Card
-          className="communityCard"
-          hoverable
-          style={{ width: '150px' }}
-          size="small"
-          cover={<img alt="example" src={e.image} />}
-        >
-          <GithubOutlined style={{ paddingRight: 3, paddingTop: 3 }} />
-          {e.name}
-        </Card>
-      </a>
-    );
-  });
   return (
-    <Layout>
-      <div className="contentPage">
-        <SEO title="Community" />
+    <Layout
+      title="Community"
+      description="Community website for Apache Superset, a data visualization and data exploration platform"
+    >
+      <StyledMain>
         <section>
           <h1 className="title">Community</h1>
           Get involved in our welcoming, fast growing community!
         </section>
         <section className="joinCommunity">
-          <div css={getInvolvedContainer}>
+          <StyledGetInvolved>
             <h2>Get involved!</h2>
             <List
               size="small"
@@ -131,13 +109,9 @@ const Community = () => {
                 </List.Item>
               )}
             />
-          </div>
+          </StyledGetInvolved>
         </section>
-        <section className="ppmc">
-          <h2>Apache Committers</h2>
-          <div css={communityContainer}>{pmcList}</div>
-        </section>
-      </div>
+      </StyledMain>
     </Layout>
   );
 };

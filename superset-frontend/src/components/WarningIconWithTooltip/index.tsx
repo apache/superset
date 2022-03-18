@@ -18,16 +18,17 @@
  */
 import React from 'react';
 import { useTheme, SafeMarkdown } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import Icons, { IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 export interface WarningIconWithTooltipProps {
   warningMarkdown: string;
-  size?: number;
+  size?: IconType['iconSize'];
 }
 
 function WarningIconWithTooltip({
   warningMarkdown,
+  size,
 }: WarningIconWithTooltipProps) {
   const theme = useTheme();
   return (
@@ -37,6 +38,7 @@ function WarningIconWithTooltip({
     >
       <Icons.AlertSolid
         iconColor={theme.colors.alert.base}
+        iconSize={size}
         css={{ marginRight: theme.gridUnit * 2 }}
       />
     </Tooltip>

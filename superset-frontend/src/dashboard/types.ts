@@ -18,16 +18,17 @@
  */
 import {
   ChartProps,
+  DataMaskStateWithId,
   ExtraFormData,
   GenericDataType,
   JsonObject,
+  NativeFiltersState,
 } from '@superset-ui/core';
 import { DatasourceMeta } from '@superset-ui/chart-controls';
-import { chart } from 'src/chart/chartReducer';
+import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 
-import { DataMaskStateWithId } from '../dataMask/types';
-import { NativeFiltersState } from './reducers/types';
+import { User } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
@@ -62,6 +63,7 @@ export type DashboardState = {
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
   isRefreshing: boolean;
+  isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
 };
 export type DashboardInfo = {
@@ -72,7 +74,9 @@ export type DashboardInfo = {
   };
   userId: string;
   dash_edit_perm: boolean;
+  json_metadata: string;
   metadata: {
+    native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
   };
@@ -101,6 +105,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  user: User;
 };
 
 /** State of dashboardLayout in redux */
@@ -138,4 +143,12 @@ type ActiveFilter = {
 
 export type ActiveFilters = {
   [key: string]: ActiveFilter;
+};
+
+export type DashboardPermalinkValue = {
+  dashboardId: string;
+  state: {
+    filterState: DataMaskStateWithId;
+    hash: string;
+  };
 };

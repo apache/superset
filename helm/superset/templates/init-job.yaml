@@ -26,7 +26,14 @@ spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
+      {{- if .Values.init.podAnnotations }}
+      annotations:
+        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
     spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
@@ -36,11 +43,14 @@ spec:
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        {{ if .Values.extraEnv }}
+        {{- if or .Values.extraEnv .Values.extraEnvRaw }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
           - name: {{ $key | quote }}
             value: {{ $value | quote }}
+          {{- end }}
+          {{- if .Values.extraEnvRaw }}
+          {{- toYaml .Values.extraEnvRaw | nindent 10 }}
           {{- end }}
         {{- end }}
         envFrom:

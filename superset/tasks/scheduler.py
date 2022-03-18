@@ -19,7 +19,7 @@ import logging
 from celery.exceptions import SoftTimeLimitExceeded
 from dateutil import parser
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
@@ -37,6 +37,8 @@ def scheduler() -> None:
     """
     Celery beat main scheduler for reports
     """
+    if not is_feature_enabled("ALERT_REPORTS"):
+        return
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:

@@ -19,11 +19,11 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled } from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
-import { exportChart, getExploreLongUrl } from 'src/explore/exploreUtils';
-import ChartContainer from 'src/chart/ChartContainer';
+import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -31,6 +31,9 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { URL_PARAMS } from 'src/constants';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -52,11 +55,13 @@ const propTypes = {
   // from redux
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   maxRows: PropTypes.number.isRequired,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -98,6 +103,11 @@ const ChartOverlay = styled.div`
   top: 0;
   left: 0;
   z-index: 5;
+
+  &.is-deactivated {
+    opacity: 0.5;
+    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 export default class Chart extends React.Component {
@@ -118,6 +128,8 @@ export default class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.getChartHeight = this.getChartHeight.bind(this);
+    this.getDescriptionHeight = this.getDescriptionHeight.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -168,19 +180,29 @@ export default class Chart extends React.Component {
     return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
   }
 
+  componentDidMount() {
+    if (this.props.isExpanded) {
+      const descriptionHeight = this.getDescriptionHeight();
+      this.setState({ descriptionHeight });
+    }
+  }
+
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.isExpanded !== prevProps.isExpanded) {
-      const descriptionHeight =
-        this.props.isExpanded && this.descriptionRef
-          ? this.descriptionRef.offsetHeight
-          : 0;
+      const descriptionHeight = this.getDescriptionHeight();
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ descriptionHeight });
     }
+  }
+
+  getDescriptionHeight() {
+    return this.props.isExpanded && this.descriptionRef
+      ? this.descriptionRef.offsetHeight
+      : 0;
   }
 
   getChartHeight() {
@@ -230,7 +252,28 @@ export default class Chart extends React.Component {
     });
   };
 
-  getChartUrl = () => getExploreLongUrl(this.props.formData);
+  onExploreChart = async () => {
+    try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
+      const key = await postFormData(
+        this.props.datasource.id,
+        this.props.formData,
+        this.props.slice.slice_id,
+        nextTabId,
+      );
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
+      });
+      window.open(url, '_blank', 'noreferrer');
+    } catch (error) {
+      logging.error(error);
+      this.props.addDangerToast(t('An error occurred while opening Explore'));
+    }
+  };
 
   exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
@@ -241,8 +284,9 @@ export default class Chart extends React.Component {
       formData: isFullCSV
         ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
-      resultType: 'results',
+      resultType: 'full',
       resultFormat: 'csv',
+      force: true,
     });
   }
 
@@ -274,6 +318,7 @@ export default class Chart extends React.Component {
       editMode,
       filters,
       formData,
+      labelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -288,6 +333,7 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      filterboxMigrationState,
     } = this.props;
 
     const { width } = this.state;
@@ -299,6 +345,12 @@ export default class Chart extends React.Component {
 
     const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const isLoading = chartStatus === 'loading';
+    const isDeactivatedViz =
+      slice.viz_type === 'filter_box' &&
+      [
+        FILTER_BOX_MIGRATION_STATES.REVIEWING,
+        FILTER_BOX_MIGRATION_STATES.CONVERTED,
+      ].includes(filterboxMigrationState);
     // eslint-disable-next-line camelcase
     const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
     const cachedDttm =
@@ -331,7 +383,7 @@ export default class Chart extends React.Component {
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           logExploreChart={this.logExploreChart}
-          exploreUrl={this.getChartUrl()}
+          onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
           exportFullCSV={this.exportFullCSV}
           updateSliceName={updateSliceName}
@@ -373,15 +425,15 @@ export default class Chart extends React.Component {
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
-          {isLoading && (
+          {(isLoading || isDeactivatedViz) && (
             <ChartOverlay
+              className={cx(isDeactivatedViz && 'is-deactivated')}
               style={{
                 width,
                 height: this.getChartHeight(),
               }}
             />
           )}
-
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -396,12 +448,15 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            labelColors={labelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            isDeactivatedViz={isDeactivatedViz}
+            filterboxMigrationState={filterboxMigrationState}
           />
         </div>
       </div>

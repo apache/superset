@@ -67,8 +67,9 @@ MAXIMUM_DATE = date.today()
 days_range = (MAXIMUM_DATE - MINIMUM_DATE).days
 
 
-# pylint: disable=too-many-return-statements, too-many-branches
-def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
+def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-branches
+    sqltype: sqlalchemy.sql.sqltypes,
+) -> Callable[[], Any]:
     if isinstance(sqltype, sqlalchemy.dialects.mysql.types.TINYINT):
         return lambda: random.choice([0, 1])
 
@@ -180,7 +181,7 @@ def add_data(
     :param bool append: if the table already exists, append data or replace?
     """
     # pylint: disable=import-outside-toplevel
-    from superset.utils.core import get_example_database
+    from superset.utils.database import get_example_database
 
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)

@@ -84,7 +84,6 @@ enable=
 # --disable=W"
 disable=
     missing-docstring,
-    too-many-lines,
     duplicate-code,
     unspecified-encoding,
     # re-enable once this no longer raises false positives
@@ -121,7 +120,7 @@ evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / stateme
 [BASIC]
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x
+good-names=_,df,ex,f,i,id,j,k,l,o,pk,Run,ts,v,x,y
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=fd,foo,bar,baz,toto,tutu,tata

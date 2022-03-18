@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -37,7 +37,7 @@ class RocksetEngineSpec(BaseEngineSpec):
         "P1D": "DATE_TRUNC('day', {col})",
         "P1W": "DATE_TRUNC('week', {col})",
         "P1M": "DATE_TRUNC('month', {col})",
-        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P3M": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
@@ -50,8 +50,9 @@ class RocksetEngineSpec(BaseEngineSpec):
         return "{col}"
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
-        print(cls)
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"DATE '{dttm.date().isoformat()}'"

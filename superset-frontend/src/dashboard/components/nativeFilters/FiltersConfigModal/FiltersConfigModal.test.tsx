@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Preset } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
 import userEvent, { specialChars } from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
+import React from 'react';
+import chartQueries from 'spec/fixtures/mockChartQueries';
+import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
+import mockDatasource, { datasourceId, id } from 'spec/fixtures/mockDatasource';
+import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import {
-  SelectFilterPlugin,
   RangeFilterPlugin,
-  TimeFilterPlugin,
+  SelectFilterPlugin,
   TimeColumnFilterPlugin,
+  TimeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import mockDatasource, { id, datasourceId } from 'spec/fixtures/mockDatasource';
-import chartQueries from 'spec/fixtures/mockChartQueries';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -118,21 +120,20 @@ const NUMERICAL_RANGE_REGEX = /^numerical range$/i;
 const TIME_RANGE_REGEX = /^time range$/i;
 const TIME_COLUMN_REGEX = /^time column$/i;
 const TIME_GRAIN_REGEX = /^time grain$/i;
-const ADVANCED_REGEX = /^advanced$/i;
+const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
-const MULTIPLE_REGEX = /^multiple select$/i;
-const REQUIRED_REGEX = /^required$/i;
-const HIERARCHICAL_REGEX = /^filter is hierarchical$/i;
-const FIRST_ITEM_REGEX = /^default to first item$/i;
+const MULTIPLE_REGEX = /^can select multiple values$/i;
+const REQUIRED_REGEX = /^filter value is required$/i;
+const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
+const FIRST_VALUE_REGEX = /^select first filter value by default$/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection$/i;
-const SEARCH_ALL_REGEX = /^search all filter options$/i;
+const SEARCH_ALL_REGEX = /^dynamically search all filter values$/i;
 const PRE_FILTER_REGEX = /^pre-filter available values$/i;
 const SORT_REGEX = /^sort filter values$/i;
 const SAVE_REGEX = /^save$/i;
 const NAME_REQUIRED_REGEX = /^name is required$/i;
 const COLUMN_REQUIRED_REGEX = /^column is required$/i;
 const DEFAULT_VALUE_REQUIRED_REGEX = /^default value is required$/i;
-const PARENT_REQUIRED_REGEX = /^parent filter is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
 const FILL_REQUIRED_FIELDS_REGEX = /fill all required fields to enable/;
 const TIME_RANGE_PREFILTER_REGEX = /^time range$/i;
@@ -148,10 +149,11 @@ beforeAll(() => {
   new MainPreset().register();
 });
 
-function defaultRender(initialState = defaultState()) {
-  return render(<FiltersConfigModal {...props} />, {
-    useRedux: true,
+function defaultRender(initialState: any = defaultState(), modalProps = props) {
+  return render(<FiltersConfigModal {...modalProps} />, {
     initialState,
+    useDnd: true,
+    useRedux: true,
   });
 }
 
@@ -166,7 +168,7 @@ function queryCheckbox(name: RegExp) {
 test('renders a value filter type', () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -175,8 +177,8 @@ test('renders a value filter type', () => {
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(REQUIRED_REGEX)).not.toBeChecked();
-  expect(getCheckbox(HIERARCHICAL_REGEX)).not.toBeChecked();
-  expect(getCheckbox(FIRST_ITEM_REGEX)).not.toBeChecked();
+  expect(queryCheckbox(DEPENDENCIES_REGEX)).not.toBeInTheDocument();
+  expect(getCheckbox(FIRST_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(INVERSE_SELECTION_REGEX)).not.toBeChecked();
   expect(getCheckbox(SEARCH_ALL_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
@@ -192,7 +194,7 @@ test('renders a numerical range filter type', async () => {
 
   await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
 
-  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -204,8 +206,8 @@ test('renders a numerical range filter type', async () => {
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
 
   expect(queryCheckbox(MULTIPLE_REGEX)).not.toBeInTheDocument();
-  expect(queryCheckbox(HIERARCHICAL_REGEX)).not.toBeInTheDocument();
-  expect(queryCheckbox(FIRST_ITEM_REGEX)).not.toBeInTheDocument();
+  expect(queryCheckbox(DEPENDENCIES_REGEX)).not.toBeInTheDocument();
+  expect(queryCheckbox(FIRST_VALUE_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(INVERSE_SELECTION_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(SEARCH_ALL_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(SORT_REGEX)).not.toBeInTheDocument();
@@ -224,8 +226,6 @@ test('renders a time range filter type', async () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-
-  expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
 test('renders a time column filter type', async () => {
@@ -241,8 +241,6 @@ test('renders a time column filter type', async () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-
-  expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
 test('renders a time grain filter type', async () => {
@@ -258,8 +256,6 @@ test('renders a time grain filter type', async () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-
-  expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
 test('render time filter types as disabled if there are no temporal columns in the dataset', async () => {
@@ -305,30 +301,24 @@ test.skip('validates the default value', async () => {
   ).toBeInTheDocument();
 });
 
-test('validates the hierarchical value', async () => {
-  defaultRender();
-  userEvent.click(screen.getByText(ADVANCED_REGEX));
-  userEvent.click(getCheckbox(HIERARCHICAL_REGEX));
-  expect(await screen.findByText(PARENT_REQUIRED_REGEX)).toBeInTheDocument();
-});
-
 test('validates the pre-filter value', async () => {
   defaultRender();
-  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
   expect(
     await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
   ).toBeInTheDocument();
 });
 
-test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
+// eslint-disable-next-line jest/no-disabled-tests
+test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
   defaultRender(noTemporalColumnsState());
   userEvent.click(screen.getByText(DATASET_REGEX));
   await waitFor(() => {
     expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
     userEvent.click(screen.getByText('birth_names'));
   });
-  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
   await waitFor(() =>
     expect(
@@ -336,6 +326,25 @@ test("doesn't render time range pre-filter if there are no temporal columns in d
     ).not.toBeInTheDocument(),
   );
 });
+
+test('filters are draggable', async () => {
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+  const draggables = document.querySelectorAll('div[draggable=true]');
+  expect(draggables.length).toBe(3);
+});
+
 /*
   TODO
     adds a new value filter type with all fields filled

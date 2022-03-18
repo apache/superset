@@ -22,10 +22,8 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import g
 
-from superset import db
-from superset.charts.commands.data import ChartDataCommand
 from superset.charts.commands.exceptions import ChartDataQueryFailedError
-from superset.connectors.sqla.models import SqlaTable
+from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
 from superset.tasks import async_queries
@@ -37,6 +35,7 @@ from superset.tasks.async_queries import (
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.test_app import app
@@ -45,7 +44,8 @@ from tests.integration_tests.test_app import app
 class TestAsyncQueries(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
-    def test_load_chart_data_into_cache(self, mock_update_job):
+    @mock.patch.object(async_queries, "set_form_data")
+    def test_load_chart_data_into_cache(self, mock_set_form_data, mock_update_job):
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
         user = security_manager.find_user("gamma")
@@ -63,6 +63,7 @@ class TestAsyncQueries(SupersetTestCase):
             load_chart_data_into_cache(job_metadata, query_context)
 
         ensure_user_is_set.assert_called_once_with(user.id)
+        mock_set_form_data.assert_called_once_with(query_context)
         mock_update_job.assert_called_once_with(
             job_metadata, "done", result_url=mock.ANY
         )
@@ -127,7 +128,6 @@ class TestAsyncQueries(SupersetTestCase):
         form_data = {
             "datasource": f"{table.id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],
@@ -154,7 +154,10 @@ class TestAsyncQueries(SupersetTestCase):
         )
 
     @mock.patch.object(async_query_manager, "update_job")
-    def test_load_explore_json_into_cache_error(self, mock_update_job):
+    @mock.patch.object(async_queries, "set_form_data")
+    def test_load_explore_json_into_cache_error(
+        self, mock_set_form_data, mock_update_job
+    ):
         async_query_manager.init_app(app)
         user = security_manager.find_user("gamma")
         form_data = {}
@@ -173,6 +176,7 @@ class TestAsyncQueries(SupersetTestCase):
                 load_explore_json_into_cache(job_metadata, form_data)
             ensure_user_is_set.assert_called_once_with(user.id)
 
+        mock_set_form_data.assert_called_once_with(form_data)
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 

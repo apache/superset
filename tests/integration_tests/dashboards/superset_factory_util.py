@@ -20,7 +20,7 @@ from typing import List, Optional
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 
-from superset import appbuilder
+from superset import db
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
 from superset.models.core import Database
 from superset.models.dashboard import (
@@ -38,7 +38,7 @@ from tests.integration_tests.dashboards.dashboard_test_utils import (
 
 logger = logging.getLogger(__name__)
 
-session = appbuilder.get_session
+session = db.session
 
 inserted_dashboards_ids = []
 inserted_databases_ids = []
@@ -82,10 +82,10 @@ def create_dashboard(
     json_metadata: str = "",
     position_json: str = "",
 ) -> Dashboard:
-    dashboard_title = dashboard_title or random_title()
-    slug = slug or random_slug()
-    owners = owners or []
-    slices = slices or []
+    dashboard_title = dashboard_title if dashboard_title is not None else random_title()
+    slug = slug if slug is not None else random_slug()
+    owners = owners if owners is not None else []
+    slices = slices if slices is not None else []
     return Dashboard(
         dashboard_title=dashboard_title,
         slug=slug,
@@ -109,25 +109,40 @@ def create_slice_to_db(
     datasource_id: Optional[int] = None,
     owners: Optional[List[User]] = None,
 ) -> Slice:
-    slice_ = create_slice(datasource_id, name, owners)
+    slice_ = create_slice(datasource_id, name=name, owners=owners)
     insert_model(slice_)
     inserted_slices_ids.append(slice_.id)
     return slice_
 
 
 def create_slice(
-    datasource_id: Optional[int], name: Optional[str], owners: Optional[List[User]]
+    datasource_id: Optional[int] = None,
+    datasource: Optional[SqlaTable] = None,
+    name: Optional[str] = None,
+    owners: Optional[List[User]] = None,
 ) -> Slice:
-    name = name or random_str()
-    owners = owners or []
+    name = name if name is not None else random_str()
+    owners = owners if owners is not None else []
+    datasource_type = "table"
+    if datasource:
+        return Slice(
+            slice_name=name,
+            table=datasource,
+            owners=owners,
+            datasource_type=datasource_type,
+        )
+
     datasource_id = (
-        datasource_id or create_datasource_table_to_db(name=name + "_table").id
+        datasource_id
+        if datasource_id is not None
+        else create_datasource_table_to_db(name=name + "_table").id
     )
+
     return Slice(
         slice_name=name,
         datasource_id=datasource_id,
         owners=owners,
-        datasource_type="table",
+        datasource_type=datasource_type,
     )
 
 
@@ -136,7 +151,7 @@ def create_datasource_table_to_db(
     db_id: Optional[int] = None,
     owners: Optional[List[User]] = None,
 ) -> SqlaTable:
-    sqltable = create_datasource_table(name, db_id, owners)
+    sqltable = create_datasource_table(name, db_id, owners=owners)
     insert_model(sqltable)
     inserted_sqltables_ids.append(sqltable.id)
     return sqltable
@@ -145,11 +160,14 @@ def create_datasource_table_to_db(
 def create_datasource_table(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
+    database: Optional[Database] = None,
     owners: Optional[List[User]] = None,
 ) -> SqlaTable:
-    name = name or random_str()
-    owners = owners or []
-    db_id = db_id or create_database_to_db(name=name + "_db").id
+    name = name if name is not None else random_str()
+    owners = owners if owners is not None else []
+    if database:
+        return SqlaTable(table_name=name, database=database, owners=owners)
+    db_id = db_id if db_id is not None else create_database_to_db(name=name + "_db").id
     return SqlaTable(table_name=name, database_id=db_id, owners=owners)
 
 
@@ -161,7 +179,7 @@ def create_database_to_db(name: Optional[str] = None) -> Database:
 
 
 def create_database(name: Optional[str] = None) -> Database:
-    name = name or random_str()
+    name = name if name is not None else random_str()
     return Database(database_name=name, sqlalchemy_uri="sqlite:///:memory:")
 
 
@@ -174,9 +192,11 @@ def delete_all_inserted_objects() -> None:
 
 def delete_all_inserted_dashboards():
     try:
-        dashboards_to_delete: List[Dashboard] = session.query(Dashboard).filter(
-            Dashboard.id.in_(inserted_dashboards_ids)
-        ).all()
+        dashboards_to_delete: List[Dashboard] = (
+            session.query(Dashboard)
+            .filter(Dashboard.id.in_(inserted_dashboards_ids))
+            .all()
+        )
         for dashboard in dashboards_to_delete:
             try:
                 delete_dashboard(dashboard, False)
@@ -221,9 +241,9 @@ def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
 
 def delete_all_inserted_slices():
     try:
-        slices_to_delete: List[Slice] = session.query(Slice).filter(
-            Slice.id.in_(inserted_slices_ids)
-        ).all()
+        slices_to_delete: List[Slice] = (
+            session.query(Slice).filter(Slice.id.in_(inserted_slices_ids)).all()
+        )
         for slice in slices_to_delete:
             try:
                 delete_slice(slice, False)
@@ -252,9 +272,11 @@ def delete_slice_users_associations(slice_: Slice) -> None:
 
 def delete_all_inserted_tables():
     try:
-        tables_to_delete: List[SqlaTable] = session.query(SqlaTable).filter(
-            SqlaTable.id.in_(inserted_sqltables_ids)
-        ).all()
+        tables_to_delete: List[SqlaTable] = (
+            session.query(SqlaTable)
+            .filter(SqlaTable.id.in_(inserted_sqltables_ids))
+            .all()
+        )
         for table in tables_to_delete:
             try:
                 delete_sqltable(table, False)
@@ -285,9 +307,11 @@ def delete_table_users_associations(table: SqlaTable) -> None:
 
 def delete_all_inserted_dbs():
     try:
-        dbs_to_delete: List[Database] = session.query(Database).filter(
-            Database.id.in_(inserted_databases_ids)
-        ).all()
+        dbs_to_delete: List[Database] = (
+            session.query(Database)
+            .filter(Database.id.in_(inserted_databases_ids))
+            .all()
+        )
         for db in dbs_to_delete:
             try:
                 delete_database(db, False)

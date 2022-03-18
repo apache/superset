@@ -17,6 +17,7 @@
 from contextlib import closing
 from typing import Dict, List, Optional, TYPE_CHECKING
 
+import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql.type_api import TypeEngine
@@ -28,7 +29,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import has_table_query, ParsedQuery
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -43,7 +44,11 @@ def get_physical_table_metadata(
     # ensure empty schema
     _schema_name = schema_name if schema_name else None
     # Table does not exist or is not visible to a connection.
-    if not database.has_table_by_name(table_name, schema=_schema_name):
+
+    if not (
+        database.has_table_by_name(table_name=table_name, schema=_schema_name)
+        or database.has_view_by_name(view_name=table_name, schema=_schema_name)
+    ):
         raise NoSuchTableError
 
     cols = database.get_columns(table_name, schema=_schema_name)
@@ -53,7 +58,9 @@ def get_physical_table_metadata(
                 db_type = db_engine_spec.column_datatype_to_string(
                     col["type"], db_dialect
                 )
-                type_spec = db_engine_spec.get_column_spec(db_type)
+                type_spec = db_engine_spec.get_column_spec(
+                    db_type, db_extra=database.get_extra()
+                )
                 col.update(
                     {
                         "type": db_type,
@@ -113,3 +120,28 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
     return cols
+
+
+def validate_adhoc_subquery(raw_sql: str) -> None:
+    """
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table
+    :param raw_sql: adhoc sql expression
+    :raise SupersetSecurityException if sql contains sub-queries or
+    nested sub-queries with table
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import is_feature_enabled
+
+    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+        return
+
+    for statement in sqlparse.parse(raw_sql):
+        if has_table_query(statement):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                    message=_("Custom SQL fields cannot contain sub-queries."),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+    return

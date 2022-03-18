@@ -21,7 +21,8 @@ import { Link, useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
 import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
 import Icons from 'src/components/Icons';
@@ -66,7 +67,7 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
   const theme = useTheme();
   const menu = (
@@ -147,6 +148,8 @@ function DashboardCard({
       <ListViewCard
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
+        certifiedBy={dashboard.certified_by}
+        certificationDetails={dashboard.certification_details}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
@@ -173,9 +176,9 @@ function DashboardCard({
               saveFaveStar={saveFavoriteStatus}
               isStarred={favoriteStatus}
             />
-            <Dropdown overlay={menu}>
+            <AntdDropdown overlay={menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </Dropdown>
+            </AntdDropdown>
           </ListViewCard.Actions>
         }
       />

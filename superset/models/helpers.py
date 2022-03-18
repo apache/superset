@@ -29,6 +29,7 @@ import pytz
 import sqlalchemy as sa
 import yaml
 from flask import escape, g, Markup
+from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
@@ -38,7 +39,7 @@ from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
-from superset.utils.core import QueryStatus
+from superset.common.db_query_status import QueryStatus
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +221,7 @@ class ImportExportMixin:
         if not obj:
             is_new_obj = True
             # Create new DB object
-            obj = cls(**dict_rep)  # type: ignore
+            obj = cls(**dict_rep)
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
@@ -341,7 +342,7 @@ class ImportExportMixin:
         self.params = json.dumps(params)
 
     def reset_ownership(self) -> None:
-        """ object will belong to the user the current user """
+        """object will belong to the user the current user"""
         # make sure the object doesn't have relations to a user
         # it will be filled by appbuilder on save
         self.created_by = None
@@ -442,16 +443,22 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         df: pd.DataFrame,
         query: str,
         duration: timedelta,
+        applied_template_filters: Optional[List[str]] = None,
         status: str = QueryStatus.SUCCESS,
         error_message: Optional[str] = None,
         errors: Optional[List[Dict[str, Any]]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
         self.query = query
         self.duration = duration
+        self.applied_template_filters = applied_template_filters or []
         self.status = status
         self.error_message = error_message
         self.errors = errors or []
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
 
 
 class ExtraJSONMixin:
@@ -476,3 +483,50 @@ class ExtraJSONMixin:
         extra = self.extra
         extra[key] = value
         self.extra_json = json.dumps(extra)
+
+
+class CertificationMixin:
+    """Mixin to add extra certification fields"""
+
+    extra = sa.Column(sa.Text, default="{}")
+
+    def get_extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+    @property
+    def is_certified(self) -> bool:
+        return bool(self.get_extra_dict().get("certification"))
+
+    @property
+    def certified_by(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @property
+    def certification_details(self) -> Optional[str]:
+        return self.get_extra_dict().get("certification", {}).get("details")
+
+    @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")
+
+
+def clone_model(
+    target: Model, ignore: Optional[List[str]] = None, **kwargs: Any
+) -> Model:
+    """
+    Clone a SQLAlchemy model.
+    """
+    ignore = ignore or []
+
+    table = target.__table__
+    data = {
+        attr: getattr(target, attr)
+        for attr in table.columns.keys()
+        if attr not in table.primary_key.columns.keys() and attr not in ignore
+    }
+    data.update(kwargs)
+
+    return target.__class__(**data)

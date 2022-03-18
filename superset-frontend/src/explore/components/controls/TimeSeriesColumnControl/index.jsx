@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import Popover from 'src/components/Popover';
-import Select from 'src/components/Select';
+import { Select, Row, Col } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const propTypes = {
   label: PropTypes.string,
@@ -61,17 +61,17 @@ const defaultProps = {
 };
 
 const comparisonTypeOptions = [
-  { value: 'value', label: 'Actual value' },
-  { value: 'diff', label: 'Difference' },
-  { value: 'perc', label: 'Percentage' },
-  { value: 'perc_change', label: 'Percentage change' },
+  { value: 'value', label: 'Actual value', key: 'value' },
+  { value: 'diff', label: 'Difference', key: 'diff' },
+  { value: 'perc', label: 'Percentage', key: 'perc' },
+  { value: 'perc_change', label: 'Percentage change', key: 'perc_change' },
 ];
 
 const colTypeOptions = [
-  { value: 'time', label: 'Time comparison' },
-  { value: 'contrib', label: 'Contribution' },
-  { value: 'spark', label: 'Sparkline' },
-  { value: 'avg', label: 'Period average' },
+  { value: 'time', label: 'Time comparison', key: 'time' },
+  { value: 'contrib', label: 'Contribution', key: 'contrib' },
+  { value: 'spark', label: 'Sparkline', key: 'spark' },
+  { value: 'avg', label: 'Period average', key: 'avg' },
 ];
 
 const StyledRow = styled(Row)`
@@ -143,7 +143,7 @@ export default class TimeSeriesColumnControl extends React.Component {
   }
 
   onSelectChange(attr, opt) {
-    this.setState({ [attr]: opt.value });
+    this.setState({ [attr]: opt });
   }
 
   onTextInputChange(attr, event) {
@@ -216,8 +216,8 @@ export default class TimeSeriesColumnControl extends React.Component {
           'Type of comparison, value difference or percentage',
           'col-type',
           <Select
-            value={this.state.colType}
-            clearable={false}
+            ariaLabel={t('Type')}
+            value={this.state.colType || undefined}
             onChange={this.onSelectChange.bind(this, 'colType')}
             options={colTypeOptions}
           />,
@@ -273,8 +273,8 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Type of comparison, value difference or percentage',
             'comp-type',
             <Select
-              value={this.state.comparisonType}
-              clearable={false}
+              ariaLabel={t('Type')}
+              value={this.state.comparisonType || undefined}
               onChange={this.onSelectChange.bind(this, 'comparisonType')}
               options={comparisonTypeOptions}
             />,
@@ -353,9 +353,8 @@ export default class TimeSeriesColumnControl extends React.Component {
     return (
       <span>
         {this.textSummary()}{' '}
-        <Popover
+        <ControlPopover
           trigger="click"
-          placement="right"
           content={this.renderPopover()}
           title="Column Configuration"
           visible={this.state.popoverVisible}
@@ -366,7 +365,7 @@ export default class TimeSeriesColumnControl extends React.Component {
             className="text-primary"
             label="edit-ts-column"
           />
-        </Popover>
+        </ControlPopover>
       </span>
     );
   }

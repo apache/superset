@@ -21,7 +21,6 @@ import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
-import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
@@ -52,7 +51,6 @@ const controlMap = {
   BoundsControl,
   CheckboxControl,
   CollectionControl,
-  ColorMapControl,
   ColorPickerControl,
   ColorSchemeControl,
   DatasourceControl,

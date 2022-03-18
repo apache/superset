@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
@@ -31,6 +31,26 @@ class CommandException(SupersetException):
         return repr(self)
 
 
+class ObjectNotFoundError(CommandException):
+    status = 404
+    message_format = "{} {}not found."
+
+    def __init__(
+        self,
+        object_type: str,
+        object_id: Optional[str] = None,
+        exception: Optional[Exception] = None,
+    ) -> None:
+        super().__init__(
+            _(
+                self.message_format.format(
+                    object_type, '"%s" ' % object_id if object_id else ""
+                )
+            ),
+            exception,
+        )
+
+
 class CommandInvalidError(CommandException):
     """ Common base class for Command Invalid errors. """
 
@@ -45,6 +65,9 @@ class CommandInvalidError(CommandException):
 
     def add_list(self, exceptions: List[ValidationError]) -> None:
         self._invalid_exceptions.extend(exceptions)
+
+    def get_list_classnames(self) -> List[str]:
+        return list(sorted({ex.__class__.__name__ for ex in self._invalid_exceptions}))
 
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}

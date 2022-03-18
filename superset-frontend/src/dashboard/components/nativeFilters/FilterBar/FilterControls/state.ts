@@ -16,29 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { ExtraFormData } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  ensureIsArray,
+  ExtraFormData,
+} from '@superset-ui/core';
 import { mergeExtraFormData } from '../../utils';
 
 // eslint-disable-next-line import/prefer-default-export
-export function useCascadingFilters(
+export function useFilterDependencies(
   id: string,
   dataMaskSelected?: DataMaskStateWithId,
 ): ExtraFormData {
-  const { filters } = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
+  const dependencyIds = useSelector<any, string[] | undefined>(
+    state => state.nativeFilters.filters[id]?.cascadeParentIds,
   );
-  const filter = filters[id];
-  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  cascadeParentIds.forEach(parentId => {
-    const parentState = dataMaskSelected?.[parentId];
-    cascadedFilters = mergeExtraFormData(
-      cascadedFilters,
-      parentState?.extraFormData,
-    );
-  });
-  return cascadedFilters;
+  return useMemo(() => {
+    let dependencies = {};
+    ensureIsArray(dependencyIds).forEach(parentId => {
+      const parentState = dataMaskSelected?.[parentId];
+      dependencies = mergeExtraFormData(
+        dependencies,
+        parentState?.extraFormData,
+      );
+    });
+    return dependencies;
+  }, [dataMaskSelected, dependencyIds]);
 }

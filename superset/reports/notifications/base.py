@@ -27,7 +27,7 @@ from superset.models.reports import ReportRecipients, ReportRecipientType
 class NotificationContent:
     name: str
     csv: Optional[bytes] = None  # bytes for csv file
-    screenshot: Optional[bytes] = None  # bytes for the screenshot
+    screenshots: Optional[List[bytes]] = None  # bytes for a list of screenshots
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
@@ -50,7 +50,7 @@ class BaseNotification:  # pylint: disable=too-few-public-methods
     """
 
     def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
-        super().__init_subclass__(*args, **kwargs)  # type: ignore
+        super().__init_subclass__(*args, **kwargs)
         cls.plugins.append(cls)
 
     def __init__(
