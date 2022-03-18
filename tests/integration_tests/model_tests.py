@@ -513,6 +513,33 @@ class TestSqlaTableModel(SupersetTestCase):
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_mutator_different_params(self):
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=None,
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn("-- COMMENT", sql)
+
+        def mutator(sql, database=None, **kwargs):
+            return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
+
+        app.config["SQL_QUERY_MUTATOR"] = mutator
+        mutated_sql = tbl.get_query_str(query_obj)
+        self.assertIn("-- COMMENT", mutated_sql)
+        self.assertIn(tbl.database.name, mutated_sql)
+
+        app.config["SQL_QUERY_MUTATOR"] = None
+
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
