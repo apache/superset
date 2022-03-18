@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta
 from hashlib import md5
 from typing import Any, Dict, List, Optional
-from uuid import UUID, uuid3, uuid4
+from uuid import UUID, uuid3
 
 from flask import Flask
 from flask_caching import BaseCache
@@ -33,7 +33,7 @@ KEY_TYPE: KeyType = "uuid"
 class SupersetCache(BaseCache):
     def __init__(self, namespace: UUID, default_timeout: int = 300) -> None:
         super().__init__(default_timeout)
-        self.namespace = namespace or uuid4()
+        self.namespace = namespace
 
     @classmethod
     def factory(
