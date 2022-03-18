@@ -55,7 +55,7 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
     """
     Test ``modify_url_for_impersonation`` method when driver == sadrill.
 
-    The method changes the username of URL Object.
+    The method adds the parameter ``impersonation_target`` to the query string.
     """
     from sqlalchemy.engine.url import URL
 
@@ -64,4 +64,4 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
     url = URL("drill+sadrill")
     username = "DoAsUser"
     DrillEngineSpec.modify_url_for_impersonation(url, True, username)
-    assert url.username == username
+    assert url.query["impersonation_target"] == username

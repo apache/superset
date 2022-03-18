@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib import parse
@@ -22,6 +23,8 @@ from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
+
+logger = logging.getLogger(__name__)
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -84,7 +87,7 @@ class DrillEngineSpec(BaseEngineSpec):
         if impersonate_user and username is not None:
             if url.drivername == "drill+odbc":
                 url.query["DelegationUID"] = username
-            elif url.drivername == "drill+jdbc":
+            elif url.drivername in ["drill+sadrill", "drill+jdbc"]:
                 url.query["impersonation_target"] = username
             else:
-                url.username = username
+                logger.warn(f"impersonation is not supported for {url.drivername}.")
