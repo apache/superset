@@ -18,7 +18,6 @@
 import json
 import textwrap
 import unittest
-from pprint import pprint
 from unittest import mock
 
 from superset.connectors.sqla.models import SqlaTable
