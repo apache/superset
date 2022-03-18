@@ -96,9 +96,6 @@ class SupersetCache(BaseCache):
         ).run()
 
     def has(self, key: str) -> bool:
-        # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.get import GetKeyValueCommand
-
         entry = self.get(key)
         if entry:
             return True

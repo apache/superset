@@ -56,9 +56,7 @@ def test_delete_id_entry(
     from superset.key_value.models import KeyValueEntry
 
     assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key=ID_KEY, key_type="id",
-        ).run()
+        DeleteKeyValueCommand(resource=RESOURCE, key=ID_KEY, key_type="id",).run()
         is True
     )
 
