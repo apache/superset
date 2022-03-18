@@ -99,6 +99,7 @@ export const getMetricTooltipNode = (
   if (
     !metric.verbose_name &&
     !metric.description &&
+    !metric.label &&
     !isLabelTruncated(labelRef)
   ) {
     return null;
@@ -107,8 +108,11 @@ export const getMetricTooltipNode = (
   return (
     <>
       <TooltipSection label={t('Metric name')} text={metric.metric_name} />
-      {metric.verbose_name && (
-        <TooltipSection label={t('Label')} text={metric.verbose_name} />
+      {(metric.label || metric.verbose_name) && (
+        <TooltipSection
+          label={t('Label')}
+          text={metric.label || metric.verbose_name}
+        />
       )}
       {metric.description && (
         <TooltipSection label={t('Description')} text={metric.description} />
