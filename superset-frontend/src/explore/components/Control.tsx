@@ -70,7 +70,11 @@ export default function Control(props: ControlProps) {
   );
 
   useEffect(() => {
-    if (isVisibility === false && props.default && setControlValue) {
+    if (
+      isVisibility === false &&
+      props.default !== undefined &&
+      setControlValue
+    ) {
       setControlValue(name, props.default);
     }
   }, [name, isVisibility, setControlValue, props.default]);
