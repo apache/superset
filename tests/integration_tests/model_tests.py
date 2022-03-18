@@ -586,18 +586,28 @@ class TestSqlaTableModel(SupersetTestCase):
         # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
         # column and legacy chart
         tbl = self.get_table(name="birth_names")
-        slc = (
-            metadata_db.session.query(Slice)
-            .filter_by(
-                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Boys",
-            )
-            .first()
+        dashboard = self.get_dash_by_slug("births")
+        slc = Slice(
+            slice_name="slice with adhoc column",
+            datasource_type="table",
+            viz_type="table",
+            params=json.dumps(
+                {
+                    "adhoc_filters": [],
+                    "granularity_sqla": "ds",
+                    "groupby": [
+                        "name",
+                        {"label": "adhoc_column", "sqlExpression": "name"},
+                    ],
+                    "metrics": ["sum__num"],
+                    "time_range": "No filter",
+                    "viz_type": "table",
+                }
+            ),
+            datasource_id=tbl.id,
         )
-        form_data = json.loads(slc.params)
-        form_data["groupby"].append({"label": "adhoc_column", "sqlExpression": "name"})
-        slc.params = json.dumps(form_data)
-        ds: SqlaTable = slc.datasource
-        datasource_info = ds.data_for_slices([slc])
+        dashboard.slices.append(slc)
+        datasource_info = slc.datasource.data_for_slices([slc])
         assert "database" in datasource_info
 
 
