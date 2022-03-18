@@ -41,7 +41,6 @@ These features are **finished** but currently being tested. They are usable, but
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - DASHBOARD_NATIVE_FILTERS
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
-- OMNIBAR
 - VERSIONED_EXPORT
 - ENABLE_JAVASCRIPT_CONTROLS
 

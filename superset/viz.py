@@ -1842,7 +1842,7 @@ class DistributionBarViz(BaseViz):
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(groupby).sum()[sortby].copy()
+        row = df.groupby(groupby)[sortby].sum().copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
