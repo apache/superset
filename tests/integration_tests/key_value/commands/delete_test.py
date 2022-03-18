@@ -70,9 +70,7 @@ def test_delete_uuid_entry(
     from superset.key_value.models import KeyValueEntry
 
     assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key=UUID_KEY, key_type="uuid",
-        ).run()
+        DeleteKeyValueCommand(resource=RESOURCE, key=UUID_KEY, key_type="uuid").run()
         is True
     )
 
@@ -84,8 +82,6 @@ def test_delete_entry_missing(
     from superset.key_value.models import KeyValueEntry
 
     assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key="456", key_type="id",
-        ).run()
+        DeleteKeyValueCommand(resource=RESOURCE, key="456", key_type="id").run()
         is False
     )

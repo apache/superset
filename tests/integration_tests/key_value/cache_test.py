@@ -16,17 +16,16 @@
 # under the License.
 from __future__ import annotations
 
-from time import sleep
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
 from flask.ctx import AppContext
+from freezegun import freeze_time
 
 if TYPE_CHECKING:
     from superset.key_value.cache import SupersetCache
-
-EXPIRY_TIME = 1
 
 FIRST_KEY = "foo"
 FIRST_KEY_INITIAL_VALUE = {"foo": "bar"}
@@ -64,8 +63,14 @@ def test_caching_flow(app_context: AppContext, cache: SupersetCache) -> None:
 
 
 def test_expiry(app_context: AppContext, cache: SupersetCache) -> None:
-    cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, EXPIRY_TIME)
-    assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
-    sleep(EXPIRY_TIME)
-    assert not cache.has(FIRST_KEY)
-    assert cache.get(FIRST_KEY) is None
+    delta = timedelta(days=90)
+    dttm = datetime(2022, 3, 18, 0, 0, 0)
+    with freeze_time(dttm):
+        cache.set(FIRST_KEY, FIRST_KEY_INITIAL_VALUE, int(delta.total_seconds()))
+        assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+    with freeze_time(dttm + delta - timedelta(seconds=1)):
+        assert cache.has(FIRST_KEY)
+        assert cache.get(FIRST_KEY) == FIRST_KEY_INITIAL_VALUE
+    with freeze_time(dttm + delta + timedelta(seconds=1)):
+        assert cache.has(FIRST_KEY) is False
+        assert cache.get(FIRST_KEY) is None

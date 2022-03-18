@@ -50,7 +50,7 @@ class SupersetCache(BaseCache):
         return str(uuid3(self.namespace, key))
 
     @staticmethod
-    def _purge() -> None:
+    def _prune() -> None:
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.delete_expired import (
             DeleteExpiredKeyValueCommand,
@@ -65,12 +65,9 @@ class SupersetCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.delete import DeleteKeyValueCommand
 
-        try:
-            DeleteKeyValueCommand(
-                resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
-            ).run()
-        except KeyValueCreateFailedError:
-            pass
+        DeleteKeyValueCommand(
+            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
+        ).run()
         return self.add(key, value, timeout)
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
@@ -85,7 +82,7 @@ class SupersetCache(BaseCache):
                 key=self.get_key(key),
                 expires_on=self.get_expiry(timeout),
             ).run()
-            self._purge()
+            self._prune()
             return True
         except KeyValueCreateFailedError:
             return False
@@ -102,9 +99,7 @@ class SupersetCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.get import GetKeyValueCommand
 
-        entry = GetKeyValueCommand(
-            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
-        ).run()
+        entry = self.get(key)
         if entry:
             return True
         return False
