@@ -19,12 +19,15 @@
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { t } from '@superset-ui/core';
 import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
+import { store } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 
@@ -75,11 +78,39 @@ if (!window.parent) {
 //   );
 // }
 
+let displayedUnauthorizedToast = false;
+
+/**
+ * If there is a problem with the guest token, we will start getting
+ * 401 errors from the api and SupersetClient will call this function.
+ */
+function guestUnauthorizedHandler() {
+  if (displayedUnauthorizedToast) return; // no need to display this message every time we get another 401
+  displayedUnauthorizedToast = true;
+  // If a guest user were sent to a login screen on 401, they would have no valid login to use.
+  // For embedded it makes more sense to just display a message
+  // and let them continue accessing the page, to whatever extent they can.
+  store.dispatch(
+    addDangerToast(
+      t(
+        'This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly.',
+      ),
+      {
+        duration: -1, // stay open until closed
+        noDuplicate: true,
+      },
+    ),
+  );
+}
+
+/**
+ * Configures SupersetClient with the correct settings for the embedded dashboard page.
+ */
 function setupGuestClient(guestToken: string) {
-  // need to reconfigure SupersetClient to use the guest token
   setupClient({
     guestToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
+    unauthorizedHandler: guestUnauthorizedHandler,
   });
 }
 
