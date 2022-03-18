@@ -221,7 +221,7 @@ class ImportExportMixin:
         if not obj:
             is_new_obj = True
             # Create new DB object
-            obj = cls(**dict_rep)  # type: ignore
+            obj = cls(**dict_rep)
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)

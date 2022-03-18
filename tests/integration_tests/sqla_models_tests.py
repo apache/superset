@@ -41,6 +41,7 @@ from superset.utils.core import (
     FilterOperator,
     GenericDataType,
     TemporalType,
+    backend,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -603,6 +604,50 @@ def test_filter_on_text_column(text_column_table):
         }
     )
     assert result_object.df["count"][0] == 1
+
+
+def test_should_generate_closed_and_open_time_filter_range():
+    with app.app_context():
+        if backend() != "postgresql":
+            pytest.skip(f"{backend()} has different dialect for datetime column")
+
+        table = SqlaTable(
+            table_name="temporal_column_table",
+            sql=(
+                "SELECT '2021-12-31'::timestamp as datetime_col "
+                "UNION SELECT '2022-01-01'::timestamp "
+                "UNION SELECT '2022-03-10'::timestamp "
+                "UNION SELECT '2023-01-01'::timestamp "
+                "UNION SELECT '2023-03-10'::timestamp "
+            ),
+            database=get_example_database(),
+        )
+        TableColumn(
+            column_name="datetime_col", type="TIMESTAMP", table=table, is_dttm=True,
+        )
+        SqlMetric(metric_name="count", expression="count(*)", table=table)
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "is_timeseries": False,
+                "filter": [],
+                "from_dttm": datetime(2022, 1, 1),
+                "to_dttm": datetime(2023, 1, 1),
+                "granularity": "datetime_col",
+            }
+        )
+        """ >>> result_object.query
+                SELECT count(*) AS count
+                FROM
+                  (SELECT '2021-12-31'::timestamp as datetime_col
+                   UNION SELECT '2022-01-01'::timestamp
+                   UNION SELECT '2022-03-10'::timestamp
+                   UNION SELECT '2023-01-01'::timestamp
+                   UNION SELECT '2023-03-10'::timestamp) AS virtual_table
+                WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+                  AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+        """
+        assert result_object.df.iloc[0]["count"] == 2
 
 
 @pytest.mark.parametrize(

@@ -25,6 +25,7 @@ import URLShortLinkButton from 'src/components/URLShortLinkButton';
 describe('AnchorLink', () => {
   const props = {
     anchorLinkId: 'CHART-123',
+    dashboardId: 10,
   };
 
   const globalLocation = window.location;
@@ -64,8 +65,9 @@ describe('AnchorLink', () => {
     expect(wrapper.find(URLShortLinkButton)).toExist();
     expect(wrapper.find(URLShortLinkButton)).toHaveProp({ placement: 'right' });
 
-    const targetUrl = wrapper.find(URLShortLinkButton).prop('url');
-    const hash = targetUrl.slice(targetUrl.indexOf('#') + 1);
-    expect(hash).toBe(props.anchorLinkId);
+    const anchorLinkId = wrapper.find(URLShortLinkButton).prop('anchorLinkId');
+    const dashboardId = wrapper.find(URLShortLinkButton).prop('dashboardId');
+    expect(anchorLinkId).toBe(props.anchorLinkId);
+    expect(dashboardId).toBe(props.dashboardId);
   });
 });

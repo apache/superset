@@ -50,7 +50,7 @@ const TitlesContainer = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
-const FiltureConfigurePane: React.FC<Props> = ({
+const FilterConfigurePane: React.FC<Props> = ({
   getFilterTitle,
   onChange,
   onRemove,
@@ -75,7 +75,7 @@ const FiltureConfigurePane: React.FC<Props> = ({
           getFilterTitle={getFilterTitle}
           onChange={onChange}
           onAdd={(type: NativeFilterType) => onAdd(type)}
-          onRearrage={onRearrange}
+          onRearrange={onRearrange}
           onRemove={(id: string) => onRemove(id)}
           restoreFilter={restoreFilter}
         />
@@ -98,4 +98,4 @@ const FiltureConfigurePane: React.FC<Props> = ({
   );
 };
 
-export default FiltureConfigurePane;
+export default FilterConfigurePane;
