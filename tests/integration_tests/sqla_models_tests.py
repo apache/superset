@@ -34,7 +34,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,
@@ -234,6 +234,35 @@ class TestDatabaseModel(SupersetTestCase):
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert metric
         assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_adhoc_metrics_and_calc_columns(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user", "expr"],
+            "metrics": [
+                {
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "(SELECT (SELECT * from birth_names) "
+                    "from test_validate_adhoc_sql)",
+                    "label": "adhoc_metrics",
+                }
+            ],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_validate_adhoc_sql", database=get_example_database()
+        )
+        db.session.commit()
+
+        with pytest.raises(SupersetSecurityException):
+            table.get_sqla_query(**base_query_obj)
         # Cleanup
         db.session.delete(table)
         db.session.commit()

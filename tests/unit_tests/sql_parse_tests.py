@@ -1208,6 +1208,8 @@ def test_sqlparse_issue_652():
         ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
         ("SELECT * FROM other_table", True),
         ("extract(HOUR from from_unixtime(hour_ts)", False),
+        ("(SELECT * FROM table)", True),
+        ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:
