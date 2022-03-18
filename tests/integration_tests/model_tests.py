@@ -609,6 +609,9 @@ class TestSqlaTableModel(SupersetTestCase):
         datasource_info = slc.datasource.data_for_slices([slc])
         assert "database" in datasource_info
 
+        # clean up and auto commit
+        metadata_db.session.delete(slc)
+
 
 def test_literal_dttm_type_factory():
     orig_type = DateTime()
