@@ -422,16 +422,20 @@ export const checkUploadExtensions = (
   return false;
 };
 
-export const uploadUserPerms = (roles: Record<string, [string, string][]>) => ({
-  canUploadCSV: findPermission('can_this_form_get', 'CsvToDatabaseView', roles),
-  canUploadColumnar: findPermission(
-    'can_this_form_get',
-    'ColumnarToDatabaseView',
-    roles,
-  ),
-  canUploadExcel: findPermission(
-    'can_this_form_get',
-    'ExcelToDatabaseView',
-    roles,
-  ),
+export const uploadUserPerms = (
+  roles: Record<string, [string, string][]>,
+  csvExt: Array<string>,
+  colExt: Array<string>,
+  excelExt: Array<string>,
+  allowedExt: Array<string>,
+) => ({
+  canUploadCSV:
+    findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
+    checkUploadExtensions(csvExt, allowedExt),
+  canUploadColumnar:
+    checkUploadExtensions(colExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles),
+  canUploadExcel:
+    checkUploadExtensions(excelExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles),
 });

@@ -187,8 +187,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
-  const { canUploadCSV, canUploadColumnar, canUploadExcel } =
-    uploadUserPerms(roles);
+  const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
+    roles,
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
+  );
 
   const uploadDropdownMenu = [
     {
@@ -198,25 +203,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
           url: '/csvtodatabaseview/form',
-          perm:
-            checkUploadExtensions(CSV_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadCSV,
+          perm: canUploadCSV,
         },
         {
           label: t('Upload columnar file'),
           name: 'Upload columnar file',
           url: '/columnartodatabaseview/form',
-          perm:
-            checkUploadExtensions(COLUMNAR_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadColumnar,
+          perm: canUploadColumnar,
         },
         {
           label: t('Upload Excel file'),
           name: 'Upload Excel file',
           url: '/exceltodatabaseview/form',
-          perm:
-            checkUploadExtensions(EXCEL_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadExcel,
+          perm: canUploadExcel,
         },
       ],
     },
