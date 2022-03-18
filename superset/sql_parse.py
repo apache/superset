@@ -442,11 +442,11 @@ class ParsedQuery:
         return str_res
 
 
-def sanitize_filter_clause(clause: str) -> str:
+def sanitize_clause(clause: str) -> str:
     # clause = sqlparse.format(clause, strip_comments=True)
     statements = sqlparse.parse(clause)
     if len(statements) != 1:
-        raise QueryClauseValidationException("Filter clause contains multiple queries")
+        raise QueryClauseValidationException("Clause contains multiple queries")
     open_parens = 0
 
     previous_token = None

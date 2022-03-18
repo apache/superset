@@ -30,7 +30,7 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
-from superset.sql_parse import sanitize_filter_clause
+from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
@@ -296,7 +296,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             clause = self.extras.get(param)
             if clause:
                 try:
-                    sanitized_clause = sanitize_filter_clause(clause)
+                    sanitized_clause = sanitize_clause(clause)
                     if sanitized_clause != clause:
                         self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:

@@ -62,14 +62,13 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import sanitize_filter_clause
+from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     Column,
     Metric,
@@ -391,7 +390,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                sanitized_clause = sanitize_filter_clause(clause)
+                sanitized_clause = sanitize_clause(clause)
                 if sanitized_clause != clause:
                     self.form_data[param] = sanitized_clause
 
