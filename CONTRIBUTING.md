@@ -198,7 +198,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
-- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html)):
 
   - `feat` (new feature)
   - `fix` (bug fix)
@@ -663,8 +663,8 @@ tox -e pylint
 
 In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
 
 ### TypeScript
 
