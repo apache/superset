@@ -73,7 +73,7 @@ const StyledToastPresenter = styled.div<VisualProps>`
   }
 `;
 
-type ToastPresenterProps = VisualProps & {
+type ToastPresenterProps = Partial<VisualProps> & {
   toasts: Array<ToastMeta>;
   removeToast: () => any;
 };

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { bindActionCreators } from 'redux';
-import { connect, ConnectedProps } from 'react-redux';
+import { connect } from 'react-redux';
 import ToastPresenter from './ToastPresenter';
 
 import { removeToast } from './actions';
