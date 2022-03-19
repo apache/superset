@@ -30,8 +30,8 @@ from werkzeug.exceptions import NotFound
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
+from superset.superset_typing import FlaskResponse
 from superset.tasks.alerts.validator import check_validator
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
@@ -92,10 +92,7 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def list(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
+        if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
         return super().render_app_template()
 
@@ -103,10 +100,7 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
+        if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
 
         return super().render_app_template()
