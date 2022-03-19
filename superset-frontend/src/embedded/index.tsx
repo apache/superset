@@ -53,7 +53,7 @@ const EmbeddedApp = () => (
           <ErrorBoundary>
             <LazyDashboardPage />
           </ErrorBoundary>
-          <ToastContainer />
+          <ToastContainer position="top" />
         </RootContextProviders>
       </Suspense>
     </Route>
