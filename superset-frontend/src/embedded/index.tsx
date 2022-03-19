@@ -98,7 +98,7 @@ function guestUnauthorizedHandler() {
         'This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly.',
       ),
       {
-        duration: -1, // stay open until closed
+        duration: -1, // stay open until manually closed
         noDuplicate: true,
       },
     ),
