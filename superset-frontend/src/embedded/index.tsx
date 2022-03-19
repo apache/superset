@@ -28,6 +28,7 @@ import { store } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
+import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 
@@ -52,6 +53,7 @@ const EmbeddedApp = () => (
           <ErrorBoundary>
             <LazyDashboardPage />
           </ErrorBoundary>
+          <ToastContainer />
         </RootContextProviders>
       </Suspense>
     </Route>
