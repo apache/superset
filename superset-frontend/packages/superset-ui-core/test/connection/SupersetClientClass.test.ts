@@ -505,7 +505,7 @@ describe('SupersetClientClass', () => {
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
-    const mockHref = 'http://localhost' + mockRequestPath + mockRequestSearch;
+    const mockHref = `http://localhost${mockRequestPath + mockRequestSearch}`;
 
     beforeEach(() => {
       originalLocation = window.location;
