@@ -117,14 +117,6 @@ function setupGuestClient(guestToken: string) {
 }
 
 function validateMessageEvent(event: MessageEvent) {
-  if (
-    event.data?.type === 'webpackClose' ||
-    event.data?.source === '@devtools-page'
-  ) {
-    // sometimes devtools use the messaging api and we want to ignore those
-    throw new Error("Sir, this is a Wendy's");
-  }
-
   // if (!ALLOW_ORIGINS.includes(event.origin)) {
   //   throw new Error('Message origin is not in the allowed list');
   // }
@@ -138,7 +130,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   try {
     validateMessageEvent(event);
   } catch (err) {
-    log('ignoring message', err, event);
+    log('ignoring message unrelated to embedded comms', err, event);
     return;
   }
 
