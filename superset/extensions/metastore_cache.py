@@ -26,11 +26,11 @@ from flask_caching import BaseCache
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.types import KeyType
 
-RESOURCE = "superset_cache"
+RESOURCE = "superset_metastore_cache"
 KEY_TYPE: KeyType = "uuid"
 
 
-class SupersetCache(BaseCache):
+class SupersetMetastoreCache(BaseCache):
     def __init__(self, namespace: UUID, default_timeout: int = 300) -> None:
         super().__init__(default_timeout)
         self.namespace = namespace
@@ -58,17 +58,24 @@ class SupersetCache(BaseCache):
 
         DeleteExpiredKeyValueCommand(resource=RESOURCE).run()
 
-    def get_expiry(self, timeout: Optional[int]) -> datetime:
-        return datetime.now() + timedelta(seconds=timeout or self.default_timeout)
+    def _get_expiry(self, timeout: Optional[int]) -> Optional[datetime]:
+        timeout = self._normalize_timeout(timeout)
+        if timeout is not None and timeout > 0:
+            return datetime.now() + timedelta(seconds=timeout)
+        return None
 
     def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset.key_value.commands.delete import DeleteKeyValueCommand
+        from superset.key_value.commands.upsert import UpsertKeyValueCommand
 
-        DeleteKeyValueCommand(
-            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
+        UpsertKeyValueCommand(
+            resource=RESOURCE,
+            key_type=KEY_TYPE,
+            key=self.get_key(key),
+            value=value,
+            expires_on=self._get_expiry(timeout),
         ).run()
-        return self.add(key, value, timeout)
+        return True
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
@@ -80,7 +87,7 @@ class SupersetCache(BaseCache):
                 value=value,
                 key_type=KEY_TYPE,
                 key=self.get_key(key),
-                expires_on=self.get_expiry(timeout),
+                expires_on=self._get_expiry(timeout),
             ).run()
             self._prune()
             return True

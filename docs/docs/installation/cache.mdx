@@ -24,7 +24,7 @@ For example, to use the built-in cache to store chart data, use the following co
 
 ```python
 DATA_CACHE_CONFIG = {
-    "CACHE_TYPE": "SupersetCache",
+    "CACHE_TYPE": "SupersetMetastoreCache",
     "CACHE_KEY_PREFIX": "superset_results",  # make sure this string is unique to avoid collisions
     "CACHE_DEFAULT_TIMEOUT": 86400,  # 60 seconds * 60 minutes * 24 hours
 }

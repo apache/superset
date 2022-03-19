@@ -25,7 +25,7 @@ from flask.ctx import AppContext
 from freezegun import freeze_time
 
 if TYPE_CHECKING:
-    from superset.key_value.cache import SupersetCache
+    from superset.extensions.metastore_cache import SupersetMetastoreCache
 
 FIRST_KEY = "foo"
 FIRST_KEY_INITIAL_VALUE = {"foo": "bar"}
@@ -36,15 +36,15 @@ SECOND_VALUE = "qwerty"
 
 
 @pytest.fixture
-def cache() -> SupersetCache:
-    from superset.key_value.cache import SupersetCache
+def cache() -> SupersetMetastoreCache:
+    from superset.extensions.metastore_cache import SupersetMetastoreCache
 
-    return SupersetCache(
+    return SupersetMetastoreCache(
         namespace=UUID("ee173d1b-ccf3-40aa-941c-985c15224496"), default_timeout=600,
     )
 
 
-def test_caching_flow(app_context: AppContext, cache: SupersetCache) -> None:
+def test_caching_flow(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     assert cache.has(FIRST_KEY) is False
     assert cache.add(FIRST_KEY, FIRST_KEY_INITIAL_VALUE) is True
     assert cache.has(FIRST_KEY) is True
@@ -62,7 +62,7 @@ def test_caching_flow(app_context: AppContext, cache: SupersetCache) -> None:
     assert cache.get(SECOND_KEY) == SECOND_VALUE
 
 
-def test_expiry(app_context: AppContext, cache: SupersetCache) -> None:
+def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     delta = timedelta(days=90)
     dttm = datetime(2022, 3, 18, 0, 0, 0)
     with freeze_time(dttm):
