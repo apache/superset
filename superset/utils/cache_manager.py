@@ -21,6 +21,8 @@ from flask_caching import Cache
 
 logger = logging.getLogger(__name__)
 
+CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
+
 
 class CacheManager:
     def __init__(self) -> None:
@@ -49,10 +51,7 @@ class CacheManager:
                 )
             cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
             cache_config.update(
-                {
-                    "CACHE_TYPE": "superset.extensions.metastore_cache.SupersetMetastoreCache",
-                    "CACHE_KEY_PREFIX": cache_key_prefix,
-                }
+                {"CACHE_TYPE": CACHE_IMPORT_PATH, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
 
         if "CACHE_DEFAULT_TIMEOUT" not in cache_config:
