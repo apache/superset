@@ -56,19 +56,19 @@ describe('Control', () => {
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
-  it('render null if isVisibility is false', () => {
+  it('render null if isVisible is false', () => {
     render(
       setup({
-        isVisibility: false,
+        isVisible: false,
       }),
     );
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
-  it('call setControlValue if isVisibility is false', () => {
+  it('call setControlValue if isVisible is false', () => {
     render(
       setup({
-        isVisibility: false,
+        isVisible: false,
         default: false,
       }),
     );

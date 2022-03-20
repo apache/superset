@@ -45,7 +45,7 @@ export type ControlProps = {
   hidden?: boolean;
   renderTrigger?: boolean;
   default?: JsonValue;
-  isVisibility?: boolean;
+  isVisible?: boolean;
 };
 
 /**
@@ -60,7 +60,7 @@ export default function Control(props: ControlProps) {
     name,
     type,
     hidden,
-    isVisibility,
+    isVisible,
   } = props;
 
   const [hovered, setHovered] = useState(false);
@@ -70,16 +70,13 @@ export default function Control(props: ControlProps) {
   );
 
   useEffect(() => {
-    if (
-      isVisibility === false &&
-      props.default !== undefined &&
-      setControlValue
-    ) {
+    if (isVisible === false && props.default !== undefined && setControlValue) {
+      // reset control value if invisible
       setControlValue(name, props.default);
     }
-  }, [name, isVisibility, setControlValue, props.default]);
+  }, [name, isVisible, setControlValue, props.default]);
 
-  if (!type || isVisibility === false) return null;
+  if (!type || isVisible === false) return null;
 
   const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
   if (!ControlComponent) {

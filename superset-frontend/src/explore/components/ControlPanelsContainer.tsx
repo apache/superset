@@ -283,7 +283,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       validationErrors?: any[];
     };
 
-    const isVisibility = visibility
+    const isVisible = visibility
       ? visibility.call(config, props, controlData)
       : undefined;
 
@@ -293,7 +293,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         name={name}
         validationErrors={validationErrors}
         actions={props.actions}
-        isVisibility={isVisibility}
+        isVisible={isVisible}
         {...restProps}
       />
     );
