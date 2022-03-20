@@ -132,13 +132,25 @@ const WelcomeNav = styled.div`
   }
 `;
 
-export const LoadingCards = ({ cover }: LoadingProps) => (
-  <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map(() => (
-      <ListViewCard cover={cover ? false : <></>} description="" loading />
-    ))}
-  </CardContainer>
-);
+export const LoadingCards = ({ cover }: LoadingProps) => {
+  const listViewCards = [];
+  for (let i = 0; i < loadingCardCount; i += 1) {
+    listViewCards.push(
+      <ListViewCard
+        key={i}
+        cover={cover ? false : <></>}
+        description=""
+        loading
+      />,
+    );
+  }
+
+  return (
+    <CardContainer showThumbnails={cover} className="loading-cards">
+      {listViewCards}
+    </CardContainer>
+  );
+};
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userid = user.userId;

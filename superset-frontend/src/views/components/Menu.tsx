@@ -237,7 +237,7 @@ export function Menu({
     }
     return (
       <SubMenu
-        key={index}
+        key={`${index} - ${label}`}
         title={label}
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >

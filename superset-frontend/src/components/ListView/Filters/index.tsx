@@ -52,7 +52,7 @@ function UIFilters({
                 Header={Header}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
-                key={id}
+                key={`${Header} - ${id}`}
                 name={id}
                 onSelect={(option: SelectOption | undefined) =>
                   updateFilterValue(index, option)
