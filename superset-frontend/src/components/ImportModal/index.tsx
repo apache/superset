@@ -295,14 +295,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     Object.values(configOverwriteStatus).some(status => status);
 
   const confirmOverwriteConfigByTyping = (): JSX.Element => {
-    const expectedInput = `${t('CONFIRM')}`;
+    const expectedInput = t('CONFIRM');
 
     return (
       <StyledInputContainer>
         <div className="control-label">
           {t(
-            `Type "${expectedInput}" to confirm loading the config, ` +
-              `otherwise the configuration will not loaded`,
+            'Type "%s" to confirm loading the config, ' +
+              'otherwise the configuration will not loaded',
+            expectedInput,
           )}
         </div>
         <input
@@ -325,7 +326,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       key={field}
       checked={configOverwriteStatus[field]}
     >
-      {`Overwrite ${field}`}
+      {t('Overwrite %s', field)}
     </Checkbox>
   );
 
@@ -356,7 +357,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
         <>
           <strong>{t('Be careful.')} </strong>
           {t(
-            'Overwriting might cause you to lose some of your work. Are you' +
+            'Overwriting might cause you to lose some of your work. Are you ' +
               'sure you want to overwrite?',
           )}
         </>

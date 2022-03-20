@@ -958,8 +958,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       type: boolean
                     configOverwrite:
                       description: determine which fields to overwrite
-                      type: Dict<str, bool>
-                      example: {'dashboards': True, 'charts': False ...}
+                      type: object
+                      example: {"dashboards": true, "charts": false ...}
 
           responses:
             200:
