@@ -66,6 +66,13 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
+const OVERWRITE_FIELDS: string[] = [
+  'dashboards',
+  'charts',
+  'datasets',
+  'databases',
+];
+
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -686,6 +693,7 @@ function DashboardList(props: DashboardListProps) {
         onHide={closeDashboardImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
+        configOverwriteFields={OVERWRITE_FIELDS}
       />
 
       {preparingExport && <Loading />}

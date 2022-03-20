@@ -19,7 +19,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
@@ -956,6 +956,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing dashboards?
                       type: boolean
+                    configOverwrite:
+                      description: determine which fields to overwrite
+                      type: Dict<str, bool>
+                      example: {'dashboards': True, 'charts': False ...}
+
           responses:
             200:
               description: Dashboard import result
@@ -995,8 +1000,17 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
         overwrite = request.form.get("overwrite") == "true"
 
+        config_overwrite: Dict[str, bool] = (
+            json.loads(request.form["configOverwrite"])
+            if "configOverwrite" in request.form
+            else {}
+        )
+
         command = ImportDashboardsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            config_overwrite=config_overwrite,
         )
         command.run()
         return self.response(200, message="OK")

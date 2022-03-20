@@ -49,7 +49,10 @@ class ImportChartsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        **kwargs: Any
     ) -> None:
         # discover datasets associated with charts
         dataset_uuids: Set[str] = set()

@@ -403,6 +403,7 @@ export function useImportResource(
       bundle: File,
       databasePasswords: Record<string, string> = {},
       overwrite = false,
+      configOverwrite: Record<string, boolean> = {},
     ) => {
       // Set loading state
       updateState({
@@ -423,6 +424,10 @@ export function useImportResource(
        */
       if (overwrite) {
         formData.append('overwrite', 'true');
+      }
+
+      if (configOverwrite) {
+        formData.append('configOverwrite', JSON.stringify(configOverwrite));
       }
 
       return SupersetClient.post({

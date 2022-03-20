@@ -48,11 +48,15 @@ class ImportModelsCommand(BaseCommand):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
         self.overwrite: bool = kwargs.get("overwrite", False)
+        self.config_overwrite: Dict[str, bool] = kwargs.get("config_overwrite", {})
         self._configs: Dict[str, Any] = {}
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        **kwargs: Any,
     ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
@@ -65,7 +69,9 @@ class ImportModelsCommand(BaseCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite)
+            self._import(
+                db.session, self._configs, self.overwrite, **self.config_overwrite
+            )
             db.session.commit()
         except Exception as ex:
             db.session.rollback()
@@ -98,7 +104,9 @@ class ImportModelsCommand(BaseCommand):
         self, exceptions: List[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
-        if not self.overwrite:
+        if self.config_overwrite:
+            return
+        elif not self.overwrite:
             existing_uuids = self._get_uuids()
             for file_name, config in self._configs.items():
                 if (

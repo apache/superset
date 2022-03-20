@@ -19,9 +19,12 @@
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import { styled, t } from '@superset-ui/core';
+import Checkbox, { CheckboxChangeEvent } from 'antd/lib/checkbox';
 
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
+import Alert from 'src/components/Alert';
+import Collapse from 'src/components/Collapse';
 import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
@@ -109,6 +112,7 @@ export interface ImportModelsModalProps {
   onHide: () => void;
   passwordFields?: string[];
   setPasswordFields?: (passwordFields: string[]) => void;
+  configOverwriteFields?: string[];
 }
 
 const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
@@ -120,6 +124,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   onModelImport,
   show,
   onHide,
+  configOverwriteFields = [],
   passwordFields = [],
   setPasswordFields = () => {},
 }) => {
@@ -130,6 +135,16 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
+  const defaultFields = configOverwriteFields.reduce((obj, currentField) => {
+    // eslint-disable-next-line no-param-reassign
+    obj[currentField] = false;
+    return obj;
+  }, {});
+
+  const [configOverwriteStatus, setConfigOverwriteStatus] =
+    useState<Record<string, boolean>>(defaultFields);
+  const [confirmedConfigOverwriteTxt, setConfirmedConfigOverwriteTxt] =
+    useState<string>('');
 
   const clearModal = () => {
     setFileList([]);
@@ -138,6 +153,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
     setImportingModel(false);
+    setConfigOverwriteStatus(defaultFields);
+    setConfirmedConfigOverwriteTxt('');
   };
 
   const handleErrorMsg = (msg: string) => {
@@ -177,10 +194,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     }
 
     setImportingModel(true);
+    const configOverwrite =
+      confirmedConfigOverwriteTxt.toUpperCase() === t('CONFIRM')
+        ? configOverwriteStatus
+        : {};
     importResource(
       fileList[0].originFileObj,
       passwords,
       confirmedOverwrite,
+      configOverwrite,
     ).then(result => {
       if (result) {
         clearModal();
@@ -206,6 +228,14 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = (event.currentTarget?.value as string) ?? '';
     setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
+  };
+
+  const handleCheckbox = (event: CheckboxChangeEvent) => {
+    const field = event.target?.id || '';
+    setConfigOverwriteStatus({
+      ...configOverwriteStatus,
+      [field]: event.target.checked,
+    });
   };
 
   const renderPasswordFields = () => {
@@ -261,10 +291,95 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     );
   };
 
+  const isAnyOverwriteFieldSelected = (): boolean =>
+    Object.values(configOverwriteStatus).some(status => status);
+
+  const confirmOverwriteConfigByTyping = (): JSX.Element => {
+    const expectedInput = `${t('CONFIRM')}`;
+
+    return (
+      <StyledInputContainer>
+        <div className="control-label">
+          {t(
+            `Type "${expectedInput}" to confirm loading the config, ` +
+              `otherwise the configuration will not loaded`,
+          )}
+        </div>
+        <input
+          data-test="confirm-config-overwrite"
+          type="text"
+          placeholder={expectedInput}
+          value={confirmedConfigOverwriteTxt}
+          onChange={e => {
+            setConfirmedConfigOverwriteTxt(e.target.value);
+          }}
+        />
+      </StyledInputContainer>
+    );
+  };
+
+  const overwriteFieldCheckbox = (field: string): JSX.Element => (
+    <Checkbox
+      onChange={handleCheckbox}
+      id={field}
+      key={field}
+      checked={configOverwriteStatus[field]}
+    >
+      {`Overwrite ${field}`}
+    </Checkbox>
+  );
+
+  const advancedOptions = (): null | JSX.Element => {
+    if (configOverwriteFields.length === 0) {
+      return null;
+    }
+
+    return (
+      <Collapse bordered expandIconPosition="right" ghost>
+        <Collapse.Panel
+          header={<span className="header">{t('Advanced settings')}</span>}
+          key="advanced"
+        >
+          {warningConfig()}
+          {configOverwriteFields.map(overwriteFieldCheckbox)}
+          {confirmOverwriteConfigByTyping()}
+        </Collapse.Panel>
+      </Collapse>
+    );
+  };
+
+  const warningConfig = (): JSX.Element => (
+    <Alert
+      css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+      type="warning"
+      message={
+        <>
+          <strong>{t('Be careful.')} </strong>
+          {t(
+            'Overwriting might cause you to lose some of your work. Are you' +
+              'sure you want to overwrite?',
+          )}
+        </>
+      }
+    />
+  );
+
   // Show/hide
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  const isLoadingConfigOverwrite = (): boolean =>
+    confirmedConfigOverwriteTxt.toUpperCase() === t('CONFIRM') &&
+    isAnyOverwriteFieldSelected();
+
+  const isInOverwritingMode = (): boolean =>
+    needsOverwriteConfirm || isLoadingConfigOverwrite();
+
+  const getButtonType = () => (isInOverwritingMode() ? 'danger' : 'primary');
+
+  const getButtonName = () =>
+    isInOverwritingMode() ? t('Overwrite') : t('Import');
 
   return (
     <Modal
@@ -277,8 +392,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       }
       onHandledPrimaryAction={onUpload}
       onHide={hide}
-      primaryButtonName={needsOverwriteConfirm ? t('Overwrite') : t('Import')}
-      primaryButtonType={needsOverwriteConfirm ? 'danger' : 'primary'}
+      primaryButtonName={getButtonName()}
+      primaryButtonType={getButtonType()}
       width="750px"
       show={show}
       title={<h4>{t('Import %s', resourceLabel)}</h4>}
@@ -298,6 +413,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           <Button loading={importingModel}>Select file</Button>
         </Upload>
       </StyledInputContainer>
+      {advancedOptions()}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>

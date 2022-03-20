@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
@@ -58,10 +58,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    def _import(  # type: ignore
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        config_overwrite: Optional[Dict[str, bool]] = None,
     ) -> None:
         # discover charts and datasets associated with dashboards
+        if config_overwrite is None:
+            config_overwrite = {}
         chart_uuids: Set[str] = set()
         dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():
@@ -86,7 +91,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -97,7 +104,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(
+                    session, config, overwrite=config_overwrite.get("datasets", False)
+                )
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -113,7 +122,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=False)
+                chart = import_chart(
+                    session, config, overwrite=config_overwrite.get("charts", False)
+                )
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
@@ -126,7 +137,11 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    session,
+                    config,
+                    overwrite=config_overwrite.get("dashboards", overwrite),
+                )
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break

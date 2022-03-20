@@ -44,7 +44,10 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        **kwargs: Any
     ) -> None:
         # first import databases
         database_ids: Dict[str, int] = {}

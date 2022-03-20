@@ -46,7 +46,10 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        **kwargs: Any
     ) -> None:
         # discover databases associated with saved queries
         database_uuids: Set[str] = set()
