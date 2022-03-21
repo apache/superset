@@ -69,6 +69,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   setFullSizeChartId: PropTypes.func.isRequired,
+  postAddSliceFromDashboard: PropTypes.func,
 };
 
 const defaultProps = {
@@ -197,6 +198,7 @@ class ChartHolder extends React.Component {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
+    this.handlePostTransformProps = this.handlePostTransformProps.bind(this);
   }
 
   componentDidMount() {
@@ -249,6 +251,11 @@ class ChartHolder extends React.Component {
     const { chartId } = component.meta;
     const isFullSize = fullSizeChartId === chartId;
     setFullSizeChartId(isFullSize ? null : chartId);
+  }
+
+  handlePostTransformProps(props) {
+    this.props.postAddSliceFromDashboard();
+    return props;
   }
 
   render() {
@@ -364,6 +371,7 @@ class ChartHolder extends React.Component {
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={isFullSize}
+                postTransformProps={this.handlePostTransformProps}
               />
               {editMode && (
                 <HoverMenu position="top">
