@@ -31,6 +31,7 @@ import { connect, useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 
+import Alert from 'src/components/Alert';
 import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
@@ -38,6 +39,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { CronError } from 'src/components/CronPicker';
 import { RadioChangeEvent } from 'src/components';
 import {
+  antDErrorAlertStyles,
   StyledModal,
   StyledTopSection,
   StyledBottomSection,
@@ -73,7 +75,7 @@ export interface ReportObject {
   working_timeout: number;
   creation_method: string;
   force_screenshot: boolean;
-  error?: string;
+  error: string;
 }
 
 interface ChartObject {
@@ -129,9 +131,7 @@ type ReportActionType =
     }
   | {
       type: ActionType.error;
-      payload: {
-        name: string[];
-      };
+      payload: { name: string[] };
     };
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -146,6 +146,10 @@ const NOTIFICATION_FORMATS = {
   PNG: 'PNG',
   CSV: 'CSV',
 };
+
+const defaultErrorMsg = t(
+  'We were unable to create your report. Please try again.',
+);
 
 const reportReducer = (
   state: Partial<ReportObject> | null,
@@ -172,7 +176,7 @@ const reportReducer = (
     case ActionType.error:
       return {
         ...state,
-        error: action.payload.name[0],
+        error: action.payload?.name[0] || defaultErrorMsg,
       };
     default:
       return state;
@@ -251,16 +255,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         await dispatch(addReport(newReportValues as ReportObject));
         onHide();
       } catch (e) {
-        const { error } = await getClientErrorObject(e);
-        if (error) {
-          const errorText = t(
-            'A report already exists for this %s.',
-            props.props.dashboardId
-              ? 'dashboard'
-              : props.props.chart?.id && 'chart',
-          );
-          props.addDangerToast(errorText);
-        }
+        const { message } = await getClientErrorObject(e);
+        onReducerChange(ActionType.error, message);
       }
     }
 
@@ -323,6 +319,15 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     </>
   );
 
+  const errorAlert = () => (
+    <Alert
+      type="error"
+      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+      message={t('Report Creation Error')}
+      description={currentReport?.error}
+    />
+  );
+
   return (
     <StyledModal
       show={show}
@@ -346,7 +351,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
                 value: target.value,
               }),
           }}
-          errorMessage={currentReport?.error || ''}
+          errorMessage=""
           label="Report Name"
           data-test="report-name-test"
         />
@@ -409,6 +414,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
         />
         {isChart && renderMessageContentSection}
       </StyledBottomSection>
+      {currentReport?.error && errorAlert()}
     </StyledModal>
   );
 };
