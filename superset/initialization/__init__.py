@@ -143,6 +143,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.metrics.api import DatasetMetricRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
@@ -180,7 +181,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.datasource.views import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
-        from superset.views.importexport.api import ImportExportRestApi
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView

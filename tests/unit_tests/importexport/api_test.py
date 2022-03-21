@@ -48,9 +48,7 @@ def test_export_assets(mocker: MockFixture, client: Any) -> None:
     ]
 
     # pylint: disable=invalid-name
-    ExportAssetsCommand = mocker.patch(
-        "superset.views.importexport.api.ExportAssetsCommand"
-    )
+    ExportAssetsCommand = mocker.patch("superset.importexport.api.ExportAssetsCommand")
     ExportAssetsCommand().run.return_value = mocked_contents[:]
 
     response = client.get("/api/v1/assets/export/")
@@ -83,9 +81,7 @@ def test_import_assets(mocker: MockFixture, client: Any) -> None:
     }
 
     # pylint: disable=invalid-name
-    ImportAssetsCommand = mocker.patch(
-        "superset.views.importexport.api.ImportAssetsCommand"
-    )
+    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")
 
     root = Path("assets_export")
     buf = BytesIO()
