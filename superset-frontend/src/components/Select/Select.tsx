@@ -385,34 +385,20 @@ const Select = (
 
   const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
-  const valueAsArray = <T,>(value: any): T[] => {
-    const array = value ? (Array.isArray(value) ? value : [value]) : [];
-    return array as T[];
-  };
-
-  const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
-  ) => {
+  const handleOnSelect = (selectedItem: string | number | AntdLabeledValue) => {
     if (isSingleMode) {
-      setSelectValue(selectedValue);
-    } else if (
-      typeof selectedValue === 'number' ||
-      typeof selectedValue === 'string'
-    ) {
-      setSelectValue(previousState => {
-        const primitiveArray = valueAsArray<string | number>(previousState);
-        // Tokenized values can contain duplicated values
-        if (!primitiveArray.some(value => value === selectedValue)) {
-          return [...primitiveArray, selectedValue as string | number];
-        }
-        return previousState;
-      });
+      setSelectValue(selectedItem);
     } else {
       setSelectValue(previousState => {
-        const objectArray = valueAsArray<AntdLabeledValue>(previousState);
+        const array = ensureIsArray(previousState);
+        const isObject = typeof selectedItem === 'object';
+        const value = isObject ? selectedItem.value : selectedItem;
         // Tokenized values can contain duplicated values
-        if (!objectArray.some(object => object.value === selectedValue.label)) {
-          return [...objectArray, selectedValue as AntdLabeledValue];
+        if (!hasOption(value, array)) {
+          const result = [...array, selectedItem];
+          return isObject
+            ? (result as AntdLabeledValue[])
+            : (result as (string | number)[]);
         }
         return previousState;
       });
