@@ -1005,8 +1005,8 @@ export function queryEditorSetSelectedText(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
 
-export function mergeTable(table, query) {
-  return { type: MERGE_TABLE, table, query };
+export function mergeTable(table, query, prepend) {
+  return { type: MERGE_TABLE, table, query, prepend };
 }
 
 function getTableMetadata(table, query, dispatch) {
@@ -1076,12 +1076,16 @@ export function addTable(query, database, tableName, schemaName) {
       name: tableName,
     };
     dispatch(
-      mergeTable({
-        ...table,
-        isMetadataLoading: true,
-        isExtraMetadataLoading: true,
-        expanded: true,
-      }),
+      mergeTable(
+        {
+          ...table,
+          isMetadataLoading: true,
+          isExtraMetadataLoading: true,
+          expanded: true,
+        },
+        null,
+        true,
+      ),
     );
 
     return Promise.all([
