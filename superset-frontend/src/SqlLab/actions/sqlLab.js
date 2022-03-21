@@ -1273,6 +1273,11 @@ export function popSavedQuery(saveQueryId) {
       endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
     })
       .then(({ json }) => {
+        // if description from result is 'None', need to omit this property.
+        if(json.result.description === 'None') {
+          delete json.result.description;
+        }
+
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
           autorun: false,
