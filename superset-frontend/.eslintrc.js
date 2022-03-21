@@ -67,7 +67,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react', 'file-progress', 'literal-colors'],
+  plugins: ['prettier', 'react', 'file-progress', 'theme-colors'],
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -185,7 +185,7 @@ module.exports = {
     },
   ],
   rules: {
-    'literal-colors/no-literal-colors': 1,
+    'theme-colors/no-literal-colors': 1,
     camelcase: [
       'error',
       {
