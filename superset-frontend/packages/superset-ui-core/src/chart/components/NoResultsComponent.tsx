@@ -36,7 +36,7 @@ const Container = styled.div<{
     text-align: center;
     height: ${height}px;
     width: ${width}px;
-    //padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.gridUnit * 4}px;
 
     & .no-results-title {
       font-size: ${theme.typography.sizes.l}px;

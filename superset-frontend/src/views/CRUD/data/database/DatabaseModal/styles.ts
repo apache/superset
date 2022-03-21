@@ -296,7 +296,7 @@ export const StyledInputContainer = styled.div`
     }
 
     &.extra-container {
-      padding-top: 8px;
+      padding-top: ${theme.gridUnit * 2}px;
     }
 
     .input-container {

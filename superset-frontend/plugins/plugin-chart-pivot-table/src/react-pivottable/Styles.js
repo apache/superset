@@ -27,7 +27,7 @@ export const Styles = styled.div`
       text-align: left;
       margin: ${theme.gridUnit}px;
       border-collapse: separate;
-      font-family: 'Inter', Helvetica, Arial, sans-serif;
+      font-family: ${theme.typography.families.sansSerif};
       line-height: 1.4;
     }
 
