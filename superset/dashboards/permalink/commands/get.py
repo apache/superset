@@ -44,7 +44,7 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.validate()
         try:
             command = GetKeyValueCommand(
-                self.resource, self.key, key_type=self.key_type
+                resource=self.resource, key=self.key, key_type=self.key_type
             )
             value: Optional[DashboardPermalinkValue] = command.run()
             if value:
