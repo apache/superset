@@ -43,6 +43,7 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
 - [19142](https://github.com/apache/superset/pull/19142): Changes feature flag for versioned export(VERSIONED_EXPORT) to be true.
 - [19107](https://github.com/apache/superset/pull/19107): Feature flag `SQLLAB_BACKEND_PERSISTENCE` is now on by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
+- [19262](https://github.com/apache/superset/pull/19262): As per SIPs 11 and 68, the native NoSQL Druid connector is deprecated as of 2.0 and will no longer be supported. Druid is still supported through SQLAlchemy via pydruid.
 
 ### Potential Downtime
 
