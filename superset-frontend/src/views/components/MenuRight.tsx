@@ -26,7 +26,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
-import { checkUploadExtensions } from '../CRUD/utils';
+import { uploadUserPerms } from '../CRUD/utils';
 import {
   ExtentionConfigs,
   GlobalMenuDataOptions,
@@ -86,20 +86,12 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const canUploadCSV = findPermission(
-    'can_this_form_get',
-    'CsvToDatabaseView',
+  const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
     roles,
-  );
-  const canUploadColumnar = findPermission(
-    'can_this_form_get',
-    'ColumnarToDatabaseView',
-    roles,
-  );
-  const canUploadExcel = findPermission(
-    'can_this_form_get',
-    'ExcelToDatabaseView',
-    roles,
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
   );
 
   const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
@@ -123,25 +115,19 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm:
-            checkUploadExtensions(CSV_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadCSV,
+          perm: canUploadCSV,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm:
-            checkUploadExtensions(COLUMNAR_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadColumnar,
+          perm: canUploadColumnar,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm:
-            checkUploadExtensions(EXCEL_EXTENSIONS, ALLOWED_EXTENSIONS) &&
-            canUploadExcel,
+          perm: canUploadExcel,
         },
       ],
     },
