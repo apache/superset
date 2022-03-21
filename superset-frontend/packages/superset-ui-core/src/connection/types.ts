@@ -81,6 +81,7 @@ export interface RequestBase {
   fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   host?: Host;
+  ignoreUnauthorized?: boolean;
   mode?: Mode;
   method?: Method;
   jsonPayload?: Payload;
@@ -136,6 +137,7 @@ export interface ClientConfig {
   headers?: Headers;
   mode?: Mode;
   timeout?: ClientTimeout;
+  unauthorizedHandler?: () => void;
 }
 
 export interface SupersetClientInterface
