@@ -17,11 +17,14 @@
 from typing import Literal
 from uuid import UUID
 
+import hashids
 from flask import current_app
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyType, KeyValueFilter
+
+HASHIDS_MIN_LENGTH = 11
 
 
 def parse_permalink_key(key: str) -> Key:
@@ -55,3 +58,13 @@ def get_filter(resource: str, key: str, key_type: KeyType) -> KeyValueFilter:
         return filter_
     except ValueError as ex:
         raise KeyValueParseKeyError() from ex
+
+
+def encode_permalink_key(key: int, salt: str) -> str:
+    obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
+    return obj.encode(key)
+
+
+def decode_permalink_id(key: int, salt: str) -> int:
+    obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
+    return obj.decode(key)
