@@ -33,7 +33,6 @@ from typing import (
     Union,
 )
 
-import jwt
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -54,6 +53,7 @@ from flask_appbuilder.security.views import (
 )
 from flask_appbuilder.widgets import ListWidget
 from flask_login import AnonymousUserMixin, LoginManager
+from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -238,6 +238,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     )
 
     guest_user_cls = GuestUser
+    pyjwt_for_guest_token = _jwt_global_obj
 
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
@@ -1339,7 +1340,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
-        token = jwt.encode(claims, secret, algorithm=algo)
+        token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
         return token
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
@@ -1387,7 +1388,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         audience = self._get_guest_token_jwt_audience()
-        return jwt.decode(raw_token, secret, algorithms=[algo], audience=audience)
+        return self.pyjwt_for_guest_token.decode(
+            raw_token, secret, algorithms=[algo], audience=audience
+        )
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
