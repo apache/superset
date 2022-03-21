@@ -26,7 +26,7 @@ import {
   NumberFormats,
   NumberFormatter,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
+import { CallbackDataParams, ZRColor } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, BarSeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_Bar_FORM_DATA,
@@ -39,6 +39,7 @@ import { DEFAULT_LEGEND_FORM_DATA, EchartTransition } from '../types';
 import {
   extractGroupbyLabel,
   getColtypesMapping,
+  getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
@@ -93,11 +94,15 @@ export default function transformProps(
     groupby,
     labelsOutside,
     labelLine,
+    legendOrientation,
+    legendType,
+    showLegend,
     metrics,
     numberFormat,
     dateFormat,
     emitFilter,
     vertical,
+    stack,
   }: EchartsBarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_Bar_FORM_DATA,
@@ -133,30 +138,8 @@ export default function transformProps(
   const { setDataMask = () => {} } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
-
-  const transformedData: BarSeriesOption[] = data.map(datum => {
-    const name = extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    });
-
-    const isFiltered =
-      filterState.selectedValues && !filterState.selectedValues.includes(name);
-
-    return {
-      value: datum[metricLabels[0]],
-      name,
-      itemStyle: {
-        color: colorFn(name),
-        opacity: isFiltered
-          ? OpacityEnum.SemiTransparent
-          : OpacityEnum.NonTransparent,
-      },
-    };
-  });
+  // const numberFormatter = getNumberFormatter(numberFormat);
+  // const colors: ZRColor[] = metricLabels.map(metricLabel => colorFn(metricLabel));
 
   function getTransformedDataForMetric(metricLabel: string): BarSeriesOption[] {
     return data.map(datum => {
@@ -175,7 +158,6 @@ export default function transformProps(
         value: datum[metricLabel],
         name,
         itemStyle: {
-          //color: colorFn(name),
           opacity: isFiltered
             ? OpacityEnum.SemiTransparent
             : OpacityEnum.NonTransparent,
@@ -183,6 +165,10 @@ export default function transformProps(
       };
     });
   }
+
+  const transformedData: BarSeriesOption[] = getTransformedDataForMetric(
+    metricLabels[0],
+  );
 
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
@@ -200,17 +186,17 @@ export default function transformProps(
   const series: BarSeriesOption[] = metricLabels.map(metricLabel => {
     return {
       type: 'bar',
-      stack: 'total',
+      stack: stack ? 'total' : undefined,
       //...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: true,
       labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
       emphasis: {
-        focus: 'series'
+        focus: 'series',
       },
+      name: metricLabel,
       data: getTransformedDataForMetric(metricLabel),
       universalTransition: {
         enabled: true,
-        seriesKey: keys,
       },
     };
   });
@@ -229,21 +215,27 @@ export default function transformProps(
       boundaryGap: vertical ? [0] : undefined,
       data: vertical ? undefined : keys,
     },
+    // tooltip: {
+    //   ...defaultTooltip,
+    //   trigger: 'item',
+    //   formatter: (params: any) =>
+    //     formatBarLabel({
+    //       params,
+    //       numberFormatter,
+    //       labelType: EchartsBarLabelType.KeyValue,
+    //       sanitizeName: true,
+    //     }),
+    // },
     tooltip: {
-      ...defaultTooltip,
-      trigger: 'item',
-      formatter: (params: any) =>
-        formatBarLabel({
-          params,
-          numberFormatter,
-          labelType: EchartsBarLabelType.KeyValue,
-          sanitizeName: true,
-        }),
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+      },
     },
     legend: {
-      //...getLegendProps(legendType, legendOrientation, showLegend),
-      data: keys,
+      ...getLegendProps(legendType, legendOrientation, showLegend),
     },
+    color: metricLabels.map(metricLabel => colorFn(metricLabel)),
     series,
   };
 
@@ -260,20 +252,15 @@ export default function transformProps(
       boundaryGap: [0],
     },
     tooltip: {
-      ...defaultTooltip,
-      trigger: 'item',
-      formatter: (params: any) =>
-        formatBarLabel({
-          params,
-          numberFormatter,
-          labelType: EchartsBarLabelType.KeyValue,
-          sanitizeName: true,
-        }),
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow',
+      },
     },
     legend: {
-      //...getLegendProps(legendType, legendOrientation, showLegend),
-      data: keys,
+      ...getLegendProps(legendType, legendOrientation, showLegend),
     },
+    color: metricLabels.map(metricLabel => colorFn(metricLabel)),
     series,
   };
 

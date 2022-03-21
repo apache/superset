@@ -54,6 +54,7 @@ export type EchartsBarFormData = QueryFormData &
     emitFilter: boolean;
     animate: boolean;
     vertical: boolean;
+    stack: boolean;
   };
 
 export enum EchartsBarLabelType {

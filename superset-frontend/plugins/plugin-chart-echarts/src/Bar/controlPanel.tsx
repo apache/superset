@@ -20,8 +20,13 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   sections,
-  emitFilterControl,
+  sharedControls,
+  emitFilterControl
 } from '@superset-ui/chart-controls';
+
+import {
+  legendSection
+} from '../controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -37,14 +42,24 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [
           {
-            name: 'sort_by_metric',
+            name: 'series_limit_metric',
             config: {
-              default: true,
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
+              ...sharedControls.series_limit_metric,
               description: t(
-                'Whether to sort results by the selected metric in descending order.',
+                'Metric used to define how the top series are sorted if a series or cell limit is present. ' +
+                  'If undefined reverts to the first metric (where appropriate).',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
             },
           },
         ],
@@ -80,6 +95,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'stack',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Use Stacked Bars'),
+              renderTrigger: true,
+              default: true,
+              description: t('Whether to display stacked bars.'),
+            },
+          },
+        ],
+        ...legendSection,
         // [
         //   {
         //     name: 'show_labels_threshold',
