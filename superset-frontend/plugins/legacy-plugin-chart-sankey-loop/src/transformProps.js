@@ -18,7 +18,7 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData, margin } = chartProps;
-  const { colorScheme } = formData;
+  const { colorScheme, sliceId } = formData;
 
   return {
     width,
@@ -26,5 +26,6 @@ export default function transformProps(chartProps) {
     data: queriesData[0].data,
     colorScheme,
     margin,
+    sliceId,
   };
 }

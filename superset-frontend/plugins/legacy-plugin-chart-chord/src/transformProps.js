@@ -18,7 +18,7 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { yAxisFormat, colorScheme } = formData;
+  const { yAxisFormat, colorScheme, sliceId } = formData;
 
   return {
     colorScheme,
@@ -26,5 +26,6 @@ export default function transformProps(chartProps) {
     height,
     numberFormat: yAxisFormat,
     width,
+    sliceId,
   };
 }
