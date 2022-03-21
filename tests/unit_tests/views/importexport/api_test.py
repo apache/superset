@@ -17,6 +17,7 @@
 
 import json
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
@@ -38,17 +39,19 @@ def test_export_assets(mocker: MockFixture, client: Any) -> None:
     )
     mocker.patch.object(security_manager, "has_access", return_value=True)
 
-    # pylint: disable=invalid-name
-    ExportAssetsCommand = mocker.patch(
-        "superset.views.importexport.api.ExportAssetsCommand"
-    )
-    ExportAssetsCommand().run.return_value = [
+    mocked_contents = [
         (
             "metadata.yaml",
             "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n",
         ),
         ("databases/example.yaml", "<DATABASE CONTENTS>"),
     ]
+
+    # pylint: disable=invalid-name
+    ExportAssetsCommand = mocker.patch(
+        "superset.views.importexport.api.ExportAssetsCommand"
+    )
+    ExportAssetsCommand().run.return_value = mocked_contents[:]
 
     response = client.get("/api/v1/assets/export/")
     assert response.status_code == 200
@@ -59,12 +62,7 @@ def test_export_assets(mocker: MockFixture, client: Any) -> None:
     buf.seek(0)
     with ZipFile(buf) as bundle:
         contents = get_contents_from_bundle(bundle)
-    assert contents == {
-        "metadata.yaml": (
-            "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
-        ),
-        "databases/example.yaml": "<DATABASE CONTENTS>",
-    }
+    assert contents == dict(mocked_contents)
 
 
 def test_import_assets(mocker: MockFixture, client: Any) -> None:
@@ -77,21 +75,24 @@ def test_import_assets(mocker: MockFixture, client: Any) -> None:
     )
     mocker.patch.object(security_manager, "has_access", return_value=True)
 
+    mocked_contents = {
+        "metadata.yaml": (
+            "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+        ),
+        "databases/example.yaml": "<DATABASE CONTENTS>",
+    }
+
     # pylint: disable=invalid-name
     ImportAssetsCommand = mocker.patch(
         "superset.views.importexport.api.ImportAssetsCommand"
     )
 
+    root = Path("assets_export")
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
-        with bundle.open("assets_export/metadata.yaml", "w") as fp:
-            fp.write(
-                "version: 1.0.0\n"
-                "type: assets\n"
-                "timestamp: '2022-01-01T00:00:00+00:00'\n".encode()
-            )
-        with bundle.open("assets_export/databases/example.yaml", "w") as fp:
-            fp.write("<DATABASE CONTENTS>".encode())
+        for path, contents in mocked_contents.items():
+            with bundle.open(str(root / path), "w") as fp:
+                fp.write(contents.encode())
     buf.seek(0)
 
     form_data = {
@@ -106,11 +107,5 @@ def test_import_assets(mocker: MockFixture, client: Any) -> None:
     assert response.status_code == 200
     assert response.json == {"message": "OK"}
 
-    contents = {
-        "metadata.yaml": (
-            "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
-        ),
-        "databases/example.yaml": "<DATABASE CONTENTS>",
-    }
     passwords = {"assets_export/databases/imported_database.yaml": "SECRET"}
-    ImportAssetsCommand.assert_called_with(contents, passwords=passwords)
+    ImportAssetsCommand.assert_called_with(mocked_contents, passwords=passwords)
