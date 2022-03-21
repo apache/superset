@@ -325,7 +325,9 @@ class TemporalType(str, Enum):
     SMALLDATETIME = "SMALLDATETIME"
     TEXT = "TEXT"
     TIME = "TIME"
+    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
     TIMESTAMP = "TIMESTAMP"
+    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
 
 
 class ColumnTypeSource(Enum):
