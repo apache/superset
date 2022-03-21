@@ -134,8 +134,13 @@ const WelcomeNav = styled.div`
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map(() => (
-      <ListViewCard cover={cover ? false : <></>} description="" loading />
+    {[...new Array(loadingCardCount)].map((_, index) => (
+      <ListViewCard
+        key={index}
+        cover={cover ? false : <></>}
+        description=""
+        loading
+      />
     ))}
   </CardContainer>
 );
