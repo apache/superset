@@ -24,6 +24,7 @@ under the License.
 - [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
 
 **Fixes**
+- [#17641](https://github.com/apache/superset/pull/17641) fix(sqla): make text clause escaping optional (@villebro)
 - [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
 
 ### 1.4.1 (Mon Jan 10 13:00:39 2022 +0000)
