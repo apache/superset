@@ -205,6 +205,9 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
+  mapStateToProps: state => ({
+    dashboardId: state?.form_data?.dashboardId,
+  }),
 };
 
 const secondary_metric: SharedControlConfig<'MetricsControl'> = {

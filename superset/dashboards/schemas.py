@@ -128,6 +128,7 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
+    shared_label_colors = fields.Dict()
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()

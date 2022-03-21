@@ -76,6 +76,7 @@ function Rose(element, props) {
     numberFormat,
     useRichTooltip,
     useAreaProportions,
+    sliceId,
   } = props;
 
   const div = d3.select(element);
@@ -120,10 +121,10 @@ function Rose(element, props) {
           .map(v => ({
             key: v.name,
             value: v.value,
-            color: colorFn(v.name),
+            color: colorFn(v.name, sliceId),
             highlight: v.id === d.arcId,
           }))
-      : [{ key: d.name, value: d.val, color: colorFn(d.name) }];
+      : [{ key: d.name, value: d.val, color: colorFn(d.name, sliceId) }];
 
     return {
       key: 'Date',
@@ -132,7 +133,7 @@ function Rose(element, props) {
     };
   }
 
-  legend.width(width).color(d => colorFn(d.key));
+  legend.width(width).color(d => colorFn(d.key, sliceId));
   legendWrap.datum(legendData(datum)).call(legend);
 
   tooltip.headerFormatter(timeFormat).valueFormatter(format);
@@ -378,7 +379,7 @@ function Rose(element, props) {
   const arcs = ae
     .append('path')
     .attr('class', 'arc')
-    .attr('fill', d => colorFn(d.name))
+    .attr('fill', d => colorFn(d.name, sliceId))
     .attr('d', arc);
 
   function mousemove() {

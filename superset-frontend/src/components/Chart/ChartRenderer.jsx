@@ -31,6 +31,7 @@ const propTypes = {
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -48,6 +49,7 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
   source: PropTypes.oneOf(['dashboard', 'explore']),
 };
 
@@ -107,6 +109,7 @@ class ChartRenderer extends React.Component {
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
         nextProps.labelColors !== this.props.labelColors ||
+        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
@@ -192,6 +195,7 @@ class ChartRenderer extends React.Component {
       filterState,
       formData,
       queriesResponse,
+      postTransformProps,
     } = this.props;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
@@ -260,6 +264,7 @@ class ChartRenderer extends React.Component {
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
         noResults={noResultsComponent}
+        postTransformProps={postTransformProps}
       />
     );
   }

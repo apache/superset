@@ -42,6 +42,7 @@
     "@types/math-expression-evaluator": "^1.2.1",
     "@types/rison": "0.0.6",
     "@types/seedrandom": "^2.4.28",
+    "@types/tinycolor2": "^1.4.3",
     "@types/fetch-mock": "^7.3.3",
     "@types/enzyme": "^3.10.5",
     "@types/prop-types": "^15.7.2",
