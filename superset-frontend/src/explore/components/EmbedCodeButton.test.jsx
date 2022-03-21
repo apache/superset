@@ -34,12 +34,14 @@ describe('EmbedCodeButton', () => {
   });
 
   it('returns correct embed code', () => {
-    const href = 'http://localhost/explore?form_data_key=xxxxxxxxx';
-    Object.defineProperty(window, 'location', { value: { href } });
-    const wrapper = mount(<EmbedCodeButton />);
+    const wrapper = mount(
+      <EmbedCodeButton formData={{}} addDangerToast={() => {}} />,
+    );
+    const url = 'http://localhost/explore/p/100';
     wrapper.find(EmbedCodeButton).setState({
       height: '1000',
       width: '2000',
+      url,
     });
     const embedHTML =
       `${
@@ -49,7 +51,7 @@ describe('EmbedCodeButton', () => {
         '  seamless\n' +
         '  frameBorder="0"\n' +
         '  scrolling="no"\n' +
-        `  src="${href}&standalone=`
+        `  src="${url}?standalone=`
       }${DashboardStandaloneMode.HIDE_NAV}&height=1000"\n` +
       `>\n` +
       `</iframe>`;

@@ -35,7 +35,6 @@ interface BrandProps {
   path: string;
   icon: string;
   alt: string;
-  width: string | number;
   tooltip: string;
   text: string;
 }
@@ -74,7 +73,7 @@ interface MenuObjectChildProps {
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
-  perm?: string | Array<any> | boolean;
+  perm?: string | boolean;
   view?: string;
 }
 
@@ -97,6 +96,18 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* must be exactly the height of the Antd navbar */
+    min-height: 50px;
+    padding: ${({ theme }) =>
+      `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
+        theme.gridUnit * 4
+      }px`};
+    max-width: ${({ theme }) => `${theme.gridUnit * 37}px`};
+
+    img {
+      height: 100%;
+      object-fit: contain;
+    }
   }
   .navbar-brand-text {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -273,7 +284,7 @@ export function Menu({
             arrowPointAtCenter
           >
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img src={brand.icon} alt={brand.alt} />
             </a>
           </Tooltip>
           {brand.text && (

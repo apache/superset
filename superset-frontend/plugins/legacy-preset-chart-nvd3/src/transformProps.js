@@ -94,6 +94,7 @@ export default function transformProps(chartProps) {
     yAxisShowminmax,
     yAxis2Showminmax,
     yLogScale,
+    sliceId,
   } = formData;
 
   let {
@@ -195,5 +196,6 @@ export default function transformProps(chartProps) {
     yAxis2ShowMinMax: yAxis2Showminmax,
     yField: y,
     yIsLogScale: yLogScale,
+    sliceId,
   };
 }

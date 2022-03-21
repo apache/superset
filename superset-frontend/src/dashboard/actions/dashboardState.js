@@ -18,7 +18,12 @@
  */
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { ensureIsArray, t, SupersetClient } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  t,
+  SupersetClient,
+  getSharedLabelColor,
+} from '@superset-ui/core';
 import {
   addChart,
   removeChart,
@@ -65,6 +70,11 @@ export function addSlice(slice) {
 export const REMOVE_SLICE = 'REMOVE_SLICE';
 export function removeSlice(sliceId) {
   return { type: REMOVE_SLICE, sliceId };
+}
+
+export const RESET_SLICE = 'RESET_SLICE';
+export function resetSlice() {
+  return { type: RESET_SLICE };
 }
 
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -232,6 +242,7 @@ export function saveDashboardRequest(data, id, saveType) {
         color_scheme: data.metadata?.color_scheme || '',
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
+        shared_label_colors: data.metadata?.shared_label_colors || {},
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
@@ -495,6 +506,28 @@ export function addSliceToDashboard(id, component) {
   };
 }
 
+export function postAddSliceFromDashboard() {
+  return (dispatch, getState) => {
+    const {
+      dashboardInfo: { metadata },
+      dashboardState,
+    } = getState();
+
+    if (dashboardState?.updateSlice && dashboardState?.editMode) {
+      metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+        metadata?.color_namespace,
+        metadata?.color_scheme,
+      );
+      dispatch(
+        dashboardInfoChanged({
+          metadata,
+        }),
+      );
+      dispatch(resetSlice());
+    }
+  };
+}
+
 export function removeSliceFromDashboard(id) {
   return (dispatch, getState) => {
     const sliceEntity = getState().sliceEntities.slices[id];
@@ -504,6 +537,20 @@ export function removeSliceFromDashboard(id) {
 
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
+
+    const {
+      dashboardInfo: { metadata },
+    } = getState();
+    getSharedLabelColor().removeSlice(id);
+    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+      metadata?.color_namespace,
+      metadata?.color_scheme,
+    );
+    dispatch(
+      dashboardInfoChanged({
+        metadata,
+      }),
+    );
   };
 }
 
