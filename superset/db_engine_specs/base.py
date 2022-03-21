@@ -812,7 +812,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
-        Convert Python datetime object to a SQL expression
+        Convert a Python `datetime` object to a SQL expression.
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
