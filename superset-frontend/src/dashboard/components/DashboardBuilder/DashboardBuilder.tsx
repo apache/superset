@@ -350,7 +350,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
-                filtersOpen={dashboardFiltersOpen}
+                filtersOpen={!!dashboardFiltersOpen}
                 toggleFiltersBar={toggleDashboardFiltersOpen}
                 directPathToChild={directPathToChild}
                 width={filterBarWidth}
@@ -407,7 +407,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         >
           <StyledDashboardContent
             className="dashboard-content"
-            dashboardFiltersOpen={dashboardFiltersOpen}
+            dashboardFiltersOpen={!!dashboardFiltersOpen}
             editMode={editMode}
             nativeFiltersEnabled={nativeFiltersEnabled}
           >
