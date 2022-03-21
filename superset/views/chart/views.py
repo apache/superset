@@ -21,10 +21,9 @@ from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
-from superset import is_feature_enabled
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     check_ownership,
@@ -73,9 +72,6 @@ class SliceModelView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
 

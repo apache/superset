@@ -106,6 +106,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ['color_picker'],
+        ['color_scheme'],
         ['linear_color_scheme'],
       ],
     },
@@ -125,6 +126,9 @@ const config: ControlPanelConfig = {
     },
     color_picker: {
       label: t('Bubble Color'),
+    },
+    color_scheme: {
+      label: t('Categorical Color Scheme'),
     },
     linear_color_scheme: {
       label: t('Country Color Scheme'),

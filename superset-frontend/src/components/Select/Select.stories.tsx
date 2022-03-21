@@ -187,10 +187,10 @@ export const InteractiveSelect = ({
 );
 
 InteractiveSelect.args = {
-  autoFocus: false,
+  autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
-  showSearch: false,
+  showSearch: true,
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
@@ -495,6 +495,7 @@ AsyncSelect.args = {
   pageSize: 10,
   withError: false,
   withInitialValue: false,
+  tokenSeparators: ['\n', '\t', ';'],
 };
 
 AsyncSelect.argTypes = {
