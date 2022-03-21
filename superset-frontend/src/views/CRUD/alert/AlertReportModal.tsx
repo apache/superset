@@ -153,6 +153,9 @@ const DEFAULT_ALERT = {
 };
 
 const StyledModal = styled(Modal)`
+  max-width: 1200px;
+  width: 100%;
+
   .ant-modal-body {
     overflow: initial;
   }
@@ -165,7 +168,6 @@ const StyledIcon = (theme: SupersetTheme) => css`
 
 const StyledSectionContainer = styled.div`
   display: flex;
-  min-width: 1000px;
   flex-direction: column;
 
   .header-section {
@@ -1242,6 +1244,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <TimezoneSelector
                 onTimezoneChange={onTimezoneChange}
                 timezone={currentAlert?.timezone}
+                minWidth="100%"
               />
             </div>
             <StyledSectionTitle>
