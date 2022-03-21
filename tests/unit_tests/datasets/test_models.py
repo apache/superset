@@ -980,9 +980,9 @@ def test_update_sqlatable_schema(
     sqla_table.schema = "new_schema"
     session.flush()
 
-    dataset = session.query(Dataset).one()
-    assert dataset.tables[0].schema == "new_schema"
-    assert dataset.tables[0].id == 2
+    new_dataset = session.query(Dataset).one()
+    assert new_dataset.tables[0].schema == "new_schema"
+    assert new_dataset.tables[0].id == 2
 
 
 def test_update_sqlatable_metric(
@@ -1098,9 +1098,9 @@ def test_update_virtual_sqlatable_references(
     session.flush()
 
     # check that new dataset has both tables
-    dataset = session.query(Dataset).one()
-    assert dataset.tables == [table1, table2]
-    assert dataset.expression == "SELECT a, b FROM table_a JOIN table_b"
+    new_dataset = session.query(Dataset).one()
+    assert new_dataset.tables == [table1, table2]
+    assert new_dataset.expression == "SELECT a, b FROM table_a JOIN table_b"
 
 
 def test_quote_expressions(app_context: None, session: Session) -> None:
@@ -1242,3 +1242,72 @@ def test_update_physical_sqlatable(
 
     # check that dataset points to the original table
     assert dataset.tables[0].database_id == 1
+
+
+def test_update_physical_sqlatable_no_dataset(
+    mocker: MockFixture, app_context: None, session: Session
+) -> None:
+    """
+    Test updating the table on a physical dataset that it creates
+    a new dataset if one didn't already exist.
+
+    When updating the table on a physical dataset by pointing it somewhere else (change
+    in database ID, schema, or table name) we should point the ``Dataset`` to an
+    existing ``Table`` if possible, and create a new one otherwise.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+    mocker.patch("superset.datasets.dao.db.session", session)
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset
+    from superset.models.core import Database
+    from superset.tables.models import Table
+    from superset.tables.schemas import TableSchema
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="a", type="INTEGER"),
+    ]
+
+    sqla_table = SqlaTable(
+        table_name="old_dataset",
+        columns=columns,
+        metrics=[],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    # check that the table was created
+    table = session.query(Table).one()
+    assert table.id == 1
+
+    dataset = session.query(Dataset).one()
+    assert dataset.tables == [table]
+
+    # point ``SqlaTable`` to a different database
+    new_database = Database(
+        database_name="my_other_database", sqlalchemy_uri="sqlite://"
+    )
+    session.add(new_database)
+    session.flush()
+    sqla_table.database = new_database
+    session.flush()
+
+    new_dataset = session.query(Dataset).one()
+
+    # check that dataset now points to the new table
+    assert new_dataset.tables[0].database_id == 2
+
+    # point ``SqlaTable`` back
+    sqla_table.database_id = 1
+    session.flush()
+
+    # check that dataset points to the original table
+    assert new_dataset.tables[0].database_id == 1
