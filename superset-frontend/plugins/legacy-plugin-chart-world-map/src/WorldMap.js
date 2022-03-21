@@ -23,6 +23,7 @@ import { extent as d3Extent } from 'd3-array';
 import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 
@@ -55,6 +56,8 @@ function WorldMap(element, props) {
     showBubbles,
     linearColorScheme,
     color,
+    colorScheme,
+    sliceId,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -69,15 +72,24 @@ function WorldMap(element, props) {
     .domain([extRadius[0], extRadius[1]])
     .range([1, maxBubbleSize]);
 
-  const colorScale = getSequentialSchemeRegistry()
+  const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(filteredData, d => d.m1));
 
-  const processedData = filteredData.map(d => ({
-    ...d,
-    radius: radiusScale(Math.sqrt(d.m2)),
-    fillColor: colorScale(d.m1),
-  }));
+  const colorScale = CategoricalColorNamespace.getScale(colorScheme);
+
+  const processedData = filteredData.map(d => {
+    let color = linearColorScale(d.m1);
+    if (colorScheme) {
+      // use color scheme instead
+      color = colorScale(d.name, sliceId);
+    }
+    return {
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: color,
+    };
+  });
 
   const mapData = {};
   processedData.forEach(d => {

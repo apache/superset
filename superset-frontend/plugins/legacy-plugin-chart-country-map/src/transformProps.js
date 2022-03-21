@@ -18,7 +18,13 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { linearColorScheme, numberFormat, selectCountry } = formData;
+  const {
+    linearColorScheme,
+    numberFormat,
+    selectCountry,
+    colorScheme,
+    sliceId,
+  } = formData;
 
   return {
     width,
@@ -27,5 +33,7 @@ export default function transformProps(chartProps) {
     country: selectCountry ? String(selectCountry).toLowerCase() : null,
     linearColorScheme,
     numberFormat,
+    colorScheme,
+    sliceId,
   };
 }
