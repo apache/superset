@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import { MainNav as Menu } from 'src/components/Menu';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
@@ -195,22 +195,22 @@ const RightMenu = ({
               if (menu.childs) {
                 return canDatabase || canUpload ? (
                   <SubMenu
-                    key="sub2"
+                    key={`sub2_${menu.label}`}
                     className="data-menu"
                     title={menuIconAndLabel(menu)}
                   >
                     {menu.childs.map((item, idx) =>
                       typeof item !== 'string' && item.name && item.perm ? (
-                        <>
+                        <Fragment key={item.name}>
                           {idx === 2 && <Menu.Divider />}
-                          <Menu.Item key={item.name}>
+                          <Menu.Item>
                             {item.url ? (
                               <a href={item.url}> {item.label} </a>
                             ) : (
                               item.label
                             )}
                           </Menu.Item>
-                        </>
+                        </Fragment>
                       ) : null,
                     )}
                   </SubMenu>
@@ -257,7 +257,9 @@ const RightMenu = ({
                 return null;
               })}
             </Menu.ItemGroup>,
-            index < settings.length - 1 && <Menu.Divider />,
+            index < settings.length - 1 && (
+              <Menu.Divider key={`divider_${index}`} />
+            ),
           ])}
 
           {!navbarRight.user_is_anonymous && [
