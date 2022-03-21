@@ -184,6 +184,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     baseEdgeWidth,
     baseNodeSize,
     edgeSymbol,
+    sliceId,
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
   const metricLabel = getMetricLabel(metric);
@@ -264,7 +265,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c) },
+        itemStyle: { color: colorFn(c, sliceId) },
       })),
       layout,
       force: {

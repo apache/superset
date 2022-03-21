@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, getSharedLabelColor } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -356,6 +356,15 @@ class Header extends React.PureComponent {
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
 
+    const currentColorScheme =
+      dashboardInfo?.metadata?.color_scheme || colorScheme;
+    const currentColorNamespace =
+      dashboardInfo?.metadata?.color_namespace || colorNamespace;
+    const currentSharedLabelColors = getSharedLabelColor().getColorMap(
+      currentColorNamespace,
+      currentColorScheme,
+    );
+
     const data = {
       certified_by: dashboardInfo.certified_by,
       certification_details: dashboardInfo.certification_details,
@@ -367,11 +376,11 @@ class Header extends React.PureComponent {
       slug,
       metadata: {
         ...dashboardInfo?.metadata,
-        color_namespace:
-          dashboardInfo?.metadata?.color_namespace || colorNamespace,
-        color_scheme: dashboardInfo?.metadata?.color_scheme || colorScheme,
+        color_namespace: currentColorNamespace,
+        color_scheme: currentColorScheme,
         positions,
         refresh_frequency: refreshFrequency,
+        shared_label_colors: currentSharedLabelColors,
       },
     };
 
