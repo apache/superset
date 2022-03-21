@@ -726,12 +726,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-        if current_app.config.get("PUBLIC_ROLE_LIKE_GAMMA", False):
-            logger.warning(
-                "The config `PUBLIC_ROLE_LIKE_GAMMA` is deprecated and will be removed "
-                "in Superset 1.0. Please use `PUBLIC_ROLE_LIKE` instead."
-            )
-            self.copy_role("Gamma", self.auth_role_public, merge=True)
 
         self.create_missing_perms()
 

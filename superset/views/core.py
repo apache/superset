@@ -123,8 +123,8 @@ from superset.sqllab.sql_json_executer import (
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
+from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
@@ -182,6 +182,7 @@ DATABASE_KEYS = [
     "expose_in_sqllab",
     "force_ctas_schema",
     "id",
+    "disable_data_preview",
 ]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -652,14 +653,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         force=force,
                     )
                     payload = viz_obj.get_payload()
+                    # If the chart query has already been cached, return it immediately.
+                    if payload is not None:
+                        return self.send_data_payload_response(viz_obj, payload)
                 except CacheLoadError:
-                    payload = None  # type: ignore
-
-                already_cached_result = payload is not None
-
-                # If the chart query has already been cached, return it immediately.
-                if already_cached_result:
-                    return self.send_data_payload_response(viz_obj, payload)
+                    pass
 
                 # Otherwise, kick off a background job to run the chart query.
                 # Clients will either poll or be notified of query completion,
@@ -2794,7 +2792,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
-            if conf.get("PUBLIC_ROLE_LIKE_GAMMA", False) or conf["PUBLIC_ROLE_LIKE"]:
+            if conf["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
@@ -2921,9 +2919,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sqllab/history/", methods=["GET"])
     @event_logger.log_this
     def sqllab_history(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return redirect("/superset/sqllab#search", code=307)
-
         return super().render_app_template()
 
     @api

@@ -23,7 +23,7 @@ from werkzeug.utils import redirect
 
 from superset import db, event_logger
 from superset.models import core as models
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)

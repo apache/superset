@@ -75,7 +75,7 @@ export function getTimeFormatter(
 
 /**
  * Syntactic sugar for backward compatibility
- * TODO: Deprecate this in the next breaking change.
+ * TODO: will be deprecated in a future version
  * @param granularity
  */
 export function getTimeFormatterForGranularity(granularity?: TimeGranularity) {

@@ -428,17 +428,6 @@ class TestCore(SupersetTestCase):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
 
-    def test_tablemodelview_list(self):
-        self.login(username="admin")
-
-        url = "/tablemodelview/list/"
-        resp = self.get_resp(url)
-
-        # assert that a table is listed
-        table = db.session.query(SqlaTable).first()
-        assert table.name in resp
-        assert "/superset/explore/table/{}".format(table.id) in resp
-
     def test_add_slice(self):
         self.login(username="admin")
         # assert that /chart/add responds with 200
@@ -1516,6 +1505,29 @@ class TestCore(SupersetTestCase):
         extra["allows_virtual_table_explore"] = "trash value"
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
+
+    def test_data_preview_visibility(self):
+        # test that default visibility is allowed
+        database = utils.get_example_database()
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is disabled when extra is set to true
+        extra = database.get_extra()
+        extra["disable_data_preview"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, True)
+
+        # test that visibility is enabled when extra is set to false
+        extra = database.get_extra()
+        extra["disable_data_preview"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is not broken with bad values
+        extra = database.get_extra()
+        extra["disable_data_preview"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
 
     def test_explore_database_id(self):
         database = superset.utils.database.get_example_database()

@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { FC, useRef, useEffect, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  FeatureFlag,
+  getSharedLabelColor,
+  isFeatureEnabled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
 import { useParams } from 'react-router-dom';
@@ -221,6 +228,18 @@ const DashboardPage: FC = () => {
     }
     return () => {};
   }, [css]);
+
+  useEffect(
+    () => () => {
+      // clean up label color
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+        metadata?.color_namespace,
+      );
+      categoricalNamespace.resetColors();
+      getSharedLabelColor().clear();
+    },
+    [metadata?.color_namespace],
+  );
 
   useEffect(() => {
     if (datasetsApiError) {

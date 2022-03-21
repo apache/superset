@@ -36,7 +36,7 @@ interface actionsTypes {
   queryEditorSetFunctionNames: (queryEditor: QueryEditor, dbId: number) => void;
   collapseTable: (table: Table) => void;
   expandTable: (table: Table) => void;
-  addTable: (queryEditor: any, value: any, schema: any) => void;
+  addTable: (queryEditor: any, database: any, value: any, schema: any) => void;
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
@@ -103,7 +103,7 @@ export default function SqlEditorLeftBar({
 
   const onTableChange = (tableName: string, schemaName: string) => {
     if (tableName && schemaName) {
-      actions.addTable(queryEditor, tableName, schemaName);
+      actions.addTable(queryEditor, database, tableName, schemaName);
     }
   };
 
