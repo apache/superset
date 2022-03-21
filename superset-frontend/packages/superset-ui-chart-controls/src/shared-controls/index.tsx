@@ -43,6 +43,7 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  JsonArray,
 } from '@superset-ui/core';
 
 import {
@@ -204,6 +205,9 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
+  mapStateToProps: state => ({
+    dashboardId: state?.form_data?.dashboardId,
+  }),
 };
 
 const secondary_metric: SharedControlConfig<'MetricsControl'> = {
@@ -345,7 +349,10 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   default: true,
   description: t('Whether to sort descending or ascending'),
   visibility: ({ controls }) =>
-    Boolean(controls?.timeseries_limit_metric.value),
+    Boolean(
+      controls?.timeseries_limit_metric.value &&
+        (controls?.timeseries_limit_metric.value as JsonArray).length,
+    ),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -444,6 +451,7 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     default: DEFAULT_NUMBER_FORMAT,
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+    tokenSeparators: ['\n', '\t', ';'],
     filterOption: ({ data: option }, search) =>
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {

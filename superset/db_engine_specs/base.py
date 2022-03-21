@@ -1138,7 +1138,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         sql = parsed_query.stripped()
         sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            sql = sql_query_mutator(sql, user_name, security_manager, database)
+            sql = sql_query_mutator(
+                sql,
+                user_name=user_name,
+                security_manager=security_manager,
+                database=database,
+            )
 
         return sql
 

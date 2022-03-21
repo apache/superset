@@ -39,7 +39,11 @@ describe('dashboardState actions', () => {
       sliceIds: [filterId],
       hasUnsavedChanges: true,
     },
-    dashboardInfo: {},
+    dashboardInfo: {
+      metadata: {
+        color_scheme: 'supersetColors',
+      },
+    },
     sliceEntities,
     dashboardFilters: emptyFilters,
     dashboardLayout: {
@@ -116,6 +120,6 @@ describe('dashboardState actions', () => {
 
     const removeFilter = dispatch.getCall(0).args[0];
     removeFilter(dispatch, getState);
-    expect(dispatch.getCall(3).args[0].type).toBe(REMOVE_FILTER);
+    expect(dispatch.getCall(4).args[0].type).toBe(REMOVE_FILTER);
   });
 });
