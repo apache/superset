@@ -18,7 +18,6 @@
  */
 import { isEmpty } from 'lodash';
 import { mapValues, flow, keyBy } from 'lodash/fp';
-
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -49,9 +48,9 @@ export function isFilterBox(chartId) {
 export function getAppliedFilterValues(chartId) {
   // use cached data if possible
   if (!(chartId in appliedFilterValuesByChart)) {
-    const applicableFilters = Object.entries(
-      activeFilters,
-    ).filter(([, { scope: chartIds }]) => chartIds.includes(chartId));
+    const applicableFilters = Object.entries(activeFilters).filter(
+      ([, { scope: chartIds }]) => chartIds.includes(chartId),
+    );
     appliedFilterValuesByChart[chartId] = flow(
       keyBy(
         ([filterKey]) => getChartIdAndColumnFromFilterKey(filterKey).column,
@@ -62,9 +61,10 @@ export function getAppliedFilterValues(chartId) {
   return appliedFilterValuesByChart[chartId];
 }
 
-export function getChartIdsInFilterScope({
-  filterScope = DASHBOARD_FILTER_SCOPE_GLOBAL,
-}) {
+// Legacy - getChartIdsInFilterBoxScope is used only by
+// components and functions related to filter box
+// Please use src/dashboard/util/getChartIdsInFilterScope instead
+export function getChartIdsInFilterBoxScope({ filterScope }) {
   function traverse(chartIds = [], component = {}, immuneChartIds = []) {
     if (!component) {
       return;
@@ -85,7 +85,8 @@ export function getChartIdsInFilterScope({
   }
 
   const chartIds = [];
-  const { scope: scopeComponentIds, immune: immuneChartIds } = filterScope;
+  const { scope: scopeComponentIds, immune: immuneChartIds } =
+    filterScope || DASHBOARD_FILTER_SCOPE_GLOBAL;
   scopeComponentIds.forEach(componentId =>
     traverse(chartIds, allComponents[componentId], immuneChartIds),
   );
@@ -118,7 +119,7 @@ export function buildActiveFilters({ dashboardFilters = {}, components = {} }) {
           : columns[column] !== undefined
       ) {
         // remove filter itself
-        const scope = getChartIdsInFilterScope({
+        const scope = getChartIdsInFilterBoxScope({
           filterScope: scopes[column],
         }).filter(id => chartId !== id);
 

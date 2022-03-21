@@ -102,10 +102,10 @@ class TestLogApi(SupersetTestCase):
         self.login(username="gamma")
         uri = "api/v1/log/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
         self.login(username="alpha")
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
     def test_get_item(self):
         """

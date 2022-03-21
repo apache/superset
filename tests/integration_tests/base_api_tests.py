@@ -18,6 +18,7 @@
 import json
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 import pytest
@@ -28,7 +29,7 @@ import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
 
@@ -152,6 +153,19 @@ class TestBaseModelRestApi(SupersetTestCase):
             }
         }
         self.assertEqual(response, expected_response)
+
+    def test_refuse_invalid_format_request(self):
+        """
+        API: Test invalid format of request
+
+        We want to make sure that non-JSON request are refused
+        """
+        self.login(username="admin")
+        uri = "api/v1/report/"  # endpoint decorated with @requires_json
+        rv = self.client.post(
+            uri, data="a: value\nb: 1\n", content_type="application/yaml"
+        )
+        self.assertEqual(rv.status_code, 400)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_put(self):

@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.utils.core import backend
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.security.base_case import (
     BaseTestDashboardSecurity,
@@ -31,6 +32,7 @@ from tests.integration_tests.dashboards.superset_factory_util import (
 )
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.query_context import get_query_context
@@ -91,7 +93,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 401)
+        self.assertEqual(rv.status_code, 403)
 
         # assert
         self.assert403(response)
@@ -118,6 +120,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
+        if backend() == "hive":
+            return
+
         # arrange
 
         username = random_str()
@@ -193,36 +198,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")
 
-    def test_get_dashboards_list__admin_get_all_dashboards(self):
-        # arrange
-        create_dashboard_to_db(
-            owners=[], slices=[create_slice_to_db()], published=False
-        )
-        dashboard_counts = count_dashboards()
-
-        self.login("admin")
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(response, dashboard_counts)
-
-    def test_get_dashboards_list__owner_get_all_owned_dashboards(self):
-        # arrange
-        (
-            not_owned_dashboards,
-            owned_dashboards,
-        ) = self._create_sample_dashboards_with_owner_access()
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(
-            response, 2, owned_dashboards, not_owned_dashboards
-        )
-
     def _create_sample_dashboards_with_owner_access(self):
         username = random_str()
         new_role = f"role_{random_str()}"
@@ -246,42 +221,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.login(username)
         return not_owned_dashboards, owned_dashboards
 
-    def test_get_dashboards_list__user_without_any_permissions_get_empty_list(self):
-
-        # arrange
-        username = random_str()
-        new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], should_create_roles=True)
-
-        create_dashboard_to_db(published=True)
-        self.login(username)
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(response, 0)
-
-    def test_get_dashboards_list__user_get_only_published_permitted_dashboards(self):
-        # arrange
-        (
-            new_role,
-            draft_dashboards,
-            published_dashboards,
-        ) = self._create_sample_only_published_dashboard_with_roles()
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
-        )
-
-        # post
-        for dash in published_dashboards + draft_dashboards:
-            revoke_access_to_dashboard(dash, new_role)
-
     def _create_sample_only_published_dashboard_with_roles(self):
         username = random_str()
         new_role = f"role_{random_str()}"
@@ -298,49 +237,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             grant_access_to_dashboard(dash, new_role)
         self.login(username)
         return new_role, draft_dashboards, published_dashboards
-
-    @pytest.mark.usefixtures("public_role_like_gamma")
-    def test_get_dashboards_list__public_user_without_any_permissions_get_empty_list(
-        self,
-    ):
-        create_dashboard_to_db(published=True)
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(response, 0)
-
-    @pytest.mark.usefixtures("public_role_like_gamma")
-    def test_get_dashboards_list__public_user_get_only_published_permitted_dashboards(
-        self,
-    ):
-        # arrange
-        published_dashboards = [
-            create_dashboard_to_db(published=True),
-            create_dashboard_to_db(published=True),
-        ]
-        draft_dashboards = [
-            create_dashboard_to_db(published=False),
-            create_dashboard_to_db(published=False),
-        ]
-
-        for dash in published_dashboards + draft_dashboards:
-            grant_access_to_dashboard(dash, "Public")
-
-        self.logout()
-
-        # act
-        response = self.get_dashboards_list_response()
-
-        # assert
-        self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
-        )
-
-        # post
-        for dash in published_dashboards + draft_dashboards:
-            revoke_access_to_dashboard(dash, "Public")
 
     def test_get_dashboards_api__admin_get_all_dashboards(self):
         # arrange

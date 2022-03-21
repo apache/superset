@@ -28,15 +28,36 @@ down_revision = "32646df09c64"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.engine.reflection import Inspector
 
 
 def upgrade():
-    with op.batch_alter_table("dbs") as batch_op:
-        batch_op.alter_column(
-            "allow_csv_upload",
-            new_column_name="allow_file_upload",
-            existing_type=sa.Boolean(),
-        )
+    try:
+        with op.batch_alter_table("dbs") as batch_op:
+            batch_op.alter_column(
+                "allow_csv_upload",
+                new_column_name="allow_file_upload",
+                existing_type=sa.Boolean(),
+            )
+    except sa.exc.OperationalError:
+        # In MySQL 8.0 renaming the column rename fails because it has
+        # a constraint check; we can safely remove it in that case, see
+        # https://github.com/sqlalchemy/alembic/issues/699
+        bind = op.get_bind()
+        inspector = Inspector.from_engine(bind)
+        check_constraints = inspector.get_check_constraints("dbs")
+        for check_constraint in check_constraints:
+            if "allow_csv_upload" in check_constraint["sqltext"]:
+                name = check_constraint["name"]
+                op.drop_constraint(name, table_name="dbs", type_="check")
+
+        # try again
+        with op.batch_alter_table("dbs") as batch_op:
+            batch_op.alter_column(
+                "allow_csv_upload",
+                new_column_name="allow_file_upload",
+                existing_type=sa.Boolean(),
+            )
 
 
 def downgrade():

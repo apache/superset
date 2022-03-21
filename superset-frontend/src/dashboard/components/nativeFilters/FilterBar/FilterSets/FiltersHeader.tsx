@@ -17,12 +17,17 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
-import { Collapse, Typography, Tooltip } from 'src/common/components';
-import { DataMaskState } from 'src/dataMask/types';
+import {
+  DataMaskState,
+  FilterSet,
+  isNativeFilter,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
+import { Typography, AntdTooltip, AntdCollapse } from 'src/components';
 import Icons from 'src/components/Icons';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
 import { useFilters } from '../state';
 import { getFilterBarTestId } from '../index';
@@ -33,7 +38,7 @@ const FilterHeader = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
-const StyledCollapse = styled(Collapse)`
+const StyledCollapse = styled(AntdCollapse)`
   &.ant-collapse-ghost > .ant-collapse-item {
     & > .ant-collapse-content > .ant-collapse-content-box {
       padding: 0;
@@ -68,11 +73,13 @@ export type FiltersHeaderProps = {
 const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = Object.values(filters).filter(isNativeFilter);
 
   let resultFilters = filterValues ?? [];
   if (filterSet?.nativeFilters) {
-    resultFilters = Object.values(filterSet?.nativeFilters);
+    resultFilters = Object.values(filterSet?.nativeFilters).filter(
+      isNativeFilter,
+    );
   }
 
   const getFiltersHeader = () => (
@@ -96,7 +103,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
     const removedFilter = !Object.keys(filters).includes(id);
 
     return (
-      <Tooltip
+      <AntdTooltip
         title={
           (removedFilter &&
             t(
@@ -118,7 +125,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
             )}
           </Typography.Text>
         </StyledFilterRow>
-      </Tooltip>
+      </AntdTooltip>
     );
   };
 
@@ -135,13 +142,13 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
       defaultActiveKey={!filterSet ? ['filters'] : undefined}
       expandIcon={getExpandIcon}
     >
-      <Collapse.Panel
+      <AntdCollapse.Panel
         {...getFilterBarTestId('collapse-filter-set-description')}
         header={getFiltersHeader()}
         key="filters"
       >
         {resultFilters.map(getFilterRow)}
-      </Collapse.Panel>
+      </AntdCollapse.Panel>
     </StyledCollapse>
   );
 };

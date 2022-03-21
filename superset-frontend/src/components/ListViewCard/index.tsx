@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
+import { Skeleton, AntdCard } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
+import CertifiedBadge from '../CertifiedBadge';
 
 const ActionsWrapper = styled.div`
   width: 64px;
@@ -135,6 +136,16 @@ const CoverFooterRight = styled.div`
   text-overflow: ellipsis;
 `;
 
+const ThinSkeleton = styled(Skeleton)`
+  h3 {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
+
+  ul {
+    margin-bottom: 0;
+  }
+`;
+
 const paragraphConfig = { rows: 1, width: 150 };
 
 interface LinkProps {
@@ -161,6 +172,8 @@ interface CardProps {
   rows?: number | string;
   avatar?: React.ReactElement | null;
   cover?: React.ReactNode | null;
+  certifiedBy?: string;
+  certificationDetails?: string;
 }
 
 function ListViewCard({
@@ -178,6 +191,8 @@ function ListViewCard({
   loading,
   imgPosition = 'top',
   cover,
+  certifiedBy,
+  certificationDetails,
 }: CardProps) {
   const Link = url && linkComponent ? linkComponent : AnchorLink;
   const theme = useTheme();
@@ -249,7 +264,17 @@ function ListViewCard({
             <TitleContainer>
               <Tooltip title={title}>
                 <TitleLink>
-                  <Link to={url!}>{title}</Link>
+                  <Link to={url!}>
+                    {certifiedBy && (
+                      <>
+                        <CertifiedBadge
+                          certifiedBy={certifiedBy}
+                          details={certificationDetails}
+                        />{' '}
+                      </>
+                    )}
+                    {title}
+                  </Link>
                 </TitleLink>
               </Tooltip>
               {titleRight && <TitleRight>{titleRight}</TitleRight>}

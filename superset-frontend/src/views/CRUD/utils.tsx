@@ -27,63 +27,96 @@ import {
   css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { intersection } from 'lodash';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { Dashboard, Filters } from './types';
 
-const createFetchResourceMethod = (method: string) => (
-  resource: string,
-  relation: string,
-  handleError: (error: Response) => void,
-  user?: { userId: string | number; firstName: string; lastName: string },
-) => async (filterValue = '', page: number, pageSize: number) => {
-  const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-  const queryParams = rison.encode({
-    filter: filterValue,
-    page,
-    page_size: pageSize,
-  });
-  const { json = {} } = await SupersetClient.get({
-    endpoint: `${resourceEndpoint}?q=${queryParams}`,
-  });
+// Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
+// Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
+(() => {
+  const risonRef: {
+    not_idchar: string;
+    not_idstart: string;
+    id_ok: RegExp;
+    next_id: RegExp;
+  } = rison as any;
 
-  let fetchedLoggedUser = false;
-  const loggedUser = user
-    ? {
-        label: `${user.firstName} ${user.lastName}`,
-        value: user.userId,
-      }
-    : undefined;
-
-  const data: { label: string; value: string | number }[] = [];
-  json?.result?.forEach(
-    ({ text, value }: { text: string; value: string | number }) => {
-      if (
-        loggedUser &&
-        value === loggedUser.value &&
-        text === loggedUser.label
-      ) {
-        fetchedLoggedUser = true;
-      } else {
-        data.push({
-          label: text,
-          value,
-        });
-      }
-    },
-  );
-
-  if (loggedUser && (!filterValue || fetchedLoggedUser)) {
-    data.unshift(loggedUser);
+  const l = [];
+  for (let hi = 0; hi < 16; hi += 1) {
+    for (let lo = 0; lo < 16; lo += 1) {
+      if (hi + lo === 0) continue;
+      const c = String.fromCharCode(hi * 16 + lo);
+      if (!/\w|[-_./~]/.test(c))
+        l.push(`\\u00${hi.toString(16)}${lo.toString(16)}`);
+    }
   }
 
-  return {
-    data,
-    totalCount: json?.count,
+  risonRef.not_idchar = l.join('');
+  risonRef.not_idstart = '-0123456789';
+
+  const idrx = `[^${risonRef.not_idstart}${risonRef.not_idchar}][^${risonRef.not_idchar}]*`;
+
+  risonRef.id_ok = new RegExp(`^${idrx}$`);
+  risonRef.next_id = new RegExp(idrx, 'g');
+})();
+
+const createFetchResourceMethod =
+  (method: string) =>
+  (
+    resource: string,
+    relation: string,
+    handleError: (error: Response) => void,
+    user?: { userId: string | number; firstName: string; lastName: string },
+  ) =>
+  async (filterValue = '', page: number, pageSize: number) => {
+    const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
+    const queryParams = rison.encode_uri({
+      filter: filterValue,
+      page,
+      page_size: pageSize,
+    });
+    const { json = {} } = await SupersetClient.get({
+      endpoint: `${resourceEndpoint}?q=${queryParams}`,
+    });
+
+    let fetchedLoggedUser = false;
+    const loggedUser = user
+      ? {
+          label: `${user.firstName} ${user.lastName}`,
+          value: user.userId,
+        }
+      : undefined;
+
+    const data: { label: string; value: string | number }[] = [];
+    json?.result?.forEach(
+      ({ text, value }: { text: string; value: string | number }) => {
+        if (
+          loggedUser &&
+          value === loggedUser.value &&
+          text === loggedUser.label
+        ) {
+          fetchedLoggedUser = true;
+        } else {
+          data.push({
+            label: text,
+            value,
+          });
+        }
+      },
+    );
+
+    if (loggedUser && (!filterValue || fetchedLoggedUser)) {
+      data.unshift(loggedUser);
+    }
+
+    return {
+      data,
+      totalCount: json?.count,
+    };
   };
-};
 
 export const PAGE_SIZE = 5;
 const getParams = (filters?: Array<Filters>) => {
@@ -370,7 +403,20 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(
     error =>
-      !Object.values(error.extra).some(
-        payload => isNeedsPassword(payload) || isAlreadyExists(payload),
-      ),
+      !Object.entries(error.extra)
+        .filter(([key, _]) => key !== 'issue_codes')
+        .every(
+          ([_, payload]) =>
+            isNeedsPassword(payload) || isAlreadyExists(payload),
+        ),
   );
+
+export const checkUploadExtensions = (
+  perm: Array<string>,
+  cons: Array<string>,
+) => {
+  if (perm !== undefined) {
+    return intersection(perm, cons).length > 0;
+  }
+  return false;
+};

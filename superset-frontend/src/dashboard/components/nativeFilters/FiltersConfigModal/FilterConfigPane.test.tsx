@@ -22,15 +22,19 @@ import { buildNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import FilterConfigPane from './FilterConfigurePane';
 
+const scrollMock = jest.fn();
+Element.prototype.scroll = scrollMock;
+
 const defaultProps = {
   children: jest.fn(),
   getFilterTitle: (id: string) => id,
   onChange: jest.fn(),
-  onEdit: jest.fn(),
+  onAdd: jest.fn(),
+  onRemove: jest.fn(),
   onRearrange: jest.fn(),
   restoreFilter: jest.fn(),
   currentFilterId: 'NATIVE_FILTER-1',
-  filterGroups: [['NATIVE_FILTER-2', 'NATIVE_FILTER-1'], ['NATIVE_FILTER-3']],
+  filters: ['NATIVE_FILTER-1', 'NATIVE_FILTER-2', 'NATIVE_FILTER-3'],
   removedFilters: {},
   erroredFilters: [],
 };
@@ -55,6 +59,10 @@ function defaultRender(initialState: any = defaultState, props = defaultProps) {
   });
 }
 
+beforeEach(() => {
+  scrollMock.mockClear();
+});
+
 test('renders form', async () => {
   await act(async () => {
     defaultRender();
@@ -64,7 +72,7 @@ test('renders form', async () => {
 
 test('drag and drop', async () => {
   defaultRender();
-  // Drag the state and contry filter above the product filter
+  // Drag the state and country filter above the product filter
   const [countryStateFilter, productFilter] = document.querySelectorAll(
     'div[draggable=true]',
   );
@@ -93,16 +101,72 @@ test('remove filter', async () => {
       }),
     );
   });
-  expect(defaultProps.onEdit).toHaveBeenCalledWith('NATIVE_FILTER-2', 'remove');
+  expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-1');
 });
 
 test('add filter', async () => {
   defaultRender();
   // First trash icon
-  const removeFilterIcon = screen.getByText('Add filter')!;
+  const addButton = screen.getByText('Add filters and dividers')!;
+  fireEvent.mouseOver(addButton);
+  const addFilterButton = await screen.findByText('Filter');
+
   await act(async () => {
     fireEvent(
-      removeFilterIcon,
+      addFilterButton,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  expect(defaultProps.onAdd).toHaveBeenCalledWith('NATIVE_FILTER');
+});
+
+test('add divider', async () => {
+  defaultRender();
+  const addButton = screen.getByText('Add filters and dividers')!;
+  fireEvent.mouseOver(addButton);
+  const addFilterButton = await screen.findByText('Divider');
+  await act(async () => {
+    fireEvent(
+      addFilterButton,
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  expect(defaultProps.onAdd).toHaveBeenCalledWith('DIVIDER');
+});
+
+test('filter container should scroll to bottom when adding items', async () => {
+  const state = {
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: new Array(35)
+          .fill(0)
+          .map((_, index) =>
+            buildNativeFilter(`NATIVE_FILTER-${index}`, `filter-${index}`, []),
+          ),
+      },
+    },
+    dashboardLayout,
+  };
+  const props = {
+    ...defaultProps,
+    filters: new Array(35).fill(0).map((_, index) => `NATIVE_FILTER-${index}`),
+  };
+
+  defaultRender(state, props);
+
+  const addButton = screen.getByText('Add filters and dividers')!;
+  fireEvent.mouseOver(addButton);
+
+  const addFilterButton = await screen.findByText('Filter');
+  await act(async () => {
+    fireEvent(
+      addFilterButton,
       new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
@@ -110,5 +174,6 @@ test('add filter', async () => {
     );
   });
 
-  expect(defaultProps.onEdit).toHaveBeenCalledWith('', 'add');
+  const containerElement = screen.getByTestId('filter-title-container');
+  expect(containerElement.scroll).toHaveBeenCalled();
 });

@@ -14,19 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
+from flask import current_app
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
+
 
 class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
+    engine_aliases = {"trinonative"}
     engine_name = "Trino"
 
     _time_grain_expressions = {
@@ -46,7 +54,9 @@ class TrinoEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             value = dttm.date().isoformat()
@@ -79,7 +89,6 @@ class TrinoEngineSpec(BaseEngineSpec):
         that can set the correct properties for impersonating users
         :param connect_args: config to be updated
         :param uri: URI string
-        :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         :return: None
         """
@@ -114,9 +123,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         Run a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
-        :param database: Database instance
         :param cursor: Cursor instance
-        :param username: Effective username
         :return: JSON response from Trino
         """
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
@@ -181,3 +188,61 @@ class TrinoEngineSpec(BaseEngineSpec):
             cost.append(statement_cost)
 
         return cost
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Some databases require adding elements to connection parameters,
+        like passing certificates to `extra`. This can be done here.
+
+        :param database: database instance from which to extract extras
+        :raises CertificateException: If certificate is not valid/unparseable
+        """
+        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        if database.server_cert:
+            connect_args["http_scheme"] = "https"
+            connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
+
+        return extra
+
+    @staticmethod
+    def update_encrypted_extra_params(
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            auth_method = encrypted_extra.pop("auth_method", None)
+            auth_params = encrypted_extra.pop("auth_params", {})
+            if not auth_method:
+                return
+
+            connect_args = params.setdefault("connect_args", {})
+            connect_args["http_scheme"] = "https"
+            # pylint: disable=import-outside-toplevel
+            if auth_method == "basic":
+                from trino.auth import BasicAuthentication as trino_auth  # noqa
+            elif auth_method == "kerberos":
+                from trino.auth import KerberosAuthentication as trino_auth  # noqa
+            elif auth_method == "jwt":
+                from trino.auth import JWTAuthentication as trino_auth  # noqa
+            else:
+                allowed_extra_auths = current_app.config[
+                    "ALLOWED_EXTRA_AUTHENTICATIONS"
+                ].get("trino", {})
+                if auth_method in allowed_extra_auths:
+                    trino_auth = allowed_extra_auths.get(auth_method)
+                else:
+                    raise ValueError(
+                        f"For security reason, custom authentication '{auth_method}' "
+                        f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+                    )
+
+            connect_args["auth"] = trino_auth(**auth_params)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex

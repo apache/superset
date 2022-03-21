@@ -48,6 +48,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
@@ -421,6 +422,28 @@ class TestExportDashboardsCommand(SupersetTestCase):
             },
             "DASHBOARD_VERSION_KEY": "v2",
         }
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_no_related(self, mock_g1, mock_g2):
+        """
+        Test that only the dashboard is exported when export_related=False.
+        """
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
+        command = ExportDashboardsCommand([example_dashboard.id], export_related=False)
+        contents = dict(command.run())
+
+        expected_paths = {
+            "metadata.yaml",
+            "dashboards/World_Banks_Data.yaml",
+        }
+        assert expected_paths == set(contents.keys())
 
 
 class TestImportDashboardsCommand(SupersetTestCase):

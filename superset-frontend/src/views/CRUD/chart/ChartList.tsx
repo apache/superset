@@ -39,7 +39,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   Filter,
@@ -49,7 +49,7 @@ import ListView, {
   SelectOption,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
-import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
@@ -58,7 +58,25 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
+import InfoTooltip from 'src/components/InfoTooltip';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import ChartCard from './ChartCard';
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  svg {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -163,7 +181,10 @@ function ChartList(props: ChartListProps) {
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const { userId } = props.user;
-  const userKey = getFromLocalStorage(userId?.toString(), null);
+  // TODO: Fix usage of localStorage keying on the user id
+  const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
+    thumbnails: boolean;
+  };
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -176,13 +197,14 @@ function ChartList(props: ChartListProps) {
   const handleChartImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Chart imported'));
   };
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
@@ -230,19 +252,38 @@ function ChartList(props: ChartListProps) {
               Header: '',
               id: 'id',
               disableSortBy: true,
-              size: 'xs',
+              size: 'sm',
             },
           ]
         : []),
       {
         Cell: ({
           row: {
-            original: { url, slice_name: sliceName },
+            original: {
+              url,
+              slice_name: sliceName,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+              description,
+            },
           },
         }: any) => (
-          <a href={url} data-test={`${sliceName}-list-chart-title`}>
-            {sliceName}
-          </a>
+          <FlexRowContainer>
+            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {sliceName}
+            </a>
+            {description && (
+              <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
+            )}
+          </FlexRowContainer>
         ),
         Header: t('Chart'),
         accessor: 'slice_name',
@@ -478,7 +519,7 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       {
-        Header: t('Viz type'),
+        Header: t('Chart type'),
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
@@ -512,6 +553,18 @@ function ChartList(props: ChartListProps) {
         paginate: true,
       },
       ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.chartIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
       {
         Header: t('Search'),
         id: 'slice_name',
@@ -548,8 +601,8 @@ function ChartList(props: ChartListProps) {
       <ChartCard
         chart={chart}
         showThumbnails={
-          userKey
-            ? userKey.thumbnails
+          userSettings
+            ? userSettings.thumbnails
             : isFeatureEnabled(FeatureFlag.THUMBNAILS)
         }
         hasPerm={hasPerm}
@@ -654,8 +707,8 @@ function ChartList(props: ChartListProps) {
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
               showThumbnails={
-                userKey
-                  ? userKey.thumbnails
+                userSettings
+                  ? userSettings.thumbnails
                   : isFeatureEnabled(FeatureFlag.THUMBNAILS)
               }
               defaultViewMode={

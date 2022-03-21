@@ -31,9 +31,9 @@ import { testWithId } from 'src/utils/testUtils';
 import {
   EchartsMixedTimeseriesChartPlugin,
   EchartsTimeseriesChartPlugin,
-} from '@superset-ui/plugin-chart-echarts/lib';
-import { LineChartPlugin } from '@superset-ui/preset-chart-xy/lib';
-import TimeTableChartPlugin from '../../../../visualizations/TimeTable/TimeTableChartPlugin';
+} from '@superset-ui/plugin-chart-echarts';
+import { LineChartPlugin } from '@superset-ui/preset-chart-xy';
+import TimeTableChartPlugin from '../../../../visualizations/TimeTable';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 jest.useFakeTimers();

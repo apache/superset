@@ -30,7 +30,6 @@ const createProps = () => ({
     datasource: '34__table',
     slice_id: 456,
     url_params: {},
-    time_range_endpoints: ['unknown', 'inclusive'],
     time_range: 'Last week',
     all_columns_x: 'source',
     all_columns_y: 'target',
@@ -105,7 +104,13 @@ test('Should copy data table content correctly', async () => {
   fetchMock.post(
     'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
     {
-      result: [{ data: [{ __timestamp: 1230768000000, genre: 'Action' }] }],
+      result: [
+        {
+          data: [{ __timestamp: 1230768000000, genre: 'Action' }],
+          colnames: ['__timestamp', 'genre'],
+          coltypes: [2, 1],
+        },
+      ],
     },
   );
   const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
@@ -118,12 +123,20 @@ test('Should copy data table content correctly', async () => {
         queriesResponse: [
           {
             colnames: ['__timestamp', 'genre'],
+            coltypes: [2, 1],
           },
         ],
       }}
     />,
     {
       useRedux: true,
+      initialState: {
+        explore: {
+          timeFormattedColumns: {
+            '34__table': ['__timestamp'],
+          },
+        },
+      },
     },
   );
   userEvent.click(await screen.findByText('Data'));

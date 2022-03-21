@@ -19,8 +19,9 @@
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select, { propertyComparator } from 'src/components/Select/Select';
-import { Col, InputNumber, Row } from 'src/common/components';
+import Select from 'src/components/Select/Select';
+import { Col, Row } from 'src/components';
+import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
 import {
   COMPARATOR,
@@ -44,35 +45,35 @@ const colorSchemeOptions = [
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: 'None', order: 0 },
-  { value: COMPARATOR.GREATER_THAN, label: '>', order: 1 },
-  { value: COMPARATOR.LESS_THAN, label: '<', order: 2 },
-  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥', order: 3 },
-  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤', order: 4 },
-  { value: COMPARATOR.EQUAL, label: '=', order: 5 },
-  { value: COMPARATOR.NOT_EQUAL, label: '≠', order: 6 },
-  { value: COMPARATOR.BETWEEN, label: '< x <', order: 7 },
-  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤', order: 8 },
-  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <', order: 9 },
-  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤', order: 10 },
+  { value: COMPARATOR.NONE, label: 'None' },
+  { value: COMPARATOR.GREATER_THAN, label: '>' },
+  { value: COMPARATOR.LESS_THAN, label: '<' },
+  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
+  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤' },
+  { value: COMPARATOR.EQUAL, label: '=' },
+  { value: COMPARATOR.NOT_EQUAL, label: '≠' },
+  { value: COMPARATOR.BETWEEN, label: '< x <' },
+  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤' },
+  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <' },
+  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
 ];
 
-const targetValueValidator = (
-  compare: (targetValue: number, compareValue: number) => boolean,
-  rejectMessage: string,
-) => (targetValue: number | string) => (
-  _: any,
-  compareValue: number | string,
-) => {
-  if (
-    !targetValue ||
-    !compareValue ||
-    compare(Number(targetValue), Number(compareValue))
-  ) {
-    return Promise.resolve();
-  }
-  return Promise.reject(new Error(rejectMessage));
-};
+const targetValueValidator =
+  (
+    compare: (targetValue: number, compareValue: number) => boolean,
+    rejectMessage: string,
+  ) =>
+  (targetValue: number | string) =>
+  (_: any, compareValue: number | string) => {
+    if (
+      !targetValue ||
+      !compareValue ||
+      compare(Number(targetValue), Number(compareValue))
+    ) {
+      return Promise.resolve();
+    }
+    return Promise.reject(new Error(rejectMessage));
+  };
 
 const targetValueLeftValidator = targetValueValidator(
   (target: number, val: number) => target > val,
@@ -126,11 +127,7 @@ const operatorField = (
     rules={rulesRequired}
     initialValue={operatorOptions[0].value}
   >
-    <Select
-      ariaLabel={t('Operator')}
-      options={operatorOptions}
-      sortComparator={propertyComparator('order')}
-    />
+    <Select ariaLabel={t('Operator')} options={operatorOptions} />
   </FormItem>
 );
 

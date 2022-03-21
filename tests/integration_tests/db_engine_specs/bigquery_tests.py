@@ -29,6 +29,7 @@ from superset.sql_parse import Table
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 
@@ -200,7 +201,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         # Test check for missing schema.
         sys.modules["google.oauth2"] = mock.MagicMock()
         for invalid_kwarg in invalid_kwargs:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 Exception,
                 "The table schema must be defined",
                 BigQueryEngineSpec.df_to_sql,

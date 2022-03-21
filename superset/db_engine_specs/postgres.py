@@ -18,26 +18,18 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Match,
-    Optional,
-    Pattern,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.types import String, TypeEngine
+from sqlalchemy.types import String
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    ColumnTypeMapping,
+)
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
@@ -48,12 +40,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
-
-# Replace psycopg2.tz.FixedOffsetTimezone with pytz, which is serializable by PyArrow
-# https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
-class FixedOffsetTimezone(_FixedOffset):
-    pass
 
 
 # Regular expressions to catch custom errors
@@ -168,7 +154,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
     ) -> List[Tuple[Any, ...]]:
-        cursor.tzinfo_factory = FixedOffsetTimezone
         if not cursor.description:
             return []
         return super().fetch_data(cursor, limit)
@@ -201,10 +186,10 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         (
             re.compile(r"^array.*", re.IGNORECASE),
             lambda match: ARRAY(int(match[2])) if match[2] else String(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
-        (re.compile(r"^json.*", re.IGNORECASE), JSON(), utils.GenericDataType.STRING,),
-        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), utils.GenericDataType.STRING,),
+        (re.compile(r"^json.*", re.IGNORECASE), JSON(), GenericDataType.STRING,),
+        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), GenericDataType.STRING,),
     )
 
     @classmethod
@@ -242,7 +227,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return sorted(tables)
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
@@ -279,16 +266,10 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(native_type)
         if column_spec:

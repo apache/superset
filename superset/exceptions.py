@@ -149,7 +149,7 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
 
 
 class SupersetSecurityException(SupersetErrorException):
-    status = 401
+    status = 403
 
     def __init__(
         self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
@@ -194,6 +194,10 @@ class CacheLoadError(SupersetException):
     status = 404
 
 
+class QueryClauseValidationException(SupersetException):
+    status = 400
+
+
 class DashboardImportException(SupersetException):
     pass
 
@@ -233,4 +237,4 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 
 class SupersetCancelQueryException(SupersetException):
-    pass
+    status = 422

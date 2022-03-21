@@ -332,7 +332,7 @@ export default function sqlLabReducer(state = {}, action) {
         endDttm: now(),
         progress: 100,
         results: action.results,
-        rows: action?.results?.data?.length,
+        rows: action?.results?.query?.rows || 0,
         state: 'success',
         limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
@@ -358,7 +358,7 @@ export default function sqlLabReducer(state = {}, action) {
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
       if (
-        qeIds.indexOf(action.queryEditor.id) > -1 &&
+        qeIds.indexOf(action.queryEditor?.id) > -1 &&
         state.tabHistory[state.tabHistory.length - 1] !== action.queryEditor.id
       ) {
         const tabHistory = state.tabHistory.slice();

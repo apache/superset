@@ -62,22 +62,13 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
           description: t('Extra parameters for use in jinja templated queries'),
         },
       },
-      {
-        name: 'time_range_endpoints',
-        config: {
-          type: 'HiddenControl',
-          label: t('Time range endpoints'),
-          hidden: true,
-          description: t('Time range endpoints (SIP-15)'),
-        },
-      },
     ],
   ],
 };
 
 export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color scheme'),
-  controlSetRows: [['color_scheme', 'label_colors']],
+  controlSetRows: [['color_scheme']],
 };
 
 export const sqlaTimeSeries: ControlPanelSectionConfig = {
@@ -117,16 +108,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
       ['adhoc_filters'],
       ['groupby'],
       ['limit', 'timeseries_limit_metric'],
+      ['order_desc'],
       [
-        {
-          name: 'order_desc',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Sort descending'),
-            default: true,
-            description: t('Whether to sort descending or ascending'),
-          },
-        },
         {
           name: 'contribution',
           config: {
@@ -216,6 +199,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
               '1 year',
               '104 weeks',
               '2 years',
+              '156 weeks',
+              '3 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +

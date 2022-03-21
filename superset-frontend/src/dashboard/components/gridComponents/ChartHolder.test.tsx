@@ -18,9 +18,8 @@
  */
 
 import React from 'react';
-import { waitFor } from '@testing-library/react';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
-import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -80,13 +79,17 @@ describe('ChartHolder', () => {
       </Provider>,
     );
 
-  it('should render full size', async () => {
+  it('should render empty state', async () => {
     renderWrapper();
 
-    const chart = (screen.getByTestId('slice-container')
-      .firstChild as HTMLElement).style;
-
-    await waitFor(() => expect(chart?.width).toBe('992px'));
-    expect(chart?.height).toBe('714px');
+    expect(
+      screen.getByText('No results were returned for this query'),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(
+        'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
+      ),
+    ).not.toBeInTheDocument(); // description should display only in Explore view
+    expect(screen.getByAltText('empty')).toBeVisible();
   });
 });

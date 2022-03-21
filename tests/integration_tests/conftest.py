@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
+from __future__ import annotations
+
 import functools
-from typing import Any
+from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.engine import Engine
-from unittest.mock import patch
 
-from tests.integration_tests.test_app import app
 from superset import db
 from superset.extensions import feature_flag_manager
-from superset.utils.core import get_example_database, json_dumps_w_dates
+from superset.utils.core import json_dumps_w_dates
+from superset.utils.database import get_example_database, remove_database
+from tests.integration_tests.test_app import app
 
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import Database
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
@@ -46,13 +50,13 @@ def setup_sample_data() -> Any:
     with app.app_context():
         setup_presto_if_needed()
 
-        from superset.cli import load_test_users_run
+        from superset.cli.test import load_test_users_run
 
         load_test_users_run()
 
-        from superset import examples
+        from superset.examples.css_templates import load_css_templates
 
-        examples.load_css_templates()
+        load_css_templates()
 
     yield
 
@@ -80,6 +84,36 @@ def drop_from_schema(engine: Engine, schema_name: str):
     for tv in tables_or_views:
         engine.execute(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}")
         engine.execute(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}")
+
+
+@pytest.fixture(scope="session")
+def example_db_provider() -> Callable[[], Database]:  # type: ignore
+    class _example_db_provider:
+        _db: Optional[Database] = None
+
+        def __call__(self) -> Database:
+            with app.app_context():
+                if self._db is None:
+                    self._db = get_example_database()
+                    self._load_lazy_data_to_decouple_from_session()
+
+                return self._db
+
+        def _load_lazy_data_to_decouple_from_session(self) -> None:
+            self._db.get_sqla_engine()  # type: ignore
+            self._db.backend  # type: ignore
+
+        def remove(self) -> None:
+            if self._db:
+                with app.app_context():
+                    remove_database(self._db)
+
+    _instance = _example_db_provider()
+
+    yield _instance
+
+    # TODO - can not use it until referenced objects will be deleted.
+    # _instance.remove()
 
 
 def setup_presto_if_needed():

@@ -30,14 +30,14 @@ import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ListView, {
   ListViewProps,
   Filter,
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
-import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from 'src/components/FacePile';
@@ -46,9 +46,9 @@ import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import OmniContainer from 'src/components/OmniContainer';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
+import CertifiedBadge from 'src/components/CertifiedBadge';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -140,15 +140,17 @@ function DashboardList(props: DashboardListProps) {
   const handleDashboardImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Dashboard imported'));
   };
 
   const { userId } = props.user;
-  const userKey = getFromLocalStorage(userId?.toString(), null);
+  // TODO: Fix usage of localStorage keying on the user id
+  const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_read');
+  const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -173,6 +175,8 @@ function DashboardList(props: DashboardListProps) {
                 json_metadata = '',
                 changed_on_delta_humanized,
                 url = '',
+                certified_by = '',
+                certification_details = '',
               } = json.result;
               return {
                 ...dashboard,
@@ -184,6 +188,8 @@ function DashboardList(props: DashboardListProps) {
                 json_metadata,
                 changed_on_delta_humanized,
                 url,
+                certified_by,
+                certification_details,
               };
             }
             return dashboard;
@@ -250,9 +256,26 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { url, dashboard_title: dashboardTitle },
+            original: {
+              url,
+              dashboard_title: dashboardTitle,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+            },
           },
-        }: any) => <Link to={url}>{dashboardTitle}</Link>,
+        }: any) => (
+          <Link to={url}>
+            {certifiedBy && (
+              <>
+                <CertifiedBadge
+                  certifiedBy={certifiedBy}
+                  details={certificationDetails}
+                />{' '}
+              </>
+            )}
+            {dashboardTitle}
+          </Link>
+        ),
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
@@ -479,6 +502,18 @@ function DashboardList(props: DashboardListProps) {
       },
       ...(props.user.userId ? [favoritesFilter] : []),
       {
+        Header: t('Certified'),
+        id: 'id',
+        urlDisplay: 'certified',
+        input: 'select',
+        operator: FilterOperator.dashboardIsCertified,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
+      {
         Header: t('Search'),
         id: 'dashboard_title',
         input: 'search',
@@ -652,8 +687,6 @@ function DashboardList(props: DashboardListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
-
-      <OmniContainer />
 
       {preparingExport && <Loading />}
     </>

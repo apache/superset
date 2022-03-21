@@ -22,7 +22,7 @@ import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
 import { useSelector, connect } from 'react-redux';
 
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -115,8 +115,9 @@ const FilterFocusHighlight = React.forwardRef(
       dashboardFilters,
     );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
-    if (!(focusedFilterScope || focusedNativeFilterId))
+    if (!(focusedFilterScope || focusedNativeFilterId)) {
       return <div ref={ref} {...otherProps} />;
+    }
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container
@@ -141,7 +142,7 @@ const FilterFocusHighlight = React.forwardRef(
       }
     } else if (
       chartId === focusedFilterScope.chartId ||
-      getChartIdsInFilterScope({
+      getChartIdsInFilterBoxScope({
         filterScope: focusedFilterScope.scope,
       }).includes(chartId)
     ) {
@@ -167,10 +168,8 @@ class ChartHolder extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     const { component, directPathToChild, directPathLastUpdated } = props;
-    const {
-      label: columnName,
-      chart: chartComponentId,
-    } = getChartAndLabelComponentIdFromPath(directPathToChild);
+    const { label: columnName, chart: chartComponentId } =
+      getChartAndLabelComponentIdFromPath(directPathToChild);
 
     if (
       directPathLastUpdated !== state.directPathLastUpdated &&

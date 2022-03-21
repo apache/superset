@@ -22,11 +22,13 @@ import { Slice } from 'src/types/Chart';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import PropertiesModal from '.';
+import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () => ({
-  slice: ({
+  slice: {
     cache_timeout: null,
+    certified_by: 'John Doe',
+    certification_details: 'Sample certification',
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
     datasource: 'FCC 2018 Survey',
@@ -46,7 +48,6 @@ const createProps = () => ({
       row_limit: 10000,
       slice_id: 318,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
       viz_type: 'histogram',
       x_axis_label: 'age',
@@ -62,13 +63,14 @@ const createProps = () => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  } as unknown) as Slice,
+  } as unknown as Slice,
   show: true,
   onHide: jest.fn(),
   onSave: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
-fetchMock.get('http://localhost/api/v1/chart/318', {
+fetchMock.get('glob:*/api/v1/chart/318', {
   body: {
     description_columns: {},
     id: 318,
@@ -87,6 +89,8 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
     },
     result: {
       cache_timeout: null,
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
       dashboards: [
         {
           dashboard_title: 'FCC New Coder Survey 2018',
@@ -103,7 +107,7 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
         },
       ],
       params:
-        '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "time_range_endpoints": ["inclusive", "exclusive"], "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
+        '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
       slice_name: 'Age distribution of respondents',
       viz_type: 'histogram',
     },
@@ -124,27 +128,26 @@ fetchMock.get('http://localhost/api/v1/chart/318', {
   },
 });
 
-fetchMock.get(
-  'http://localhost/api/v1/chart/related/owners?q=(filter:%27%27)',
-  {
-    body: {
-      count: 1,
-      result: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-        },
-      ],
-    },
-    sendAsJson: true,
+fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
+  body: {
+    count: 1,
+    result: [
+      {
+        text: 'Superset Admin',
+        value: 1,
+      },
+    ],
   },
-);
+  sendAsJson: true,
+});
 
-fetchMock.put('http://localhost/api/v1/chart/318', {
+fetchMock.put('glob:*/api/v1/chart/318', {
   body: {
     id: 318,
     result: {
       cache_timeout: null,
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
       description: null,
       owners: [],
       slice_name: 'Age distribution of respondents',
@@ -157,10 +160,13 @@ afterAll(() => {
   fetchMock.resetBehavior();
 });
 
+const renderModal = (props: PropertiesModalProps) =>
+  render(<PropertiesModal {...props} />, { useRedux: true });
+
 test('Should render null when show:false', async () => {
   const props = createProps();
   props.show = false;
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -171,7 +177,7 @@ test('Should render null when show:false', async () => {
 
 test('Should render when show:true', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(
@@ -182,7 +188,7 @@ test('Should render when show:true', async () => {
 
 test('Should have modal header', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Edit Chart Properties')).toBeVisible();
@@ -193,7 +199,7 @@ test('Should have modal header', async () => {
 
 test('"Close" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -209,9 +215,9 @@ test('"Close" button should call "onHide"', async () => {
 
 test('Should render all elements inside modal', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
-    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+    expect(screen.getAllByRole('textbox')).toHaveLength(5);
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),
@@ -226,12 +232,18 @@ test('Should render all elements inside modal', async () => {
 
     expect(screen.getByRole('heading', { name: 'Access' })).toBeVisible();
     expect(screen.getByText('Owners')).toBeVisible();
+
+    expect(
+      screen.getByRole('heading', { name: 'Configuration' }),
+    ).toBeVisible();
+    expect(screen.getByText('Certified by')).toBeVisible();
+    expect(screen.getByText('Certification details')).toBeVisible();
   });
 });
 
 test('Should have modal footer', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(screen.getByText('Cancel')).toBeVisible();
@@ -245,7 +257,7 @@ test('Should have modal footer', async () => {
 
 test('"Cancel" button should call "onHide"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
 
   await waitFor(() => {
     expect(props.onHide).toBeCalledTimes(0);
@@ -261,7 +273,7 @@ test('"Cancel" button should call "onHide"', async () => {
 
 test('"Save" button should call only "onSave"', async () => {
   const props = createProps();
-  render(<PropertiesModal {...props} />);
+  renderModal(props);
   await waitFor(() => {
     expect(props.onSave).toBeCalledTimes(0);
     expect(props.onHide).toBeCalledTimes(0);
@@ -273,5 +285,147 @@ test('"Save" button should call only "onSave"', async () => {
   await waitFor(() => {
     expect(props.onSave).toBeCalledTimes(1);
     expect(props.onHide).toBeCalledTimes(1);
+  });
+});
+
+test('Empty "Certified by" should clear "Certification details"', async () => {
+  const props = createProps();
+  const noCertifiedByProps = {
+    ...props,
+    slice: {
+      ...props.slice,
+      certified_by: '',
+    },
+  };
+  renderModal(noCertifiedByProps);
+
+  expect(
+    screen.getByRole('textbox', { name: 'Certification details' }),
+  ).toHaveValue('');
+});
+
+test('"Name" should not be empty', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  userEvent.clear(name);
+
+  expect(name).toHaveValue('');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(0);
+  });
+});
+
+test('"Name" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const name = screen.getByRole('textbox', { name: 'Name' });
+
+  userEvent.clear(name);
+  userEvent.type(name, 'Test chart new name');
+
+  expect(name).toHaveValue('Test chart new name');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ slice_name: 'Test chart new name' }),
+    );
+  });
+});
+
+test('"Cache timeout" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const cacheTimeout = screen.getByRole('textbox', { name: 'Cache timeout' });
+
+  userEvent.clear(cacheTimeout);
+  userEvent.type(cacheTimeout, '1000');
+
+  expect(cacheTimeout).toHaveValue('1000');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ cache_timeout: '1000' }),
+    );
+  });
+});
+
+test('"Description" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const description = screen.getByRole('textbox', { name: 'Description' });
+
+  userEvent.clear(description);
+  userEvent.type(description, 'Test description');
+
+  expect(description).toHaveValue('Test description');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ description: 'Test description' }),
+    );
+  });
+});
+
+test('"Certified by" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const certifiedBy = screen.getByRole('textbox', { name: 'Certified by' });
+
+  userEvent.clear(certifiedBy);
+  userEvent.type(certifiedBy, 'Test certified by');
+
+  expect(certifiedBy).toHaveValue('Test certified by');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({ certified_by: 'Test certified by' }),
+    );
+  });
+});
+
+test('"Certification details" should not be empty when saved', async () => {
+  const props = createProps();
+  renderModal(props);
+
+  const certificationDetails = screen.getByRole('textbox', {
+    name: 'Certification details',
+  });
+
+  userEvent.clear(certificationDetails);
+  userEvent.type(certificationDetails, 'Test certification details');
+
+  expect(certificationDetails).toHaveValue('Test certification details');
+
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSave).toBeCalledTimes(1);
+    expect(props.onSave).toBeCalledWith(
+      expect.objectContaining({
+        certification_details: 'Test certification details',
+      }),
+    );
   });
 });

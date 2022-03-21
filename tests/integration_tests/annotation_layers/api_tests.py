@@ -32,6 +32,10 @@ from tests.integration_tests.annotation_layers.fixtures import (
     get_end_dttm,
     get_start_dttm,
 )
+from tests.unit_tests.annotation_layers.fixtures import (
+    START_STR,
+    END_STR,
+)
 
 ANNOTATION_LAYERS_COUNT = 10
 ANNOTATIONS_COUNT = 5
@@ -195,13 +199,15 @@ class TestAnnotationLayerApi(SupersetTestCase):
         assert data["count"] == 1
         assert data["result"][0] == expected_result
 
-    @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_layer(self):
         """
         Annotation Api: Test create annotation layer
         """
         self.login(username="admin")
-        annotation_layer_data = {"name": "new3", "descr": "description"}
+        annotation_layer_data = {
+            "name": "new3",
+            "descr": "description",
+        }
         uri = "api/v1/annotation_layer/"
         rv = self.client.post(uri, json=annotation_layer_data)
         assert rv.status_code == 201
@@ -214,6 +220,18 @@ class TestAnnotationLayerApi(SupersetTestCase):
         # Rollback changes
         db.session.delete(created_model)
         db.session.commit()
+
+    def test_create_incorrect_annotation_layer(self):
+        """
+        Annotation Api: Test create incorrect annotation layer
+        """
+        self.login(username="admin")
+        annotation_layer_data = {}
+        uri = "api/v1/annotation_layer/"
+        rv = self.client.post(uri, json=annotation_layer_data)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {"message": {"name": ["Missing data for required field."]}}
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_layer_uniqueness(self):
@@ -240,14 +258,15 @@ class TestAnnotationLayerApi(SupersetTestCase):
         )
 
         self.login(username="admin")
-        annotation_layer_data = {"name": "changed_name", "descr": "changed_description"}
+        annotation_layer_data = {"name": "changed_name"}
         uri = f"api/v1/annotation_layer/{annotation_layer.id}"
         rv = self.client.put(uri, json=annotation_layer_data)
         assert rv.status_code == 200
         updated_model = db.session.query(AnnotationLayer).get(annotation_layer.id)
         assert updated_model is not None
         assert updated_model.name == annotation_layer_data["name"]
-        assert updated_model.descr == annotation_layer_data["descr"]
+        # make sure the descr hasn't updated
+        assert updated_model.descr == annotation_layer.descr
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation_layer_uniqueness(self):
@@ -500,6 +519,8 @@ class TestAnnotationLayerApi(SupersetTestCase):
         annotation_data = {
             "short_descr": "new",
             "long_descr": "description",
+            "start_dttm": START_STR,
+            "end_dttm": END_STR,
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
         rv = self.client.post(uri, json=annotation_data)
@@ -515,6 +536,29 @@ class TestAnnotationLayerApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_annotation_layers")
+    def test_create_incorrect_annotation(self):
+        """
+        Annotation Api: Test create incorrect annotation
+        """
+        layer = self.get_layer_with_annotation()
+
+        self.login(username="admin")
+        annotation_data = {
+            "long_descr": "description",
+        }
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
+        rv = self.client.post(uri, json=annotation_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 400
+        assert data == {
+            "message": {
+                "end_dttm": ["Missing data for required field."],
+                "short_descr": ["Missing data for required field."],
+                "start_dttm": ["Missing data for required field."],
+            }
+        }
+
+    @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation_uniqueness(self):
         """
         Annotation Api: Test create annotation uniqueness
@@ -525,6 +569,8 @@ class TestAnnotationLayerApi(SupersetTestCase):
         annotation_data = {
             "short_descr": "short_descr2",
             "long_descr": "description",
+            "start_dttm": START_STR,
+            "end_dttm": END_STR,
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/"
         rv = self.client.post(uri, json=annotation_data)
@@ -549,17 +595,42 @@ class TestAnnotationLayerApi(SupersetTestCase):
         )
 
         self.login(username="admin")
-        annotation_layer_data = {
+        annotation_data = {
             "short_descr": "changed_name",
-            "long_descr": "changed_description",
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/{annotation.id}"
-        rv = self.client.put(uri, json=annotation_layer_data)
+        rv = self.client.put(uri, json=annotation_data)
         assert rv.status_code == 200
         updated_model: Annotation = db.session.query(Annotation).get(annotation.id)
         assert updated_model is not None
-        assert updated_model.short_descr == annotation_layer_data["short_descr"]
-        assert updated_model.long_descr == annotation_layer_data["long_descr"]
+        assert updated_model.short_descr == annotation_data["short_descr"]
+        # make sure long_descr hasn't updated
+        assert updated_model.long_descr == annotation.long_descr
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_update_annotation_null_datetime(self):
+        """
+        Annotation Api: Test update annotation null datetime
+        """
+        layer = self.get_layer_with_annotation()
+        annotation = (
+            db.session.query(Annotation)
+            .filter(Annotation.short_descr == "short_descr2")
+            .one_or_none()
+        )
+
+        self.login(username="admin")
+        annotation_data = {"start_dttm": None, "end_dttm": None}
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/{annotation.id}"
+        rv = self.client.put(uri, json=annotation_data)
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {
+                "end_dttm": ["Field may not be null."],
+                "start_dttm": ["Field may not be null."],
+            }
+        }
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_update_annotation_uniqueness(self):

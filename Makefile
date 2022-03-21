@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-# Python version installed; we need 3.7-3.9
-PYTHON=`command -v python3.9 || command -v python3.8 || command -v python3.7`
+# Python version installed; we need 3.8-3.9
+PYTHON=`command -v python3.9 || command -v python3.8`
 
 .PHONY: install superset venv pre-commit
 
@@ -30,7 +30,12 @@ superset:
 	pip install -e .
 
 	# Create an admin user in your metadata database
-	superset fab create-admin
+	superset fab create-admin \
+                    --username admin \
+                    --firstname "Admin I."\
+                    --lastname Strator \
+                    --email admin@superset.io \
+                    --password general
 
 	# Initialize the database
 	superset db upgrade
@@ -40,6 +45,9 @@ superset:
 
 	# Load some data to play with
 	superset load-examples
+
+	# Install node packages
+	cd superset-frontend; npm install
 
 update: update-py update-js
 
@@ -62,12 +70,12 @@ update-js:
 
 venv:
 	# Create a virtual environment and activate it (recommended)
-	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.7, 3.8 or 3.9 installed"; exit 1; fi
+	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.8 or 3.9 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
 activate:
-	source venv/bin/activate
+	. venv/bin/activate
 
 pre-commit:
 	# setup pre commit dependencies
@@ -98,3 +106,6 @@ build-cypress:
 open-cypress:
 	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi
 	cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:$(port) npm run cypress open
+
+admin-user:
+	superset fab create-admin

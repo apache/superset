@@ -31,6 +31,7 @@ interface TableCollectionProps {
   columns: TableInstance['column'][];
   loading: boolean;
   highlightRowId?: number;
+  columnsForWrapText?: string[];
 }
 
 export const Table = styled.table`
@@ -121,6 +122,12 @@ export const Table = styled.table`
       }
     }
 
+    .empty-loading-bar {
+      display: inline-block;
+      width: 100%;
+      height: 1.2em;
+    }
+
     &:after {
       position: absolute;
       transform: translateY(-50%);
@@ -186,12 +193,17 @@ export const Table = styled.table`
   .table-cell {
     text-overflow: ellipsis;
     overflow: hidden;
-    white-space: nowrap;
     max-width: 320px;
     line-height: 1;
     vertical-align: middle;
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+    &__wrap {
+      white-space: normal;
+    }
+    &__nowrap {
+      white-space: nowrap;
     }
   }
 
@@ -218,6 +230,7 @@ export default React.memo(
     rows,
     loading,
     highlightRowId,
+    columnsForWrapText,
   }: TableCollectionProps) => (
     <Table
       {...getTableProps()}
@@ -257,7 +270,7 @@ export default React.memo(
       <tbody {...getTableBodyProps()}>
         {loading &&
           rows.length === 0 &&
-          [...new Array(25)].map((_, i) => (
+          [...new Array(12)].map((_, i) => (
             <tr key={i}>
               {columns.map((column, i2) => {
                 if (column.hidden) return null;
@@ -266,12 +279,13 @@ export default React.memo(
                     key={i2}
                     className={cx('table-cell', {
                       'table-cell-loader': loading,
-                      [column.size || '']: column.size,
                     })}
                   >
-                    <span className="loading-bar" role="progressbar">
-                      <span>LOADING</span>
-                    </span>
+                    <span
+                      className="loading-bar empty-loading-bar"
+                      role="progressbar"
+                      aria-label="loading"
+                    />
                   </td>
                 );
               })}
@@ -294,15 +308,23 @@ export default React.memo(
               >
                 {row.cells.map(cell => {
                   if (cell.column.hidden) return null;
-
                   const columnCellProps = cell.column.cellProps || {};
+                  const isWrapText =
+                    columnsForWrapText &&
+                    columnsForWrapText.includes(cell.column.Header as string);
+
                   return (
                     <td
                       data-test="table-row-cell"
-                      className={cx('table-cell', {
-                        'table-cell-loader': loading,
-                        [cell.column.size || '']: cell.column.size,
-                      })}
+                      className={cx(
+                        `table-cell table-cell__${
+                          isWrapText ? 'wrap' : 'nowrap'
+                        }`,
+                        {
+                          'table-cell-loader': loading,
+                          [cell.column.size || '']: cell.column.size,
+                        },
+                      )}
                       {...cell.getCellProps()}
                       {...columnCellProps}
                     >
