@@ -51,7 +51,10 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "state": self.state,
             }
             return CreateKeyValueCommand(
-                self.actor, self.resource, value, self.key_type
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
+                key_type=self.key_type,
             ).run()
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

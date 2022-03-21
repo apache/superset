@@ -16,6 +16,7 @@
 # under the License.
 import json
 import os
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import celery
@@ -108,7 +109,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
         app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore
 
 
-APP_DIR = os.path.dirname(__file__)
+APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager = AsyncQueryManager()
 cache_manager = CacheManager()

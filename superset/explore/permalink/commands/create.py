@@ -49,7 +49,10 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
-                self.actor, self.resource, value, self.key_type
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
+                key_type=self.key_type,
             )
             return command.run()
         except SQLAlchemyError as ex:

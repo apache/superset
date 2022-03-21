@@ -15,44 +15,33 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from datetime import datetime
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyType
-from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
-class DeleteKeyValueCommand(BaseCommand):
-    key: str
-    key_type: KeyType
+class DeleteExpiredKeyValueCommand(BaseCommand):
     resource: str
 
-    def __init__(
-        self, resource: str, key: str, key_type: KeyType = "uuid",
-    ):
+    def __init__(self, resource: str):
         """
-        Delete a key-value pair
+        Delete all expired key-value pairs
 
         :param resource: the resource (dashboard, chart etc)
-        :param key: the key to delete
-        :param key_type: the type of key
         :return: was the entry deleted or not
         """
         self.resource = resource
-        self.key = key
-        self.key_type = key_type
 
-    def run(self) -> bool:
+    def run(self) -> None:
         try:
-            return self.delete()
+            self.delete_expired()
         except SQLAlchemyError as ex:
             db.session.rollback()
             logger.exception("Error running delete command")
@@ -61,16 +50,11 @@ class DeleteKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def delete(self) -> bool:
-        filter_ = get_filter(self.resource, self.key, self.key_type)
-        entry = (
+    @staticmethod
+    def delete_expired() -> None:
+        (
             db.session.query(KeyValueEntry)
-            .filter_by(**filter_)
-            .autoflush(False)
-            .first()
+            .filter(KeyValueEntry.expires_on <= datetime.now())
+            .delete()
         )
-        if entry:
-            db.session.delete(entry)
-            db.session.commit()
-            return True
-        return False
+        db.session.commit()
