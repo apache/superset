@@ -22,7 +22,9 @@ import ToastPresenter from './ToastPresenter';
 
 import { removeToast } from './actions';
 
-export default connect(
-  ({ messageToasts: toasts }) => ({ toasts }),
+const ToastContainer = connect(
+  ({ messageToasts: toasts }: any) => ({ toasts }),
   dispatch => bindActionCreators({ removeToast }, dispatch),
 )(ToastPresenter);
+
+export default ToastContainer;
