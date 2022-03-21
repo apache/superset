@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { ReactNode, useCallback, useState, useEffect } from 'react';
+import { isEqual } from 'lodash';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
@@ -70,11 +71,15 @@ export default function Control(props: ControlProps) {
   );
 
   useEffect(() => {
-    if (isVisible === false && props.default !== undefined && setControlValue) {
+    if (
+      isVisible === false &&
+      props.default !== undefined &&
+      !isEqual(props.value, props.default)
+    ) {
       // reset control value if invisible
-      setControlValue(name, props.default);
+      setControlValue?.(name, props.default);
     }
-  }, [name, isVisible, setControlValue, props.default]);
+  }, [name, isVisible, setControlValue, props.value, props.default]);
 
   if (!type || isVisible === false) return null;
 
