@@ -163,7 +163,7 @@ export const getEditedObjects = (userId: string | number) => {
 export const getUserOwnedObjects = (
   userId: string | number,
   resource: string,
-  filters = [
+  filters: Array<Filters> = [
     {
       col: 'created_by',
       opr: 'rel_o_m',
