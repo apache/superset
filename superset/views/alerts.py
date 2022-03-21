@@ -92,10 +92,7 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def list(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
+        if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
         return super().render_app_template()
 
@@ -103,10 +100,7 @@ class BaseAlertReportView(BaseSupersetView):
     @has_access
     @permission_name("read")
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
+        if not is_feature_enabled("ALERT_REPORTS"):
             return abort(404)
 
         return super().render_app_template()

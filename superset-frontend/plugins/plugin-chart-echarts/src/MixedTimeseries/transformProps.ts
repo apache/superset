@@ -128,6 +128,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -177,6 +178,7 @@ export default function transformProps(
       yAxisIndex,
       filterState,
       seriesKey: entry.name,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -195,6 +197,7 @@ export default function transformProps(
       seriesKey: primarySeries.has(entry.name as string)
         ? `${entry.name} (1)`
         : entry.name,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -203,7 +206,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data1, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data1, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -211,11 +216,18 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data1, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data1,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(

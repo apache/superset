@@ -47,17 +47,19 @@ function setUnsavedChangesAfterAction(action) {
         dispatch(result);
       }
 
+      const { dashboardLayout, dashboardState } = getState();
+
       const isComponentLevelEvent =
         result.type === UPDATE_COMPONENTS &&
         result.payload &&
         result.payload.nextComponents;
       // trigger dashboardFilters state update if dashboard layout is changed.
       if (!isComponentLevelEvent) {
-        const components = getState().dashboardLayout.present;
+        const components = dashboardLayout.present;
         dispatch(updateLayoutComponents(components));
       }
 
-      if (!getState().dashboardState.hasUnsavedChanges) {
+      if (!dashboardState.hasUnsavedChanges) {
         dispatch(setUnsavedChanges(true));
       }
     };

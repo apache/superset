@@ -32,6 +32,7 @@ assists people when migrating to a new version.
 - [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X has breaking changes on it's command line invocation.
   Please follow: https://docs.celeryq.dev/en/stable/whatsnew-5.2.html#step-1-adjust-your-command-line-invocation
   Consider migrating you celery config if you haven't already: https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map
+- [19231](https://github.com/apache/superset/pull/19231): The `ENABLE_REACT_CRUD_VIEWS` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the React views support their use case.
 - [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
 - [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` setting has moved from app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
 - [18976](https://github.com/apache/superset/pull/18976): When running the app in debug mode, the app will default to use `SimpleCache` for `FILTER_STATE_CACHE_CONFIG` and `EXPLORE_FORM_DATA_CACHE_CONFIG`. When running in non-debug mode, a cache backend will need to be defined, otherwise the application will fail to start. For installations using Redis or other caching backends, it is recommended to use the same backend for both cache configs.
@@ -39,10 +40,13 @@ assists people when migrating to a new version.
 - [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
 - [15254](https://github.com/apache/superset/pull/15254): Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in the `config.py` file. These should now be defined as a top-level config, with the feature flag dictionary being reserved for boolean only values.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
-- [18970](https://github.com/apache/superset/pull/18970): Changes feature flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [18970](https://github.com/apache/superset/pull/18970): Changes feature
+flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [19083](https://github.com/apache/superset/pull/19083): Updates the mutator function in the config file to take a sql argument and a list of kwargs. Any `SQL_QUERY_MUTATOR` config function overrides will need to be updated to match the new set of params. It is advised regardless of the dictionary args that you list in your function arguments, to keep **kwargs as the last argument to allow for any new kwargs to be passed in.
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
 - [19142](https://github.com/apache/superset/pull/19142): Changes feature flag for versioned export(VERSIONED_EXPORT) to be true.
 - [19107](https://github.com/apache/superset/pull/19107): Feature flag `SQLLAB_BACKEND_PERSISTENCE` is now on by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
+- [19262](https://github.com/apache/superset/pull/19262): As per SIPs 11 and 68, the native NoSQL Druid connector is deprecated as of 2.0 and will no longer be supported. Druid is still supported through SQLAlchemy via pydruid.
 
 ### Potential Downtime
 
