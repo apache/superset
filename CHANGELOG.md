@@ -17,11 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.4.1 (Mon Jan 10 13:00:39 2022 +0000)
-**Database Migrations**
 
+### 1.4.2 (Sat Mar 19 00:08:06 2022 +0200)
 **Features**
+- [#19248](https://github.com/apache/superset/pull/19248) feat: add support for comments in adhoc clauses (@villebro)
+- [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
 
+**Fixes**
+- [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
+
+### 1.4.1 (Mon Jan 10 13:00:39 2022 +0000)
 **Fixes**
 - [#17980](https://github.com/apache/superset/pull/17980) fix: css template API response, less data (@dpgaspar)
 - [#17984](https://github.com/apache/superset/pull/17984) fix: Change default SECRET_KEY, improve docs and banner warning on de… (@dpgaspar)
@@ -33,9 +38,7 @@ under the License.
 - [#18048](https://github.com/apache/superset/pull/18048) fix(dashboard): scope status of native filter not update (@stephenLYZ)
 - [#16869](https://github.com/apache/superset/pull/16869) fix: handle TIME column serialization (@frafra)
 
-**Others**
-
-### 1.4
+### 1.4.0
 **Database Migrations**
 - [#17335](https://github.com/apache/superset/pull/17335) feat: Certify Charts and Dashboards (@geido)
 - [#17078](https://github.com/apache/superset/pull/17078) chore(engine): Translate fractional time grains—requires @superset-ui bump (@john-bodley)
