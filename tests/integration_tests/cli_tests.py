@@ -47,6 +47,9 @@ def assert_cli_fails_properly(response, caplog):
     assert caplog.records[-1].levelname == "ERROR"
 
 
+@mock.patch.dict(
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
+)
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_export_dashboards_original(app_context, fs):
     """
@@ -73,6 +76,9 @@ def test_export_dashboards_original(app_context, fs):
     json.loads(contents)
 
 
+@mock.patch.dict(
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
+)
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_export_datasources_original(app_context, fs):
     """
@@ -91,6 +97,7 @@ def test_export_datasources_original(app_context, fs):
     )
 
     assert response.exit_code == 0
+
     assert Path("datasources.yaml").exists()
 
     # check that file is valid JSON
@@ -336,7 +343,7 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_columns_metrics(
@@ -371,7 +378,7 @@ def test_import_datasets_sync_argument_columns_metrics(
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_columns(
@@ -406,7 +413,7 @@ def test_import_datasets_sync_argument_columns(
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": False}, clear=True
+    "superset.cli.lib.feature_flags", {"VERSIONED_EXPORT": False}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.v0.ImportDatasetsCommand")
 def test_import_datasets_sync_argument_metrics(
