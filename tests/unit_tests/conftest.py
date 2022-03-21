@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, import-outside-toplevel
 
+import importlib
 from typing import Any, Iterator
 
 import pytest
@@ -69,6 +70,12 @@ def app() -> Iterator[SupersetApp]:
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
+
+    # reload base views to ensure error handlers are applied to the app
+    with app.app_context():
+        import superset.views.base
+
+        importlib.reload(superset.views.base)
 
     yield app
 

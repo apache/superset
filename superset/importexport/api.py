@@ -17,13 +17,16 @@
 import json
 from datetime import datetime
 from io import BytesIO
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
 from flask_appbuilder.api import BaseApi, expose, protect
 
 from superset.commands.export.assets import ExportAssetsCommand
-from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
@@ -140,6 +143,8 @@ class ImportExportRestApi(BaseApi):
         upload = request.files.get("bundle")
         if not upload:
             return self.response_400()
+        if not is_zipfile(upload):
+            raise IncorrectFormatError("Not a ZIP file")
 
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
