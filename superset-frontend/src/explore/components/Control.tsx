@@ -25,6 +25,7 @@ import {
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { usePrevious } from 'src/hooks/usePrevious';
 import controlMap from './controls';
 
 import './Control.less';
@@ -65,6 +66,7 @@ export default function Control(props: ControlProps) {
   } = props;
 
   const [hovered, setHovered] = useState(false);
+  const wasVisible = usePrevious(isVisible);
   const onChange = useCallback(
     (value: any, errors: any[]) => setControlValue(name, value, errors),
     [name, setControlValue],
@@ -72,14 +74,22 @@ export default function Control(props: ControlProps) {
 
   useEffect(() => {
     if (
+      wasVisible === true &&
       isVisible === false &&
       props.default !== undefined &&
       !isEqual(props.value, props.default)
     ) {
-      // reset control value if invisible
+      // reset control value if setting to invisible
       setControlValue?.(name, props.default);
     }
-  }, [name, isVisible, setControlValue, props.value, props.default]);
+  }, [
+    name,
+    wasVisible,
+    isVisible,
+    setControlValue,
+    props.value,
+    props.default,
+  ]);
 
   if (!type || isVisible === false) return null;
 

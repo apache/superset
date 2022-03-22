@@ -16,6 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mount } from 'enzyme';
+import {
+  ThemeProvider,
+  supersetTheme,
+  promiseTimeout,
+} from '@superset-ui/core';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
@@ -29,7 +35,12 @@ const defaultProps: ControlProps = {
   },
 };
 
-const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
+const setup = (overrides = {}) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Control {...defaultProps} {...overrides} />
+  </ThemeProvider>
+);
+
 describe('Control', () => {
   it('render a control', () => {
     render(setup());
@@ -66,12 +77,18 @@ describe('Control', () => {
   });
 
   it('call setControlValue if isVisible is false', () => {
-    render(
+    const wrapper = mount(
       setup({
-        isVisible: false,
+        isVisible: true,
         default: false,
       }),
     );
-    expect(defaultProps.actions.setControlValue).toBeCalled();
+    wrapper.setProps({
+      isVisible: false,
+      default: false,
+    });
+    promiseTimeout(() => {
+      expect(defaultProps.actions.setControlValue).toBeCalled();
+    }, 100);
   });
 });
