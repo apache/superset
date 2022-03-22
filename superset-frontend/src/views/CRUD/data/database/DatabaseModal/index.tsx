@@ -38,6 +38,7 @@ import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -61,6 +62,7 @@ import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
   antDErrorAlertStyles,
   antDAlertStyles,
+  antdWarningAlertStyles,
   StyledAlertMargin,
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -75,6 +77,7 @@ import {
   infoTooltip,
   StyledFooterButton,
   StyledStickyHeader,
+  formScrollableStyles,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -437,6 +440,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
+  console.log('findme db root', db);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [validationErrors, getValidation, setValidationErrors] =
@@ -884,26 +888,104 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   } = useImportResource('database', t('database'), msg => addDangerToast(msg));
 
   useEffect(() => {
+    // console.log('findme UE - pw', passwordsNeeded, 'pwfields', passwordFields);
     setPasswordFields(passwordsNeeded);
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
+    // console.log(
+    //   'findme UE - ow',
+    //   alreadyExists,
+    //   'confirm',
+    //   needsOverwriteConfirm,
+    // );
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   const onDbImport = (info: UploadChangeParam) => {
+    console.log('findme odi entrance');
     setFileName([
       {
         ...info.file,
         status: 'done',
       },
     ]);
-    if (!(fileName[0]?.originFileObj instanceof File)) {
-      return;
-    }
 
+    if (!(fileName[0]?.originFileObj instanceof File)) return;
+    console.log(
+      'findme odi filecheck',
+      fileName[0].originFileObj,
+      passwords,
+      confirmedOverwrite,
+    );
+
+    console.log(
+      'findme onDbImport',
+      fileName[0].originFileObj,
+      passwords,
+      confirmedOverwrite,
+    );
     importResource(fileName[0].originFileObj, passwords, confirmedOverwrite);
   };
+
+  const passwordNeededField = () => (
+    // passwordFields.map(password => (
+    // passwordsNeeded.length > 0 && (
+    <>
+      <StyledAlertMargin>
+        <Alert
+          closable={false}
+          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+          type="info"
+          showIcon
+          message="Database passwords"
+          description={t(
+            `The passwords for the databases below are needed in order to import them. Please not that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+          )}
+        />
+      </StyledAlertMargin>
+      <ValidatedInput
+        id="password_needed"
+        name="password_needed"
+        required
+        // value={password}
+        value=""
+        validationMethods={{ onBlur: () => {} }}
+        errorMessage={validationErrors?.password_needed}
+        label={t(`${db?.database_name} PASSWORD`)}
+        css={formScrollableStyles}
+      />
+    </>
+    // ));
+  );
+
+  const confirmOverwriteField = () => (
+    // alreadyExists.length > 0 && (
+    <>
+      <StyledAlertMargin>
+        <Alert
+          closable={false}
+          css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
+          type="warning"
+          showIcon
+          message=""
+          description={t(
+            'You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?',
+          )}
+        />
+      </StyledAlertMargin>
+      <ValidatedInput
+        id="confirm_overwrite"
+        name="confirm_overwrite"
+        required
+        value=""
+        validationMethods={{ onBlur: () => {} }}
+        errorMessage={validationErrors?.confirm_overwrite}
+        label={t(`TYPE "OVERWRITE" TO CONFIRM`)}
+        css={formScrollableStyles}
+      />
+    </>
+  );
 
   // ------------------------------ FINDME END 🚧
 
@@ -1059,8 +1141,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  // console.log('findme pwneed exists', passwordsNeeded, alreadyExists);
+
   if (fileName.length > 0) {
-    console.log('findme made it');
+    console.log('findme made it', db, db?.database_name);
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1089,7 +1173,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           dbModel={dbModel}
           fileName={fileName}
         />
-        Test
+        {passwordNeededField()}
+        {confirmOverwriteField()}
       </Modal>
     );
   }
@@ -1341,15 +1426,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   accept=".yaml,.json,.yml,.zip"
                   // upload is handled by hook
                   customRequest={() => {}}
-                  onChange={info => {
-                    onDbImport(info);
-                  }}
+                  onChange={info => onDbImport(info)}
                 >
                   <Button
                     data-test="import-database-btn"
                     buttonStyle="link"
                     css={buttonLinkStyles}
-                    // loading={}
                   >
                     {t('Import database from file')}
                   </Button>
