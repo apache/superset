@@ -56,6 +56,7 @@ export interface ButtonProps {
     | 'rightTop'
     | 'rightBottom';
   onClick?: OnClickHandler;
+  onMouseDown?: OnClickHandler;
   disabled?: boolean;
   buttonStyle?: ButtonStyle;
   buttonSize?: 'default' | 'small' | 'xsmall';

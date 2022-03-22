@@ -17,10 +17,8 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useEffect } from 'react';
-import { Empty } from 'src/components';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Alert from 'src/components/Alert';
-import EmptyImage from 'src/assets/images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -38,6 +36,7 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
+import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -223,10 +222,7 @@ export interface ListViewProps<T extends object = any> {
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
   showThumbnails?: boolean;
-  emptyState?: {
-    message?: string;
-    slot?: React.ReactNode;
-  };
+  emptyState?: EmptyStateProps;
 }
 
 function ListView<T extends object = any>({
@@ -248,7 +244,7 @@ function ListView<T extends object = any>({
   cardSortSelectOptions,
   defaultViewMode = 'card',
   highlightRowId,
-  emptyState = {},
+  emptyState,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -263,6 +259,7 @@ function ListView<T extends object = any>({
     toggleAllRowsSelected,
     setViewMode,
     state: { pageIndex, pageSize, internalFilters, viewMode },
+    query,
   } = useListViewState({
     bulkSelectColumnConfig,
     bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
@@ -291,6 +288,14 @@ function ListView<T extends object = any>({
     });
   }
 
+  const filterControlsRef = useRef<{ clearFilters: () => void }>(null);
+
+  const handleClearFilterControls = useCallback(() => {
+    if (query.filters) {
+      filterControlsRef.current?.clearFilters();
+    }
+  }, [query.filters]);
+
   const cardViewEnabled = Boolean(renderCard);
 
   useEffect(() => {
@@ -308,6 +313,7 @@ function ListView<T extends object = any>({
           <div className="controls">
             {filterable && (
               <FilterControls
+                ref={filterControlsRef}
                 filters={filters}
                 internalFilters={internalFilters}
                 updateFilterValue={applyFilterValue}
@@ -394,12 +400,21 @@ function ListView<T extends object = any>({
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode}>
-              <Empty
-                image={<EmptyImage />}
-                description={emptyState.message || t('No Data')}
-              >
-                {emptyState.slot || null}
-              </Empty>
+              {query.filters ? (
+                <EmptyStateBig
+                  title={t('No results match your filter criteria')}
+                  description={t('Try different criteria to display results.')}
+                  image="filter-results.svg"
+                  buttonAction={() => handleClearFilterControls()}
+                  buttonText={t('clear all filters')}
+                />
+              ) : (
+                <EmptyStateBig
+                  {...emptyState}
+                  title={emptyState?.title || t('No Data')}
+                  image={emptyState?.image || 'filter-results.svg'}
+                />
+              )}
             </EmptyWrapper>
           )}
         </div>

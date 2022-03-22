@@ -31,3 +31,7 @@ export const FilterContainer = styled.div`
   align-items: center;
   width: ${SELECT_WIDTH}px;
 `;
+
+export type FilterHandler = {
+  clearFilter: () => void;
+};

@@ -378,6 +378,7 @@ export function useListViewState({
     toggleAllRowsSelected,
     applyFilterValue,
     setViewMode,
+    query,
   };
 }
 
