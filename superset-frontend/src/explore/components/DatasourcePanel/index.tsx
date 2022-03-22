@@ -87,7 +87,6 @@ const DatasourceContainer = styled.div`
       margin: ${theme.gridUnit * 2}px auto;
     }
     .type-label {
-      font-weight: ${theme.typography.weights.light};
       font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
     }
