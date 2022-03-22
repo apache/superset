@@ -92,23 +92,7 @@ const StyledHeader = styled.header`
   .caret {
     display: none;
   }
-  .navbar-brand {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    /* must be exactly the height of the Antd navbar */
-    min-height: 50px;
-    padding: ${({ theme }) =>
-      `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
-        theme.gridUnit * 4
-      }px`};
-    max-width: ${({ theme }) => `${theme.gridUnit * 37}px`};
 
-    img {
-      height: 100%;
-      object-fit: contain;
-    }
-  }
   .navbar-brand-text {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
