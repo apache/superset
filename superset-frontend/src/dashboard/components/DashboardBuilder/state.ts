@@ -45,7 +45,7 @@ export const useNativeFilters = () => {
   const filterValues = Object.values(filters);
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    expandFilters ?? filterValues.length,
+    expandFilters ?? !!filterValues.length,
   );
 
   const nativeFiltersEnabled =
