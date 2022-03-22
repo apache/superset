@@ -23,12 +23,14 @@ import {
   Metric,
   SafeMarkdown,
   SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';
+import { SQLPopover } from './SQLPopover';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -89,12 +91,10 @@ export function MetricOption({
           {link}
         </span>
       </Tooltip>
-      {showFormula && (
-        <InfoTooltipWithTrigger
-          className="text-muted m-r-5"
-          icon="question-circle-o"
-          tooltip={metric.expression}
-          label={`expr-${metric.metric_name}`}
+      {showFormula && metric.expression && (
+        <SQLPopover
+          title={t('SQL Expression')}
+          sqlExpression={metric.expression}
         />
       )}
       {metric.is_certified && (

@@ -39,7 +39,9 @@
     "@types/enzyme": "^3.10.5",
     "@types/react": "*",
     "antd": "^4.9.4",
+    "brace": "^0.11.1",
     "react": "^16.13.1",
+    "react-ace": "^9.4.4",
     "react-dom": "^16.13.1"
   },
   "publishConfig": {

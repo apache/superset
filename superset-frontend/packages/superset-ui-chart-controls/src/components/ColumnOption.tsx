@@ -17,13 +17,13 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
 import { getColumnLabelText, getColumnTooltipNode } from './labelUtils';
+import { SQLPopover } from './SQLPopover';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -71,13 +71,7 @@ export function ColumnOption({
       </Tooltip>
 
       {hasExpression && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="question-circle-o"
-          tooltip={column.expression}
-          label={`expr-${column.column_name}`}
-          placement="top"
-        />
+        <SQLPopover title={t('SQL Expression')} sqlExpression={expression} />
       )}
 
       {column.is_certified && (

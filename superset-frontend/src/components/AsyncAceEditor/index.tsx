@@ -55,7 +55,7 @@ export interface AceCompleterKeyword extends AceCompleterKeywordData {
 
 /**
  * Async loaders to import brace modules. Must manually create call `import(...)`
- * promises because webpack can only analyze asycn imports statically.
+ * promises because webpack can only analyze async imports statically.
  */
 const aceModuleLoaders = {
   'mode/sql': () => import('brace/mode/sql'),
@@ -126,7 +126,9 @@ export default function AsyncAceEditor(
         ref,
       ) {
         if (keywords) {
-          const langTools = ace.acequire('ace/ext/language_tools');
+          console.log({ ace });
+          const langTools = ace.require('ace/ext/language_tools');
+          console.log({ langTools });
           const completer = {
             getCompletions: (
               editor: AceEditor,
