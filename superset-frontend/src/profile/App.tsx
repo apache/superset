@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@superset-ui/core';
+import { GlobalStyles } from 'src/GlobalStyles';
 import App from 'src/profile/components/App';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
@@ -48,6 +49,7 @@ const store = createStore(
 const Application = () => (
   <Provider store={store}>
     <ThemeProvider theme={theme}>
+      <GlobalStyles />
       <App user={bootstrap.user} />
       <ToastContainer />
     </ThemeProvider>
