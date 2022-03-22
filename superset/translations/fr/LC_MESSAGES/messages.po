@@ -675,7 +675,7 @@ msgstr "Intervalle de temps courant"
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:28
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
 #, fuzzy
-msgid "Adaptative formating"
+msgid "Adaptive formatting"
 msgstr "Format Datetime"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267

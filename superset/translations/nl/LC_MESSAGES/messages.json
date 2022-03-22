@@ -1777,7 +1777,7 @@
         ""
       ],
       "D3 format syntax: https://github.com/d3/d3-format": [""],
-      "Adaptative formating": [""],
+      "Adaptive formatting": [""],
       "Duration in ms (66000 => 1m 6s)": [""],
       "Duration in ms (1.40008 => 1ms 400µs 80ns)": [""],
       "D3 time format syntax: https://github.com/d3/d3-time-format": [""],
