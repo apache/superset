@@ -17,18 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging } from '@superset-ui/core';
-import { Menu } from 'src/common/components';
-import { getUrlParam } from 'src/utils/urlUtils';
-import { postFormData } from 'src/explore/exploreUtils/formData';
-import { URL_PARAMS } from 'src/constants';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { t, logging, QueryFormData } from '@superset-ui/core';
+import { Menu } from 'src/components/Menu';
 import {
-  createFilterKey,
-  getFilterValue,
-} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+  getChartPermalink,
+  getDashboardPermalink,
+  getUrlParam,
+} from 'src/utils/urlUtils';
+import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -39,12 +37,11 @@ interface ShareMenuItemProps {
   addDangerToast: Function;
   addSuccessToast: Function;
   dashboardId?: string;
-  formData?: { slice_id: number; datasource: string };
+  formData?: Pick<QueryFormData, 'slice_id' | 'datasource'>;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
   const {
-    url,
     copyMenuItemTitle,
     emailMenuItemTitle,
     emailSubject,
@@ -56,42 +53,25 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     ...rest
   } = props;
 
-  const getShortUrl = useUrlShortener(url || '');
-
-  async function getCopyUrl() {
-    const risonObj = getUrlParam(URL_PARAMS.nativeFilters);
-    if (typeof risonObj === 'object' || !dashboardId) return null;
-    const prevData = await getFilterValue(
-      dashboardId,
-      getUrlParam(URL_PARAMS.nativeFiltersKey),
-    );
-    const newDataMaskKey = await createFilterKey(
-      dashboardId,
-      JSON.stringify(prevData),
-    );
-    const newUrl = new URL(`${window.location.origin}${url}`);
-    newUrl.searchParams.set(URL_PARAMS.nativeFilters.name, newDataMaskKey);
-    return `${newUrl.pathname}${newUrl.search}`;
-  }
-
   async function generateUrl() {
+    // chart
     if (formData) {
-      const key = await postFormData(
-        parseInt(formData.datasource.split('_')[0], 10),
-        formData,
-        formData.slice_id,
-      );
-      return `${window.location.origin}${mountExploreUrl(null, {
-        [URL_PARAMS.formDataKey.name]: key,
-      })}`;
+      // we need to remove reserved dashboard url params
+      return getChartPermalink(formData, RESERVED_DASHBOARD_URL_PARAMS);
     }
-    const copyUrl = await getCopyUrl();
-    return getShortUrl(copyUrl);
+    // dashboard
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    let filterState = {};
+    if (nativeFiltersKey && dashboardId) {
+      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
+    }
+    return getDashboardPermalink(String(dashboardId), filterState);
   }
 
   async function onCopyLink() {
     try {
-      await copyTextToClipboard(await generateUrl());
+      const url = await generateUrl();
+      await copyTextToClipboard(url);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       logging.error(error);
@@ -101,8 +81,11 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
 
   async function onShareByEmail() {
     try {
-      const bodyWithLink = `${emailBody}${await generateUrl()}`;
-      window.location.href = `mailto:?Subject=${emailSubject}%20&Body=${bodyWithLink}`;
+      const encodedBody = encodeURIComponent(
+        `${emailBody}${await generateUrl()}`,
+      );
+      const encodedSubject = encodeURIComponent(emailSubject);
+      window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

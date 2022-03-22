@@ -38,7 +38,7 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
 } from './types';
-import { ForecastSeriesEnum, ProphetValue } from '../types';
+import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -51,10 +51,11 @@ import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
-  extractProphetValuesFromTooltipParams,
-  formatProphetTooltipSeries,
-  rebaseTimeseriesDatum,
-} from '../utils/prophet';
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+} from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -124,9 +125,11 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseTimeseriesDatum(data, verboseMap);
+  const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
@@ -196,6 +199,7 @@ export default function transformProps(
       showValueIndexes,
       thresholdValues,
       richTooltip,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -215,7 +219,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -223,11 +229,18 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(
@@ -282,8 +295,8 @@ export default function transformProps(
     legendMargin,
     addXAxisLabelOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
 
   const legendData = rawSeries
@@ -304,7 +317,7 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: true,
@@ -322,7 +335,7 @@ export default function transformProps(
       axisLabel: { formatter },
       scale: truncateYAxis,
       name: yAxisTitle,
-      nameGap: yAxisTitleMargin,
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
@@ -333,19 +346,19 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[0]
           : params.value[0];
-        const prophetValue: any[] = richTooltip ? params : [params];
+        const forecastValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
-          prophetValue.sort((a, b) => b.data[1] - a.data[1]);
+          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
         const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
-        const prophetValues: Record<string, ProphetValue> =
-          extractProphetValuesFromTooltipParams(prophetValue);
+        const forecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(forecastValue);
 
-        Object.keys(prophetValues).forEach(key => {
-          const value = prophetValues[key];
-          const content = formatProphetTooltipSeries({
+        Object.keys(forecastValues).forEach(key => {
+          const value = forecastValues[key];
+          const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
             formatter,

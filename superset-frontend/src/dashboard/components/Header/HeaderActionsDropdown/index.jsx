@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
-import { Menu, NoAnimationDropdown } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
+import { NoAnimationDropdown } from 'src/components/Dropdown';
 import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -116,8 +117,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   UNSAFE_componentWillMount() {
-    injectCustomCss(this.state.css);
-
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
       .then(({ json }) => {
         const cssTemplates = json.result.map(row => ({
@@ -258,8 +257,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         {userCanShare && (
           <ShareMenuItems
             url={url}
-            copyMenuItemTitle={t('Copy dashboard URL')}
-            emailMenuItemTitle={t('Share dashboard by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={emailSubject}
             emailBody={emailBody}
             addSuccessToast={addSuccessToast}

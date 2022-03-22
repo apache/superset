@@ -17,11 +17,11 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Form, Row, Col, Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -29,6 +29,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -87,7 +88,7 @@ const PropertiesModal = ({
   onSubmit = () => {},
   show = false,
 }: PropertiesModalProps) => {
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setColorScheme] = useState(currentColorScheme);
@@ -169,7 +170,11 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
+      const metaDataCopy = { ...metadata };
+      if (metaDataCopy?.shared_label_colors) {
+        delete metaDataCopy.shared_label_colors;
+      }
+      setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
   );
@@ -282,12 +287,25 @@ const PropertiesModal = ({
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
+    let currentJsonMetadata = jsonMetadata;
 
     // color scheme in json metadata has precedence over selection
-    if (jsonMetadata?.length) {
-      const metadata = JSON.parse(jsonMetadata);
+    if (currentJsonMetadata?.length) {
+      const metadata = JSON.parse(currentJsonMetadata);
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
+
+      // filter shared_label_color from user input
+      if (metadata?.shared_label_colors) {
+        delete metadata.shared_label_colors;
+      }
+      const colorMap = getSharedLabelColor().getColorMap(
+        colorNamespace,
+        currentColorScheme,
+        true,
+      );
+      metadata.shared_label_colors = colorMap;
+      currentJsonMetadata = jsonStringify(metadata);
     }
 
     onColorSchemeChange(currentColorScheme, {
@@ -304,7 +322,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
-      jsonMetadata,
+      jsonMetadata: currentJsonMetadata,
       owners,
       colorScheme: currentColorScheme,
       colorNamespace,
@@ -323,7 +341,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
-          json_metadata: jsonMetadata || null,
+          json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:
@@ -504,7 +522,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -601,7 +619,7 @@ const PropertiesModal = ({
             )}
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 };

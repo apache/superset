@@ -33,7 +33,6 @@ from superset.utils.core import (
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
-    TimeRangeEndpoint,
 )
 
 if TYPE_CHECKING:
@@ -598,7 +597,10 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         description="Aggregate expressions. Metrics can be passed as both "
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
-        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. "
+        "When metrics is undefined or null, the query is executed without a groupby. "
+        "However, when metrics is an array (length >= 0), a groupby clause is added to "
+        "the query.",
         allow_none=True,
     )
 
@@ -819,7 +821,6 @@ class ChartDataFilterSchema(Schema):
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',

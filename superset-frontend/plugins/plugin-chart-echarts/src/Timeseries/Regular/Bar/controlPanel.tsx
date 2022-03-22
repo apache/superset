@@ -69,10 +69,10 @@ const config: ControlPanelConfig = {
               default: contributionMode,
               choices: [
                 [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Total'],
+                [EchartsTimeseriesContributionType.Row, 'Row'],
                 [EchartsTimeseriesContributionType.Column, 'Series'],
               ],
-              description: t('Calculate contribution per series or total'),
+              description: t('Calculate contribution per series or row'),
             },
           },
         ],
@@ -80,19 +80,7 @@ const config: ControlPanelConfig = {
         emitFilterControl,
         ['limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
         ['row_limit'],
       ],
     },

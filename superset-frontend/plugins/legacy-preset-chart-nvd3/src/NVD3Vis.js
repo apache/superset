@@ -313,6 +313,7 @@ function nvd3Vis(element, props) {
     yAxis2ShowMinMax = false,
     yField,
     yIsLogScale,
+    sliceId,
   } = props;
 
   const isExplore = document.querySelector('#explorer-container') !== null;
@@ -670,7 +671,9 @@ function nvd3Vis(element, props) {
       );
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(colorScheme);
-      chart.color(d => d.color || colorFn(cleanColorInput(d[colorKey])));
+      chart.color(
+        d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
+      );
     }
 
     if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {

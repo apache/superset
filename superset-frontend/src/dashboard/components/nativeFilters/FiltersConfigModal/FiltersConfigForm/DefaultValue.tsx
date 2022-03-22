@@ -24,7 +24,7 @@ import {
   AppSection,
   t,
 } from '@superset-ui/core';
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
 import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';

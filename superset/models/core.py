@@ -213,6 +213,13 @@ class Database(
         return self.get_extra().get("explore_database_id", self.id)
 
     @property
+    def disable_data_preview(self) -> bool:
+        # this will prevent any 'trash value' strings from going through
+        if self.get_extra().get("disable_data_preview", False) is not True:
+            return False
+        return True
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -225,6 +232,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
+            "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
         }
 
@@ -488,7 +496,9 @@ class Database(
     def apply_limit_to_sql(
         self, sql: str, limit: int = 1000, force: bool = False
     ) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
+        if self.db_engine_spec.allow_limit_clause:
+            return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
+        return self.db_engine_spec.apply_top_to_sql(sql, limit)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri

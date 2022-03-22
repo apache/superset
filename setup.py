@@ -62,7 +62,10 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    entry_points={"console_scripts": ["superset=superset.cli.main:superset"]},
+    entry_points={
+        "console_scripts": ["superset=superset.cli.main:superset"],
+        "sqlalchemy.dialects": ["trinonative = sqlalchemy_trino.dialect:TrinoDialect"],
+    },
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
@@ -159,18 +162,17 @@ setup(
         "snowflake": [
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
-        "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
+        "teradata": ["teradatasql>=16.20.0.23"],
         "thumbnails": ["Pillow>=8.3.2, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },
-    python_requires="~=3.7",
+    python_requires="~=3.8",
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
     download_url="https://www.apache.org/dist/superset/" + version_string,
     classifiers=[
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],

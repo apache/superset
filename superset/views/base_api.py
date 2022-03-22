@@ -18,7 +18,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Blueprint, g, Response
+from flask import Blueprint, g, request, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -29,6 +29,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -36,7 +37,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,34 @@ class DistinctResultResponseSchema(Schema):
 class DistincResponseSchema(Schema):
     count = fields.Integer(description="The total number of distinct values")
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
+
+
+def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require JSON-like formatted request to the REST API
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.is_json:
+            raise InvalidPayloadFormatError(message="Request is not JSON")
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
+
+
+def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require 'multipart/form-data' as request MIME type
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.mimetype == "multipart/form-data":
+            raise InvalidPayloadFormatError(
+                message="Request MIME type is not 'multipart/form-data'"
+            )
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
 
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:

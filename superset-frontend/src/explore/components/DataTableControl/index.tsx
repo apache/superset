@@ -16,20 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import { styled, t } from '@superset-ui/core';
+import React, { useCallback, useMemo } from 'react';
+import {
+  css,
+  GenericDataType,
+  getTimeFormatter,
+  styled,
+  t,
+  TimeFormats,
+  useTheme,
+} from '@superset-ui/core';
+import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-import { Input } from 'src/common/components';
+import { useDispatch } from 'react-redux';
+import { Space } from 'src/components';
+import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
   SLOW_DEBOUNCE,
 } from 'src/constants';
+import { Radio } from 'src/components/Radio';
+import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
+import Popover from 'src/components/Popover';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
+import {
+  setTimeFormattedColumn,
+  unsetTimeFormattedColumn,
+} from 'src/explore/actions/exploreActions';
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -97,6 +115,129 @@ export const RowCount = ({
   />
 );
 
+enum FormatPickerValue {
+  Formatted,
+  Original,
+}
+
+const FormatPicker = ({
+  onChange,
+  value,
+}: {
+  onChange: any;
+  value: FormatPickerValue;
+}) => (
+  <Radio.Group value={value} onChange={onChange}>
+    <Space direction="vertical">
+      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
+      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
+    </Space>
+  </Radio.Group>
+);
+
+const FormatPickerContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+
+  padding: ${({ theme }) => `${theme.gridUnit * 4}px`};
+`;
+
+const FormatPickerLabel = styled.span`
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  text-transform: uppercase;
+`;
+
+const DataTableTemporalHeaderCell = ({
+  columnName,
+  datasourceId,
+  timeFormattedColumnIndex,
+}: {
+  columnName: string;
+  datasourceId?: string;
+  timeFormattedColumnIndex: number;
+}) => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
+  const isColumnTimeFormatted = timeFormattedColumnIndex > -1;
+
+  const onChange = useCallback(
+    e => {
+      if (!datasourceId) {
+        return;
+      }
+      if (
+        e.target.value === FormatPickerValue.Original &&
+        isColumnTimeFormatted
+      ) {
+        dispatch(
+          unsetTimeFormattedColumn(datasourceId, timeFormattedColumnIndex),
+        );
+      } else if (
+        e.target.value === FormatPickerValue.Formatted &&
+        !isColumnTimeFormatted
+      ) {
+        dispatch(setTimeFormattedColumn(datasourceId, columnName));
+      }
+    },
+    [
+      timeFormattedColumnIndex,
+      columnName,
+      datasourceId,
+      dispatch,
+      isColumnTimeFormatted,
+    ],
+  );
+  const overlayContent = useMemo(
+    () =>
+      datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <FormatPickerContainer onClick={e => e.stopPropagation()}>
+          {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
+          <Global
+            styles={css`
+              .column-formatting-popover .ant-popover-inner-content {
+                padding: 0;
+              }
+            `}
+          />
+          <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
+          <FormatPicker
+            onChange={onChange}
+            value={
+              isColumnTimeFormatted
+                ? FormatPickerValue.Formatted
+                : FormatPickerValue.Original
+            }
+          />
+        </FormatPickerContainer>
+      ) : null,
+    [datasourceId, isColumnTimeFormatted, onChange],
+  );
+
+  return datasourceId ? (
+    <span>
+      <Popover
+        overlayClassName="column-formatting-popover"
+        trigger="click"
+        content={overlayContent}
+        placement="bottomLeft"
+        arrowPointAtCenter
+      >
+        <Icons.SettingOutlined
+          iconSize="m"
+          iconColor={theme.colors.grayscale.light1}
+          css={{ marginRight: `${theme.gridUnit}px` }}
+          onClick={e => e.stopPropagation()}
+        />
+      </Popover>
+      {columnName}
+    </span>
+  ) : (
+    <span>{columnName}</span>
+  );
+};
+
 export const useFilteredTableData = (
   filterText: string,
   data?: Record<string, any>[],
@@ -121,9 +262,14 @@ export const useFilteredTableData = (
   }, [data, filterText, rowsAsStrings]);
 };
 
+const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
+
 export const useTableColumns = (
   colnames?: string[],
+  coltypes?: GenericDataType[],
   data?: Record<string, any>[],
+  datasourceId?: string,
+  timeFormattedColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(
@@ -131,24 +277,40 @@ export const useTableColumns = (
       colnames && data?.length
         ? colnames
             .filter((column: string) => Object.keys(data[0]).includes(column))
-            .map(
-              key =>
-                ({
-                  accessor: row => row[key],
-                  // When the key is empty, have to give a string of length greater than 0
-                  Header: key || ' ',
-                  Cell: ({ value }) => {
-                    if (value === true) {
-                      return BOOL_TRUE_DISPLAY;
-                    }
-                    if (value === false) {
-                      return BOOL_FALSE_DISPLAY;
-                    }
-                    return String(value);
-                  },
-                  ...moreConfigs?.[key],
-                } as Column),
-            )
+            .map((key, index) => {
+              const timeFormattedColumnIndex =
+                coltypes?.[index] === GenericDataType.TEMPORAL
+                  ? timeFormattedColumns.indexOf(key)
+                  : -1;
+              return {
+                id: key,
+                accessor: row => row[key],
+                // When the key is empty, have to give a string of length greater than 0
+                Header:
+                  coltypes?.[index] === GenericDataType.TEMPORAL ? (
+                    <DataTableTemporalHeaderCell
+                      columnName={key}
+                      datasourceId={datasourceId}
+                      timeFormattedColumnIndex={timeFormattedColumnIndex}
+                    />
+                  ) : (
+                    key
+                  ),
+                Cell: ({ value }) => {
+                  if (value === true) {
+                    return BOOL_TRUE_DISPLAY;
+                  }
+                  if (value === false) {
+                    return BOOL_FALSE_DISPLAY;
+                  }
+                  if (timeFormattedColumnIndex > -1) {
+                    return timeFormatter(value);
+                  }
+                  return String(value);
+                },
+                ...moreConfigs?.[key],
+              } as Column;
+            })
         : [],
-    [data, colnames, moreConfigs],
+    [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
   );

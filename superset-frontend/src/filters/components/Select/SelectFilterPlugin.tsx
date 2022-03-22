@@ -84,16 +84,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     appSection,
     showOverflow,
     parentRef,
+    inputRef,
   } = props;
   const {
     enableEmptyFilter,
     multiSelect,
     showSearch,
     inverseSelection,
-    inputRef,
     defaultToFirstItem,
     searchAllOptions,
   } = formData;
@@ -208,7 +209,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
-      const values = ensureIsArray(value);
+      const values = value === null ? [null] : ensureIsArray(value);
+
       if (values.length === 0) {
         updateDataMask(null);
       } else {
@@ -323,6 +325,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
+          onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
     </FilterPluginStyle>

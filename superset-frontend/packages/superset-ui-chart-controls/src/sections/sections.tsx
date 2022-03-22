@@ -91,15 +91,6 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
           ),
         },
       },
-      {
-        name: 'time_range_endpoints',
-        config: {
-          type: 'HiddenControl',
-          label: t('Time range endpoints'),
-          hidden: true,
-          description: t('Time range endpoints (SIP-15)'),
-        },
-      },
     ],
   ],
 };

@@ -39,9 +39,6 @@ params:
   show_legend: false
   slice_id: 1383
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: pie
 cache_timeout: null

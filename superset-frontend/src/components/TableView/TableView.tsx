@@ -20,7 +20,7 @@ import React, { useEffect } from 'react';
 import isEqual from 'lodash/isEqual';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import { SortByType, ServerPagination } from './types';
@@ -50,6 +50,7 @@ export interface TableViewProps {
   showRowCount?: boolean;
   scrollTable?: boolean;
   small?: boolean;
+  columnsForWrapText?: string[];
 }
 
 const EmptyWrapper = styled.div`
@@ -127,6 +128,7 @@ const TableView = ({
   noDataText,
   showRowCount = true,
   serverPagination = false,
+  columnsForWrapText,
   onServerPagination = () => {},
   ...props
 }: TableViewProps) => {
@@ -204,6 +206,7 @@ const TableView = ({
           rows={content}
           columns={columns}
           loading={loading}
+          columnsForWrapText={columnsForWrapText}
         />
         {isEmpty && (
           <EmptyWrapperComponent>

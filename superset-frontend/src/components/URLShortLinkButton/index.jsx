@@ -21,14 +21,17 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getShortUrl } from 'src/utils/urlUtils';
+import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { URL_PARAMS } from 'src/constants';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 const propTypes = {
-  url: PropTypes.string,
+  addDangerToast: PropTypes.func.isRequired,
+  anchorLinkId: PropTypes.string,
+  dashboardId: PropTypes.number,
   emailSubject: PropTypes.string,
   emailContent: PropTypes.string,
-  addDangerToast: PropTypes.func.isRequired,
   placement: PropTypes.oneOf(['right', 'left', 'top', 'bottom']),
 };
 
@@ -50,9 +53,20 @@ class URLShortLinkButton extends React.Component {
 
   getCopyUrl(e) {
     e.stopPropagation();
-    getShortUrl(this.props.url)
-      .then(this.onShortUrlSuccess)
-      .catch(this.props.addDangerToast);
+    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+    if (this.props.dashboardId) {
+      getFilterValue(this.props.dashboardId, nativeFiltersKey)
+        .then(filterState =>
+          getDashboardPermalink(
+            String(this.props.dashboardId),
+            filterState,
+            this.props.anchorLinkId,
+          )
+            .then(this.onShortUrlSuccess)
+            .catch(this.props.addDangerToast),
+        )
+        .catch(this.props.addDangerToast);
+    }
   }
 
   renderPopover() {
@@ -96,7 +110,6 @@ class URLShortLinkButton extends React.Component {
 }
 
 URLShortLinkButton.defaultProps = {
-  url: window.location.href.substring(window.location.origin.length),
   placement: 'left',
   emailSubject: '',
   emailContent: '',

@@ -24,6 +24,7 @@ import {
   Route,
   useLocation,
 } from 'react-router-dom';
+import { GlobalStyles } from 'src/GlobalStyles';
 import { initFeatureFlags } from 'src/featureFlags';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
@@ -38,7 +39,9 @@ import { RootContextProviders } from './RootContextProviders';
 setupApp();
 
 const user = { ...bootstrapData.user };
-const menu = { ...bootstrapData.common.menu_data };
+const menu = {
+  ...bootstrapData.common.menu_data,
+};
 let lastLocationPathname: string;
 initFeatureFlags(bootstrapData.common.feature_flags);
 
@@ -59,6 +62,7 @@ const App = () => (
   <Router>
     <LocationPathnameLogger />
     <RootContextProviders>
+      <GlobalStyles />
       <Menu data={menu} isFrontendRoute={isFrontendRoute} />
       <Switch>
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (

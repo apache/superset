@@ -18,14 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import Popover from 'src/components/Popover';
-import { Select } from 'src/components';
+import { Select, Row, Col } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const propTypes = {
   label: PropTypes.string,
@@ -353,9 +353,8 @@ export default class TimeSeriesColumnControl extends React.Component {
     return (
       <span>
         {this.textSummary()}{' '}
-        <Popover
+        <ControlPopover
           trigger="click"
-          placement="right"
           content={this.renderPopover()}
           title="Column Configuration"
           visible={this.state.popoverVisible}
@@ -366,7 +365,7 @@ export default class TimeSeriesColumnControl extends React.Component {
             className="text-primary"
             label="edit-ts-column"
           />
-        </Popover>
+        </ControlPopover>
       </span>
     );
   }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
 import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -35,16 +35,18 @@ import { AlertObject, LogObject } from './types';
 const PAGE_SIZE = 25;
 
 const StyledHeader = styled.div`
-  display: flex;
-  flex-direction: row;
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
 
-  a,
-  Link {
-    margin-left: 16px;
-    font-size: 12px;
-    font-weight: normal;
-    text-decoration: underline;
-  }
+    a,
+    Link {
+      margin-left: ${theme.gridUnit * 4}px;
+      font-size: ${theme.typography.sizes.s};
+      font-weight: ${theme.typography.weights.normal};
+      text-decoration: underline;
+    }
+  `}
 `;
 
 interface ExecutionLogProps {

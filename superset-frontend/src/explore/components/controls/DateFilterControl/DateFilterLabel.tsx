@@ -18,13 +18,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
-import {
-  SupersetClient,
-  styled,
-  t,
-  TimeRangeEndpoints,
-  useTheme,
-} from '@superset-ui/core';
+import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -37,16 +31,17 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
-import Popover from 'src/components/Popover';
-import { Divider } from 'src/common/components';
+import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
+import { noOp } from 'src/utils/common';
 import { FrameType } from './types';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 import {
   CommonFrame,
@@ -71,11 +66,8 @@ const guessFrame = (timeRange: string): FrameType => {
   return 'Advanced';
 };
 
-const fetchTimeRange = async (
-  timeRange: string,
-  endpoints?: TimeRangeEndpoints,
-) => {
-  const query = rison.encode(timeRange);
+const fetchTimeRange = async (timeRange: string) => {
+  const query = rison.encode_uri(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
@@ -84,7 +76,7 @@ const fetchTimeRange = async (
       response?.json?.result?.until || '',
     );
     return {
-      value: formatTimeRange(timeRangeString, endpoints),
+      value: formatTimeRange(timeRangeString),
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
@@ -94,64 +86,66 @@ const fetchTimeRange = async (
   }
 };
 
-const StyledPopover = styled(Popover)``;
+const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
   width: 272px;
 `;
 
 const ContentStyleWrapper = styled.div`
-  .ant-row {
-    margin-top: 8px;
-  }
+  ${({ theme }) => css`
+    .ant-row {
+      margin-top: 8px;
+    }
 
-  .ant-input-number {
-    width: 100%;
-  }
+    .ant-input-number {
+      width: 100%;
+    }
 
-  .ant-picker {
-    padding: 4px 17px 4px;
-    border-radius: 4px;
-    width: 100%;
-  }
+    .ant-picker {
+      padding: 4px 17px 4px;
+      border-radius: 4px;
+      width: 100%;
+    }
 
-  .ant-divider-horizontal {
-    margin: 16px 0;
-  }
+    .ant-divider-horizontal {
+      margin: 16px 0;
+    }
 
-  .control-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #b2b2b2;
-    line-height: 16px;
-    text-transform: uppercase;
-    margin: 8px 0;
-  }
+    .control-label {
+      font-size: 11px;
+      font-weight: ${theme.typography.weights.medium};
+      color: #b2b2b2;
+      line-height: 16px;
+      text-transform: uppercase;
+      margin: 8px 0;
+    }
 
-  .vertical-radio {
-    display: block;
-    height: 40px;
-    line-height: 40px;
-  }
+    .vertical-radio {
+      display: block;
+      height: 40px;
+      line-height: 40px;
+    }
 
-  .section-title {
-    font-style: normal;
-    font-weight: 500;
-    font-size: 15px;
-    line-height: 24px;
-    margin-bottom: 8px;
-  }
+    .section-title {
+      font-style: normal;
+      font-weight: ${theme.typography.weights.bold};
+      font-size: 15px;
+      line-height: 24px;
+      margin-bottom: 8px;
+    }
 
-  .control-anchor-to {
-    margin-top: 16px;
-  }
+    .control-anchor-to {
+      margin-top: 16px;
+    }
 
-  .control-anchor-to-datetime {
-    width: 217px;
-  }
+    .control-anchor-to-datetime {
+      width: 217px;
+    }
 
-  .footer {
-    text-align: right;
-  }
+    .footer {
+      text-align: right;
+    }
+  `}
 `;
 
 const IconWrapper = styled.span`
@@ -171,8 +165,9 @@ interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
-  endpoints?: TimeRangeEndpoints;
   type?: Type;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
 }
 
 export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
@@ -181,7 +176,13 @@ export const getDateFilterControlTestId = testWithId(
 );
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
-  const { value = DEFAULT_TIME_RANGE, endpoints, onChange, type } = props;
+  const {
+    value = DEFAULT_TIME_RANGE,
+    onChange,
+    type,
+    onOpenPopover = noOp,
+    onClosePopover = noOp,
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -194,7 +195,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+    fetchTimeRange(value).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
@@ -235,18 +236,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   useDebouncedEffect(
     () => {
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue, endpoints).then(
-          ({ value: actualRange, error }) => {
-            if (error) {
-              setEvalResponse(error || '');
-              setValidTimeRange(false);
-            } else {
-              setEvalResponse(actualRange || '');
-              setValidTimeRange(true);
-            }
-            setLastFetchedTimeRange(timeRangeValue);
-          },
-        );
+        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
+          if (error) {
+            setEvalResponse(error || '');
+            setValidTimeRange(false);
+          } else {
+            setEvalResponse(actualRange || '');
+            setValidTimeRange(true);
+          }
+          setLastFetchedTimeRange(timeRangeValue);
+        });
       }
     },
     SLOW_DEBOUNCE,
@@ -273,8 +272,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const togglePopover = () => {
     if (show) {
       onHide();
+      onClosePopover();
     } else {
-      setShow(true);
+      onOpen();
+      onOpenPopover();
     }
   };
 
@@ -295,7 +296,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         options={FRAME_OPTIONS}
         value={frame}
         onChange={onChangeFrame}
-        sortComparator={propertyComparator('order')}
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
@@ -372,11 +372,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         overlayStyle={overlayStyle}
       >
         <Tooltip placement="top" title={tooltipTitle}>
-          <Label
-            className="pointer"
-            data-test="time-range-trigger"
-            onClick={onOpen}
-          >
+          <Label className="pointer" data-test="time-range-trigger">
             {actualTimeRange}
           </Label>
         </Tooltip>

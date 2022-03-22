@@ -20,7 +20,7 @@ import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import moment from 'moment';
-import { RadioChangeEvent } from 'antd/lib/radio';
+import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
@@ -527,13 +527,9 @@ export default class ResultSet extends React.PureComponent<
           />
           <ResultSetButtons>
             {this.props.visualize &&
-              this.props.database &&
-              this.props.database.allows_virtual_table_explore && (
+              this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={this.props.query}
                   database={this.props.database}
-                  actions={this.props.actions}
                   onClick={this.handleExploreBtnClick}
                 />
               )}
@@ -554,6 +550,7 @@ export default class ResultSet extends React.PureComponent<
                   <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
+              hideTooltip
             />
           </ResultSetButtons>
           {this.props.search && (
@@ -586,18 +583,20 @@ export default class ResultSet extends React.PureComponent<
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!this.props.user?.roles?.Admin;
+    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
+
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
       withoutAdmin: t(
         'The number of results displayed is limited to %(rows)d. ' +
           'Please add additional limits/filters, download to csv, or contact an admin ' +
           'to see more rows up to the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
     };
     const shouldUseDefaultDropdownAlert =
@@ -660,7 +659,7 @@ export default class ResultSet extends React.PureComponent<
             <Alert
               type="warning"
               onClose={this.onAlertClose}
-              message={t('%(rows)d rows returned', { rows })}
+              message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
                   ? displayMaxRowsReachedMessage.withAdmin
@@ -730,11 +729,10 @@ export default class ResultSet extends React.PureComponent<
                   </Button>
                   <ExploreCtasResultsButton
                     // @ts-ignore Redux types are difficult to work with, ignoring for now
+                    actions={this.props.actions}
                     table={tempTable}
                     schema={tempSchema}
                     dbId={exploreDBId}
-                    database={this.props.database}
-                    actions={this.props.actions}
                   />
                 </ButtonGroup>
               </>

@@ -63,6 +63,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;
+    /** Prop for chart ref */
+    inputRef?: RefObject<any>;
     /** Chart width */
     height?: number | string;
     /** Chart height */
@@ -77,6 +79,11 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * because it will clash with auto-sizing.
      */
     Wrapper?: React.ComponentType<WrapperProps>;
+    /**
+     * Component to display when query returns no results.
+     * If not defined, NoResultsComponent is used
+     */
+    noResults?: ReactNode;
   };
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
@@ -148,6 +155,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       Wrapper,
       queriesData,
       enableNoResults,
+      noResults,
       ...rest
     } = this.props as PropsWithDefault;
 
@@ -167,7 +175,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
           ({ data }) => !data || (Array.isArray(data) && data.length === 0),
         ));
     if (noResultQueries) {
-      chart = (
+      chart = noResults || (
         <NoResultsComponent
           id={id}
           className={className}
