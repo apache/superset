@@ -351,11 +351,9 @@ const ReportModal: FunctionComponent<ReportProps> = ({
                 value: target.value,
               }),
           }}
-          errorMessage=""
           label="Report Name"
           data-test="report-name-test"
         />
-
         <LabeledErrorBoundInput
           id="description"
           name="description"
@@ -367,7 +365,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
                 value: target.value,
               }),
           }}
-          errorMessage=""
           label={t('Description')}
           placeholder={t(
             'Include a description that will be sent with your report',
