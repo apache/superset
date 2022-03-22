@@ -1299,6 +1299,8 @@ class ImportV1ChartSchema(Schema):
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
     dataset_uuid = fields.UUID(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 CHART_SCHEMAS = (
