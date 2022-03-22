@@ -218,7 +218,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setDashboardData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
-          t('There was an issues fetching your dashboards: %s', err),
+          t('There was an issue fetching your dashboards: %s', err),
         );
       });
     getUserOwnedObjects(id, 'chart')
@@ -229,7 +229,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       .catch((err: unknown) => {
         setChartData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issues fetching your chart: %s', err));
+        addDangerToast(t('There was an issue fetching your chart: %s', err));
       });
     getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
       .then(r => {
