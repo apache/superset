@@ -24,6 +24,7 @@ import {
   Route,
   useLocation,
 } from 'react-router-dom';
+import { GlobalStyles } from 'src/GlobalStyles';
 import { initFeatureFlags } from 'src/featureFlags';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
@@ -61,6 +62,7 @@ const App = () => (
   <Router>
     <LocationPathnameLogger />
     <RootContextProviders>
+      <GlobalStyles />
       <Menu data={menu} isFrontendRoute={isFrontendRoute} />
       <Switch>
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (

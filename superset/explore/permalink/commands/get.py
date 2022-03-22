@@ -44,7 +44,7 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
         self.validate()
         try:
             value: Optional[ExplorePermalinkValue] = GetKeyValueCommand(
-                self.resource, self.key, key_type=self.key_type
+                resource=self.resource, key=self.key, key_type=self.key_type
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")
