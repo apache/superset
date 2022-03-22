@@ -23,9 +23,9 @@ import {
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
+import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { usePrevious } from 'src/hooks/usePrevious';
 import controlMap from './controls';
 
 import './Control.less';
