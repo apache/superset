@@ -308,11 +308,11 @@ export const useTableColumns = (
                   if (value === false) {
                     return BOOL_FALSE_DISPLAY;
                   }
-                  if (timeFormattedColumnIndex > -1) {
-                    return timeFormatter(value);
-                  }
                   if (value === null) {
                     return <CellNull>{NULL_DISPLAY}</CellNull>;
+                  }
+                  if (timeFormattedColumnIndex > -1) {
+                    return timeFormatter(value);
                   }
                   return String(value);
                 },
