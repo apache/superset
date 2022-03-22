@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
+import { UploadFile } from 'antd/lib/upload/interface';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
@@ -61,6 +62,7 @@ const ModalHeader = ({
   dbName,
   dbModel,
   editNewDb,
+  fileName,
 }: {
   isLoading: boolean;
   isEditMode: boolean;
@@ -70,6 +72,9 @@ const ModalHeader = ({
   dbName: string;
   dbModel: DatabaseForm;
   editNewDb?: boolean;
+  fileName?: UploadFile[];
+  passwordFields?: string[];
+  needsOverwriteConfirm?: boolean;
 }) => {
   const isEditHeader = (
     <StyledFormHeader>
@@ -115,6 +120,10 @@ const ModalHeader = ({
       </StyledFormHeader>
     </StyledStickyHeader>
   );
+  console.log(
+    'findme modalHeader - fileName',
+    fileName ? fileName[0].name : '',
+  );
   const hasDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
@@ -142,19 +151,23 @@ const ModalHeader = ({
     </StyledFormHeader>
   );
 
+  const newHeader = (
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <p className="helper-top"> STEP 2 OF 3 </p>
+        <h4>Enter the required {dbModel.name} credentials</h4>
+        <p className="helper-bottom">{fileName ? fileName[0].name : ''}</p>
+      </StyledFormHeader>
+    </StyledStickyHeader>
+  );
+
+  if (fileName) return newHeader;
   if (isLoading) return <></>;
-  if (isEditMode) {
-    return isEditHeader;
-  }
-  if (useSqlAlchemyForm) {
-    return useSqlAlchemyFormHeader;
-  }
-  if (hasConnectedDb && !editNewDb) {
-    return hasConnectedDbHeader;
-  }
-  if (db || editNewDb) {
-    return hasDbHeader;
-  }
+  if (isEditMode) return isEditHeader;
+  if (useSqlAlchemyForm) return useSqlAlchemyFormHeader;
+  if (hasConnectedDb && !editNewDb) return hasConnectedDbHeader;
+  if (db || editNewDb) return hasDbHeader;
+
   return noDbHeader;
 };
 

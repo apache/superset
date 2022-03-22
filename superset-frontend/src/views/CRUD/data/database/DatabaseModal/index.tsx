@@ -29,8 +29,9 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
-import { AntdSelect } from 'src/components';
+import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -44,6 +45,7 @@ import {
   useDatabaseValidation,
   getDatabaseImages,
   getConnectionAlert,
+  useImportResource,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -520,6 +522,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     onHide();
   };
+
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
@@ -861,6 +864,49 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
+  // ------------------------------ FINDME START 🚧
+
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
+    useState<boolean>(false);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+
+  // isImporting ? render modal
+
+  const [fileName, setFileName] = useState<UploadFile[]>([]);
+
+  console.log('findme databasemodal - fileName', fileName);
+
+  const {
+    state: { alreadyExists, passwordsNeeded },
+    importResource,
+  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
+
+  useEffect(() => {
+    setPasswordFields(passwordsNeeded);
+  }, [passwordsNeeded, setPasswordFields]);
+
+  useEffect(() => {
+    setNeedsOverwriteConfirm(alreadyExists.length > 0);
+  }, [alreadyExists, setNeedsOverwriteConfirm]);
+
+  const onDbImport = (info: UploadChangeParam) => {
+    setFileName([
+      {
+        ...info.file,
+        status: 'done',
+      },
+    ]);
+    if (!(fileName[0]?.originFileObj instanceof File)) {
+      return;
+    }
+
+    importResource(fileName[0].originFileObj, passwords, confirmedOverwrite);
+  };
+
+  // ------------------------------ FINDME END 🚧
+
   const tabChange = (key: string) => {
     setTabKey(key);
   };
@@ -1012,6 +1058,41 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       />
     );
   };
+
+  if (fileName.length > 0) {
+    console.log('findme made it');
+    return (
+      <Modal
+        css={(theme: SupersetTheme) => [
+          antDModalNoPaddingStyles,
+          antDModalStyles(theme),
+          formHelperStyles(theme),
+          formStyles(theme),
+        ]}
+        name="database"
+        onHandledPrimaryAction={onSave}
+        onHide={onClose}
+        primaryButtonName={t('Connect')}
+        width="500px"
+        centered
+        show={show}
+        title={<h4>{t('Connect a database')}</h4>}
+        footer={renderModalFooter()}
+      >
+        <ModalHeader
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+          useSqlAlchemyForm={useSqlAlchemyForm}
+          hasConnectedDb={hasConnectedDb}
+          db={db}
+          dbName={dbName}
+          dbModel={dbModel}
+          fileName={fileName}
+        />
+        Test
+      </Modal>
+    );
+  }
 
   return useTabLayout ? (
     <Modal
@@ -1252,8 +1333,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {renderPreferredSelector()}
                 {renderAvailableSelector()}
+                {/* // ------------------------------ FINDME START 🚧 */}
+                <Upload
+                  name="databaseFile"
+                  id="databaseFile"
+                  data-test="database-file-input"
+                  accept=".yaml,.json,.yml,.zip"
+                  // upload is handled by hook
+                  customRequest={() => {}}
+                  onChange={info => {
+                    onDbImport(info);
+                  }}
+                >
+                  <Button
+                    data-test="import-database-btn"
+                    buttonStyle="link"
+                    css={buttonLinkStyles}
+                    // loading={}
+                  >
+                    {t('Import database from file')}
+                  </Button>
+                </Upload>
               </SelectDatabaseStyles>
             ) : (
+              // ------------------------------ FINDME END 🚧
               <>
                 <ModalHeader
                   isLoading={isLoading}
