@@ -32,11 +32,7 @@ function getObjectExpressionPropertyNodes(
   _.each(objectExpressionNode.properties, propertyNode => {
     propertyNodes.push(propertyNode);
 
-    if (
-      propertyNode.value &&
-      propertyNode.value.type &&
-      propertyNode.value.type === 'ObjectExpression'
-    ) {
+    if (propertyNode?.value?.type === 'ObjectExpression') {
       propertyNodes.concat(
         getObjectExpressionPropertyNodes(propertyNode.value, propertyNodes),
       );
