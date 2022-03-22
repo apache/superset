@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
+    "@docsearch/react": "^3.0.0",
     "@docusaurus/core": "^2.0.0-beta.15",
     "@docusaurus/plugin-client-redirects": "^2.0.0-beta.15",
     "@docusaurus/preset-classic": "^2.0.0-beta.15",
