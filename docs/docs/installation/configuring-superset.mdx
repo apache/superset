@@ -20,8 +20,12 @@ ROW_LIMIT = 5000
 SUPERSET_WEBSERVER_PORT = 8088
 
 # Flask App Builder configuration
-# Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+# Your App secret key will be used for securely signing the session cookie
+# and encrypting sensitive information on the database
+# Make sure you are changing this key for your deployment with a strong key.
+# You can generate a strong key using `openssl rand -base64 42`
+
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 # The SQLAlchemy connection string to your database backend
 # This connection defines the path to the database that stores your
@@ -303,3 +307,15 @@ defaults on a per database level via the `extra` parameter.
 
 Note in a future release the interim SIP-15 logic will be removed (including the
 `time_grain_endpoints` form-data field) via a code change and Alembic migration.
+
+### SECRET_KEY Rotation
+
+If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
+
+# Add the new SECRET_KEY and PREVIOUS_SECRET_KEY
+
+```python
+PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
+SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+# Then run `superset re-encrypt-secrets`
