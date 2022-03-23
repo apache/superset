@@ -19,7 +19,7 @@ from importlib.util import find_spec
 
 import pytest
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
@@ -75,40 +75,40 @@ def test_prophet_valid_zero_periods():
 def test_prophet_import():
     dynamic_module = find_spec("prophet")
     if dynamic_module is None:
-        with pytest.raises(QueryObjectValidationError):
+        with pytest.raises(InvalidPostProcessingError):
             prophet(df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9)
 
 
 def test_prophet_missing_temporal_column():
     df = prophet_df.drop(DTTM_ALIAS, axis=1)
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         prophet(
             df=df, time_grain="P1M", periods=3, confidence_interval=0.9,
         )
 
 
 def test_prophet_incorrect_confidence_interval():
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         prophet(
             df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.0,
         )
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         prophet(
             df=prophet_df, time_grain="P1M", periods=3, confidence_interval=1.0,
         )
 
 
 def test_prophet_incorrect_periods():
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         prophet(
             df=prophet_df, time_grain="P1M", periods=-1, confidence_interval=0.8,
         )
 
 
 def test_prophet_incorrect_time_grain():
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         prophet(
             df=prophet_df, time_grain="yearly", periods=10, confidence_interval=0.8,
         )
