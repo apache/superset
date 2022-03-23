@@ -48,7 +48,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
-    # pylint: disable=too-many-statements
     def run(self) -> None:
         self.validate()
         uri = self._properties.get("sqlalchemy_uri", "")
@@ -94,7 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     )
                 except (sqlite3.ProgrammingError, RuntimeError):
                     # SQLite can't run on a separate thread, so ``func_timeout`` fails
-                    # RuntimeError catches the equivalent single-threading error from duckdb.
+                    # RuntimeError catches the equivalent error from duckdb.
                     alive = engine.dialect.do_ping(conn)
                 except FunctionTimedOut as ex:
                     raise SupersetTimeoutException(
