@@ -21,7 +21,6 @@ from flask import abort
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import lazy_gettext as _
 
 from superset import is_feature_enabled
 from superset.superset_typing import FlaskResponse
