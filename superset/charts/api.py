@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from zipfile import ZipFile
 
 from flask import g, redirect, request, Response, send_file, url_for
@@ -844,9 +844,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
                         in the following format:
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
-                    overwrite:
-                      description: overwrite existing charts?
-                      type: boolean
+                    configOverwrite:
+                      description: determine which models to overwrite
+                      type: object
+                      example: {"dashboards": true, "charts": false ...}
           responses:
             200:
               description: Chart import result
@@ -880,10 +881,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
-        overwrite = request.form.get("overwrite") == "true"
+
+        config_overwrite: Dict[str, bool] = (
+            json.loads(request.form["configOverwrite"])
+            if "configOverwrite" in request.form
+            else None
+        )
 
         command = ImportChartsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents, passwords=passwords, config_overwrite=config_overwrite,
         )
         command.run()
         return self.response(200, message="OK")

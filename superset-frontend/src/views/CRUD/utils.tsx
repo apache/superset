@@ -380,7 +380,9 @@ const isNeedsPassword = (payload: any) =>
 
 export const isAlreadyExists = (payload: any) =>
   typeof payload === 'string' &&
-  payload.includes('already exists and `overwrite=true` was not passed');
+  payload.includes(
+    'already exists and `config_overwrite` object was not passed',
+  );
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
   errors

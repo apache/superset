@@ -799,9 +799,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         in the following format:
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
-                    overwrite:
-                      description: overwrite existing databases?
-                      type: boolean
+                    configOverwrite:
+                      description: determine which models to overwrite
+                      type: object
+                      example: {"dashboards": true, "charts": false ...}
           responses:
             200:
               description: Database import result
@@ -835,10 +836,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
-        overwrite = request.form.get("overwrite") == "true"
+
+        config_overwrite: Dict[str, bool] = (
+            json.loads(request.form["configOverwrite"])
+            if "configOverwrite" in request.form
+            else None
+        )
 
         command = ImportDatabasesCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents, passwords=passwords, config_overwrite=config_overwrite,
         )
         command.run()
         return self.response(200, message="OK")

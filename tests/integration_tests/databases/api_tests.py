@@ -415,6 +415,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(response, expected_response)
+        self.assertEqual(response, expected_response)
 
     def test_create_database_unique_validate(self):
         """
@@ -1229,7 +1230,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",
+                        "databases": "some databases already exists and `config_overwrite` object was not passed",
                         "issue_codes": [
                             {
                                 "code": 1010,

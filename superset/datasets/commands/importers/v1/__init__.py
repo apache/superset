@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.databases.commands.importers.v1.utils import import_database
+from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.exceptions import DatasetImportError
 from superset.datasets.commands.importers.v1.utils import import_dataset
@@ -33,18 +34,17 @@ class ImportDatasetsCommand(ImportModelsCommand):
 
     """Import datasets"""
 
-    dao = DatasetDAO
     model_name = "dataset"
     prefix = "datasets/"
-    schemas: Dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
-        "datasets/": ImportV1DatasetSchema(),
+    depends_models: Dict[str, Any] = {
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": DatabaseDAO},
+        "datasets/": {"schema": ImportV1DatasetSchema(), "dao": DatasetDAO},
     }
     import_error = DatasetImportError
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool]
     ) -> None:
         # discover databases associated with datasets
         database_uuids: Set[str] = set()
@@ -56,7 +56,9 @@ class ImportDatasetsCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -66,4 +68,6 @@ class ImportDatasetsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                import_dataset(session, config, overwrite=overwrite)
+                import_dataset(
+                    session, config, overwrite=config_overwrite.get("datasets", False)
+                )

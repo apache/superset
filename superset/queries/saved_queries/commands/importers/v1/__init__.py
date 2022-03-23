@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
+from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.queries.saved_queries.commands.importers.v1.utils import (
@@ -35,18 +36,17 @@ from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 class ImportSavedQueriesCommand(ImportModelsCommand):
     """Import Saved Queries"""
 
-    dao = SavedQueryDAO
     model_name = "saved_queries"
     prefix = "queries/"
-    schemas: Dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
-        "queries/": ImportV1SavedQuerySchema(),
+    depends_models: Dict[str, Schema] = {
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": DatabaseDAO},
+        "queries/": {"schema": ImportV1SavedQuerySchema(), "dao": SavedQueryDAO},
     }
     import_error = SavedQueryImportError
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool]
     ) -> None:
         # discover databases associated with saved queries
         database_uuids: Set[str] = set()
@@ -58,7 +58,9 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import saved queries with the correct parent ref
@@ -68,4 +70,6 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["db_id"] = database_ids[config["database_uuid"]]
-                import_saved_query(session, config, overwrite=overwrite)
+                import_saved_query(
+                    session, config, overwrite=config_overwrite.get("queries", False)
+                )

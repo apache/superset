@@ -1664,7 +1664,7 @@ class TestDatasetApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "datasets/imported_dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",
+                        "datasets": "some datasets already exists and `config_overwrite` object was not passed",
                         "issue_codes": [
                             {
                                 "code": 1010,

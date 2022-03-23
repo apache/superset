@@ -23,6 +23,7 @@ from sqlalchemy.sql import select
 
 from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
+from superset.charts.dao import ChartDAO
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
@@ -35,24 +36,24 @@ from superset.dashboards.commands.importers.v1.utils import (
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
+from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
+from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
-
     """Import dashboards"""
 
-    dao = DashboardDAO
     model_name = "dashboard"
     prefix = "dashboards/"
-    schemas: Dict[str, Schema] = {
-        "charts/": ImportV1ChartSchema(),
-        "dashboards/": ImportV1DashboardSchema(),
-        "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+    depends_models: Dict[str, Any] = {
+        "charts/": {"schema": ImportV1ChartSchema(), "dao": ChartDAO},
+        "dashboards/": {"schema": ImportV1DashboardSchema(), "dao": DashboardDAO},
+        "datasets/": {"schema": ImportV1DatasetSchema(), "dao": DatasetDAO},
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": DatabaseDAO},
     }
     import_error = DashboardImportError
 
@@ -61,9 +62,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(
-                db.session, self._configs, self.config_overwrite, self.overwrite
-            )
+            self._import(db.session, self._configs, self.config_overwrite)
             db.session.commit()
         except Exception as ex:
             db.session.rollback()
@@ -72,11 +71,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(  # type: ignore  # pylint: disable=arguments-differ
-        session: Session,
-        configs: Dict[str, Any],
-        config_overwrite: Dict[str, bool],
-        overwrite: bool = False,
+    def _import(
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool],
     ) -> None:
         # discover charts and datasets associated with dashboards
         chart_uuids: Set[str] = set()
@@ -152,7 +148,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dashboard = import_dashboard(
                     session,
                     config,
-                    overwrite=config_overwrite.get("dashboards", overwrite),
+                    overwrite=config_overwrite.get("dashboards", False),
                 )
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:

@@ -402,7 +402,6 @@ export function useImportResource(
     (
       bundle: File,
       databasePasswords: Record<string, string> = {},
-      overwrite = false,
       configOverwrite: Record<string, boolean> = {},
     ) => {
       // Set loading state
@@ -422,11 +421,7 @@ export function useImportResource(
       /* If the imported model already exists the user needs to confirm
        * that they want to overwrite it.
        */
-      if (overwrite) {
-        formData.append('overwrite', 'true');
-      }
-
-      if (configOverwrite) {
+      if (Object.keys(configOverwrite).length !== 0) {
         formData.append('configOverwrite', JSON.stringify(configOverwrite));
       }
 

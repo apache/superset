@@ -194,21 +194,23 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     }
 
     setImportingModel(true);
-    const configOverwrite =
-      confirmedConfigOverwriteTxt.toUpperCase() === t('CONFIRM')
-        ? configOverwriteStatus
-        : {};
-    importResource(
-      fileList[0].originFileObj,
-      passwords,
-      confirmedOverwrite,
-      configOverwrite,
-    ).then(result => {
-      if (result) {
-        clearModal();
-        onModelImport();
-      }
-    });
+    // const configOverwrite =
+    //   confirmedConfigOverwriteTxt.toUpperCase() === t('CONFIRM')
+    //     ? configOverwriteStatus
+    //     : {};
+    const configOverwrite = {};
+    if (confirmedOverwrite) {
+      configOverwrite[alreadyExists[0]] = confirmedOverwrite;
+    }
+
+    importResource(fileList[0].originFileObj, passwords, configOverwrite).then(
+      result => {
+        if (result) {
+          clearModal();
+          onModelImport();
+        }
+      },
+    );
   };
 
   const changeFile = (info: UploadChangeParam) => {
@@ -239,6 +241,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const renderPasswordFields = () => {
+    // TO do, move under advanced settings.
     if (passwordFields.length === 0) {
       return null;
     }
@@ -331,7 +334,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   );
 
   const advancedOptions = (): null | JSX.Element => {
-    if (configOverwriteFields.length === 0) {
+    if (configOverwriteFields?.length === 0) {
       return null;
     }
 

@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, Dict
 from zipfile import ZipFile
 
 from flask import g, request, Response, send_file
@@ -300,9 +300,10 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                         in the following format:
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
-                    overwrite:
-                      description: overwrite existing saved queries?
-                      type: boolean
+                    configOverwrite:
+                      description: determine which models to overwrite
+                      type: object
+                      example: {"dashboards": true, "charts": false ...}
           responses:
             200:
               description: Saved Query import result
@@ -336,10 +337,15 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
-        overwrite = request.form.get("overwrite") == "true"
+
+        config_overwrite: Dict[str, bool] = (
+            json.loads(request.form["configOverwrite"])
+            if "configOverwrite" in request.form
+            else None
+        )
 
         command = ImportSavedQueriesCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents, passwords=passwords, config_overwrite=config_overwrite,
         )
         command.run()
         return self.response(200, message="OK")

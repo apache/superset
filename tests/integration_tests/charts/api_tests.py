@@ -1214,7 +1214,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",
+                        "charts": "some charts already exists and `config_overwrite` object was not passed",
                         "issue_codes": [
                             {
                                 "code": 1010,

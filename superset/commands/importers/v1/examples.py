@@ -50,13 +50,12 @@ class ImportExamplesCommand(ImportModelsCommand):
 
     """Import examples"""
 
-    dao = BaseDAO
     model_name = "model"
-    schemas: Dict[str, Schema] = {
-        "charts/": ImportV1ChartSchema(),
-        "dashboards/": ImportV1DashboardSchema(),
-        "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+    depends_models: Dict[str, Any] = {
+        "charts/": {"schema": ImportV1ChartSchema(), "dao": BaseDAO},
+        "dashboards/": {"schema": ImportV1DashboardSchema(), "dao": BaseDAO},
+        "datasets/": {"schema": ImportV1DatasetSchema(), "dao": BaseDAO},
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": BaseDAO},
     }
     import_error = CommandException
 
@@ -75,18 +74,19 @@ class ImportExamplesCommand(ImportModelsCommand):
             db.session.rollback()
             raise self.import_error() from ex
 
-    @classmethod
-    def _get_uuids(cls) -> Set[str]:
-        # pylint: disable=protected-access
-        return (
-            ImportDatabasesCommand._get_uuids()
-            | ImportDatasetsCommand._get_uuids()
-            | ImportChartsCommand._get_uuids()
-            | ImportDashboardsCommand._get_uuids()
-        )
+    # @classmethod
+    # def _get_uuids(cls) -> Set[str]:
+    #     # pylint: disable=protected-access
+    #     return (
+    #         ImportDatabasesCommand._get_uuids()
+    #         | ImportDatasetsCommand._get_uuids()
+    #         | ImportChartsCommand._get_uuids()
+    #         | ImportDashboardsCommand._get_uuids()
+    #     )
 
     @staticmethod
-    def _import(  # pylint: disable=arguments-differ, too-many-locals, too-many-branches
+    def _import(  # type: ignore # pylint: disable=arguments-differ, too-many-locals,
+        # too-many-branches
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,

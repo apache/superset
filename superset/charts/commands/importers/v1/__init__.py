@@ -28,28 +28,28 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
+from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
+from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportChartsCommand(ImportModelsCommand):
-
     """Import charts"""
 
-    dao = ChartDAO
     model_name = "chart"
     prefix = "charts/"
-    schemas: Dict[str, Schema] = {
-        "charts/": ImportV1ChartSchema(),
-        "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+    depends_models: Dict[str, Any] = {
+        "charts/": {"schema": ImportV1ChartSchema(), "dao": ChartDAO},
+        "datasets/": {"schema": ImportV1DatasetSchema(), "dao": DatasetDAO},
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": DatabaseDAO},
     }
     import_error = ChartImportError
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool]
     ) -> None:
         # discover datasets associated with charts
         dataset_uuids: Set[str] = set()
@@ -67,7 +67,9 @@ class ImportChartsCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -78,7 +80,9 @@ class ImportChartsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(
+                    session, config, overwrite=config_overwrite.get("datasets", False)
+                )
                 datasets[str(dataset.uuid)] = dataset
 
         # import charts with the correct parent ref
@@ -100,4 +104,6 @@ class ImportChartsCommand(ImportModelsCommand):
                 if "query_context" in config:
                     del config["query_context"]
 
-                import_chart(session, config, overwrite=overwrite)
+                import_chart(
+                    session, config, overwrite=config_overwrite.get("charts", False)
+                )

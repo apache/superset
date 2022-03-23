@@ -18,7 +18,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 from zipfile import is_zipfile, ZipFile
 
 import click
@@ -143,7 +143,9 @@ if feature_flags.get("VERSIONED_EXPORT"):
             with open(path) as file:
                 contents = {path: file.read()}
         try:
-            ImportDashboardsCommand(contents, overwrite=True).run()
+            # TODO configure according to cli input
+            config_overwrite: Dict[str, bool] = {"dashboards": True}
+            ImportDashboardsCommand(contents, config_overwrite=config_overwrite).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception(
                 "There was an error when importing the dashboards(s), please check "

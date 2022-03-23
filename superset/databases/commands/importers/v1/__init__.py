@@ -26,6 +26,7 @@ from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
+from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import ImportV1DatasetSchema
 
 
@@ -33,24 +34,25 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     """Import databases"""
 
-    dao = DatabaseDAO
     model_name = "database"
     prefix = "databases/"
-    schemas: Dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
-        "datasets/": ImportV1DatasetSchema(),
+    schemas: Dict[str, Any] = {
+        "databases/": {"schema": ImportV1DatabaseSchema(), "dao": DatabaseDAO},
+        "datasets/": {"schema": ImportV1DatasetSchema(), "dao": DatasetDAO},
     }
     import_error = DatabaseImportError
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool]
     ) -> None:
         # first import databases
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import related datasets
@@ -61,4 +63,6 @@ class ImportDatabasesCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 # overwrite=False prevents deleting any non-imported columns/metrics
-                import_dataset(session, config, overwrite=False)
+                import_dataset(
+                    session, config, overwrite=config_overwrite.get("datasets", False)
+                )
