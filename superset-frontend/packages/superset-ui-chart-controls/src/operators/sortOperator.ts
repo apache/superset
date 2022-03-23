@@ -20,9 +20,10 @@
 import { DTTM_ALIAS, PostProcessingSort, RollingType } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const sortOperator: PostProcessingFactory<
-  PostProcessingSort | undefined
-> = (formData, queryObject) => {
+export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
+  formData,
+  queryObject,
+) => {
   const { x_axis: xAxis } = formData;
   if (
     (xAxis || queryObject.is_timeseries) &&
