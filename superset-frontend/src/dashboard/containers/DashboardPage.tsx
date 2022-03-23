@@ -229,22 +229,13 @@ const DashboardPage: FC = () => {
   }, [dashboard_title]);
 
   useEffect(() => {
-    if (css) {
+    if (typeof css === 'string') {
       // returning will clean up custom css
       // when dashboard unmounts or changes
       return injectCustomCss(css);
     }
     return () => {};
   }, [css]);
-
-  useEffect(
-    () => () => {
-      // need to clean up custom css
-      // when dashboard unmounts
-      injectCustomCss('');
-    },
-    [],
-  );
 
   useEffect(
     () => () => {
