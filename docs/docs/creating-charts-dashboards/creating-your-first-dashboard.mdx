@@ -189,3 +189,23 @@ all charts will load their data even if feature flag is turned on and no roles a
 to roles the access will fallback to **Dataset permissions**
 
 <img src={useBaseUrl("/img/tutorial/tutorial_dashboard_access.png" )} />
+
+### Customizing dashboard
+
+The following URL parameters can be used to modify how the dashboard is rendered:
+- `standalone`:
+  - `0` (default): dashboard is displayed normally
+  - `1`: Top Navigation is hidden
+  - `2`: Top Navigation + title is hidden
+  - `3`: Top Navigation + title + top level tabs are hidden
+- `show_filters`:
+  - `0`: render dashboard without Filter Bar
+  - `1` (default): render dashboard with Filter Bar if native filters are enabled
+- `expand_filters`:
+  - (default): render dashboard with Filter Bar expanded if there are native filters
+  - `0`: render dashboard with Filter Bar collapsed
+  - `1`: render dashboard with Filter Bar expanded
+
+For example, when running the local development build, the following will disable the
+Top Nav and remove the Filter Bar:
+`http://localhost:8088/superset/dashboard/my-dashboard/?standalone=1&show_filters=0`

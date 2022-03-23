@@ -143,6 +143,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
       optionSelector.values.map((column, idx) =>
         isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX) ? (
           <ColumnSelectPopoverTrigger
+            key={idx}
             columns={popoverOptions}
             onColumnEdit={newColumn => {
               if (isColumnMeta(newColumn)) {

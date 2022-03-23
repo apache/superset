@@ -358,6 +358,26 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "version",
         ]
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
+    def test_export_database_command_no_related(self, mock_g):
+        """
+        Test that only databases are exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+        db_uuid = example_db.uuid
+
+        command = ExportDatabasesCommand([example_db.id], export_related=False)
+        contents = dict(command.run())
+        prefixes = {path.split("/")[0] for path in contents}
+        assert "metadata.yaml" in prefixes
+        assert "databases" in prefixes
+        assert "datasets" not in prefixes
+
 
 class TestImportDatabasesCommand(SupersetTestCase):
     def test_import_v1_database(self):

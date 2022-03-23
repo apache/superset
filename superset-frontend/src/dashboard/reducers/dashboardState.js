@@ -39,8 +39,10 @@ import {
   UNSET_FOCUSED_FILTER_FIELD,
   SET_ACTIVE_TABS,
   SET_FULL_SIZE_CHART_ID,
+  RESET_SLICE,
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
+  SET_DATASETS_STATUS,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -58,6 +60,7 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         sliceIds: Array.from(updatedSliceIds),
+        updateSlice: true,
       };
     },
     [REMOVE_SLICE]() {
@@ -68,6 +71,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         sliceIds: Array.from(updatedSliceIds),
+      };
+    },
+    [RESET_SLICE]() {
+      return {
+        ...state,
+        updateSlice: false,
       };
     },
     [TOGGLE_FAVE_STAR]() {
@@ -116,6 +125,7 @@ export default function dashboardStateReducer(state = {}, action) {
         maxUndoHistoryExceeded: false,
         editMode: false,
         updatedColorScheme: false,
+        updateSlice: false,
         // server-side returns last_modified_time for latest change
         lastModifiedTime: action.lastModifiedTime,
       };
@@ -201,6 +211,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         fullSizeChartId: action.chartId,
+      };
+    },
+    [SET_DATASETS_STATUS]() {
+      return {
+        ...state,
+        datasetsStatus: action.status,
       };
     },
   };
