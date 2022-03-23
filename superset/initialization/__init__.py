@@ -149,9 +149,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import (
-            AlertView,
-        )
+        from superset.views.alerts import AlertView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,

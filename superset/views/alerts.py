@@ -29,6 +29,7 @@ from .base import BaseSupersetView
 
 # TODO: access control rules for this module
 
+
 class BaseAlertReportView(BaseSupersetView):
     route_base = "/report"
     class_permission_name = "ReportSchedule"
@@ -49,6 +50,7 @@ class BaseAlertReportView(BaseSupersetView):
             return abort(404)
 
         return super().render_app_template()
+
 
 class AlertView(BaseAlertReportView):
     route_base = "/alert"
