@@ -28,6 +28,7 @@ const ADHOC_COLUMN: AdhocColumn = {
   hasCustomLabel: true,
   label: 'Adhoc column',
   sqlExpression: 'case when 1 = 1 then 1 else 2 end',
+  expressionType: 'SQL',
 };
 const COLUMN_META: ColumnMeta = {
   column_name: 'my_col',
