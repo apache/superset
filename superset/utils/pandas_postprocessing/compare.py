@@ -21,7 +21,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import TIME_COMPARISION
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
@@ -31,7 +31,7 @@ def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
-    compare_type: Optional[PandasPostprocessingCompare],
+    compare_type: PandasPostprocessingCompare,
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,
 ) -> DataFrame:
@@ -46,31 +46,38 @@ def compare(  # pylint: disable=too-many-arguments
            compare columns.
     :param precision: Round a change rate to a variable number of decimal places.
     :return: DataFrame with compared columns.
-    :raises QueryObjectValidationError: If the request in incorrect.
+    :raises InvalidPostProcessingError: If the request in incorrect.
     """
     if len(source_columns) != len(compare_columns):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("`compare_columns` must have the same length as `source_columns`.")
         )
     if compare_type not in tuple(PandasPostprocessingCompare):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("`compare_type` must be `difference`, `percentage` or `ratio`")
         )
     if len(source_columns) == 0:
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
+        s_df = df.loc[:, [s_col]]
+        s_df.rename(columns={s_col: "__intermediate"}, inplace=True)
+        c_df = df.loc[:, [c_col]]
+        c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
-            diff_series = df[s_col] - df[c_col]
+            diff_df = c_df - s_df
         elif compare_type == PandasPostprocessingCompare.PCT:
-            diff_series = (
-                ((df[s_col] - df[c_col]) / df[c_col]).astype(float).round(precision)
-            )
+            # https://en.wikipedia.org/wiki/Relative_change_and_difference#Percentage_change
+            diff_df = ((c_df - s_df) / s_df).astype(float).round(precision)
         else:
             # compare_type == "ratio"
-            diff_series = (df[s_col] / df[c_col]).astype(float).round(precision)
-        diff_df = diff_series.to_frame(
-            name=TIME_COMPARISION.join([compare_type, s_col, c_col])
+            diff_df = (c_df / s_df).astype(float).round(precision)
+
+        diff_df.rename(
+            columns={
+                "__intermediate": TIME_COMPARISION.join([compare_type, s_col, c_col])
+            },
+            inplace=True,
         )
         df = pd.concat([df, diff_df], axis=1)
 
