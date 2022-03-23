@@ -22,7 +22,6 @@ from flask.cli import with_appcontext
 
 import superset.utils.database as database_utils
 from superset import app, security_manager
-from superset.utils.celery import session_scope
 
 logger = logging.getLogger(__name__)
 
