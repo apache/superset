@@ -239,6 +239,15 @@ const DashboardPage: FC = () => {
 
   useEffect(
     () => () => {
+      // need to clean up custom css
+      // when dashboard unmounts
+      injectCustomCss('');
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(
         metadata?.color_namespace,
