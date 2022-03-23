@@ -127,8 +127,6 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
 
   onEditorLoad(editor: any) {
-    editor.commands.removeCommand('find');
-
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
