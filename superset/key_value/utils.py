@@ -14,47 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Literal
-from uuid import UUID
+from __future__ import annotations
+
+from hashlib import md5
+from secrets import token_urlsafe
+from typing import Literal, TYPE_CHECKING, Union
+from uuid import UUID, uuid3
 
 import hashids
 from flask import current_app
 
 from superset.key_value.exceptions import KeyValueParseKeyError
-from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key, KeyType, KeyValueFilter
+from superset.key_value.types import Key, KeyValueFilter
+
+if TYPE_CHECKING:
+    from superset.key_value.models import KeyValueEntry
 
 HASHIDS_MIN_LENGTH = 11
 
 
-def parse_permalink_key(key: str) -> Key:
-    key_type: Literal["id", "uuid"] = current_app.config["PERMALINK_KEY_TYPE"]
-    if key_type == "id":
-        return Key(id=int(key), uuid=None)
-    return Key(id=None, uuid=UUID(key))
+def random_key() -> str:
+    return token_urlsafe(48)
 
 
-def format_permalink_key(key: Key) -> str:
-    """
-    return the string representation of the key
-
-    :param key: a key object with either a numerical or uuid key
-    :return: a formatted string
-    """
-    return str(key.id if key.id is not None else key.uuid)
-
-
-def extract_key(entry: KeyValueEntry, key_type: KeyType) -> str:
-    return str(entry.id if key_type == "id" else entry.uuid)
-
-
-def get_filter(resource: str, key: str, key_type: KeyType) -> KeyValueFilter:
+def get_filter(resource: str, key: Union[int, UUID]) -> KeyValueFilter:
     try:
         filter_: KeyValueFilter = {"resource": resource}
-        if key_type == "uuid":
-            filter_["uuid"] = UUID(key)
+        if isinstance(key, UUID):
+            filter_["uuid"] = key
         else:
-            filter_["id"] = int(key)
+            filter_["id"] = key
         return filter_
     except ValueError as ex:
         raise KeyValueParseKeyError() from ex
@@ -65,6 +54,12 @@ def encode_permalink_key(key: int, salt: str) -> str:
     return obj.encode(key)
 
 
-def decode_permalink_id(key: int, salt: str) -> int:
+def decode_permalink_id(key: str, salt: str) -> int:
     obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
-    return obj.decode(key)
+    return obj.decode(key)[0]
+
+
+def get_uuid_namespace(seed: str) -> UUID:
+    md5_obj = md5()
+    md5_obj.update(seed.encode("utf-8"))
+    return UUID(md5_obj.hexdigest())

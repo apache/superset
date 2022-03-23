@@ -101,11 +101,10 @@ class DashboardPermalinkRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
             state = self.add_model_schema.load(request.json)
             key = CreateDashboardPermalinkCommand(
-                actor=g.user, dashboard_id=pk, state=state, key_type=key_type,
+                actor=g.user, dashboard_id=pk, state=state,
             ).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
             url = f"{http_origin}/superset/dashboard/p/{key}/"
@@ -158,10 +157,7 @@ class DashboardPermalinkRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            value = GetDashboardPermalinkCommand(
-                actor=g.user, key=key, key_type=key_type
-            ).run()
+            value = GetDashboardPermalinkCommand(actor=g.user, key=key).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

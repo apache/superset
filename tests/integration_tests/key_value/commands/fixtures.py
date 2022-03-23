@@ -31,8 +31,8 @@ from tests.integration_tests.test_app import app
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
 
-ID_KEY = "123"
-UUID_KEY = "3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc"
+ID_KEY = 123
+UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
 RESOURCE = "my_resource"
 VALUE = {"foo": "bar"}
 
@@ -42,10 +42,7 @@ def key_value_entry() -> Generator[KeyValueEntry, None, None]:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
-        id=int(ID_KEY),
-        uuid=UUID(UUID_KEY),
-        resource=RESOURCE,
-        value=pickle.dumps(VALUE),
+        id=ID_KEY, uuid=UUID_KEY, resource=RESOURCE, value=pickle.dumps(VALUE),
     )
     db.session.add(entry)
     db.session.commit()

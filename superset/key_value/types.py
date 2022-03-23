@@ -16,7 +16,7 @@
 # under the License.
 from dataclasses import dataclass
 from enum import Enum
-from typing import Literal, Optional, TypedDict
+from typing import Optional, TypedDict
 from uuid import UUID
 
 
@@ -26,15 +26,12 @@ class Key:
     uuid: Optional[UUID]
 
 
-KeyType = Literal["id", "hashids", "uuid"]
-
-
 class KeyValueFilter(TypedDict, total=False):
     resource: str
     id: Optional[int]
     uuid: Optional[UUID]
 
 
-class SharedAppKey(str, Enum):
+class SharedKey(str, Enum):
     DashboardPermalinkSalt = "dashboard_permalink_salt"
     ExplorePermalinkSalt = "explore_permalink_salt"
