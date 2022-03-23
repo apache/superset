@@ -42,6 +42,7 @@ import {
   RESET_SLICE,
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
+  SET_DATASETS_STATUS,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -210,6 +211,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         fullSizeChartId: action.chartId,
+      };
+    },
+    [SET_DATASETS_STATUS]() {
+      return {
+        ...state,
+        datasetsStatus: action.status,
       };
     },
   };
