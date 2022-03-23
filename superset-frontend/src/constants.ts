@@ -102,3 +102,8 @@ export const FAST_DEBOUNCE = 250;
  * Slower debounce delay for inputs with expensive API calls.
  */
 export const SLOW_DEBOUNCE = 500;
+
+/**
+ * Display null as `N/A`
+ */
+export const NULL_DISPLAY = 'N/A';
