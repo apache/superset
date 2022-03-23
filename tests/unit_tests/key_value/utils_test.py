@@ -21,8 +21,9 @@ from uuid import UUID
 import pytest
 
 from superset.key_value.exceptions import KeyValueParseKeyError
+from superset.key_value.types import KeyValueResource
 
-RESOURCE = "my-resource"
+RESOURCE = KeyValueResource.APP
 UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
 ID_KEY = 123
 
