@@ -54,10 +54,10 @@ envFromSecrets: []
 
 ## Extra environment variables that will be passed into pods
 ##
-extraEnv:
-  {}
+extraEnv: {}
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
+
 
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
@@ -66,8 +66,7 @@ extraEnv:
 
 ## Extra environment variables in RAW format that will be passed into pods
 ##
-extraEnvRaw:
-  []
+extraEnvRaw: []
   # Load DB password from other secret (e.g. for zalando operator)
   # - name: DB_PASS
   #   valueFrom:
@@ -77,15 +76,13 @@ extraEnvRaw:
 
 ## Extra environment variables to pass as secrets
 ##
-extraSecretEnv:
-  {}
+extraSecretEnv: {}
   # MAPBOX_API_KEY: ...
   # # Google API Keys: https://console.cloud.google.com/apis/credentials
   # GOOGLE_KEY: ...
   # GOOGLE_SECRET: ...
 
-extraConfigs:
-  {}
+extraConfigs: {}
   # import_datasources.yaml: |
   #     databases:
   #     - allow_file_upload: true
@@ -100,28 +97,25 @@ extraConfigs:
 
 extraSecrets: {}
 
-extraVolumes:
-  []
-  # - name: customConfig
-  #   configMap:
-  #     name: '{{ template "superset.fullname" . }}-custom-config'
-  # - name: additionalSecret
-  #   secret:
-  #     secretName: my-secret
-  #     defaultMode: 0600
+extraVolumes: []
+ # - name: customConfig
+ #   configMap:
+ #     name: '{{ template "superset.fullname" . }}-custom-config'
+ # - name: additionalSecret
+ #   secret:
+ #     secretName: my-secret
+ #     defaultMode: 0600
 
-extraVolumeMounts:
-  []
-  # - name: customConfig
-  #   mountPath: /mnt/config
-  #   readOnly: true
-  # - name: additionalSecret:
-  #   mountPath: /mnt/secret
+extraVolumeMounts: []
+ # - name: customConfig
+ #   mountPath: /mnt/config
+ #   readOnly: true
+ # - name: additionalSecret:
+ #   mountPath: /mnt/secret
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
-configOverrides:
-  {}
+configOverrides: {}
   #  extend_timeout: |
   #    # Extend timeout to allow long running queries.
   #    SUPERSET_WEBSERVER_TIMEOUT = ...
@@ -154,11 +148,14 @@ configOverrides:
   #   AUTH_USER_REGISTRATION = True
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+  # secret: |
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #   SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # Same as above but the values are files
-configOverridesFiles:
-  {}
+configOverridesFiles: {}
   # extend_timeout: extend_timeout.py
   # enable_oauth: enable_oauth.py
+
 
 configMountPath: "/app/pythonpath"
 
@@ -179,16 +176,14 @@ initImage:
 service:
   type: ClusterIP
   port: 8088
-  annotations:
-    {}
+  annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: null
 
 ingress:
   enabled: false
   # ingressClassName: nginx
-  annotations:
-    {}
+  annotations: {}
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
     # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
@@ -203,8 +198,7 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -223,6 +217,7 @@ hostAliases: []
 # - hostnames:
 #   - nodns.my.lan
 #   ip: 18.27.36.45
+
 
 ##
 ## Superset node configuration
@@ -250,13 +245,8 @@ supersetNode:
       imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
-            name: "{{ tpl .Values.envFromSecret . }}"
-      command:
-        [
-          "/bin/sh",
-          "-c",
-          "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done",
-        ]
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetNode pods
@@ -277,13 +267,8 @@ supersetWorker:
       imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
-            name: "{{ tpl .Values.envFromSecret . }}"
-      command:
-        [
-          "/bin/sh",
-          "-c",
-          "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done",
-        ]
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetWorker pods
@@ -306,13 +291,8 @@ supersetCeleryBeat:
       imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
-            name: "{{ tpl .Values.envFromSecret . }}"
-      command:
-        [
-          "/bin/sh",
-          "-c",
-          "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done",
-        ]
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
   ## Annotations to be added to supersetCeleryBeat pods
@@ -325,8 +305,9 @@ init:
   # Configure resources
   # Warning: fab command consumes a lot of ram and can
   # cause the process to be killed due to OOM if it exceeds limit
-  resources:
-    {}
+  # Make sure you are giving a strong password for the admin user creation( else make sure you are changing after setup)
+  # Also change the admin email to your own custom email.
+  resources: {}
     # limits:
     #   cpu:
     #   memory:
@@ -352,13 +333,8 @@ init:
       imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
-            name: "{{ tpl .Values.envFromSecret . }}"
-      command:
-        [
-          "/bin/sh",
-          "-c",
-          "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done",
-        ]
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
     set -eu
@@ -464,9 +440,9 @@ redis:
     ##
     ## Image configuration
     # image:
-    ##
-    ## docker registry secret names (list)
-    # pullSecrets: nil
+      ##
+      ## docker registry secret names (list)
+      # pullSecrets: nil
     ##
     ## Configure persistance
     persistence:
@@ -479,7 +455,7 @@ redis:
       ##
       ## Access mode:
       accessModes:
-        - ReadWriteOnce
+      - ReadWriteOnce
 
 nodeSelector: {}
 
