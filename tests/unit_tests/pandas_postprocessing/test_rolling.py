@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pandas as pd
 import pytest
-from pandas import to_datetime
 
-from superset.exceptions import QueryObjectValidationError
-from superset.utils.pandas_postprocessing import pivot, rolling
+from superset.exceptions import InvalidPostProcessingError
+from superset.utils import pandas_postprocessing as pp
+from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import (
     multiple_metrics_df,
     single_metric_df,
@@ -27,9 +28,21 @@ from tests.unit_tests.fixtures.dataframes import (
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
+def test_rolling_should_not_side_effect():
+    _timeseries_df = timeseries_df.copy()
+    pp.rolling(
+        df=timeseries_df,
+        columns={"y": "y"},
+        rolling_type="sum",
+        window=2,
+        min_periods=0,
+    )
+    assert _timeseries_df.equals(timeseries_df)
+
+
 def test_rolling():
     # sum rolling type
-    post_df = rolling(
+    post_df = pp.rolling(
         df=timeseries_df,
         columns={"y": "y"},
         rolling_type="sum",
@@ -41,7 +54,7 @@ def test_rolling():
     assert series_to_list(post_df["y"]) == [1.0, 3.0, 5.0, 7.0]
 
     # mean rolling type with alias
-    post_df = rolling(
+    post_df = pp.rolling(
         df=timeseries_df,
         rolling_type="mean",
         columns={"y": "y_mean"},
@@ -52,7 +65,7 @@ def test_rolling():
     assert series_to_list(post_df["y_mean"]) == [1.0, 1.5, 2.0, 2.5]
 
     # count rolling type
-    post_df = rolling(
+    post_df = pp.rolling(
         df=timeseries_df,
         rolling_type="count",
         columns={"y": "y"},
@@ -63,7 +76,7 @@ def test_rolling():
     assert series_to_list(post_df["y"]) == [1.0, 2.0, 3.0, 4.0]
 
     # quantile rolling type
-    post_df = rolling(
+    post_df = pp.rolling(
         df=timeseries_df,
         columns={"y": "q1"},
         rolling_type="quantile",
@@ -75,14 +88,14 @@ def test_rolling():
     assert series_to_list(post_df["q1"]) == [1.0, 1.25, 1.5, 1.75]
 
     # incorrect rolling type
-    with pytest.raises(QueryObjectValidationError):
-        rolling(
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rolling(
             df=timeseries_df, columns={"y": "y"}, rolling_type="abc", window=2,
         )
 
     # incorrect rolling type options
-    with pytest.raises(QueryObjectValidationError):
-        rolling(
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rolling(
             df=timeseries_df,
             columns={"y": "y"},
             rolling_type="quantile",
@@ -91,8 +104,8 @@ def test_rolling():
         )
 
 
-def test_rolling_with_pivot_df_and_single_metric():
-    pivot_df = pivot(
+def test_rolling_should_empty_df():
+    pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
         columns=["country"],
@@ -100,27 +113,65 @@ def test_rolling_with_pivot_df_and_single_metric():
         flatten_columns=False,
         reset_index=False,
     )
-    rolling_df = rolling(
-        df=pivot_df, rolling_type="sum", window=2, min_periods=0, is_pivot_df=True,
-    )
-    #         dttm  UK  US
-    # 0 2019-01-01   5   6
-    # 1 2019-01-02  12  14
-    assert rolling_df["UK"].to_list() == [5.0, 12.0]
-    assert rolling_df["US"].to_list() == [6.0, 14.0]
-    assert (
-        rolling_df["dttm"].to_list()
-        == to_datetime(["2019-01-01", "2019-01-02"]).to_list()
-    )
-
-    rolling_df = rolling(
-        df=pivot_df, rolling_type="sum", window=2, min_periods=2, is_pivot_df=True,
+    rolling_df = pp.rolling(
+        df=pivot_df,
+        rolling_type="sum",
+        window=2,
+        min_periods=2,
+        columns={"sum_metric": "sum_metric"},
     )
     assert rolling_df.empty is True
 
 
-def test_rolling_with_pivot_df_and_multiple_metrics():
-    pivot_df = pivot(
+def test_rolling_after_pivot_with_single_metric():
+    pivot_df = pp.pivot(
+        df=single_metric_df,
+        index=["dttm"],
+        columns=["country"],
+        aggregates={"sum_metric": {"operator": "sum"}},
+        flatten_columns=False,
+        reset_index=False,
+    )
+    """
+                   sum_metric
+    country            UK US
+    dttm
+    2019-01-01          5  6
+    2019-01-02          7  8
+    """
+    rolling_df = pp.rolling(
+        df=pivot_df,
+        columns={"sum_metric": "sum_metric"},
+        rolling_type="sum",
+        window=2,
+        min_periods=0,
+    )
+    """
+               sum_metric
+    country            UK    US
+    dttm
+    2019-01-01        5.0   6.0
+    2019-01-02       12.0  14.0
+    """
+    flat_df = pp.flatten(rolling_df)
+    """
+            dttm  sum_metric, UK  sum_metric, US
+    0 2019-01-01             5.0             6.0
+    1 2019-01-02            12.0            14.0
+    """
+    assert flat_df.equals(
+        pd.DataFrame(
+            data={
+                "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+            }
+        )
+    )
+
+
+def test_rolling_after_pivot_with_multiple_metrics():
+    pivot_df = pp.pivot(
         df=multiple_metrics_df,
         index=["dttm"],
         columns=["country"],
@@ -131,17 +182,41 @@ def test_rolling_with_pivot_df_and_multiple_metrics():
         flatten_columns=False,
         reset_index=False,
     )
-    rolling_df = rolling(
-        df=pivot_df, rolling_type="sum", window=2, min_periods=0, is_pivot_df=True,
+    """
+               count_metric    sum_metric
+    country              UK US         UK US
+    dttm
+    2019-01-01            1  2          5  6
+    2019-01-02            3  4          7  8
+    """
+    rolling_df = pp.rolling(
+        df=pivot_df,
+        columns={"count_metric": "count_metric", "sum_metric": "sum_metric",},
+        rolling_type="sum",
+        window=2,
+        min_periods=0,
     )
-    #         dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
-    # 0 2019-01-01               1.0               2.0             5.0             6.0
-    # 1 2019-01-02               4.0               6.0            12.0            14.0
-    assert rolling_df["count_metric, UK"].to_list() == [1.0, 4.0]
-    assert rolling_df["count_metric, US"].to_list() == [2.0, 6.0]
-    assert rolling_df["sum_metric, UK"].to_list() == [5.0, 12.0]
-    assert rolling_df["sum_metric, US"].to_list() == [6.0, 14.0]
-    assert (
-        rolling_df["dttm"].to_list()
-        == to_datetime(["2019-01-01", "2019-01-02",]).to_list()
+    """
+               count_metric      sum_metric
+    country              UK   US         UK    US
+    dttm
+    2019-01-01          1.0  2.0        5.0   6.0
+    2019-01-02          4.0  6.0       12.0  14.0
+    """
+    flat_df = pp.flatten(rolling_df)
+    """
+            dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
+    0 2019-01-01               1.0               2.0             5.0             6.0
+    1 2019-01-02               4.0               6.0            12.0            14.0
+    """
+    assert flat_df.equals(
+        pd.DataFrame(
+            data={
+                "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "UK"]): [1.0, 4.0],
+                FLAT_COLUMN_SEPARATOR.join(["count_metric", "US"]): [2.0, 6.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "UK"]): [5.0, 12.0],
+                FLAT_COLUMN_SEPARATOR.join(["sum_metric", "US"]): [6.0, 14.0],
+            }
+        )
     )

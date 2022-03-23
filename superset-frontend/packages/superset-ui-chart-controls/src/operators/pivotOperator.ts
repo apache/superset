@@ -24,19 +24,14 @@ import {
   PostProcessingPivot,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { isValidTimeCompare } from './utils';
-import { timeComparePivotOperator } from './timeComparePivotOperator';
 
-export const pivotOperator: PostProcessingFactory<
-  PostProcessingPivot | undefined
-> = (formData, queryObject) => {
+export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
+  formData,
+  queryObject,
+) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
   const { x_axis: xAxis } = formData;
   if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    if (isValidTimeCompare(formData, queryObject)) {
-      return timeComparePivotOperator(formData, queryObject);
-    }
-
     return {
       operation: 'pivot',
       options: {
@@ -48,6 +43,8 @@ export const pivotOperator: PostProcessingFactory<
           metricLabels.map(metric => [metric, { operator: 'mean' }]),
         ),
         drop_missing_columns: false,
+        flatten_columns: false,
+        reset_index: false,
       },
     };
   }

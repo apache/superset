@@ -16,7 +16,7 @@
 # under the License.
 import pytest
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.select import select
 from tests.unit_tests.fixtures.dataframes import timeseries_df
 
@@ -47,9 +47,9 @@ def test_select():
     assert post_df.columns.tolist() == ["y1"]
 
     # invalid columns
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         select(df=timeseries_df, columns=["abc"], rename={"abc": "qwerty"})
 
     # select renamed column by new name
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         select(df=timeseries_df, columns=["label_new"], rename={"label": "label_new"})

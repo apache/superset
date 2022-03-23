@@ -30,6 +30,6 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     :param columns: columns by by which to sort. The key specifies the column name,
            value specifies if sorting in ascending order.
     :return: Sorted DataFrame
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
