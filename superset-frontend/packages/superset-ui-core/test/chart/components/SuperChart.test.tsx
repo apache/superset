@@ -303,6 +303,7 @@ describe('SuperChart', () => {
           height="125"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
       return promiseTimeout(() => {
@@ -328,6 +329,7 @@ describe('SuperChart', () => {
           height="25%"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
       return promiseTimeout(() => {
