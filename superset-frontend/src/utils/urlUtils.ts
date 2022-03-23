@@ -30,15 +30,22 @@ import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilter
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
-
-export function getUrlParam(param: UrlParam & { type: 'string' }): string;
-export function getUrlParam(param: UrlParam & { type: 'number' }): number;
-export function getUrlParam(param: UrlParam & { type: 'boolean' }): boolean;
-export function getUrlParam(param: UrlParam & { type: 'object' }): object;
-export function getUrlParam(param: UrlParam & { type: 'rison' }): object;
+export function getUrlParam(
+  param: UrlParam & { type: 'string' },
+): string | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'number' },
+): number | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'boolean' },
+): boolean | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'object' },
+): object | null;
+export function getUrlParam(param: UrlParam & { type: 'rison' }): object | null;
 export function getUrlParam(
   param: UrlParam & { type: 'rison | string' },
-): string | object;
+): string | object | null;
 export function getUrlParam({ name, type }: UrlParam): unknown {
   const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
@@ -141,7 +148,7 @@ export function getChartPermalink(
   formData: Pick<QueryFormData, 'datasource'>,
   excludedUrlParams?: string[],
 ) {
-  return getPermalink(`${process.env.APP_PREFIX}/api/v1/explore/permalink`, {
+  return getPermalink('/api/v1/explore/permalink', {
     formData,
     urlParams: getChartUrlParams(excludedUrlParams),
   });
@@ -153,12 +160,9 @@ export function getDashboardPermalink(
   hash?: string,
 ) {
   // only encode filter box state if non-empty
-  return getPermalink(
-    `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}/permalink`,
-    {
-      filterState,
-      urlParams: getDashboardUrlParams(),
-      hash,
-    },
-  );
+  return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
+    filterState,
+    urlParams: getDashboardUrlParams(),
+    hash,
+  });
 }
