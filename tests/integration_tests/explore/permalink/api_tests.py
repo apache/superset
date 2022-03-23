@@ -17,7 +17,7 @@
 import json
 import pickle
 from typing import Any, Dict, Iterator
-from uuid import UUID, uuid3
+from uuid import uuid3
 
 import pytest
 from sqlalchemy.orm import Session
@@ -128,6 +128,6 @@ def test_get(client, form_data: Dict[str, Any], permalink_salt: str) -> None:
     assert resp.status_code == 200
     result = json.loads(resp.data.decode("utf-8"))
     assert result["state"]["formData"] == form_data
-    id_ = encode_permalink_key(key, permalink_salt)
+    id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()

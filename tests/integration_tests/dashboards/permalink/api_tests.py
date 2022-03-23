@@ -26,9 +26,8 @@ from sqlalchemy.orm import Session
 from superset import db
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.utils import decode_permalink_id, encode_permalink_key
+from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -105,6 +104,6 @@ def test_get(client, dashboard_id: int, permalink_salt: str):
     result = json.loads(resp.data.decode("utf-8"))
     assert result["dashboardId"] == str(dashboard_id)
     assert result["state"] == STATE
-    id_ = encode_permalink_key(key, permalink_salt)
+    id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
