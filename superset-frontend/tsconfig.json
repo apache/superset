@@ -62,12 +62,16 @@
     /* Completeness */
     "skipLibCheck": true
   },
+  "exclude": [
+    "./packages/generator-superset/test/**/*"
+  ],
   "include": [
     "./src/**/*",
     "./spec/**/*",
     "./packages/*/src/**/*",
     "./packages/*/types/**/*",
     "./plugins/*/src/**/*",
-    "./plugins/*/types/**/*"
+    "./plugins/*/types/**/*",
+    "./packages/*/test/**/*"
   ]
 }
