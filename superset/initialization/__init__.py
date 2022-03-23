@@ -150,11 +150,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import (
-            AlertLogModelView,
-            AlertModelView,
-            AlertObservationModelView,
             AlertView,
-            ReportView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -387,15 +383,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Conditionally setup email views
         #
-        if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-            logging.warning(
-                "ENABLE_SCHEDULED_EMAIL_REPORTS "
-                "is deprecated and will be removed in version 2.0.0"
-            )
 
-        appbuilder.add_separator(
-            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
-        )
         #appbuilder.add_view(
         #    DashboardEmailScheduleView,
         #    "Dashboard Email Schedules",
@@ -429,8 +417,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #    icon="fa-exclamation-triangle",
         #    menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
         #)
-        appbuilder.add_view_no_menu(AlertLogModelView)
-        appbuilder.add_view_no_menu(AlertObservationModelView)
 
         appbuilder.add_view(
             AlertView,
@@ -441,7 +427,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
-        appbuilder.add_view_no_menu(ReportView)
 
         appbuilder.add_view(
             AccessRequestsModelView,

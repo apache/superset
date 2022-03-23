@@ -90,21 +90,21 @@ def load_test_users_run() -> None:
         sm.get_session.commit()
 
 
-@click.command()
-@with_appcontext
-def alert() -> None:
-    """Run the alert scheduler loop"""
+# @click.command()
+# @with_appcontext
+# def alert() -> None:
+#    """Run the alert scheduler loop"""
     # this command is just for testing purposes
     # pylint: disable=import-outside-toplevel
-    from superset.models.schedules import ScheduleType
-    from superset.tasks.schedules import schedule_window
+#    from superset.models.schedules import ScheduleType
+#    from superset.tasks.schedules import schedule_window
 
-    click.secho("Processing one alert loop", fg="green")
-    with session_scope(nullpool=True) as session:
-        schedule_window(
-            report_type=ScheduleType.alert,
-            start_at=datetime.now() - timedelta(1000),
-            stop_at=datetime.now(),
-            resolution=6000,
-            session=session,
-        )
+#    click.secho("Processing one alert loop", fg="green")
+#    with session_scope(nullpool=True) as session:
+#        schedule_window(
+#            report_type=ScheduleType.alert,
+#            start_at=datetime.now() - timedelta(1000),
+#            stop_at=datetime.now(),
+#            resolution=6000,
+#            session=session,
+#        )
