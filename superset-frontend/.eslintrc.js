@@ -181,6 +181,7 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
+        'theme-colors/no-literal-colors': 0,
       },
     },
   ],

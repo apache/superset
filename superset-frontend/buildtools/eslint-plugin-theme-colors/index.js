@@ -22,30 +22,12 @@
  * @author Apache
  */
 
-const _ = require('lodash');
 const COLOR_KEYWORDS = require('./colors');
-
-function getObjectExpressionPropertyNodes(
-  objectExpressionNode,
-  propertyNodes = [],
-) {
-  _.each(objectExpressionNode.properties, propertyNode => {
-    propertyNodes.push(propertyNode);
-
-    if (propertyNode?.value?.type === 'ObjectExpression') {
-      propertyNodes.concat(
-        getObjectExpressionPropertyNodes(propertyNode.value, propertyNodes),
-      );
-    }
-  });
-
-  return propertyNodes;
-}
 
 function hasHexColor(quasi) {
   if (typeof quasi === 'string') {
     const regex = /#([a-f0-9]{3}|[a-f0-9]{4}(?:[a-f0-9]{2}){0,2})\b/gi;
-    return quasi.match(regex);
+    return !!quasi.match(regex);
   }
 
   return false;
@@ -54,7 +36,7 @@ function hasHexColor(quasi) {
 function hasRgbColor(quasi) {
   if (typeof quasi === 'string') {
     const regex = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)/i;
-    return quasi.match(regex);
+    return !!quasi.match(regex);
   }
   return false;
 }
@@ -66,8 +48,8 @@ function hasLiteralColor(quasi, strict = false) {
       const regexColon = new RegExp(`: ${color}`);
       const regexSemicolon = new RegExp(` ${color};`);
       return (
-        quasi.match(regexColon) ||
-        quasi.match(regexSemicolon) ||
+        !!quasi.match(regexColon) ||
+        !!quasi.match(regexSemicolon) ||
         (strict && quasi === color)
       );
     });
@@ -77,7 +59,6 @@ function hasLiteralColor(quasi, strict = false) {
 
 const WARNING_MESSAGE =
   'Theme color variables are preferred over rgb(a)/hex/literal colors';
-const parsedNodes = [];
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -88,51 +69,44 @@ module.exports = {
   rules: {
     'no-literal-colors': {
       create(context) {
+        const warned = [];
         return {
-          TaggedTemplateExpression(node) {
+          TemplateElement(node) {
+            const rawValue = node?.value?.raw;
+            const isParentProperty =
+              node?.parent?.parent?.type === 'TaggedTemplateExpression';
+            const loc = node?.parent?.parent?.loc;
+            const locId = loc && JSON.stringify(loc);
+            const hasWarned = warned.includes(locId);
             if (
-              (node.tag.name === 'css' ||
-                node?.tag?.object?.name === 'styled') &&
-              node?.quasi?.quasis.length
+              !hasWarned &&
+              isParentProperty &&
+              rawValue &&
+              (hasLiteralColor(rawValue) ||
+                hasHexColor(rawValue) ||
+                hasRgbColor(rawValue))
             ) {
-              if (node.quasi.type === 'TemplateLiteral') {
-                const { quasis } = node.quasi;
-                quasis.forEach(quasi => {
-                  if (quasi?.type === 'TemplateElement' && quasi?.value?.raw) {
-                    const rawValue = quasi.value.raw;
-                    if (
-                      hasHexColor(rawValue) ||
-                      hasRgbColor(rawValue) ||
-                      hasLiteralColor(rawValue)
-                    ) {
-                      context.report(node, node.loc, WARNING_MESSAGE);
-                    }
-                  }
-                });
-              }
+              context.report(node, loc, WARNING_MESSAGE);
+              warned.push(locId);
             }
           },
-          ObjectExpression(node) {
-            const propertyNodes = getObjectExpressionPropertyNodes(node);
-            propertyNodes.forEach(prop => {
-              if (prop?.value?.type === 'Literal' && prop?.value?.value) {
-                const value = prop?.value?.value;
-                if (
-                  !parsedNodes.find(
-                    p => JSON.stringify(p.loc) === JSON.stringify(prop.loc),
-                  )
-                ) {
-                  if (
-                    hasHexColor(value) ||
-                    hasRgbColor(value) ||
-                    hasLiteralColor(value, true)
-                  ) {
-                    context.report(node, prop.loc, WARNING_MESSAGE);
-                  }
-                }
-              }
-              parsedNodes.push(prop);
-            });
+          Literal(node) {
+            const value = node?.value;
+            const isParentProperty = node?.parent?.type === 'Property';
+            const locId = JSON.stringify(node.loc);
+            const hasWarned = warned.includes(locId);
+
+            if (
+              !hasWarned &&
+              isParentProperty &&
+              value &&
+              (hasLiteralColor(value, true) ||
+                hasHexColor(value) ||
+                hasRgbColor(value))
+            ) {
+              context.report(node, node.loc, WARNING_MESSAGE);
+              warned.push(locId);
+            }
           },
         };
       },
