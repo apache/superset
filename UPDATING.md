@@ -35,7 +35,6 @@ assists people when migrating to a new version.
 - [19049](https://github.com/apache/superset/pull/19049): APP_ICON_WIDTH has been removed from the config. Superset should now be able to handle different logo sizes without having to explicitly set an APP_ICON_WIDTH. This might affect the size of existing custom logos as the UI will now resize them according to the specified space of maximum 148px and not according to the value of APP_ICON_WIDTH.
 - [19274](https://github.com/apache/superset/pull/19274): The `PUBLIC_ROLE_LIKE_GAMMA` config key has been removed, set `PUBLIC_ROLE_LIKE` = "Gamma" to have the same functionality.
 - [19273](https://github.com/apache/superset/pull/19273): The `SUPERSET_CELERY_WORKERS` and `SUPERSET_WORKERS` config keys has been removed. Configure celery directly using `CELERY_CONFIG` on Superset
->>>>>>> master
 - [19231](https://github.com/apache/superset/pull/19231): The `ENABLE_REACT_CRUD_VIEWS` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the React views support their use case.
 - [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
 - [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` setting has moved from app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
