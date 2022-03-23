@@ -50,6 +50,10 @@ const OPTIONS = [
   { label: 'Cher', value: 22, gender: 'Female' },
   { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
+const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
+  label: string;
+  value: number;
+};
 
 const loadOptions = async (search: string, page: number, pageSize: number) => {
   const totalCount = OPTIONS.length;
@@ -382,6 +386,30 @@ test('does not add a new option if allowNewOptions is false', async () => {
   await open();
   await type(NEW_OPTION);
   expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+});
+
+test('adds the null option when selected in single mode', async () => {
+  render(<Select {...defaultProps} options={[OPTIONS[0], NULL_OPTION]} />);
+  await open();
+  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(NULL_OPTION.label);
+});
+
+test('adds the null option when selected in multiple mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={[OPTIONS[0], NULL_OPTION, OPTIONS[2]]}
+      mode="multiple"
+    />,
+  );
+  await open();
+  userEvent.click(await findSelectOption(OPTIONS[0].label));
+  userEvent.click(await findSelectOption(NULL_OPTION.label));
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(OPTIONS[0].label);
+  expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
 
 test('static - renders the select with default props', () => {
