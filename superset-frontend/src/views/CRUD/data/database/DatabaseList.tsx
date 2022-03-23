@@ -18,10 +18,11 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -31,6 +32,8 @@ import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import handleResourceExport from 'src/utils/export';
+import { ExtentionConfigs } from 'src/views/components/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -103,6 +106,15 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const {
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
+  } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
 
   const openDatabaseImportModal = () => {
     showImportModal(true);
@@ -171,8 +183,49 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
+  const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
+    roles,
+    CSV_EXTENSIONS,
+    COLUMNAR_EXTENSIONS,
+    EXCEL_EXTENSIONS,
+    ALLOWED_EXTENSIONS,
+  );
+
+  const uploadDropdownMenu = [
+    {
+      label: t('Upload file to database'),
+      childs: [
+        {
+          label: t('Upload CSV'),
+          name: 'Upload CSV file',
+          url: '/csvtodatabaseview/form',
+          perm: canUploadCSV,
+        },
+        {
+          label: t('Upload columnar file'),
+          name: 'Upload columnar file',
+          url: '/columnartodatabaseview/form',
+          perm: canUploadColumnar,
+        },
+        {
+          label: t('Upload Excel file'),
+          name: 'Upload Excel file',
+          url: '/exceltodatabaseview/form',
+          perm: canUploadExcel,
+        },
+      ],
+    },
+  ];
+
+  const filteredDropDown = uploadDropdownMenu.map(link => {
+    // eslint-disable-next-line no-param-reassign
+    link.childs = link.childs.filter(item => item.perm);
+    return link;
+  });
+
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
+    dropDownLinks: filteredDropDown,
     ...commonMenuData,
   };
 
@@ -222,6 +275,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
   const columns = useMemo(
     () => [
       {

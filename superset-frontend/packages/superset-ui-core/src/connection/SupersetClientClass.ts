@@ -33,6 +33,12 @@ import {
 } from './types';
 import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
 
+const defaultUnauthorizedHandler = () => {
+  window.location.href = `/login?next=${
+    window.location.pathname + window.location.search
+  }`;
+};
+
 export default class SupersetClientClass {
   credentials: Credentials;
 
@@ -58,6 +64,8 @@ export default class SupersetClientClass {
 
   timeout: ClientTimeout;
 
+  handleUnauthorized: () => void;
+
   constructor({
     baseUrl = DEFAULT_BASE_URL,
     host,
@@ -70,6 +78,7 @@ export default class SupersetClientClass {
     csrfToken = undefined,
     guestToken = undefined,
     guestTokenHeaderName = 'X-GuestToken',
+    unauthorizedHandler = defaultUnauthorizedHandler,
   }: ClientConfig = {}) {
     const url = new URL(
       host || protocol
@@ -100,6 +109,7 @@ export default class SupersetClientClass {
     if (guestToken) {
       this.headers[guestTokenHeaderName] = guestToken;
     }
+    this.handleUnauthorized = unauthorizedHandler;
   }
 
   async init(force = false): CsrfPromise {
@@ -151,6 +161,7 @@ export default class SupersetClientClass {
     headers,
     timeout,
     fetchRetryOptions,
+    ignoreUnauthorized,
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
@@ -163,8 +174,8 @@ export default class SupersetClientClass {
       timeout: timeout ?? this.timeout,
       fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
     }).catch(res => {
-      if (res?.status === 401) {
-        this.redirectUnauthorized();
+      if (res?.status === 401 && !ignoreUnauthorized) {
+        this.handleUnauthorized();
       }
       return Promise.reject(res);
     });
@@ -228,12 +239,6 @@ export default class SupersetClientClass {
 
     return `${this.protocol}//${cleanHost}/${
       endpoint[0] === '/' ? endpoint.slice(1) : endpoint
-    }`;
-  }
-
-  redirectUnauthorized() {
-    window.location.href = `/login?next=${
-      window.location.pathname + window.location.search
     }`;
   }
 }

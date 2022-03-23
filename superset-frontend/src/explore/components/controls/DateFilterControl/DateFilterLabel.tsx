@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
-import { SupersetClient, styled, t, useTheme } from '@superset-ui/core';
+import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -31,7 +31,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
-import Popover from 'src/components/Popover';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
@@ -42,6 +41,7 @@ import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
 import { noOp } from 'src/utils/common';
 import { FrameType } from './types';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 import {
   CommonFrame,
@@ -86,64 +86,66 @@ const fetchTimeRange = async (timeRange: string) => {
   }
 };
 
-const StyledPopover = styled(Popover)``;
+const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
   width: 272px;
 `;
 
 const ContentStyleWrapper = styled.div`
-  .ant-row {
-    margin-top: 8px;
-  }
+  ${({ theme }) => css`
+    .ant-row {
+      margin-top: 8px;
+    }
 
-  .ant-input-number {
-    width: 100%;
-  }
+    .ant-input-number {
+      width: 100%;
+    }
 
-  .ant-picker {
-    padding: 4px 17px 4px;
-    border-radius: 4px;
-    width: 100%;
-  }
+    .ant-picker {
+      padding: 4px 17px 4px;
+      border-radius: 4px;
+      width: 100%;
+    }
 
-  .ant-divider-horizontal {
-    margin: 16px 0;
-  }
+    .ant-divider-horizontal {
+      margin: 16px 0;
+    }
 
-  .control-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #b2b2b2;
-    line-height: 16px;
-    text-transform: uppercase;
-    margin: 8px 0;
-  }
+    .control-label {
+      font-size: 11px;
+      font-weight: ${theme.typography.weights.medium};
+      color: #b2b2b2;
+      line-height: 16px;
+      text-transform: uppercase;
+      margin: 8px 0;
+    }
 
-  .vertical-radio {
-    display: block;
-    height: 40px;
-    line-height: 40px;
-  }
+    .vertical-radio {
+      display: block;
+      height: 40px;
+      line-height: 40px;
+    }
 
-  .section-title {
-    font-style: normal;
-    font-weight: 500;
-    font-size: 15px;
-    line-height: 24px;
-    margin-bottom: 8px;
-  }
+    .section-title {
+      font-style: normal;
+      font-weight: ${theme.typography.weights.bold};
+      font-size: 15px;
+      line-height: 24px;
+      margin-bottom: 8px;
+    }
 
-  .control-anchor-to {
-    margin-top: 16px;
-  }
+    .control-anchor-to {
+      margin-top: 16px;
+    }
 
-  .control-anchor-to-datetime {
-    width: 217px;
-  }
+    .control-anchor-to-datetime {
+      width: 217px;
+    }
 
-  .footer {
-    text-align: right;
-  }
+    .footer {
+      text-align: right;
+    }
+  `}
 `;
 
 const IconWrapper = styled.span`

@@ -29,6 +29,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -169,7 +170,11 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
+      const metaDataCopy = { ...metadata };
+      if (metaDataCopy?.shared_label_colors) {
+        delete metaDataCopy.shared_label_colors;
+      }
+      setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
   );
@@ -282,12 +287,25 @@ const PropertiesModal = ({
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
+    let currentJsonMetadata = jsonMetadata;
 
     // color scheme in json metadata has precedence over selection
-    if (jsonMetadata?.length) {
-      const metadata = JSON.parse(jsonMetadata);
+    if (currentJsonMetadata?.length) {
+      const metadata = JSON.parse(currentJsonMetadata);
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
+
+      // filter shared_label_color from user input
+      if (metadata?.shared_label_colors) {
+        delete metadata.shared_label_colors;
+      }
+      const colorMap = getSharedLabelColor().getColorMap(
+        colorNamespace,
+        currentColorScheme,
+        true,
+      );
+      metadata.shared_label_colors = colorMap;
+      currentJsonMetadata = jsonStringify(metadata);
     }
 
     onColorSchemeChange(currentColorScheme, {
@@ -304,7 +322,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
-      jsonMetadata,
+      jsonMetadata: currentJsonMetadata,
       owners,
       colorScheme: currentColorScheme,
       colorNamespace,
@@ -323,7 +341,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
-          json_metadata: jsonMetadata || null,
+          json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:

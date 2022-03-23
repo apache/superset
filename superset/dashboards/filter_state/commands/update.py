@@ -20,14 +20,14 @@ from flask import session
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
-from superset.key_value.commands.entry import Entry
-from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
-from superset.key_value.commands.parameters import CommandParameters
-from superset.key_value.commands.update import UpdateKeyValueCommand
-from superset.key_value.utils import cache_key, random_key
+from superset.temporary_cache.commands.entry import Entry
+from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
+from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.temporary_cache.commands.update import UpdateTemporaryCacheCommand
+from superset.temporary_cache.utils import cache_key, random_key
 
 
-class UpdateFilterStateCommand(UpdateKeyValueCommand):
+class UpdateFilterStateCommand(UpdateTemporaryCacheCommand):
     def update(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
         actor = cmd_params.actor
@@ -41,7 +41,7 @@ class UpdateFilterStateCommand(UpdateKeyValueCommand):
             if entry:
                 user_id = actor.get_user_id()
                 if entry["owner"] != user_id:
-                    raise KeyValueAccessDeniedError()
+                    raise TemporaryCacheAccessDeniedError()
 
                 # Generate a new key if tab_id changes or equals 0
                 contextual_key = cache_key(

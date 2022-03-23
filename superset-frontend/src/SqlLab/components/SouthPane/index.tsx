@@ -20,6 +20,7 @@ import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
+import { EmptyStateMedium } from 'src/components/EmptyState';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -94,6 +95,16 @@ const StyledPane = styled.div`
 `;
 
 const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
+const StyledEmptyStateWrapper = styled.div`
+  height: 100%;
+  .ant-empty-image img {
+    margin-right: 28px;
+  }
+
+  p {
+    margin-right: 28px;
+  }
+`;
 
 export default function SouthPane({
   editorQueries,
@@ -163,7 +174,12 @@ export default function SouthPane({
       }
     } else {
       results = (
-        <Alert type="info" message={t('Run a query to display results here')} />
+        <StyledEmptyStateWrapper>
+          <EmptyStateMedium
+            title={t('Run a query to display results')}
+            image="document.svg"
+          />
+        </StyledEmptyStateWrapper>
       );
     }
     return results;

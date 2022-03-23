@@ -86,7 +86,7 @@ describe('reactify(renderFn)', () => {
         expect(renderFn).toHaveBeenCalledTimes(2);
         expect(wrapper.html()).toEqual('<div id="test"><b>def</b></div>');
         wrapper.unmount();
-        done();
+        done(undefined);
       }, 20);
     }));
   describe('displayName', () => {
@@ -140,7 +140,7 @@ describe('reactify(renderFn)', () => {
       setTimeout(() => {
         wrapper.unmount();
         expect(willUnmountCb).toHaveBeenCalledTimes(1);
-        done();
+        done(undefined);
       }, 20);
     }));
 });

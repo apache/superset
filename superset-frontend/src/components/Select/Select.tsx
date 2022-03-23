@@ -64,6 +64,7 @@ type PickedSelectProps = Pick<
   | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
+  | 'tokenSeparators'
   | 'value'
 >;
 
@@ -310,6 +311,7 @@ const Select = (
     placeholder = t('Select ...'),
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
+    tokenSeparators,
     value,
     ...props
   }: SelectProps,
@@ -383,31 +385,23 @@ const Select = (
 
   const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
-  const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
-  ) => {
+  const handleOnSelect = (selectedItem: string | number | AntdLabeledValue) => {
     if (isSingleMode) {
-      setSelectValue(selectedValue);
+      setSelectValue(selectedItem);
     } else {
-      const currentSelected = selectValue
-        ? Array.isArray(selectValue)
-          ? selectValue
-          : [selectValue]
-        : [];
-      if (
-        typeof selectedValue === 'number' ||
-        typeof selectedValue === 'string'
-      ) {
-        setSelectValue([
-          ...(currentSelected as (string | number)[]),
-          selectedValue as string | number,
-        ]);
-      } else {
-        setSelectValue([
-          ...(currentSelected as AntdLabeledValue[]),
-          selectedValue as AntdLabeledValue,
-        ]);
-      }
+      setSelectValue(previousState => {
+        const array = ensureIsArray(previousState);
+        const isObject = typeof selectedItem === 'object';
+        const value = isObject ? selectedItem.value : selectedItem;
+        // Tokenized values can contain duplicated values
+        if (!hasOption(value, array)) {
+          const result = [...array, selectedItem];
+          return isObject
+            ? (result as AntdLabeledValue[])
+            : (result as (string | number)[]);
+        }
+        return previousState;
+      });
     }
     setInputValue('');
   };
@@ -706,7 +700,7 @@ const Select = (
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={TOKEN_SEPARATORS}
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={

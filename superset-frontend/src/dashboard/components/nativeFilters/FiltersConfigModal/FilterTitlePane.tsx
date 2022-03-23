@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { useRef } from 'react';
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
-import React from 'react';
 import { AntdDropdown } from 'src/components';
 import { MainNav as Menu } from 'src/components/Menu';
 import FilterTitleContainer from './FilterTitleContainer';
@@ -26,7 +26,7 @@ import { FilterRemoval } from './types';
 interface Props {
   restoreFilter: (id: string) => void;
   getFilterTitle: (id: string) => string;
-  onRearrage: (dragIndex: number, targetIndex: number) => void;
+  onRearrange: (dragIndex: number, targetIndex: number) => void;
   onRemove: (id: string) => void;
   onChange: (id: string) => void;
   onAdd: (type: NativeFilterType) => void;
@@ -52,23 +52,26 @@ const TabsContainer = styled.div`
   flex-direction: column;
 `;
 
+const options = [
+  { label: 'Filter', type: NativeFilterType.NATIVE_FILTER },
+  { label: 'Divider', type: NativeFilterType.DIVIDER },
+];
+
 const FilterTitlePane: React.FC<Props> = ({
   getFilterTitle,
   onChange,
   onAdd,
   onRemove,
-  onRearrage,
+  onRearrange,
   restoreFilter,
   currentFilterId,
   filters,
   removedFilters,
   erroredFilters,
 }) => {
+  const filtersContainerRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
-  const options = [
-    { label: 'Filter', type: NativeFilterType.NATIVE_FILTER },
-    { label: 'Divider', type: NativeFilterType.DIVIDER },
-  ];
+
   const handleOnAdd = (type: NativeFilterType) => {
     onAdd(type);
     setTimeout(() => {
@@ -77,6 +80,11 @@ const FilterTitlePane: React.FC<Props> = ({
         const navList = element.getElementsByClassName('ant-tabs-nav-list')[0];
         navList.scrollTop = navList.scrollHeight;
       }
+
+      filtersContainerRef?.current?.scroll?.({
+        top: filtersContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }, 0);
   };
   const menu = (
@@ -109,6 +117,7 @@ const FilterTitlePane: React.FC<Props> = ({
         }}
       >
         <FilterTitleContainer
+          ref={filtersContainerRef}
           filters={filters}
           currentFilterId={currentFilterId}
           removedFilters={removedFilters}
@@ -116,7 +125,7 @@ const FilterTitlePane: React.FC<Props> = ({
           erroredFilters={erroredFilters}
           onChange={onChange}
           onRemove={onRemove}
-          onRearrage={onRearrage}
+          onRearrange={onRearrange}
           restoreFilter={restoreFilter}
         />
       </div>

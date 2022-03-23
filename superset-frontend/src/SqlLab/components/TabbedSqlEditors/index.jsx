@@ -386,9 +386,7 @@ class TabbedSqlEditors extends React.PureComponent {
       );
       const tabHeader = (
         <TabTitleWrapper>
-          <div data-test="dropdown-toggle-button">
-            <Dropdown overlay={menu} trigger={['click']} />
-          </div>
+          <Dropdown overlay={menu} trigger={['click']} />
           <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
         </TabTitleWrapper>
       );
