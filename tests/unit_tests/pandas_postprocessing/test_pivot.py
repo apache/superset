@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 from pandas import DataFrame, Timestamp, to_datetime
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import _flatten_column_after_pivot, pivot
 from tests.unit_tests.fixtures.dataframes import categories_df, single_metric_df
 from tests.unit_tests.pandas_postprocessing.utils import (
@@ -172,7 +172,7 @@ def test_pivot_exceptions():
         pivot(df=categories_df, columns=["dept"], aggregates=AGGREGATES_SINGLE)
 
     # invalid index reference
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         pivot(
             df=categories_df,
             index=["abc"],
@@ -181,7 +181,7 @@ def test_pivot_exceptions():
         )
 
     # invalid column reference
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         pivot(
             df=categories_df,
             index=["dept"],
@@ -190,7 +190,7 @@ def test_pivot_exceptions():
         )
 
     # invalid aggregate options
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(InvalidPostProcessingError):
         pivot(
             df=categories_df,
             index=["name"],
