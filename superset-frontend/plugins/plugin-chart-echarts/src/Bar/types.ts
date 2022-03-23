@@ -55,6 +55,12 @@ export type EchartsBarFormData = QueryFormData &
     animate: boolean;
     vertical: boolean;
     stack: boolean;
+    xAxisLabel?: string;
+    xAxisLabelLocation?: string;
+    xAxisLabelPadding?: number;
+    yAxisLabel?: string;
+    yAxisLabelLocation?: string;
+    yAxisLabelPadding?: number;
   };
 
 export enum EchartsBarLabelType {
@@ -100,5 +106,11 @@ export interface BarChartTransformedProps {
   labelMap: Record<string, DataRecordValue[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
-  transition?: EchartTransition
+  transition?: EchartTransition;
 }
+
+export const LABEL_LOCATIONS: [string, string][] = [
+  ['start', 'start'],
+  ['center', 'center'],
+  ['end', 'end'],
+];

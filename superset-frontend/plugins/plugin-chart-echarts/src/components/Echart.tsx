@@ -32,9 +32,9 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
-const OptionsJSON = styled.code`
-  white-space: pre-line;
-`;
+// const OptionsJSON = styled.code`
+//   white-space: pre-line;
+// `;
 
 function Echart(
   {

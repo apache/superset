@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   sections,
   sharedControls,
-  emitFilterControl
+  emitFilterControl,
 } from '@superset-ui/chart-controls';
 
-import {
-  legendSection
-} from '../controls';
+import { legendSection } from '../controls';
+import { LABEL_LOCATIONS } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -107,117 +107,78 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...legendSection,
-        // [
-        //   {
-        //     name: 'show_labels_threshold',
-        //     config: {
-        //       type: 'TextControl',
-        //       label: t('Percentage threshold'),
-        //       renderTrigger: true,
-        //       isFloat: true,
-        //       default: 5,
-        //       description: t(
-        //         'Minimum threshold in percentage points for showing labels.',
-        //       ),
-        //     },
-        //   },
-        // ],
-        //...legendSection,
-        // eslint-disable-next-line react/jsx-key
-        // [<h1 className="section-header">{t('Labels')}</h1>],
-        // [
-        //   {
-        //     name: 'label_type',
-        //     config: {
-        //       type: 'SelectControl',
-        //       label: t('Label Type'),
-        //       default: labelType,
-        //       renderTrigger: true,
-        //       choices: [
-        //         ['key', 'Category Name'],
-        //         ['value', 'Value'],
-        //         ['percent', 'Percentage'],
-        //         ['key_value', 'Category and Value'],
-        //         ['key_percent', 'Category and Percentage'],
-        //         ['key_value_percent', 'Category, Value and Percentage'],
-        //       ],
-        //       description: t('What should be shown on the label?'),
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'number_format',
-        //     config: {
-        //       type: 'SelectControl',
-        //       freeForm: true,
-        //       label: t('Number format'),
-        //       renderTrigger: true,
-        //       default: numberFormat,
-        //       choices: D3_FORMAT_OPTIONS,
-        //       description: `${t(
-        //         'D3 format syntax: https://github.com/d3/d3-format',
-        //       )} ${t('Only applies when "Label Type" is set to show values.')}`,
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'date_format',
-        //     config: {
-        //       type: 'SelectControl',
-        //       freeForm: true,
-        //       label: t('Date format'),
-        //       renderTrigger: true,
-        //       choices: D3_TIME_FORMAT_OPTIONS,
-        //       default: 'smart_date',
-        //       description: D3_FORMAT_DOCS,
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'show_labels',
-        //     config: {
-        //       type: 'CheckboxControl',
-        //       label: t('Show Labels'),
-        //       renderTrigger: true,
-        //       default: showLabels,
-        //       description: t('Whether to display the labels.'),
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'labels_outside',
-        //     config: {
-        //       type: 'CheckboxControl',
-        //       label: t('Put labels outside'),
-        //       default: labelsOutside,
-        //       renderTrigger: true,
-        //       description: t('Put the labels outside of the pie?'),
-        //       visibility: ({ controls }: ControlPanelsContainerProps) =>
-        //         Boolean(controls?.show_labels?.value),
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'label_line',
-        //     config: {
-        //       type: 'CheckboxControl',
-        //       label: t('Label Line'),
-        //       default: labelLine,
-        //       renderTrigger: true,
-        //       description: t(
-        //         'Draw line from Pie to label when labels outside?',
-        //       ),
-        //       visibility: ({ controls }: ControlPanelsContainerProps) =>
-        //         Boolean(controls?.show_labels?.value),
-        //     },
-        //   },
-        // ],
+        ...legendSection.slice(0, -1),
+        [<h1 className="section-header">{t('Labels')}</h1>],
+        [
+          {
+            name: 'x_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_label_location',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('X Axis Label Location'),
+              renderTrigger: true,
+              choices: LABEL_LOCATIONS,
+              default: 'center',
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_label_padding',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Label Padding'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Label'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_label_location',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Y Axis Label Location'),
+              renderTrigger: true,
+              choices: LABEL_LOCATIONS,
+              default: 'center',
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_label_padding',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Label Padding'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
       ],
     },
   ],

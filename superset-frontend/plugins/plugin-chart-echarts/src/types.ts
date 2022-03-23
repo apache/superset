@@ -46,8 +46,8 @@ export interface EchartsHandler {
 }
 
 export interface EchartTransition {
-  newEchartOptions: EChartsCoreOption,
-  timeout: number
+  newEchartOptions: EChartsCoreOption;
+  timeout: number;
 }
 
 export enum ForecastSeriesEnum {

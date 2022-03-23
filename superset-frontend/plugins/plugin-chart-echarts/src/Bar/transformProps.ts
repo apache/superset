@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { toNumber } from 'lodash';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -35,14 +36,15 @@ import {
   EchartsBarLabelType,
   BarChartTransformedProps,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA, EchartTransition } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../types';
 import {
   extractGroupbyLabel,
+  getChartPadding,
   getColtypesMapping,
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { OpacityEnum } from '../constants';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
@@ -96,13 +98,19 @@ export default function transformProps(
     labelLine,
     legendOrientation,
     legendType,
+    legendMargin,
     showLegend,
     metrics,
-    numberFormat,
     dateFormat,
     emitFilter,
     vertical,
     stack,
+    xAxisLabel,
+    xAxisLabelLocation,
+    xAxisLabelPadding,
+    yAxisLabel,
+    yAxisLabelLocation,
+    yAxisLabelPadding,
   }: EchartsBarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_Bar_FORM_DATA,
@@ -139,7 +147,9 @@ export default function transformProps(
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   // const numberFormatter = getNumberFormatter(numberFormat);
-  // const colors: ZRColor[] = metricLabels.map(metricLabel => colorFn(metricLabel));
+  const colors: ZRColor[] = metricLabels.map(metricLabel =>
+    colorFn(metricLabel),
+  );
 
   function getTransformedDataForMetric(metricLabel: string): BarSeriesOption[] {
     return data.map(datum => {
@@ -183,23 +193,21 @@ export default function transformProps(
     {},
   );
 
-  const series: BarSeriesOption[] = metricLabels.map(metricLabel => {
-    return {
-      type: 'bar',
-      stack: stack ? 'total' : undefined,
-      //...getChartPadding(showLegend, legendOrientation, legendMargin),
-      animation: true,
-      labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
-      emphasis: {
-        focus: 'series',
-      },
-      name: metricLabel,
-      data: getTransformedDataForMetric(metricLabel),
-      universalTransition: {
-        enabled: true,
-      },
-    };
-  });
+  const series: BarSeriesOption[] = metricLabels.map(metricLabel => ({
+    type: 'bar',
+    stack: stack ? 'total' : undefined,
+    ...getChartPadding(showLegend, legendOrientation, legendMargin),
+    animation: true,
+    labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
+    emphasis: {
+      focus: 'series',
+    },
+    name: metricLabel,
+    data: getTransformedDataForMetric(metricLabel),
+    universalTransition: {
+      enabled: true,
+    },
+  }));
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -209,11 +217,25 @@ export default function transformProps(
       type: vertical ? 'category' : 'value',
       boundaryGap: vertical ? undefined : [0],
       data: vertical ? keys : undefined,
+      name: xAxisLabel,
+      nameLocation: xAxisLabelLocation,
+      nameTextStyle: {
+        padding:
+          10 +
+          (xAxisLabelPadding !== undefined ? toNumber(xAxisLabelPadding) : 0),
+      },
     },
     yAxis: {
       type: vertical ? 'value' : 'category',
       boundaryGap: vertical ? [0] : undefined,
       data: vertical ? undefined : keys,
+      name: yAxisLabel,
+      nameLocation: yAxisLabelLocation,
+      nameTextStyle: {
+        padding:
+          10 +
+          (yAxisLabelPadding !== undefined ? toNumber(yAxisLabelPadding) : 0),
+      },
     },
     // tooltip: {
     //   ...defaultTooltip,
@@ -235,38 +257,8 @@ export default function transformProps(
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend),
     },
-    color: metricLabels.map(metricLabel => colorFn(metricLabel)),
+    color: colors,
     series,
-  };
-
-  const echartVOptions: EChartsCoreOption = {
-    grid: {
-      ...defaultGrid,
-    },
-    xAxis: {
-      type: 'category',
-      data: keys,
-    },
-    yAxis: {
-      type: 'value',
-      boundaryGap: [0],
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow',
-      },
-    },
-    legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
-    },
-    color: metricLabels.map(metricLabel => colorFn(metricLabel)),
-    series,
-  };
-
-  const transition: EchartTransition = {
-    newEchartOptions: echartVOptions,
-    timeout: 3000,
   };
 
   return {
@@ -279,6 +271,5 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
-    //transition: animate ? transition : undefined
   };
 }

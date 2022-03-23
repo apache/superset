@@ -30,7 +30,7 @@ export default function EchartsBar({
   groupby,
   selectedValues,
   formData,
-  transition
+  transition,
 }: BarChartTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
