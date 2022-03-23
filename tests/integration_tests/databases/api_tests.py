@@ -179,12 +179,14 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 

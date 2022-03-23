@@ -237,6 +237,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       return option;
     });
     if (onTablesLoad) onTablesLoad(json.options);
+    onTablesLoad?.(json.options);
     setTableOptions(options);
     setCurrentTable(currentTable);
     setLoadingTables(false);

@@ -20,7 +20,7 @@ import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, Series
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing.aggregate import aggregate
 
@@ -84,7 +84,7 @@ def boxplot(
             or not isinstance(percentiles[1], (int, float))
             or percentiles[0] >= percentiles[1]
         ):
-            raise QueryObjectValidationError(
+            raise InvalidPostProcessingError(
                 _(
                     "percentiles must be a list or tuple with two numeric values, "
                     "of which the first is lower than the second value"

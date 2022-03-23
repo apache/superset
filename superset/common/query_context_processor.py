@@ -26,7 +26,7 @@ from flask_babel import _
 from pandas import DateOffset
 from typing_extensions import TypedDict
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
@@ -36,7 +36,11 @@ from superset.common.utils import dataframe_utils as df_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion
-from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.exceptions import (
+    InvalidPostProcessingError,
+    QueryObjectValidationError,
+    SupersetException,
+)
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.utils import csv
@@ -159,10 +163,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_ids(datasource)
-                if is_feature_enabled("ROW_LEVEL_SECURITY")
-                and datasource.is_rls_supported
-                else [],
+                rls=security_manager.get_rls_cache_key(datasource),
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
@@ -199,7 +200,11 @@ class QueryContextProcessor:
                 query += ";\n\n".join(queries)
                 query += ";\n\n"
 
-            df = query_object.exec_post_processing(df)
+            # Re-raising QueryObjectValidationError
+            try:
+                df = query_object.exec_post_processing(df)
+            except InvalidPostProcessingError as ex:
+                raise QueryObjectValidationError from ex
 
         result.df = df
         result.query = query

@@ -27,10 +27,6 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 0;
   }
-
-  h4 {
-    font-weight: 600;
-  }
 `;
 
 export const StyledTopSection = styled.div`
@@ -95,7 +91,6 @@ export const TimezoneHeaderStyle = (theme: SupersetTheme) => css`
 
 export const SectionHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
-  font-weight: ${theme.typography.weights.bold};
 `;
 
 export const StyledMessageContentTitle = styled.div`

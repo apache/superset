@@ -24,9 +24,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.form_data.utils import check_access
+from superset.explore.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.temporary_cache.commands.exceptions import TemporaryCacheGetFailedError
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class GetFormDataCommand(BaseCommand, ABC):
             return None
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
-            raise KeyValueGetFailedError() from ex
+            raise TemporaryCacheGetFailedError() from ex
 
     def validate(self) -> None:
         pass

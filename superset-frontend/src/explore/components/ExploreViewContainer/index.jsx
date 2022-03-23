@@ -36,10 +36,10 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { URL_PARAMS } from 'src/constants';
+import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
-import * as chartActions from 'src/chart/chartAction';
+import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
@@ -177,13 +177,7 @@ const updateHistory = debounce(
 
     const urlParams = payload?.url_params || {};
     Object.entries(urlParams).forEach(([key, value]) => {
-      if (
-        ![
-          URL_PARAMS.sliceId.name,
-          URL_PARAMS.formDataKey.name,
-          URL_PARAMS.datasetId.name,
-        ].includes(key)
-      ) {
+      if (!RESERVED_CHART_URL_PARAMS.includes(key)) {
         additionalParam[key] = value;
       }
     });

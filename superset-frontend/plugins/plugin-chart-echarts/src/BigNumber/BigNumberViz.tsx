@@ -302,13 +302,11 @@ export default styled(BigNumberVis)`
   }
 
   .kicker {
-    font-weight: ${({ theme }) => theme.typography.weights.light};
     line-height: 1em;
     padding-bottom: 2em;
   }
 
   .header-line {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
     position: relative;
     line-height: 1em;
     span {
@@ -318,7 +316,6 @@ export default styled(BigNumberVis)`
   }
 
   .subheader-line {
-    font-weight: ${({ theme }) => theme.typography.weights.light};
     line-height: 1em;
     padding-bottom: 0;
   }

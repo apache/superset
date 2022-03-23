@@ -18,7 +18,7 @@
  */
 import React, { ReactNode, useState, useCallback } from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Select, { SelectProps, OptionsTypePage } from './Select';
+import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
 
 export default {
   title: 'Select',
@@ -27,7 +27,7 @@ export default {
 
 const DEFAULT_WIDTH = 200;
 
-const options = [
+const options: OptionsType = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
@@ -147,21 +147,50 @@ const mountHeader = (type: String) => {
   return header;
 };
 
-export const InteractiveSelect = (args: SelectProps & { header: string }) => (
+const generateOptions = (opts: OptionsType, count: number) => {
+  let generated = opts.slice();
+  let iteration = 0;
+  while (generated.length < count) {
+    iteration += 1;
+    generated = generated.concat(
+      // eslint-disable-next-line no-loop-func
+      generated.map(({ label, value }) => ({
+        label: `${label} ${iteration}`,
+        value: `${value} ${iteration}`,
+      })),
+    );
+  }
+  return generated.slice(0, count);
+};
+
+export const InteractiveSelect = ({
+  header,
+  options,
+  optionsCount,
+  ...args
+}: SelectProps & { header: string; optionsCount: number }) => (
   <div
     style={{
       width: DEFAULT_WIDTH,
     }}
   >
-    <Select {...args} header={mountHeader(args.header)} />
+    <Select
+      {...args}
+      options={
+        Array.isArray(options)
+          ? generateOptions(options, optionsCount)
+          : options
+      }
+      header={mountHeader(header)}
+    />
   </div>
 );
 
 InteractiveSelect.args = {
-  autoFocus: false,
+  autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
-  showSearch: false,
+  showSearch: true,
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
@@ -170,6 +199,12 @@ InteractiveSelect.args = {
 
 InteractiveSelect.argTypes = {
   ...ARG_TYPES,
+  optionsCount: {
+    defaultValue: options.length,
+    control: {
+      type: 'number',
+    },
+  },
   header: {
     defaultValue: 'none',
     description: `It adds a header on top of the Select. Can be any ReactNode.`,
@@ -460,6 +495,7 @@ AsyncSelect.args = {
   pageSize: 10,
   withError: false,
   withInitialValue: false,
+  tokenSeparators: ['\n', '\t', ';'],
 };
 
 AsyncSelect.argTypes = {
