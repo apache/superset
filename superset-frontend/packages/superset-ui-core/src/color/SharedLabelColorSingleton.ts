@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import tinycolor from 'tinycolor2';
 import { CategoricalColorNamespace } from '.';
 import makeSingleton from '../utils/makeSingleton';
+import { getAnalogousColors } from './utils';
 
 export class SharedLabelColor {
   sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
@@ -39,27 +39,16 @@ export class SharedLabelColor {
         CategoricalColorNamespace.getNamespace(colorNamespace);
       const colors = categoricalNamespace.getScale(colorScheme).range();
       const sharedLabels = this.getSharedLabels();
-      const generatedColors: tinycolor.Instance[] = [];
+      let generatedColors: string[] = [];
       let sharedLabelMap;
 
       if (sharedLabels.length) {
         const multiple = Math.ceil(sharedLabels.length / colors.length);
-        const ext = 5;
-        const analogousColors = colors.map(color => {
-          const result = tinycolor(color).analogous(multiple + ext);
-          return result.slice(ext);
-        });
-
-        // [[A, AA, AAA], [B, BB, BBB]] => [A, B, AA, BB, AAA, BBB]
-        while (analogousColors[analogousColors.length - 1]?.length) {
-          analogousColors.forEach(colors =>
-            generatedColors.push(colors.shift() as tinycolor.Instance),
-          );
-        }
+        generatedColors = getAnalogousColors(colors, multiple);
         sharedLabelMap = sharedLabels.reduce(
           (res, label, index) => ({
             ...res,
-            [label.toString()]: generatedColors[index]?.toHexString(),
+            [label.toString()]: generatedColors[index],
           }),
           {},
         );

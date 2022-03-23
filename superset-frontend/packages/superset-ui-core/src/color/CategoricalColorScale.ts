@@ -23,6 +23,7 @@ import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
 import getSharedLabelColor from './SharedLabelColorSingleton';
+import { getAnalogousColors } from './utils';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
@@ -70,6 +71,14 @@ class CategoricalColorScale extends ExtensibleFunction {
     if (forcedColor) {
       sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
       return forcedColor;
+    }
+
+    const domain = this.domain();
+    const range = this.range();
+    const multiple = Math.floor(domain.length / range.length);
+    if (multiple >= 1) {
+      const newRange = getAnalogousColors(range, multiple);
+      this.range(range.concat(newRange));
     }
 
     const color = this.scale(cleanedValue);
