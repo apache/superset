@@ -183,7 +183,8 @@ describe('normalizeOrderBy', () => {
       datasource: '5__table',
       viz_type: 'table',
       time_range: '1 year ago : 2013',
-      orderby: [['count(*)', true]],
+      // @ts-ignore
+      orderby: [['count(*)', 'true']],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
   });
