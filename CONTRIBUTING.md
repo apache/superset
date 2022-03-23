@@ -412,7 +412,7 @@ You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
-````bash
+```bash
 # Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
@@ -457,7 +457,7 @@ $ make superset
 
 # Setup pre-commit only
 $ make pre-commit
-````
+```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
