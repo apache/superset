@@ -27,6 +27,7 @@ NAMESPACE = get_uuid_namespace("")
 
 
 def get_shared_value(key: SharedKey) -> Optional[Any]:
+    # pylint: disable=import-outside-toplevel
     from superset.key_value.commands.get import GetKeyValueCommand
 
     uuid_key = uuid3(NAMESPACE, key)
@@ -34,6 +35,7 @@ def get_shared_value(key: SharedKey) -> Optional[Any]:
 
 
 def set_shared_value(key: SharedKey, value: Any) -> None:
+    # pylint: disable=import-outside-toplevel
     from superset.key_value.commands.create import CreateKeyValueCommand
 
     uuid_key = uuid3(NAMESPACE, key)

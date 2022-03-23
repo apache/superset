@@ -24,8 +24,6 @@ from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCo
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.shared_entries import get_permalink_salt
-from superset.key_value.types import SharedKey
 from superset.key_value.utils import encode_permalink_key
 
 logger = logging.getLogger(__name__)

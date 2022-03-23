@@ -33,5 +33,5 @@ class KeyValueFilter(TypedDict, total=False):
 
 
 class SharedKey(str, Enum):
-    DashboardPermalinkSalt = "dashboard_permalink_salt"
-    ExplorePermalinkSalt = "explore_permalink_salt"
+    DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
+    EXPLORE_PERMALINK_SALT = "explore_permalink_salt"

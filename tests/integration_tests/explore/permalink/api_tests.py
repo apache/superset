@@ -57,7 +57,7 @@ def permalink_salt() -> Iterator[str]:
     from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
     from superset.key_value.types import SharedKey
 
-    key = SharedKey.ExplorePermalinkSalt
+    key = SharedKey.EXPLORE_PERMALINK_SALT
     salt = get_permalink_salt(key)
     yield salt
     namespace = get_uuid_namespace(salt)

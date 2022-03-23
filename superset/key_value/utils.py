@@ -18,17 +18,14 @@ from __future__ import annotations
 
 from hashlib import md5
 from secrets import token_urlsafe
-from typing import Literal, TYPE_CHECKING, Union
-from uuid import UUID, uuid3
+from typing import Union
+from uuid import UUID
 
 import hashids
-from flask import current_app
+from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
-from superset.key_value.types import Key, KeyValueFilter
-
-if TYPE_CHECKING:
-    from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyValueFilter
 
 HASHIDS_MIN_LENGTH = 11
 
@@ -56,7 +53,10 @@ def encode_permalink_key(key: int, salt: str) -> str:
 
 def decode_permalink_id(key: str, salt: str) -> int:
     obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
-    return obj.decode(key)[0]
+    ids = obj.decode(key)
+    if len(ids) == 1:
+        return ids[0]
+    raise KeyValueParseKeyError(_("Invalid permalink key"))
 
 
 def get_uuid_namespace(seed: str) -> UUID:

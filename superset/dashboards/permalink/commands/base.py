@@ -26,4 +26,4 @@ class BaseDashboardPermalinkCommand(BaseCommand, ABC):
 
     @property
     def salt(self) -> str:
-        return get_permalink_salt(SharedKey.DashboardPermalinkSalt)
+        return get_permalink_salt(SharedKey.DASHBOARD_PERMALINK_SALT)

@@ -16,24 +16,18 @@
 # under the License.
 from __future__ import annotations
 
-import pickle
-from typing import TYPE_CHECKING
 from uuid import UUID
 
-if TYPE_CHECKING:
-    from superset.key_value.models import KeyValueEntry
-
 import pytest
-from flask.ctx import AppContext
 
-from superset.key_value.types import Key
+from superset.key_value.exceptions import KeyValueParseKeyError
 
 RESOURCE = "my-resource"
 UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
 ID_KEY = 123
 
 
-def test_get_filter_uuid(app_context: AppContext) -> None:
+def test_get_filter_uuid() -> None:
     from superset.key_value.utils import get_filter
 
     assert get_filter(resource=RESOURCE, key=UUID_KEY) == {
@@ -42,10 +36,24 @@ def test_get_filter_uuid(app_context: AppContext) -> None:
     }
 
 
-def test_get_filter_id(app_context: AppContext) -> None:
+def test_get_filter_id() -> None:
     from superset.key_value.utils import get_filter
 
     assert get_filter(resource=RESOURCE, key=ID_KEY) == {
         "resource": RESOURCE,
         "id": ID_KEY,
     }
+
+
+def test_encode_permalink_id_valid() -> None:
+    from superset.key_value.utils import encode_permalink_key
+
+    salt = "abc"
+    assert encode_permalink_key(1, salt) == "AyBn4lm9qG8"
+
+
+def test_decode_permalink_id_invalid() -> None:
+    from superset.key_value.utils import decode_permalink_id
+
+    with pytest.raises(KeyValueParseKeyError):
+        decode_permalink_id("foo", "bar")

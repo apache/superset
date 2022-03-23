@@ -26,4 +26,4 @@ class BaseExplorePermalinkCommand(BaseCommand, ABC):
 
     @property
     def salt(self) -> str:
-        return get_permalink_salt(SharedKey.ExplorePermalinkSalt)
+        return get_permalink_salt(SharedKey.EXPLORE_PERMALINK_SALT)
