@@ -11,4 +11,4 @@
 /superset-frontend/src/components/Select/ @michael-s-molina @geido
 
 # Notify Helm Chart maintainers about changes in it
-/helm/superset/ @craig-rueda
+/helm/superset/ @craig-rueda @dpgaspar @villebro
