@@ -27,17 +27,17 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueGetFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand):
+    resource: KeyValueResource
     key: Union[int, UUID]
-    resource: str
 
-    def __init__(self, resource: str, key: Union[int, UUID]):
+    def __init__(self, resource: KeyValueResource, key: Union[int, UUID]):
         """
         Retrieve a key value entry
 

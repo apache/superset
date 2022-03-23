@@ -32,6 +32,13 @@ class KeyValueFilter(TypedDict, total=False):
     uuid: Optional[UUID]
 
 
+class KeyValueResource(str, Enum):
+    APP = "app"
+    DASHBOARD_PERMALINK = "dashboard_permalink"
+    EXPLORE_PERMALINK = "explore_permalink"
+    METASTORE_CACHE = "superset_metastore_cache"
+
+
 class SharedKey(str, Enum):
     DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
     EXPLORE_PERMALINK_SALT = "explore_permalink_salt"

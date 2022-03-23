@@ -18,11 +18,11 @@ from abc import ABC
 
 from superset.commands.base import BaseCommand
 from superset.key_value.shared_entries import get_permalink_salt
-from superset.key_value.types import SharedKey
+from superset.key_value.types import KeyValueResource, SharedKey
 
 
 class BaseExplorePermalinkCommand(BaseCommand, ABC):
-    resource = "explore_permalink"
+    resource: KeyValueResource = KeyValueResource.EXPLORE_PERMALINK
 
     @property
     def salt(self) -> str:

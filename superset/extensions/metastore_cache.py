@@ -23,9 +23,10 @@ from flask import Flask
 from flask_caching import BaseCache
 
 from superset.key_value.exceptions import KeyValueCreateFailedError
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import get_uuid_namespace
 
-RESOURCE = "superset_metastore_cache"
+RESOURCE = KeyValueResource.METASTORE_CACHE
 
 
 class SupersetMetastoreCache(BaseCache):

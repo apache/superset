@@ -27,21 +27,21 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueCreateFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key
+from superset.key_value.types import Key, KeyValueResource
 
 logger = logging.getLogger(__name__)
 
 
 class CreateKeyValueCommand(BaseCommand):
     actor: Optional[User]
-    resource: str
+    resource: KeyValueResource
     value: Any
     key: Optional[Union[int, UUID]]
     expires_on: Optional[datetime]
 
     def __init__(
         self,
-        resource: str,
+        resource: KeyValueResource,
         value: Any,
         actor: Optional[User] = None,
         key: Optional[Union[int, UUID]] = None,
@@ -76,7 +76,7 @@ class CreateKeyValueCommand(BaseCommand):
 
     def create(self) -> Key:
         entry = KeyValueEntry(
-            resource=self.resource,
+            resource=self.resource.value,
             value=pickle.dumps(self.value),
             created_on=datetime.now(),
             created_by_fk=None

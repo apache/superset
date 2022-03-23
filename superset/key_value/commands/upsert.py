@@ -29,7 +29,7 @@ from superset.commands.base import BaseCommand
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.exceptions import KeyValueUpdateFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import Key
+from superset.key_value.types import Key, KeyValueResource
 from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
@@ -37,14 +37,14 @@ logger = logging.getLogger(__name__)
 
 class UpsertKeyValueCommand(BaseCommand):
     actor: Optional[User]
-    resource: str
+    resource: KeyValueResource
     value: Any
     key: Union[int, UUID]
     expires_on: Optional[datetime]
 
     def __init__(
         self,
-        resource: str,
+        resource: KeyValueResource,
         key: Union[int, UUID],
         value: Any,
         actor: Optional[User] = None,

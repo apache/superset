@@ -18,11 +18,11 @@
 from typing import Any, Optional
 from uuid import uuid3
 
-from superset.key_value.types import SharedKey
+from superset.key_value.types import KeyValueResource, SharedKey
 from superset.key_value.utils import get_uuid_namespace, random_key
 from superset.utils.memoized import memoized
 
-RESOURCE = "app"
+RESOURCE = KeyValueResource.APP
 NAMESPACE = get_uuid_namespace("")
 
 
