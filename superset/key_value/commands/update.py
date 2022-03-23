@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand):
-    actor: User
+    actor: Optional[User]
     resource: str
     value: Any
     key: str
@@ -43,10 +43,10 @@ class UpdateKeyValueCommand(BaseCommand):
 
     def __init__(
         self,
-        actor: User,
         resource: str,
         key: str,
         value: Any,
+        actor: Optional[User] = None,
         key_type: KeyType = "uuid",
         expires_on: Optional[datetime] = None,
     ):
@@ -56,6 +56,7 @@ class UpdateKeyValueCommand(BaseCommand):
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to update
         :param value: the value to persist in the key-value store
+        :param actor: the user performing the command
         :param key_type: the type of the key to update
         :param expires_on: entry expiration time
         :return: the key associated with the updated value
@@ -71,6 +72,7 @@ class UpdateKeyValueCommand(BaseCommand):
         try:
             return self.update()
         except SQLAlchemyError as ex:
+            db.session.rollback()
             logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
 
@@ -89,8 +91,11 @@ class UpdateKeyValueCommand(BaseCommand):
             entry.value = pickle.dumps(self.value)
             entry.expires_on = self.expires_on
             entry.changed_on = datetime.now()
-            entry.changed_by_fk = None if self.actor.is_anonymous else self.actor.id
+            entry.changed_by_fk = (
+                None if self.actor is None or self.actor.is_anonymous else self.actor.id
+            )
             db.session.merge(entry)
             db.session.commit()
             return extract_key(entry, self.key_type)
+
         return None

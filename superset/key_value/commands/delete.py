@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Optional
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -30,13 +31,12 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand):
-    actor: User
     key: str
     key_type: KeyType
     resource: str
 
     def __init__(
-        self, actor: User, resource: str, key: str, key_type: KeyType = "uuid"
+        self, resource: str, key: str, key_type: KeyType = "uuid",
     ):
         """
         Delete a key-value pair
@@ -47,7 +47,6 @@ class DeleteKeyValueCommand(BaseCommand):
         :return: was the entry deleted or not
         """
         self.resource = resource
-        self.actor = actor
         self.key = key
         self.key_type = key_type
 
@@ -55,6 +54,7 @@ class DeleteKeyValueCommand(BaseCommand):
         try:
             return self.delete()
         except SQLAlchemyError as ex:
+            db.session.rollback()
             logger.exception("Error running delete command")
             raise KeyValueDeleteFailedError() from ex
 
