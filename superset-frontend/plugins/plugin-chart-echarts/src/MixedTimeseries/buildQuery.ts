@@ -22,7 +22,7 @@ import {
   QueryObject,
   normalizeOrderBy,
 } from '@superset-ui/core';
-import { pivotOperator } from '@superset-ui/chart-controls';
+import { flattenOperator, pivotOperator } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
   const {
@@ -66,6 +66,7 @@ export default function buildQuery(formData: QueryFormData) {
       is_timeseries: true,
       post_processing: [
         pivotOperator(formData1, { ...baseQueryObject, is_timeseries: true }),
+        flattenOperator(formData1, { ...baseQueryObject, is_timeseries: true }),
       ],
     } as QueryObject;
     return [normalizeOrderBy(queryObjectA)];
@@ -77,6 +78,7 @@ export default function buildQuery(formData: QueryFormData) {
       is_timeseries: true,
       post_processing: [
         pivotOperator(formData2, { ...baseQueryObject, is_timeseries: true }),
+        flattenOperator(formData2, { ...baseQueryObject, is_timeseries: true }),
       ],
     } as QueryObject;
     return [normalizeOrderBy(queryObjectB)];
