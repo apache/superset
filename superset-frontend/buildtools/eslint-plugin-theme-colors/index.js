@@ -60,22 +60,19 @@ function hasRgbColor(quasi) {
 }
 
 function hasLiteralColor(quasi, strict = false) {
-  let match = false;
   if (typeof quasi === 'string') {
     // matches literal colors at the start or end of a CSS prop
-    COLOR_KEYWORDS.forEach(color => {
+    return COLOR_KEYWORDS.some(color => {
       const regexColon = new RegExp(`: ${color}`);
       const regexSemicolon = new RegExp(` ${color};`);
-      if (
+      return (
         quasi.match(regexColon) ||
         quasi.match(regexSemicolon) ||
         (strict && quasi === color)
-      ) {
-        match = true;
-      }
+      );
     });
   }
-  return match;
+  return false;
 }
 
 const WARNING_MESSAGE =
