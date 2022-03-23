@@ -123,7 +123,7 @@ export const routes: Routes = [
     Component: DatasetList,
   },
   {
-    path: '/databaseview/list/',
+    path: 'baseview/list/',
     Component: DatabaseList,
   },
   {
