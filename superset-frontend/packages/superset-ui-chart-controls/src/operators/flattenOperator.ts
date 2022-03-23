@@ -17,10 +17,10 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingFlat } from '@superset-ui/core';
+import { PostProcessingFlatten } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const flatOperator: PostProcessingFactory<PostProcessingFlat> = (
+export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
   formData,
   queryObject,
-) => ({ operation: 'flat' });
+) => ({ operation: 'flatten' });

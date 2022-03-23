@@ -153,7 +153,7 @@ def test_rolling_after_pivot_with_single_metric():
     2019-01-01        5.0   6.0
     2019-01-02       12.0  14.0
     """
-    flat_df = pp.flat(rolling_df)
+    flat_df = pp.flatten(rolling_df)
     """
             dttm  sum_metric, UK  sum_metric, US
     0 2019-01-01             5.0             6.0
@@ -203,7 +203,7 @@ def test_rolling_after_pivot_with_multiple_metrics():
     2019-01-01          1.0  2.0        5.0   6.0
     2019-01-02          4.0  6.0       12.0  14.0
     """
-    flat_df = pp.flat(rolling_df)
+    flat_df = pp.flatten(rolling_df)
     """
             dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
     0 2019-01-01               1.0               2.0             5.0             6.0

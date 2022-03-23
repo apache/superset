@@ -125,7 +125,7 @@ def test_resample_after_pivot():
     2022-01-12      0.0  0.0  0.0
     2022-01-13      6.0  5.0  4.0
     """
-    flat_df = pp.flat(resample_df)
+    flat_df = pp.flatten(resample_df)
     """
       __timestamp  val, Chicago  val, LA  val, NY
     0  2022-01-11           3.0      2.0      1.0

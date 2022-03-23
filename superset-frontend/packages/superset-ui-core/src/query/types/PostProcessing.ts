@@ -201,13 +201,15 @@ export type PostProcessingResample =
   | _PostProcessingResample
   | DefaultPostProcessing;
 
-interface _PostProcessingFlat {
-  operation: 'flat';
+interface _PostProcessingFlatten {
+  operation: 'flatten';
   options?: {
     reset_index?: boolean;
   };
 }
-export type PostProcessingFlat = _PostProcessingFlat | DefaultPostProcessing;
+export type PostProcessingFlatten =
+  | _PostProcessingFlatten
+  | DefaultPostProcessing;
 
 /**
  * Parameters for chart data postprocessing.
@@ -225,7 +227,7 @@ export type PostProcessingRule =
   | PostProcessingCompare
   | PostProcessingSort
   | PostProcessingResample
-  | PostProcessingFlat;
+  | PostProcessingFlatten;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,

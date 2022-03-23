@@ -22,7 +22,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import {
-  flatOperator,
+  flattenOperator,
   rollingWindowOperator,
   sortOperator,
 } from '@superset-ui/chart-controls';
@@ -75,7 +75,7 @@ export default function buildQuery(formData: QueryFormData) {
           sortOperator(formData, baseQueryObject),
           resampleProc,
           rollingProc,
-          flatOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
         ],
       },
     ];

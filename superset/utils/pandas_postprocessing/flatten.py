@@ -22,7 +22,7 @@ from superset.utils.pandas_postprocessing.utils import (
 )
 
 
-def flat(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
+def flatten(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
     """
     Convert N-dimensional DataFrame to a flat DataFrame
 
@@ -44,7 +44,7 @@ def flat(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
     2021-01-01        1
     2021-01-02        2
     2021-01-03        3
-    >>> df = flat(df)
+    >>> df = flatten(df)
     >>> df
       __timestamp  metric
     0  2021-01-01       1
@@ -63,7 +63,7 @@ def flat(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
     2021-01-01    1   1   1   1
     2021-01-02    1   1   1   1
     2021-01-03    1   1   1   1
-    >>> flat(df)
+    >>> flatten(df)
       __timestamp foo, one foo, two bar, one bar, two
     0  2021-01-01        1        1        1        1
     1  2021-01-02        1        1        1        1

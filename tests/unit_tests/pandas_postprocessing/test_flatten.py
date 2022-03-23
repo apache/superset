@@ -23,7 +23,7 @@ from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 def test_flat_should_not_change():
     df = pd.DataFrame(data={"foo": [1, 2, 3], "bar": [4, 5, 6],})
 
-    assert pp.flat(df).equals(df)
+    assert pp.flatten(df).equals(df)
 
 
 def test_flat_should_not_reset_index():
@@ -31,7 +31,7 @@ def test_flat_should_not_reset_index():
     index.name = "__timestamp"
     df = pd.DataFrame(index=index, data={"foo": [1, 2, 3], "bar": [4, 5, 6]})
 
-    assert pp.flat(df, reset_index=False).equals(df)
+    assert pp.flatten(df, reset_index=False).equals(df)
 
 
 def test_flat_should_flat_datetime_index():
@@ -39,7 +39,7 @@ def test_flat_should_flat_datetime_index():
     index.name = "__timestamp"
     df = pd.DataFrame(index=index, data={"foo": [1, 2, 3], "bar": [4, 5, 6]})
 
-    assert pp.flat(df).equals(
+    assert pp.flatten(df).equals(
         pd.DataFrame({"__timestamp": index, "foo": [1, 2, 3], "bar": [4, 5, 6],})
     )
 
@@ -51,7 +51,7 @@ def test_flat_should_flat_multiple_index():
     columns = pd.MultiIndex.from_product(iterables, names=["level1", "level2"])
     df = pd.DataFrame(index=index, columns=columns, data=1)
 
-    assert pp.flat(df).equals(
+    assert pp.flatten(df).equals(
         pd.DataFrame(
             {
                 "__timestamp": index,

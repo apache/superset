@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { flatOperator } from '@superset-ui/chart-controls';
+import { flattenOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -52,8 +52,8 @@ const queryObject: QueryObject = {
   ],
 };
 
-test('should do flatOperator', () => {
-  expect(flatOperator(formData, queryObject)).toEqual({
-    operation: 'flat',
+test('should do flattenOperator', () => {
+  expect(flattenOperator(formData, queryObject)).toEqual({
+    operation: 'flatten',
   });
 });

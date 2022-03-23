@@ -157,7 +157,7 @@ def test_compare_multi_index_column():
         compare_type=PPC.DIFF,
         drop_original_columns=True,
     )
-    flat_df = pp.flat(post_df)
+    flat_df = pp.flatten(post_df)
     """
       __timestamp  difference__m1__m2, a, x  difference__m1__m2, a, y  difference__m1__m2, b, x  difference__m1__m2, b, y
     0  2021-01-01                         0                         0                         0                         0
@@ -212,7 +212,7 @@ def test_compare_after_pivot():
     2019-01-01                                    4  4
     2019-01-02                                    4  4
     """
-    flat_df = pp.flat(compared_df)
+    flat_df = pp.flatten(compared_df)
     """
             dttm  difference__count_metric__sum_metric, UK  difference__count_metric__sum_metric, US
     0 2019-01-01                                         4                                         4

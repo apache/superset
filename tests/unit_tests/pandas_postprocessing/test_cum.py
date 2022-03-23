@@ -85,7 +85,7 @@ def test_cum_after_pivot_with_single_metric():
     2019-01-01          5   6
     2019-01-02         12  14
     """
-    cum_and_flat_df = pp.flat(cum_df)
+    cum_and_flat_df = pp.flatten(cum_df)
     """
                 dttm  sum_metric, UK  sum_metric, US
     0 2019-01-01               5               6
@@ -133,7 +133,7 @@ def test_cum_after_pivot_with_multiple_metrics():
     2019-01-01            1  2          5   6
     2019-01-02            4  6         12  14
     """
-    flat_df = pp.flat(cum_df)
+    flat_df = pp.flatten(cum_df)
     """
             dttm  count_metric, UK  count_metric, US  sum_metric, UK  sum_metric, US
     0 2019-01-01                 1                 2               5               6
