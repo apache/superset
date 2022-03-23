@@ -19,7 +19,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { css, t, styled, SupersetClient } from '@superset-ui/core';
 import moment from 'moment';
 import rison from 'rison';
 
@@ -43,6 +43,21 @@ interface AnnotationListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
+
+const StyledHeader = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+
+    a,
+    Link {
+      margin-left: ${theme.gridUnit * 4}px;
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.normal};
+      text-decoration: underline;
+    }
+  `}
+`;
 
 function AnnotationList({
   addDangerToast,
@@ -214,19 +229,6 @@ function AnnotationList({
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
   });
-
-  const StyledHeader = styled.div`
-    display: flex;
-    flex-direction: row;
-
-    a,
-    Link {
-      margin-left: 16px;
-      font-size: 12px;
-      font-weight: normal;
-      text-decoration: underline;
-    }
-  `;
 
   let hasHistory = true;
 

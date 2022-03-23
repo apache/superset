@@ -134,8 +134,13 @@ const WelcomeNav = styled.div`
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map(() => (
-      <ListViewCard cover={cover ? false : <></>} description="" loading />
+    {[...new Array(loadingCardCount)].map((_, index) => (
+      <ListViewCard
+        key={index}
+        cover={cover ? false : <></>}
+        description=""
+        loading
+      />
     ))}
   </CardContainer>
 );
@@ -197,7 +202,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
-
+    const ownSavedQueryFilters = [
+      {
+        col: 'owners',
+        opr: 'rel_m_m',
+        value: `${id}`,
+      },
+    ];
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
@@ -207,7 +218,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setDashboardData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
-          t('There was an issues fetching your dashboards: %s', err),
+          t('There was an issue fetching your dashboards: %s', err),
         );
       });
     getUserOwnedObjects(id, 'chart')
@@ -218,9 +229,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       .catch((err: unknown) => {
         setChartData([]);
         setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issues fetching your chart: %s', err));
+        addDangerToast(t('There was an issue fetching your chart: %s', err));
       });
-    getUserOwnedObjects(id, 'saved_query')
+    getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
       .then(r => {
         setQueryData(r);
         setLoadedCount(loadedCount => loadedCount + 1);

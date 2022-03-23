@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
 import re
 import time
 from typing import Any, Dict
@@ -30,7 +29,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend
+from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -91,8 +90,9 @@ class TestQueryContext(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
-        table = self.get_table(name=table_name)
-        payload = get_query_context(table_name, table.id)
+        payload = get_query_context(
+            query_name=table_name, add_postprocessing_operations=True,
+        )
         payload["force"] = True
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -100,6 +100,10 @@ class TestQueryContext(SupersetTestCase):
         query_cache_key = query_context.query_cache_key(query_object)
 
         response = query_context.get_payload(cache_query_context=True)
+        # MUST BE a successful query
+        query_dump = response["queries"][0]
+        assert query_dump["status"] == QueryStatus.SUCCESS
+
         cache_key = response["cache_key"]
         assert cache_key is not None
 

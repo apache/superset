@@ -115,10 +115,12 @@ extra_description = markdown(
     '["public", "csv_upload"]**. '
     "If database flavor does not support schema or any schema is allowed "
     "to be accessed, just leave the list empty<br/>"
-    "4. the ``version`` field is a string specifying the this db's version. "
+    "4. The ``version`` field is a string specifying the this db's version. "
     "This should be used with Presto DBs so that the syntax is correct<br/>"
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
-    "whether or not the Explore button in SQL Lab results is shown.",
+    "whether or not the Explore button in SQL Lab results is shown.<br/>"
+    "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
+    "preview queries will be run when fetching table metadata in SQL Lab.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -585,6 +587,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
+    allows_virtual_table_explore = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
