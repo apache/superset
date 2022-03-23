@@ -20,6 +20,7 @@ from superset.utils.pandas_postprocessing.compare import compare
 from superset.utils.pandas_postprocessing.contribution import contribution
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
+from superset.utils.pandas_postprocessing.flatten import flatten
 from superset.utils.pandas_postprocessing.geography import (
     geodetic_parse,
     geohash_decode,
@@ -49,5 +50,6 @@ __all__ = [
     "rolling",
     "select",
     "sort",
+    "flatten",
     "_flatten_column_after_pivot",
 ]

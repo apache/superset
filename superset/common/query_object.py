@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta
 from pprint import pformat
@@ -27,6 +28,7 @@ from pandas import DataFrame
 
 from superset.common.chart_data import ChartDataResultType
 from superset.exceptions import (
+    InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
@@ -337,6 +339,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         }
         return query_object_dict
 
+    def __repr__(self) -> str:
+        # we use `print` or `logging` output QueryObject
+        return json.dumps(self.to_dict(), sort_keys=True, default=str,)
+
     def cache_key(self, **extra: Any) -> str:
         """
         The cache key is made out of the key/values from to_dict(), plus any
@@ -398,15 +404,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :raises QueryObjectValidationError: If the post processing operation
                  is incorrect
         """
-        logger.debug("post_processing: %s", pformat(self.post_processing))
+        logger.debug("post_processing: \n %s", pformat(self.post_processing))
         for post_process in self.post_processing:
             operation = post_process.get("operation")
             if not operation:
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _("`operation` property of post processing object undefined")
                 )
             if not hasattr(pandas_postprocessing, operation):
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _(
                         "Unsupported post processing operation: %(operation)s",
                         type=operation,
