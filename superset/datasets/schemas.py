@@ -216,6 +216,8 @@ class ImportV1DatasetSchema(Schema):
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

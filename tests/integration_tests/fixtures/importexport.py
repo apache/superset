@@ -449,7 +449,7 @@ chart_config: Dict[str, Any] = {
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
 
-dashboard_config = {
+dashboard_config: Dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",
