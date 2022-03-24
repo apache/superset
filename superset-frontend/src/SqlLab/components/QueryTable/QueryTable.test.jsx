@@ -32,6 +32,7 @@ describe('QueryTable', () => {
     queries,
     displayLimit: 100,
     actions,
+    latestQueryId: 'ryhMUZCGb',
   };
   it('is valid', () => {
     expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);

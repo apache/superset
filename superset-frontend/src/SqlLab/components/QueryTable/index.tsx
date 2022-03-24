@@ -54,6 +54,7 @@ interface QueryTableProps {
   onUserClicked?: Function;
   onDbClicked?: Function;
   displayLimit: number;
+  latestQueryId?: string | undefined;
 }
 
 const openQuery = (id: number) => {
@@ -68,6 +69,7 @@ const QueryTable = ({
   onUserClicked = () => undefined,
   onDbClicked = () => undefined,
   displayLimit,
+  latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
 
@@ -290,12 +292,14 @@ const QueryTable = ({
             >
               <Icons.PlusCircleOutlined iconSize="xs" css={verticalAlign} />
             </StyledTooltip>
-            <StyledTooltip
-              tooltip={t('Remove query from log')}
-              onClick={() => removeQuery(query)}
-            >
-              <Icons.Trash iconSize="xs" />
-            </StyledTooltip>
+            {q.id !== latestQueryId && (
+              <StyledTooltip
+                tooltip={t('Remove query from log')}
+                onClick={() => removeQuery(query)}
+              >
+                <Icons.Trash iconSize="xs" />
+              </StyledTooltip>
+            )}
           </div>
         );
         return q;
