@@ -67,7 +67,6 @@ export const getColumnTooltipNode = (
   column: ColumnMeta,
   labelRef?: React.RefObject<any>,
 ): ReactNode => {
-  // don't show tooltip if it hasn't verbose_name and hasn't truncated
   if (
     !column.verbose_name &&
     !column.description &&
@@ -95,7 +94,6 @@ export const getMetricTooltipNode = (
   metric: MetricType,
   labelRef?: React.RefObject<any>,
 ): ReactNode => {
-  // don't show tooltip if it hasn't verbose_name, label and hasn't truncated
   if (
     !metric.verbose_name &&
     !metric.description &&
