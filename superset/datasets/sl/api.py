@@ -19,11 +19,22 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "changed_by_name",
         "changed_by_url",
-        # "changed_on_delta_humanized", getting errors for these
-        # "changed_on_utc",
+        "changed_on_delta_humanized",
+        "database",
+        "datasource_type",
+        "default_endpoint",
+        "description",
+        "explore_url",
+        "extra",
         "id",
-        "name",
-        "expression",
+        "kind",
+        "owners",
+        "schema",
+        "sql",  # "sql",
+        "table_name",  # "table_name",
+    ]
+    order_columns = [
+        "changed_on_delta_humanized",
     ]
 
 

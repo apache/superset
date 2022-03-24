@@ -140,3 +140,11 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     @property
     def description(self) -> Optional[str]:
         return "todo"
+
+    @property
+    def database(self) -> Optional[str]:
+        return "todo"
+
+    @property
+    def owners(self) -> Optional[List[int]]:
+        return []

@@ -135,7 +135,7 @@ class SLTestDatasetApi(SupersetTestCase):
             "kind",
             "owners",
             "schema",
-            "expression",  # "sql",
-            "name",  # "table_name",
+            "sql",
+            "table_name",
         ]
         assert sorted(list(response["result"][0].keys())) == expected_columns

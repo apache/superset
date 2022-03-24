@@ -120,7 +120,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+  } = useListViewResource<Dataset>('datasets', t('dataset'), addDangerToast);
 
   const [datasetAddModalOpen, setDatasetAddModalOpen] =
     useState<boolean>(false);
