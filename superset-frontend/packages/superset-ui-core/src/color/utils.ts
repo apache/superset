@@ -55,7 +55,7 @@ export function getContrastingColor(color: string, thresholds = 186) {
 
 export function getAnalogousColors(colors: string[], results: number) {
   const generatedColors: string[] = [];
-  const ext = 5;
+  const ext = 3;
   const analogousColors = colors.map(color => {
     const result = tinycolor(color).analogous(results + ext);
     return result.slice(ext);
