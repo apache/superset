@@ -118,7 +118,7 @@ const ActionButton = styled(Button)`
 `;
 
 const getImage = (image: string | ReactNode) =>
-  typeof image === 'string' ? `/static/assets/images/${image}` : image;
+  typeof image === 'string' ? `/data/static/assets/images/${image}` : image;
 
 const getImageHeight = (size: EmptyStateSize) => {
   switch (size) {

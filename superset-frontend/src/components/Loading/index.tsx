@@ -26,7 +26,6 @@ export type PositionOption =
   | 'inline'
   | 'inline-centered'
   | 'normal';
-
 export interface Props {
   position?: PositionOption;
   className?: string;
@@ -58,7 +57,7 @@ const LoaderImg = styled.img`
 `;
 export default function Loading({
   position = 'floating',
-  image = `${process.env.APP_PREFIX}/static/assets/images/loading.gif`,
+  image = '/data/static/assets/images/loading.gif',
   className,
 }: Props) {
   return (

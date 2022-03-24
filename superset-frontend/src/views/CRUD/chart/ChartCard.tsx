@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';
@@ -29,7 +29,7 @@ import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { CardStyles, handleChartDelete } from '../utils';
+import { handleChartDelete, CardStyles } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -152,7 +152,7 @@ export default function ChartCard({
         }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL={`${process.env.APP_PREFIX}/static/assets/images/chart-card-fallback.svg`}
+        imgFallbackURL="/data/static/assets/images/chart-card-fallback.svg"
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
