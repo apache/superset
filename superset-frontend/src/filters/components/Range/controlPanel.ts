@@ -93,22 +93,22 @@ const config: ControlPanelConfig = {
               default: 'Linear',
               renderTrigger: true,
               freeForm: false,
-              choices:
-                Object.keys(SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION)
-                  .map((key) => [
-                    key,
-                    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[key].display
-                  ]),
+              choices: Object.keys(
+                SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
+              ).map(key => [
+                key,
+                SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[key].display,
+              ]),
               // [
-                // ['LINEAR', 'Linear'],
-                // ['LOG10', 'Log Base 10'],
-                // ['SQRT', 'Square Root'],
+              // ['LINEAR', 'Linear'],
+              // ['LOG10', 'Log Base 10'],
+              // ['SQRT', 'Square Root'],
               // ],
               description: t('Choose a scaling function for the slider.'),
             },
           },
-        // ],
-        // [
+          // ],
+          // [
           {
             name: 'stepSize',
             config: {
