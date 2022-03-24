@@ -70,27 +70,32 @@ export const SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION: {
   },
   [PluginFilterRangeScalingFunctions.LOG]: {
     display: 'Log Base 10',
-    transformScale: (val: number | null) => val ? (val > 0 ? Math.log10(val + 1) : 0) : val,
-    inverseScale: (val: number | null) => val ? (Math.pow(10, val) - 1) : val,
+    transformScale: (val: number | null) =>
+      val ? (val > 0 ? Math.log10(val + 1) : 0) : val,
+    inverseScale: (val: number | null) => (val ? Math.pow(10, val) - 1 : val),
   },
   [PluginFilterRangeScalingFunctions.SQRT]: {
     display: 'Square Root',
-    transformScale: (val: number | null) => val ? (val > 0 ? Math.sqrt(val) : 0) : val,
-    inverseScale: (val: number | null) => val ? Math.pow(val, 2) : val,
+    transformScale: (val: number | null) =>
+      val ? (val > 0 ? Math.sqrt(val) : 0) : val,
+    inverseScale: (val: number | null) => (val ? Math.pow(val, 2) : val),
   },
   [PluginFilterRangeScalingFunctions.CBRT]: {
     display: 'Cube Root',
-    transformScale: (val: number | null) => val ? (val > 0 ? Math.cbrt(val) : 0) : val,
-    inverseScale: (val: number | null) => val ? Math.pow(val, 3) : val,
+    transformScale: (val: number | null) =>
+      val ? (val > 0 ? Math.cbrt(val) : 0) : val,
+    inverseScale: (val: number | null) => (val ? Math.pow(val, 3) : val),
   },
   [PluginFilterRangeScalingFunctions.QDRT]: {
     display: 'Quad Root',
-    transformScale: (val: number | null) => val ? (val > 0 ? Math.pow(val, 1/4) : 0) : val,
-    inverseScale: (val: number | null) => val ? Math.pow(val, 4) : val,
+    transformScale: (val: number | null) =>
+      val ? (val > 0 ? Math.pow(val, 1 / 4) : 0) : val,
+    inverseScale: (val: number | null) => (val ? Math.pow(val, 4) : val),
   },
   [PluginFilterRangeScalingFunctions.SQUARED]: {
     display: 'Squared',
-    transformScale: (val: number | null) => val ? Math.pow(val, 2) : val,
-    inverseScale: (val: number | null) => val ? (val > 0 ? Math.sqrt(val) : 0) : val,
+    transformScale: (val: number | null) => (val ? Math.pow(val, 2) : val),
+    inverseScale: (val: number | null) =>
+      val ? (val > 0 ? Math.sqrt(val) : 0) : val,
   },
 };
