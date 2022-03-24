@@ -32,7 +32,6 @@ import { rgba } from 'emotion-rgba';
 // import { scaleLog, scaleLinear } from 'd3-scale';
 import {
   PluginFilterRangeProps,
-  PluginFilterRangeScalingFunctions,
   SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
 } from './types';
 
