@@ -748,7 +748,7 @@ DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
+    CELERY_IMPORTS = ("superset.sql_lab")
     CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
     CELERYD_LOG_LEVEL = "DEBUG"
     CELERYD_PREFETCH_MULTIPLIER = 1
@@ -1222,12 +1222,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# Turn this key to False to disable ownership check on the old dataset MVC and
-# datasource API /datasource/save.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-OLD_API_CHECK_DATASET_OWNERSHIP = True
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook
