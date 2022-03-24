@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset import db
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import login
@@ -60,7 +61,7 @@ def permalink_salt() -> Iterator[str]:
     yield salt
     namespace = get_uuid_namespace(salt)
     db.session.query(KeyValueEntry).filter_by(
-        resource="app", uuid=uuid3(namespace, key),
+        resource=KeyValueResource.APP, uuid=uuid3(namespace, key),
     )
     db.session.commit()
 

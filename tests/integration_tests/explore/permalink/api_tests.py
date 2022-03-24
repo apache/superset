@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from superset import db
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import login
@@ -62,7 +63,7 @@ def permalink_salt() -> Iterator[str]:
     yield salt
     namespace = get_uuid_namespace(salt)
     db.session.query(KeyValueEntry).filter_by(
-        resource="app", uuid=uuid3(namespace, key),
+        resource=KeyValueResource.APP, uuid=uuid3(namespace, key),
     )
     db.session.commit()
 
@@ -91,7 +92,7 @@ def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
 
     chart_id = 1234
     entry = KeyValueEntry(
-        resource="explore_permalink",
+        resource=KeyValueResource.EXPLORE_PERMALINK,
         value=pickle.dumps(
             {
                 "chartId": chart_id,
