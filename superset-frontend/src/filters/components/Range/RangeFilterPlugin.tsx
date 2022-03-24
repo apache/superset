@@ -253,11 +253,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         val = [transformScale(value[0]), transformScale(value[1])];
       }
       // antd apparently uses the floor value, not the rounded value...?
-      if (value[1] === Math.floor(transformScale(max) / stepSize) * stepSize) {
-        val[1] = transformScale(max);
+      // which causes issues like log(123) = 2.0899
+      if (val[1] === Math.floor(transformScale(max) / stepSize) * stepSize) {
+        val = [val[0], transformScale(max)];
       }
-      if (value[0] === Math.floor(transformScale(min) / stepSize) * stepSize) {
-        val[0] = transformScale(min);
+      if (val[0] === Math.floor(transformScale(min) / stepSize) * stepSize) {
+        val = [transformScale(min), val[1]];
       }
       // value is transformed
       setValue(val);

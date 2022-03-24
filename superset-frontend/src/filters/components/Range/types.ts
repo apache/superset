@@ -49,13 +49,15 @@ export enum PluginFilterRangeScalingFunctions {
   LINEAR = 'LINEAR',
   LOG = 'LOG',
   SQRT = 'SQRT',
+  CBRT = 'CBRT',
+  QDRT = 'QDRT',
   SQUARED = 'SQUARED',
 }
 
 export interface PluginFilterRangeScalingFunction {
   display: string;
-  transformScale: (val: number) => number;
-  inverseScale: (val: number) => number;
+  transformScale: (val: number | null) => number | null;
+  inverseScale: (val: number | null) => number | null;
 }
 
 export const SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION: {
@@ -63,22 +65,32 @@ export const SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION: {
 } = {
   [PluginFilterRangeScalingFunctions.LINEAR]: {
     display: 'Linear',
-    transformScale: (val: number) => val,
-    inverseScale: (val: number) => val,
+    transformScale: (val: number | null) => val,
+    inverseScale: (val: number | null) => val,
   },
   [PluginFilterRangeScalingFunctions.LOG]: {
     display: 'Log Base 10',
-    transformScale: (val: number) => (val > 0 ? Math.log10(val) : 0),
-    inverseScale: (val: number) => Math.pow(10, val),
+    transformScale: (val: number | null) => val ? (val > 0 ? Math.log10(val + 1) : 0) : val,
+    inverseScale: (val: number | null) => val ? (Math.pow(10, val) - 1) : val,
   },
   [PluginFilterRangeScalingFunctions.SQRT]: {
     display: 'Square Root',
-    transformScale: (val: number) => (val > 0 ? Math.sqrt(val) : 0),
-    inverseScale: (val: number) => Math.pow(val, 2),
+    transformScale: (val: number | null) => val ? (val > 0 ? Math.sqrt(val) : 0) : val,
+    inverseScale: (val: number | null) => val ? Math.pow(val, 2) : val,
+  },
+  [PluginFilterRangeScalingFunctions.CBRT]: {
+    display: 'Cube Root',
+    transformScale: (val: number | null) => val ? (val > 0 ? Math.cbrt(val) : 0) : val,
+    inverseScale: (val: number | null) => val ? Math.pow(val, 3) : val,
+  },
+  [PluginFilterRangeScalingFunctions.QDRT]: {
+    display: 'Quad Root',
+    transformScale: (val: number | null) => val ? (val > 0 ? Math.pow(val, 1/4) : 0) : val,
+    inverseScale: (val: number | null) => val ? Math.pow(val, 4) : val,
   },
   [PluginFilterRangeScalingFunctions.SQUARED]: {
     display: 'Squared',
-    transformScale: (val: number) => Math.pow(val, 2),
-    inverseScale: (val: number) => (val > 0 ? Math.sqrt(val) : 0),
+    transformScale: (val: number | null) => val ? Math.pow(val, 2) : val,
+    inverseScale: (val: number | null) => val ? (val > 0 ? Math.sqrt(val) : 0) : val,
   },
 };
