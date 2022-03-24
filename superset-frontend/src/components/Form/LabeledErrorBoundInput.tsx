@@ -29,7 +29,7 @@ export interface LabeledErrorBoundInputProps {
   validationMethods:
     | { onBlur: (value: any) => void }
     | { onChange: (value: any) => void };
-  errorMessage: string | null;
+  errorMessage?: string | null;
   helpText?: string;
   required?: boolean;
   hasTooltip?: boolean;
