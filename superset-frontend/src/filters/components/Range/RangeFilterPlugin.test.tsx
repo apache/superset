@@ -22,6 +22,7 @@ import { render } from 'spec/helpers/testing-library';
 import RangeFilterPlugin from './RangeFilterPlugin';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
+import { PluginFilterRangeScalingFunctions } from './types';
 
 const rangeProps = {
   formData: {
@@ -62,6 +63,7 @@ const rangeProps = {
     urlParams: {},
     vizType: 'filter_range',
     inputRef: { current: null },
+    scaling: PluginFilterRangeScalingFunctions.LINEAR,
   },
   height: 20,
   hooks: {},
