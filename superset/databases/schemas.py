@@ -623,6 +623,8 @@ class ImportV1DatabaseSchema(Schema):
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
     # pylint: disable=no-self-use, unused-argument
     @validates_schema
