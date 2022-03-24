@@ -95,10 +95,10 @@ const plugins = [
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
           js: chunks
             .filter(x => x.endsWith('.js'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
         };
       });
 
@@ -208,6 +208,7 @@ const config = {
     theme: path.join(APP_DIR, '/src/theme.ts'),
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
+    embedded: addPreamble('/src/embedded/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
@@ -285,13 +286,15 @@ const config = {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
     modules: ['node_modules', APP_DIR],
     alias: {
-      // TODO: remove alias once React has been upgraaded to v. 17
+      // TODO: remove aliases once React has been upgraded to v. 17 and
+      //  AntD version conflict has been resolved
+      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: false,
+      vm: require.resolve('vm-browserify'),
       path: false,
     },
   },
@@ -337,9 +340,20 @@ const config = {
         exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
           new RegExp(`${APP_DIR}/(src|.storybook|plugins|packages)`),
+          ...['./src', './.storybook', './plugins', './packages'].map(p =>
+            path.resolve(__dirname, p),
+          ), // redundant but required for windows
           /@encodable/,
         ],
         use: [babelLoader],
+      },
+      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
+      // see https://github.com/gaearon/react-hot-loader/issues/1311
+      // TODO: refactor recurseReactClone
+      {
+        test: /\.js$/,
+        include: /node_modules\/react-dom/,
+        use: ['react-hot-loader/webpack'],
       },
       {
         test: /\.css$/,
@@ -393,7 +407,18 @@ const config = {
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
         issuer: /\.([jt])sx?$/,
-        use: ['@svgr/webpack'],
+        use: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              svgoConfig: {
+                plugins: {
+                  removeViewBox: false,
+                },
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.(jpg|gif)$/,
@@ -432,13 +457,6 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^superset-plugin-/.test(pkg) && fs.existsSync(srcPath)) {
-    console.log(
-      `[Superset External Plugin] Use symlink source for ${pkg} @ ${dir}`,
-    );
-    // TODO: remove alias once React has been upgraaded to v. 17
-    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
-  }
   if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);

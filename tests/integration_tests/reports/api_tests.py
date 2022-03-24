@@ -38,7 +38,7 @@ from superset.models.reports import (
     ReportRecipientType,
     ReportState,
 )
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -432,7 +432,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get releated report schedule
         """
         self.login(username="admin")
-        related_columns = ["owners", "chart", "dashboard", "database"]
+        related_columns = ["created_by", "chart", "dashboard", "database"]
         for related_column in related_columns:
             uri = f"api/v1/report/related/{related_column}"
             rv = self.client.get(uri)

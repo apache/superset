@@ -21,11 +21,12 @@ import cx from 'classnames';
 import { QueryFormData, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import { getChartPermalink } from 'src/utils/urlUtils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { useUrlShortener } from 'src/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import { exportChart } from '../exploreUtils';
 import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
 import { ExportToCSVDropdown } from './ExportToCSVDropdown';
 
@@ -46,8 +47,9 @@ type ExploreActionButtonsProps = {
   chartStatus: string;
   latestQueryFormData: QueryFormData;
   queriesResponse: {};
-  slice: { slice_name: string };
+  slice: Slice;
   addDangerToast: Function;
+  addSuccessToast: Function;
 };
 
 const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
@@ -98,29 +100,30 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     latestQueryFormData,
     slice,
     addDangerToast,
+    addSuccessToast,
   } = props;
 
-  const copyTooltipText = t('Copy chart URL to clipboard');
+  const copyTooltipText = t('Copy permalink to clipboard');
   const [copyTooltip, setCopyTooltip] = useState(copyTooltipText);
-  const longUrl = getExploreLongUrl(latestQueryFormData);
-  const getShortUrl = useUrlShortener(longUrl);
 
   const doCopyLink = async () => {
     try {
       setCopyTooltip(t('Loading...'));
-      const shortUrl = await getShortUrl();
-      await copyTextToClipboard(shortUrl);
+      const url = await getChartPermalink(latestQueryFormData);
+      await copyTextToClipboard(url);
       setCopyTooltip(t('Copied to clipboard!'));
+      addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
-      setCopyTooltip(t('Sorry, your browser does not support copying.'));
+      setCopyTooltip(t('Copying permalink failed.'));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   };
 
   const doShareEmail = async () => {
     try {
       const subject = t('Superset Chart');
-      const shortUrl = await getShortUrl();
-      const body = t('%s%s', 'Check out this chart: ', shortUrl);
+      const url = await getChartPermalink(latestQueryFormData);
+      const body = encodeURIComponent(t('%s%s', 'Check out this chart: ', url));
       window.location.href = `mailto:?Subject=${subject}%20&Body=${body}`;
     } catch (error) {
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -172,10 +175,13 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
           <ActionButton
             prefixIcon={<Icons.Email iconSize="l" />}
-            tooltip={t('Share chart by email')}
+            tooltip={t('Share permalink by email')}
             onClick={doShareEmail}
           />
-          <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
+          <EmbedCodeButton
+            formData={latestQueryFormData}
+            addDangerToast={addDangerToast}
+          />
           <ActionButton
             prefixIcon={<Icons.FileTextOutlined iconSize="m" />}
             text=".JSON"

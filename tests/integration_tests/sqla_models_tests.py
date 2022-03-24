@@ -30,22 +30,25 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import (
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
-    get_example_database,
     TemporalType,
+    backend,
 )
+from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
@@ -232,6 +235,35 @@ class TestDatabaseModel(SupersetTestCase):
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert metric
         assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_adhoc_metrics_and_calc_columns(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user", "expr"],
+            "metrics": [
+                {
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "(SELECT (SELECT * from birth_names) "
+                    "from test_validate_adhoc_sql)",
+                    "label": "adhoc_metrics",
+                }
+            ],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_validate_adhoc_sql", database=get_example_database()
+        )
+        db.session.commit()
+
+        with pytest.raises(SupersetSecurityException):
+            table.get_sqla_query(**base_query_obj)
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -474,25 +506,177 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_values_for_column(self):
+
+@pytest.fixture
+def text_column_table():
+    with app.app_context():
         table = SqlaTable(
-            table_name="test_null_in_column",
-            sql="SELECT 'foo' as foo UNION SELECT 'bar' UNION SELECT NULL",
+            table_name="text_column_table",
+            sql=(
+                "SELECT 'foo' as foo "
+                "UNION SELECT '' "
+                "UNION SELECT NULL "
+                "UNION SELECT 'null' "
+                "UNION SELECT '\"text in double quotes\"' "
+                "UNION SELECT '''text in single quotes''' "
+                "UNION SELECT 'double quotes \" in text' "
+                "UNION SELECT 'single quotes '' in text' "
+            ),
             database=get_example_database(),
         )
         TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
+        SqlMetric(metric_name="count", expression="count(*)", table=table)
+        yield table
 
-        with_null = table.values_for_column(
-            column_name="foo", limit=10000, contain_null=True
-        )
-        assert None in with_null
-        assert len(with_null) == 3
 
-        without_null = table.values_for_column(
-            column_name="foo", limit=10000, contain_null=False
+def test_values_for_column_on_text_column(text_column_table):
+    # null value, empty string and text should be retrieved
+    with_null = text_column_table.values_for_column(column_name="foo", limit=10000)
+    assert None in with_null
+    assert len(with_null) == 8
+
+
+def test_filter_on_text_column(text_column_table):
+    table = text_column_table
+    # null value should be replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [NULL_STRING], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # also accept None value
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [None], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # empty string should be replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [EMPTY_STRING], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # also accept "" string
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": [""], "op": "IN"}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # both replaced
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": [EMPTY_STRING, NULL_STRING, "null", "foo"],
+                    "op": "IN",
+                }
+            ],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 4
+
+    # should filter text in double quotes
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ['"text in double quotes"'], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text in single quotes
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ["'text in single quotes'"], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text with double quote
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ['double quotes " in text'], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+    # should filter text with single quote
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "filter": [{"col": "foo", "val": ["single quotes ' in text"], "op": "IN",}],
+            "is_timeseries": False,
+        }
+    )
+    assert result_object.df["count"][0] == 1
+
+
+def test_should_generate_closed_and_open_time_filter_range():
+    with app.app_context():
+        if backend() != "postgresql":
+            pytest.skip(f"{backend()} has different dialect for datetime column")
+
+        table = SqlaTable(
+            table_name="temporal_column_table",
+            sql=(
+                "SELECT '2021-12-31'::timestamp as datetime_col "
+                "UNION SELECT '2022-01-01'::timestamp "
+                "UNION SELECT '2022-03-10'::timestamp "
+                "UNION SELECT '2023-01-01'::timestamp "
+                "UNION SELECT '2023-03-10'::timestamp "
+            ),
+            database=get_example_database(),
         )
-        assert None not in without_null
-        assert len(without_null) == 2
+        TableColumn(
+            column_name="datetime_col", type="TIMESTAMP", table=table, is_dttm=True,
+        )
+        SqlMetric(metric_name="count", expression="count(*)", table=table)
+        result_object = table.query(
+            {
+                "metrics": ["count"],
+                "is_timeseries": False,
+                "filter": [],
+                "from_dttm": datetime(2022, 1, 1),
+                "to_dttm": datetime(2023, 1, 1),
+                "granularity": "datetime_col",
+            }
+        )
+        """ >>> result_object.query
+                SELECT count(*) AS count
+                FROM
+                  (SELECT '2021-12-31'::timestamp as datetime_col
+                   UNION SELECT '2022-01-01'::timestamp
+                   UNION SELECT '2022-03-10'::timestamp
+                   UNION SELECT '2023-01-01'::timestamp
+                   UNION SELECT '2023-03-10'::timestamp) AS virtual_table
+                WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+                  AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+        """
+        assert result_object.df.iloc[0]["count"] == 2
 
 
 @pytest.mark.parametrize(

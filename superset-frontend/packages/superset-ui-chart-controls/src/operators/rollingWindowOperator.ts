@@ -18,12 +18,12 @@
  * under the License.
  */
 import {
-  ensureIsInt,
-  ensureIsArray,
-  RollingType,
-  PostProcessingRolling,
-  PostProcessingCum,
   ComparisionType,
+  ensureIsArray,
+  ensureIsInt,
+  PostProcessingCum,
+  PostProcessingRolling,
+  RollingType,
 } from '@superset-ui/core';
 import {
   getMetricOffsetsMap,

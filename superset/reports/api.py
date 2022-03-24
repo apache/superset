@@ -53,6 +53,7 @@ from superset.reports.schemas import (
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
+    requires_json,
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
@@ -210,7 +211,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard": "dashboard_title",
         "chart": "slice_name",
         "database": "database_name",
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
     apispec_parameter_schemas = {
@@ -275,6 +276,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @permission_name("post")
+    @requires_json
     def post(self) -> Response:
         """Creates a new Report Schedule
         ---
@@ -309,8 +311,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -337,6 +337,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
+    @requires_json
     def put(self, pk: int) -> Response:
         """Updates an Report Schedule
         ---
@@ -379,8 +380,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations

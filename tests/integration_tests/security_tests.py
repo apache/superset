@@ -16,23 +16,24 @@
 # under the License.
 # isort:skip_file
 import inspect
-import re
+import time
 import unittest
 from collections import namedtuple
 from unittest import mock
 from unittest.mock import Mock, patch
-from typing import Any, Dict
+from typing import Any
 
+import jwt
 import prison
 import pytest
 
-from flask import current_app, g
+from flask import current_app
 
 from superset.models.dashboard import Dashboard
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
-from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -40,27 +41,20 @@ from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import (
     backend,
-    get_example_database,
     get_example_default_schema,
 )
+from superset.utils.database import get_example_database
+from superset.utils.urls import get_url_host
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
 )
-from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
@@ -234,7 +228,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # database change
-        new_db = Database(sqlalchemy_uri="some_uri", database_name="tmp_db")
+        new_db = Database(sqlalchemy_uri="sqlite://", database_name="tmp_db")
         session.add(new_db)
         stored_table.database = (
             session.query(Database).filter_by(database_name="tmp_db").one()
@@ -368,9 +362,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         session.add(database)
 
         stored_db = (
@@ -421,9 +413,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_hybrid_perm_database(self):
-        database = Database(
-            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
 
         db.session.add(database)
 
@@ -447,9 +437,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)
@@ -565,24 +553,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
 
-    def test_gamma_user_schema_access_to_tables(self):
-        self.login(username="gamma")
-        data = str(self.client.get("tablemodelview/list/").data)
-        self.assertIn("wb_health_population", data)
-        self.assertNotIn("birth_names", data)
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_gamma_user_schema_access_to_charts(self):
-        self.login(username="gamma")
-        data = str(self.client.get("api/v1/chart/").data)
-        self.assertIn(
-            "Life Expectancy VS Rural %", data
-        )  # wb_health_population slice, has access
-        self.assertIn(
-            "Parallel Coordinates", data
-        )  # wb_health_population slice, has access
-        self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
-
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
         """
@@ -716,7 +687,6 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_menu("Manage", perm_set)
         self.assert_can_menu("Annotation Layers", perm_set)
         self.assert_can_menu("CSS Templates", perm_set)
-        self.assert_can_menu("Upload a CSV", perm_set)
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
@@ -917,6 +887,8 @@ class TestRolePermission(SupersetTestCase):
             ["LocaleView", "index"],
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
+            ["CurrentUserRestApi", "get_me"],
+            ["Dashboard", "embedded"],
             ["R", "index"],
             ["Superset", "log"],
             ["Superset", "theme"],
@@ -975,9 +947,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_raise_for_access.side_effect = SupersetSecurityException(
             SupersetError(
-                "dummy",
-                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                ErrorLevel.ERROR,
+                "dummy", SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR, ErrorLevel.ERROR
             )
         )
 
@@ -1054,174 +1024,18 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
 
+    @patch("superset.security.manager.g")
+    def test_get_user_roles(self, mock_g):
+        admin = security_manager.find_user("admin")
+        mock_g.user = admin
+        roles = security_manager.get_user_roles()
+        self.assertEqual(admin.roles, roles)
 
-class TestRowLevelSecurity(SupersetTestCase):
-    """
-    Testing Row Level Security
-    """
-
-    rls_entry = None
-    query_obj: Dict[str, Any] = dict(
-        groupby=[],
-        metrics=None,
-        filter=[],
-        is_timeseries=False,
-        columns=["value"],
-        granularity=None,
-        from_dttm=None,
-        to_dttm=None,
-        extras={},
-    )
-    NAME_AB_ROLE = "NameAB"
-    NAME_Q_ROLE = "NameQ"
-    NAMES_A_REGEX = re.compile(r"name like 'A%'")
-    NAMES_B_REGEX = re.compile(r"name like 'B%'")
-    NAMES_Q_REGEX = re.compile(r"name like 'Q%'")
-    BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
-
-    def setUp(self):
-        session = db.session
-
-        # Create roles
-        security_manager.add_role(self.NAME_AB_ROLE)
-        security_manager.add_role(self.NAME_Q_ROLE)
-        gamma_user = security_manager.find_user(username="gamma")
-        gamma_user.roles.append(security_manager.find_role(self.NAME_AB_ROLE))
-        gamma_user.roles.append(security_manager.find_role(self.NAME_Q_ROLE))
-        self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
-        session.commit()
-
-        # Create regular RowLevelSecurityFilter (energy_usage, unicode_test)
-        self.rls_entry1 = RowLevelSecurityFilter()
-        self.rls_entry1.tables.extend(
-            session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
-            .all()
-        )
-        self.rls_entry1.filter_type = "Regular"
-        self.rls_entry1.clause = "value > {{ cache_key_wrapper(1) }}"
-        self.rls_entry1.group_key = None
-        self.rls_entry1.roles.append(security_manager.find_role("Gamma"))
-        self.rls_entry1.roles.append(security_manager.find_role("Alpha"))
-        db.session.add(self.rls_entry1)
-
-        # Create regular RowLevelSecurityFilter (birth_names name starts with A or B)
-        self.rls_entry2 = RowLevelSecurityFilter()
-        self.rls_entry2.tables.extend(
-            session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
-            .all()
-        )
-        self.rls_entry2.filter_type = "Regular"
-        self.rls_entry2.clause = "name like 'A%' or name like 'B%'"
-        self.rls_entry2.group_key = "name"
-        self.rls_entry2.roles.append(security_manager.find_role("NameAB"))
-        db.session.add(self.rls_entry2)
-
-        # Create Regular RowLevelSecurityFilter (birth_names name starts with Q)
-        self.rls_entry3 = RowLevelSecurityFilter()
-        self.rls_entry3.tables.extend(
-            session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
-            .all()
-        )
-        self.rls_entry3.filter_type = "Regular"
-        self.rls_entry3.clause = "name like 'Q%'"
-        self.rls_entry3.group_key = "name"
-        self.rls_entry3.roles.append(security_manager.find_role("NameQ"))
-        db.session.add(self.rls_entry3)
-
-        # Create Base RowLevelSecurityFilter (birth_names boys)
-        self.rls_entry4 = RowLevelSecurityFilter()
-        self.rls_entry4.tables.extend(
-            session.query(SqlaTable)
-            .filter(SqlaTable.table_name.in_(["birth_names"]))
-            .all()
-        )
-        self.rls_entry4.filter_type = "Base"
-        self.rls_entry4.clause = "gender = 'boy'"
-        self.rls_entry4.group_key = "gender"
-        self.rls_entry4.roles.append(security_manager.find_role("Admin"))
-        db.session.add(self.rls_entry4)
-
-        db.session.commit()
-
-    def tearDown(self):
-        session = db.session
-        session.delete(self.rls_entry1)
-        session.delete(self.rls_entry2)
-        session.delete(self.rls_entry3)
-        session.delete(self.rls_entry4)
-        session.delete(security_manager.find_role("NameAB"))
-        session.delete(security_manager.find_role("NameQ"))
-        session.delete(self.get_user("NoRlsRoleUser"))
-        session.commit()
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_rls_filter_alters_energy_query(self):
-        g.user = self.get_user(username="alpha")
-        tbl = self.get_table(name="energy_usage")
-        sql = tbl.get_query_str(self.query_obj)
-        assert tbl.get_extra_cache_keys(self.query_obj) == [1]
-        assert "value > 1" in sql
-
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_rls_filter_doesnt_alter_energy_query(self):
-        g.user = self.get_user(
-            username="admin"
-        )  # self.login() doesn't actually set the user
-        tbl = self.get_table(name="energy_usage")
-        sql = tbl.get_query_str(self.query_obj)
-        assert tbl.get_extra_cache_keys(self.query_obj) == []
-        assert "value > 1" not in sql
-
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
-    def test_multiple_table_filter_alters_another_tables_query(self):
-        g.user = self.get_user(
-            username="alpha"
-        )  # self.login() doesn't actually set the user
-        tbl = self.get_table(name="unicode_test")
-        sql = tbl.get_query_str(self.query_obj)
-        assert tbl.get_extra_cache_keys(self.query_obj) == [1]
-        assert "value > 1" in sql
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_rls_filter_alters_gamma_birth_names_query(self):
-        g.user = self.get_user(username="gamma")
-        tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(self.query_obj)
-
-        # establish that the filters are grouped together correctly with
-        # ANDs, ORs and parens in the correct place
-        assert (
-            "WHERE ((name like 'A%'\n        or name like 'B%')\n       OR (name like 'Q%'))\n  AND (gender = 'boy');"
-            in sql
-        )
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_rls_filter_alters_no_role_user_birth_names_query(self):
-        g.user = self.get_user(username="NoRlsRoleUser")
-        tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(self.query_obj)
-
-        # gamma's filters should not be present query
-        assert not self.NAMES_A_REGEX.search(sql)
-        assert not self.NAMES_B_REGEX.search(sql)
-        assert not self.NAMES_Q_REGEX.search(sql)
-        # base query should be present
-        assert self.BASE_FILTER_REGEX.search(sql)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_rls_filter_doesnt_alter_admin_birth_names_query(self):
-        g.user = self.get_user(username="admin")
-        tbl = self.get_table(name="birth_names")
-        sql = tbl.get_query_str(self.query_obj)
-
-        # no filters are applied for admin user
-        assert not self.NAMES_A_REGEX.search(sql)
-        assert not self.NAMES_B_REGEX.search(sql)
-        assert not self.NAMES_Q_REGEX.search(sql)
-        assert not self.BASE_FILTER_REGEX.search(sql)
+    @patch("superset.security.manager.g")
+    def test_get_anonymous_roles(self, mock_g):
+        mock_g.user = security_manager.get_anonymous_user()
+        roles = security_manager.get_user_roles()
+        self.assertEqual([security_manager.get_public_role()], roles)
 
 
 class TestAccessRequestEndpoints(SupersetTestCase):
@@ -1323,3 +1137,168 @@ class TestDatasources(SupersetTestCase):
             Datasource("database1", "schema1", "table1"),
             Datasource("database1", "schema1", "table2"),
         ]
+
+
+class FakeRequest:
+    headers: Any = {}
+
+
+class TestGuestTokens(SupersetTestCase):
+    def create_guest_token(self):
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        return security_manager.create_guest_access_token(user, resources, rls)
+
+    @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
+    def test_create_guest_access_token(self, get_time_mock):
+        now = time.time()
+        get_time_mock.return_value = now  # so we know what it should =
+
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        token = security_manager.create_guest_access_token(user, resources, rls)
+        aud = get_url_host()
+        # unfortunately we cannot mock time in the jwt lib
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+
+        self.assertEqual(user, decoded_token["user"])
+        self.assertEqual(resources, decoded_token["resources"])
+        self.assertEqual(now, decoded_token["iat"])
+        self.assertEqual(aud, decoded_token["aud"])
+        self.assertEqual("guest", decoded_token["type"])
+        self.assertEqual(
+            now + (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]),
+            decoded_token["exp"],
+        )
+
+    def test_get_guest_user(self):
+        token = self.create_guest_token()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNotNone(guest_user)
+        self.assertEqual("test_guest", guest_user.username)
+
+    @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
+    def test_get_guest_user_expired_token(self, get_time_mock):
+        # make a just-expired token
+        get_time_mock.return_value = (
+            time.time() - (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000) - 1
+        )
+        token = self.create_guest_token()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNone(guest_user)
+
+    def test_get_guest_user_no_user(self):
+        user = None
+        resources = [{"type": "dashboard", "id": 1}]
+        rls = {}
+        token = security_manager.create_guest_access_token(user, resources, rls)
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNone(guest_user)
+        self.assertRaisesRegex(ValueError, "Guest token does not contain a user claim")
+
+    def test_get_guest_user_no_resource(self):
+        user = {"username": "test_guest"}
+        resources = []
+        rls = {}
+        token = security_manager.create_guest_access_token(user, resources, rls)
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertRaisesRegex(
+            ValueError, "Guest token does not contain a resources claim"
+        )
+
+    def test_get_guest_user_not_guest_type(self):
+        now = time.time()
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        aud = get_url_host()
+
+        claims = {
+            "user": user,
+            "resources": resources,
+            "rls_rules": [],
+            # standard jwt claims:
+            "aud": aud,
+            "iat": now,  # issued at
+            "type": "not_guest",
+        }
+        token = jwt.encode(
+            claims,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
+        )
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNone(guest_user)
+        self.assertRaisesRegex(ValueError, "This is not a guest token.")
+
+    def test_get_guest_user_bad_audience(self):
+        now = time.time()
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        aud = get_url_host()
+
+        claims = {
+            "user": user,
+            "resources": resources,
+            "rls_rules": [],
+            # standard jwt claims:
+            "aud": "bad_audience",
+            "iat": now,  # issued at
+            "type": "guest",
+        }
+        token = jwt.encode(
+            claims,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
+        )
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")
+        self.assertIsNone(guest_user)
+
+    @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
+    def test_create_guest_access_token_callable_audience(self, get_time_mock):
+        now = time.time()
+        get_time_mock.return_value = now
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        token = security_manager.create_guest_access_token(user, resources, rls)
+
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience="cool_code",
+        )
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.assertEqual("cool_code", decoded_token["aud"])
+        self.assertEqual("guest", decoded_token["type"])
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None

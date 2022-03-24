@@ -31,13 +31,13 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
 from superset.extensions import event_logger
 from superset.sql_parse import Table
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -106,9 +106,6 @@ class DatabaseView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
 
@@ -138,17 +135,6 @@ class CsvToDatabaseView(SimpleFormView):
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=csv_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
-
-        if "." in csv_table.table and csv_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(csv_table.table)s" and in the schema field: '
-                '"%(csv_table.schema)s". Please remove one',
-                table=csv_table.table,
-                schema=csv_table.schema,
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
@@ -223,7 +209,7 @@ class CsvToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=csv_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.get_id()
+                sqla_table.owners = [g.user]
                 sqla_table.schema = csv_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
@@ -285,17 +271,6 @@ class ExcelToDatabaseView(SimpleFormView):
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=excel_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
-
-        if "." in excel_table.table and excel_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(excel_table.table)s" and in the schema field: '
-                '"%(excel_table.schema)s". Please remove one',
-                table=excel_table.table,
-                schema=excel_table.schema,
             )
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
@@ -369,7 +344,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=excel_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.get_id()
+                sqla_table.owners = [g.user]
                 sqla_table.schema = excel_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
@@ -459,17 +434,6 @@ class ColumnarToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/columnartodatabaseview/form")
 
-        if "." in columnar_table.table and columnar_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(columnar_table.table)s" and in the schema field: '
-                '"%(columnar_table.schema)s". Please remove one',
-                table=columnar_table.table,
-                schema=columnar_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/columnartodatabaseview/form")
-
         try:
             chunks = [read(file, **kwargs) for file in files]
             df = pd.concat(chunks)
@@ -521,7 +485,7 @@ class ColumnarToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=columnar_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.get_id()
+                sqla_table.owners = [g.user]
                 sqla_table.schema = columnar_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)

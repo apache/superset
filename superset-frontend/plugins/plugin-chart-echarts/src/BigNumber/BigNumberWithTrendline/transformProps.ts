@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  DTTM_ALIAS,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
@@ -54,7 +55,6 @@ export function renderTooltipFactory(
   };
 }
 
-const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
@@ -97,7 +97,7 @@ export default function transformProps(
   let trendLineData;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][TIME_COLUMN];
+  let timestamp = data.length === 0 ? null : data[0][DTTM_ALIAS];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
@@ -106,7 +106,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[TIME_COLUMN], parseMetricValue(d[metricName])])
+      .map(d => [d[DTTM_ALIAS], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 

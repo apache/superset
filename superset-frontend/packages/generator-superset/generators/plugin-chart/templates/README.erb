@@ -1,52 +1,40 @@
-## superset-plugin-chart-<%= packageName %>
+# <%= packageName %>
 
-This plugin provides <%= description %> for Superset.
+This is the <%= description %> Superset Chart Plugin.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+To build the plugin, run the following commands:
+
+```
+npm ci
+npm run build
+```
+
+Alternatively, to run the plugin in development mode (=rebuilding whenever changes are made), start the dev server with the following command:
+
+```
+npm run dev
+```
+
+To add the package to Superset, go to the `superset-frontend` subdirectory in your Superset source folder (assuming both the `<%= packageName %>` plugin and `superset` repos are in the same root directory) and run
+```
+npm i -S ../../<%= packageName %>
+```
+
+After this edit the `superset-frontend/src/visualizations/presets/MainPreset.js` and make the following changes:
 
 ```js
-import <%= packageLabel %>ChartPlugin from '@superset-ui/plugin-chart-<%= packageName %>';
-
-new <%= packageLabel %>ChartPlugin()
-  .configure({ key: '<%= packageName %>' })
-  .register();
+import { <%= packageLabel %> } from '<%= packageName %>';
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-<%= packageName %>) for more details.
-
+to import the plugin and later add the following to the array that's passed to the `plugins` property:
 ```js
-<SuperChart
-  chartType="<%= packageName %>"
-  width={600}
-  height={600}
-  formData={...}
-  queriesData={[{
-    data: {...},
-  }]}
-/>
+new <%= packageLabel %>().configure({ key: '<%= packageName %>' }),
 ```
 
-### File structure generated
+After that the plugin should show up when you run Superset, e.g. the development server:
 
 ```
-├── package.json
-├── README.md
-├── tsconfig.json
-├── src
-│   ├── <%= packageLabel %>.tsx
-│   ├── images
-│   │   └── thumbnail.png
-│   ├── index.ts
-│   ├── plugin
-│   │   ├── buildQuery.ts
-│   │   ├── controlPanel.ts
-│   │   ├── index.ts
-│   │   └── transformProps.ts
-│   └── types.ts
-├── test
-│   └── index.test.ts
-└── types
-    └── external.d.ts
+npm run dev-server
 ```

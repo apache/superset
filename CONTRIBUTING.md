@@ -198,7 +198,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
-- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html)):
 
   - `feat` (new feature)
   - `fix` (bug fix)
@@ -359,7 +359,7 @@ In the event a community member discovers a security flaw in Superset, it is imp
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
-- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable time frame, this would counter-indicate reverting.
 - **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
@@ -663,8 +663,8 @@ tox -e pylint
 
 In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
 
 ### TypeScript
 
@@ -804,7 +804,6 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
 export SUPERSET_TESTENV=true
-export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
@@ -1116,7 +1115,7 @@ Then, [Updating language files](#updating-language-files).
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
+[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
 
 To contribute a plugin to Superset, your plugin must meet the following criteria:
 

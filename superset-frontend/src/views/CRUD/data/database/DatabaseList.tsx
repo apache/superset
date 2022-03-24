@@ -68,6 +68,11 @@ const IconCancelX = styled(Icons.CancelX)`
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .action-button {
+    display: inline-block;
+    height: 100%;
+  }
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
@@ -110,6 +115,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const handleDatabaseImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Database imported'));
   };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>

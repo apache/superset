@@ -225,7 +225,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+    sql = SQL_QUERY_MUTATOR(
+        sql, user_name=user_name, security_manager=security_manager, database=database
+    )
     try:
         query.executed_sql = sql
         if log_query:
@@ -292,7 +294,8 @@ def apply_limit_if_exists(
 ) -> str:
     if query.limit and increased_limit:
         # We are fetching one more than the requested limit in order
-        # to test whether there are more rows than the limit.
+        # to test whether there are more rows than the limit. According to the DB
+        # Engine support it will choose top or limit parse
         # Later, the extra row will be dropped before sending
         # the results back to the user.
         sql = database.apply_limit_to_sql(sql, increased_limit, force=True)

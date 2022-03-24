@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import textwrap
 import unittest
 from unittest import mock
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -36,7 +38,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.sql_types.base import literal_dttm_type_factory
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 from .fixtures.energy_dashboard import (
@@ -504,12 +506,39 @@ class TestSqlaTableModel(SupersetTestCase):
         sql = tbl.get_query_str(query_obj)
         self.assertNotIn("-- COMMENT", sql)
 
-        def mutator(*args):
+        def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
         self.assertIn("-- COMMENT", sql)
+
+        app.config["SQL_QUERY_MUTATOR"] = None
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_mutator_different_params(self):
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=None,
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn("-- COMMENT", sql)
+
+        def mutator(sql, database=None, **kwargs):
+            return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
+
+        app.config["SQL_QUERY_MUTATOR"] = mutator
+        mutated_sql = tbl.get_query_str(query_obj)
+        self.assertIn("-- COMMENT", mutated_sql)
+        self.assertIn(tbl.database.name, mutated_sql)
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
@@ -577,6 +606,38 @@ class TestSqlaTableModel(SupersetTestCase):
             "name",
             "state",
         }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_adhoc_column(self):
+        # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
+        # column and legacy chart
+        tbl = self.get_table(name="birth_names")
+        dashboard = self.get_dash_by_slug("births")
+        slc = Slice(
+            slice_name="slice with adhoc column",
+            datasource_type="table",
+            viz_type="table",
+            params=json.dumps(
+                {
+                    "adhoc_filters": [],
+                    "granularity_sqla": "ds",
+                    "groupby": [
+                        "name",
+                        {"label": "adhoc_column", "sqlExpression": "name"},
+                    ],
+                    "metrics": ["sum__num"],
+                    "time_range": "No filter",
+                    "viz_type": "table",
+                }
+            ),
+            datasource_id=tbl.id,
+        )
+        dashboard.slices.append(slc)
+        datasource_info = slc.datasource.data_for_slices([slc])
+        assert "database" in datasource_info
+
+        # clean up and auto commit
+        metadata_db.session.delete(slc)
 
 
 def test_literal_dttm_type_factory():

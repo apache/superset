@@ -30,7 +30,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend, TimeRangeEndpoint
+from superset.utils.core import AdhocMetricExpressionType, backend
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -235,23 +235,6 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
-    def test_query_context_time_range_endpoints(self):
-        """
-        Ensure that time_range_endpoints are populated automatically when missing
-        from the payload.
-        """
-        self.login(username="admin")
-        payload = get_query_context("birth_names")
-        del payload["queries"][0]["extras"]["time_range_endpoints"]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_object = query_context.queries[0]
-        extras = query_object.to_dict()["extras"]
-        assert "time_range_endpoints" in extras
-        self.assertEqual(
-            extras["time_range_endpoints"],
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.
@@ -380,7 +363,7 @@ class TestQueryContext(SupersetTestCase):
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
             r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('abc'\)\)""",
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
             sql_text,
         )
 

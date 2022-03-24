@@ -328,6 +328,26 @@ describe('SupersetClientClass', () => {
       );
     });
 
+    it('uses a guest token when provided', async () => {
+      expect.assertions(1);
+
+      const client = new SupersetClientClass({
+        protocol,
+        host,
+        guestToken: 'abc123',
+        guestTokenHeaderName: 'guestTokenHeader',
+      });
+
+      await client.init();
+      await client.get({ url: mockGetUrl });
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      expect(fetchRequest.headers).toEqual(
+        expect.objectContaining({
+          guestTokenHeader: 'abc123',
+        }),
+      );
+    });
+
     describe('.get()', () => {
       it('makes a request using url or endpoint', async () => {
         expect.assertions(2);
@@ -481,11 +501,16 @@ describe('SupersetClientClass', () => {
 
   it('should redirect Unauthorized', async () => {
     const mockRequestUrl = 'https://host/get/url';
+    const mockRequestPath = '/get/url';
+    const mockRequestSearch = '?param=1&param=2';
     const { location } = window;
     // @ts-ignore
     delete window.location;
     // @ts-ignore
-    window.location = { href: mockRequestUrl };
+    window.location = {
+      pathname: mockRequestPath,
+      search: mockRequestSearch,
+    };
     const authSpy = jest
       .spyOn(SupersetClientClass.prototype, 'ensureAuth')
       .mockImplementation();
@@ -503,7 +528,9 @@ describe('SupersetClientClass', () => {
       error = err;
     } finally {
       const redirectURL = window.location.href;
-      expect(redirectURL).toBe(`/login?next=${mockRequestUrl}`);
+      expect(redirectURL).toBe(
+        `/login?next=${mockRequestPath + mockRequestSearch}`,
+      );
       expect(error.status).toBe(401);
     }
 

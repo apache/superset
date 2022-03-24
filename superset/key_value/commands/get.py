@@ -14,32 +14,45 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-from abc import ABC, abstractmethod
-from typing import Optional
 
-from flask import current_app as app
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
+import logging
+import pickle
+from datetime import datetime
+from typing import Any, Optional
+
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db
 from superset.commands.base import BaseCommand
-from superset.key_value.commands.exceptions import KeyValueGetFailedError
+from superset.key_value.exceptions import KeyValueGetFailedError
+from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyType
+from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
-class GetKeyValueCommand(BaseCommand, ABC):
-    def __init__(self, actor: User, resource_id: int, key: str):
-        self._actor = actor
-        self._resource_id = resource_id
-        self._key = key
+class GetKeyValueCommand(BaseCommand):
+    key: str
+    key_type: KeyType
+    resource: str
 
-    def run(self) -> Model:
+    def __init__(self, resource: str, key: str, key_type: KeyType = "uuid"):
+        """
+        Retrieve a key value entry
+
+        :param resource: the resource (dashboard, chart etc)
+        :param key: the key to retrieve
+        :param key_type: the type of the key to retrieve
+        :return: the value associated with the key if present
+        """
+        self.resource = resource
+        self.key = key
+        self.key_type = key_type
+
+    def run(self) -> Any:
         try:
-            config = app.config["FILTER_STATE_CACHE_CONFIG"]
-            refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
-            return self.get(self._resource_id, self._key, refresh_timeout)
+            return self.get()
         except SQLAlchemyError as ex:
             logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
@@ -47,6 +60,14 @@ class GetKeyValueCommand(BaseCommand, ABC):
     def validate(self) -> None:
         pass
 
-    @abstractmethod
-    def get(self, resource_id: int, key: str, refresh_timeout: bool) -> Optional[str]:
-        ...
+    def get(self) -> Optional[Any]:
+        filter_ = get_filter(self.resource, self.key, self.key_type)
+        entry = (
+            db.session.query(KeyValueEntry)
+            .filter_by(**filter_)
+            .autoflush(False)
+            .first()
+        )
+        if entry and (entry.expires_on is None or entry.expires_on > datetime.now()):
+            return pickle.loads(entry.value)
+        return None

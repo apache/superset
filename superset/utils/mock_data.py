@@ -176,12 +176,12 @@ def add_data(
     If the table already exists `columns` can be `None`.
 
     :param Optional[List[ColumnInfo]] columns: list of column names and types to create
-    :param int run_nows: how many rows to generate and insert
+    :param int num_rows: how many rows to generate and insert
     :param str table_name: name of table, will be created if it doesn't exist
     :param bool append: if the table already exists, append data or replace?
     """
     # pylint: disable=import-outside-toplevel
-    from superset.utils.core import get_example_database
+    from superset.utils.database import get_example_database
 
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)
@@ -239,6 +239,7 @@ def add_sample_rows(
 ) -> Iterator[Model]:
     """
     Add entities of a given model.
+    :param Session session: an SQLAlchemy session
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """

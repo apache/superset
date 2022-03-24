@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -37,7 +37,7 @@ interface Column {
   type: string;
 }
 
-interface Table {
+export interface Table {
   id: string;
   name: string;
   partitions?: {
@@ -53,7 +53,7 @@ interface Table {
   columns: Column[];
 }
 
-interface TableElementProps {
+export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;
@@ -77,7 +77,7 @@ const Fade = styled.div`
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const tableNameRef = React.useRef<HTMLInputElement>(null);
+  const tableNameRef = useRef<HTMLInputElement>(null);
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();

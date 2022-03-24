@@ -130,6 +130,8 @@ export interface ClientConfig {
   protocol?: Protocol;
   credentials?: Credentials;
   csrfToken?: CsrfToken;
+  guestToken?: string;
+  guestTokenHeaderName?: string;
   fetchRetryOptions?: FetchRetryOptions;
   headers?: Headers;
   mode?: Mode;
@@ -148,8 +150,7 @@ export interface SupersetClientInterface
     | 'isAuthenticated'
     | 'reAuthenticate'
   > {
-  configure: (config?: ClientConfig) => SupersetClientClass;
-  getInstance: (maybeClient?: SupersetClientClass) => SupersetClientClass;
+  configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
 }
 

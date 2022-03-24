@@ -20,8 +20,11 @@ import json
 import unittest
 import copy
 from datetime import datetime
+from io import BytesIO
 from typing import Optional
 from unittest import mock
+from zipfile import ZipFile
+
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
@@ -44,14 +47,13 @@ from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
-from superset.typing import AdhocColumn
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
-    get_example_database,
     get_example_default_schema,
-    get_main_database,
     AdhocMetricExpressionType,
 )
+from superset.utils.database import get_example_database, get_main_database
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
 from tests.common.query_context_generator import ANNOTATION_LAYERS
@@ -155,6 +157,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -185,6 +188,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -201,6 +205,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # assert
         self.assert_row_count(rv, expected_row_count)
+        assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     def test_with_incorrect_result_type__400(self):
         self.query_context_payload["result_type"] = "qwerty"
@@ -234,6 +239,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_empty_request_with_csv_result_format(self):
+        """
+        Chart data API: Test empty chart data with CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"] = []
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -241,6 +256,22 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["result_format"] = "csv"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
+        assert rv.mimetype == "text/csv"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_multi_query_csv_result_format(self):
+        """
+        Chart data API: Test chart data with multi-query CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"].append(
+            self.query_context_payload["queries"][0]
+        )
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        assert rv.mimetype == "application/zip"
+        zipfile = ZipFile(BytesIO(rv.data), "r")
+        assert zipfile.namelist() == ["query_1.csv", "query_2.csv"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format_when_actor_not_permitted_for_csv__403(self):
@@ -435,6 +466,28 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_where_parameter_including_comment___200(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"]["where"] = "1 = 1 -- abc"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_orderby_parameter_with_second_query__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["orderby"] = [
+            [
+                {"expressionType": "SQL", "sqlExpression": "sum__num; select 1, 1",},
+                True,
+            ],
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_having_parameter_closing_and_comment__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
         self.query_context_payload["queries"][0]["extras"][
@@ -449,16 +502,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["datasource"] = "abc"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-
-        assert rv.status_code == 400
-
-    def test_with_invalid_time_range_endpoints_enum_value__400(self):
-        self.query_context_payload["queries"][0]["extras"]["time_range_endpoints"] = [
-            "abc",
-            "EXCLUSIVE",
-        ]
-
-        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
 
         assert rv.status_code == 400
 
@@ -740,12 +783,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
                         "granularity": "ds",
                         "filters": [],
-                        "extras": {
-                            "time_range_endpoints": ["inclusive", "exclusive"],
-                            "having": "",
-                            "having_druid": [],
-                            "where": "",
-                        },
+                        "extras": {"having": "", "having_druid": [], "where": "",},
                         "applied_time_extras": {},
                         "columns": ["gender"],
                         "metrics": ["sum__num"],
@@ -764,6 +802,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             }
         )
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.mimetype == "application/json"
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2

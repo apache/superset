@@ -29,8 +29,8 @@ from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import (
     get_example_data,
     get_slice_json,
@@ -174,7 +174,6 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
         "compare_suffix": "o10Y",
         "limit": "25",
         "time_range": "No filter",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": app.config["ROW_LIMIT"],

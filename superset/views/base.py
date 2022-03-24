@@ -38,7 +38,7 @@ from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -62,6 +62,8 @@ from superset import (
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
+from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -71,8 +73,8 @@ from superset.exceptions import (
 )
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
+from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
@@ -102,6 +104,10 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "SCHEDULED_QUERIES",
+    "EXCEL_EXTENSIONS",
+    "CSV_EXTENSIONS",
+    "COLUMNAR_EXTENSIONS",
+    "ALLOWED_EXTENSIONS",
 )
 
 logger = logging.getLogger(__name__)
@@ -264,15 +270,8 @@ def create_table_permissions(table: models.SqlaTable) -> None:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
-def get_user_roles() -> List[Role]:
-    if g.user.is_anonymous:
-        public_role = conf.get("AUTH_ROLE_PUBLIC")
-        return [security_manager.find_role(public_role)] if public_role else []
-    return g.user.roles
-
-
 def is_user_admin() -> bool:
-    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    user_roles = [role.name.lower() for role in list(security_manager.get_user_roles())]
     return "admin" in user_roles
 
 
@@ -352,7 +351,11 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
-    frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config = {
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
+        for k in FRONTEND_CONF_KEYS
+    }
+
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
@@ -362,6 +365,10 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
         ]
+
+    # verify client has google sheets installed
+    available_specs = get_available_engine_specs()
+    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
         "flash_messages": messages,

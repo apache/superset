@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from pprint import pformat
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
@@ -29,8 +30,8 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
-from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, OrderBy
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -271,7 +272,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
-            self._validate_filters()
+            self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
@@ -290,12 +291,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
-    def _validate_filters(self) -> None:
+    def _sanitize_filters(self) -> None:
         for param in ("where", "having"):
             clause = self.extras.get(param)
             if clause:
                 try:
-                    validate_filter_clause(clause)
+                    sanitized_clause = sanitize_clause(clause)
+                    if sanitized_clause != clause:
+                        self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
@@ -395,6 +398,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :raises QueryObjectValidationError: If the post processing operation
                  is incorrect
         """
+        logger.debug("post_processing: %s", pformat(self.post_processing))
         for post_process in self.post_processing:
             operation = post_process.get("operation")
             if not operation:

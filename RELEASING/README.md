@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [1.4](release-notes-1-4/README.md)
 - [1.3](release-notes-1-3/README.md)
 - [1.2](release-notes-1-2/README.md)
 - [1.1](release-notes-1-1/README.md)
@@ -286,6 +287,8 @@ cd ~/src/superset/
 git branch
 # Create the release tag
 git tag -f ${SUPERSET_VERSION}
+# push the tag to the remote
+git push upstream ${SUPERSET_VERSION}
 ```
 
 ### Update CHANGELOG and UPDATING on superset

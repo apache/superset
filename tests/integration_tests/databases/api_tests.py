@@ -43,7 +43,7 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -179,12 +179,14 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 

@@ -40,6 +40,10 @@ export default class SupersetClientClass {
 
   csrfPromise?: CsrfPromise;
 
+  guestToken?: string;
+
+  guestTokenHeaderName: string;
+
   fetchRetryOptions?: FetchRetryOptions;
 
   baseUrl: string;
@@ -64,6 +68,8 @@ export default class SupersetClientClass {
     timeout,
     credentials = undefined,
     csrfToken = undefined,
+    guestToken = undefined,
+    guestTokenHeaderName = 'X-GuestToken',
   }: ClientConfig = {}) {
     const url = new URL(
       host || protocol
@@ -81,6 +87,8 @@ export default class SupersetClientClass {
     this.timeout = timeout;
     this.credentials = credentials;
     this.csrfToken = csrfToken;
+    this.guestToken = guestToken;
+    this.guestTokenHeaderName = guestTokenHeaderName;
     this.fetchRetryOptions = {
       ...DEFAULT_FETCH_RETRY_OPTIONS,
       ...fetchRetryOptions,
@@ -88,6 +96,9 @@ export default class SupersetClientClass {
     if (typeof this.csrfToken === 'string') {
       this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
       this.csrfPromise = Promise.resolve(this.csrfToken);
+    }
+    if (guestToken) {
+      this.headers[guestTokenHeaderName] = guestToken;
     }
   }
 
@@ -221,6 +232,8 @@ export default class SupersetClientClass {
   }
 
   redirectUnauthorized() {
-    window.location.href = `/login?next=${window.location.href}`;
+    window.location.href = `/login?next=${
+      window.location.pathname + window.location.search
+    }`;
   }
 }

@@ -55,22 +55,27 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import (
+    Column,
+    Metric,
+    QueryObjectDict,
+    VizData,
+    VizPayload,
+)
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -244,7 +249,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             )
         return df
 
-    def get_samples(self) -> List[Dict[str, Any]]:
+    def get_samples(self) -> Dict[str, Any]:
         query_obj = self.query_obj()
         query_obj.update(
             {
@@ -258,8 +263,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "to_dttm": None,
             }
         )
-        df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
-        return df.to_dict(orient="records")
+        payload = self.get_df_payload(query_obj)  # leverage caching logic
+        return {
+            "data": payload["df"].to_dict(orient="records"),
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+        }
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
         """Returns a pandas dataframe based on the query object"""
@@ -381,10 +390,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                try:
-                    validate_filter_clause(clause)
-                except QueryClauseValidationException as ex:
-                    raise QueryObjectValidationError(ex.message) from ex
+                sanitized_clause = sanitize_clause(clause)
+                if sanitized_clause != clause:
+                    self.form_data[param] = sanitized_clause
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -393,7 +401,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "having": self.form_data.get("having", ""),
             "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
-            "time_range_endpoints": self.form_data.get("time_range_endpoints"),
             "where": self.form_data.get("where", ""),
         }
 
@@ -455,12 +462,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        cache_dict["rls"] = (
-            security_manager.get_rls_ids(self.datasource)
-            if is_feature_enabled("ROW_LEVEL_SECURITY")
-            and self.datasource.is_rls_supported
-            else []
-        )
+        cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)
@@ -621,6 +623,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
+            "colnames": list(df.columns) if df is not None else None,
+            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource)
+            if df is not None
+            else None,
         }
 
     @staticmethod
@@ -846,6 +852,11 @@ class TimeTableViz(BaseViz):
             raise QueryObjectValidationError(
                 _("When using 'Group By' you are limited to use a single metric")
             )
+
+        sort_by = utils.get_first_metric_name(query_obj["metrics"])
+        is_asc = not query_obj.get("order_desc")
+        query_obj["orderby"] = [(sort_by, is_asc)]
+
         return query_obj
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1829,7 +1840,7 @@ class DistributionBarViz(BaseViz):
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(groupby).sum()[sortby].copy()
+        row = df.groupby(groupby)[sortby].sum().copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=groupby, columns=columns, values=metrics)

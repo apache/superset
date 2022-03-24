@@ -68,12 +68,16 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_form_data,
+    requires_json,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +145,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_ctas_schema",
         "id",
+        "disable_data_preview",
     ]
     add_columns = [
         "database_name",
@@ -201,6 +206,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self) -> Response:
         """Creates a new Database
         ---
@@ -237,9 +243,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -277,6 +280,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, pk: int) -> Response:
         """Changes a Database
         ---
@@ -320,8 +324,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -593,6 +595,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".test_connection",
         log_to_statsd=False,
     )
+    @requires_json
     def test_connection(self) -> FlaskResponse:
         """Tests a database connection
         ---
@@ -623,8 +626,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = DatabaseTestConnectionSchema().load(request.json)
         # This validates custom Schema with custom validations
@@ -774,6 +775,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
+    @requires_form_data
     def import_(self) -> Response:
         """Import database(s) with associated datasets
         ---
@@ -790,7 +792,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                       type: string
                       format: binary
                     passwords:
-                      description: JSON map of passwords for each file
+                      description: >-
+                        JSON map of passwords for each featured database in the
+                        ZIP file. If the ZIP includes a database config in the path
+                        `databases/MyDatabase.yaml`, the password should be provided
+                        in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
                     overwrite:
                       description: overwrite existing databases?
@@ -985,6 +992,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         f".validate_parameters",
         log_to_statsd=False,
     )
+    @requires_json
     def validate_parameters(self) -> FlaskResponse:
         """validates database connection parameters
         ---
@@ -1015,9 +1023,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            raise InvalidPayloadFormatError("Request is not JSON")
-
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
         except ValidationError as ex:

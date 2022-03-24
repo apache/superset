@@ -18,27 +18,29 @@
  */
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
-import { Form, Row, Col, Input, TextArea } from 'src/common/components';
+import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
-type PropertiesModalProps = {
+export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
   permissionsError?: string;
   existingOwners?: SelectValue;
+  addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = Form.Item;
+const FormItem = AntdForm.Item;
 
-const StyledFormItem = styled(Form.Item)`
+const StyledFormItem = styled(AntdForm.Item)`
   margin-bottom: 0;
 `;
 
@@ -46,14 +48,15 @@ const StyledHelpBlock = styled.span`
   margin-bottom: 0;
 `;
 
-export default function PropertiesModal({
+function PropertiesModal({
   slice,
   onHide,
   onSave,
   show,
+  addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -153,10 +156,12 @@ export default function PropertiesModal({
       });
       // update the redux state
       const updatedChart = {
+        ...payload,
         ...res.json.result,
         id: slice.slice_id,
       };
       onSave(updatedChart);
+      addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
       const clientError = await getClientErrorObject(res);
@@ -209,7 +214,7 @@ export default function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -252,7 +257,7 @@ export default function PropertiesModal({
             <h3>{t('Certification')}</h3>
             <FormItem>
               <StyledFormItem label={t('Certified by')} name="certified_by">
-                <Input />
+                <Input aria-label={t('Certified by')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t('Person or group that has certified this chart.')}
@@ -263,7 +268,7 @@ export default function PropertiesModal({
                 label={t('Certification details')}
                 name="certification_details"
               >
-                <Input />
+                <Input aria-label={t('Certification details')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -275,8 +280,8 @@ export default function PropertiesModal({
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
             <FormItem>
-              <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
-                <Input />
+              <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
+                <Input aria-label="Cache timeout" />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -304,7 +309,9 @@ export default function PropertiesModal({
             </FormItem>
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 }
+
+export default withToasts(PropertiesModal);

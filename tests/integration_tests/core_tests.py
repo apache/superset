@@ -25,6 +25,8 @@ import json
 import logging
 from typing import Dict, List
 from urllib.parse import quote
+
+import superset.utils.database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -41,7 +43,7 @@ import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy.exc import SQLAlchemyError
 from superset.models.cache import CacheKey
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
@@ -154,15 +156,74 @@ class TestCore(SupersetTestCase):
         self.assertEqual(cache_key_with_groupby, viz.cache_key(qobj))
 
     def test_get_superset_tables_not_allowed(self):
-        example_db = utils.get_example_database()
+        example_db = superset.utils.database.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
         self.login(username="gamma")
         uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_get_superset_tables_substr(self):
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_superset_tables_allowed(self):
+        session = db.session
+        table_name = "energy_usage"
+        role_name = "dummy_role"
+        self.logout()
+        self.login(username="gamma")
+        gamma_user = security_manager.find_user(username="gamma")
+        security_manager.add_role(role_name)
+        dummy_role = security_manager.find_role(role_name)
+        gamma_user.roles.append(dummy_role)
+
+        tbl_id = self.table_ids.get(table_name)
+        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id).first()
+        table_perm = table.perm
+
+        security_manager.add_permission_role(
+            dummy_role,
+            security_manager.find_permission_view_menu("datasource_access", table_perm),
+        )
+
+        session.commit()
+
         example_db = utils.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
+        # cleanup
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.remove(security_manager.find_role(role_name))
+        session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_superset_tables_not_allowed_with_out_permissions(self):
+        session = db.session
+        table_name = "energy_usage"
+        role_name = "dummy_role_no_table_access"
+        self.logout()
+        self.login(username="gamma")
+        gamma_user = security_manager.find_user(username="gamma")
+        security_manager.add_role(role_name)
+        dummy_role = security_manager.find_role(role_name)
+        gamma_user.roles.append(dummy_role)
+
+        session.commit()
+
+        example_db = utils.get_example_database()
+        schema_name = self.default_schema_backend_map[example_db.backend]
+        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+        # cleanup
+        gamma_user = security_manager.find_user(username="gamma")
+        gamma_user.roles.remove(security_manager.find_role(role_name))
+        session.commit()
+
+    def test_get_superset_tables_substr(self):
+        example_db = superset.utils.database.get_example_database()
         if example_db.backend in {"presto", "hive"}:
             # TODO: change table to the real table that is in examples.
             return
@@ -275,7 +336,6 @@ class TestCore(SupersetTestCase):
             "metric": "sum__value",
             "row_limit": 5000,
             "slice_id": slice_id,
-            "time_range_endpoints": ["inclusive", "exclusive"],
         }
         # Changing name and save as a new slice
         resp = self.client.post(
@@ -298,7 +358,6 @@ class TestCore(SupersetTestCase):
             "row_limit": 5000,
             "slice_id": new_slice_id,
             "time_range": "now",
-            "time_range_endpoints": ["inclusive", "exclusive"],
         }
         # Setting the name back to its original name by overwriting new slice
         self.client.post(
@@ -368,17 +427,6 @@ class TestCore(SupersetTestCase):
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
-
-    def test_tablemodelview_list(self):
-        self.login(username="admin")
-
-        url = "/tablemodelview/list/"
-        resp = self.get_resp(url)
-
-        # assert that a table is listed
-        table = db.session.query(SqlaTable).first()
-        assert table.name in resp
-        assert "/superset/explore/table/{}".format(table.id) in resp
 
     def test_add_slice(self):
         self.login(username="admin")
@@ -471,7 +519,7 @@ class TestCore(SupersetTestCase):
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login(username=username)
-        database = utils.get_example_database()
+        database = superset.utils.database.get_example_database()
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps(
             {
@@ -560,7 +608,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(expected_body, response_body)
 
     def test_custom_password_store(self):
-        database = utils.get_example_database()
+        database = superset.utils.database.get_example_database()
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -578,13 +626,13 @@ class TestCore(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = utils.get_example_database()
+        database = superset.utils.database.get_example_database()
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = "databaseview/edit/{}".format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = utils.get_example_database()
+        database = superset.utils.database.get_example_database()
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
         # Need to clean up after ourselves
@@ -630,30 +678,6 @@ class TestCore(SupersetTestCase):
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
-
-    def test_shortner(self):
-        self.login(username="admin")
-        data = (
-            "//superset/explore/table/1/?viz_type=sankey&groupby=source&"
-            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
-            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id=78&slice_name="
-            "Energy+Sankey&collapsed_fieldsets=&action=&datasource_name="
-            "energy_usage&datasource_id=1&datasource_type=table&"
-            "previous_viz_type=sankey"
-        )
-        resp = self.client.post("/r/shortner/", data=dict(data=data))
-        assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
-
-    def test_shortner_invalid(self):
-        self.login(username="admin")
-        invalid_urls = [
-            "hhttp://invalid.com",
-            "hhttps://invalid.com",
-            "www.invalid.com",
-        ]
-        for invalid_url in invalid_urls:
-            resp = self.client.post("/r/shortner/", data=dict(data=invalid_url))
-            assert resp.status_code == 400
 
     def test_redirect_invalid(self):
         model_url = models.Url(url="hhttp://invalid.com")
@@ -737,14 +761,14 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extra_table_metadata(self):
         self.login()
-        example_db = utils.get_example_database()
+        example_db = superset.utils.database.get_example_database()
         schema = "default" if example_db.backend in {"presto", "hive"} else "superset"
         self.get_json_resp(
             f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
 
     def test_templated_sql_json(self):
-        if utils.get_example_database().backend == "presto":
+        if superset.utils.database.get_example_database().backend == "presto":
             # TODO: make it work for presto
             return
         self.login()
@@ -923,7 +947,7 @@ class TestCore(SupersetTestCase):
             sql=commented_query,
             database=get_example_database(),
         )
-        rendered_query = str(table.get_from_clause())
+        rendered_query = str(table.get_from_clause()[0])
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_datasource(self):
@@ -941,7 +965,6 @@ class TestCore(SupersetTestCase):
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],
@@ -965,7 +988,6 @@ class TestCore(SupersetTestCase):
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
             "url_params": {},
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": 'DATEADD(DATETIME("2021-01-22T00:00:00"), -100, year) : 2021-01-22T00:00:00',
             "metrics": [
@@ -1064,7 +1086,6 @@ class TestCore(SupersetTestCase):
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],
@@ -1095,7 +1116,6 @@ class TestCore(SupersetTestCase):
         form_data = {
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],
@@ -1124,7 +1144,6 @@ class TestCore(SupersetTestCase):
                 "form_data": {
                     "datasource": f"{tbl_id}__table",
                     "viz_type": "dist_bar",
-                    "time_range_endpoints": ["inclusive", "exclusive"],
                     "granularity_sqla": "ds",
                     "time_range": "No filter",
                     "metrics": ["count"],
@@ -1163,7 +1182,6 @@ class TestCore(SupersetTestCase):
                 "form_data": {
                     "datasource": f"{tbl_id}__table",
                     "viz_type": "dist_bar",
-                    "time_range_endpoints": ["inclusive", "exclusive"],
                     "granularity_sqla": "ds",
                     "time_range": "No filter",
                     "metrics": ["count"],
@@ -1222,7 +1240,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_select_star(self):
         self.login(username="admin")
-        examples_db = utils.get_example_database()
+        examples_db = superset.utils.database.get_example_database()
         resp = self.get_resp(f"/superset/select_star/{examples_db.id}/birth_names")
         self.assertIn("gender", resp)
 
@@ -1231,7 +1249,7 @@ class TestCore(SupersetTestCase):
         Database API: Test get select star not allowed
         """
         self.login(username="gamma")
-        example_db = utils.get_example_database()
+        example_db = superset.utils.database.get_example_database()
         resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
         self.assertEqual(resp.status_code, 403)
 
@@ -1467,7 +1485,7 @@ class TestCore(SupersetTestCase):
 
     def test_virtual_table_explore_visibility(self):
         # test that default visibility it set to True
-        database = utils.get_example_database()
+        database = superset.utils.database.get_example_database()
         self.assertEqual(database.allows_virtual_table_explore, True)
 
         # test that visibility is disabled when extra is set to False
@@ -1488,9 +1506,32 @@ class TestCore(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
 
-    def test_explore_database_id(self):
+    def test_data_preview_visibility(self):
+        # test that default visibility is allowed
         database = utils.get_example_database()
-        explore_database = utils.get_example_database()
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is disabled when extra is set to true
+        extra = database.get_extra()
+        extra["disable_data_preview"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, True)
+
+        # test that visibility is enabled when extra is set to false
+        extra = database.get_extra()
+        extra["disable_data_preview"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is not broken with bad values
+        extra = database.get_extra()
+        extra["disable_data_preview"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
+
+    def test_explore_database_id(self):
+        database = superset.utils.database.get_example_database()
+        explore_database = superset.utils.database.get_example_database()
 
         # test that explore_database_id is the regular database
         # id if none is set in the extra

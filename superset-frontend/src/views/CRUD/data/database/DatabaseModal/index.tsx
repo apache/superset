@@ -30,7 +30,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Select } from 'src/common/components';
+import { AntdSelect } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -135,6 +135,7 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
+  dbEngine: string | undefined; // if included goto step 2 with engine already set
 }
 
 enum ActionType {
@@ -213,7 +214,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = {};
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -428,6 +429,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onHide,
   show,
   databaseId,
+  dbEngine,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -440,6 +442,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -494,7 +497,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
-    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
+    setTestInProgress(true);
+    testDatabaseConnection(
+      connection,
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addDangerToast(errorMsg);
+      },
+      (errorMsg: string) => {
+        setTestInProgress(false);
+        addSuccessToast(errorMsg);
+      },
+    );
   };
 
   const onClose = () => {
@@ -585,6 +599,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         if (!editNewDb) {
           onClose();
+          addSuccessToast(t('Database settings updated'));
         }
       }
     } else if (db) {
@@ -603,6 +618,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           // tab layout only has one step
           // so it should close immediately on save
           onClose();
+          addSuccessToast(t('Database connected'));
         }
       }
     }
@@ -668,25 +684,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {t('Or choose from a list of other databases we support:')}
       </h4>
       <div className="control-label">{t('Supported databases')}</div>
-      <Select
+      <AntdSelect
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        showSearch
       >
         {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
           .map((database: DatabaseForm) => (
-            <Select.Option value={database.name} key={database.name}>
+            <AntdSelect.Option value={database.name} key={database.name}>
               {database.name}
-            </Select.Option>
+            </AntdSelect.Option>
           ))}
         {/* Allow users to connect to DB via legacy SQLA form */}
-        <Select.Option value="Other" key="Other">
+        <AntdSelect.Option value="Other" key="Other">
           {t('Other')}
-        </Select.Option>
-      </Select>
+        </AntdSelect.Option>
+      </AntdSelect>
       <Alert
         showIcon
         closable={false}
@@ -835,6 +852,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (isLoading) {
       setLoading(false);
+    }
+
+    if (availableDbs && dbEngine) {
+      // set model if passed into props
+      setDatabaseModel(dbEngine);
     }
   }, [availableDbs]);
 
@@ -1047,6 +1069,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 conf={conf}
                 testConnection={testConnection}
                 isEditMode={isEditMode}
+                testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>

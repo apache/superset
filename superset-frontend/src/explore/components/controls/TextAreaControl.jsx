@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { TextArea } from 'src/common/components';
+import { TextArea } from 'src/components/Input';
 import { t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -63,6 +63,10 @@ export default class TextAreaControl extends React.Component {
     this.props.onChange(value);
   }
 
+  onAreaEditorChange(value) {
+    this.props.onChange(value);
+  }
+
   renderEditor(inModal = false) {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
@@ -76,7 +80,6 @@ export default class TextAreaControl extends React.Component {
           style={style}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          onChange={this.props.onChange}
           width="100%"
           height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
@@ -84,6 +87,7 @@ export default class TextAreaControl extends React.Component {
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
+          onChange={this.onAreaEditorChange.bind(this)}
         />
       );
     }

@@ -21,7 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
-import { TextArea } from 'src/common/components';
+import { TextArea } from 'src/components/Input';
 
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 
@@ -53,5 +53,13 @@ describe('TextArea', () => {
     wrapper = shallow(<TextAreaControl {...props} />);
     expect(wrapper.find(TextArea)).not.toExist();
     expect(wrapper.find(TextAreaEditor)).toExist();
+  });
+
+  it('calls onAreaEditorChange when entering in the AceEditor', () => {
+    const props = { ...defaultProps };
+    props.language = 'markdown';
+    wrapper = shallow(<TextAreaControl {...props} />);
+    wrapper.simulate('change', { target: { value: 'x' } });
+    expect(defaultProps.onChange.calledWith('x')).toBe(true);
   });
 });

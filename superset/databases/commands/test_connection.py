@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import sqlite3
 from contextlib import closing
 from typing import Any, Dict, Optional
 
+from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
+from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
@@ -31,7 +34,8 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.exceptions import SupersetSecurityException
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -78,7 +82,29 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             with closing(engine.raw_connection()) as conn:
                 try:
+                    alive = func_timeout(
+                        int(
+                            app.config[
+                                "TEST_DATABASE_CONNECTION_TIMEOUT"
+                            ].total_seconds()
+                        ),
+                        engine.dialect.do_ping,
+                        args=(conn,),
+                    )
+                except sqlite3.ProgrammingError:
+                    # SQLite can't run on a separate thread, so ``func_timeout`` fails
                     alive = engine.dialect.do_ping(conn)
+                except FunctionTimedOut as ex:
+                    raise SupersetTimeoutException(
+                        error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+                        message=(
+                            "Please check your connection details and database settings, "
+                            "and ensure that your database is accepting connections, "
+                            "then try connecting again."
+                        ),
+                        level=ErrorLevel.ERROR,
+                        extra={"sqlalchemy_uri": database.sqlalchemy_uri},
+                    ) from ex
                 except Exception:  # pylint: disable=broad-except
                     alive = False
                 if not alive:
@@ -114,6 +140,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
+        except SupersetTimeoutException as ex:
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
+            # bubble up the exception to return a 408
+            raise ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",

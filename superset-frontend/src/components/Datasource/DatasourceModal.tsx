@@ -183,6 +183,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
+  const showLegacyDatasourceEditor = !isFeatureEnabled(
+    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+  );
+
   return (
     <StyledDatasourceModal
       show={show}
@@ -195,7 +199,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       footer={
         <>
-          {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
+          {showLegacyDatasourceEditor && (
             <Button
               buttonSize="small"
               buttonStyle="default"

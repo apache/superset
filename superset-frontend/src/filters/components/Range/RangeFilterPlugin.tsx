@@ -25,7 +25,7 @@ import {
   t,
 } from '@superset-ui/core';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Slider } from 'src/common/components';
+import { AntdSlider } from 'src/components';
 import { rgba } from 'emotion-rgba';
 // could add in scalePow and others
 import { scaleLog, scaleLinear } from 'd3-scale';
@@ -39,7 +39,7 @@ const DARK_BLUE = '#6dd3e3';
 const LIGHT_GRAY = '#f5f5f5';
 const DARK_GRAY = '#e1e1e1';
 
-const StyledMinSlider = styled(Slider)<{
+const StyledMinSlider = styled(AntdSlider)<{
   validateStatus?: 'error' | 'warning' | 'info';
 }>`
   ${({ theme, validateStatus }) => `
@@ -139,7 +139,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
+    inputRef,
   } = props;
   const [row] = data;
   // @ts-ignore
@@ -147,14 +149,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
     groupby,
     defaultValue,
-    inputRef,
     stepSize,
-    logScale,
     enableSingleValue,
   } = formData;
-  const scaler = logScale
-    ? scaleLog().domain([min + 1, max + 1])
-    : scaleLinear().range([min, max]);
+  // const scaler = logScale
+  //   ? scaleLog().domain([min + 1, max + 1])
+  //   : scaleLinear().range([min, max]);
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -330,9 +330,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}
             onMouseLeave={unsetFocusedFilter}
+            onMouseDown={() => setFilterActive(true)}
+            onMouseUp={() => setFilterActive(false)}
           >
             {enableSingleMaxValue && (
-              <Slider
+              <AntdSlider
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
                 value={minMax[maxIndex]}
@@ -357,7 +359,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               />
             )}
             {enableSingleExactValue && (
-              <Slider
+              <AntdSlider
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}
                 included={false}
@@ -370,7 +372,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               />
             )}
             {rangeValue && (
-              <Slider
+              <AntdSlider
                 range
                 min={transformScale(min) ?? 0}
                 max={transformScale(max) ?? undefined}

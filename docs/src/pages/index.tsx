@@ -17,13 +17,12 @@
  * under the License.
  */
 import React, { useRef, useState } from 'react';
-import { theme, useConfig } from 'docz';
-import { Link } from 'gatsby';
-import { ThemeProvider } from 'theme-ui';
+import Layout from '@theme/Layout';
+import Link from '@docusaurus/Link';
 import {
   Button, Col, Row, Carousel,
 } from 'antd';
-import { css } from '@emotion/core';
+import styled from '@emotion/styled';
 import { supersetTheme } from '@superset-ui/style';
 import {
   DeploymentUnitOutlined,
@@ -32,35 +31,30 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import GitHubButton from 'react-github-btn';
-
-import { Databases } from '../resources/data';
-import Layout from '../components/layout';
-import DbImage from '../components/DbImage';
 import 'antd/dist/antd.css';
-import SEO from '../components/seo';
-import logo from '../images/superset-logo-horiz-apache.svg';
 import { mq } from '../utils';
+import { Databases } from '../resources/data';
 
 const { colors } = supersetTheme;
 
-const mainPageStyle = css`
+const StyledMain = styled('main')`
   text-align: center;
-  .alert {
+  .alert-color {
     color: ${colors.alert.base};
   }
-  .error {
+  .error-color {
     color: ${colors.error.base};
   }
-  .warning {
+  .warning-color {
     color: ${colors.warning.base};
   }
-  .info {
+  .info-color {
     color: ${colors.info.base};
   }
-  .success {
+  .success-color {
     color: ${colors.success.base};
   }
-  .secondary {
+  .secondary-color {
     color: ${colors.secondary.base};
   }
   .info-text {
@@ -75,13 +69,13 @@ const mainPageStyle = css`
   }
 `;
 
-const titleContainer = css`
+const StyledTitleContainer = styled('div')`
   position: relative;
-  padding-top: 131px;
+  padding-top: 60px;
   padding-bottom: 80px;
   padding-left: 20px;
   padding-right: 20px;
-  background-image: url('/images/data-point.jpg');
+  background-image: url('img/data-point.jpg');
   background-size: cover;
   background-position-x: right;
   .github-section {
@@ -122,12 +116,12 @@ const titleContainer = css`
   }
 `;
 
-const secondaryHeading = css`
+const StyledHeading = styled('h2')`
   font-size: 55px;
   text-align: center;
 `;
 
-const featureSectionStyle = css`
+const StyledFeatures = styled('div')`
   background: #fff;
   padding: 5vw 0;
   margin-top: 0px;
@@ -165,7 +159,7 @@ const featureSectionStyle = css`
   }
 `;
 
-const integrationSection = css`
+const StyledIntegrations = styled('div')`
   background: white;
   margin-bottom: 64px;
   .databaseSub {
@@ -191,7 +185,7 @@ const integrationSection = css`
   }
 `;
 
-const linkCarousel = css`
+const CarouselSection = styled('div')`
   .toggleContainer {
     display: flex;
     flex-direction: column;
@@ -254,6 +248,11 @@ const linkCarousel = css`
     }
   }
 `;
+
+const StyledDatabaseImg = styled.img`
+  width: ${(props) => props.width};
+  height: ${(props) => props.height};
+`;
 interface featureProps {
   icon: React.ReactNode,
   title: string,
@@ -271,8 +270,7 @@ const Feature = ({ icon, title, descr }: featureProps) => (
   </li>
 );
 
-const Theme = () => {
-  const config = useConfig();
+export default function Home(): JSX.Element {
   const slider = useRef(null);
 
   const [slideIndex, setSlideIndex] = useState(0);
@@ -282,12 +280,13 @@ const Theme = () => {
   };
 
   return (
-    <ThemeProvider theme={config}>
-      <SEO title="Superset" />
-      <Layout>
-        <div css={mainPageStyle}>
-          <div css={titleContainer}>
-            <img className="logo-horiz" src={logo} alt="logo-horiz" />
+    <Layout
+      title="Welcome"
+      description="Community website for Apache Superset, a data visualization and data exploration platform"
+    >
+      <StyledMain>
+        <StyledTitleContainer>
+            <img className="logo-horiz" src="img/superset-logo-horiz-apache.svg" alt="logo-horiz" />
             <div className="info-text">
               Apache Superset is a modern data exploration and visualization
               platform
@@ -326,15 +325,15 @@ const Theme = () => {
             </div>
             <div>
               <Link to="/docs/intro">
-                <Button type="primary" size="medium">
+                <Button type="primary">
                   Get Started
                 </Button>
               </Link>
             </div>
-          </div>
+        </StyledTitleContainer>
 
-          <div css={featureSectionStyle}>
-            <h2 css={secondaryHeading}>Overview</h2>
+        <StyledFeatures>
+            <StyledHeading>Overview</StyledHeading>
             <div className="info-text info-text-smaller">
               Superset is fast, lightweight, intuitive, and loaded with options
               that make it easy for users of all skill sets to explore and
@@ -345,7 +344,7 @@ const Theme = () => {
               <Row>
                 <Col sm={24} md={12}>
                   <Feature
-                    icon={<FireOutlined className="warning" />}
+                    icon={<FireOutlined className="warning-color" />}
                     title="Powerful yet easy to use"
                     descr={`
                     Quickly and easily integrate and explore your data, using
@@ -357,7 +356,7 @@ const Theme = () => {
 
                 <Col sm={24} md={12}>
                   <Feature
-                    icon={<DatabaseOutlined className="info" />}
+                    icon={<DatabaseOutlined className="info-color" />}
                     title="Integrates with modern databases"
                     descr={`
                     Superset can connect to any SQL based datasource
@@ -370,7 +369,7 @@ const Theme = () => {
               <Row>
                 <Col sm={24} md={12}>
                   <Feature
-                    icon={<DeploymentUnitOutlined className="success" />}
+                    icon={<DeploymentUnitOutlined className="success-color" />}
                     title="Modern architecture"
                     descr={`
                     Superset is lightweight and highly scalable, leveraging the
@@ -381,7 +380,7 @@ const Theme = () => {
                 </Col>
                 <Col sm={24} md={12}>
                   <Feature
-                    icon={<DotChartOutlined className="alert" />}
+                    icon={<DotChartOutlined className="alert-color" />}
                     title="Rich visualizations and dashboards"
                     descr={`
                     Superset ships with a wide array of beautiful visualizations.
@@ -392,10 +391,10 @@ const Theme = () => {
                 </Col>
               </Row>
             </ul>
-          </div>
+        </StyledFeatures>
 
-          <div css={linkCarousel}>
-            <h2 css={secondaryHeading}>Explore</h2>
+        <CarouselSection>
+            <StyledHeading>Explore</StyledHeading>
             <div className="toggleContainer">
               <div className="toggleBtns">
                 <div
@@ -428,18 +427,18 @@ const Theme = () => {
               </div>
               <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
                 <div className="imageContainer">
-                  <img src="/images/explorer5.jpg" alt="" />
+                  <img src="img/explorer5.jpg" alt="" />
                 </div>
                 <div className="imageContainer">
-                  <img src="/images/dashboard3.png" alt="" />
+                  <img src="img/dashboard3.png" alt="" />
                 </div>
                 <div className="imageContainer">
-                  <img src="/images/sqllab5.jpg" alt="" />
+                  <img src="img/sqllab5.jpg" alt="" />
                 </div>
               </Carousel>
             </div>
-            <div css={integrationSection}>
-              <h2 css={secondaryHeading}>Supported Databases</h2>
+            <StyledIntegrations>
+              <StyledHeading>Supported Databases</StyledHeading>
 
               <ul className="database-list">
                 {Databases.map(
@@ -447,14 +446,7 @@ const Theme = () => {
                     title, imgName: imageName, width, height,
                   }) => (
                     <li>
-                      <DbImage
-                        {...{
-                          imageName,
-                          width,
-                          height,
-                          alt: title,
-                        }}
-                      />
+                      <StyledDatabaseImg src={`img/databases/${imageName}`} title={title} width={width || 'auto'} height={height || '50px'}/>
                     </li>
                   ),
                 )}
@@ -467,13 +459,10 @@ const Theme = () => {
                   {' '}
                 </a>
               </span>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    </ThemeProvider>
-  );
-};
+            </StyledIntegrations>
+        </CarouselSection>
 
-// @ts-ignore
-export default theme()(Theme);
+      </StyledMain>
+    </Layout>
+  );
+}

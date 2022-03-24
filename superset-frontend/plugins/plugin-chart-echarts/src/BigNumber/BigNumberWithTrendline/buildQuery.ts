@@ -22,10 +22,7 @@ import {
   PostProcessingResample,
   QueryFormData,
 } from '@superset-ui/core';
-import {
-  rollingWindowOperator,
-  TIME_COLUMN,
-} from '@superset-ui/chart-controls';
+import { rollingWindowOperator } from '@superset-ui/chart-controls';
 
 const TIME_GRAIN_MAP: Record<string, string> = {
   PT1S: 'S',
@@ -36,9 +33,9 @@ const TIME_GRAIN_MAP: Record<string, string> = {
   PT30M: '30min',
   PT1H: 'H',
   P1D: 'D',
-  P1M: 'M',
-  P3M: 'Q',
-  P1Y: 'A',
+  P1M: 'MS',
+  P3M: 'QS',
+  P1Y: 'AS',
   // TODO: these need to be mapped carefully, as the first day of week
   //  can vary from engine to engine
   // P1W: 'W',
@@ -65,7 +62,7 @@ export default function buildQuery(formData: QueryFormData) {
             method: 'asfreq',
             rule,
             fill_value: null,
-            time_column: TIME_COLUMN,
+            time_column: DTTM_ALIAS,
           },
         };
       }

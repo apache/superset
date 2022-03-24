@@ -23,7 +23,8 @@ import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
@@ -352,11 +353,11 @@ const SavedQueries = ({
                         e.preventDefault();
                       }}
                     >
-                      <Dropdown overlay={renderMenu(q)}>
+                      <AntdDropdown overlay={renderMenu(q)}>
                         <Icons.MoreVert
                           iconColor={theme.colors.grayscale.base}
                         />
-                      </Dropdown>
+                      </AntdDropdown>
                     </ListViewCard.Actions>
                   </QueryData>
                 }
