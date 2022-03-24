@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import os
-from flask import current_app, g, request, Response
+
+from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
@@ -98,15 +98,11 @@ class ExplorePermalinkRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        key_type = current_app.config["PERMALINK_KEY_TYPE"]
         try:
             state = self.add_model_schema.load(request.json)
-            key = CreateExplorePermalinkCommand(
-                actor=g.user, state=state, key_type=key_type,
-            ).run()
+            key = CreateExplorePermalinkCommand(actor=g.user, state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            prefix = os.environ["APP_PREFIX"]
-            url = f"{http_origin}{prefix}/superset/explore/p/{key}/"
+            url = f"{http_origin}/superset/explore/p/{key}/"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
@@ -160,10 +156,7 @@ class ExplorePermalinkRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            key_type = current_app.config["PERMALINK_KEY_TYPE"]
-            value = GetExplorePermalinkCommand(
-                actor=g.user, key=key, key_type=key_type
-            ).run()
+            value = GetExplorePermalinkCommand(actor=g.user, key=key).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

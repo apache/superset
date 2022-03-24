@@ -16,14 +16,16 @@
 # under the License.
 import json
 import pickle
-from typing import Any, Dict
-from uuid import UUID
+from typing import Any, Dict, Iterator
+from uuid import uuid3
 
 import pytest
 from sqlalchemy.orm import Session
 
 from superset import db
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import KeyValueResource
+from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import login
 from tests.integration_tests.fixtures.client import client
@@ -51,7 +53,22 @@ def form_data(chart) -> Dict[str, Any]:
     }
 
 
-def test_post(client, form_data):
+@pytest.fixture
+def permalink_salt() -> Iterator[str]:
+    from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
+    from superset.key_value.types import SharedKey
+
+    key = SharedKey.EXPLORE_PERMALINK_SALT
+    salt = get_permalink_salt(key)
+    yield salt
+    namespace = get_uuid_namespace(salt)
+    db.session.query(KeyValueEntry).filter_by(
+        resource=KeyValueResource.APP, uuid=uuid3(namespace, key),
+    )
+    db.session.commit()
+
+
+def test_post(client, form_data: Dict[str, Any], permalink_salt: str):
     login(client, "admin")
     resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 201
@@ -59,7 +76,8 @@ def test_post(client, form_data):
     key = data["key"]
     url = data["url"]
     assert key in url
-    db.session.query(KeyValueEntry).filter_by(uuid=key).delete()
+    id_ = decode_permalink_id(key, permalink_salt)
+    db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
 
 
@@ -69,21 +87,18 @@ def test_post_access_denied(client, form_data):
     assert resp.status_code == 404
 
 
-def test_get_missing_chart(client, chart):
+def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
     from superset.key_value.models import KeyValueEntry
 
-    key = 1234
-    uuid_key = "e2ea9d19-7988-4862-aa69-c3a1a7628cb9"
+    chart_id = 1234
     entry = KeyValueEntry(
-        id=int(key),
-        uuid=UUID("e2ea9d19-7988-4862-aa69-c3a1a7628cb9"),
-        resource="explore_permalink",
+        resource=KeyValueResource.EXPLORE_PERMALINK,
         value=pickle.dumps(
             {
-                "chartId": key,
+                "chartId": chart_id,
                 "datasetId": chart.datasource.id,
                 "formData": {
-                    "slice_id": key,
+                    "slice_id": chart_id,
                     "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
                 },
             }
@@ -91,20 +106,21 @@ def test_get_missing_chart(client, chart):
     )
     db.session.add(entry)
     db.session.commit()
+    key = encode_permalink_key(entry.id, permalink_salt)
     login(client, "admin")
-    resp = client.get(f"api/v1/explore/permalink/{uuid_key}")
+    resp = client.get(f"api/v1/explore/permalink/{key}")
     assert resp.status_code == 404
     db.session.delete(entry)
     db.session.commit()
 
 
-def test_post_invalid_schema(client):
+def test_post_invalid_schema(client) -> None:
     login(client, "admin")
     resp = client.post(f"api/v1/explore/permalink", json={"abc": 123})
     assert resp.status_code == 400
 
 
-def test_get(client, form_data):
+def test_get(client, form_data: Dict[str, Any], permalink_salt: str) -> None:
     login(client, "admin")
     resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     data = json.loads(resp.data.decode("utf-8"))
@@ -113,5 +129,6 @@ def test_get(client, form_data):
     assert resp.status_code == 200
     result = json.loads(resp.data.decode("utf-8"))
     assert result["state"]["formData"] == form_data
-    db.session.query(KeyValueEntry).filter_by(uuid=key).delete()
+    id_ = decode_permalink_id(key, permalink_salt)
+    db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
