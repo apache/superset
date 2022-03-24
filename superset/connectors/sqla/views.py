@@ -181,28 +181,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
     edit_form_extra_fields = add_form_extra_fields
 
-    def pre_add(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
-    def pre_update(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
-    def pre_delete(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
-
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
@@ -273,28 +251,6 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
-
-    def pre_add(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
-    def pre_update(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
-    def pre_delete(self, item: "models.SqlMetric") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item.table)
-
 
 class RowLevelSecurityListWidget(
     SupersetListWidget
@@ -518,13 +474,6 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             "This endpoint is deprecated and will be removed in version 2.0.0"
         )
         validate_sqlatable(item)
-
-    def pre_update(self, item: "TableModelView") -> None:
-        logger.warning(
-            "This endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
-            check_ownership(item)
 
     def post_add(  # pylint: disable=arguments-differ
         self,
