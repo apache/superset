@@ -177,7 +177,7 @@ class DatasourceControl extends React.PureComponent {
         datasourceKey: `${datasource.id}__${datasource.type}`,
         sql: datasource.sql,
       };
-      postForm('/superset/sqllab/', payload);
+      postForm('/data/superset/sqllab/', payload);
     }
   }
 

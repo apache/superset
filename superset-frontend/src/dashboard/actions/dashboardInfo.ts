@@ -88,7 +88,7 @@ export const setChartConfiguration =
       { result: DashboardInfo }
     >({
       method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
+      endpoint: `/data/api/v1/dashboard/${id}`,
     });
 
     try {

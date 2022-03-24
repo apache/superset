@@ -504,7 +504,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Refresh Druid Metadata",
             label=__("Refresh Druid Metadata"),
-            href="/data/druid/refresh_datasources/",
+            href="/druid/refresh_datasources/",
             category="Data",
             category_label=__("Data"),
             category_icon="fa-database",

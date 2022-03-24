@@ -143,7 +143,7 @@ export class ExploreChartHeader extends React.PureComponent {
   async fetchChartDashboardData() {
     const { dashboardId, slice } = this.props;
     await SupersetClient.get({
-      endpoint: `/api/v1/chart/${slice.slice_id}`,
+      endpoint: `/data/api/v1/chart/${slice.slice_id}`,
     })
       .then(res => {
         const response = res?.json?.result;

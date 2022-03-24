@@ -294,7 +294,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
         if has_access_:
-            return redirect("/superset/dashboard/{}".format(dashboard_id))
+            return redirect("/data/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
             for datasource in datasources:
@@ -929,7 +929,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @has_access_api
     @event_logger.log_this
-    @expose("/filter/<datasource_type>/<int:datasource_id>/<column>/")
+    @expose("/data/filter/<datasource_type>/<int:datasource_id>/<column>/")
     def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
     ) -> FlaskResponse:
@@ -1603,7 +1603,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Dashboard.created_by:
                 user = o.Dashboard.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = "/data/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1755,7 +1755,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Slice.created_by:
                 user = o.Slice.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = "/data/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1973,7 +1973,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         "danger",
                     )
                     return redirect(
-                        f"/superset/request_access/?dashboard_id={dashboard.id}"
+                        f"/data/superset/request_access/?dashboard_id={dashboard.id}"
                     )
 
         dash_edit_perm = check_ownership(
@@ -2017,7 +2017,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id = value["dashboardId"]
-        url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = f"/data/superset/dashboard/{dashboard_id}?permalink_key={key}"
         url_params = value["state"].get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)

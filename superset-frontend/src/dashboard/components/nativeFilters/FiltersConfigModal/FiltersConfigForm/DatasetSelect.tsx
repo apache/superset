@@ -66,7 +66,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       order_direction: 'asc',
     });
     return cachedSupersetGet({
-      endpoint: `/api/v1/dataset/?q=${query}`,
+      endpoint: `/data/api/v1/dataset/?q=${query}`,
     })
       .then(response => {
         const data: {

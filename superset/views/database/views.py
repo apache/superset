@@ -245,7 +245,7 @@ class CsvToDatabaseView(SimpleFormView):
             schema=form.schema.data,
             table=form.name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect("/data/tablemodelview/list/")
 
 
 class ExcelToDatabaseView(SimpleFormView):
@@ -380,7 +380,7 @@ class ExcelToDatabaseView(SimpleFormView):
             schema=form.schema.data,
             table=form.name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect("/data/tablemodelview/list/")
 
 
 class ColumnarToDatabaseView(SimpleFormView):
@@ -521,4 +521,4 @@ class ColumnarToDatabaseView(SimpleFormView):
             schema=form.schema.data,
             table=form.name.data,
         )
-        return redirect("/tablemodelview/list/")
+        return redirect("/data/tablemodelview/list/")

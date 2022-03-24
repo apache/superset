@@ -83,7 +83,7 @@ function AnnotationLayersList({
 
   const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/annotation_layer/${id}`,
+      endpoint: `/data/api/v1/annotation_layer/${id}`,
     }).then(
       () => {
         refreshData();
@@ -98,7 +98,7 @@ function AnnotationLayersList({
 
   const handleBulkLayerDelete = (layersToDelete: AnnotationLayerObject[]) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/annotation_layer/?q=${rison.encode(
+      endpoint: `/data/api/v1/annotation_layer/?q=${rison.encode(
         layersToDelete.map(({ id }) => id),
       )}`,
     }).then(

@@ -103,66 +103,66 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/superset/welcome/',
+    path: '/data/superset/welcome/',
     Component: Welcome,
   },
   {
-    path: '/dashboard/list/',
+    path: '/data/dashboard/list/',
     Component: DashboardList,
   },
   {
-    path: '/superset/dashboard/:idOrSlug/',
+    path: '/data/superset/dashboard/:idOrSlug/',
     Component: DashboardPage,
   },
   {
-    path: '/chart/list/',
+    path: '/data/chart/list/',
     Component: ChartList,
   },
   {
-    path: '/tablemodelview/list/',
+    path: '/data/tablemodelview/list/',
     Component: DatasetList,
   },
   {
-    path: 'baseview/list/',
+    path: '/data/databaseview/list/',
     Component: DatabaseList,
   },
   {
-    path: '/savedqueryview/list/',
+    path: '/data/savedqueryview/list/',
     Component: SavedQueryList,
   },
   {
-    path: '/csstemplatemodelview/list/',
+    path: '/data/csstemplatemodelview/list/',
     Component: CssTemplatesList,
   },
   {
-    path: '/annotationlayermodelview/list/',
+    path: '/data/annotationlayermodelview/list/',
     Component: AnnotationLayersList,
   },
   {
-    path: '/annotationmodelview/:annotationLayerId/annotation/',
+    path: '/data/annotationmodelview/:annotationLayerId/annotation/',
     Component: AnnotationList,
   },
   {
-    path: '/superset/sqllab/history/',
+    path: '/data/superset/sqllab/history/',
     Component: QueryList,
   },
   {
-    path: '/alert/list/',
+    path: '/data/alert/list/',
     Component: AlertList,
   },
   {
-    path: '/report/list/',
+    path: '/data/report/list/',
     Component: AlertList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: '/alert/:alertId/log/',
+    path: '/data/alert/:alertId/log/',
     Component: ExecutionLog,
   },
   {
-    path: '/report/:alertId/log/',
+    path: '/data/report/:alertId/log/',
     Component: ExecutionLog,
     props: {
       isReportEnabled: true,

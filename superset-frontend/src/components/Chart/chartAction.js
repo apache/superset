@@ -186,7 +186,7 @@ const v1ChartDataRequest = async (
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
   const url = getChartDataUri({
-    path: '/api/v1/chart/data',
+    path: '/data/api/v1/chart/data',
     qs,
     allowDomainSharding,
   }).toString();

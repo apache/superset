@@ -421,7 +421,7 @@ function OwnersSelector({ datasource, onChange }) {
   const loadOptions = useCallback((search = '', page, pageSize) => {
     const query = rison.encode({ filter: search, page, page_size: pageSize });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/owners?q=${query}`,
+      endpoint: `/data/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
       data: response.json.result.map(item => ({
         value: item.value,

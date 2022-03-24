@@ -220,7 +220,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="/data/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -235,7 +235,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return "/superset/sqllab?savedQueryId={0}".format(self.id)
+        return "/data/superset/sqllab?savedQueryId={0}".format(self.id)
 
     @property
     def sql_tables(self) -> List[Table]:

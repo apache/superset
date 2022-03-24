@@ -113,7 +113,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
-  if ('sql' in entity) return `/superset/sqllab?savedQueryId=${entity.id}`;
+  if ('sql' in entity) return `/data/superset/sqllab?savedQueryId=${entity.id}`;
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };

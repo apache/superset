@@ -77,7 +77,7 @@ export const getFilterValue = (dashId: string | number, key: string) =>
 
 export const getPermalinkValue = (key: string) =>
   SupersetClient.get({
-    endpoint: `/api/v1/dashboard/permalink/${key}`,
+    endpoint: `/data/api/v1/dashboard/permalink/${key}`,
   })
     .then(({ json }) => json as DashboardPermalinkValue)
     .catch(err => {
