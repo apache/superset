@@ -42,11 +42,13 @@ class ImportModelsCommand(BaseCommand):
     prefix = ""
     schemas: Dict[str, Schema] = {}
     import_error = CommandException
+    daos: Dict[str, BaseDAO] = {}
 
     # pylint: disable=unused-argument
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
+        self.config_overwrite: Dict[str, bool] = kwargs.get("config_overwrite") or {}
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: Dict[str, Any] = {}
 
@@ -59,6 +61,16 @@ class ImportModelsCommand(BaseCommand):
     @classmethod
     def _get_uuids(cls) -> Set[str]:
         return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
+
+    @classmethod
+    def _get_schema_uuids(cls) -> Dict[str, Set[str]]:
+        return {
+            model_prefix: {
+                str(result.uuid)
+                for result in db.session.query(dao.model_cls.uuid).all()  # type: ignore
+            }
+            for model_prefix, dao in cls.daos.items()
+        }
 
     def run(self) -> None:
         self.validate()
@@ -98,7 +110,9 @@ class ImportModelsCommand(BaseCommand):
         self, exceptions: List[ValidationError]
     ) -> None:
         """check if the object exists and shouldn't be overwritten"""
-        if not self.overwrite:
+        if self.daos and not self.config_overwrite:
+            self._missing_config_overwrite_errors(exceptions)
+        elif not self.overwrite and not self.daos:
             existing_uuids = self._get_uuids()
             for file_name, config in self._configs.items():
                 if (
@@ -115,3 +129,52 @@ class ImportModelsCommand(BaseCommand):
                             }
                         )
                     )
+
+    def _get_default_overwrite_models_status(self) -> Dict[str, bool]:
+        return {model: False for model in self.daos}
+
+    def _missing_config_overwrite_errors(
+        self, exceptions: List[ValidationError]
+    ) -> None:
+        schema_existing_uuids = self._get_schema_uuids()
+        schema_overwrite_status: Dict[
+            str, bool
+        ] = self._get_default_overwrite_models_status()
+        all_schemas = tuple(scheme for scheme in self.schemas)
+
+        for file_name, config in self._configs.items():
+            file_schema = file_name.split("/")[0]
+            if (
+                file_name.startswith(all_schemas)
+                and not schema_overwrite_status.get(file_schema, False)
+                and config["uuid"] in schema_existing_uuids[file_schema]
+            ):
+                schema_overwrite_status[file_schema] = True
+
+            if all(status for status in schema_overwrite_status.values()):
+                break
+
+        overwrite_schemas: Set[str] = {
+            schema
+            for schema, status in schema_overwrite_status.items()
+            if status and schema == self.prefix.split("/")[0]
+        }
+        # TODO, delete above condition \
+        #  `and schema == self.prefix.split('/')[0]`.
+        """for now, in order to keep backup capabilities.
+        We will throw error only when overwriting the primary model.
+        Exactly as it's worked before.
+        In the next PR I will delete this line, and will update the frontend as
+        well"""
+
+        for schema in overwrite_schemas:
+            exceptions.append(
+                ValidationError(
+                    {
+                        schema: (
+                            f"some {schema} already exists "
+                            "and `config_overwrite` object was not passed"
+                        ),
+                    }
+                )
+            )

@@ -1559,7 +1559,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",
+                        "dashboards": "some dashboards already exists and `config_overwrite` object was not passed",
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -1578,7 +1578,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf = self.create_dashboard_import()
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
-            "overwrite": "true",
+            "configOverwrite": json.dumps({"dashboards": True}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

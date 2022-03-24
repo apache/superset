@@ -377,8 +377,10 @@ const isNeedsPassword = (payload: any) =>
   payload._schema[0] === 'Must provide a password for the database';
 
 export const isAlreadyExists = (payload: any) =>
-  typeof payload === 'string' &&
-  payload.includes('already exists and `overwrite=true` was not passed');
+  typeof payload === 'string' && payload.includes('`overwrite=true`');
+
+export const isAlreadyExistsConfigOverwrite = (payload: any) =>
+  typeof payload === 'string' && payload.includes('`config_overwrite` object');
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
   errors
@@ -398,6 +400,17 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
     )
     .flat();
 
+export const getAlreadyExistsConfigOverwrite = (
+  errors: Record<string, any>[],
+) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isAlreadyExistsConfigOverwrite(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(
     error =>
@@ -405,7 +418,9 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         .filter(([key, _]) => key !== 'issue_codes')
         .every(
           ([_, payload]) =>
-            isNeedsPassword(payload) || isAlreadyExists(payload),
+            isNeedsPassword(payload) ||
+            isAlreadyExists(payload) ||
+            isAlreadyExistsConfigOverwrite(payload),
         ),
   );
 

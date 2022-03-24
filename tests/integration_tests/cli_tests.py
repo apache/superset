@@ -19,6 +19,7 @@ import importlib
 import json
 import logging
 from pathlib import Path
+from typing import Dict
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
@@ -238,8 +239,10 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
     assert response.exit_code == 0
     expected_contents = {"dashboards.json": '{"hello": "world"}'}
-    import_dashboards_command.assert_called_with(expected_contents, overwrite=True)
-
+    config_overwrite: Dict[str, bool] = {"dashboards": True}
+    import_dashboards_command.assert_called_with(
+        expected_contents, config_overwrite=config_overwrite
+    )
     # write ZIP file
     with ZipFile("dashboards.zip", "w") as bundle:
         with bundle.open("dashboards/dashboard.yaml", "w") as fp:
@@ -252,7 +255,9 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
     assert response.exit_code == 0
     expected_contents = {"dashboard.yaml": "hello: world"}
-    import_dashboards_command.assert_called_with(expected_contents, overwrite=True)
+    import_dashboards_command.assert_called_with(
+        expected_contents, config_overwrite=config_overwrite
+    )
 
 
 @mock.patch.dict(

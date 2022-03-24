@@ -21,9 +21,12 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
+from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
+from superset.charts.dao import ChartDAO
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
+from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
@@ -34,8 +37,10 @@ from superset.dashboards.commands.importers.v1.utils import (
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
+from superset.databases.dao import DatabaseDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
+from superset.datasets.dao import DatasetDAO
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 
@@ -55,11 +60,29 @@ class ImportDashboardsCommand(ImportModelsCommand):
     }
     import_error = DashboardImportError
 
+    daos: Dict[str, Any] = {
+        "charts": ChartDAO,
+        "dashboards": DashboardDAO,
+        "datasets": DatasetDAO,
+        "databases": DatabaseDAO,
+    }
+
+    def run(self) -> None:
+        self.validate()
+
+        # rollback to prevent partial imports
+        try:
+            self._import(db.session, self._configs, self.config_overwrite)
+            db.session.commit()
+        except Exception as ex:
+            db.session.rollback()
+            raise self.import_error() from ex
+
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    def _import(  # type: ignore  # pylint: disable=arguments-differ
+        session: Session, configs: Dict[str, Any], config_overwrite: Dict[str, bool],
     ) -> None:
         # discover charts and datasets associated with dashboards
         chart_uuids: Set[str] = set()
@@ -86,7 +109,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session, config, overwrite=config_overwrite.get("databases", False)
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -97,7 +122,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(
+                    session, config, overwrite=config_overwrite.get("datasets", False)
+                )
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -113,7 +140,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=False)
+                chart = import_chart(
+                    session, config, overwrite=config_overwrite.get("charts", False)
+                )
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
@@ -126,7 +155,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    session, config, overwrite=config_overwrite.get("dashboards", False)
+                )
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break

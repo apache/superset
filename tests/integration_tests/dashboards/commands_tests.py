@@ -16,6 +16,7 @@
 # under the License.
 import itertools
 import json
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -592,7 +593,10 @@ class TestImportDashboardsCommand(SupersetTestCase):
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
             "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
         }
-        command = v1.ImportDashboardsCommand(contents, overwrite=True)
+        config_overwrite: Dict[str, bool] = {"dashboards": True}
+        command = v1.ImportDashboardsCommand(
+            contents, config_overwrite=config_overwrite
+        )
         command.run()
         command.run()
 

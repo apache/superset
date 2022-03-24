@@ -23,6 +23,7 @@ import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 import {
   createErrorHandler,
   getAlreadyExists,
+  getAlreadyExistsConfigOverwrite,
   getPasswordsNeeded,
   hasTerminalValidation,
 } from 'src/views/CRUD/utils';
@@ -381,6 +382,7 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
   alreadyExists: string[];
+  alreadyExistsConfigOverwrite: string[];
 }
 
 export function useImportResource(
@@ -392,6 +394,7 @@ export function useImportResource(
     loading: false,
     passwordsNeeded: [],
     alreadyExists: [],
+    alreadyExistsConfigOverwrite: [],
   });
 
   function updateState(update: Partial<ImportResourceState>) {
@@ -403,6 +406,7 @@ export function useImportResource(
       bundle: File,
       databasePasswords: Record<string, string> = {},
       overwrite = false,
+      configOverwrite: Record<string, boolean> = {},
     ) => {
       // Set loading state
       updateState({
@@ -420,10 +424,21 @@ export function useImportResource(
       }
       /* If the imported model already exists the user needs to confirm
        * that they want to overwrite it.
+       * Error missing Overwrite field
        */
       if (overwrite) {
         formData.append('overwrite', 'true');
       }
+
+      /* If the imported model already exists the user needs to confirm
+       * that they want to overwrite it.
+       * Error missing Config_Overwrite field
+       */
+      if (!!configOverwrite) {
+        formData.append('configOverwrite', JSON.stringify(configOverwrite));
+      }
+
+      console.log('Form data ', formData, configOverwrite);
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -455,6 +470,9 @@ export function useImportResource(
               updateState({
                 passwordsNeeded: getPasswordsNeeded(error.errors),
                 alreadyExists: getAlreadyExists(error.errors),
+                alreadyExistsConfigOverwrite: getAlreadyExistsConfigOverwrite(
+                  error.errors,
+                ),
               });
             }
             return false;

@@ -146,7 +146,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const {
-    state: { alreadyExists, passwordsNeeded },
+    state: { alreadyExists, passwordsNeeded, alreadyExistsConfigOverwrite },
     importResource,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
@@ -158,11 +158,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
-    setNeedsOverwriteConfirm(alreadyExists.length > 0);
-    if (alreadyExists.length > 0) {
+    const isNeedConfirmation =
+      alreadyExists.length > 0 || alreadyExistsConfigOverwrite.length > 0;
+    setNeedsOverwriteConfirm(isNeedConfirmation);
+    if (isNeedConfirmation) {
       setImportingModel(false);
     }
-  }, [alreadyExists, setNeedsOverwriteConfirm]);
+  }, [alreadyExists, setNeedsOverwriteConfirm, alreadyExistsConfigOverwrite]);
+
+  console.log(alreadyExistsConfigOverwrite);
 
   // Functions
   const hide = () => {
@@ -176,11 +180,17 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       return;
     }
 
+    const configOverwrite = {};
+    if (confirmedOverwrite && alreadyExistsConfigOverwrite.length > 0) {
+      configOverwrite[alreadyExistsConfigOverwrite[0]] = confirmedOverwrite;
+    }
+
     setImportingModel(true);
     importResource(
       fileList[0].originFileObj,
       passwords,
       confirmedOverwrite,
+      configOverwrite,
     ).then(result => {
       if (result) {
         clearModal();
