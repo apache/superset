@@ -816,7 +816,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return [];
   };
 
-  const renderEditModalFooter = (db: DatabaseObject) => (
+  const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
       <StyledFooterButton key="close" onClick={onClose}>
         {t('Close')}

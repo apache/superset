@@ -55,7 +55,6 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
-  console.log(slice);
   const [submitting, setSubmitting] = useState(false);
   const [form] = AntdForm.useForm();
   // values of form inputs
