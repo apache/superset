@@ -9,6 +9,13 @@
   dependencies:
     "@algolia/autocomplete-shared" "1.2.2"
 
+"@algolia/autocomplete-core@1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@algolia/autocomplete-core/-/autocomplete-core-1.5.2.tgz#ec0178e07b44fd74a057728ac157291b26cecf37"
+  integrity sha512-DY0bhyczFSS1b/CqJlTE/nQRtnTAHl6IemIkBy0nEWnhDzRDdtdx4p5Uuk3vwAFxwEEgi1WqKwgSSMx6DpNL4A==
+  dependencies:
+    "@algolia/autocomplete-shared" "1.5.2"
+
 "@algolia/autocomplete-preset-algolia@1.2.2":
   version "1.2.2"
   resolved "https://registry.npmjs.org/@algolia/autocomplete-preset-algolia/-/autocomplete-preset-algolia-1.2.2.tgz"
@@ -16,10 +23,22 @@
   dependencies:
     "@algolia/autocomplete-shared" "1.2.2"
 
+"@algolia/autocomplete-preset-algolia@1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@algolia/autocomplete-preset-algolia/-/autocomplete-preset-algolia-1.5.2.tgz#36c5638cc6dba6ea46a86e5a0314637ca40a77ca"
+  integrity sha512-3MRYnYQFJyovANzSX2CToS6/5cfVjbLLqFsZTKcvF3abhQzxbqwwaMBlJtt620uBUOeMzhdfasKhCc40+RHiZw==
+  dependencies:
+    "@algolia/autocomplete-shared" "1.5.2"
+
 "@algolia/autocomplete-shared@1.2.2":
   version "1.2.2"
   resolved "https://registry.npmjs.org/@algolia/autocomplete-shared/-/autocomplete-shared-1.2.2.tgz"
   integrity sha512-mLTl7d2C1xVVazHt/bqh9EE/u2lbp5YOxLDdcjILXmUqOs5HH1D4SuySblXaQG1uf28FhTqMGp35qE5wJQnqAw==
+
+"@algolia/autocomplete-shared@1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@algolia/autocomplete-shared/-/autocomplete-shared-1.5.2.tgz#e157f9ad624ab8fd940ff28bd2094cdf199cdd79"
+  integrity sha512-ylQAYv5H0YKMfHgVWX0j0NmL8XBcAeeeVQUmppnnMtzDbDnca6CzhKj3Q8eF9cHCgcdTDdb5K+3aKyGWA0obug==
 
 "@algolia/cache-browser-local-storage@4.11.0":
   version "4.11.0"
@@ -2019,10 +2038,25 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-3.4.0.tgz#c3c5ae543c897caa9c2a68630bed355be5f9990f"
   integrity sha512-JZButFdZ1+/xAfpguQHoabIXkcqRRKpMrWKBkpEZZyxfY9C1DpADFB8PEqGSTeFr135SaTRfKqGKx5xSCLI7ZQ==
 
+"@docsearch/css@3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@docsearch/css/-/css-3.0.0.tgz#fe57b474802ffd706d3246eab25d52fac8aa3698"
+  integrity sha512-1kkV7tkAsiuEd0shunYRByKJe3xQDG2q7wYg24SOw1nV9/2lwEd4WrUYRJC/ukGTl2/kHeFxsaUvtiOy0y6fFA==
+
 "@docsearch/css@3.0.0-alpha.41":
   version "3.0.0-alpha.41"
   resolved "https://registry.npmjs.org/@docsearch/css/-/css-3.0.0-alpha.41.tgz"
   integrity sha512-AP1jqcF/9jCrm4s0lcES3QAtHueyipKjd14L/pguk0CZYK7uI7hC0FWodmRmrgK3/HST9jiHa1waUMR6ZYedlQ==
+
+"@docsearch/react@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@docsearch/react/-/react-3.0.0.tgz#d02ebdc67573412185a6a4df13bc254c7c0da491"
+  integrity sha512-yhMacqS6TVQYoBh/o603zszIb5Bl8MIXuOc6Vy617I74pirisDzzcNh0NEaYQt50fVVR3khUbeEhUEWEWipESg==
+  dependencies:
+    "@algolia/autocomplete-core" "1.5.2"
+    "@algolia/autocomplete-preset-algolia" "1.5.2"
+    "@docsearch/css" "3.0.0"
+    algoliasearch "^4.0.0"
 
 "@docsearch/react@^3.0.0-alpha.39":
   version "3.0.0-alpha.41"
