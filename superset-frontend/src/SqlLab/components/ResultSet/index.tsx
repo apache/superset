@@ -247,9 +247,12 @@ export default class ResultSet extends React.PureComponent<
         this.clearQueryResults(nextProps.query),
       );
     }
+
     if (
-      nextProps.query.resultsKey &&
-      nextProps.query.resultsKey !== this.props.query.resultsKey
+      (this.props.query.resultsKey &&
+        nextProps.query.resultsKey &&
+        nextProps.query.resultsKey !== this.props.query.resultsKey) ||
+      (nextProps.query.id !== this.props.query.id && nextProps.query.resultsKey)
     ) {
       this.fetchResults(nextProps.query);
     }
