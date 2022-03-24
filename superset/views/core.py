@@ -1841,7 +1841,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     force=True,
                 )
 
-                g.form_data = form_data
+                g.form_data = form_data  # pylint: disable=assigning-non-slot
                 payload = obj.get_payload()
                 delattr(g, "form_data")
                 error = payload["errors"] or None

@@ -1254,8 +1254,10 @@ class TestCore(SupersetTestCase):
         self.assertEqual(resp.status_code, 403)
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
-    @mock.patch("superset.views.core.results_backend")
-    def test_display_limit(self, mock_results_backend):
+    def test_display_limit(self):
+        from superset.views import core
+
+        core.results_backend = mock.Mock()
         self.login()
 
         data = [{"col_0": i} for i in range(100)]
@@ -1284,7 +1286,7 @@ class TestCore(SupersetTestCase):
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
         serialized_payload = sql_lab._serialize_payload(payload, False)
         compressed = utils.zlib_compress(serialized_payload)
-        mock_results_backend.get.return_value = compressed
+        core.results_backend.get.return_value = compressed
 
         with mock.patch("superset.views.core.db") as mock_superset_db:
             mock_superset_db.session.query().filter_by().one_or_none.return_value = (
