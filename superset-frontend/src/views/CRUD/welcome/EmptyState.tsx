@@ -106,7 +106,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     return (
       <EmptyContainer>
         <Empty
-          image={`/static/assets/images/${tableIcon[tableName]}`}
+          image={`/data/static/assets/images/${tableIcon[tableName]}`}
           description={
             tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
           }
@@ -138,7 +138,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image="/static/assets/images/star-circle.svg"
+        image="/data/static/assets/images/star-circle.svg"
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}

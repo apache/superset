@@ -49,3 +49,4 @@ results_backend_use_msgpack = LocalProxy(
 )
 data_cache = LocalProxy(lambda: cache_manager.data_cache)
 thumbnail_cache = LocalProxy(lambda: cache_manager.thumbnail_cache)
+

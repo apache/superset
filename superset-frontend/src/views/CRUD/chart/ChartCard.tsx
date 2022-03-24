@@ -152,7 +152,7 @@ export default function ChartCard({
         }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
+        imgFallbackURL="/data/static/assets/images/chart-card-fallback.svg"
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={

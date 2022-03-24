@@ -85,7 +85,7 @@ class AlertObservationModelView(
 
 
 class BaseAlertReportView(BaseSupersetView):
-    route_base = "/report"
+    route_base = "/data/report"
     class_permission_name = "ReportSchedule"
 
     @expose("/list/")
@@ -107,18 +107,18 @@ class BaseAlertReportView(BaseSupersetView):
 
 
 class AlertView(BaseAlertReportView):
-    route_base = "/alert"
+    route_base = "/data/alert"
     class_permission_name = "ReportSchedule"
 
 
 class ReportView(BaseAlertReportView):
-    route_base = "/report"
+    route_base = "/data/report"
     class_permission_name = "ReportSchedule"
 
 
 class AlertModelView(EnsureEnabledMixin, SupersetModelView):
     datamodel = SQLAInterface(Alert)
-    route_base = "/alerts"
+    route_base = "/data/alerts"
     include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     list_columns = (

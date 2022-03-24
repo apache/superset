@@ -315,7 +315,7 @@ const SavedQueries = ({
                 imgURL=""
                 url={`/superset/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL="/data/static/assets/images/empty-query.svg"
                 description={t('Ran %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (

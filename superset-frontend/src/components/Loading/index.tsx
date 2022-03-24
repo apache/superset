@@ -57,7 +57,7 @@ const LoaderImg = styled.img`
 `;
 export default function Loading({
   position = 'floating',
-  image = '/static/assets/images/loading.gif',
+  image = '/data/static/assets/images/loading.gif',
   className,
 }: Props) {
   return (

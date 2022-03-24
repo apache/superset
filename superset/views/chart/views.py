@@ -38,7 +38,7 @@ from superset.views.utils import bootstrap_user_data
 class SliceModelView(
     SliceMixin, SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
-    route_base = "/chart"
+    route_base = "/data/chart"
     datamodel = SQLAInterface(Slice)
     include_route_methods = RouteMethod.CRUD_SET | {
         RouteMethod.DOWNLOAD,
@@ -76,7 +76,7 @@ class SliceModelView(
 
 
 class SliceAsync(SliceModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/sliceasync"
+    route_base = "/data/sliceasync"
     include_route_methods = {RouteMethod.API_READ}
 
     list_columns = [
