@@ -536,13 +536,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     importResource,
   } = useImportResource('database', t('database'), msg => addDangerToast(msg));
 
+  console.log('findme STATE', alreadyExists, passwordsNeeded);
+
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
-    setFile(file.filter(currentFile => currentFile.uid !== file[0].uid));
+    // setFile(file.filter(currentFile => currentFile.uid !== file[0].uid));
     setPasswordFields([]);
     setNeedsOverwriteConfirm(false);
     setImportingModel(false);
@@ -672,14 +674,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
 
       if (dbId) {
-        setHasConnectedDb(true);
-        if (onDatabaseAdd) onDatabaseAdd();
-        if (useTabLayout) {
-          // tab layout only has one step
-          // so it should close immediately on save
-          onClose();
-          addSuccessToast(t('Database connected'));
-        }
+        // setHasConnectedDb(true);
+        // if (onDatabaseAdd) onDatabaseAdd();
+        // if (useTabLayout) {
+        //   // tab layout only has one step
+        //   // so it should close immediately on save
+        //   onClose();
+        //   addSuccessToast(t('Database connected'));
+        // }
+
+        onClose();
+        addSuccessToast(t('Database connected'));
       }
     }
 
@@ -948,37 +953,42 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     importResource(info.file.originFileObj, passwords, confirmedOverwrite);
   };
 
-  const passwordNeededField = () =>
-    passwordFields.map(
-      password =>
-        passwordsNeeded.length > 0 && (
-          <>
-            <StyledAlertMargin>
-              <Alert
-                closable={false}
-                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                type="info"
-                showIcon
-                message="Database passwords"
-                description={t(
-                  `The passwords for the databases below are needed in order to import them. Please not that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
-                )}
-              />
-            </StyledAlertMargin>
-            <ValidatedInput
-              id="password_needed"
-              name="password_needed"
-              required
-              value={password}
-              // value=""
-              validationMethods={{ onBlur: () => {} }}
-              errorMessage={validationErrors?.password_needed}
-              label={t(`${db?.database_name} PASSWORD`)}
-              css={formScrollableStyles}
-            />
-          </>
-        ),
-    );
+  console.log('findme PASSWORDS', passwords);
+  console.log('findme PASSWORDFIELDS', passwordFields);
+
+  const passwordNeededField = () => {
+    // if (passwordFields.length === 0) return null;
+
+    passwordFields.map(database => (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message="Database passwords"
+            description={t(
+              `The passwords for the databases below are needed in order to import them. Please not that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+            )}
+          />
+        </StyledAlertMargin>
+        <ValidatedInput
+          id="password_needed"
+          name="password_needed"
+          required
+          value={passwords[database]}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            setPasswords({ ...passwords, [database]: event.target.value })
+          }
+          validationMethods={{ onBlur: () => {} }}
+          errorMessage={validationErrors?.password_needed}
+          label={t(`${database.slice(10)} PASSWORD`)}
+          css={formScrollableStyles}
+        />
+      </>
+    ));
+  };
 
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = (event.currentTarget?.value as string) ?? '';
