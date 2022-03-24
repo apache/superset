@@ -344,12 +344,10 @@ configOverrides:
     from celery.schedules import crontab
 
     class CeleryConfig(object):
-      BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_IMPORTS = ('superset.sql_lab', )
-      CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-      CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-      CELERY_ANNOTATIONS = {
+      broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      task_annotations = {
           'sql_lab.get_sql_results': {
               'rate_limit': '100/s',
           },
@@ -360,7 +358,7 @@ configOverrides:
               'ignore_result': True,
           },
       }
-      CELERYBEAT_SCHEDULE = {
+      beat_schedule = {
           'reports.scheduler': {
               'task': 'reports.scheduler',
               'schedule': crontab(minute='*', hour='*'),
