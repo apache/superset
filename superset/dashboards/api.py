@@ -147,6 +147,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.email",
         "roles.id",
         "roles.name",
+        "is_managed_externally",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [

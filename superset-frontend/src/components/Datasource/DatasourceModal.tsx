@@ -226,7 +226,18 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={isSaving || errors.length > 0}
+            disabled={
+              isSaving ||
+              errors.length > 0 ||
+              currentDatasource.is_managed_externally
+            }
+            tooltip={
+              currentDatasource.is_managed_externally
+                ? t(
+                    "This dataset is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
           >
             {t('Save')}
           </Button>
