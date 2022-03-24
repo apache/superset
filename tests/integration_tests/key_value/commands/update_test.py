@@ -46,12 +46,10 @@ def test_update_id_entry(
     from superset.key_value.models import KeyValueEntry
 
     key = UpdateKeyValueCommand(
-        actor=admin, resource=RESOURCE, key=ID_KEY, value=NEW_VALUE, key_type="id",
+        actor=admin, resource=RESOURCE, key=ID_KEY, value=NEW_VALUE,
     ).run()
-    assert key == ID_KEY
-    entry = (
-        db.session.query(KeyValueEntry).filter_by(id=int(ID_KEY)).autoflush(False).one()
-    )
+    assert key.id == ID_KEY
+    entry = db.session.query(KeyValueEntry).filter_by(id=ID_KEY).autoflush(False).one()
     assert pickle.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
@@ -63,25 +61,20 @@ def test_update_uuid_entry(
     from superset.key_value.models import KeyValueEntry
 
     key = UpdateKeyValueCommand(
-        actor=admin, resource=RESOURCE, key=UUID_KEY, value=NEW_VALUE, key_type="uuid",
+        actor=admin, resource=RESOURCE, key=UUID_KEY, value=NEW_VALUE,
     ).run()
-    assert key == UUID_KEY
+    assert key.uuid == UUID_KEY
     entry = (
-        db.session.query(KeyValueEntry)
-        .filter_by(uuid=UUID(UUID_KEY))
-        .autoflush(False)
-        .one()
+        db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).autoflush(False).one()
     )
     assert pickle.loads(entry.value) == NEW_VALUE
     assert entry.changed_by_fk == admin.id
 
 
-def test_update_missing_entry(
-    app_context: AppContext, admin: User, key_value_entry: KeyValueEntry,
-) -> None:
+def test_update_missing_entry(app_context: AppContext, admin: User) -> None:
     from superset.key_value.commands.update import UpdateKeyValueCommand
 
     key = UpdateKeyValueCommand(
-        actor=admin, resource=RESOURCE, key="456", value=NEW_VALUE, key_type="id",
+        actor=admin, resource=RESOURCE, key=456, value=NEW_VALUE,
     ).run()
     assert key is None

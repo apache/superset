@@ -18,10 +18,11 @@ from flask import session
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
+from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.create import CreateTemporaryCacheCommand
 from superset.temporary_cache.commands.entry import Entry
 from superset.temporary_cache.commands.parameters import CommandParameters
-from superset.temporary_cache.utils import cache_key, random_key
+from superset.temporary_cache.utils import cache_key
 
 
 class CreateFilterStateCommand(CreateTemporaryCacheCommand):

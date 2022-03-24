@@ -18,7 +18,8 @@
 import logging
 import pickle
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -26,29 +27,26 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueGetFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyType
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
 class GetKeyValueCommand(BaseCommand):
-    key: str
-    key_type: KeyType
-    resource: str
+    resource: KeyValueResource
+    key: Union[int, UUID]
 
-    def __init__(self, resource: str, key: str, key_type: KeyType = "uuid"):
+    def __init__(self, resource: KeyValueResource, key: Union[int, UUID]):
         """
         Retrieve a key value entry
 
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to retrieve
-        :param key_type: the type of the key to retrieve
         :return: the value associated with the key if present
         """
         self.resource = resource
         self.key = key
-        self.key_type = key_type
 
     def run(self) -> Any:
         try:
@@ -61,7 +59,7 @@ class GetKeyValueCommand(BaseCommand):
         pass
 
     def get(self) -> Optional[Any]:
-        filter_ = get_filter(self.resource, self.key, self.key_type)
+        filter_ = get_filter(self.resource, self.key)
         entry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)
