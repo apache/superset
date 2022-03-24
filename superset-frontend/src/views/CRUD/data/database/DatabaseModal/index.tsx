@@ -404,10 +404,15 @@ function dbReducer(
       return {
         ...action.payload,
       };
+
     case ActionType.configMethodChange:
       return {
         ...action.payload,
       };
+
+    // case ActionType.importDatabase:
+    //   return {};
+
     case ActionType.reset:
     default:
       return null;
@@ -440,7 +445,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
-  console.log('findme db root', db);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [validationErrors, getValidation, setValidationErrors] =
@@ -518,14 +522,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  const [passwordFields, setPasswordFields] = useState<string[]>([]); // set in useEffect
+  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
+    useState<boolean>(false); // set in useEffect
+  const [passwords, setPasswords] = useState<Record<string, string>>({}); // set by user input
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false); // set by user input
+  const [file, setFile] = useState<UploadFile[]>([]);
+  const [importingModel, setImportingModel] = useState<boolean>(false);
+  console.log('findme importing', importingModel);
+
+  const {
+    state: { alreadyExists, passwordsNeeded },
+    importResource,
+  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
+
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
+    setFile(file.filter(currentFile => currentFile.uid !== file[0].uid));
+    setPasswordFields([]);
+    setNeedsOverwriteConfirm(false);
+    setImportingModel(false);
     onHide();
   };
+
+  const onChange = (type: any, payload: any) => {
+    setDB({ type, payload } as DBReducerActionType);
+  };
+
+  console.log('findme DB', db);
 
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -602,9 +630,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
       );
       if (result) {
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
-        }
+        if (onDatabaseAdd) onDatabaseAdd();
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -619,9 +645,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (dbId) {
         setHasConnectedDb(true);
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
-        }
+        if (onDatabaseAdd) onDatabaseAdd();
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save
@@ -630,12 +654,37 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
+
+    // Import - doesn't use db state
+    if (!db) {
+      setLoading(true);
+      setImportingModel(true);
+      onChange(ActionType.textChange, {
+        name: 'database_name',
+        value: 'TEST database name',
+      });
+
+      if (!(file[0].originFileObj instanceof File)) return;
+      const dbId = await importResource(
+        file[0].originFileObj,
+        passwords,
+        confirmedOverwrite,
+      );
+
+      if (dbId) {
+        setHasConnectedDb(true);
+        if (onDatabaseAdd) onDatabaseAdd();
+        if (useTabLayout) {
+          // tab layout only has one step
+          // so it should close immediately on save
+          onClose();
+          addSuccessToast(t('Database connected'));
+        }
+      }
+    }
+
     setEditNewDb(false);
     setLoading(false);
-  };
-
-  const onChange = (type: any, payload: any) => {
-    setDB({ type, payload } as DBReducerActionType);
   };
 
   // Initialize
@@ -788,7 +837,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
-      if (!hasConnectedDb || editNewDb) {
+      if (!hasConnectedDb || editNewDb || !importingModel) {
         return (
           <>
             <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
@@ -821,6 +870,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </>
       );
     }
+
     return [];
   };
 
@@ -834,6 +884,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </StyledFooterButton>
     </>
   );
+
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -870,128 +921,103 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // ------------------------------ FINDME START 🚧
 
-  const [passwordFields, setPasswordFields] = useState<string[]>([]);
-  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
-    useState<boolean>(false);
-  const [passwords, setPasswords] = useState<Record<string, string>>({});
-  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
-
-  // isImporting ? render modal
-
-  const [fileName, setFileName] = useState<UploadFile[]>([]);
-
-  console.log('findme databasemodal - fileName', fileName);
-
-  const {
-    state: { alreadyExists, passwordsNeeded },
-    importResource,
-  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
-
   useEffect(() => {
-    // console.log('findme UE - pw', passwordsNeeded, 'pwfields', passwordFields);
     setPasswordFields(passwordsNeeded);
+    if (passwordsNeeded.length > 0) {
+      setImportingModel(false);
+    }
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
-    // console.log(
-    //   'findme UE - ow',
-    //   alreadyExists,
-    //   'confirm',
-    //   needsOverwriteConfirm,
-    // );
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
+    if (alreadyExists.length > 0) {
+      setImportingModel(false);
+    }
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   const onDbImport = (info: UploadChangeParam) => {
-    console.log('findme odi entrance');
-    setFileName([
+    setImportingModel(true);
+    setFile([
       {
         ...info.file,
         status: 'done',
       },
     ]);
 
-    if (!(fileName[0]?.originFileObj instanceof File)) return;
-    console.log(
-      'findme odi filecheck',
-      fileName[0].originFileObj,
-      passwords,
-      confirmedOverwrite,
-    );
-
-    console.log(
-      'findme onDbImport',
-      fileName[0].originFileObj,
-      passwords,
-      confirmedOverwrite,
-    );
-    importResource(fileName[0].originFileObj, passwords, confirmedOverwrite);
+    if (!(info.file.originFileObj instanceof File)) return;
+    importResource(info.file.originFileObj, passwords, confirmedOverwrite);
   };
 
-  const passwordNeededField = () => (
-    // passwordFields.map(password => (
-    // passwordsNeeded.length > 0 && (
-    <>
-      <StyledAlertMargin>
-        <Alert
-          closable={false}
-          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-          type="info"
-          showIcon
-          message="Database passwords"
-          description={t(
-            `The passwords for the databases below are needed in order to import them. Please not that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
-          )}
-        />
-      </StyledAlertMargin>
-      <ValidatedInput
-        id="password_needed"
-        name="password_needed"
-        required
-        // value={password}
-        value=""
-        validationMethods={{ onBlur: () => {} }}
-        errorMessage={validationErrors?.password_needed}
-        label={t(`${db?.database_name} PASSWORD`)}
-        css={formScrollableStyles}
-      />
-    </>
-    // ));
-  );
+  const passwordNeededField = () =>
+    passwordFields.map(
+      password =>
+        passwordsNeeded.length > 0 && (
+          <>
+            <StyledAlertMargin>
+              <Alert
+                closable={false}
+                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                type="info"
+                showIcon
+                message="Database passwords"
+                description={t(
+                  `The passwords for the databases below are needed in order to import them. Please not that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+                )}
+              />
+            </StyledAlertMargin>
+            <ValidatedInput
+              id="password_needed"
+              name="password_needed"
+              required
+              value={password}
+              // value=""
+              validationMethods={{ onBlur: () => {} }}
+              errorMessage={validationErrors?.password_needed}
+              label={t(`${db?.database_name} PASSWORD`)}
+              css={formScrollableStyles}
+            />
+          </>
+        ),
+    );
 
-  const confirmOverwriteField = () => (
-    // alreadyExists.length > 0 && (
-    <>
-      <StyledAlertMargin>
-        <Alert
-          closable={false}
-          css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
-          type="warning"
-          showIcon
-          message=""
-          description={t(
-            'You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?',
-          )}
-        />
-      </StyledAlertMargin>
-      <ValidatedInput
-        id="confirm_overwrite"
-        name="confirm_overwrite"
-        required
-        value=""
-        validationMethods={{ onBlur: () => {} }}
-        errorMessage={validationErrors?.confirm_overwrite}
-        label={t(`TYPE "OVERWRITE" TO CONFIRM`)}
-        css={formScrollableStyles}
-      />
-    </>
-  );
+  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = (event.currentTarget?.value as string) ?? '';
+    setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
+  };
 
+  const confirmOverwriteField = () => {
+    if (!needsOverwriteConfirm) return null;
+
+    return (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
+            type="warning"
+            showIcon
+            message=""
+            description={t(
+              'You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?',
+            )}
+          />
+        </StyledAlertMargin>
+        <ValidatedInput
+          id="confirm_overwrite"
+          name="confirm_overwrite"
+          required
+          validationMethods={{ onBlur: () => {} }}
+          errorMessage={validationErrors?.confirm_overwrite}
+          label={t(`TYPE "OVERWRITE" TO CONFIRM`)}
+          onChange={confirmOverwrite}
+          css={formScrollableStyles}
+        />
+      </>
+    );
+  };
   // ------------------------------ FINDME END 🚧
 
-  const tabChange = (key: string) => {
-    setTabKey(key);
-  };
+  const tabChange = (key: string) => setTabKey(key);
 
   const renderStepTwoAlert = () => {
     const { hostname } = window.location;
@@ -999,9 +1025,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
     Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
       const regex = new RegExp(ipRegion);
-      if (hostname.match(regex)) {
-        ipAlert = ipRange;
-      }
+      if (hostname.match(regex)) ipAlert = ipRange;
     });
     return (
       db?.engine && (
@@ -1141,10 +1165,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  // console.log('findme pwneed exists', passwordsNeeded, alreadyExists);
-
-  if (fileName.length > 0) {
-    console.log('findme made it', db, db?.database_name);
+  if (
+    (passwordsNeeded.length > 0 || alreadyExists.length > 0) &&
+    !hasConnectedDb
+  ) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1161,7 +1185,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         centered
         show={show}
         title={<h4>{t('Connect a database')}</h4>}
-        footer={renderModalFooter()}
+        footer={
+          <>
+            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+              {t('Back')}
+            </StyledFooterButton>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onSave}
+            >
+              {t('Connect')}
+            </StyledFooterButton>
+          </>
+          // renderModalFooter()
+        }
       >
         <ModalHeader
           isLoading={isLoading}
@@ -1171,7 +1209,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           db={db}
           dbName={dbName}
           dbModel={dbModel}
-          fileName={fileName}
+          file={file}
         />
         {passwordNeededField()}
         {confirmOverwriteField()}

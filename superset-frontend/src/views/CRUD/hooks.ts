@@ -425,6 +425,8 @@ export function useImportResource(
         formData.append('overwrite', 'true');
       }
 
+      console.log('FINDME formdata', formData);
+
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
         body: formData,

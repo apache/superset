@@ -53,6 +53,7 @@ const documentationLink = (engine: string | undefined) => {
   }
   return irregularDocumentationLinks[engine];
 };
+
 const ModalHeader = ({
   isLoading,
   isEditMode,
@@ -62,7 +63,7 @@ const ModalHeader = ({
   dbName,
   dbModel,
   editNewDb,
-  fileName,
+  file,
 }: {
   isLoading: boolean;
   isEditMode: boolean;
@@ -72,7 +73,7 @@ const ModalHeader = ({
   dbName: string;
   dbModel: DatabaseForm;
   editNewDb?: boolean;
-  fileName?: UploadFile[];
+  file?: UploadFile[];
   passwordFields?: string[];
   needsOverwriteConfirm?: boolean;
 }) => {
@@ -82,6 +83,7 @@ const ModalHeader = ({
       <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
     </StyledFormHeader>
   );
+
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>
       <p className="helper-top"> STEP 2 OF 2 </p>
@@ -99,6 +101,7 @@ const ModalHeader = ({
       </p>
     </StyledFormHeader>
   );
+
   const hasConnectedDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
@@ -120,10 +123,7 @@ const ModalHeader = ({
       </StyledFormHeader>
     </StyledStickyHeader>
   );
-  console.log(
-    'findme modalHeader - fileName',
-    fileName ? fileName[0].name : '',
-  );
+
   const hasDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
@@ -142,6 +142,7 @@ const ModalHeader = ({
       </StyledFormHeader>
     </StyledStickyHeader>
   );
+
   const noDbHeader = (
     <StyledFormHeader>
       <div className="select-db">
@@ -151,17 +152,17 @@ const ModalHeader = ({
     </StyledFormHeader>
   );
 
-  const newHeader = (
+  const importDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
         <p className="helper-top"> STEP 2 OF 3 </p>
         <h4>Enter the required {dbModel.name} credentials</h4>
-        <p className="helper-bottom">{fileName ? fileName[0].name : ''}</p>
+        <p className="helper-bottom">{file ? file[0].name : ''}</p>
       </StyledFormHeader>
     </StyledStickyHeader>
   );
 
-  if (fileName) return newHeader;
+  if (file && !hasConnectedDb) return importDbHeader;
   if (isLoading) return <></>;
   if (isEditMode) return isEditHeader;
   if (useSqlAlchemyForm) return useSqlAlchemyFormHeader;
