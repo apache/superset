@@ -364,7 +364,15 @@ class ChartDataRestApi(ChartRestApi):
             # return the first result
             data = result["queries"][0]["data"]
             buf = BytesIO()
-            pd.DataFrame(data).to_excel(buf, index=False)
+            df = pd.DataFrame(data)
+            def _decimal_to_float(row):
+                from decimal import Decimal
+                for k, v in row.items():
+                    if isinstance(v, Decimal):
+                        row[k] = float(v)
+                return row
+            df = df.apply(_decimal_to_float)
+            df.to_excel(buf, index=False)
             buf.seek(0)
             file_data = buf.getvalue()
             return XLSXResponse(file_data, headers=generate_download_headers("xlsx"))
