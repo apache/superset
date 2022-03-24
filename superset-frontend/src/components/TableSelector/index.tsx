@@ -211,7 +211,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       const forceRefresh = refresh !== previousRefresh;
       // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
       const endpoint = encodeURI(
-        `/data/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
+        `/analytics/superset/tables/${currentDatabase.id}/${encodedSchema}/undefined/${forceRefresh}/`,
       );
 
       if (previousRefresh !== refresh) {

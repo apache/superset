@@ -159,7 +159,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/data/superset/sqllab?new=true',
+      url: '/analytics/superset/sqllab?new=true',
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',

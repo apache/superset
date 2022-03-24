@@ -163,7 +163,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
-      endpoint: `/data/api/v1/dashboard/${edits.id}`,
+      endpoint: `/analytics/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
         setDashboards(
@@ -217,7 +217,7 @@ function DashboardList(props: DashboardListProps) {
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
-      endpoint: `/data/api/v1/dashboard/?q=${rison.encode(
+      endpoint: `/analytics/api/v1/dashboard/?q=${rison.encode(
         dashboardsToDelete.map(({ id }) => id),
       )}`,
     }).then(

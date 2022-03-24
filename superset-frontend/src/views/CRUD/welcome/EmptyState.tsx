@@ -54,14 +54,14 @@ type Redirects = Record<
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/data/chart/add',
-    [WelcomeTable.Dashboards]: '/data/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/data/superset/sqllab?new=true',
+    [WelcomeTable.Charts]: '/analytics/chart/add',
+    [WelcomeTable.Dashboards]: '/analytics/dashboard/new',
+    [WelcomeTable.SavedQueries]: '/analytics/superset/sqllab?new=true',
   };
   const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/data/chart/list',
-    [WelcomeTable.Dashboards]: '/data/dashboard/list/',
-    [WelcomeTable.SavedQueries]: '/data/savedqueryview/list/',
+    [WelcomeTable.Charts]: '/analytics/chart/list',
+    [WelcomeTable.Dashboards]: '/analytics/dashboard/list/',
+    [WelcomeTable.SavedQueries]: '/analytics/savedqueryview/list/',
   };
   const tableIcon: Record<WelcomeTable, string> = {
     [WelcomeTable.Charts]: 'empty-charts.svg',
@@ -106,7 +106,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     return (
       <EmptyContainer>
         <Empty
-          image={`/data/static/assets/images/${tableIcon[tableName]}`}
+          image={`/analytics/static/assets/images/${tableIcon[tableName]}`}
           description={
             tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
           }
@@ -137,7 +137,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image="/data/static/assets/images/star-circle.svg"
+        image="/analytics/static/assets/images/star-circle.svg"
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}

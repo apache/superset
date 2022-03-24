@@ -137,13 +137,13 @@ function SavedQueryList({
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const openNewQuery = () => {
-    window.open(`${window.location.origin}/data/superset/sqllab?new=true`);
+    window.open(`${window.location.origin}/analytics/superset/sqllab?new=true`);
   };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `/data/api/v1/saved_query/${id}`,
+        endpoint: `/analytics/api/v1/saved_query/${id}`,
       }).then(
         ({ json = {} }) => {
           setSavedQueryCurrentlyPreviewing({ ...json.result });
@@ -206,14 +206,14 @@ function SavedQueryList({
   // Action methods
   const openInSqlLab = (id: number) => {
     window.open(
-      `${window.location.origin}/data/superset/sqllab?savedQueryId=${id}`,
+      `${window.location.origin}/analytics/superset/sqllab?savedQueryId=${id}`,
     );
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(
-        `${window.location.origin}/data/superset/sqllab?savedQueryId=${id}`,
+        `${window.location.origin}/analytics/superset/sqllab?savedQueryId=${id}`,
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -227,7 +227,7 @@ function SavedQueryList({
 
   const handleQueryDelete = ({ id, label }: SavedQueryObject) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/saved_query/${id}`,
+      endpoint: `/analytics/api/v1/saved_query/${id}`,
     }).then(
       () => {
         refreshData();
@@ -252,7 +252,7 @@ function SavedQueryList({
 
   const handleBulkQueryDelete = (queriesToDelete: SavedQueryObject[]) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/saved_query/?q=${rison.encode(
+      endpoint: `/analytics/api/v1/saved_query/?q=${rison.encode(
         queriesToDelete.map(({ id }) => id),
       )}`,
     }).then(

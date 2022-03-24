@@ -89,7 +89,7 @@ export function useListViewResource<D extends object = any>(
   useEffect(() => {
     if (!infoEnable) return;
     SupersetClient.get({
-      endpoint: `/data/api/v1/${resource}/_info?q=${rison.encode({
+      endpoint: `/analytics/api/v1/${resource}/_info?q=${rison.encode({
         keys: ['permissions'],
       })}`,
     }).then(
@@ -156,7 +156,7 @@ export function useListViewResource<D extends object = any>(
       });
 
       return SupersetClient.get({
-        endpoint: `/data/api/v1/${resource}/?q=${queryParams}`,
+        endpoint: `/analytics/api/v1/${resource}/?q=${queryParams}`,
       })
         .then(
           ({ json = {} }) => {
@@ -240,7 +240,7 @@ export function useSingleViewResource<D extends object = any>(
       });
 
       return SupersetClient.get({
-        endpoint: `/data/api/v1/${resourceName}/${resourceID}`,
+        endpoint: `/analytics/api/v1/${resourceName}/${resourceID}`,
       })
         .then(
           ({ json = {} }) => {
@@ -279,7 +279,7 @@ export function useSingleViewResource<D extends object = any>(
       });
 
       return SupersetClient.post({
-        endpoint: `/data/api/v1/${resourceName}/`,
+        endpoint: `/analytics/api/v1/${resourceName}/`,
         body: JSON.stringify(resource),
         headers: { 'Content-Type': 'application/json' },
       })
@@ -323,7 +323,7 @@ export function useSingleViewResource<D extends object = any>(
       });
 
       return SupersetClient.put({
-        endpoint: `/data/api/v1/${resourceName}/${resourceID}`,
+        endpoint: `/analytics/api/v1/${resourceName}/${resourceID}`,
         body: JSON.stringify(resource),
         headers: { 'Content-Type': 'application/json' },
       })
@@ -429,7 +429,7 @@ export function useImportResource(
       }
 
       return SupersetClient.post({
-        endpoint: `/data/api/v1/${resourceName}/import/`,
+        endpoint: `/analytics/api/v1/${resourceName}/import/`,
         body: formData,
         headers: { Accept: 'application/json' },
       })
@@ -502,12 +502,12 @@ const favoriteApis = {
   chart: makeApi<Array<string | number>, FavoriteStatusResponse>({
     requestType: 'rison',
     method: 'GET',
-    endpoint: '/data/api/v1/chart/favorite_status/',
+    endpoint: '/analytics/api/v1/chart/favorite_status/',
   }),
   dashboard: makeApi<Array<string | number>, FavoriteStatusResponse>({
     requestType: 'rison',
     method: 'GET',
-    endpoint: '/data/api/v1/dashboard/favorite_status/',
+    endpoint: '/analytics/api/v1/dashboard/favorite_status/',
   }),
 };
 
@@ -545,7 +545,7 @@ export function useFavoriteStatus(
     (id: number, isStarred: boolean) => {
       const urlSuffix = isStarred ? 'unselect' : 'select';
       SupersetClient.get({
-        endpoint: `/data/superset/favstar/${
+        endpoint: `/analytics/superset/favstar/${
           type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
         }/${id}/${urlSuffix}/`,
       }).then(
@@ -612,7 +612,7 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(
-    `${window.location.origin}/data/superset/sqllab?savedQueryId=${id}`,
+    `${window.location.origin}/analytics/superset/sqllab?savedQueryId=${id}`,
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -652,7 +652,7 @@ export function useAvailableDatabases() {
 
   const getAvailable = useCallback(() => {
     SupersetClient.get({
-      endpoint: `/data/api/v1/database/available/`,
+      endpoint: `/analytics/api/v1/database/available/`,
     }).then(({ json }) => {
       setAvailableDbs(json);
     });
@@ -668,7 +668,7 @@ export function useDatabaseValidation() {
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) =>
       SupersetClient.post({
-        endpoint: '/data/api/v1/database/validate_parameters',
+        endpoint: '/analytics/api/v1/database/validate_parameters',
         body: JSON.stringify(database),
         headers: { 'Content-Type': 'application/json' },
       })

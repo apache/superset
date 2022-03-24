@@ -95,7 +95,7 @@ class App extends React.PureComponent {
 
   render() {
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace('/data/superset/sqllab/history/');
+      return window.location.replace('/analytics/superset/sqllab/history/');
     }
     return (
       <div className="App SqlLab">

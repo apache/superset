@@ -176,7 +176,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/data/superset/dashboard/{self.slug or self.id}/"
+        return f"/analytics/superset/dashboard/{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
@@ -254,7 +254,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/data/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        return f"/analytics/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def changed_by_name(self) -> str:
@@ -266,7 +266,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
-        return f"/data/superset/profile/{self.changed_by.username}"
+        return f"/analytics/superset/profile/{self.changed_by.username}"
 
     @property
     def data(self) -> Dict[str, Any]:

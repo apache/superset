@@ -151,7 +151,7 @@ function pluginContextReducer(
 
 const pluginApi = makeApi<{}, { result: Plugin[] }>({
   method: 'GET',
-  endpoint: '/data/dynamic-plugins/api/read',
+  endpoint: '/analytics/dynamic-plugins/api/read',
 });
 
 const sharedModules = {

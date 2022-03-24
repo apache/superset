@@ -30,7 +30,7 @@ from superset.models.dynamic_plugins import DynamicPlugin
 class DynamicPluginsView(ModelView):
     """Dynamic plugin crud views -- To be replaced by fancy react UI"""
 
-    route_base = "/data/dynamic-plugins"
+    route_base = "/analytics/dynamic-plugins"
     datamodel = SQLAInterface(DynamicPlugin)
     class_permission_name = "DynamicPlugin"
 

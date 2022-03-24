@@ -596,7 +596,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/data/api/v1/report/related/created_by?q=${query}`,
+          endpoint: `/analytics/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -649,7 +649,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/data/api/v1/report/related/database?q=${query}`,
+          endpoint: `/analytics/api/v1/report/related/database?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -682,7 +682,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/data/api/v1/report/related/dashboard?q=${query}`,
+          endpoint: `/analytics/api/v1/report/related/dashboard?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -756,7 +756,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/data/api/v1/report/related/chart?q=${query}`,
+          endpoint: `/analytics/api/v1/report/related/chart?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -774,7 +774,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const getChartVisualizationType = (chart: SelectValue) =>
     SupersetClient.get({
-      endpoint: `/data/api/v1/chart/${chart.value}`,
+      endpoint: `/analytics/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
 
   // Handle input/textarea updates

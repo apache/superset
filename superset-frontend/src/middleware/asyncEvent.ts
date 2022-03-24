@@ -55,7 +55,7 @@ const JOB_STATUS = {
   DONE: 'done',
 };
 const LOCALSTORAGE_KEY = 'last_async_event_id';
-const POLLING_URL = '/data/api/v1/async_event/';
+const POLLING_URL = '/analytics/api/v1/async_event/';
 const MAX_RETRIES = 6;
 const RETRY_DELAY = 100;
 

@@ -55,7 +55,7 @@ const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/data/static/assets/`,
+  publicPath: `${ASSET_BASE_URL}/analytics/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';

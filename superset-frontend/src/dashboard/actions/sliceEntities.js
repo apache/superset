@@ -50,7 +50,7 @@ export function fetchAllSlices(userId, excludeFilterBox = false) {
       dispatch(fetchAllSlicesStarted());
 
       return SupersetClient.get({
-        endpoint: `/data/api/v1/chart/?q=${rison.encode({
+        endpoint: `/analytics/api/v1/chart/?q=${rison.encode({
           columns: [
             'changed_on_delta_humanized',
             'changed_on_utc',

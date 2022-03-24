@@ -314,22 +314,20 @@ class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({ endpoint: '/data/superset/user_slices' }).then(
-          ({ json }) => {
-            const registry = getChartMetadataRegistry();
-            this.setState({
-              isLoadingOptions: false,
-              valueOptions: json
-                .filter(x => {
-                  const metadata = registry.get(x.viz_type);
-                  return (
-                    metadata && metadata.canBeAnnotationType(annotationType)
-                  );
-                })
-                .map(x => ({ value: x.id, label: x.title, slice: x })),
-            });
-          },
-        );
+        SupersetClient.get({
+          endpoint: '/analytics/superset/user_slices',
+        }).then(({ json }) => {
+          const registry = getChartMetadataRegistry();
+          this.setState({
+            isLoadingOptions: false,
+            valueOptions: json
+              .filter(x => {
+                const metadata = registry.get(x.viz_type);
+                return metadata && metadata.canBeAnnotationType(annotationType);
+              })
+              .map(x => ({ value: x.id, label: x.title, slice: x })),
+          });
+        });
       } else {
         this.setState({
           isLoadingOptions: false,

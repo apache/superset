@@ -79,7 +79,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/data/superset/sqllab';
+    const sqlLabUrl = '/analytics/superset/sqllab';
     this.state = {
       sqlLabUrl,
       queriesArray: [],

@@ -45,7 +45,7 @@ from superset.views.dashboard.mixin import DashboardMixin
 class DashboardModelView(
     DashboardMixin, SupersetModelView, DeleteMixin
 ):  # pylint: disable=too-many-ancestors
-    route_base = "/data/dashboard"
+    route_base = "/dashboard"
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
@@ -130,7 +130,7 @@ class Dashboard(BaseSupersetView):
         )
         db.session.add(new_dashboard)
         db.session.commit()
-        return redirect(f"/data/superset/dashboard/{new_dashboard.id}/?edit=true")
+        return redirect(f"/analytics/superset/dashboard/{new_dashboard.id}/?edit=true")
 
     @expose("/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload

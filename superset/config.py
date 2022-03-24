@@ -244,11 +244,11 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 APP_NAME = "Superset"
 
 # Specify the App icon
-APP_ICON = "/data/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/analytics/static/assets/images/superset-logo-horiz.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
-LOGO_TARGET_PATH = "/data/superset/welcome/"
+LOGO_TARGET_PATH = "/analytics/superset/welcome/"
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 LOGO_TOOLTIP = ""
@@ -1194,7 +1194,7 @@ SQLALCHEMY_EXAMPLES_URI = None
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
-STATIC_ASSETS_PREFIX = "/data"
+STATIC_ASSETS_PREFIX = "/analytics"
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.

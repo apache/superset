@@ -100,7 +100,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
     setIsSaving(true);
     SupersetClient.post({
-      endpoint: '/data/datasource/save/',
+      endpoint: '/analytics/datasource/save/',
       postPayload: {
         data: {
           ...currentDatasource,

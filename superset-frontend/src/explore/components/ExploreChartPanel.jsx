@@ -164,7 +164,7 @@ const ExploreChartPanel = ({
         });
 
         await SupersetClient.put({
-          endpoint: `/data/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/analytics/api/v1/chart/${slice.slice_id}`,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query_context: JSON.stringify(queryContext),

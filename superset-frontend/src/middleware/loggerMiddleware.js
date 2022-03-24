@@ -26,7 +26,7 @@ import { LOG_EVENT } from '../logger/actions';
 import { LOG_EVENT_TYPE_TIMING } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
 
-const LOG_ENDPOINT = '/data/superset/log/?explode=events';
+const LOG_ENDPOINT = '/analytics/superset/log/?explode=events';
 const sendBeacon = events => {
   if (events.length <= 0) {
     return;

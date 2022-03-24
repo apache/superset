@@ -427,7 +427,7 @@ export default class ResultSet extends React.PureComponent<
 
       const response = await makeApi({
         method: 'GET',
-        endpoint: '/data/api/v1/dataset',
+        endpoint: '/analytics/api/v1/dataset',
       })(`q=${queryParams}`);
 
       return response.result.map(
@@ -550,7 +550,7 @@ export default class ResultSet extends React.PureComponent<
             {this.props.csv && (
               <Button
                 buttonSize="small"
-                href={`/data/superset/csv/${this.props.query.id}`}
+                href={`/analytics/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>

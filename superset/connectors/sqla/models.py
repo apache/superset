@@ -731,7 +731,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
-        return f"/data/superset/profile/{self.changed_by.username}"
+        return f"/analytics/superset/profile/{self.changed_by.username}"
 
     @property
     def connection(self) -> str:

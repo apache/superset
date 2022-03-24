@@ -31,7 +31,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
-const FAVESTAR_BASE_URL = '/data/superset/favstar/slice';
+const FAVESTAR_BASE_URL = '/analytics/superset/favstar/slice';
 
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType: DatasourceType) {

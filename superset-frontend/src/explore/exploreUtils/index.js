@@ -84,9 +84,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return '/data/superset/explore_json/';
+    return '/analytics/superset/explore_json/';
   }
-  return '/data/superset/explore/';
+  return '/analytics/superset/explore/';
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -285,7 +285,7 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/data/api/v1/chart/data';
+    url = '/analytics/api/v1/chart/data';
     payload = buildV1ChartDataPayload({
       formData,
       force,

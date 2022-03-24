@@ -295,7 +295,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
         )
         if has_access_:
-            return redirect("/data/superset/dashboard/{}".format(dashboard_id))
+            return redirect("/analytics/superset/dashboard/{}".format(dashboard_id))
 
         if request.args.get("action") == "go":
             for datasource in datasources:
@@ -554,7 +554,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @handle_api_exception
     @permission_name("explore_json")
-    @expose("/explore_json/data/<cache_key>", methods=["GET"])
+    @expose("/explore_json/analytics/<cache_key>", methods=["GET"])
     @check_resource_permissions(check_explore_cache_perms)
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
@@ -665,7 +665,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
                 # Otherwise, kick off a background job to run the chart query.
                 # Clients will either poll or be notified of query completion,
-                # at which point they will call the /explore_json/data/<cache_key>
+                # at which point they will call the /explore_json/analytics/<cache_key>
                 # endpoint to retrieve the results.
                 try:
                     async_channel_id = async_query_manager.parse_jwt_from_request(
@@ -934,7 +934,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @has_access_api
     @event_logger.log_this
-    @expose("/data/filter/<datasource_type>/<int:datasource_id>/<column>/")
+    @expose("/analytics/filter/<datasource_type>/<int:datasource_id>/<column>/")
     def filter(  # pylint: disable=no-self-use
         self, datasource_type: str, datasource_id: int, column: str
     ) -> FlaskResponse:
@@ -1597,7 +1597,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Dashboard.created_by:
                 user = o.Dashboard.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/data/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = "/analytics/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1757,7 +1757,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if o.Slice.created_by:
                 user = o.Slice.created_by
                 dash["creator"] = str(user)
-                dash["creator_url"] = "/data/superset/profile/{}/".format(user.username)
+                dash["creator_url"] = "/analytics/superset/profile/{}/".format(user.username)
             payload.append(dash)
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1935,7 +1935,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         "danger",
                     )
                     return redirect(
-                        f"/data/superset/request_access/?dashboard_id={dashboard.id}"
+                        f"/analytics/superset/request_access/?dashboard_id={dashboard.id}"
                     )
 
         dash_edit_perm = check_ownership(
@@ -1982,7 +1982,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id = value["dashboardId"]
-        url = f"/data/superset/dashboard/{dashboard_id}?permalink_key={key}"
+        url = f"/analytics/superset/dashboard/{dashboard_id}?permalink_key={key}"
         url_params = value["state"].get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)
