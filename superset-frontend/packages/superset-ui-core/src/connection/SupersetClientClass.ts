@@ -188,7 +188,7 @@ export default class SupersetClientClass {
       Promise.reject({
         error: `SupersetClient has not been provided a CSRF token, ensure it is
         initialized with \`client.getCSRFToken()\` or try logging in at
-        ${this.getUrl({ endpoint: '/data/login' })}`,
+        ${this.getUrl({ endpoint: '/analytics/login' })}`,
       })
     );
   }
@@ -205,7 +205,7 @@ export default class SupersetClientClass {
       method: 'GET',
       mode: this.mode,
       timeout: this.timeout,
-      url: this.getUrl({ endpoint: '/data/api/v1/security/csrf_token/' }),
+      url: this.getUrl({ endpoint: '/analytics/api/v1/security/csrf_token/' }),
       parseMethod: 'json',
     }).then(({ json }) => {
       if (typeof json === 'object') {

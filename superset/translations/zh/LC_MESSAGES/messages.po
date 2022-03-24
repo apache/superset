@@ -2611,7 +2611,7 @@ msgstr "您的查询无法保存。"
 msgid "Chart does not exist"
 msgstr "图表没有找到"
 
-#: superset/charts/data/api.py:125
+#: superset/charts/analytics/api.py:125
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
@@ -9689,13 +9689,13 @@ msgstr ""
 msgid "Request Permissions"
 msgstr "请求权限"
 
-#: superset/charts/data/api.py:145 superset/charts/data/api.py:233
-#: superset/charts/data/api.py:297
+#: superset/charts/analytics/api.py:145 superset/charts/analytics/api.py:233
+#: superset/charts/analytics/api.py:297
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr "请求不正确: %(error)s"
 
-#: superset/charts/data/api.py:222
+#: superset/charts/analytics/api.py:222
 msgid "Request is not JSON"
 msgstr "请求不是JSON"
 

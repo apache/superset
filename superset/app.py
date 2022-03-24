@@ -35,7 +35,7 @@ def create_app() -> Flask:
         # Allow user to override our config completely
         config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
         app.config.from_object(config_module)
-        app.wsgi_app = PrefixMiddleware(app.wsgi_app,prefix='/data')
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app,prefix='/analytics')
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
 

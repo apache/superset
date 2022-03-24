@@ -113,7 +113,7 @@ function DashboardTable({
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
-      endpoint: `/data/api/v1/dashboard/${edits.id}`,
+      endpoint: `/analytics/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
         setDashboards(

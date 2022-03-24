@@ -173,7 +173,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `/data/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
+      endpoint: `/analytics/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
     })
       .then(({ json }) => {
         onDatasourceSave(json);

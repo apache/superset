@@ -77,7 +77,7 @@ export function resetSlice() {
   return { type: RESET_SLICE };
 }
 
-const FAVESTAR_BASE_URL = '/data/superset/favstar/Dashboard';
+const FAVESTAR_BASE_URL = '/analytics/superset/favstar/Dashboard';
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -130,7 +130,7 @@ export function togglePublished(isPublished) {
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: `/data/api/v1/dashboard/${id}`,
+      endpoint: `/analytics/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         published: isPublished,
@@ -361,7 +361,7 @@ export function saveDashboardRequest(data, id, saveType) {
       };
 
       return SupersetClient.put({
-        endpoint: `/data/api/v1/dashboard/${id}`,
+        endpoint: `/analytics/api/v1/dashboard/${id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedDashboard),
       })
@@ -379,7 +379,7 @@ export function saveDashboardRequest(data, id, saveType) {
       ...(cleanedData?.metadata || {}),
     };
     return SupersetClient.post({
-      endpoint: `/data/superset/copy_dash/${id}/`,
+      endpoint: `/analytics/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
           ...finalCopyData,

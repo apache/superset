@@ -2748,7 +2748,7 @@ msgstr "Diagramm konnte nicht aktualisiert werden."
 msgid "Chart does not exist"
 msgstr "Diagramm existiert nicht"
 
-#: superset/charts/data/api.py:125
+#: superset/charts/analytics/api.py:125
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 "Für das Diagramm ist kein Abfragekontext gespeichert. Bitte speichern Sie"
@@ -9930,13 +9930,13 @@ msgstr "Abstoßungsstärke zwischen Knoten"
 msgid "Request Permissions"
 msgstr "Berechtigung anfordern"
 
-#: superset/charts/data/api.py:145 superset/charts/data/api.py:233
-#: superset/charts/data/api.py:297
+#: superset/charts/analytics/api.py:145 superset/charts/analytics/api.py:233
+#: superset/charts/analytics/api.py:297
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr "Anfrage ist falsch: %(error)s"
 
-#: superset/charts/data/api.py:222
+#: superset/charts/analytics/api.py:222
 msgid "Request is not JSON"
 msgstr "Anfrage ist nicht JSON"
 

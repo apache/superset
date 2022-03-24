@@ -108,7 +108,7 @@ class DashboardPermalinkRestApi(BaseApi):
                 actor=g.user, dashboard_id=pk, state=state, key_type=key_type,
             ).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/data/superset/dashboard/p/{key}/"
+            url = f"{http_origin}/analytics/superset/dashboard/p/{key}/"
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))

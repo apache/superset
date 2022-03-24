@@ -559,7 +559,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
-        return redirect("/data/superset/explore/table/{}/".format(pk))
+        return redirect("/analytics/superset/explore/table/{}/".format(pk))
 
     @action(
         "refresh", __("Refresh Metadata"), __("Refresh column metadata"), "fa-refresh"
@@ -642,7 +642,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             )
             flash(failure_msg, "danger")
 
-        return redirect("/data/tablemodelview/list/")
+        return redirect("/analytics/tablemodelview/list/")
 
     @expose("/list/")
     @has_access

@@ -137,7 +137,7 @@ class AdhocFilterControl extends React.Component {
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/data/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+          endpoint: `/analytics/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
         })
           .then(({ json }) => {
             if (json && json.partitions) {

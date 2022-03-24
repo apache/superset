@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 class ChartDataRestApi(ChartRestApi):
     include_route_methods = {"get_data", "data", "data_from_cache"}
 
-    @expose("/<int:pk>/data/", methods=["GET"])
+    @expose("/<int:pk>/analytics/", methods=["GET"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -245,7 +245,7 @@ class ChartDataRestApi(ChartRestApi):
             command, form_data=form_data, datasource=query_context.datasource
         )
 
-    @expose("/data/<cache_key>", methods=["GET"])
+    @expose("/analytics/<cache_key>", methods=["GET"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -316,7 +316,7 @@ class ChartDataRestApi(ChartRestApi):
 
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
-        # at which point they will call the /data/<cache_key> endpoint
+        # at which point they will call the /analytics/<cache_key> endpoint
         # to retrieve the results.
         async_command = CreateAsyncChartDataJobCommand()
         try:

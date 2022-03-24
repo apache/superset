@@ -21,7 +21,7 @@ import { ChartDataResponse, QueryContext } from '../../types';
 
 export const getChartData = makeApi<QueryContext, ChartDataResponse>({
   method: 'POST',
-  endpoint: '/data/api/v1/chart/data',
+  endpoint: '/analytics/api/v1/chart/data',
 });
 
 /**

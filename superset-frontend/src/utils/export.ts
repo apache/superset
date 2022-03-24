@@ -27,7 +27,7 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = shortid.generate();
-  const url = `/data/api/v1/${resource}/export/?q=${rison.encode(
+  const url = `/analytics/api/v1/${resource}/export/?q=${rison.encode(
     ids,
   )}&token=${token}`;
 

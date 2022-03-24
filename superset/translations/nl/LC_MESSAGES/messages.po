@@ -793,21 +793,21 @@ msgstr "Grafieken konden niet worden verwijderd."
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafiek mislukt om een onbekende reden"
 
-#: superset/charts/data/api.py:123
+#: superset/charts/analytics/api.py:123
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
-#: superset/charts/data/api.py:143 superset/charts/data/api.py:231
-#: superset/charts/data/api.py:297
+#: superset/charts/analytics/api.py:143 superset/charts/analytics/api.py:231
+#: superset/charts/analytics/api.py:297
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr "Verzoek is onjuist: %(error)s"
 
-#: superset/charts/data/api.py:220
+#: superset/charts/analytics/api.py:220
 msgid "Request is not JSON"
 msgstr "Verzoek is geen JSON"
 
-#: superset/charts/data/api.py:354
+#: superset/charts/analytics/api.py:354
 msgid "Empty query result"
 msgstr ""
 

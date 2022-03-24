@@ -50,7 +50,7 @@ class FilterSet(Model, AuditMixinNullable):
 
     @property
     def url(self) -> str:
-        return f"/data/api/filtersets/{self.id}/"
+        return f"/analytics/api/filtersets/{self.id}/"
 
     @property
     def sqla_metadata(self) -> None:
@@ -68,7 +68,7 @@ class FilterSet(Model, AuditMixinNullable):
     def changed_by_url(self) -> str:
         if not self.changed_by:
             return ""
-        return f"/data/superset/profile/{self.changed_by.username}"
+        return f"/analytics/superset/profile/{self.changed_by.username}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {

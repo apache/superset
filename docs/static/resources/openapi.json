@@ -7117,7 +7117,7 @@
         "tags": ["Charts"]
       }
     },
-    "/chart/data/{cache_key}": {
+    "/chart/analytics/{cache_key}": {
       "get": {
         "description": "Takes a query context cache key and returns payload data response for the given query.",
         "parameters": [
@@ -7660,7 +7660,7 @@
         "tags": ["Charts"]
       }
     },
-    "/chart/{pk}/data/": {
+    "/chart/{pk}/analytics/": {
       "get": {
         "description": "Takes a chart ID and uses the query context stored when the chart was saved to return payload data response.",
         "parameters": [

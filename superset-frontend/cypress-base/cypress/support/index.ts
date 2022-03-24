@@ -18,7 +18,7 @@
  */
 import '@cypress/code-coverage/support';
 
-const BASE_EXPLORE_URL = '/data/superset/explore/?form_data=';
+const BASE_EXPLORE_URL = '/analytics/superset/explore/?form_data=';
 
 /* eslint-disable consistent-return */
 Cypress.on('uncaught:exception', err => {

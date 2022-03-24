@@ -103,66 +103,66 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/data/superset/welcome/',
+    path: '/analytics/superset/welcome/',
     Component: Welcome,
   },
   {
-    path: '/data/dashboard/list/',
+    path: '/analytics/dashboard/list/',
     Component: DashboardList,
   },
   {
-    path: '/data/superset/dashboard/:idOrSlug/',
+    path: '/analytics/superset/dashboard/:idOrSlug/',
     Component: DashboardPage,
   },
   {
-    path: '/data/chart/list/',
+    path: '/analytics/chart/list/',
     Component: ChartList,
   },
   {
-    path: '/data/tablemodelview/list/',
+    path: '/analytics/tablemodelview/list/',
     Component: DatasetList,
   },
   {
-    path: '/data/databaseview/list/',
+    path: '/analytics/databaseview/list/',
     Component: DatabaseList,
   },
   {
-    path: '/data/savedqueryview/list/',
+    path: '/analytics/savedqueryview/list/',
     Component: SavedQueryList,
   },
   {
-    path: '/data/csstemplatemodelview/list/',
+    path: '/analytics/csstemplatemodelview/list/',
     Component: CssTemplatesList,
   },
   {
-    path: '/data/annotationlayermodelview/list/',
+    path: '/analytics/annotationlayermodelview/list/',
     Component: AnnotationLayersList,
   },
   {
-    path: '/data/annotationmodelview/:annotationLayerId/annotation/',
+    path: '/analytics/annotationmodelview/:annotationLayerId/annotation/',
     Component: AnnotationList,
   },
   {
-    path: '/data/superset/sqllab/history/',
+    path: '/analytics/superset/sqllab/history/',
     Component: QueryList,
   },
   {
-    path: '/data/alert/list/',
+    path: '/analytics/alert/list/',
     Component: AlertList,
   },
   {
-    path: '/data/report/list/',
+    path: '/analytics/report/list/',
     Component: AlertList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: '/data/alert/:alertId/log/',
+    path: '/analytics/alert/:alertId/log/',
     Component: ExecutionLog,
   },
   {
-    path: '/data/report/:alertId/log/',
+    path: '/analytics/report/:alertId/log/',
     Component: ExecutionLog,
     props: {
       isReportEnabled: true,

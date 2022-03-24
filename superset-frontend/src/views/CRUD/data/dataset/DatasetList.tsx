@@ -160,7 +160,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
       SupersetClient.get({
-        endpoint: `/data/api/v1/dataset/${id}`,
+        endpoint: `/analytics/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
           const addCertificationFields = json.result.columns.map(
@@ -191,7 +191,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const openDatasetDeleteModal = (dataset: Dataset) =>
     SupersetClient.get({
-      endpoint: `/data/api/v1/dataset/${dataset.id}/related_objects`,
+      endpoint: `/analytics/api/v1/dataset/${dataset.id}/related_objects`,
     })
       .then(({ json = {} }) => {
         setDatasetCurrentlyDeleting({
@@ -539,7 +539,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/dataset/${id}`,
+      endpoint: `/analytics/api/v1/dataset/${id}`,
     }).then(
       () => {
         refreshData();
@@ -556,7 +556,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/dataset/?q=${rison.encode(
+      endpoint: `/analytics/api/v1/dataset/?q=${rison.encode(
         datasetsToDelete.map(({ id }) => id),
       )}`,
     }).then(

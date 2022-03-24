@@ -98,7 +98,7 @@ export function ColumnSelect({
     }
     if (datasetId != null) {
       cachedSupersetGet({
-        endpoint: `/data/api/v1/dataset/${datasetId}`,
+        endpoint: `/analytics/api/v1/dataset/${datasetId}`,
       }).then(
         ({ json: { result } }) => {
           const lookupValue = Array.isArray(value) ? value : [value];

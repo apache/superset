@@ -18,8 +18,8 @@ import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const WORLD_HEALTH_DASHBOARD = '/data/superset/dashboard/world_health/';
-export const TABBED_DASHBOARD = '/data/superset/dashboard/tabbed_dash/';
+export const WORLD_HEALTH_DASHBOARD = '/analytics/superset/dashboard/world_health/';
+export const TABBED_DASHBOARD = '/analytics/superset/dashboard/tabbed_dash/';
 
 export const testItems = {
   dashboard: 'Cypress Sales Dashboard',

@@ -96,7 +96,7 @@ function AnnotationList({
     async function fetchAnnotationLayer() {
       try {
         const response = await SupersetClient.get({
-          endpoint: `/data/data/api/v1/annotation_layer/${annotationLayerId}`,
+          endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}`,
         });
         setAnnotationLayerName(response.json.result.name);
       } catch (response) {
@@ -110,7 +110,7 @@ function AnnotationList({
 
   const handleAnnotationDelete = ({ id, short_descr }: AnnotationObject) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
+      endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
     }).then(
       () => {
         refreshData();
@@ -129,7 +129,7 @@ function AnnotationList({
     annotationsToDelete: AnnotationObject[],
   ) => {
     SupersetClient.delete({
-      endpoint: `/data/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
+      endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
         annotationsToDelete.map(({ id }) => id),
       )}`,
     }).then(

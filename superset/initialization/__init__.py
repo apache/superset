@@ -231,7 +231,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Home",
             label=__("Home"),
-            href="/data/superset/welcome/",
+            href="/analytics/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
         appbuilder.add_view(
@@ -323,7 +323,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Import Dashboards",
             label=__("Import Dashboards"),
-            href="/data/superset/import_dashboards/",
+            href="/analytics/superset/import_dashboards/",
             icon="fa-cloud-upload",
             category="Manage",
             category_label=__("Manage"),
@@ -335,7 +335,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=_("SQL Editor"),
-            href="/data/superset/sqllab/",
+            href="/analytics/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -343,14 +343,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             __("Saved Queries"),
-            href="/data/savedqueryview/list/",
+            href="/analytics/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
         )
         appbuilder.add_link(
             "Query Search",
             label=_("Query History"),
-            href="/data/superset/sqllab/history/",
+            href="/analytics/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -368,7 +368,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/data/tablemodelview/list/",
+            href="/analytics/tablemodelview/list/",
             icon="fa-table",
             category="Data",
             category_label=__("Data"),
@@ -724,4 +724,4 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/data/superset/welcome/")
+        return redirect("/analytics/superset/welcome/")
