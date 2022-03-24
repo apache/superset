@@ -217,7 +217,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return catalogs
 
     @classmethod
-    def get_all_catalog_schema_names(cls, inspector: Inspector, catalog_name: str) -> List[str]:
+    def get_all_catalog_schema_names(cls, inspector: Inspector,
+        catalog_name: str
+    ) -> List[str]:
         schemas = [
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS FROM " + catalog_name)

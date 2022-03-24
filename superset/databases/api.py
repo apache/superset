@@ -532,7 +532,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalog.schemas",
+        action=lambda self, *args,
+        **kwargs: f"{self.__class__.__name__}" f".catalog.schemas",
         log_to_statsd=False,
     )
     def catalog_schemas(self, pk: int, catalog_name: str, **kwargs: Any) -> FlaskResponse:

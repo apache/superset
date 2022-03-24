@@ -165,13 +165,17 @@ export default function DatabaseSelector({
   const { addSuccessToast } = useToasts();
 
   useEffect(() => {
-    if (currentDb)
-      isPrestoDatabase(currentDb) ? fetchCatalogs() : fetchSchemas(currentDb);
+    if (currentDb) fetchData();
   }, [currentDb]);
 
   useEffect(() => {
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog]);
+
+  function fetchData() {
+    if (isPrestoDatabase(currentDb)) fetchCatalogs();
+    else fetchSchemas(currentDb);
+  }
 
   const loadDatabases = useMemo(
     () =>
