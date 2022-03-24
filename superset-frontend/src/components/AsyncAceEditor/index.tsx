@@ -126,9 +126,10 @@ export default function AsyncAceEditor(
         ref,
       ) {
         if (keywords) {
-          console.log({ ace });
-          const langTools = ace.require('ace/ext/language_tools');
-          console.log({ langTools });
+          // ace doesn't have property acequire if there are multiple ace editors on a page
+          // @ts-ignore
+          const acequire = ace.acequire ?? ace.require;
+          const langTools = acequire('ace/ext/language_tools');
           const completer = {
             getCompletions: (
               editor: AceEditor,
