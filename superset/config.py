@@ -43,7 +43,6 @@ from typing_extensions import Literal
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.key_value.types import KeyType
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
@@ -599,8 +598,6 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
-
-PERMALINK_KEY_TYPE: KeyType = "uuid"
 
 # CORS Options
 ENABLE_CORS = False
