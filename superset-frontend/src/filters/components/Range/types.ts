@@ -29,7 +29,8 @@ interface PluginFilterRangeCustomizeProps {
   max?: number;
   min?: number;
   stepSize: number;
-  logScale: boolean;
+  logScale?: boolean;
+  scaling: string;
 }
 
 export type PluginFilterRangeQueryFormData = QueryFormData &
@@ -43,3 +44,41 @@ export type PluginFilterRangeProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   inputRef: RefObject<any>;
 } & PluginFilterHooks;
+
+export enum PluginFilterRangeScalingFunctions {
+  LINEAR = "LINEAR",
+  LOG = "LOG",
+  SQRT = "SQRT",
+  SQUARED = "SQUARED",
+}
+
+export interface PluginFilterRangeScalingFunction {
+  display: string;
+  transformScale: (val: number) => number;
+  inverseScale: (val: number) => number;
+}
+
+export const SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION: {
+  [key in PluginFilterRangeScalingFunctions]: PluginFilterRangeScalingFunction;
+} = {
+  [PluginFilterRangeScalingFunctions.LINEAR]: {
+    display: "Linear",
+    transformScale: (val: number) => val,
+    inverseScale: (val: number) => val,
+  },
+  [PluginFilterRangeScalingFunctions.LOG]: {
+    display: "Log Base 10",
+    transformScale: (val: number) => val > 0 ? Math.log10(val) : 0,
+    inverseScale: (val: number) => Math.pow(10, val),
+  },
+  [PluginFilterRangeScalingFunctions.SQRT]: {
+    display: "Square Root",
+    transformScale: (val: number) => val > 0 ? Math.sqrt(val) : 0,
+    inverseScale: (val: number) => Math.pow(val, 2),
+  },
+  [PluginFilterRangeScalingFunctions.SQUARED]: {
+    display: "Squared",
+    transformScale: (val: number) => Math.pow(val, 2),
+    inverseScale: (val: number) => val > 0 ? Math.sqrt(val) : 0,
+  },
+};

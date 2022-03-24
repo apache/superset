@@ -27,9 +27,15 @@ import {
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AntdSlider } from 'src/components';
 import { rgba } from 'emotion-rgba';
+
 // could add in scalePow and others
-import { scaleLog, scaleLinear } from 'd3-scale';
-import { PluginFilterRangeProps } from './types';
+// import { scaleLog, scaleLinear } from 'd3-scale';
+import {
+  PluginFilterRangeProps,
+  PluginFilterRangeScalingFunctions,
+  SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
+} from './types';
+
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
@@ -150,6 +156,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     groupby,
     defaultValue,
     stepSize,
+    scaling,
+    // logScale,
     enableSingleValue,
   } = formData;
   // const scaler = logScale
@@ -163,16 +171,30 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   // these could be replaced with a property instead, to allow custom transforms
+  // const transformScale = useCallback(
+  //   (val: number | null) =>
+  //     logScale && val ? (val > 0 ? Math.log10(val) : 0) : val,
+  //   [logScale],
+  // );
   const transformScale = useCallback(
-    (val: number | null) => (val ? scaler(val + (logScale ? 1 : 0)) : val),
-    [logScale],
+    // (val: number | null) => (val ? scaler(val + (logScale ? 1 : 0)) : val),
+    // [logScale],
+    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].transformScale,
+    [scaling],
+  );
+  const inverseScale = useCallback(
+    // (val: number | null) =>
+    //   val ? scaler.invert(val) - (logScale ? 1 : 0) : val,
+    // [logScale],
+    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale,
+    [scaling],
   );
 
-  const inverseScale = useCallback(
-    (val: number | null) =>
-      val ? scaler.invert(val) - (logScale ? 1 : 0) : val,
-    [logScale],
-  );
+  //
+  // const inverseScale = useCallback(
+  //   (val: number | null) => (logScale && val ? Math.pow(10, val) : val),
+  //   [logScale],
+  // );
 
   const [value, setValue] = useState<[number, number]>(
     (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(
@@ -226,6 +248,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
+      if(value[0] == min && value[1] == max){
+        // probably a filter value reset, make sure it's a transformed value
+        value = [transformScale(value[0]), transformScale(value[1])];
+      }
+      // antd apparently uses the floor value, not the rounded value
+      if(value[1] == Math.floor(transformScale(max) / stepSize) * stepSize){
+        value = [value[0], transformScale(max)];
+      }
+      if(value[0] == Math.floor(transformScale(min) / stepSize) * stepSize){
+        value = [transformScale(min), value[1]];
+      }
       // value is transformed
       setValue(value);
       // lower & upper are transformed
@@ -244,7 +277,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         },
       });
     },
-    [col, getBounds, setDataMask, getMarks, inverseScale],
+    [col, getBounds, setDataMask, getMarks, inverseScale, transformScale],
   );
 
   // value is transformed
