@@ -128,7 +128,7 @@ def update_api_docs() -> None:
     """Regenerate the openapi.json file in docs"""
     superset_dir = os.path.abspath(os.path.dirname(__file__))
     openapi_json = os.path.join(
-        superset_dir, "..", "docs", "src", "resources", "openapi.json"
+        superset_dir, "..", "..", "docs", "static", "resources", "openapi.json"
     )
     api_version = "v1"
 
@@ -149,6 +149,7 @@ def update_api_docs() -> None:
         click.secho("Generating openapi.json", fg="green")
         with open(openapi_json, "w") as outfile:
             json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+            outfile.write("\n")
     else:
         click.secho("API version not found", err=True)
 
