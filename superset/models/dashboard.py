@@ -163,6 +163,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "css",
         "slug",
     ]
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
