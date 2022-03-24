@@ -248,21 +248,22 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
-      if(value[0] == min && value[1] == max){
-        // probably a filter value reset, make sure it's a transformed value
-        value = [transformScale(value[0]), transformScale(value[1])];
+      let val = value;
+      if (value[0] === min && value[1] === max) {
+        // after a filter value reset, make sure it's a transformed value
+        val = [transformScale(value[0]), transformScale(value[1])];
       }
-      // antd apparently uses the floor value, not the rounded value
-      if(value[1] == Math.floor(transformScale(max) / stepSize) * stepSize){
-        value = [value[0], transformScale(max)];
+      // antd apparently uses the floor value, not the rounded value...?
+      if (value[1] === Math.floor(transformScale(max) / stepSize) * stepSize) {
+        val[1] = transformScale(max);
       }
-      if(value[0] == Math.floor(transformScale(min) / stepSize) * stepSize){
-        value = [transformScale(min), value[1]];
+      if (value[0] === Math.floor(transformScale(min) / stepSize) * stepSize) {
+        val[0] = transformScale(min);
       }
       // value is transformed
-      setValue(value);
+      setValue(val);
       // lower & upper are transformed
-      const { lower, upper } = getBounds(value);
+      const { lower, upper } = getBounds(val);
       setMarks(getMarks(lower, upper));
       // removed Number
       setDataMask({
