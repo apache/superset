@@ -32,7 +32,7 @@ export default async function fetchExploreJson({
   client = SupersetClient,
   method = 'POST',
   requestConfig,
-  endpoint = `${process.env.APP_PREFIX}/superset/explore_json/`,
+  endpoint = '/data/superset/explore_json/',
   formData,
 }: Params) {
   const { json } = await client.request({

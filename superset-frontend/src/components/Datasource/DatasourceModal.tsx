@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useRef, useState } from 'react';
+import React, { FunctionComponent, useState, useRef } from 'react';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -100,7 +100,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
     setIsSaving(true);
     SupersetClient.post({
-      endpoint: `${process.env.APP_PREFIX}/datasource/save/`,
+      endpoint: '/data/datasource/save/',
       postPayload: {
         data: {
           ...currentDatasource,

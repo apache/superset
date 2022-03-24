@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, useCallback, useMemo, useState } from 'react';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
 import moment from 'moment';
 import {
-  createErrorHandler,
-  createFetchDistinct,
   createFetchRelated,
+  createFetchDistinct,
+  createErrorHandler,
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -31,8 +31,8 @@ import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, {
-  FilterOperator,
   Filters,
+  FilterOperator,
   ListViewProps,
 } from 'src/components/ListView';
 import { Tooltip } from 'src/components/Tooltip';
@@ -99,7 +99,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   const handleQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/query/${id}`,
+        endpoint: `/data/api/v1/query/${id}`,
       }).then(
         ({ json = {} }) => {
           setQueryCurrentlyPreviewing({ ...json.result });
@@ -315,7 +315,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <a href={`${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`}>
+            <a href={`/data/superset/sqllab?queryId=${id}`}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
             </a>
           </Tooltip>
@@ -404,9 +404,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           queries={queries}
           fetchData={handleQueryPreview}
           openInSqlLab={(id: number) =>
-            window.location.assign(
-              `${process.env.APP_PREFIX}/superset/sqllab?queryId=${id}`,
-            )
+            window.location.assign(`/data/superset/sqllab?queryId=${id}`)
           }
           show
         />

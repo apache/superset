@@ -45,7 +45,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         className="table-condensed"
         mutator={mutator}
         sortable
-        dataEndpoint={`${process.env.APP_PREFIX}/superset/recent_activity/${user.userId}/?limit=${rowLimit}`}
+        dataEndpoint={`/data/superset/recent_activity/${user.userId}/?limit=${rowLimit}`}
       />
     </div>
   );

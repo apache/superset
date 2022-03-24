@@ -21,15 +21,15 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AntdForm, Col, Row, Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
-  ensureIsArray,
-  getCategoricalSchemeRegistry,
-  getSharedLabelColor,
   styled,
-  SupersetClient,
   t,
+  SupersetClient,
+  getCategoricalSchemeRegistry,
+  ensureIsArray,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -127,7 +127,7 @@ const PropertiesModal = ({
         page_size: pageSize,
       });
       return SupersetClient.get({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/related/${accessType}?q=${query}`,
+        endpoint: `/data/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
         data: response.json.result.map(
           (item: { value: number; text: string }) => ({
@@ -189,7 +189,7 @@ const PropertiesModal = ({
     // At some point when we have a more consistent frontend
     // datamodel, the dashboard could probably just be passed as a prop.
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
+      endpoint: `/data/api/v1/dashboard/${dashboardId}`,
     }).then(response => {
       const dashboard = response.json.result;
       const jsonMetadataObj = dashboard.json_metadata?.length
@@ -339,7 +339,7 @@ const PropertiesModal = ({
       onHide();
     } else {
       SupersetClient.put({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${dashboardId}`,
+        endpoint: `/data/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dashboard_title: title,

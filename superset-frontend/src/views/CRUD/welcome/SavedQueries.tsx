@@ -145,7 +145,7 @@ const SavedQueries = ({
 
   const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/saved_query/${id}`,
+      endpoint: `/data/api/v1/saved_query/${id}`,
     }).then(
       () => {
         const queryParams = {
@@ -214,7 +214,7 @@ const SavedQueries = ({
       {canEdit && (
         <Menu.Item
           onClick={() => {
-            window.location.href = `/superset/sqllab?savedQueryId=${query.id}`;
+            window.location.href = `/data/superset/sqllab?savedQueryId=${query.id}`;
           }}
         >
           {t('Edit')}
@@ -290,7 +290,7 @@ const SavedQueries = ({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/superset/sqllab?new=true';
+              window.location.href = '/data/superset/sqllab?new=true';
             },
           },
           {
@@ -307,7 +307,7 @@ const SavedQueries = ({
           {queries.map(q => (
             <CardStyles
               onClick={() => {
-                window.location.href = `/superset/sqllab?savedQueryId=${q.id}`;
+                window.location.href = `/data/superset/sqllab?savedQueryId=${q.id}`;
               }}
               key={q.id}
             >

@@ -19,18 +19,18 @@
 
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
-  FilterOperator,
-  Filters,
   ListViewProps,
+  Filters,
+  FilterOperator,
 } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -82,7 +82,7 @@ function AnnotationLayersList({
 
   const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
     SupersetClient.delete({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/annotation_layer/${id}`,
+      endpoint: `/data/api/v1/annotation_layer/${id}`,
     }).then(
       () => {
         refreshData();
@@ -97,9 +97,7 @@ function AnnotationLayersList({
 
   const handleBulkLayerDelete = (layersToDelete: AnnotationLayerObject[]) => {
     SupersetClient.delete({
-      endpoint: `${
-        process.env.APP_PREFIX
-      }/api/v1/annotation_layer/?q=${rison.encode(
+      endpoint: `/data/api/v1/annotation_layer/?q=${rison.encode(
         layersToDelete.map(({ id }) => id),
       )}`,
     }).then(
@@ -146,21 +144,11 @@ function AnnotationLayersList({
 
           if (hasHistory) {
             return (
-              <Link
-                to={`${process.env.APP_PREFIX}/annotationmodelview/${id}/annotation`}
-              >
-                {name}
-              </Link>
+              <Link to={`/annotationmodelview/${id}/annotation`}>{name}</Link>
             );
           }
 
-          return (
-            <a
-              href={`${process.env.APP_PREFIX}/annotationmodelview/${id}/annotation`}
-            >
-              {name}
-            </a>
-          );
+          return <a href={`/annotationmodelview/${id}/annotation`}>{name}</a>;
         },
       },
       {

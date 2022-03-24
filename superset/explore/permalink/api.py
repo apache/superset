@@ -102,7 +102,7 @@ class ExplorePermalinkRestApi(BaseApi):
             state = self.add_model_schema.load(request.json)
             key = CreateExplorePermalinkCommand(actor=g.user, state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/explore/p/{key}/"
+            url = f"{http_origin}/data/superset/explore/p/{key}/"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)

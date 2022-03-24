@@ -54,14 +54,14 @@ type Redirects = Record<
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/superset/sqllab?new=true',
+    [WelcomeTable.Charts]: '/data/chart/add',
+    [WelcomeTable.Dashboards]: '/data/dashboard/new',
+    [WelcomeTable.SavedQueries]: '/data/superset/sqllab?new=true',
   };
   const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/list',
-    [WelcomeTable.Dashboards]: '/dashboard/list/',
-    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
+    [WelcomeTable.Charts]: '/data/chart/list',
+    [WelcomeTable.Dashboards]: '/data/dashboard/list/',
+    [WelcomeTable.SavedQueries]: '/data/savedqueryview/list/',
   };
   const tableIcon: Record<WelcomeTable, string> = {
     [WelcomeTable.Charts]: 'empty-charts.svg',

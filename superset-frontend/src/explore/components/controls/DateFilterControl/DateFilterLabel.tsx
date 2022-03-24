@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
-import { css, styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
   buildTimeRangeString,
-  CALENDAR_RANGE_VALUES_SET,
-  COMMON_RANGE_VALUES_SET,
-  customTimeRangeDecode,
   formatTimeRange,
+  COMMON_RANGE_VALUES_SET,
+  CALENDAR_RANGE_VALUES_SET,
   FRAME_OPTIONS,
+  customTimeRangeDecode,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
@@ -44,10 +44,10 @@ import { FrameType } from './types';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import {
-  AdvancedFrame,
-  CalendarFrame,
   CommonFrame,
+  CalendarFrame,
   CustomFrame,
+  AdvancedFrame,
 } from './components';
 
 const guessFrame = (timeRange: string): FrameType => {
@@ -68,7 +68,7 @@ const guessFrame = (timeRange: string): FrameType => {
 
 const fetchTimeRange = async (timeRange: string) => {
   const query = rison.encode_uri(timeRange);
-  const endpoint = `${process.env.APP_PREFIX}/api/v1/time_range/?q=${query}`;
+  const endpoint = `/data/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(

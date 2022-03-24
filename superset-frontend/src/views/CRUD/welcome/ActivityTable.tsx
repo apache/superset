@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/views/components/SubMenu';
@@ -63,7 +63,6 @@ export enum SetTabType {
   VIEWED = 'Viewed',
   EXAMPLE = 'Examples',
 }
-
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */
@@ -114,8 +113,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
-  if ('sql' in entity)
-    return `${process.env.APP_PREFIX}/superset/sqllab?savedQueryId=${entity.id}`;
+  if ('sql' in entity) return `/data/superset/sqllab?savedQueryId=${entity.id}`;
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };

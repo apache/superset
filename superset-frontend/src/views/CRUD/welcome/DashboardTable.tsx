@@ -29,8 +29,8 @@ import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
-  LocalStorageKeys,
   setItem,
+  LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
@@ -113,7 +113,7 @@ function DashboardTable({
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${edits.id}`,
+      endpoint: `/data/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
         setDashboards(
@@ -221,7 +221,7 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign(`${process.env.APP_PREFIX}/dashboard/new`);
+              window.location.assign('/dashboard/new');
             },
           },
           {
@@ -230,12 +230,10 @@ function DashboardTable({
             onClick: () => {
               const target =
                 dashboardFilter === 'Favorite'
-                  ? `${
-                      process.env.APP_PREFIX
-                    }/dashboard/list/?filters=(favorite:(label:${t(
+                  ? `/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : `${process.env.APP_PREFIX}/dashboard/list/`;
+                  : '/dashboard/list/';
               history.push(target);
             },
           },

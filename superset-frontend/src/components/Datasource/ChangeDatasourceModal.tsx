@@ -18,13 +18,13 @@
  */
 import React, {
   FunctionComponent,
-  useCallback,
-  useEffect,
-  useRef,
   useState,
+  useRef,
+  useEffect,
+  useCallback,
 } from 'react';
 import Alert from 'src/components/Alert';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';
@@ -173,7 +173,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
+      endpoint: `/data/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
     })
       .then(({ json }) => {
         onDatasourceSave(json);

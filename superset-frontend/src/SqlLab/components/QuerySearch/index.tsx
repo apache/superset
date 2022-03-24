@@ -129,7 +129,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
 
     try {
       const response = await SupersetClient.get({
-        endpoint: insertParams('/superset/search_queries', params),
+        endpoint: insertParams('/data/superset/search_queries', params),
       });
       const queries = Object.values(response.json);
       setQueriesArray(queries);
@@ -203,7 +203,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
         <div className="col-sm-2">
           <AsyncSelect
             onChange={(db: any) => setDatabaseId(db?.value)}
-            dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
+            dataEndpoint="/data/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
             value={databaseId}
             mutator={dbMutator}
             placeholder={t('Filter by database')}

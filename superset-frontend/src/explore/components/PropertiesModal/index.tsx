@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { AntdForm, Col, Row, Select } from 'src/components';
+import { Select, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -79,7 +79,7 @@ function PropertiesModal({
     async function fetchChartOwners() {
       try {
         const response = await SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/data/api/v1/chart/${slice.slice_id}`,
         });
         const chart = response.json.result;
         setSelectedOwners(
@@ -105,7 +105,7 @@ function PropertiesModal({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/chart/related/owners?q=${query}`,
+          endpoint: `/data/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -150,7 +150,7 @@ function PropertiesModal({
     }
     try {
       const res = await SupersetClient.put({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
+        endpoint: `/data/api/v1/chart/${slice.slice_id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });

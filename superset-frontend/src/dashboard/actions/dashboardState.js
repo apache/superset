@@ -20,23 +20,23 @@
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import {
   ensureIsArray,
-  getSharedLabelColor,
-  SupersetClient,
   t,
+  SupersetClient,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 import {
   addChart,
-  refreshChart,
   removeChart,
+  refreshChart,
 } from 'src/components/Chart/chartAction';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
 import {
-  addDangerToast,
   addSuccessToast,
   addWarningToast,
+  addDangerToast,
 } from 'src/components/MessageToasts/actions';
 import serializeActiveFilterValues from 'src/dashboard/util/serializeActiveFilterValues';
 import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
@@ -45,9 +45,9 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
+  setChartConfiguration,
   dashboardInfoChanged,
   SET_CHART_CONFIG_COMPLETE,
-  setChartConfiguration,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
 import {
@@ -58,38 +58,32 @@ import {
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
-
 export function setUnsavedChanges(hasUnsavedChanges) {
   return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };
 }
 
 export const ADD_SLICE = 'ADD_SLICE';
-
 export function addSlice(slice) {
   return { type: ADD_SLICE, slice };
 }
 
 export const REMOVE_SLICE = 'REMOVE_SLICE';
-
 export function removeSlice(sliceId) {
   return { type: REMOVE_SLICE, sliceId };
 }
 
 export const RESET_SLICE = 'RESET_SLICE';
-
 export function resetSlice() {
   return { type: RESET_SLICE };
 }
 
-const FAVESTAR_BASE_URL = `${process.env.APP_PREFIX}/superset/favstar/Dashboard`;
+const FAVESTAR_BASE_URL = '/data/superset/favstar/Dashboard';
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
-
 export function toggleFaveStar(isStarred) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
 }
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
-
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
     return SupersetClient.get({
@@ -111,7 +105,6 @@ export function fetchFaveStar(id) {
 }
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
-
 export function saveFaveStar(id, isStarred) {
   return function saveFaveStarThunk(dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
@@ -130,7 +123,6 @@ export function saveFaveStar(id, isStarred) {
 }
 
 export const TOGGLE_PUBLISHED = 'TOGGLE_PUBLISHED';
-
 export function togglePublished(isPublished) {
   return { type: TOGGLE_PUBLISHED, isPublished };
 }
@@ -138,7 +130,7 @@ export function togglePublished(isPublished) {
 export function savePublished(id, isPublished) {
   return function savePublishedThunk(dispatch) {
     return SupersetClient.put({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
+      endpoint: `/data/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         published: isPublished,
@@ -165,37 +157,31 @@ export function savePublished(id, isPublished) {
 }
 
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
-
 export function toggleExpandSlice(sliceId) {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
 }
 
 export const UPDATE_CSS = 'UPDATE_CSS';
-
 export function updateCss(css) {
   return { type: UPDATE_CSS, css };
 }
 
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
-
 export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };
 }
 
 export const ON_CHANGE = 'ON_CHANGE';
-
 export function onChange() {
   return { type: ON_CHANGE };
 }
 
 export const ON_SAVE = 'ON_SAVE';
-
 export function onSave(lastModifiedTime) {
   return { type: ON_SAVE, lastModifiedTime };
 }
 
 export const SET_REFRESH_FREQUENCY = 'SET_REFRESH_FREQUENCY';
-
 export function setRefreshFrequency(refreshFrequency, isPersistent = false) {
   return { type: SET_REFRESH_FREQUENCY, refreshFrequency, isPersistent };
 }
@@ -330,7 +316,7 @@ export function saveDashboardRequest(data, id, saveType) {
       window.history.pushState(
         { event: 'dashboard_properties_changed' },
         '',
-        `${process.env.APP_PREFIX}/superset/dashboard/${slug || id}/`,
+        `/superset/dashboard/${slug || id}/`,
       );
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
@@ -375,7 +361,7 @@ export function saveDashboardRequest(data, id, saveType) {
       };
 
       return SupersetClient.put({
-        endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
+        endpoint: `/data/api/v1/dashboard/${id}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedDashboard),
       })
@@ -393,7 +379,7 @@ export function saveDashboardRequest(data, id, saveType) {
       ...(cleanedData?.metadata || {}),
     };
     return SupersetClient.post({
-      endpoint: `${process.env.APP_PREFIX}/superset/copy_dash/${id}/`,
+      endpoint: `/data/superset/copy_dash/${id}/`,
       postPayload: {
         data: {
           ...finalCopyData,
@@ -448,25 +434,21 @@ const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
   });
 
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
-
 export function onFiltersRefresh() {
   return { type: ON_FILTERS_REFRESH };
 }
 
 export const ON_FILTERS_REFRESH_SUCCESS = 'ON_FILTERS_REFRESH_SUCCESS';
-
 export function onFiltersRefreshSuccess() {
   return { type: ON_FILTERS_REFRESH_SUCCESS };
 }
 
 export const ON_REFRESH_SUCCESS = 'ON_REFRESH_SUCCESS';
-
 export function onRefreshSuccess() {
   return { type: ON_REFRESH_SUCCESS };
 }
 
 export const ON_REFRESH = 'ON_REFRESH';
-
 export function onRefresh(
   chartList = [],
   force = false,
@@ -485,7 +467,6 @@ export function onRefresh(
 }
 
 export const SHOW_BUILDER_PANE = 'SHOW_BUILDER_PANE';
-
 export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
 }
@@ -574,7 +555,6 @@ export function removeSliceFromDashboard(id) {
 }
 
 export const SET_COLOR_SCHEME = 'SET_COLOR_SCHEME';
-
 export function setColorScheme(colorScheme) {
   return { type: SET_COLOR_SCHEME, colorScheme };
 }
@@ -587,38 +567,32 @@ export function setColorSchemeAndUnsavedChanges(colorScheme) {
 }
 
 export const SET_DIRECT_PATH = 'SET_DIRECT_PATH';
-
 export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-
 export function setActiveTabs(tabId, prevTabId) {
   return { type: SET_ACTIVE_TABS, tabId, prevTabId };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
-
 export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
 }
 
 export const UNSET_FOCUSED_FILTER_FIELD = 'UNSET_FOCUSED_FILTER_FIELD';
-
 export function unsetFocusedFilterField(chartId, column) {
   return { type: UNSET_FOCUSED_FILTER_FIELD, chartId, column };
 }
 
 export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
-
 export function setFullSizeChartId(chartId) {
   return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
 // Undo history ---------------------------------------------------------------
 export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
-
 export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {
   return {
     type: SET_MAX_UNDO_HISTORY_EXCEEDED,

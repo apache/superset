@@ -78,7 +78,7 @@ export const theme = merge(
 
 const getMe = makeApi<void, User>({
   method: 'GET',
-  endpoint: `${process.env.APP_PREFIX}/api/v1/me/`,
+  endpoint: '/data/api/v1/me/',
 });
 
 /**

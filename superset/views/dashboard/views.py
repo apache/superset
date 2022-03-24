@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import os
 import re
+from typing import Callable, List, Union
+
 from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
@@ -24,7 +25,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
-from typing import Callable, List, Union
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -76,7 +76,6 @@ class DashboardModelView(
     @has_access
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
-        prefix = os.environ["APP_PREFIX"]
         if request.args.get("action") == "go":
             ids = request.args.getlist("id")
             return Response(
@@ -85,7 +84,7 @@ class DashboardModelView(
                 mimetype="application/text",
             )
         return self.render_template(
-            "superset/export_dashboards.html", dashboards_url=f"{prefix}/dashboard/list"
+            "superset/export_dashboards.html", dashboards_url="/dashboard/list"
         )
 
     def pre_add(self, item: "DashboardModelView") -> None:
@@ -131,8 +130,7 @@ class Dashboard(BaseSupersetView):
         )
         db.session.add(new_dashboard)
         db.session.commit()
-        prefix = os.environ["APP_PREFIX"]
-        return redirect(f"{prefix}/superset/dashboard/{new_dashboard.id}/?edit=true")
+        return redirect(f"/data/superset/dashboard/{new_dashboard.id}/?edit=true")
 
     @expose("/<dashboard_id_or_slug>/embedded")
     @event_logger.log_this_with_extra_payload
@@ -176,7 +174,7 @@ class Dashboard(BaseSupersetView):
 
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
-    route_base = "/data/dashboardasync"
+    route_base = "/dashboardasync"
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 

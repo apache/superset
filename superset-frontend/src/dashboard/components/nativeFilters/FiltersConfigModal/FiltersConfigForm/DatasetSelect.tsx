@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import rison from 'rison';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import {
@@ -66,7 +66,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       order_direction: 'asc',
     });
     return cachedSupersetGet({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/dataset/?q=${query}`,
+      endpoint: `/data/api/v1/dataset/?q=${query}`,
     })
       .then(response => {
         const data: {

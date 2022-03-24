@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
+from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 from marshmallow import ValidationError
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
 
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import SupersetVizException
@@ -83,8 +83,7 @@ def load_chart_data_into_cache(
         command = ChartDataCommand(query_context)
         result = command.run(cache=True)
         cache_key = result["cache_key"]
-        prefix = os.environ["APP_PREFIX"]
-        result_url = f"{prefix}/api/v1/chart/analytics/{cache_key}"
+        result_url = f"/data/api/v1/chart/data/{cache_key}"
         async_query_manager.update_job(
             job_metadata,
             async_query_manager.STATUS_DONE,
@@ -141,8 +140,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         }
         cache_key = generate_cache_key(cache_value, cache_key_prefix)
         set_and_log_cache(cache_manager.cache, cache_key, cache_value)
-        prefix = os.environ["APP_PREFIX"]
-        result_url = f"{prefix}/superset/explore_json/analytics/{cache_key}"
+        result_url = f"/data/superset/explore_json/data/{cache_key}"
         async_query_manager.update_job(
             job_metadata,
             async_query_manager.STATUS_DONE,

@@ -23,9 +23,9 @@ const MAX_URL_LENGTH = 8000;
 
 export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
-  let directory = `${process.env.APP_PREFIX}/superset/explore/`;
+  let directory = '/data/superset/explore/';
   if (['json', 'csv', 'query', 'results', 'samples'].includes(endpointType)) {
-    directory = `${process.env.APP_PREFIX}/superset/explore_json/`;
+    directory = '/data/superset/explore_json/';
   }
 
   return directory;

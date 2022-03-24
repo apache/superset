@@ -25,11 +25,11 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
 import {
-  JsonResponse,
-  makeApi,
   styled,
-  SupersetClient,
   t,
+  makeApi,
+  SupersetClient,
+  JsonResponse,
 } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -427,7 +427,7 @@ export default class ResultSet extends React.PureComponent<
 
       const response = await makeApi({
         method: 'GET',
-        endpoint: `${process.env.APP_PREFIX}/api/v1/dataset`,
+        endpoint: '/data/api/v1/dataset',
       })(`q=${queryParams}`);
 
       return response.result.map(
@@ -462,8 +462,7 @@ export default class ResultSet extends React.PureComponent<
       title: tempTable,
       autorun: false,
       dbId: this.props.query.dbId,
-      sql: `SELECT *
-            FROM ${tempSchema ? `${tempSchema}.` : ''} ${tempTable}`,
+      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -551,7 +550,7 @@ export default class ResultSet extends React.PureComponent<
             {this.props.csv && (
               <Button
                 buttonSize="small"
-                href={`${process.env.APP_PREFIX}/superset/csv/${this.props.query.id}`}
+                href={`/data/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>

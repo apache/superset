@@ -30,7 +30,7 @@ test('Rerendering correctly with default props', () => {
   const ariaLive = loading.getAttribute('aria-live');
   const ariaLabel = loading.getAttribute('aria-label');
   expect(loading).toBeInTheDocument();
-  expect(imagePath).toBe('/static/assets/images/loading.gif');
+  expect(imagePath).toBe('/data/static/assets/images/loading.gif');
   expect(classNames).toContain('floating');
   expect(classNames).toContain('loading');
   expect(ariaLive).toContain('polite');

@@ -115,7 +115,7 @@ const createFetchDatasets = async (
   });
 
   const { json = {} } = await SupersetClient.get({
-    endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    endpoint: `/data/api/v1/dataset/?q=${queryParams}`,
   });
 
   const datasets = json?.result?.map(
@@ -220,7 +220,7 @@ function ChartList(props: ChartListProps) {
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
-      endpoint: `/api/v1/chart/?q=${rison.encode(
+      endpoint: `/data/api/v1/chart/?q=${rison.encode(
         chartsToDelete.map(({ id }) => id),
       )}`,
     }).then(

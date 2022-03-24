@@ -18,17 +18,17 @@
  */
 import React, {
   FunctionComponent,
-  useCallback,
+  useState,
   useEffect,
   useMemo,
-  useState,
+  useCallback,
 } from 'react';
 import {
-  css,
   styled,
-  SupersetClient,
-  SupersetTheme,
   t,
+  SupersetClient,
+  css,
+  SupersetTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -46,12 +46,12 @@ import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
+  NotificationMethodOption,
   AlertObject,
   ChartObject,
   DashboardObject,
   DatabaseObject,
   MetaObject,
-  NotificationMethodOption,
   Operator,
   Recipient,
 } from 'src/views/CRUD/alert/types';
@@ -596,7 +596,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/report/related/created_by?q=${query}`,
+          endpoint: `/data/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -649,7 +649,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/report/related/database?q=${query}`,
+          endpoint: `/data/api/v1/report/related/database?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -682,7 +682,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/report/related/dashboard?q=${query}`,
+          endpoint: `/data/api/v1/report/related/dashboard?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -756,7 +756,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `${process.env.APP_PREFIX}/api/v1/report/related/chart?q=${query}`,
+          endpoint: `/data/api/v1/report/related/chart?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -774,7 +774,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const getChartVisualizationType = (chart: SelectValue) =>
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/chart/${chart.value}`,
+      endpoint: `/data/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
 
   // Handle input/textarea updates

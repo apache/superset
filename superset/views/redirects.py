@@ -36,8 +36,8 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     @staticmethod
     def _validate_url(url: Optional[str] = None) -> bool:
         if url and (
-            url.startswith("//analytics/superset/dashboard/")
-            or url.startswith("//analytics/superset/explore/")
+            url.startswith("//data/superset/dashboard/")
+            or url.startswith("//data/superset/explore/")
         ):
             return True
         return False

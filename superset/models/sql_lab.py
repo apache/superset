@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
-import os
 import re
+from datetime import datetime
+from typing import Any, Dict, List
+
 import simplejson as json
 import sqlalchemy as sqla
-from datetime import datetime
 from flask import Markup
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -37,7 +38,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
-from typing import Any, Dict, List
 
 from superset import security_manager
 from superset.models.helpers import (
@@ -222,10 +222,9 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def pop_tab_link(self) -> Markup:
-        prefix = os.environ["APP_PREFIX"]
         return Markup(
             f"""
-            <a href="{prefix}/superset/sqllab?savedQueryId={self.id}">
+            <a href="/data/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -240,7 +239,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return os.environ["APP_PREFIX"]+"/superset/sqllab?savedQueryId={0}".format(self.id)
+        return "/data/superset/sqllab?savedQueryId={0}".format(self.id)
 
     @property
     def sql_tables(self) -> List[Table]:
