@@ -107,9 +107,8 @@ describe('RangeFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
-  for (const scaling in PluginFilterRangeScalingFunctions) {
+  Object.keys(PluginFilterRangeScalingFunctions).forEach(scaling => {
     it(`should call setDataMask with correct filter (using ${scaling})`, () => {
-      debugger;
       getWrapper(
         { scaling },
         {
@@ -146,7 +145,7 @@ describe('RangeFilterPlugin', () => {
         },
       });
     });
-  }
+  });
 
   it('should call setDataMask with correct greater than filter', () => {
     getWrapper({ enableSingleValue: SingleValueType.Minimum });
