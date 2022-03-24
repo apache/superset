@@ -151,17 +151,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const {
-    groupby,
-    defaultValue,
-    stepSize,
-    scaling,
-    // logScale,
-    enableSingleValue,
-  } = formData;
-  // const scaler = logScale
-  //   ? scaleLog().domain([min + 1, max + 1])
-  //   : scaleLinear().range([min, max]);
+  const { groupby, defaultValue, stepSize, scaling, enableSingleValue } =
+    formData;
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -169,31 +160,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const rangeValue = enableSingleValue === undefined;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
-  // these could be replaced with a property instead, to allow custom transforms
-  // const transformScale = useCallback(
-  //   (val: number | null) =>
-  //     logScale && val ? (val > 0 ? Math.log10(val) : 0) : val,
-  //   [logScale],
-  // );
   const transformScale = useCallback(
-    // (val: number | null) => (val ? scaler(val + (logScale ? 1 : 0)) : val),
-    // [logScale],
     SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].transformScale,
     [scaling],
   );
   const inverseScale = useCallback(
-    // (val: number | null) =>
-    //   val ? scaler.invert(val) - (logScale ? 1 : 0) : val,
-    // [logScale],
     SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale,
     [scaling],
   );
-
-  //
-  // const inverseScale = useCallback(
-  //   (val: number | null) => (logScale && val ? Math.pow(10, val) : val),
-  //   [logScale],
-  // );
 
   const [value, setValue] = useState<[number, number]>(
     (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(

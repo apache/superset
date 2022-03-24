@@ -72,25 +72,13 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // [
-        //   {
-        //     name: 'logScale',
-        //     config: {
-        //       type: 'CheckboxControl',
-        //       label: t('Logarithmic Scale'),
-        //       default: false,
-        //       renderTrigger: true,
-        //       description: t('Make the scale logarithmic.'),
-        //     },
-        //   },
-        // ],
         [
           {
             name: 'scaling',
             config: {
               type: 'SelectControl',
               label: t('Scaling Function'),
-              default: 'Linear',
+              default: SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION.LINEAR,
               renderTrigger: true,
               freeForm: false,
               choices: Object.keys(
@@ -99,16 +87,9 @@ const config: ControlPanelConfig = {
                 key,
                 SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[key].display,
               ]),
-              // [
-              // ['LINEAR', 'Linear'],
-              // ['LOG10', 'Log Base 10'],
-              // ['SQRT', 'Square Root'],
-              // ],
               description: t('Choose a scaling function for the slider.'),
             },
           },
-          // ],
-          // [
           {
             name: 'stepSize',
             config: {
