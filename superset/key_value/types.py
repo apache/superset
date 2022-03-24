@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import Literal, Optional, TypedDict
+from enum import Enum
+from typing import Optional, TypedDict
 from uuid import UUID
 
 
@@ -25,10 +26,19 @@ class Key:
     uuid: Optional[UUID]
 
 
-KeyType = Literal["id", "uuid"]
-
-
 class KeyValueFilter(TypedDict, total=False):
     resource: str
     id: Optional[int]
     uuid: Optional[UUID]
+
+
+class KeyValueResource(str, Enum):
+    APP = "app"
+    DASHBOARD_PERMALINK = "dashboard_permalink"
+    EXPLORE_PERMALINK = "explore_permalink"
+    METASTORE_CACHE = "superset_metastore_cache"
+
+
+class SharedKey(str, Enum):
+    DASHBOARD_PERMALINK_SALT = "dashboard_permalink_salt"
+    EXPLORE_PERMALINK_SALT = "explore_permalink_salt"

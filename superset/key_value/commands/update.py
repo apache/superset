@@ -18,7 +18,8 @@
 import logging
 import pickle
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from uuid import UUID
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,27 +28,25 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueUpdateFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyType
-from superset.key_value.utils import extract_key, get_filter
+from superset.key_value.types import Key, KeyValueResource
+from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateKeyValueCommand(BaseCommand):
     actor: Optional[User]
-    resource: str
+    resource: KeyValueResource
     value: Any
-    key: str
-    key_type: KeyType
+    key: Union[int, UUID]
     expires_on: Optional[datetime]
 
     def __init__(
         self,
-        resource: str,
-        key: str,
+        resource: KeyValueResource,
+        key: Union[int, UUID],
         value: Any,
         actor: Optional[User] = None,
-        key_type: KeyType = "uuid",
         expires_on: Optional[datetime] = None,
     ):
         """
@@ -57,7 +56,6 @@ class UpdateKeyValueCommand(BaseCommand):
         :param key: the key to update
         :param value: the value to persist in the key-value store
         :param actor: the user performing the command
-        :param key_type: the type of the key to update
         :param expires_on: entry expiration time
         :return: the key associated with the updated value
         """
@@ -65,10 +63,9 @@ class UpdateKeyValueCommand(BaseCommand):
         self.resource = resource
         self.key = key
         self.value = value
-        self.key_type = key_type
         self.expires_on = expires_on
 
-    def run(self) -> Optional[str]:
+    def run(self) -> Optional[Key]:
         try:
             return self.update()
         except SQLAlchemyError as ex:
@@ -79,8 +76,8 @@ class UpdateKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def update(self) -> Optional[str]:
-        filter_ = get_filter(self.resource, self.key, self.key_type)
+    def update(self) -> Optional[Key]:
+        filter_ = get_filter(self.resource, self.key)
         entry: KeyValueEntry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)
@@ -96,6 +93,6 @@ class UpdateKeyValueCommand(BaseCommand):
             )
             db.session.merge(entry)
             db.session.commit()
-            return extract_key(entry, self.key_type)
+            return Key(id=entry.id, uuid=entry.uuid)
 
         return None
