@@ -14,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
-"""
 from flask import abort
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
