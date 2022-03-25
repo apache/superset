@@ -1024,7 +1024,7 @@ class DatasourceEditor extends React.PureComponent {
                                 )
                             : undefined
                         }
-                        onTableChange={
+                        onTableSelectChange={
                           this.state.isEditMode
                             ? table =>
                                 this.onDatasourcePropChange('table_name', table)

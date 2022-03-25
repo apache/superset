@@ -159,7 +159,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
 
   const callback = jest.fn();
   const props = createProps({
-    onTableChange: callback,
+    onTableSelectChange: callback,
     sqlLabMode: false,
   });
 
@@ -200,7 +200,7 @@ test('table select does not retain value in SQL Lab mode', async () => {
 
   const callback = jest.fn();
   const props = createProps({
-    onTableChange: callback,
+    onTableSelectChange: callback,
     sqlLabMode: true,
   });
 
