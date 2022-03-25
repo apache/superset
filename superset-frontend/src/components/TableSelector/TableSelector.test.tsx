@@ -22,7 +22,7 @@ import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
-import TableSelector from '.';
+import TableSelector, { TableSelectorMultiple } from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
@@ -55,6 +55,8 @@ const getTableMockFunction = async () =>
       options: [
         { label: 'table_a', value: 'table_a' },
         { label: 'table_b', value: 'table_b' },
+        { label: 'table_c', value: 'table_c' },
+        { label: 'table_d', value: 'table_d' },
       ],
     },
   } as any);
@@ -150,6 +152,8 @@ test('table options are notified after schema selection', async () => {
     expect(callback).toHaveBeenCalledWith([
       { label: 'table_a', value: 'table_a' },
       { label: 'table_b', value: 'table_b' },
+      { label: 'table_c', value: 'table_c' },
+      { label: 'table_d', value: 'table_d' },
     ]);
   });
 });
@@ -194,17 +198,15 @@ test('table select retain value if not in SQL Lab mode', async () => {
   ).toBeInTheDocument();
 });
 
-test('table select does not retain value in SQL Lab mode', async () => {
+test('table multi select retain all the values selected', async () => {
   SupersetClientGet.mockImplementation(getTableMockFunction);
-  document.body.innerHTML = '';
 
   const callback = jest.fn();
   const props = createProps({
     onTableSelectChange: callback,
-    sqlLabMode: true,
   });
 
-  render(<TableSelector {...props} />, { useRedux: true });
+  render(<TableSelectorMultiple {...props} />, { useRedux: true });
 
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type table name',
@@ -220,9 +222,26 @@ test('table select does not retain value in SQL Lab mode', async () => {
   ).toBeInTheDocument();
 
   act(() => {
-    userEvent.click(screen.getAllByText('table_a')[1]);
+    const item = screen.getAllByText('table_a');
+    userEvent.click(item[item.length - 1]);
   });
 
-  expect(callback).toHaveBeenCalled();
-  expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
+  act(() => {
+    const item = screen.getAllByText('table_c');
+    userEvent.click(item[item.length - 1]);
+  });
+
+  const selectedValueContainer = getSelectItemContainer(tableSelect);
+
+  expect(selectedValueContainer).toHaveLength(2);
+  expect(
+    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
+      'table_a',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    await within(selectedValueContainer?.[1] as HTMLElement).findByText(
+      'table_c',
+    ),
+  ).toBeInTheDocument();
 });

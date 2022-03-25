@@ -23,6 +23,7 @@ import React, {
   useMemo,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
@@ -94,7 +95,7 @@ interface TableSelectorProps {
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
-  tableValue: string | string[];
+  tableValue?: string | string[];
   onTableSelectChange?: (value?: SelectValue, schema?: string) => void;
   tableSelectMode?: 'single' | 'multiple';
   emptyTableSelectValue?: SelectValue;
@@ -161,9 +162,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableSelectMode = 'single',
   emptyTableSelectValue = undefined,
-  tableValue,
+  tableValue = undefined,
   onTableSelectChange,
 }) => {
+  const selectRef = useRef<HTMLInputElement>(null);
+
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
   >(database);
@@ -254,6 +257,10 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }
 
   const internalTableChange = (value: SelectValue | undefined) => {
+    if (tableSelectMode === 'multiple') {
+      selectRef?.current?.blur();
+    }
+
     if (currentSchema) {
       onTableSelectChange?.(value, currentSchema);
     } else {
@@ -318,6 +325,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const select = (
       <Select
+        ref={selectRef}
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
         filterOption={handleFilterOption}
