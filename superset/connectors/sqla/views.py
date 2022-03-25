@@ -17,12 +17,10 @@
 """Views used by the SqlAlchemy connector"""
 import logging
 import re
-from dataclasses import dataclass, field
-from typing import Any, cast, Dict, List, Union
+from typing import Any, cast
 
 from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
-from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface

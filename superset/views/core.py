@@ -1083,31 +1083,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/schemas/<int:db_id>/")
-    @expose("/schemas/<int:db_id>/<force_refresh>/")
-    def schemas(  # pylint: disable=no-self-use
-        self, db_id: int, force_refresh: str = "false"
-    ) -> FlaskResponse:
-        logger.warning(
-            "This API endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        db_id = int(db_id)
-        database = db.session.query(Database).get(db_id)
-        if database:
-            schemas = database.get_all_schema_names(
-                cache=database.schema_cache_enabled,
-                cache_timeout=database.schema_cache_timeout,
-                force=force_refresh.lower() == "true",
-            )
-            schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
-        else:
-            schemas = []
-
-        return Response(json.dumps({"schemas": schemas}), mimetype="application/json")
-
-    @api
-    @has_access_api
-    @event_logger.log_this
     @expose("/tables/<int:db_id>/<schema>/<substr>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
     @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
@@ -1539,18 +1514,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/csrf_token/", methods=["GET"])
-    def csrf_token(self) -> FlaskResponse:
-        logger.warning(
-            "This API endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        return Response(
-            self.render_template("superset/csrf_token.json"), mimetype="text/json"
-        )
-
-    @api
-    @has_access_api
-    @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
     def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
@@ -1891,47 +1854,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         session.commit()
         return json_success(json.dumps({"count": count}))
 
-    @api
-    @has_access_api
-    @event_logger.log_this
-    @expose("/dashboard/<int:dashboard_id>/published/", methods=("GET", "POST"))
-    def publish(  # pylint: disable=no-self-use
-        self, dashboard_id: int
-    ) -> FlaskResponse:
-        """Gets and toggles published status on dashboards"""
-        logger.warning(
-            "This API endpoint is deprecated and will be removed in version 2.0.0"
-        )
-        session = db.session()
-        Role = ab_models.Role
-        dash = (
-            session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
-        )
-        admin_role = session.query(Role).filter(Role.name == "Admin").one_or_none()
-
-        if request.method == "GET":
-            if dash:
-                return json_success(json.dumps({"published": dash.published}))
-
-            return json_error_response(
-                f"ERROR: cannot find dashboard {dashboard_id}", status=404
-            )
-
-        edit_perm = (
-            is_owner(dash, g.user) or admin_role in security_manager.get_user_roles()
-        )
-        if not edit_perm:
-            username = g.user.username if hasattr(g.user, "username") else "user"
-            return json_error_response(
-                f'ERROR: "{username}" cannot alter '
-                f'dashboard "{dash.dashboard_title}"',
-                status=403,
-            )
-
-        dash.published = str(request.form["published"]).lower() == "true"
-        session.commit()
-        return json_success(json.dumps({"published": dash.published}))
-
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
@@ -2199,63 +2121,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             mydb, table_name, parsed_schema
         )
         return json_success(json.dumps(payload))
-
-    @has_access
-    @expose("/select_star/<int:database_id>/<table_name>")
-    @expose("/select_star/<int:database_id>/<table_name>/<schema>")
-    @event_logger.log_this
-    def select_star(
-        self, database_id: int, table_name: str, schema: Optional[str] = None
-    ) -> FlaskResponse:
-        logging.warning(
-            "%s.select_star "
-            "This API endpoint is deprecated and will be removed in version 2.0.0",
-            self.__class__.__name__,
-        )
-        stats_logger.incr(f"{self.__class__.__name__}.select_star.init")
-        database = db.session.query(Database).get(database_id)
-        if not database:
-            stats_logger.incr(
-                f"deprecated.{self.__class__.__name__}.select_star.database_not_found"
-            )
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("The database was not found."),
-                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=404,
-            )
-        schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
-        if not self.appbuilder.sm.can_access_table(database, Table(table_name, schema)):
-            stats_logger.incr(
-                f"deprecated.{self.__class__.__name__}.select_star.permission_denied"
-            )
-            logging.warning(
-                "Permission denied for user %s on table: %s schema: %s",
-                str(g.user),
-                table_name,
-                schema,
-            )
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "You are not authorized to fetch samples from this table. If "
-                        "you think this is an error, please reach out to your "
-                        "administrator."
-                    ),
-                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=403,
-            )
-        stats_logger.incr(f"deprecated.{self.__class__.__name__}.select_star.success")
-        return json_success(
-            database.select_star(
-                table_name, schema, latest_partition=True, show_cols=True
-            )
-        )
 
     @has_access_api
     @expose("/estimate_query_cost/<int:database_id>/", methods=["POST"])
