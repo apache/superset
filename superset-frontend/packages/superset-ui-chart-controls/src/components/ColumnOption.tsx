@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, ReactNode } from 'react';
+import React, { useState, ReactNode, useLayoutEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
@@ -47,7 +47,7 @@ export function ColumnOption({
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTooltipText(getColumnTooltipNode(column, labelRef));
   }, [labelRef, column]);
 
@@ -61,26 +61,12 @@ export function ColumnOption({
           details={column.certification_details}
         />
       )}
-      <Tooltip
-        id="metric-name-tooltip"
-        title={tooltipText}
-        trigger={['hover']}
-        placement="top"
-      >
+      <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span className="m-r-5 option-label column-option-label" ref={labelRef}>
           {getColumnLabelText(column)}
         </span>
       </Tooltip>
 
-      {column.description && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="info"
-          tooltip={column.description}
-          label={`descr-${column.column_name}`}
-          placement="top"
-        />
-      )}
       {hasExpression && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"

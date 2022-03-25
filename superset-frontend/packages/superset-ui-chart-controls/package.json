@@ -2,6 +2,19 @@
   "name": "@superset-ui/chart-controls",
   "version": "0.18.25",
   "description": "Superset UI control-utils",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,22 +22,6 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
-  },
-  "keywords": [
-    "superset"
-  ],
-  "author": "Superset",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
-  },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "lodash": "^4.17.15",
@@ -33,10 +30,18 @@
   "peerDependencies": {
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
+    "@testing-library/dom": "^7.29.4",
+    "@testing-library/jest-dom": "^5.11.6",
+    "@testing-library/react": "^11.2.0",
+    "@testing-library/react-hooks": "^5.0.3",
+    "@testing-library/user-event": "^12.7.0",
+    "@types/enzyme": "^3.10.5",
     "@types/react": "*",
     "antd": "^4.9.4",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "@types/enzyme": "^3.10.5"
+    "react-dom": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
