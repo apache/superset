@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { Dashboard, EmbeddedDashboard } from 'src/dashboard/types';
 import { Dataset } from '@superset-ui/chart-controls';
 import { Chart } from 'src/types/Chart';
+import {
+  Dashboard,
+  EmbeddedDashboard,
+  DashboardLayout,
+} from 'src/dashboard/types';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
 export const useDashboard = (idOrSlug: string | number) =>
@@ -28,10 +31,12 @@ export const useDashboard = (idOrSlug: string | number) =>
     dashboard => ({
       ...dashboard,
       // TODO: load these at the API level
-      metadata:
-        (dashboard.json_metadata && JSON.parse(dashboard.json_metadata)) || {},
-      position_data:
-        dashboard.position_json && JSON.parse(dashboard.position_json),
+      metadata: dashboard.json_metadata
+        ? (JSON.parse(dashboard.json_metadata) as Record<string, any>)
+        : {},
+      position_data: dashboard.position_json
+        ? (JSON.parse(dashboard.position_json) as DashboardLayout)
+        : undefined,
     }),
   );
 

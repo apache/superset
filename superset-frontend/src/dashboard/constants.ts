@@ -1,6 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-import { DatasourceType } from '@superset-ui/core';
-import { Dataset } from '@superset-ui/chart-controls';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +16,9 @@ import { Dataset } from '@superset-ui/chart-controls';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DatasourceType } from '@superset-ui/core';
+import { Dataset } from '@superset-ui/chart-controls';
+
 export const PLACEHOLDER_DATASOURCE: Dataset = {
   id: 0,
   type: DatasourceType.Table,

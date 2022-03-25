@@ -24,7 +24,12 @@ import {
   Divider,
   isFilterDivider,
 } from '@superset-ui/core';
-import { ActiveTabs, DashboardLayout, RootState } from '../../types';
+import {
+  ActiveTabs,
+  ChartLayoutMeta,
+  DashboardLayout,
+  RootState,
+} from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
 
 const defaultFilterConfiguration: Filter[] = [];
@@ -81,7 +86,7 @@ function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
   return (chartId: number) => {
     const chartLayoutItem = Object.values(dashboardLayout).find(
-      layoutItem => layoutItem.meta?.chartId === chartId,
+      layoutItem => (layoutItem.meta as ChartLayoutMeta)?.chartId === chartId,
     );
     return chartLayoutItem?.parents.filter(
       (parent: string) => dashboardLayout[parent].type === TAB_TYPE,

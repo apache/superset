@@ -26,6 +26,7 @@ import { CronPicker } from 'src/components/CronPicker';
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 0;
+    width: 600px;
   }
 `;
 

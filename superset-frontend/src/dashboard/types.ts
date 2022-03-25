@@ -29,7 +29,7 @@ import componentTypes from 'src/dashboard/util/componentTypes';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { User } from 'src/types/bootstrapTypes';
-import { ChartState } from '../explore/types';
+import { ChartState } from 'src/explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
 
@@ -103,13 +103,30 @@ export type RootState = {
 };
 
 /** State of dashboardLayout in redux */
-export type Layout = { [key: string]: LayoutItem };
-
+export type Layout = DashboardLayout;
 /** State of charts in redux */
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+
+export type ChartLayoutMeta = {
+  chartId: number;
+  defaultText?: string;
+  height: number;
+  placeholder?: string;
+  sliceName?: string;
+  sliceNameOverride?: string;
+  text?: string;
+  uuid: string;
+  width: number;
+};
+
+export type TabLayoutMeta = {
+  defaultText: string;
+  placeholder: string;
+  text?: string;
+};
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {
@@ -117,17 +134,7 @@ export type LayoutItem = {
   parents: string[];
   type: ComponentType;
   id: string;
-  meta: {
-    chartId: number;
-    defaultText?: string;
-    height: number;
-    placeholder?: string;
-    sliceName?: string;
-    sliceNameOverride?: string;
-    text?: string;
-    uuid: string;
-    width: number;
-  };
+  meta: ChartLayoutMeta | TabLayoutMeta;
 };
 
 type ActiveFilter = {

@@ -18,7 +18,7 @@
  */
 
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/reports/types';
+import { NOTIFICATION_FORMATS, ReportObject } from 'src/reports/types';
 
 type user = {
   id: number;
@@ -58,7 +58,7 @@ export type MetaObject = {
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
-export type AlertObject = {
+export interface AlertObject {
   active?: boolean;
   creation_method?: string;
   chart?: MetaObject;
@@ -92,7 +92,8 @@ export type AlertObject = {
   validator_type?: string;
   working_timeout?: number;
   error?: string;
-};
+  extra?: ReportObject['extra'];
+}
 
 export type LogObject = {
   end_dttm: string;

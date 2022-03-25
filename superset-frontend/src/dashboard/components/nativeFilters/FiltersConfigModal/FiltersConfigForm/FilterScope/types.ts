@@ -29,6 +29,8 @@ export type TreeItem = {
   children: TreeItem[];
   key: string;
   title: ReactNode;
+  checkable?: boolean;
+  isLeaf?: boolean;
 };
 
 export type BuildTreeLeafTitle = (

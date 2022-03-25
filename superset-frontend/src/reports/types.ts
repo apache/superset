@@ -35,6 +35,12 @@ export enum NOTIFICATION_FORMATS {
   PNG = 'PNG',
   CSV = 'CSV',
 }
+
+export interface DashboardReportExtra {
+  active_tabs?: string[];
+  active_filters?: Record<string, any>;
+}
+
 export interface ReportObject {
   id?: number;
   active: boolean;
@@ -57,4 +63,7 @@ export interface ReportObject {
   creation_method: string;
   force_screenshot: boolean;
   error?: string;
+  extra?: {
+    dashboard?: DashboardReportExtra;
+  };
 }

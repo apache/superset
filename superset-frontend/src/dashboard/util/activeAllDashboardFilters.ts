@@ -23,7 +23,7 @@ import {
   NativeFilterScope,
 } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
-import { ActiveFilters, Layout, LayoutItem } from '../types';
+import { ActiveFilters, ChartLayoutMeta, Layout, LayoutItem } from '../types';
 import { ChartConfiguration } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
 
@@ -43,7 +43,7 @@ export const findAffectedCharts = ({
   filterId: string;
   extraFormData: any;
 }) => {
-  const chartId = layout[child]?.meta?.chartId;
+  const chartId = (layout[child]?.meta as ChartLayoutMeta)?.chartId;
   if (layout[child].type === CHART_TYPE) {
     // Ignore excluded charts
     if (scope.excluded.includes(chartId)) {

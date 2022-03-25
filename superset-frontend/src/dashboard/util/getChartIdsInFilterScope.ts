@@ -18,7 +18,7 @@
  */
 import { NativeFilterScope } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
-import { ChartsState, Layout } from '../types';
+import { ChartLayoutMeta, ChartsState, Layout } from '../types';
 
 export function getChartIdsInFilterScope(
   filterScope: NativeFilterScope,
@@ -34,7 +34,7 @@ export function getChartIdsInFilterScope(
           .find(
             layoutItem =>
               layoutItem?.type === CHART_TYPE &&
-              layoutItem.meta?.chartId === chart.id,
+              (layoutItem.meta as ChartLayoutMeta)?.chartId === chart.id,
           )
           ?.parents?.some(elementId =>
             filterScope.rootPath.includes(elementId),

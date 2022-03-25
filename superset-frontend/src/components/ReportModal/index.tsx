@@ -41,6 +41,7 @@ import {
   NOTIFICATION_FORMATS,
 } from 'src/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { DashboardLayout, DashboardState } from 'src/dashboard/types';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
@@ -71,7 +72,6 @@ interface ReportProps {
   dashboardId?: number;
   dashboardName?: string;
   creationMethod: ReportCreationMethod;
-  props: any;
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -92,6 +92,8 @@ type ReportObjectState = Partial<ReportObject> & {
    */
   isSubmitting?: boolean;
 };
+
+export type SourceDashboardState = 'active' | 'default';
 
 function ReportModal({
   onHide,
@@ -140,15 +142,24 @@ function ReportModal({
     initialState,
   );
   const [cronError, setCronError] = useState<CronError>();
+  const [sourceDashboardState, setSourceDashboardState] =
+    useState<SourceDashboardState>('active');
 
   const dispatch = useDispatch();
   // Report fetch logic
-  const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.DASHBOARDS
-      : CreationMethod.CHARTS;
-    return reportSelector(state, resourceType, dashboardId || chart?.id);
-  });
+  const { report, dashboardLayout, dashboardActiveTabs } = useSelector(
+    (state: any) => ({
+      report: reportSelector(
+        state,
+        dashboardId ? CreationMethod.DASHBOARDS : CreationMethod.CHARTS,
+        dashboardId ?? chart?.id,
+      ) as ReportObject,
+      dashboardLayout: state.dashboardLayout?.present as DashboardLayout,
+      dashboardActiveTabs: state.dashboardState
+        ?.activeTabs as DashboardState['activeTabs'],
+    }),
+  );
+
   const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
@@ -160,6 +171,14 @@ function ReportModal({
   }, [isEditMode, report]);
 
   const onSave = async () => {
+    const dashboardExtra =
+      dashboardId && dashboardActiveTabs?.length > 0
+        ? {
+            dashboard: {
+              active_tabs: dashboardActiveTabs,
+            },
+          }
+        : {};
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
       type: 'Report',
@@ -180,6 +199,10 @@ function ReportModal({
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
+      extra: {
+        ...currentReport.extra,
+        ...dashboardExtra,
+      },
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -253,6 +276,37 @@ function ReportModal({
     </>
   );
 
+  const renderDashboardTabSection = () => {
+    // only show this section if dashboard report and dashboard has tab(s)
+    if (!dashboardLayout || !dashboardActiveTabs) {
+      return null;
+    }
+    return (
+      <>
+        <StyledMessageContentTitle>
+          <h4>{t('Dashboard tabs')}</h4>
+        </StyledMessageContentTitle>
+        <p>{t('Capture screenshots for the scheduled report from')}</p>
+        <div className="inline-container">
+          <StyledRadioGroup
+            name="source_dashbaord_sate"
+            onChange={(event: RadioChangeEvent) => {
+              setSourceDashboardState(event.target.value);
+            }}
+            value={sourceDashboardState}
+          >
+            <StyledRadio value="active">
+              {t('Current selected tabs')}
+            </StyledRadio>
+            <StyledRadio value="default">
+              {t('Default dashboard view')}
+            </StyledRadio>
+          </StyledRadioGroup>
+        </div>
+      </>
+    );
+  };
+
   return (
     <StyledModal
       show={show}
@@ -299,9 +353,7 @@ function ReportModal({
           <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
             {t('Schedule')}
           </h4>
-          <p>
-            {t('A screenshot of the dashboard will be sent to your email at')}
-          </p>
+          <p>{t('A screenshot of the dashboard will be sent to your email')}</p>
         </StyledScheduleTitle>
 
         <StyledCronPicker
@@ -326,6 +378,7 @@ function ReportModal({
           }}
         />
         {isChart && renderMessageContentSection}
+        {dashboardLayout && dashboardActiveTabs && renderDashboardTabSection()}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

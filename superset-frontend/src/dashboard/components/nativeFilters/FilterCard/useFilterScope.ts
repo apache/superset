@@ -19,6 +19,7 @@
 import { Filter, t } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import {
+  ChartLayoutMeta,
   ChartsState,
   Layout,
   LayoutItem,
@@ -31,7 +32,10 @@ import { useMemo } from 'react';
 const extractTabLabel = (tab?: LayoutItem) =>
   tab?.meta?.text || tab?.meta?.defaultText || '';
 const extractChartLabel = (chart?: LayoutItem) =>
-  chart?.meta?.sliceNameOverride || chart?.meta?.sliceName || chart?.id || '';
+  (chart?.meta as ChartLayoutMeta)?.sliceNameOverride ||
+  (chart?.meta as ChartLayoutMeta)?.sliceName ||
+  chart?.id ||
+  '';
 
 const useCharts = () => {
   const charts = useSelector<RootState, ChartsState>(state => state.charts);
@@ -92,7 +96,8 @@ export const useFilterScope = (filter: Filter) => {
           .filter(chart => !filter.scope.excluded.includes(chart.id))
           .map(chart => {
             const layoutElement = layoutCharts.find(
-              layoutChart => layoutChart.meta.chartId === chart.id,
+              layoutChart =>
+                (layoutChart.meta as ChartLayoutMeta).chartId === chart.id,
             );
             return extractChartLabel(layoutElement);
           })
@@ -114,7 +119,7 @@ export const useFilterScope = (filter: Filter) => {
       filter.scope.excluded.forEach(chartId => {
         const excludedIndex = topLevelTabsInFullScope.findIndex(tabId =>
           layoutChartElementsInTabsInScope
-            .find(chart => chart.meta.chartId === chartId)
+            .find(chart => (chart.meta as ChartLayoutMeta).chartId === chartId)
             ?.parents.includes(tabId),
         );
         if (excludedIndex > -1) {
@@ -128,7 +133,7 @@ export const useFilterScope = (filter: Filter) => {
           const layoutChartElementInExcludedTab =
             layoutChartElementsInTabsInScope.find(
               element =>
-                element.meta.chartId === chart.id &&
+                (element.meta as ChartLayoutMeta).chartId === chart.id &&
                 element.parents.every(
                   parent => !topLevelTabsInFullScope.includes(parent),
                 ),

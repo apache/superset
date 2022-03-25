@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
+import {
+  ChartLayoutMeta,
+  Charts,
+  Layout,
+  LayoutItem,
+} from 'src/dashboard/types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -28,7 +33,9 @@ import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
-  (!charts || charts[meta?.chartId]?.form_data?.viz_type !== 'filter_box');
+  (!charts ||
+    charts[(meta as ChartLayoutMeta)?.chartId]?.form_data?.viz_type !==
+      'filter_box');
 
 export const buildTree = (
   node: LayoutItem,
@@ -46,12 +53,12 @@ export const buildTree = (
     validNodes.includes(node.id)
   ) {
     const title = buildTreeLeafTitle(
-      node.meta.sliceNameOverride ||
-        node.meta.sliceName ||
-        node.meta.text ||
-        node.meta.defaultText ||
+      (node.meta as ChartLayoutMeta).sliceNameOverride ||
+        (node.meta as ChartLayoutMeta).sliceName ||
+        (node.meta as ChartLayoutMeta).text ||
+        (node.meta as ChartLayoutMeta).defaultText ||
         node.id.toString(),
-      initiallyExcludedCharts.includes(node.meta?.chartId),
+      initiallyExcludedCharts.includes((node.meta as ChartLayoutMeta)?.chartId),
       t(
         "This chart might be incompatible with the filter (datasets don't match)",
       ),
@@ -106,7 +113,7 @@ const checkTreeItem = (
     );
     if (
       layout[item]?.type === CHART_TYPE &&
-      !excluded.includes(layout[item]?.meta.chartId)
+      !excluded.includes((layout[item]?.meta as ChartLayoutMeta).chartId)
     ) {
       checkedItems.push(item);
     }
@@ -159,7 +166,7 @@ export const findFilterScope = (
       value.type === CHART_TYPE &&
       [DASHBOARD_ROOT_ID, ...parents]?.find(parent => isExcluded(parent, key))
     ) {
-      excluded.push(value.meta.chartId);
+      excluded.push((value.meta as ChartLayoutMeta).chartId);
     }
   });
 

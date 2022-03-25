@@ -19,7 +19,12 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Charts, Layout, RootState } from 'src/dashboard/types';
+import {
+  ChartLayoutMeta,
+  Charts,
+  Layout,
+  RootState,
+} from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -54,7 +59,10 @@ export function useFilterScopeTree(
     () =>
       Object.values(layout).reduce<string[]>((acc, cur) => {
         const { id, parents = [], type, meta } = cur;
-        if (type === CHART_TYPE && currentChartId !== meta?.chartId) {
+        if (
+          type === CHART_TYPE &&
+          currentChartId !== (meta as ChartLayoutMeta)?.chartId
+        ) {
           return [...new Set([...acc, ...parents, id])];
         }
         return acc;

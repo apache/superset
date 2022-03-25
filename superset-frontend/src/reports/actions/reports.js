@@ -26,7 +26,23 @@ import {
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report, resourceId, creationMethod, filterField) {
-  return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
+  const reportWithResultExtra = { ...report };
+  // convert string response to be json object
+  if (
+    report &&
+    report.result &&
+    report.result[0] &&
+    typeof report.result[0].extra === 'string'
+  ) {
+    reportWithResultExtra.result[0].extra = JSON.parse(report.result[0].extra);
+  }
+  return {
+    type: SET_REPORT,
+    report: reportWithResultExtra,
+    resourceId,
+    creationMethod,
+    filterField,
+  };
 }
 
 export function fetchUISpecificReport({

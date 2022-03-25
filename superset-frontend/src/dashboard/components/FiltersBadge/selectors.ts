@@ -30,7 +30,7 @@ import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
-import { Layout } from 'src/dashboard/types';
+import { ChartLayoutMeta, Layout } from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 export enum IndicatorStatus {
@@ -294,7 +294,7 @@ export const selectNativeIndicatorsForChart = (
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     const dashboardLayoutValues = Object.values(dashboardLayout);
     const chartLayoutItem = dashboardLayoutValues.find(
-      layoutItem => layoutItem?.meta?.chartId === chartId,
+      layoutItem => (layoutItem?.meta as ChartLayoutMeta)?.chartId === chartId,
     );
     crossFilterIndicators = Object.values(chartConfiguration)
       .filter(
@@ -313,11 +313,13 @@ export const selectNativeIndicatorsForChart = (
         const column = filtersState && Object.keys(filtersState)[0];
 
         const dashboardLayoutItem = dashboardLayoutValues.find(
-          layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
+          layoutItem =>
+            (layoutItem?.meta as ChartLayoutMeta)?.chartId === chartConfig.id,
         );
         return {
           column,
-          name: dashboardLayoutItem?.meta?.sliceName as string,
+          name: (dashboardLayoutItem?.meta as ChartLayoutMeta)
+            ?.sliceName as string,
           path: [
             ...(dashboardLayoutItem?.parents ?? []),
             dashboardLayoutItem?.id,

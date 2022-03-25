@@ -337,6 +337,7 @@ function AlertList({
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
+          handleAlertEdit(original);
           const actions = [
             canEdit
               ? {

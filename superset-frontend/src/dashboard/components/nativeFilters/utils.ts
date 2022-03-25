@@ -28,7 +28,7 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
 } from '@superset-ui/core';
-import { Charts, DashboardLayout } from 'src/dashboard/types';
+import { ChartLayoutMeta, Charts, DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
@@ -158,7 +158,9 @@ const findTabsWithChartsInScopeHelper = (
 ) => {
   if (
     dashboardLayout[componentId].type === CHART_TYPE &&
-    chartsInScope.includes(dashboardLayout[componentId].meta.chartId)
+    chartsInScope.includes(
+      (dashboardLayout[componentId].meta as ChartLayoutMeta).chartId,
+    )
   ) {
     tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
   }

@@ -22,6 +22,7 @@ import React, {
   useEffect,
   useMemo,
   useCallback,
+  useRef,
 } from 'react';
 import {
   styled,
@@ -56,6 +57,8 @@ import {
   Recipient,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { DashboardReportExtra } from 'src/reports/types';
+import DashboardTabSelector from 'src/components/DashboardTabSelector';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
@@ -150,6 +153,7 @@ const DEFAULT_ALERT = {
   validator_config_json: {},
   validator_type: '',
   force_screenshot: false,
+  extra: {},
   grace_period: undefined,
 };
 
@@ -232,8 +236,11 @@ const StyledSectionContainer = styled.div`
 const StyledSectionTitle = styled.div`
   display: flex;
   align-items: center;
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+  &:first-child {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
   h4 {
     margin: 0;
@@ -339,7 +346,7 @@ const StyledRadioGroup = styled(Radio.Group)`
 `;
 
 const StyledCheckbox = styled(AntdCheckbox)`
-  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
+  margin-left: 0;
 `;
 
 // Notification Method components
@@ -411,6 +418,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
+  const knownTabSelection = useRef<Record<number, string[]>>({});
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
@@ -420,6 +428,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_FORMAT,
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
+  const showTabSelector = useMemo(
+    () => contentType === 'dashboard' && currentAlert?.dashboard?.value,
+    [contentType, currentAlert?.dashboard?.value],
+  );
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -534,6 +546,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         contentType === 'dashboard'
           ? DEFAULT_NOTIFICATION_FORMAT
           : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      extra: currentAlert?.extra,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -634,10 +647,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
-    setCurrentAlert(currentAlertData => ({
-      ...currentAlertData,
-      [name]: value,
-    }));
+    if (value !== currentAlert?.[name]) {
+      setCurrentAlert(currentAlertData => ({
+        ...currentAlertData,
+        [name]: value,
+      }));
+      if (disableSave) {
+        setDisableSave(false);
+      }
+    }
   };
 
   const loadSourceOptions = useMemo(
@@ -815,9 +833,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('database', value || []);
   };
 
-  const onDashboardChange = (dashboard: SelectValue) => {
-    updateAlertState('dashboard', dashboard || undefined);
-    updateAlertState('chart', null);
+  const onDashboardChange = (dashboardOption: SelectValue) => {
+    const extra = { ...currentAlert?.extra };
+    const currentDashboardId = currentAlert?.dashboard?.id;
+    if (currentDashboardId && extra.dashboard?.active_tabs) {
+      knownTabSelection.current[currentDashboardId] =
+        extra.dashboard.active_tabs;
+      delete extra.dashboard.active_tabs;
+    }
+    if (dashboardOption.value in knownTabSelection.current) {
+      extra.dashboard = extra.dashboard || ({} as DashboardReportExtra);
+      extra.dashboard.active_tabs =
+        knownTabSelection.current[dashboardOption.value];
+    }
+    setCurrentAlert(alert => ({
+      ...alert,
+      dashboard: dashboardOption,
+      chart: undefined,
+      extra,
+    }));
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -866,6 +900,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
     // When switch content type, reset force_screenshot to false
     setForceScreenshot(false);
+    // When switch content type, hide or show dashboard tab selector
     // Gives time to close the select before changing the type
     setTimeout(() => setContentType(target.value), 200);
   };
@@ -878,6 +913,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onForceScreenshotChange = (event: any) => {
     setForceScreenshot(event.target.checked);
+  };
+
+  const onChangeDashboardTabSelection = (tabs: string[]) => {
+    updateAlertState('extra', {
+      ...currentAlert?.extra,
+      dashboard: {
+        ...currentAlert?.extra?.dashboard,
+        active_tabs: tabs,
+      },
+    });
   };
 
   // Make sure notification settings has the required info
@@ -978,6 +1023,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
           : resource.validator_config_json;
+      const extraConfig =
+        typeof resource.extra === 'string'
+          ? JSON.parse(resource.extra)
+          : resource.extra;
+      console.log(extraConfig);
 
       setConditionNotNull(resource.validator_type === 'not null');
 
@@ -1019,6 +1069,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 op: 'not null',
               }
             : validatorConfig,
+        extra: extraConfig,
       });
     }
   }, [resource]);
@@ -1037,6 +1088,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.working_timeout,
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
+    currentAlertSafe.extra,
     contentType,
     notificationSettings,
     conditionNotNull,
@@ -1315,74 +1367,102 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Message content')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <Radio.Group onChange={onContentTypeChange} value={contentType}>
-              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
-              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
-            </Radio.Group>
-            <AsyncSelect
-              ariaLabel={t('Chart')}
-              css={{
-                display: contentType === 'chart' ? 'inline' : 'none',
-              }}
-              name="chart"
-              value={
-                currentAlert?.chart?.label && currentAlert?.chart?.value
-                  ? {
-                      value: currentAlert.chart.value,
-                      label: currentAlert.chart.label,
-                    }
-                  : undefined
-              }
-              options={loadChartOptions}
-              onChange={onChartChange}
-            />
-            <AsyncSelect
-              ariaLabel={t('Dashboard')}
-              css={{
-                display: contentType === 'dashboard' ? 'inline' : 'none',
-              }}
-              name="dashboard"
-              value={
-                currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
-                  ? {
-                      value: currentAlert.dashboard.value,
-                      label: currentAlert.dashboard.label,
-                    }
-                  : undefined
-              }
-              options={loadDashboardOptions}
-              onChange={onDashboardChange}
-            />
-            {formatOptionEnabled && (
-              <>
+            <StyledInputContainer>
+              <Radio.Group
+                style={{ marginBottom: '0.8em' }}
+                onChange={onContentTypeChange}
+                value={contentType}
+              >
+                <Radio value="dashboard">{t('Dashboard')}</Radio>
+                <Radio value="chart">{t('Chart')}</Radio>
+              </Radio.Group>
+              {contentType === 'chart' && (
+                <AsyncSelect
+                  ariaLabel={t('Chart')}
+                  name="chart"
+                  value={
+                    currentAlert?.chart?.label && currentAlert?.chart?.value
+                      ? {
+                          value: currentAlert.chart.value,
+                          label: currentAlert.chart.label,
+                        }
+                      : undefined
+                  }
+                  options={loadChartOptions}
+                  onChange={onChartChange}
+                />
+              )}
+              {contentType === 'dashboard' && (
+                <AsyncSelect
+                  ariaLabel={t('Dashboard')}
+                  name="dashboard"
+                  value={
+                    currentAlert?.dashboard?.label &&
+                    currentAlert?.dashboard?.value
+                      ? {
+                          value: currentAlert.dashboard.value,
+                          label: currentAlert.dashboard.label,
+                        }
+                      : undefined
+                  }
+                  options={loadDashboardOptions}
+                  onChange={onDashboardChange}
+                />
+              )}
+              {showTabSelector && currentAlert?.dashboard?.value && (
+                <DashboardTabSelector
+                  dashboardId={currentAlert.dashboard.value}
+                  selectedTabs={currentAlert?.extra?.dashboard?.active_tabs}
+                  onChange={onChangeDashboardTabSelection}
+                  title={({ hasTabs }) => (
+                    <p>
+                      {hasTabs
+                        ? t(
+                            'Capture dashboard screenshots from following selected tabs:',
+                          )
+                        : t(
+                            'Following charts will be rendered for the dashboard:',
+                          )}
+                    </p>
+                  )}
+                />
+              )}
+              {formatOptionEnabled && (
+                <>
+                  <div className="inline-container">
+                    <StyledRadioGroup
+                      onChange={onFormatChange}
+                      value={reportFormat}
+                    >
+                      <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                      <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                      {TEXT_BASED_VISUALIZATION_TYPES.includes(
+                        chartVizType,
+                      ) && (
+                        <StyledRadio value="TEXT">
+                          {t('Send as text')}
+                        </StyledRadio>
+                      )}
+                    </StyledRadioGroup>
+                  </div>
+                </>
+              )}
+              {(isReport || contentType === 'dashboard') && (
                 <div className="inline-container">
-                  <StyledRadioGroup
-                    onChange={onFormatChange}
-                    value={reportFormat}
+                  <StyledCheckbox
+                    data-test="bypass-cache"
+                    className="checkbox"
+                    checked={forceScreenshot}
+                    onChange={onForceScreenshotChange}
+                    style={{
+                      marginTop: '0.5em',
+                    }}
                   >
-                    <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
-                    <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
-                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                      <StyledRadio value="TEXT">
-                        {t('Send as text')}
-                      </StyledRadio>
-                    )}
-                  </StyledRadioGroup>
+                    {t('Ignore cached data when generating screenshots')}
+                  </StyledCheckbox>
                 </div>
-              </>
-            )}
-            {(isReport || contentType === 'dashboard') && (
-              <div className="inline-container">
-                <StyledCheckbox
-                  data-test="bypass-cache"
-                  className="checkbox"
-                  checked={forceScreenshot}
-                  onChange={onForceScreenshotChange}
-                >
-                  Ignore cache when generating screenshot
-                </StyledCheckbox>
-              </div>
-            )}
+              )}
+            </StyledInputContainer>
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
