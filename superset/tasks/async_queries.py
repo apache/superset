@@ -47,13 +47,17 @@ query_timeout = current_app.config[
 def ensure_user_is_set(user_id: Optional[int]) -> None:
     user_is_not_set = not (hasattr(g, "user") and g.user is not None)
     if user_is_not_set and user_id is not None:
-        g.user = security_manager.get_user_by_id(user_id)
+        g.user = security_manager.get_user_by_id(  # pylint: disable=assigning-non-slot
+            user_id
+        )
     elif user_is_not_set:
-        g.user = security_manager.get_anonymous_user()
+        g.user = (  # pylint: disable=assigning-non-slot
+            security_manager.get_anonymous_user()
+        )
 
 
 def set_form_data(form_data: Dict[str, Any]) -> None:
-    g.form_data = form_data
+    g.form_data = form_data  # pylint: disable=assigning-non-slot
 
 
 def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:

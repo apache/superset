@@ -117,6 +117,8 @@ class BaseDatasource(
     owners: List[User]
     update_from_object_fields: List[str]
 
+    extra_import_fields = ["is_managed_externally", "external_url"]
+
     @property
     def kind(self) -> DatasourceKind:
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL

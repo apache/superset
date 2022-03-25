@@ -18,7 +18,8 @@
 import logging
 import pickle
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from uuid import UUID
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,27 +29,25 @@ from superset.commands.base import BaseCommand
 from superset.key_value.commands.create import CreateKeyValueCommand
 from superset.key_value.exceptions import KeyValueUpdateFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyType
-from superset.key_value.utils import extract_key, get_filter
+from superset.key_value.types import Key, KeyValueResource
+from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
 class UpsertKeyValueCommand(BaseCommand):
     actor: Optional[User]
-    resource: str
+    resource: KeyValueResource
     value: Any
-    key: str
-    key_type: KeyType
+    key: Union[int, UUID]
     expires_on: Optional[datetime]
 
     def __init__(
         self,
-        resource: str,
-        key: str,
+        resource: KeyValueResource,
+        key: Union[int, UUID],
         value: Any,
         actor: Optional[User] = None,
-        key_type: KeyType = "uuid",
         expires_on: Optional[datetime] = None,
     ):
         """
@@ -66,10 +65,9 @@ class UpsertKeyValueCommand(BaseCommand):
         self.resource = resource
         self.key = key
         self.value = value
-        self.key_type = key_type
         self.expires_on = expires_on
 
-    def run(self) -> Optional[str]:
+    def run(self) -> Optional[Key]:
         try:
             return self.upsert()
         except SQLAlchemyError as ex:
@@ -80,8 +78,8 @@ class UpsertKeyValueCommand(BaseCommand):
     def validate(self) -> None:
         pass
 
-    def upsert(self) -> Optional[str]:
-        filter_ = get_filter(self.resource, self.key, self.key_type)
+    def upsert(self) -> Optional[Key]:
+        filter_ = get_filter(self.resource, self.key)
         entry: KeyValueEntry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)
@@ -97,12 +95,11 @@ class UpsertKeyValueCommand(BaseCommand):
             )
             db.session.merge(entry)
             db.session.commit()
-            return extract_key(entry, self.key_type)
+            return Key(entry.id, entry.uuid)
         else:
             return CreateKeyValueCommand(
                 resource=self.resource,
                 value=self.value,
-                key_type=self.key_type,
                 actor=self.actor,
                 key=self.key,
                 expires_on=self.expires_on,
