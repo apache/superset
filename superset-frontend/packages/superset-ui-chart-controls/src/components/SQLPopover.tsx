@@ -22,7 +22,7 @@ import type { PopoverProps } from 'antd/lib/popover';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import { CalculatorOutlined } from '@ant-design/icons';
-import { css, styled, useTheme } from '@superset-ui/core';
+import { css, styled, useTheme, t } from '@superset-ui/core';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
@@ -58,6 +58,7 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
       }
       placement="bottomLeft"
       arrowPointAtCenter
+      title={t('SQL expression')}
       {...props}
     >
       <StyledCalculatorIcon />

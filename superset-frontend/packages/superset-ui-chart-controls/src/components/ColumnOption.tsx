@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { css, styled, SupersetTheme, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -69,11 +69,7 @@ export function ColumnOption({
           {getColumnLabelText(column)}
         </span>
       </Tooltip>
-
-      {hasExpression && (
-        <SQLPopover title={t('SQL Expression')} sqlExpression={expression} />
-      )}
-
+      {hasExpression && <SQLPopover sqlExpression={expression} />}
       {column.is_certified && (
         <CertifiedIconWithTooltip
           metricName={column.metric_name}

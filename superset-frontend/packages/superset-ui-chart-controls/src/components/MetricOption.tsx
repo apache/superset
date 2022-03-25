@@ -23,7 +23,6 @@ import {
   Metric,
   SafeMarkdown,
   SupersetTheme,
-  t,
 } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
@@ -92,10 +91,7 @@ export function MetricOption({
         </span>
       </Tooltip>
       {showFormula && metric.expression && (
-        <SQLPopover
-          title={t('SQL Expression')}
-          sqlExpression={metric.expression}
-        />
+        <SQLPopover sqlExpression={metric.expression} />
       )}
       {metric.is_certified && (
         <CertifiedIconWithTooltip

@@ -48,7 +48,7 @@ describe('TemplateParamsEditor', () => {
       { wrapper: ThemeWrapper },
     );
     fireEvent.click(getByText(container, 'Parameters'));
-    const spy = jest.spyOn(brace, 'acequire');
+    const spy = jest.spyOn(brace, 'require');
     spy.mockReturnValue({ setCompleters: () => 'foo' });
     await waitFor(() => {
       expect(baseElement.querySelector('#ace-editor')).toBeInTheDocument();
