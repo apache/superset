@@ -220,7 +220,7 @@ class SupersetResultSet:
             column = {
                 "name": col.name,
                 "type": db_type_str,
-                "is_date": self.is_temporal(db_type_str),
+                "is_dttm": self.is_temporal(db_type_str),
             }
             columns.append(column)
 
