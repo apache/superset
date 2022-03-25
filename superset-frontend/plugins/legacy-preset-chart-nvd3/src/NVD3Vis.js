@@ -259,7 +259,7 @@ const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
-    data,
+    data: propsData,
     width: maxWidth,
     height: maxHeight,
     annotationData,
@@ -315,6 +315,8 @@ function nvd3Vis(element, props) {
     yIsLogScale,
     sliceId,
   } = props;
+
+  let data = JSON.parse(JSON.stringify(propsData));
 
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
