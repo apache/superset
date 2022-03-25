@@ -119,3 +119,16 @@ class TestDashboardDAO(SupersetTestCase):
         DashboardDAO.set_dash_metadata(dashboard, original_data)
         session.merge(dashboard)
         session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_upsert_embedded_dashboard(self):
+        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        assert not dash.embedded
+        DashboardDAO.upsert_embedded_dashboard(dash, ["test.example.com"])
+        assert dash.embedded
+        self.assertEqual(dash.embedded[0].allowed_domains, ["test.example.com"])
+        original_uuid = dash.embedded[0].uuid
+        self.assertIsNotNone(original_uuid)
+        DashboardDAO.upsert_embedded_dashboard(dash, [])
+        self.assertEqual(dash.embedded[0].allowed_domains, [])
+        self.assertEqual(dash.embedded[0].uuid, original_uuid)

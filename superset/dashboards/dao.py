@@ -28,6 +28,7 @@ from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
@@ -288,3 +289,19 @@ class DashboardDAO(BaseDAO):
             )
             .all()
         ]
+
+    @staticmethod
+    def upsert_embedded_dashboard(
+        dashboard: Dashboard, allowed_domains: List[str]
+    ) -> EmbeddedDashboard:
+        """
+        Sets up a dashboard to be embeddable.
+        Upsert is used to preserve the embedded_dashboard uuid across updates.
+        """
+        embedded: EmbeddedDashboard = dashboard.embedded[
+            0
+        ] if dashboard.embedded else EmbeddedDashboard()
+        embedded.allow_domain_list = ",".join(allowed_domains)
+        dashboard.embedded = [embedded]
+        db.session.commit()
+        return embedded

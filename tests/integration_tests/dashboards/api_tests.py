@@ -1688,3 +1688,49 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_embedded_dashboards(self):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/embedded"
+
+        # get, assert 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)
+
+        # post, assert 200
+        allowed_domains = ["test.example", "embedded.example"]
+        resp = self.post_assert_metric(
+            uri, {"allowed_domains": allowed_domains}, "set_embedded",
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        # get, assert values
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # save uuid for later
+        original_uuid = result["uuid"]
+
+        # put, assert 200
+        resp = self.post_assert_metric(uri, {"allowed_domains": []}, "set_embedded")
+        self.assertEqual(resp.status_code, 200)
+
+        # get, assert changes upserted
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertEqual(result["uuid"], original_uuid)
+        self.assertEqual(result["allowed_domains"], [])
+
+        # delete, assert 200
+        resp = self.delete_assert_metric(uri, "delete_embedded")
+        self.assertEqual(resp.status_code, 200)
+
+        # get, assert 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)
