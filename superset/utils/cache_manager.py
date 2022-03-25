@@ -40,7 +40,7 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if required and cache_type is None or cache_type == "SupersetMetastoreCache":
+        if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
             if cache_type is None and not app.debug:
                 logger.warning(
                     "Falling back to the built-in cache, that stores data in the "
