@@ -35,7 +35,6 @@ interface BrandProps {
   path: string;
   icon: string;
   alt: string;
-  width: string | number;
   tooltip: string;
   text: string;
 }
@@ -67,7 +66,7 @@ export interface MenuProps {
   isFrontendRoute?: (path?: string) => boolean;
 }
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
   name?: string;
   icon?: string;
@@ -97,6 +96,17 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* must be exactly the height of the Antd navbar */
+    min-height: 50px;
+    padding: ${({ theme }) =>
+      `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
+        theme.gridUnit * 4
+      }px`};
+    max-width: ${({ theme }) => `${theme.gridUnit * 37}px`};
+    img {
+      height: 100%;
+      object-fit: contain;
+    }
   }
   .navbar-brand-text {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -194,7 +204,7 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
-  const uiConig = useUiConfig();
+  const uiConfig = useUiConfig();
   const theme = useTheme();
 
   useEffect(() => {
@@ -210,7 +220,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone || uiConig.hideNav) return <></>;
+  if (standalone || uiConfig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,
@@ -273,7 +283,7 @@ export function Menu({
             arrowPointAtCenter
           >
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img src={brand.icon} alt={brand.alt} />
             </a>
           </Tooltip>
           {brand.text && (
@@ -286,8 +296,9 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map(item => {
+            {menu.map((item, index) => {
               const props = {
+                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {

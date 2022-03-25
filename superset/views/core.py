@@ -748,8 +748,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         form_data_key = request.args.get("form_data_key")
         if key is not None:
-            key_type = config["PERMALINK_KEY_TYPE"]
-            command = GetExplorePermalinkCommand(g.user, key, key_type)
+            command = GetExplorePermalinkCommand(g.user, key)
             try:
                 permalink_value = command.run()
                 if permalink_value:
@@ -1841,7 +1840,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     force=True,
                 )
 
-                g.form_data = form_data
+                g.form_data = form_data  # pylint: disable=assigning-non-slot
                 payload = obj.get_payload()
                 delattr(g, "form_data")
                 error = payload["errors"] or None
@@ -2008,9 +2007,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def dashboard_permalink(  # pylint: disable=no-self-use
         self, key: str,
     ) -> FlaskResponse:
-        key_type = config["PERMALINK_KEY_TYPE"]
         try:
-            value = GetDashboardPermalinkCommand(g.user, key, key_type).run()
+            value = GetDashboardPermalinkCommand(g.user, key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")

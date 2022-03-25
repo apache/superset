@@ -43,7 +43,6 @@ from typing_extensions import Literal
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.key_value.types import KeyType
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
@@ -234,7 +233,6 @@ APP_NAME = "Superset"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
-APP_ICON_WIDTH = 126
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -300,8 +298,6 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
-AUTH_STRICT_RESPONSE_CODES = True
 
 # ---------------------------------------------------
 # Roles config
@@ -603,8 +599,6 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
-PERMALINK_KEY_TYPE: KeyType = "uuid"
-
 # CORS Options
 ENABLE_CORS = False
 CORS_OPTIONS: Dict[Any, Any] = {}
@@ -748,13 +742,13 @@ DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
-    CELERYD_LOG_LEVEL = "DEBUG"
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = False
-    CELERY_ANNOTATIONS = {
+    broker_url = "sqla+sqlite:///celerydb.sqlite"
+    imports = ("superset.sql_lab", "superset.tasks")
+    result_backend = "db+sqlite:///celery_results.sqlite"
+    worker_log_level = "DEBUG"
+    worker_prefetch_multiplier = 1
+    task_acks_late = False
+    task_annotations = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
         "email_reports.send": {
             "rate_limit": "1/s",
@@ -763,7 +757,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "ignore_result": True,
         },
     }
-    CELERYBEAT_SCHEDULE = {
+    beat_schedule = {
         "email_reports.schedule_hourly": {
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),

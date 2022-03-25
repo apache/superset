@@ -42,7 +42,7 @@ import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption } from './utils';
+import { getValue, hasOption, isObject } from './utils';
 
 const { Option } = AntdSelect;
 
@@ -386,37 +386,33 @@ const Select = (
   const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
+    selectedItem: string | number | AntdLabeledValue | undefined,
   ) => {
     if (isSingleMode) {
-      setSelectValue(selectedValue);
+      setSelectValue(selectedItem);
     } else {
-      const currentSelected = selectValue
-        ? Array.isArray(selectValue)
-          ? selectValue
-          : [selectValue]
-        : [];
-      if (
-        typeof selectedValue === 'number' ||
-        typeof selectedValue === 'string'
-      ) {
-        setSelectValue([
-          ...(currentSelected as (string | number)[]),
-          selectedValue as string | number,
-        ]);
-      } else {
-        setSelectValue([
-          ...(currentSelected as AntdLabeledValue[]),
-          selectedValue as AntdLabeledValue,
-        ]);
-      }
+      setSelectValue(previousState => {
+        const array = ensureIsArray(previousState);
+        const isLabeledValue = isObject(selectedItem);
+        const value = isLabeledValue ? selectedItem.value : selectedItem;
+        // Tokenized values can contain duplicated values
+        if (!hasOption(value, array)) {
+          const result = [...array, selectedItem];
+          return isLabeledValue
+            ? (result as AntdLabeledValue[])
+            : (result as (string | number)[]);
+        }
+        return previousState;
+      });
     }
     setInputValue('');
   };
 
-  const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
+  const handleOnDeselect = (
+    value: string | number | AntdLabeledValue | undefined,
+  ) => {
     if (Array.isArray(selectValue)) {
-      if (typeof value === 'number' || typeof value === 'string') {
+      if (typeof value === 'number' || typeof value === 'string' || !value) {
         const array = selectValue as (string | number)[];
         setSelectValue(array.filter(element => element !== value));
       } else {

@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import math
 
 from flask import Flask
-from flask_babel import gettext as _
 from flask_caching import Cache
 
 logger = logging.getLogger(__name__)
+
+CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
 
 
 class CacheManager:
@@ -40,27 +40,25 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if app.debug and cache_type is None:
-            cache_threshold = cache_config.get("CACHE_THRESHOLD", math.inf)
+        if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
+            if cache_type is None and not app.debug:
+                logger.warning(
+                    "Falling back to the built-in cache, that stores data in the "
+                    "metadata database, for the followinng cache: `%s`. "
+                    "It is recommended to use `RedisCache`, `MemcachedCache` or "
+                    "another dedicated caching backend for production deployments",
+                    cache_config_key,
+                )
+            cache_type = CACHE_IMPORT_PATH
+            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
             cache_config.update(
-                {"CACHE_TYPE": "SimpleCache", "CACHE_THRESHOLD": cache_threshold,}
+                {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
 
-        if "CACHE_DEFAULT_TIMEOUT" not in cache_config:
+        if cache_type is not None and "CACHE_DEFAULT_TIMEOUT" not in cache_config:
             default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
             cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
 
-        if required and cache_type in ("null", "NullCache"):
-            raise Exception(
-                _(
-                    "The CACHE_TYPE `%(cache_type)s` for `%(cache_config_key)s` is not "
-                    "supported. It is recommended to use `RedisCache`, "
-                    "`MemcachedCache` or another dedicated caching backend for "
-                    "production deployments",
-                    cache_type=cache_config["CACHE_TYPE"],
-                    cache_config_key=cache_config_key,
-                ),
-            )
         cache.init_app(app, cache_config)
 
     def init_app(self, app: Flask) -> None:

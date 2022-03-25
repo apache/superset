@@ -190,6 +190,10 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class InvalidPostProcessingError(SupersetException):
+    status = 400
+
+
 class CacheLoadError(SupersetException):
     status = 404
 

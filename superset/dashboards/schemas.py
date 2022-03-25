@@ -249,6 +249,8 @@ class DashboardPostSchema(BaseDashboardSchema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -278,6 +280,8 @@ class DashboardPutSchema(BaseDashboardSchema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartFavStarResponseResult(Schema):
@@ -301,3 +305,5 @@ class ImportV1DashboardSchema(Schema):
     position = fields.Dict()
     metadata = fields.Dict()
     version = fields.String(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)

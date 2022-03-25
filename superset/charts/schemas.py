@@ -209,6 +209,8 @@ class ChartPostSchema(Schema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartPutSchema(Schema):
@@ -250,6 +252,8 @@ class ChartPutSchema(Schema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -767,6 +771,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "diff",
                 "compare",
                 "resample",
+                "flatten",
             )
         ),
         example="aggregate",
@@ -1299,6 +1304,8 @@ class ImportV1ChartSchema(Schema):
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
     dataset_uuid = fields.UUID(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 CHART_SCHEMAS = (

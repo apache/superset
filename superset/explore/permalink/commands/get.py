@@ -27,24 +27,22 @@ from superset.explore.permalink.types import ExplorePermalinkValue
 from superset.explore.utils import check_access
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
-from superset.key_value.types import KeyType
+from superset.key_value.utils import decode_permalink_id
 
 logger = logging.getLogger(__name__)
 
 
 class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(
-        self, actor: User, key: str, key_type: KeyType,
-    ):
+    def __init__(self, actor: User, key: str):
         self.actor = actor
         self.key = key
-        self.key_type = key_type
 
     def run(self) -> Optional[ExplorePermalinkValue]:
         self.validate()
         try:
+            key = decode_permalink_id(self.key, salt=self.salt)
             value: Optional[ExplorePermalinkValue] = GetKeyValueCommand(
-                self.resource, self.key, key_type=self.key_type
+                resource=self.resource, key=key,
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")
