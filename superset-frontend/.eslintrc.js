@@ -184,6 +184,22 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
       },
     },
+    {
+      files: [
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        '*.stories.tsx',
+        '*.stories.jsx',
+        'fixtures.*',
+        'cypress-base/cypress/**/*',
+        'Stories.tsx',
+      ],
+      rules: {
+        'theme-colors/no-literal-colors': 0,
+      },
+    },
   ],
   rules: {
     'theme-colors/no-literal-colors': 1,
