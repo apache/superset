@@ -22,7 +22,6 @@ import React, {
   ReactNode,
   useMemo,
   useEffect,
-  useCallback,
   useRef,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
@@ -96,9 +95,8 @@ interface TableSelectorProps {
   schema?: string;
   sqlLabMode?: boolean;
   tableValue?: string | string[];
-  onTableSelectChange?: (value?: SelectValue, schema?: string) => void;
+  onTableSelectChange?: (value?: string | string[], schema?: string) => void;
   tableSelectMode?: 'single' | 'multiple';
-  emptyTableSelectValue?: SelectValue;
 }
 
 interface Table {
@@ -161,7 +159,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   schema,
   sqlLabMode = true,
   tableSelectMode = 'single',
-  emptyTableSelectValue = undefined,
   tableValue = undefined,
   onTableSelectChange,
 }) => {
@@ -175,9 +172,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
-  const [tableSelectValue, setTableSelectValue] = useState(
-    emptyTableSelectValue,
-  );
+  const [tableSelectValue, setTableSelectValue] = useState<
+    SelectValue | undefined
+  >(undefined);
   const [refresh, setRefresh] = useState(0);
   const [previousRefresh, setPreviousRefresh] = useState(0);
   const [loadingTables, setLoadingTables] = useState(false);
@@ -188,9 +185,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (database === undefined) {
       setCurrentDatabase(undefined);
       setCurrentSchema(undefined);
-      setTableSelectValue(emptyTableSelectValue);
+      setTableSelectValue(undefined);
     }
-  }, [emptyTableSelectValue, database, tableSelectMode]);
+  }, [database, tableSelectMode]);
 
   useEffect(() => {
     if (tableSelectMode === 'single') {
@@ -256,15 +253,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
-  const internalTableChange = (value: SelectValue | undefined) => {
+  const internalTableChange = (
+    selectedOptions: TableOption | TableOption[] | undefined,
+  ) => {
     if (tableSelectMode === 'multiple') {
       selectRef?.current?.blur();
     }
 
     if (currentSchema) {
-      onTableSelectChange?.(value, currentSchema);
+      onTableSelectChange?.(
+        Array.isArray(selectedOptions)
+          ? selectedOptions.map(option => option?.value)
+          : selectedOptions?.value,
+        currentSchema,
+      );
     } else {
-      setTableSelectValue(value);
+      setTableSelectValue(selectedOptions);
     }
   };
 
@@ -281,7 +285,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       onSchemaChange(schema);
     }
 
-    internalTableChange(emptyTableSelectValue);
+    internalTableChange(undefined);
   };
 
   function renderDatabaseSelector() {
@@ -334,7 +338,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         lazyLoading={false}
         loading={loadingTables}
         name="select-table"
-        onChange={internalTableChange}
+        onChange={(options: TableOption | TableOption[]) =>
+          internalTableChange(options)
+        }
         options={tableOptions}
         placeholder={t('Select table or type table name')}
         showSearch
@@ -362,28 +368,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 };
 
-export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> = ({
-  onTableSelectChange,
-  ...props
-}) => {
-  const handleTableSelectChange = useCallback(
-    (value?: SelectValue, schema?: string) => {
-      onTableSelectChange?.(
-        (value as TableOption[])?.map(item => item?.value),
-        schema,
-      );
-    },
-    [onTableSelectChange],
-  );
-
-  return (
-    <TableSelector
-      tableSelectMode="multiple"
-      emptyTableSelectValue={[]}
-      onTableSelectChange={handleTableSelectChange}
-      {...props}
-    />
-  );
-};
+export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> =
+  props => <TableSelector tableSelectMode="multiple" {...props} />;
 
 export default TableSelector;
