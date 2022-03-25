@@ -31,6 +31,8 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import column_property, relationship
 
 from superset.columns.models import Column
+from superset.extensions import db
+from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
     ExtraJSONMixin,
@@ -143,7 +145,14 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def database(self) -> Optional[str]:
-        return "todo"
+        if self.tables:
+            database = (
+                db.session.query(Database)
+                .filter(Database.id == self.tables[0].database_id)
+                .one()
+            )
+            return database.data
+        return None
 
     @property
     def owners(self) -> Optional[List[int]]:
