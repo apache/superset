@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, ReactNode } from 'react';
+import React, { useState, ReactNode, useLayoutEffect } from 'react';
 import { styled, Metric, SafeMarkdown } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
@@ -63,7 +63,7 @@ export function MetricOption({
 
   const [tooltipText, setTooltipText] = useState<ReactNode>(metric.metric_name);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTooltipText(getMetricTooltipNode(metric, labelRef));
   }, [labelRef, metric]);
 
@@ -77,24 +77,11 @@ export function MetricOption({
           details={metric.certification_details}
         />
       )}
-      <Tooltip
-        id="metric-name-tooltip"
-        title={tooltipText}
-        trigger={['hover']}
-        placement="top"
-      >
+      <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span className="option-label metric-option-label" ref={labelRef}>
           {link}
         </span>
       </Tooltip>
-      {metric.description && (
-        <InfoTooltipWithTrigger
-          className="text-muted"
-          icon="info"
-          tooltip={metric.description}
-          label={`descr-${metric.metric_name}`}
-        />
-      )}
       {showFormula && (
         <InfoTooltipWithTrigger
           className="text-muted"
