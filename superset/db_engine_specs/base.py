@@ -63,7 +63,7 @@ from superset.models.sql_lab import Query
 from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType, ResultSetColumnType
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -566,8 +566,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def expand_data(
-        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
-    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
+        cls, columns: List[ResultSetColumnType], data: List[Dict[Any, Any]]
+    ) -> Tuple[
+        List[ResultSetColumnType], List[Dict[Any, Any]], List[ResultSetColumnType]
+    ]:
         """
         Some engines support expanding nested fields. See implementation in Presto
         spec for details.

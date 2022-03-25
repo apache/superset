@@ -545,12 +545,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_array(self):
         cols = [
-            {"name": "event_id", "type": "VARCHAR", "is_date": False},
-            {"name": "timestamp", "type": "BIGINT", "is_date": False},
+            {"name": "event_id", "type": "VARCHAR", "is_dttm": False},
+            {"name": "timestamp", "type": "BIGINT", "is_dttm": False},
             {
                 "name": "user",
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
-                "is_date": False,
+                "is_dttm": False,
             },
         ]
         data = [
@@ -564,12 +564,12 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             cols, data
         )
         expected_cols = [
-            {"name": "event_id", "type": "VARCHAR", "is_date": False},
-            {"name": "timestamp", "type": "BIGINT", "is_date": False},
+            {"name": "event_id", "type": "VARCHAR", "is_dttm": False},
+            {"name": "timestamp", "type": "BIGINT", "is_dttm": False},
             {
                 "name": "user",
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
-                "is_date": False,
+                "is_dttm": False,
             },
             {"name": "user.id", "type": "BIGINT"},
             {"name": "user.first_name", "type": "VARCHAR"},

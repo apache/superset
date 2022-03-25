@@ -28,6 +28,7 @@ import pyarrow as pa
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult
 from superset.utils import core as utils
+from superset.utils.core import ResultSetColumnType
 
 logger = logging.getLogger(__name__)
 
@@ -210,14 +211,14 @@ class SupersetResultSet:
         return self.table.num_rows
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
+    def columns(self) -> List[ResultSetColumnType]:
         if not self.table.column_names:
             return []
 
         columns = []
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
-            column = {
+            column: ResultSetColumnType = {
                 "name": col.name,
                 "type": db_type_str,
                 "is_dttm": self.is_temporal(db_type_str),
