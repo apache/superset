@@ -66,6 +66,7 @@ function loadData(
     alignPn = false,
     showCellBars = true,
     includeSearch = true,
+    rearrangeColumns = false,
   },
 ): TableChartProps {
   if (!props.queriesData || !props.queriesData[0]) return props;
@@ -86,6 +87,7 @@ function loadData(
       page_length: pageLength,
       show_cell_bars: showCellBars,
       include_search: includeSearch,
+      rearrange_columns: rearrangeColumns,
     },
     height: window.innerHeight - 130,
   };
@@ -117,8 +119,9 @@ export const BigTable = ({ width, height }) => {
   const cols = number('Columns', 8, { range: true, min: 1, max: 20 });
   const pageLength = number('Page size', 50, { range: true, min: 0, max: 100 });
   const includeSearch = boolean('Include search', true);
-  const alignPn = boolean('Algin PosNeg', false);
+  const alignPn = boolean('Align PosNeg', false);
   const showCellBars = boolean('Show Cell Bars', true);
+  const rearrangeColumns = boolean('Allow user to rearrange columns', false);
   const chartProps = loadData(birthNames, {
     pageLength,
     rows,
@@ -126,6 +129,7 @@ export const BigTable = ({ width, height }) => {
     alignPn,
     showCellBars,
     includeSearch,
+    rearrangeColumns,
   });
   return (
     <SuperChart

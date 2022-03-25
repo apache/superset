@@ -447,6 +447,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Allow the end user to drag-and-drop the column headers to rearrange them.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',

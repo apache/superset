@@ -215,6 +215,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    rearrange_columns: rearrangeColumns,
   } = formData;
   const timeGrain = extractTimegrain(formData);
 
@@ -265,6 +266,7 @@ const transformProps = (
     onChangeFilter,
     columnColorFormatters,
     timeGrain,
+    rearrangeColumns,
   };
 };
 
