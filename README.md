@@ -144,7 +144,7 @@ how to set up a development environment.
 
 - Getting Started with Superset
   - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/databases/dockeradddrivers)
+  - [Installing Database Drivers](https://superset.apache.org/docs/databases/docker-add-drivers/)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
