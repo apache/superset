@@ -348,6 +348,7 @@ function dbReducer(
         } as DatabaseObject['extra_json'];
 
         deserializeExtraJSON = {
+          ...deserializeExtraJSON,
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
