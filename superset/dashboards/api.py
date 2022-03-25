@@ -283,7 +283,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable=arguments-renamed
     )
-    def get(self, id_or_slug: str) -> Response:
+    @with_dashboard
+    def get(self, dash: Dashboard) -> Response:
         """Gets a dashboard
         ---
         get:
@@ -316,15 +317,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=arguments-differ
-        try:
-            dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
-            result = self.dashboard_get_response_schema.dump(dash)
-            return self.response(200, result=result)
-        except DashboardAccessDeniedError:
-            return self.response_403()
-        except DashboardNotFoundError:
-            return self.response_404()
+        result = self.dashboard_get_response_schema.dump(dash)
+        return self.response(200, result=result)
 
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
