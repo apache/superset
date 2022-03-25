@@ -23,7 +23,10 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { SingleValueType } from './SingleValueType';
-import { SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION } from './types';
+import {
+  SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
+  PluginFilterRangeScalingFunctions,
+} from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -78,7 +81,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Scaling Function'),
-              default: SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION.LINEAR,
+              default: PluginFilterRangeScalingFunctions.LINEAR,
               renderTrigger: true,
               freeForm: false,
               choices: Object.keys(

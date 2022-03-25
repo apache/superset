@@ -32,6 +32,7 @@ import { rgba } from 'emotion-rgba';
 // import { scaleLog, scaleLinear } from 'd3-scale';
 import {
   PluginFilterRangeProps,
+  PluginFilterRangeScalingFunctions,
   SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
 } from './types';
 
@@ -151,8 +152,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, stepSize, scaling, enableSingleValue } =
-    formData;
+  const {
+    groupby,
+    defaultValue,
+    stepSize,
+    scaling = PluginFilterRangeScalingFunctions.LINEAR,
+    enableSingleValue,
+  } = formData;
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
