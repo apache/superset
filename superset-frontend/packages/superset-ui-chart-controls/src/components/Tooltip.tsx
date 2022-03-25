@@ -46,9 +46,17 @@ export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
         overlayStyle={{
           fontSize: theme.typography.sizes.s,
           lineHeight: '1.6',
+          maxWidth: theme.gridUnit * 62,
+          minWidth: theme.gridUnit * 30,
           ...overlayStyle,
         }}
+        // make the tooltip display closer to the label
+        align={{ offset: [0, 1] }}
         color={defaultColor || color}
+        trigger="hover"
+        placement="bottom"
+        // don't allow hovering over the tooltip
+        mouseLeaveDelay={0}
         {...props}
       />
     </>
