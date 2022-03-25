@@ -19,7 +19,7 @@
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
 import { styled, Metric, SafeMarkdown } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
-import { ColumnTypeLabel } from './ColumnTypeLabel';
+import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';

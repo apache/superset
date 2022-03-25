@@ -306,7 +306,7 @@ export const OptionControlLabel = ({
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
+        {isFunction && <Icons.FieldDerived />}
         {getLabelContent()}
       </Label>
       {isExtra && (

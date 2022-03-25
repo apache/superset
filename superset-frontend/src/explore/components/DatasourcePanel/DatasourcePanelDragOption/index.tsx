@@ -18,29 +18,30 @@
  */
 import React from 'react';
 import { useDrag } from 'react-dnd';
-import { Metric, styled } from '@superset-ui/core';
+import { css, Metric, styled } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import Icons from 'src/components/Icons';
+
 import { DatasourcePanelDndItem } from '../types';
 
 const DatasourceItemContainer = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: ${({ theme }) => theme.gridUnit * 6}px;
-  cursor: pointer;
-
-  > div {
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
-  }
+    height: ${theme.gridUnit * 6}px;
 
-  :hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light2};
-  }
+    > div {
+      min-width: 0;
+      margin-right: ${theme.gridUnit * 2}px;
+    }
+  `}
 `;
 
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
@@ -79,6 +80,7 @@ export default function DatasourcePanelDragOption(
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
+      <Icons.Drag />
     </DatasourceItemContainer>
   );
 }

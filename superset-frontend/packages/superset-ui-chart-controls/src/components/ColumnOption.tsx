@@ -19,7 +19,7 @@
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
-import { ColumnTypeLabel } from './ColumnTypeLabel';
+import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
