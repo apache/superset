@@ -259,7 +259,7 @@ const formatter = getNumberFormatter();
 
 function nvd3Vis(element, props) {
   const {
-    data: propsData,
+    data,
     width: maxWidth,
     height: maxHeight,
     annotationData,
@@ -315,8 +315,6 @@ function nvd3Vis(element, props) {
     yIsLogScale,
     sliceId,
   } = props;
-
-  let data = JSON.parse(JSON.stringify(propsData));
 
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
@@ -436,7 +434,8 @@ function nvd3Vis(element, props) {
         chart.stacked(isBarStacked);
         if (orderBars) {
           data.forEach(d => {
-            d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
+            const newValues = [...d.values]; // need to copy values to avoid redux store changed.
+            d.values = newValues.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
           });
         }
         if (!reduceXTicks) {
