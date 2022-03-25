@@ -51,6 +51,7 @@ DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
 DATABASE_HOST = get_env_variable("DATABASE_HOST")
 DATABASE_PORT = get_env_variable("DATABASE_PORT")
 DATABASE_DB = get_env_variable("DATABASE_DB")
+PUBLIC_ROLE_LIKE = get_env_variable("PUBLIC_ROLE_LIKE")
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
