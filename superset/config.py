@@ -1051,18 +1051,6 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
-# Enable / disable scheduled email reports
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-ENABLE_SCHEDULED_EMAIL_REPORTS = False
-
-# Enable / disable Alerts, where users can define custom SQL that
-# will send emails with screenshots of charts or dashboards periodically
-# if it meets the criteria
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-ENABLE_ALERTS = False
-
 # ---------------------------------------------------
 # Alerts & Reports
 # ---------------------------------------------------
