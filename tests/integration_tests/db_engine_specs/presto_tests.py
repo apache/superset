@@ -571,9 +571,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "type": "ROW(ID BIGINT, FIRST_NAME VARCHAR, LAST_NAME VARCHAR)",
                 "is_dttm": False,
             },
-            {"name": "user.id", "type": "BIGINT"},
-            {"name": "user.first_name", "type": "VARCHAR"},
-            {"name": "user.last_name", "type": "VARCHAR"},
+            {"name": "user.id", "type": "BIGINT", "is_dttm": False},
+            {"name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
+            {"name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
         ]
         expected_data = [
             {
@@ -586,9 +586,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             }
         ]
         expected_expanded_cols = [
-            {"name": "user.id", "type": "BIGINT"},
-            {"name": "user.first_name", "type": "VARCHAR"},
-            {"name": "user.last_name", "type": "VARCHAR"},
+            {"name": "user.id", "type": "BIGINT", "is_dttm": False},
+            {"name": "user.first_name", "type": "VARCHAR", "is_dttm": False},
+            {"name": "user.last_name", "type": "VARCHAR", "is_dttm": False},
         ]
 
         self.assertEqual(actual_cols, expected_cols)

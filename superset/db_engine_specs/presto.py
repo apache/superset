@@ -92,13 +92,13 @@ def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
 
     For arrays, we return a single list with the base type:
 
-        >>> get_children(dict(name="a", type="ARRAY(BIGINT)"))
-        [{"name": "a", "type": "BIGINT"}]
+        >>> get_children(dict(name="a", type="ARRAY(BIGINT)", is_dttm=False))
+        [{"name": "a", "type": "BIGINT", "is_dttm": False}]
 
     For rows, we return a list of the columns:
 
-        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)"))
-        [{'name': 'a._col0', 'type': 'BIGINT'}, {'name': 'a.foo', 'type': 'VARCHAR'}]
+        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)",  is_dttm=False))
+        [{'name': 'a._col0', 'type': 'BIGINT', 'is_dttm': False}, {'name': 'a.foo', 'type': 'VARCHAR', 'is_dttm': False}]
 
     :param column: dictionary representing a Presto column
     :return: list of dictionaries representing children columns
