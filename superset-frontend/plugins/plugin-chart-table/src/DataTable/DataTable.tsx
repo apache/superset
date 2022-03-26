@@ -46,6 +46,7 @@ import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
+import { REACT_TABLE_ROW_NUMBER_COLUMN_ID } from '../types';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;

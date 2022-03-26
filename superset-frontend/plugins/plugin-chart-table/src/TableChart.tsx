@@ -443,12 +443,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               />
             ) : null}
             <div
+              data-column-name={col.id}
               css={{
                 display: 'inline-flex',
                 alignItems: 'center',
               }}
             >
-              <span>{label}</span>
+              <span data-column-name={col.id}>{label}</span>
               <SortIcon column={col} />
             </div>
           </th>
