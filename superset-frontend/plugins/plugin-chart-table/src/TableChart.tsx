@@ -334,7 +334,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           ? defaultColorPN
           : config.colorPositiveNegative;
 
-      const truncateLongCells = config.truncateLongCells;
+      const { truncateLongCells } = config;
 
       const hasColumnColorFormatters =
         isNumeric &&
