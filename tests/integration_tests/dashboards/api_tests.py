@@ -1694,18 +1694,22 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="admin")
         uri = "api/v1/dashboard/world_health/embedded"
 
-        # get, assert 404
+        # initial get should return 404
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 404)
 
-        # post, assert 200
+        # post succeeds and returns value
         allowed_domains = ["test.example", "embedded.example"]
         resp = self.post_assert_metric(
             uri, {"allowed_domains": allowed_domains}, "set_embedded",
         )
         self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
 
-        # get, assert values
+        # get returns value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
         result = json.loads(resp.data.decode("utf-8"))["result"]
@@ -1716,21 +1720,24 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         # save uuid for later
         original_uuid = result["uuid"]
 
-        # put, assert 200
+        # put succeeds and returns value
         resp = self.post_assert_metric(uri, {"allowed_domains": []}, "set_embedded")
         self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
 
-        # get, assert changes upserted
+        # get returns changed value
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 200)
         result = json.loads(resp.data.decode("utf-8"))["result"]
         self.assertEqual(result["uuid"], original_uuid)
         self.assertEqual(result["allowed_domains"], [])
 
-        # delete, assert 200
+        # delete succeeds
         resp = self.delete_assert_metric(uri, "delete_embedded")
         self.assertEqual(resp.status_code, 200)
 
-        # get, assert 404
+        # get returns 404
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 404)

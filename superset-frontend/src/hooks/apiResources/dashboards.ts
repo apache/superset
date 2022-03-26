@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Dashboard, Datasource } from 'src/dashboard/types';
+import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
@@ -42,3 +42,6 @@ export const useDashboardCharts = (idOrSlug: string | number) =>
 // that are necessary for rendering the given dashboard
 export const useDashboardDatasets = (idOrSlug: string | number) =>
   useApiV1Resource<Datasource[]>(`/api/v1/dashboard/${idOrSlug}/datasets`);
+
+export const useEmbeddedDashboard = (idOrSlug: string | number) =>
+  useApiV1Resource<EmbeddedDashboard>(`/api/v1/dashboard/${idOrSlug}/embedded`);
