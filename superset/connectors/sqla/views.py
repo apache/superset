@@ -25,7 +25,7 @@ from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
@@ -37,14 +37,12 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
-    check_ownership,
     create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
     SupersetListWidget,
     SupersetModelView,
-    validate_sqlatable,
     YamlExportMixin,
 )
 
