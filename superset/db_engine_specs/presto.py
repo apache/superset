@@ -53,8 +53,9 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, ResultSetColumnType
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports

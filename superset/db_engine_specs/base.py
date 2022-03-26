@@ -62,8 +62,9 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, ResultSetColumnType
+from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 

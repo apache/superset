@@ -342,16 +342,6 @@ class ColumnSpec(NamedTuple):
     python_date_format: Optional[str] = None
 
 
-class ResultSetColumnType(TypedDict):
-    """
-    Superset virtual dataset column interface
-    """
-
-    name: str
-    type: Optional[str]
-    is_dttm: bool
-
-
 try:
     # Having might not have been imported.
     class DimSelector(Having):

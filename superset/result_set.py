@@ -26,9 +26,8 @@ import pandas as pd
 import pyarrow as pa
 
 from superset.db_engine_specs import BaseEngineSpec
-from superset.superset_typing import DbapiDescription, DbapiResult
+from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ResultSetColumnType
 
 logger = logging.getLogger(__name__)
 
