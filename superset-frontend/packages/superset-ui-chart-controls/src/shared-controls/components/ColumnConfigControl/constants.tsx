@@ -40,6 +40,7 @@ export type SharedColumnConfigProp =
   | 'd3SmallNumberFormat'
   | 'd3TimeFormat'
   | 'horizontalAlign'
+  | 'truncateLongCells'
   | 'showCellBars';
 
 const emitTarget: ControlFormItemSpec<'Input'> = {
@@ -142,6 +143,15 @@ const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   debounceDelay: 200,
 };
 
+const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Truncate Cells'),
+  description: t('Truncate long cells to the "min width" set above'),
+  width: 150,
+  defaultValue: false,
+  debounceDelay: 400,
+};
+
 /**
  * All configurable column formatting properties.
  */
@@ -159,6 +169,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   d3TimeFormat,
   fractionDigits,
   columnWidth,
+  truncateLongCells,
   horizontalAlign,
   showCellBars,
   alignPositiveNegative,
@@ -175,12 +186,14 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+    ['truncateLongCells'],
   ],
   [GenericDataType.NUMERIC]: [
     [
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'right' } },
     ],
+    ['truncateLongCells'],
     ['d3NumberFormat'],
     ['d3SmallNumberFormat'],
     ['alignPositiveNegative', 'colorPositiveNegative'],
@@ -191,6 +204,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+    ['truncateLongCells'],
     ['d3TimeFormat'],
   ],
   [GenericDataType.BOOLEAN]: [
@@ -198,5 +212,6 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+    ['truncateLongCells'],
   ],
 };

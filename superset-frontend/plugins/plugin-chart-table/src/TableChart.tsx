@@ -334,6 +334,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           ? defaultColorPN
           : config.colorPositiveNegative;
 
+      const truncateLongCells = config.truncateLongCells;
+
       const hasColumnColorFormatters =
         isNumeric &&
         Array.isArray(columnColorFormatters) &&
@@ -408,7 +410,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
           // If cellProps renderes textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
-          return <td {...cellProps}>{text}</td>;
+          return (
+            <td {...cellProps}>
+              {truncateLongCells ? (
+                <div
+                  className="dt-truncate-cell"
+                  style={columnWidth ? { width: columnWidth } : undefined}
+                >
+                  {text}
+                </div>
+              ) : (
+                text
+              )}
+            </td>
+          );
         },
         Header: ({ column: col, onClick, style }) => (
           <th
