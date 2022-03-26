@@ -98,7 +98,7 @@ def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
     For rows, we return a list of the columns:
 
         >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)",  is_dttm=False))
-        [{'name': 'a._col0', 'type': 'BIGINT', 'is_dttm': False}, {'name': 'a.foo', 'type': 'VARCHAR', 'is_dttm': False}]
+        [{'name': 'a._col0', 'type': 'BIGINT', 'is_dttm': False}, {'name': 'a.foo', 'type': 'VARCHAR', 'is_dttm': False}]  # pylint: disable=line-too-long
 
     :param column: dictionary representing a Presto column
     :return: list of dictionaries representing children columns
