@@ -79,6 +79,8 @@ const basicQueryResult: ChartDataResponseResult = {
   rowcount: 100,
   stacktrace: null,
   status: 'success',
+  from_dttm: null,
+  to_dttm: null,
 };
 
 /**

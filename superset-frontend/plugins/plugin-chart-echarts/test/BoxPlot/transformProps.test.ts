@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import { EchartsBoxPlotChartProps } from '../../src/BoxPlot/types';
 import transformProps from '../../src/BoxPlot/transformProps';
 
 describe('BoxPlot tranformProps', () => {
-  const formData = {
+  const formData: SqlaFormData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1Y',
@@ -68,7 +69,7 @@ describe('BoxPlot tranformProps', () => {
   });
 
   it('should tranform chart props for viz', () => {
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsBoxPlotChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
