@@ -492,7 +492,8 @@ class Header extends React.PureComponent {
     } = this.props;
     const userCanEdit =
       dashboardInfo.dash_edit_perm &&
-      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
+      !dashboardInfo.is_managed_externally;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&

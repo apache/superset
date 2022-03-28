@@ -92,6 +92,8 @@ PROPHET_TIME_GRAIN_MAP = {
     "P1W/1970-01-04T00:00:00Z": "W",
 }
 
+RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
+
 FLAT_COLUMN_SEPARATOR = ", "
 
 

@@ -349,6 +349,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
             "thumbnail_url": dashboard.thumbnail_url,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])

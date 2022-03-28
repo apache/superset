@@ -67,7 +67,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react', 'file-progress'],
+  plugins: ['prettier', 'react', 'file-progress', 'theme-colors'],
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -181,10 +181,28 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
+        'theme-colors/no-literal-colors': 0,
+      },
+    },
+    {
+      files: [
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        '*.stories.tsx',
+        '*.stories.jsx',
+        'fixtures.*',
+        'cypress-base/cypress/**/*',
+        'Stories.tsx',
+      ],
+      rules: {
+        'theme-colors/no-literal-colors': 0,
       },
     },
   ],
   rules: {
+    'theme-colors/no-literal-colors': 1,
     camelcase: [
       'error',
       {
