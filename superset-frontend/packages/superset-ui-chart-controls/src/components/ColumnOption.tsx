@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { css, styled } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
@@ -57,7 +57,7 @@ export function ColumnOption({
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span
           className="option-label column-option-label"
-          css={theme =>
+          css={(theme: SupersetTheme) =>
             css`
               margin-right: ${theme.gridUnit}px;
             `

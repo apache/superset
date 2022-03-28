@@ -17,7 +17,13 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { css, styled, Metric, SafeMarkdown } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  Metric,
+  SafeMarkdown,
+  SupersetTheme,
+} from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -73,7 +79,7 @@ export function MetricOption({
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
         <span
           className="option-label metric-option-label"
-          css={theme =>
+          css={(theme: SupersetTheme) =>
             css`
               margin-right: ${theme.gridUnit}px;
             `
