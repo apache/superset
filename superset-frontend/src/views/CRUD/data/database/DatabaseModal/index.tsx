@@ -538,16 +538,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   console.log('findme STATE', alreadyExists, passwordsNeeded);
 
-  const blankFile = {
-    lastModified: 0,
-    lastModifiedDate: undefined,
-    name: '',
-    originFileObj: undefined,
-    percent: 0,
-    size: 0,
-    status: undefined,
-    type: '',
-    uid: '',
+  const removeFile = (removedFile: UploadFile) => {
+    setFile(file.filter(file => file.uid !== removedFile.uid));
+    return false;
   };
 
   const onClose = () => {
@@ -556,7 +549,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
-    setFile([blankFile]);
+    setFile([]);
     setPasswordFields([]);
     setNeedsOverwriteConfirm(false);
     setImportingModel(false);
@@ -940,6 +933,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
+    console.log('findme UE', needsOverwriteConfirm, alreadyExists);
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
@@ -999,7 +993,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const confirmOverwriteField = () => {
-    if (!needsOverwriteConfirm) return null;
+    console.log('findme AE', alreadyExists);
+    if (alreadyExists.length === 0) return null;
 
     return (
       <>
@@ -1180,10 +1175,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   console.log('findme importing', importingModel);
 
-  if (
-    importingModel &&
-    (passwordsNeeded.length > 0 || alreadyExists.length > 0)
-  ) {
+  if (file.length > 0 && importingModel) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1225,6 +1217,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           dbName={dbName}
           dbModel={dbModel}
           file={file}
+          // importingModal={importingModel}
         />
         {passwordNeededField()}
         {confirmOverwriteField()}
@@ -1480,6 +1473,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   // upload is handled by hook
                   customRequest={() => {}}
                   onChange={info => onDbImport(info)}
+                  onRemove={removeFile}
                 >
                   <Button
                     data-test="import-database-btn"
