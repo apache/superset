@@ -37,7 +37,6 @@ function getPoints(data) {
 }
 
 function setTooltipContent(o) {
-  console.log('weight---->', o.object);
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
