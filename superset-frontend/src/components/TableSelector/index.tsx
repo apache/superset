@@ -22,7 +22,6 @@ import React, {
   ReactNode,
   useMemo,
   useEffect,
-  useRef,
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
@@ -162,8 +161,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableValue = undefined,
   onTableSelectChange,
 }) => {
-  const selectRef = useRef<HTMLInputElement>(null);
-
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
   >(database);
@@ -256,10 +253,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const internalTableChange = (
     selectedOptions: TableOption | TableOption[] | undefined,
   ) => {
-    if (tableSelectMode === 'multiple') {
-      selectRef?.current?.blur();
-    }
-
     if (currentSchema) {
       onTableSelectChange?.(
         Array.isArray(selectedOptions)
@@ -329,7 +322,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
     const select = (
       <Select
-        ref={selectRef}
         ariaLabel={t('Select table or type table name')}
         disabled={disabled}
         filterOption={handleFilterOption}
@@ -346,6 +338,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         showSearch
         mode={tableSelectMode}
         value={tableSelectValue}
+        allowClear={tableSelectMode === 'multiple'}
       />
     );
 
