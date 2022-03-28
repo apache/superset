@@ -75,6 +75,7 @@ type DashboardInfo = {
   slug: string;
   certifiedBy: string;
   certificationDetails: string;
+  isManagedExternally: boolean;
 };
 
 const PropertiesModal = ({
@@ -151,6 +152,7 @@ const PropertiesModal = ({
         owners,
         roles,
         metadata,
+        is_managed_externally,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -158,6 +160,7 @@ const PropertiesModal = ({
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
+        isManagedExternally: is_managed_externally || false,
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -515,6 +518,14 @@ const PropertiesModal = ({
             buttonStyle="primary"
             className="m-r-5"
             cta
+            disabled={dashboardInfo?.isManagedExternally}
+            tooltip={
+              dashboardInfo?.isManagedExternally
+                ? t(
+                    "This dashboard is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
           >
             {saveLabel}
           </Button>
