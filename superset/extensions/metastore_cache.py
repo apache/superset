@@ -16,7 +16,6 @@
 # under the License.
 
 from datetime import datetime, timedelta
-from hashlib import md5
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid3
 
@@ -24,10 +23,10 @@ from flask import Flask
 from flask_caching import BaseCache
 
 from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyType
+from superset.key_value.types import KeyValueResource
+from superset.key_value.utils import get_uuid_namespace
 
-RESOURCE = "superset_metastore_cache"
-KEY_TYPE: KeyType = "uuid"
+RESOURCE = KeyValueResource.METASTORE_CACHE
 
 
 class SupersetMetastoreCache(BaseCache):
@@ -39,15 +38,12 @@ class SupersetMetastoreCache(BaseCache):
     def factory(
         cls, app: Flask, config: Dict[str, Any], args: List[Any], kwargs: Dict[str, Any]
     ) -> BaseCache:
-        # base namespace for generating deterministic UUIDs
-        md5_obj = md5()
         seed = config.get("CACHE_KEY_PREFIX", "")
-        md5_obj.update(seed.encode("utf-8"))
-        kwargs["namespace"] = UUID(md5_obj.hexdigest())
+        kwargs["namespace"] = get_uuid_namespace(seed)
         return cls(*args, **kwargs)
 
-    def get_key(self, key: str) -> str:
-        return str(uuid3(self.namespace, key))
+    def get_key(self, key: str) -> UUID:
+        return uuid3(self.namespace, key)
 
     @staticmethod
     def _prune() -> None:
@@ -70,7 +66,6 @@ class SupersetMetastoreCache(BaseCache):
 
         UpsertKeyValueCommand(
             resource=RESOURCE,
-            key_type=KEY_TYPE,
             key=self.get_key(key),
             value=value,
             expires_on=self._get_expiry(timeout),
@@ -85,7 +80,6 @@ class SupersetMetastoreCache(BaseCache):
             CreateKeyValueCommand(
                 resource=RESOURCE,
                 value=value,
-                key_type=KEY_TYPE,
                 key=self.get_key(key),
                 expires_on=self._get_expiry(timeout),
             ).run()
@@ -98,9 +92,7 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.get import GetKeyValueCommand
 
-        return GetKeyValueCommand(
-            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
-        ).run()
+        return GetKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()
 
     def has(self, key: str) -> bool:
         entry = self.get(key)
@@ -112,6 +104,4 @@ class SupersetMetastoreCache(BaseCache):
         # pylint: disable=import-outside-toplevel
         from superset.key_value.commands.delete import DeleteKeyValueCommand
 
-        return DeleteKeyValueCommand(
-            resource=RESOURCE, key_type=KEY_TYPE, key=self.get_key(key),
-        ).run()
+        return DeleteKeyValueCommand(resource=RESOURCE, key=self.get_key(key)).run()

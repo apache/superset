@@ -75,7 +75,7 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
 // input choices & options
 export const D3_FORMAT_OPTIONS = [
-  ['SMART_NUMBER', 'Adaptative formating'],
+  ['SMART_NUMBER', 'Adaptive formatting'],
   ['~g', 'Original value'],
   [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
@@ -98,7 +98,7 @@ export const D3_FORMAT_DOCS =
   'D3 format syntax: https://github.com/d3/d3-format';
 
 export const D3_TIME_FORMAT_OPTIONS = [
-  ['smart_date', 'Adaptative formating'],
+  ['smart_date', 'Adaptive formatting'],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],

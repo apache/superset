@@ -15,40 +15,35 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import Union
+from uuid import UUID
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.exceptions import KeyValueDeleteFailedError
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyType
+from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteKeyValueCommand(BaseCommand):
-    key: str
-    key_type: KeyType
-    resource: str
+    key: Union[int, UUID]
+    resource: KeyValueResource
 
-    def __init__(
-        self, resource: str, key: str, key_type: KeyType = "uuid",
-    ):
+    def __init__(self, resource: KeyValueResource, key: Union[int, UUID]):
         """
         Delete a key-value pair
 
         :param resource: the resource (dashboard, chart etc)
         :param key: the key to delete
-        :param key_type: the type of key
         :return: was the entry deleted or not
         """
         self.resource = resource
         self.key = key
-        self.key_type = key_type
 
     def run(self) -> bool:
         try:
@@ -62,7 +57,7 @@ class DeleteKeyValueCommand(BaseCommand):
         pass
 
     def delete(self) -> bool:
-        filter_ = get_filter(self.resource, self.key, self.key_type)
+        filter_ = get_filter(self.resource, self.key)
         entry = (
             db.session.query(KeyValueEntry)
             .filter_by(**filter_)

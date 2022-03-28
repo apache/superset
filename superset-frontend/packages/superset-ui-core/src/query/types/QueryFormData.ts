@@ -50,7 +50,9 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Order query results by columns.
  * Format: [metric/column, is_ascending].
  */
-export type QueryFormOrderBy = [QueryFormColumn | QueryFormMetric, boolean];
+export type QueryFormOrderBy =
+  | [QueryFormColumn | QueryFormMetric | {}, boolean]
+  | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -201,7 +203,7 @@ export interface SqlaFormData extends BaseFormData {
  * Form data for Druid datasources.
  */
 export interface DruidFormData extends BaseFormData {
-  granularity: string;
+  granularity?: string;
   having_druid?: string;
   druid_time_origin?: string;
 }
