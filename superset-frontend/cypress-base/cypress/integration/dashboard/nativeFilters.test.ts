@@ -394,6 +394,14 @@ describe('Nativefilters Sanity test', () => {
     cy.get('.line').within(() => {
       cy.contains('United States').should('be.visible');
     });
+    // clean up the default setting
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
+    cy.contains('Filter has default value').click();
+    cy.get(nativeFilters.modal.footer)
+      .find(nativeFilters.modal.saveButton)
+      .should('be.visible')
+      .click({ force: true });
   });
 
   it('User can create a time grain filter', () => {
@@ -615,7 +623,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filtersPanel.inputDropdown)
       .should('be.visible', { timeout: 20000 })
       .last()
-      .click();
+      .click({ force: true });
     // After click dependent option, should also select parent as dependent filter
     cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
       () => {
