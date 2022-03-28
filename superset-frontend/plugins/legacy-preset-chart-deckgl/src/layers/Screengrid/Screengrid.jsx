@@ -37,13 +37,14 @@ function getPoints(data) {
 }
 
 function setTooltipContent(o) {
+  console.log('weight---->', o.object);
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
         label={`${t('Longitude and Latitude')}: `}
         value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
       />
-      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.weight}`} />
+      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.cellWeight}`} />
     </div>
   );
 }
