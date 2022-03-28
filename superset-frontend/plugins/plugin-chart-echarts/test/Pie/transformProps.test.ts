@@ -22,7 +22,7 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
-import { EchartsPieLabelType } from '../../src/Pie/types';
+import { EchartsPieChartProps, EchartsPieLabelType } from '../../src/Pie/types';
 
 describe('Pie tranformProps', () => {
   const formData: SqlaFormData = {
@@ -48,7 +48,7 @@ describe('Pie tranformProps', () => {
   });
 
   it('should tranform chart props for viz', () => {
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsPieChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
