@@ -56,7 +56,6 @@ export const Label = styled.div`
     padding-left: ${theme.gridUnit}px;
     svg {
       margin-right: ${theme.gridUnit}px;
-      margin-left: ${theme.gridUnit}px;
     }
     .type-label {
       margin-right: ${theme.gridUnit * 2}px;

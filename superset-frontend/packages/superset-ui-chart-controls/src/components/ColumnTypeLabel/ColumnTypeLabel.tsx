@@ -27,7 +27,7 @@ import NumSvg from './type-icons/field_num.svg';
 
 type TypeIcon = ReactNode | '?';
 
-export type ColumnLabelExtendedType = 'expression' | 'aggregate' | '';
+export type ColumnLabelExtendedType = 'expression' | '';
 
 export type ColumnTypeLabelProps = {
   type?: ColumnLabelExtendedType | GenericDataType;
@@ -54,8 +54,6 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
 
   if (type === '' || type === 'expression') {
     typeIcon = <FunctionSvg />;
-  } else if (type === 'aggregate') {
-    typeIcon = 'AGG';
   } else if (type === GenericDataType.STRING) {
     typeIcon = <StringSvg />;
   } else if (type === GenericDataType.NUMERIC) {

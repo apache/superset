@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
@@ -54,15 +54,16 @@ export function ColumnOption({
   return (
     <StyleOverrides>
       {showType && type !== undefined && <ColumnTypeLabel type={type} />}
-      {column.is_certified && (
-        <CertifiedIconWithTooltip
-          metricName={column.metric_name}
-          certifiedBy={column.certified_by}
-          details={column.certification_details}
-        />
-      )}
       <Tooltip id="metric-name-tooltip" title={tooltipText}>
-        <span className="m-r-5 option-label column-option-label" ref={labelRef}>
+        <span
+          className="option-label column-option-label"
+          css={theme =>
+            css`
+              margin-right: ${theme.gridUnit}px;
+            `
+          }
+          ref={labelRef}
+        >
           {getColumnLabelText(column)}
         </span>
       </Tooltip>
@@ -74,6 +75,14 @@ export function ColumnOption({
           tooltip={column.expression}
           label={`expr-${column.column_name}`}
           placement="top"
+        />
+      )}
+
+      {column.is_certified && (
+        <CertifiedIconWithTooltip
+          metricName={column.metric_name}
+          certifiedBy={column.certified_by}
+          details={column.certification_details}
         />
       )}
     </StyleOverrides>
