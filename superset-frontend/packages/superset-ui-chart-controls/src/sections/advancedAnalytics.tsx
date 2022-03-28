@@ -170,7 +170,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           choices: [
             ['asfreq', 'Null imputation'],
             ['zerofill', 'Zero imputation'],
-            ['linear', 'Linear imputation'],
+            ['linear', 'Linear interpolation'],
             ['ffill', 'Forward values'],
             ['bfill', 'Backward values'],
             ['median', 'Median values'],
