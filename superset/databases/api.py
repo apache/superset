@@ -17,8 +17,10 @@
 # pylint: disable=too-many-lines
 import json
 import logging
+from ast import literal_eval
 from datetime import datetime
 from io import BytesIO
+from operator import and_, or_
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
@@ -29,6 +31,9 @@ from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import cast
+from sqlalchemy.sql.functions import func
+from sqlalchemy.sql.sqltypes import JSON
 
 from superset import app, db, event_logger
 from superset.commands.importers.exceptions import NoValidFilesFoundError
@@ -95,7 +100,28 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
     model = Database
 
     def apply(self, query: Query, value: any) -> Query:
-        return query.filter(Database.upload_enabled == True)
+        extra_allowed_databases = []
+        if hasattr(g, "user"):
+            extra_allowed_databases += app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+                Database, g.user
+            )
+        if len(extra_allowed_databases):
+            return query.filter(Database.allow_file_upload)
+        filtered_query = query.filter(Database.allow_file_upload).filter(
+            func.json_array_length(
+                cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
+            )
+            > 0
+        )
+
+        if security_manager.can_access_all_datasources():
+            return filtered_query
+
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return filtered_query.filter(
+            or_(Database.perm.in_(perms), Database.schema_perm.in_(schema_perms))
+        )
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -973,7 +999,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             }
 
             if hasattr(engine_spec, "default_driver"):
-                payload["default_driver"] = engine_spec.default_driver  # type: ignore
+                # type: ignore
+                payload["default_driver"] = engine_spec.default_driver
 
             # show configuration parameters for DBs that support it
             if (
