@@ -817,12 +817,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return [];
   };
 
-  const renderEditModalFooter = () => (
+  const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
       <StyledFooterButton key="close" onClick={onClose}>
         {t('Close')}
       </StyledFooterButton>
-      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={db?.is_managed_externally}
+        tooltip={
+          db?.is_managed_externally
+            ? t(
+                "This database is managed externally, and can't be edited in Superset",
+              )
+            : ''
+        }
+      >
         {t('Finish')}
       </StyledFooterButton>
     </>
@@ -1033,7 +1045,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
+      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
     >
       <StyledStickyHeader>
         <TabHeader>

@@ -204,7 +204,14 @@ function PropertiesModal({
             buttonSize="small"
             buttonStyle="primary"
             onClick={form.submit}
-            disabled={submitting || !name}
+            disabled={submitting || !name || slice.is_managed_externally}
+            tooltip={
+              slice.is_managed_externally
+                ? t(
+                    "This chart is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
             cta
           >
             {t('Save')}
