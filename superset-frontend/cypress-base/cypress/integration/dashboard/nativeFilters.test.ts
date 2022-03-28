@@ -22,7 +22,11 @@ import {
   nativeFilters,
   exploreView,
 } from 'cypress/support/directories';
-import { testItems } from './dashboard.helper';
+import {
+  testItems,
+  WORLD_HEALTH_CHARTS,
+  waitForChartLoad,
+} from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
@@ -390,15 +394,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get('.line').within(() => {
       cy.contains('United States').should('be.visible');
     });
-
-    // clean up the default setting
-    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
-    cy.contains('Filter has default value').click();
-    cy.get(nativeFilters.modal.footer)
-      .find(nativeFilters.modal.saveButton)
-      .should('be.visible')
-      .click({ force: true });
   });
 
   it('User can create a time grain filter', () => {
@@ -564,6 +559,85 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filterFromDashboardView.filterName)
       .should('be.visible', { timeout: 40000 })
       .contains('country_name');
+  });
+  it('User can create parent filters using "Values are dependent on other filters"', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+      .should('be.visible')
+      .click();
+    // Create Parent filter
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .click({ scrollBehavior: false })
+      .type('parent', { scrollBehavior: false });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .click({ scrollBehavior: false })
+      .type('wb_health_population{enter}', { scrollBehavior: false });
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type('region');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    cy.get(nativeFilters.addFilterButton.button)
+      .first()
+      .click()
+      .then(() => {
+        cy.get(nativeFilters.addFilterButton.dropdownItem)
+          .contains('Filter')
+          .click();
+      });
+    // Create dependent filter for parent filter
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.filterName)
+      .last()
+      .click({ scrollBehavior: false })
+      .type('country_name', { scrollBehavior: false });
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .last()
+      .click({ scrollBehavior: false })
+      .type('wb_health_population{enter}', { scrollBehavior: false });
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .type('country_name');
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
+    // After click dependent option, should also select parent as dependent filter
+    cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+      () => {
+        cy.contains('Values are dependent on other filters')
+          .should('be.visible')
+          .click();
+        cy.wait(1000);
+        cy.get('[aria-label="Limit type"]').contains('parent');
+      },
+    );
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    // Verify UI have 2 filters.
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .contains('country_name')
+      .should('be.visible');
+    cy.get(nativeFilters.filterFromDashboardView.filterName)
+      .contains('parent')
+      .should('be.visible');
   });
 });
 
