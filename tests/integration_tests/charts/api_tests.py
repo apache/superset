@@ -749,6 +749,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "slice_name": "title",
             "viz_type": None,
             "query_context": None,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"], expected_result)
