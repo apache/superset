@@ -29,7 +29,7 @@ from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.models.slice import Slice
-from superset.typing import FilterValue, FilterValues, QueryObjectDict
+from superset.superset_typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -116,6 +116,8 @@ class BaseDatasource(
     sql: Optional[str] = None
     owners: List[User]
     update_from_object_fields: List[str]
+
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     @property
     def kind(self) -> DatasourceKind:
@@ -339,11 +341,14 @@ class BaseDatasource(
                     or []
                 )
             else:
-                column_names.update(
-                    column
+                _columns = [
+                    utils.get_column_name(column)
+                    if utils.is_adhoc_column(column)
+                    else column
                     for column_param in COLUMN_FORM_DATA_PARAMS
                     for column in utils.get_iterable(form_data.get(column_param) or [])
-                )
+                ]
+                column_names.update(_columns)
 
         filtered_metrics = [
             metric

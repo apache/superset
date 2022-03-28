@@ -62,15 +62,20 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import (
+    Column,
+    Metric,
+    QueryObjectDict,
+    VizData,
+    VizPayload,
+)
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -385,10 +390,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                try:
-                    validate_filter_clause(clause)
-                except QueryClauseValidationException as ex:
-                    raise QueryObjectValidationError(ex.message) from ex
+                sanitized_clause = sanitize_clause(clause)
+                if sanitized_clause != clause:
+                    self.form_data[param] = sanitized_clause
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -1836,7 +1840,7 @@ class DistributionBarViz(BaseViz):
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(groupby).sum()[sortby].copy()
+        row = df.groupby(groupby)[sortby].sum().copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=groupby, columns=columns, values=metrics)

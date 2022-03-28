@@ -30,8 +30,8 @@ from tests.integration_tests.key_value.commands.fixtures import admin, RESOURCE,
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry
 
-ID_KEY = "234"
-UUID_KEY = "5aae143c-44f1-478e-9153-ae6154df333a"
+ID_KEY = 234
+UUID_KEY = UUID("5aae143c-44f1-478e-9153-ae6154df333a")
 
 
 @pytest.fixture
@@ -39,10 +39,7 @@ def key_value_entry() -> KeyValueEntry:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
-        id=int(ID_KEY),
-        uuid=UUID(UUID_KEY),
-        resource=RESOURCE,
-        value=pickle.dumps(VALUE),
+        id=ID_KEY, uuid=UUID_KEY, resource=RESOURCE, value=pickle.dumps(VALUE),
     )
     db.session.add(entry)
     db.session.commit()
@@ -55,12 +52,7 @@ def test_delete_id_entry(
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
-    assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key=ID_KEY, key_type="id",
-        ).run()
-        is True
-    )
+    assert DeleteKeyValueCommand(resource=RESOURCE, key=ID_KEY).run() is True
 
 
 def test_delete_uuid_entry(
@@ -69,12 +61,7 @@ def test_delete_uuid_entry(
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
-    assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key=UUID_KEY, key_type="uuid",
-        ).run()
-        is True
-    )
+    assert DeleteKeyValueCommand(resource=RESOURCE, key=UUID_KEY).run() is True
 
 
 def test_delete_entry_missing(
@@ -83,9 +70,4 @@ def test_delete_entry_missing(
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry
 
-    assert (
-        DeleteKeyValueCommand(
-            actor=admin, resource=RESOURCE, key="456", key_type="id",
-        ).run()
-        is False
-    )
+    assert DeleteKeyValueCommand(resource=RESOURCE, key=456).run() is False

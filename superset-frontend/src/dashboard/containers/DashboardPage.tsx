@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { FC, useRef, useEffect, useState } from 'react';
-import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  FeatureFlag,
+  getSharedLabelColor,
+  isFeatureEnabled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
 import { useParams } from 'react-router-dom';
@@ -49,6 +56,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
 import { getFilterSets } from '../actions/nativeFilters';
+import { setDatasetsStatus } from '../actions/dashboardState';
 import {
   getFilterValue,
   getPermalinkValue,
@@ -83,8 +91,11 @@ const DashboardPage: FC = () => {
     useDashboard(idOrSlug);
   const { result: charts, error: chartsApiError } =
     useDashboardCharts(idOrSlug);
-  const { result: datasets, error: datasetsApiError } =
-    useDashboardDatasets(idOrSlug);
+  const {
+    result: datasets,
+    error: datasetsApiError,
+    status,
+  } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
@@ -99,6 +110,10 @@ const DashboardPage: FC = () => {
   const [filterboxMigrationState, setFilterboxMigrationState] = useState(
     migrationStateParam || FILTER_BOX_MIGRATION_STATES.NOOP,
   );
+
+  useEffect(() => {
+    dispatch(setDatasetsStatus(status));
+  }, [dispatch, status]);
 
   useEffect(() => {
     // should convert filter_box to filter component?
@@ -221,6 +236,18 @@ const DashboardPage: FC = () => {
     }
     return () => {};
   }, [css]);
+
+  useEffect(
+    () => () => {
+      // clean up label color
+      const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+        metadata?.color_namespace,
+      );
+      categoricalNamespace.resetColors();
+      getSharedLabelColor().clear();
+    },
+    [metadata?.color_namespace],
+  );
 
   useEffect(() => {
     if (datasetsApiError) {

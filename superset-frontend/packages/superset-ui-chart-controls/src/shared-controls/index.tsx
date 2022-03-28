@@ -43,6 +43,8 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  JsonArray,
+  ComparisionType,
 } from '@superset-ui/core';
 
 import {
@@ -92,6 +94,11 @@ const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 type Control = {
   savedMetrics?: Metric[] | null;
   default?: unknown;
+};
+
+type SelectDefaultOption = {
+  label: string;
+  value: string;
 };
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
@@ -199,6 +206,9 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
+  mapStateToProps: state => ({
+    dashboardId: state?.form_data?.dashboardId,
+  }),
 };
 
 const secondary_metric: SharedControlConfig<'MetricsControl'> = {
@@ -340,7 +350,10 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   default: true,
   description: t('Whether to sort descending or ascending'),
   visibility: ({ controls }) =>
-    Boolean(controls?.timeseries_limit_metric.value),
+    Boolean(
+      controls?.timeseries_limit_metric.value &&
+        (controls?.timeseries_limit_metric.value as JsonArray).length,
+    ),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -430,29 +443,33 @@ const size: SharedControlConfig<'MetricsControl'> = {
   default: null,
 };
 
-const y_axis_format: SharedControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  freeForm: true,
-  label: t('Y Axis Format'),
-  renderTrigger: true,
-  default: DEFAULT_NUMBER_FORMAT,
-  choices: D3_FORMAT_OPTIONS,
-  description: D3_FORMAT_DOCS,
-  mapStateToProps: state => {
-    const showWarning = state.controls?.comparison_type?.value === 'percentage';
-    return {
-      warning: showWarning
-        ? t(
-            'When `Calculation type` is set to "Percentage change", the Y ' +
-              'Axis Format is forced to `.1%`',
-          )
-        : null,
-      disabled: showWarning,
-    };
-  },
-};
+const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
+  {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Y Axis Format'),
+    renderTrigger: true,
+    default: DEFAULT_NUMBER_FORMAT,
+    choices: D3_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+    tokenSeparators: ['\n', '\t', ';'],
+    filterOption: ({ data: option }, search) =>
+      option.label.includes(search) || option.value.includes(search),
+    mapStateToProps: state => {
+      const isPercentage =
+        state.controls?.comparison_type?.value === ComparisionType.Percentage;
+      return {
+        choices: isPercentage
+          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+          : D3_FORMAT_OPTIONS,
+      };
+    },
+  };
 
-const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
+const x_axis_time_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Time format'),
@@ -460,6 +477,8 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
 };
 
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {

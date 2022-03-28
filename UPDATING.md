@@ -24,10 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [19046](https://github.com/apache/superset/pull/19046): Enables the drag and drop interface in Explore control panel by default. Flips `ENABLE_EXPLORE_DRAG_AND_DROP` and `ENABLE_DND_WITH_CLICK_UX` feature flags to `True`.
 - [18936](https://github.com/apache/superset/pull/18936): Removes legacy SIP-15 interm logic/flags—specifically the `SIP_15_ENABLED`, `SIP_15_GRACE_PERIOD_END`, `SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS`, and `SIP_15_TOAST_MESSAGE` flags. Time range endpoints are no longer configurable and strictly adhere to the `[start, end)` paradigm, i.e., inclusive of the start and exclusive of the end. Additionally this change removes the now obsolete `time_range_endpoints` from the form-data and resulting in the cache being busted.
 
 ### Breaking Changes
 
+- [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X has breaking changes on it's command line invocation.
+  Please follow: https://docs.celeryq.dev/en/stable/whatsnew-5.2.html#step-1-adjust-your-command-line-invocation
+  Consider migrating you celery config if you haven't already: https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map
+- [19049](https://github.com/apache/superset/pull/19049): APP_ICON_WIDTH has been removed from the config. Superset should now be able to handle different logo sizes without having to explicitly set an APP_ICON_WIDTH. This might affect the size of existing custom logos as the UI will now resize them according to the specified space of maximum 148px and not according to the value of APP_ICON_WIDTH.
+- [19274](https://github.com/apache/superset/pull/19274): The `PUBLIC_ROLE_LIKE_GAMMA` config key has been removed, set `PUBLIC_ROLE_LIKE` = "Gamma" to have the same functionality.
+- [19273](https://github.com/apache/superset/pull/19273): The `SUPERSET_CELERY_WORKERS` and `SUPERSET_WORKERS` config keys has been removed. Configure celery directly using `CELERY_CONFIG` on Superset
+- [19231](https://github.com/apache/superset/pull/19231): The `ENABLE_REACT_CRUD_VIEWS` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the React views support their use case.
+- [17556](https://github.com/apache/superset/pull/17556): Bumps mysqlclient from v1 to v2
 - [19113](https://github.com/apache/superset/pull/19113): The `ENABLE_JAVASCRIPT_CONTROLS` setting has moved from app config to a feature flag. Any deployments who overrode this setting will now need to override the feature flag from here onward.
 - [18976](https://github.com/apache/superset/pull/18976): When running the app in debug mode, the app will default to use `SimpleCache` for `FILTER_STATE_CACHE_CONFIG` and `EXPLORE_FORM_DATA_CACHE_CONFIG`. When running in non-debug mode, a cache backend will need to be defined, otherwise the application will fail to start. For installations using Redis or other caching backends, it is recommended to use the same backend for both cache configs.
 - [17881](https://github.com/apache/superset/pull/17881): Previously simple adhoc filter values on string columns were stripped of enclosing single and double quotes. To fully support literal quotes in filters, both single and double quotes will no longer be removed from filter values.
@@ -36,7 +45,11 @@ assists people when migrating to a new version.
 - [17539](https://github.com/apache/superset/pull/17539): all Superset CLI commands (init, load_examples and etc) require setting the FLASK_APP environment variable (which is set by default when `.flaskenv` is loaded)
 - [18970](https://github.com/apache/superset/pull/18970): Changes feature
 flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in config.py to True, thus disabling the feature from being shown in the client.
+- [19083](https://github.com/apache/superset/pull/19083): Updates the mutator function in the config file to take a sql argument and a list of kwargs. Any `SQL_QUERY_MUTATOR` config function overrides will need to be updated to match the new set of params. It is advised regardless of the dictionary args that you list in your function arguments, to keep **kwargs as the last argument to allow for any new kwargs to be passed in.
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
+- [19142](https://github.com/apache/superset/pull/19142): Changes feature flag for versioned export(VERSIONED_EXPORT) to be true.
+- [19107](https://github.com/apache/superset/pull/19107): Feature flag `SQLLAB_BACKEND_PERSISTENCE` is now on by default, which enables persisting SQL Lab tabs in the backend instead of the browser's `localStorage`.
+- [19262](https://github.com/apache/superset/pull/19262): As per SIPs 11 and 68, the native NoSQL Druid connector is deprecated as of 2.0 and will no longer be supported. Druid is still supported through SQLAlchemy via pydruid.
 
 ### Potential Downtime
 
@@ -49,7 +62,6 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 
 ### Deprecations
 
-- [19078](https://github.com/apache/superset/pull/19078): Creation of old shorturl links has been deprecated in favor of a new permalink feature that solves the long url problem (old shorturls will still work, though!). By default, new permalinks use UUID4 as the key. However, to use serial ids similar to the old shorturls, add the following to your `superset_config.py`: `PERMALINK_KEY_TYPE = "id"`.
 - [18960](https://github.com/apache/superset/pull/18960): Persisting URL params in chart metadata is no longer supported. To set a default value for URL params in Jinja code, use the optional second argument: `url_param("my-param", "my-default-value")`.
 
 ### Other
@@ -57,6 +69,17 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 - [17589](https://github.com/apache/superset/pull/17589): It is now possible to limit access to users' recent activity data by setting the `ENABLE_BROAD_ACTIVITY_ACCESS` config flag to false, or customizing the `raise_for_user_activity_access` method in the security manager.
 - [17536](https://github.com/apache/superset/pull/17536): introduced a key-value endpoint to store dashboard filter state. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `FILTER_STATE_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
 - [17882](https://github.com/apache/superset/pull/17882): introduced a key-value endpoint to store Explore form data. This endpoint is backed by Flask-Caching and the default configuration assumes that the values will be stored in the file system. If you are already using another cache backend like Redis or Memchached, you'll probably want to change this setting in `superset_config.py`. The key is `EXPLORE_FORM_DATA_CACHE_CONFIG` and the available settings can be found in Flask-Caching [docs](https://flask-caching.readthedocs.io/en/latest/).
+
+## 1.4.1
+
+### Breaking Changes
+- [17984](https://github.com/apache/superset/pull/17984): Default Flask SECRET_KEY has changed for security reasons. You should always override with your own secret. Set `PREVIOUS_SECRET_KEY` (ex: PREVIOUS_SECRET_KEY = "\2\1thisismyscretkey\1\2\\e\\y\\y\\h") with your previous key and use `superset re-encrypt-secrets` to rotate you current secrets
+
+### Potential Downtime
+
+### Deprecations
+
+### Other
 
 ## 1.4.0
 

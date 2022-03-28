@@ -24,18 +24,17 @@ from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
 from superset.explore.utils import check_access
 from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.types import KeyType
+from superset.key_value.utils import encode_permalink_key
 
 logger = logging.getLogger(__name__)
 
 
 class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(self, actor: User, state: Dict[str, Any], key_type: KeyType):
+    def __init__(self, actor: User, state: Dict[str, Any]):
         self.actor = actor
         self.chart_id: Optional[int] = state["formData"].get("slice_id")
         self.datasource: str = state["formData"]["datasource"]
         self.state = state
-        self.key_type = key_type
 
     def run(self) -> str:
         self.validate()
@@ -49,9 +48,10 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
-                self.actor, self.resource, value, self.key_type
+                actor=self.actor, resource=self.resource, value=value,
             )
-            return command.run()
+            key = command.run()
+            return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
             raise ExplorePermalinkCreateFailedError() from ex

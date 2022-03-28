@@ -119,6 +119,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         "cache_timeout",
     ]
     export_parent = "table"
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return self.slice_name or str(self.id)

@@ -56,7 +56,8 @@ export enum EchartsFunnelLabelTypeType {
   KeyValuePercent,
 }
 
-export interface EchartsFunnelChartProps extends ChartProps {
+export interface EchartsFunnelChartProps
+  extends ChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
   queriesData: ChartDataResponseResult[];
 }

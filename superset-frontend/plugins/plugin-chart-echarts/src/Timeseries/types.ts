@@ -122,7 +122,8 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsTimeseriesChartProps extends ChartProps {
+export interface EchartsTimeseriesChartProps
+  extends ChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
   queriesData: ChartDataResponseResult[];
 }

@@ -7,7 +7,7 @@ version: 1
 
 ## Caching
 
-Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purpose. Configuring caching is as easy as providing a custom cache config in your
+Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes. Configuring caching is as easy as providing a custom cache config in your
 `superset_config.py` that complies with [the Flask-Caching specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
 Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
 local filesystem. Custom cache backends are also supported. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
@@ -18,10 +18,17 @@ The following cache configurations can be customized:
 - Dashboard filter state (required): `FILTER_STATE_CACHE_CONFIG`.
 - Explore chart form data (required): `EXPLORE_FORM_DATA_CACHE_CONFIG`
 
-Please note, that Dashboard and Explore caching is required. When running Superset in debug mode, both Explore and Dashboard caches will default to `SimpleCache`;
-However, trying to run Superset in non-debug mode without defining a cache for these will cause the application to fail on startup. When running
-superset in single-worker mode, any cache backend is supported. However, when running Superset in on a multi-worker setup, a dedicated cache is required. For this
-we recommend using either Redis or Memcached:
+Please note, that Dashboard and Explore caching is required. If these caches are undefined, Superset falls back to using a built-in cache that stores data
+in the metadata database. While it is recommended to use a dedicated cache, the built-in cache can also be used to cache other data.
+For example, to use the built-in cache to store chart data, use the following config:
+
+```python
+DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    "CACHE_KEY_PREFIX": "superset_results",  # make sure this string is unique to avoid collisions
+    "CACHE_DEFAULT_TIMEOUT": 86400,  # 60 seconds * 60 minutes * 24 hours
+}
+```
 
 - Redis (recommended): we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
@@ -78,11 +85,11 @@ from s3cache.s3cache import S3Cache
 ...
 
 class CeleryConfig(object):
-    BROKER_URL = "redis://localhost:6379/0"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
-    CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-    CELERYD_PREFETCH_MULTIPLIER = 10
-    CELERY_ACKS_LATE = True
+    broker_url = "redis://localhost:6379/0"
+    imports = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+    result_backend = "redis://localhost:6379/0"
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
 
 
 CELERY_CONFIG = CeleryConfig

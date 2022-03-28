@@ -56,6 +56,7 @@ const propTypes = {
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
@@ -81,6 +82,8 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
   filterState: PropTypes.object,
+  postTransformProps: PropTypes.func,
+  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
 };
 
 const defaultProps = {
@@ -319,6 +322,7 @@ export default class Chart extends React.Component {
       filters,
       formData,
       labelColors,
+      sharedLabelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -334,6 +338,8 @@ export default class Chart extends React.Component {
       handleToggleFullSize,
       isFullSize,
       filterboxMigrationState,
+      postTransformProps,
+      datasetsStatus,
     } = this.props;
 
     const { width } = this.state;
@@ -449,6 +455,7 @@ export default class Chart extends React.Component {
             initialValues={initialValues}
             formData={formData}
             labelColors={labelColors}
+            sharedLabelColors={sharedLabelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
@@ -457,6 +464,8 @@ export default class Chart extends React.Component {
             vizType={slice.viz_type}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
+            postTransformProps={postTransformProps}
+            datasetsStatus={datasetsStatus}
           />
         </div>
       </div>

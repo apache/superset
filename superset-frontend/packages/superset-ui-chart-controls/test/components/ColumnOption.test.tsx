@@ -53,12 +53,7 @@ describe('ColumnOption', () => {
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('Foo');
   });
-  it('shows 2 InfoTooltipWithTrigger', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(2);
-  });
-  it('shows only 1 InfoTooltipWithTrigger when no descr', () => {
-    delete props.column.description;
-    wrapper = shallow(factory(props));
+  it('shows 1 InfoTooltipWithTrigger', () => {
     expect(wrapper.find(InfoTooltipWithTrigger)).toHaveLength(1);
   });
   it('shows a label with column_name when no verbose_name', () => {

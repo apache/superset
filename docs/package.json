@@ -16,17 +16,19 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@algolia/client-search": "^4.13.0",
     "@ant-design/icons": "^4.7.0",
-    "@docusaurus/core": "^2.0.0-beta.15",
-    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.15",
-    "@docusaurus/preset-classic": "^2.0.0-beta.15",
+    "@docsearch/react": "^3.0.0",
+    "@docusaurus/core": "^2.0.0-beta.17",
+    "@docusaurus/plugin-client-redirects": "^2.0.0-beta.17",
+    "@docusaurus/preset-classic": "^2.0.0-beta.17",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
-    "@mdx-js/react": "^1.6.21",
+    "@mdx-js/react": "^1.6.22",
     "@saucelabs/theme-github-codeblock": "^0.1.1",
     "@superset-ui/style": "^0.14.23",
     "@svgr/webpack": "^5.5.0",
-    "antd": "^4.8.0",
+    "antd": "^4.19.3",
     "buffer": "^6.0.3",
     "clsx": "^1.1.1",
     "file-loader": "^6.2.0",
@@ -36,13 +38,14 @@
     "react-github-btn": "^1.2.0",
     "stream": "^0.0.2",
     "swagger-ui-react": "^4.1.2",
-    "theme-ui": "^0.3.1",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^2.0.0-beta.15",
+    "@docusaurus/module-type-aliases": "^2.0.0-beta.17",
     "@tsconfig/docusaurus": "^1.0.4",
-    "typescript": "^4.3.5"
+    "@types/react": "^17.0.42",
+    "typescript": "^4.3.5",
+    "webpack": "^5.61.0"
   },
   "browserslist": {
     "production": [
