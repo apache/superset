@@ -538,18 +538,33 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   console.log('findme STATE', alreadyExists, passwordsNeeded);
 
+  const blankFile = {
+    lastModified: 0,
+    lastModifiedDate: undefined,
+    name: '',
+    originFileObj: undefined,
+    percent: 0,
+    size: 0,
+    status: undefined,
+    type: '',
+    uid: '',
+  };
+
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
-    // setFile(file.filter(currentFile => currentFile.uid !== file[0].uid));
+    setFile([blankFile]);
     setPasswordFields([]);
     setNeedsOverwriteConfirm(false);
     setImportingModel(false);
+    if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
+
+  console.log('findme file', file);
 
   const onChange = (type: any, payload: any) => {
     setDB({ type, payload } as DBReducerActionType);
@@ -661,10 +676,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!db) {
       setLoading(true);
       setImportingModel(true);
-      onChange(ActionType.textChange, {
-        name: 'database_name',
-        value: 'TEST database name',
-      });
+      // onChange(ActionType.textChange, {
+      //   name: 'database_name',
+      //   value: 'TEST database name',
+      // });
 
       if (!(file[0].originFileObj instanceof File)) return;
       const dbId = await importResource(
@@ -674,14 +689,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
 
       if (dbId) {
-        // setHasConnectedDb(true);
-        // if (onDatabaseAdd) onDatabaseAdd();
-        // if (useTabLayout) {
-        //   // tab layout only has one step
-        //   // so it should close immediately on save
-        //   onClose();
-        //   addSuccessToast(t('Database connected'));
-        // }
+        console.log('findme onsave !db && dbId');
+        setHasConnectedDb(true);
 
         onClose();
         addSuccessToast(t('Database connected'));
@@ -928,16 +937,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
-    if (passwordsNeeded.length > 0) {
-      setImportingModel(false);
-    }
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
-    if (alreadyExists.length > 0) {
-      setImportingModel(false);
-    }
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   const onDbImport = (info: UploadChangeParam) => {
@@ -1175,9 +1178,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  console.log('findme importing', importingModel);
+
   if (
-    (passwordsNeeded.length > 0 || alreadyExists.length > 0) &&
-    !hasConnectedDb
+    importingModel &&
+    (passwordsNeeded.length > 0 || alreadyExists.length > 0)
   ) {
     return (
       <Modal

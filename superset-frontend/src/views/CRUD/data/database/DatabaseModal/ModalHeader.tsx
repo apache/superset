@@ -155,7 +155,7 @@ const ModalHeader = ({
   const importDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
-        <p className="helper-top"> STEP 2 OF 3 </p>
+        <p className="helper-top"> STEP 2 OF 2 </p>
         <h4>Enter the required {dbModel.name} credentials</h4>
         <p className="helper-bottom">{file ? file[0].name : ''}</p>
       </StyledFormHeader>
