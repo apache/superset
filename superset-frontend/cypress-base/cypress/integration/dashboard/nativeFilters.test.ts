@@ -577,6 +577,7 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.filterName)
       .click({ scrollBehavior: false })
+      .clear()
       .type('parent', { scrollBehavior: false });
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
@@ -585,7 +586,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.silentLoading).should('not.exist');
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
-      .should('be.visible')
       .click({ force: true });
     cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type('region');
     cy.get(nativeFilters.filtersPanel.inputDropdown)
@@ -605,6 +605,7 @@ describe('Nativefilters Sanity test', () => {
       .find(nativeFilters.filtersPanel.filterName)
       .last()
       .click({ scrollBehavior: false })
+      .clear()
       .type('country_name', { scrollBehavior: false });
     cy.get(nativeFilters.modal.container)
       .find(nativeFilters.filtersPanel.datasetName)
