@@ -27,7 +27,7 @@ from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles, is_user_admin
+from superset.views.base import BaseFilter, get_user_roles, is_user_admin, is_user_alpha
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -70,7 +70,7 @@ class DashboardAccessFilter(BaseFilter):
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if is_user_admin():
+        if is_user_admin() or is_user_alpha():
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
