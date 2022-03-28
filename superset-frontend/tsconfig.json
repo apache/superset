@@ -72,6 +72,7 @@
     "./packages/*/types/**/*",
     "./plugins/*/src/**/*",
     "./plugins/*/types/**/*",
-    "./packages/*/test/**/*"
+    "./packages/*/test/**/*",
+    "./plugins/*/test/**/*"
   ]
 }
