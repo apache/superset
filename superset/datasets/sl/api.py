@@ -1,14 +1,23 @@
-from flask_appbuilder.models.sqla.interface import SQLAInterface
+from typing import Any, Set
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import or_
+
+from superset import security_manager
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.datasets.filters import (
+    DatasetIsNullOrEmptyFilter,
+    DatasetIsPhysicalOrVirtual,
+)
 from superset.datasets.models import Dataset
-from superset.views.base import DatasourceFilter
+from superset.models.sql_lab import Query
+from superset.views.base import BaseFilter, DatasourceFilter
 from superset.views.base_api import BaseSupersetModelRestApi
 
 
 class SLDatasetRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dataset)
-    # todo(hugh): this should be a DatasetFilter instead of Datsource
+    # todo(hugh): this should be a DatasetFilter instead of Datsource (security)
     #  base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "datasets"
@@ -33,9 +42,24 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
         "sql",  # "sql",
         "table_name",  # "table_name",
     ]
-    order_columns = [
-        "changed_on_delta_humanized",
-    ]
+    order_columns = ["changed_on_delta_humanized", "schema"]
+
+    search_filters = {"expression": [DatasetIsPhysicalOrVirtual]}
+
+    # class DatabaseFilter(BaseFilter):
+
+    #     def apply(self, query: Query, value: Any) -> Query:
+    #         if security_manager.can_access_all_databases():
+    #             return query
+    #         database_perms = security_manager.user_view_menu_names("database_access")
+    #         schema_access_databases = self.can_access_databases("schema_access")
+
+    #         datasource_access_databases = self.can_access_databases("datasource_access")
+    #         return query.filter()
+
+    # filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    # allowed_rel_fields = {"database", "owners"}
+    # search_columns = ["database"]
 
 
 # get this working end to end with the frontend client

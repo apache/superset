@@ -19,6 +19,7 @@ from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.datasets.models import Dataset
 from superset.views.base import BaseFilter
 
 
@@ -28,6 +29,19 @@ class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-
 
     def apply(self, query: Query, value: bool) -> Query:
         filter_clause = or_(SqlaTable.sql.is_(None), SqlaTable.sql == "")
+
+        if not value:
+            filter_clause = not_(filter_clause)
+
+        return query.filter(filter_clause)
+
+
+class DatasetIsPhysicalOrVirtual(BaseFilter):
+    name = _("Null or Empty")
+    arg_name = "dataset_is_null_or_empty"
+
+    def apply(self, query: Query, value: bool) -> Query:
+        filter_clause = Dataset.is_physical == True
 
         if not value:
             filter_clause = not_(filter_clause)

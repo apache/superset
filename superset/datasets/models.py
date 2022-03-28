@@ -129,7 +129,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def explore_url(self) -> Optional[str]:
-        return "todo"
+        return f"/superset/explore/{self.type}/{self.id}/"
 
     @property
     def changed_by_url(self) -> Optional[str]:
@@ -144,7 +144,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return "todo"
 
     @property
-    def database(self) -> Optional[str]:
+    def database(self) -> Optional[Dict[str, Any]]:
         if self.tables:
             database = (
                 db.session.query(Database)
@@ -153,6 +153,17 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             )
             return database.data
         return None
+
+    @property
+    def schema(self) -> Optional[str]:
+        if self.tables:
+            database = (
+                db.session.query(Database)
+                .filter(Database.id == self.tables[0].database_id)
+                .one()
+            )
+            return database.schema
+        return "default"
 
     @property
     def owners(self) -> Optional[List[int]]:
