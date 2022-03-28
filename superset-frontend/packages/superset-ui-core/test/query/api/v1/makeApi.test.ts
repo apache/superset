@@ -95,7 +95,7 @@ describe('makeApi()', () => {
 
     const expected = new FormData();
     expected.append('request', JSON.stringify('test'));
-    const received = fetchMock.lastOptions().body as FormData;
+    const received = fetchMock.lastOptions()?.body as FormData;
 
     expect(received).toBeInstanceOf(FormData);
     expect(received.get('request')).toEqual(expected.get('request'));

@@ -74,7 +74,7 @@ export type TableChartFormData = QueryFormData & {
 };
 
 export interface TableChartProps extends ChartProps {
-  ownCurrentState: {
+  ownCurrentState?: {
     pageSize?: number;
     currentPage?: number;
   };

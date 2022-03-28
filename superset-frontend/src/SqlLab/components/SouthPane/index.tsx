@@ -94,6 +94,7 @@ const StyledPane = styled.div`
   }
 `;
 
+const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
   .ant-empty-image img {
@@ -164,7 +165,7 @@ export default function SouthPane({
             query={latestQuery}
             actions={actions}
             user={user}
-            height={innerTabContentHeight}
+            height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
             defaultQueryLimit={defaultQueryLimit}

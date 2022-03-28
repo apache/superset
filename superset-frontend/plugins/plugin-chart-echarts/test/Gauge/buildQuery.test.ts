@@ -26,7 +26,7 @@ describe('Gauge buildQuery', () => {
   };
 
   it('should build query fields with no group by column', () => {
-    const formData = { ...baseFormData, groupby: null };
+    const formData = { ...baseFormData, groupby: undefined };
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.groupby).toEqual([]);

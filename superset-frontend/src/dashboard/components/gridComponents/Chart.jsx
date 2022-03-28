@@ -83,6 +83,7 @@ const propTypes = {
   ownState: PropTypes.object,
   filterState: PropTypes.object,
   postTransformProps: PropTypes.func,
+  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
 };
 
 const defaultProps = {
@@ -338,6 +339,7 @@ export default class Chart extends React.Component {
       isFullSize,
       filterboxMigrationState,
       postTransformProps,
+      datasetsStatus,
     } = this.props;
 
     const { width } = this.state;
@@ -463,6 +465,7 @@ export default class Chart extends React.Component {
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
+            datasetsStatus={datasetsStatus}
           />
         </div>
       </div>
