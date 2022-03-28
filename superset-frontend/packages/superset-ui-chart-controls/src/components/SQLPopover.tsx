@@ -44,7 +44,10 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           mode="sql"
           value={props.sqlExpression}
           editorProps={{ $blockScrolling: true }}
-          setOptions={{ highlightActiveLine: false }}
+          setOptions={{
+            highlightActiveLine: false,
+            highlightGutterLine: false,
+          }}
           minLines={2}
           maxLines={6}
           readOnly
