@@ -55,6 +55,7 @@ import { options as PeriodicRefreshOptions } from 'src/dashboard/components/Refr
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import Modal from 'src/components/Modal';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import findPermission from 'src/dashboard/util/findPermission';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -508,6 +509,9 @@ class Header extends React.PureComponent {
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+    const userCanCurate =
+      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      findPermission('can_set_embedded', 'Dashboard', user.roles);
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -701,6 +705,7 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanShare={userCanShare}
             userCanSave={userCanSaveAs}
+            userCanCurate={userCanCurate}
             isLoading={isLoading}
             showPropertiesModal={this.showPropertiesModal}
             manageEmbedded={this.showEmbedModal}

@@ -59,6 +59,7 @@ const propTypes = {
   userCanEdit: PropTypes.bool.isRequired,
   userCanShare: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  userCanCurate: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -210,6 +211,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       userCanEdit,
       userCanShare,
       userCanSave,
+      userCanCurate,
       isLoading,
       refreshLimit,
       refreshWarning,
@@ -319,7 +321,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </Menu.Item>
         )}
 
-        {!editMode && isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) && (
+        {!editMode && userCanCurate && (
           <Menu.Item key={MENU_KEYS.MANAGE_EMBEDDED}>
             {t('Embed dashboard')}
           </Menu.Item>
