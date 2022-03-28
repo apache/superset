@@ -422,6 +422,8 @@ class Database(
 
         engine = self.get_sqla_engine(schema=schema, user_name=username)
         username = utils.get_username() or username
+        mutate_after_split = config["MUTATE_AFTER_SPLIT"]
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
         def needs_conversion(df_series: pd.Series) -> bool:
             return (
@@ -437,6 +439,13 @@ class Database(
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             for sql_ in sqls[:-1]:
+                if mutate_after_split:
+                    sql_ = sql_query_mutator(
+                        sql_,
+                        username=username,
+                        security_manager=security_manager,
+                        database=database
+                    )
                 _log_query(sql_)
                 self.db_engine_spec.execute(cursor, sql_)
                 cursor.fetchall()
