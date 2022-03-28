@@ -20,6 +20,7 @@
 import React, { ReactNode } from 'react';
 import { css, GenericDataType, styled } from '@superset-ui/core';
 import { ClockCircleOutlined } from '@ant-design/icons';
+// TODO: move all icons to superset-ui/core
 import FunctionSvg from './type-icons/field_derived.svg';
 import BooleanSvg from './type-icons/field_boolean.svg';
 import StringSvg from './type-icons/field_abc.svg';
