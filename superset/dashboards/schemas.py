@@ -166,6 +166,7 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
 
 
 class DatabaseSchema(Schema):

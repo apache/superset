@@ -279,6 +279,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             "slices": [slc.data for slc in self.slices],
             "position_json": positions,
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @cache_manager.cache.memoize(

@@ -123,6 +123,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
+        "is_managed_externally",
     ]
     list_columns = [
         "allow_file_upload",
