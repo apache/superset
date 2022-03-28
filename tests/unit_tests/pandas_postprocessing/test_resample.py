@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import numpy as np
 import pandas as pd
 import pytest
+from pandas import to_datetime
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils import pandas_postprocessing as pp
@@ -151,3 +153,47 @@ def test_resample_should_raise_ex():
         pp.resample(
             df=categories_df, rule="1D", method="asfreq",
         )
+
+    with pytest.raises(InvalidPostProcessingError):
+        pp.resample(
+            df=timeseries_df, rule="1D", method="foobar",
+        )
+
+
+def test_resample_linear():
+    df = pd.DataFrame(
+        index=to_datetime(["2019-01-01", "2019-01-05", "2019-01-08"]),
+        data={"label": ["a", "e", "j"], "y": [1.0, 5.0, 8.0]},
+    )
+    post_df = pp.resample(df=df, rule="1D", method="linear")
+    """
+               label    y
+    2019-01-01     a  1.0
+    2019-01-02   NaN  2.0
+    2019-01-03   NaN  3.0
+    2019-01-04   NaN  4.0
+    2019-01-05     e  5.0
+    2019-01-06   NaN  6.0
+    2019-01-07   NaN  7.0
+    2019-01-08     j  8.0
+    """
+    assert post_df.equals(
+        pd.DataFrame(
+            index=pd.to_datetime(
+                [
+                    "2019-01-01",
+                    "2019-01-02",
+                    "2019-01-03",
+                    "2019-01-04",
+                    "2019-01-05",
+                    "2019-01-06",
+                    "2019-01-07",
+                    "2019-01-08",
+                ]
+            ),
+            data={
+                "label": ["a", np.NaN, np.NaN, np.NaN, "e", np.NaN, np.NaN, "j"],
+                "y": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+            },
+        )
+    )
