@@ -338,7 +338,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'lg',
       },
       {
-        accessor: 'sql',
+        accessor: 'expression',
         hidden: true,
         disableSortBy: true,
       },
@@ -465,7 +465,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Type'),
-        id: 'sql',
+        id: 'expression',
         input: 'select',
         operator: FilterOperator.datasetIsNullOrEmpty,
         unfilteredLabel: 'All',
