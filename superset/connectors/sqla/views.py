@@ -177,6 +177,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
 
     edit_form_extra_fields = add_form_extra_fields
 
+
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     datamodel = SQLAInterface(models.SqlMetric)
     class_permission_name = "Dataset"
@@ -247,6 +248,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):
     }
 
     edit_form_extra_fields = add_form_extra_fields
+
 
 class RowLevelSecurityListWidget(
     SupersetListWidget

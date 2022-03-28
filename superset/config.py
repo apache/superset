@@ -743,7 +743,7 @@ DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab")
+    imports = "superset.sql_lab"
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_log_level = "DEBUG"
     worker_prefetch_multiplier = 1
