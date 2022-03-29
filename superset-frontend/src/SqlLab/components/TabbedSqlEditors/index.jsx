@@ -418,7 +418,6 @@ class TabbedSqlEditors extends React.PureComponent {
           }
         >
           <i data-test="add-tab-icon" className="fa fa-plus-circle" />
-          Wow!
         </Tooltip>
       </StyledTab>
     );
@@ -461,7 +460,6 @@ class TabbedSqlEditors extends React.PureComponent {
             }
           >
             <i data-test="add-tab-icon" className="fa fa-plus-circle" />
-            Here!
           </Tooltip>
         }
       >
