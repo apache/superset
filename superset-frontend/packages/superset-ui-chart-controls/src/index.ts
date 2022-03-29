@@ -27,7 +27,7 @@ export const sections = sectionsModule;
 
 export * from './components/InfoTooltipWithTrigger';
 export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel';
+export * from './components/ColumnTypeLabel/ColumnTypeLabel';
 export * from './components/MetricOption';
 
 // React control components
