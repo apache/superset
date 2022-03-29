@@ -25,7 +25,8 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
-from typing import List
+import logging
+from typing import Any, Iterator, List, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -36,19 +37,80 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
+from sqloxide import parse_sql
 
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
 from superset.extensions import encrypted_field_factory
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
 down_revision = "5afbb1a5849b"
 
+logger = logging.getLogger("alembic")
+
 Base = declarative_base()
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 DB_CONNECTION_MUTATOR = app.config["DB_CONNECTION_MUTATOR"]
+
+
+# mapping between sqloxide and SQLAlchemy dialects
+sqloxide_dialects = {
+    "ansi": {"trino", "trinonative", "presto"},
+    "hive": {"hive", "databricks"},
+    "ms": {"mssql"},
+    "mysql": {"mysql"},
+    "postgres": {
+        "cockroachdb",
+        "hana",
+        "netezza",
+        "postgres",
+        "postgresql",
+        "redshift",
+        "vertica",
+    },
+    "snowflake": {"snowflake"},
+    "sqlite": {"sqlite", "gsheets", "shillelagh"},
+    "clickhouse": {"clickhouse"},
+}
+
+
+def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
+    """
+    Find all nodes in a SQL tree matching a given key.
+    """
+    if isinstance(element, list):
+        for child in element:
+            yield from find_nodes_by_key(child, target)
+    elif isinstance(element, dict):
+        for key, value in element.items():
+            if key == target:
+                yield value
+            else:
+                yield from find_nodes_by_key(value, target)
+
+
+def get_dependencies(expression: str, sqla_dialect: str) -> Set[Table]:
+    """
+    Return all the dependencies from a SQL expression.
+    """
+    dialect = "generic"
+    for dialect, sqla_dialects in sqloxide_dialects.items():
+        if sqla_dialect in sqla_dialects:
+            break
+    try:
+        tree = parse_sql(expression, dialect=dialect)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Unable to parse query with sqloxide: %s", expression)
+        # fallback to sqlparse
+        parsed = ParsedQuery(expression)
+        return parsed.tables
+
+    return {
+        Table(*[part["value"] for part in table["name"][::-1]])
+        for table in find_nodes_by_key(tree, "Table")
+    }
 
 
 class Database(Base):
@@ -332,8 +394,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             column.is_physical = False
 
         # find referenced tables
-        parsed = ParsedQuery(target.sql)
-        referenced_tables = parsed.tables
+        referenced_tables = get_dependencies(target.sql, dialect_class.name)
 
         # predicate for finding the referenced tables
         predicate = or_(
