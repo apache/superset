@@ -214,7 +214,10 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -487,7 +490,11 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             types.VARBINARY(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^json.*", re.IGNORECASE), types.JSON(), GenericDataType.STRING,),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATETIME(),

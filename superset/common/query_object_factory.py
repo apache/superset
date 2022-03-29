@@ -80,7 +80,8 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
 
     def _process_extras(  # pylint: disable=no-self-use
-        self, extras: Optional[Dict[str, Any]],
+        self,
+        extras: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         extras = extras or {}
         return extras

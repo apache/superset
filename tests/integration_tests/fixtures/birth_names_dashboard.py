@@ -76,7 +76,9 @@ def _create_dashboards():
 
 
 def _create_table(
-    table_name: str, database: "Database", fetch_values_predicate: Optional[str] = None,
+    table_name: str,
+    database: "Database",
+    fetch_values_predicate: Optional[str] = None,
 ):
     table = create_table_metadata(
         table_name=table_name,

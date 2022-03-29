@@ -21,7 +21,12 @@ from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 
 
 def test_flat_should_not_change():
-    df = pd.DataFrame(data={"foo": [1, 2, 3], "bar": [4, 5, 6],})
+    df = pd.DataFrame(
+        data={
+            "foo": [1, 2, 3],
+            "bar": [4, 5, 6],
+        }
+    )
 
     assert pp.flatten(df).equals(df)
 
@@ -40,7 +45,13 @@ def test_flat_should_flat_datetime_index():
     df = pd.DataFrame(index=index, data={"foo": [1, 2, 3], "bar": [4, 5, 6]})
 
     assert pp.flatten(df).equals(
-        pd.DataFrame({"__timestamp": index, "foo": [1, 2, 3], "bar": [4, 5, 6],})
+        pd.DataFrame(
+            {
+                "__timestamp": index,
+                "foo": [1, 2, 3],
+                "bar": [4, 5, 6],
+            }
+        )
     )
 
 

@@ -33,7 +33,11 @@ from alembic import op
 def upgrade():
     with op.batch_alter_table("query") as batch_op:
         batch_op.add_column(
-            sa.Column("limiting_factor", sa.VARCHAR(255), server_default="UNKNOWN",)
+            sa.Column(
+                "limiting_factor",
+                sa.VARCHAR(255),
+                server_default="UNKNOWN",
+            )
         )
 
 

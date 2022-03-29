@@ -39,7 +39,10 @@ def key_value_entry() -> KeyValueEntry:
     from superset.key_value.models import KeyValueEntry
 
     entry = KeyValueEntry(
-        id=ID_KEY, uuid=UUID_KEY, resource=RESOURCE, value=pickle.dumps(VALUE),
+        id=ID_KEY,
+        uuid=UUID_KEY,
+        resource=RESOURCE,
+        value=pickle.dumps(VALUE),
     )
     db.session.add(entry)
     db.session.commit()
@@ -47,7 +50,9 @@ def key_value_entry() -> KeyValueEntry:
 
 
 def test_delete_id_entry(
-    app_context: AppContext, admin: User, key_value_entry: KeyValueEntry,
+    app_context: AppContext,
+    admin: User,
+    key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry
@@ -56,7 +61,9 @@ def test_delete_id_entry(
 
 
 def test_delete_uuid_entry(
-    app_context: AppContext, admin: User, key_value_entry: KeyValueEntry,
+    app_context: AppContext,
+    admin: User,
+    key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry
@@ -65,7 +72,9 @@ def test_delete_uuid_entry(
 
 
 def test_delete_entry_missing(
-    app_context: AppContext, admin: User, key_value_entry: KeyValueEntry,
+    app_context: AppContext,
+    admin: User,
+    key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.delete import DeleteKeyValueCommand
     from superset.key_value.models import KeyValueEntry

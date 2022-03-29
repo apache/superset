@@ -128,7 +128,6 @@ try:
             self.name = name
             self.post_aggregator = post_aggregator
 
-
 except NameError:
     pass
 

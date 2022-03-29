@@ -42,7 +42,8 @@ class DatabaseDAO(BaseDAO):
     @staticmethod
     def validate_update_uniqueness(database_id: int, database_name: str) -> bool:
         database_query = db.session.query(Database).filter(
-            Database.database_name == database_name, Database.id != database_id,
+            Database.database_name == database_name,
+            Database.id != database_id,
         )
         return not db.session.query(database_query.exists()).scalar()
 
