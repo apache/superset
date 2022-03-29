@@ -52,7 +52,10 @@ class AuditMixinNullable(AuditMixin):
     @declared_attr
     def created_by_fk(self) -> Column:
         return Column(
-            Integer, ForeignKey("ab_user.id"), default=self.get_user_id, nullable=True,
+            Integer,
+            ForeignKey("ab_user.id"),
+            default=self.get_user_id,
+            nullable=True,
         )
 
     @declared_attr

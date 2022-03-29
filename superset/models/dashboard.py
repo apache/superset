@@ -344,7 +344,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @debounce(0.1)
     def clear_cache_for_datasource(cls, datasource_id: int) -> None:
         filter_query = select(
-            [dashboard_slices.c.dashboard_id], distinct=True,
+            [dashboard_slices.c.dashboard_id],
+            distinct=True,
         ).select_from(
             join(
                 dashboard_slices,

@@ -79,7 +79,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             str(datasource["type"]), int(datasource["id"]), self._session_maker()
         )
 
-    def _process_extras(self, extras: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _process_extras(  # pylint: disable=no-self-use
+        self,
+        extras: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
         extras = extras or {}
         if self._config["SIP_15_ENABLED"]:
             extras["time_range_endpoints"] = self._determine_time_range_endpoints(

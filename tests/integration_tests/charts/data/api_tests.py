@@ -129,7 +129,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_context_factory.config", {**app.config, "ROW_LIMIT": 7},
+        "superset.common.query_context_factory.config",
+        {**app.config, "ROW_LIMIT": 7},
     )
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
@@ -161,7 +162,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
+        "superset.utils.core.current_app.config",
+        {**app.config, "SQL_MAX_ROW": 10},
     )
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
         # arrange
@@ -176,7 +178,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 5},
+        "superset.utils.core.current_app.config",
+        {**app.config, "SQL_MAX_ROW": 5},
     )
     def test_as_samples_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(
         self,
@@ -334,7 +337,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         )
         self.assertEqual(
             data["result"][0]["rejected_filters"],
-            [{"column": "__time_origin", "reason": "not_druid_datasource"},],
+            [
+                {"column": "__time_origin", "reason": "not_druid_datasource"},
+            ],
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
@@ -384,7 +389,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 dttm_col = col
         if dttm_col:
             dttm_expression = table.database.db_engine_spec.convert_dttm(
-                dttm_col.type, dttm,
+                dttm_col.type,
+                dttm,
             )
             self.assertIn(dttm_expression, result["query"])
         else:
@@ -479,7 +485,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["queries"][0]["filters"] = []
         self.query_context_payload["queries"][0]["orderby"] = [
             [
-                {"expressionType": "SQL", "sqlExpression": "sum__num; select 1, 1",},
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "sum__num; select 1, 1",
+                },
                 True,
             ],
         ]
@@ -746,7 +755,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             }
         ]
         request_payload["queries"][0]["filters"] = [
-            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+            {
+                "col": "foo",
+                "op": "!=",
+                "val": ":qwerty:",
+            }
         ]
 
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -883,7 +896,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             return orig_run(self, force_cached=False)
 
         with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.client.get(f"{CHART_DATA_URI}/test-cache-key",)
+            rv = self.client.get(
+                f"{CHART_DATA_URI}/test-cache-key",
+            )
 
         self.assertEqual(rv.status_code, 401)
 

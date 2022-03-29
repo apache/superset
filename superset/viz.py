@@ -1087,7 +1087,7 @@ class CalHeatmapViz(BaseViz):
                 v = query_obj[DTTM_ALIAS]
                 if hasattr(v, "value"):
                     v = v.value
-                values[str(v / 10 ** 9)] = query_obj.get(metric)
+                values[str(v / 10**9)] = query_obj.get(metric)
             data[metric] = values
 
         try:
@@ -1946,7 +1946,12 @@ class SankeyViz(BaseViz):
         source, target = get_column_names(self.groupby)
         (value,) = self.metric_labels
         df.rename(
-            columns={source: "source", target: "target", value: "value",}, inplace=True,
+            columns={
+                source: "source",
+                target: "target",
+                value: "value",
+            },
+            inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)

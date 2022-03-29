@@ -110,8 +110,10 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 )
 
             try:
-                delete_stmt = CacheKey.__table__.delete().where(  # pylint: disable=no-member
-                    CacheKey.cache_key.in_(cache_keys)
+                delete_stmt = (
+                    CacheKey.__table__.delete().where(  # pylint: disable=no-member
+                        CacheKey.cache_key.in_(cache_keys)
+                    )
                 )
                 db.session.execute(delete_stmt)
                 db.session.commit()

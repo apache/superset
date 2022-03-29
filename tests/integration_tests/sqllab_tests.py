@@ -266,8 +266,10 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
-        sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
-            "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+        sqllab_test_db_schema_permission_view = (
+            security_manager.add_permission_view_menu(
+                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+            )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
         security_manager.add_permission_role(
@@ -593,13 +595,17 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_6",
+            query_limit=10000,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_7",
+            query_limit=1200,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)

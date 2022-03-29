@@ -27,7 +27,8 @@ class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
 
     def can_access_databases(  # noqa pylint: disable=no-self-use
-        self, view_menu_name: str,
+        self,
+        view_menu_name: str,
     ) -> Set[str]:
         return {
             security_manager.unpack_database_and_schema(vm).database

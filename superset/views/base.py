@@ -630,7 +630,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
 
-class CsvResponse(Response):  # pylint: disable=too-many-ancestors
+class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """

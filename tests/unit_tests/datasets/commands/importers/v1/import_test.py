@@ -55,7 +55,9 @@ def test_import_dataset(app_context: None, session: Session) -> None:
             "database_name": "examples",
             "import_time": 1606677834,
         },
-        "template_params": {"answer": "42",},
+        "template_params": {
+            "answer": "42",
+        },
         "filter_select_enabled": True,
         "fetch_values_predicate": "foo IN (1, 2)",
         "extra": {"warning_markdown": "*WARNING*"},
@@ -84,7 +86,9 @@ def test_import_dataset(app_context: None, session: Session) -> None:
                 "expression": "revenue-expenses",
                 "description": None,
                 "python_date_format": None,
-                "extra": {"certified_by": "User",},
+                "extra": {
+                    "certified_by": "User",
+                },
             }
         ],
         "database_uuid": database.uuid,
@@ -165,7 +169,9 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
             "database_name": "examples",
             "import_time": 1606677834,
         },
-        "template_params": {"answer": "42",},
+        "template_params": {
+            "answer": "42",
+        },
         "filter_select_enabled": True,
         "fetch_values_predicate": "foo IN (1, 2)",
         "extra": '{"warning_markdown": "*WARNING*"}',
