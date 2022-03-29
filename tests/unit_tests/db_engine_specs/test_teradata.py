@@ -32,7 +32,10 @@ from flask.ctx import AppContext
     ],
 )
 def test_apply_top_to_sql_limit(
-    app_context: AppContext, limit: int, original: str, expected: str,
+    app_context: AppContext,
+    limit: int,
+    original: str,
+    expected: str,
 ) -> None:
     """
     Ensure limits are applied to the query correctly

@@ -341,7 +341,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def __repr__(self) -> str:
         # we use `print` or `logging` output QueryObject
-        return json.dumps(self.to_dict(), sort_keys=True, default=str,)
+        return json.dumps(
+            self.to_dict(),
+            sort_keys=True,
+            default=str,
+        )
 
     def cache_key(self, **extra: Any) -> str:
         """

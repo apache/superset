@@ -311,7 +311,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table
 
     def get_time_filter(
-        self, start_dttm: DateTime, end_dttm: DateTime,
+        self,
+        start_dttm: DateTime,
+        end_dttm: DateTime,
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
         l = []
@@ -687,7 +689,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -1013,7 +1017,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def text(self, clause: str) -> TextClause:
@@ -1233,7 +1240,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ):
                 time_filters.append(
                     columns_by_name[self.main_dttm_col].get_time_filter(
-                        from_dttm, to_dttm,
+                        from_dttm,
+                        to_dttm,
                     )
                 )
             time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
@@ -1444,7 +1452,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if dttm_col and not db_engine_spec.time_groupby_inline:
                     inner_time_filter = [
                         dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm, inner_to_dttm or to_dttm,
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
                         )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
@@ -1473,7 +1482,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             not order_desc,
                         )
@@ -1549,7 +1560,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+        self,
+        row: pd.Series,
+        dimension: str,
+        columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1594,7 +1608,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row, dimension, columns_by_name,
+                    row,
+                    dimension,
+                    columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)
@@ -1933,7 +1949,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_insert(
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -1962,7 +1980,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -1985,7 +2005,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_update(  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.

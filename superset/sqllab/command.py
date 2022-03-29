@@ -170,7 +170,10 @@ class ExecuteSqlCommand(BaseCommand):
         except Exception as ex:
             raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
 
-    def _set_query_limit_if_required(self, rendered_query: str,) -> None:
+    def _set_query_limit_if_required(
+        self,
+        rendered_query: str,
+    ) -> None:
         if self._is_required_to_set_limit():
             self._set_query_limit(rendered_query)
 

@@ -38,7 +38,12 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"Dataset": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Dataset": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("SqlMetricInlineView", "can_add"): (Pvm("Dataset", "can_write"),),
     Pvm("SqlMetricInlineView", "can_delete"): (Pvm("Dataset", "can_write"),),
@@ -50,15 +55,33 @@ PVM_MAP = {
     Pvm("TableColumnInlineView", "can_edit"): (Pvm("Dataset", "can_write"),),
     Pvm("TableColumnInlineView", "can_list"): (Pvm("Dataset", "can_read"),),
     Pvm("TableColumnInlineView", "can_show"): (Pvm("Dataset", "can_read"),),
-    Pvm("TableModelView", "can_add",): (Pvm("Dataset", "can_write"),),
-    Pvm("TableModelView", "can_delete",): (Pvm("Dataset", "can_write"),),
-    Pvm("TableModelView", "can_edit",): (Pvm("Dataset", "can_write"),),
+    Pvm(
+        "TableModelView",
+        "can_add",
+    ): (Pvm("Dataset", "can_write"),),
+    Pvm(
+        "TableModelView",
+        "can_delete",
+    ): (Pvm("Dataset", "can_write"),),
+    Pvm(
+        "TableModelView",
+        "can_edit",
+    ): (Pvm("Dataset", "can_write"),),
     Pvm("TableModelView", "can_list"): (Pvm("Dataset", "can_read"),),
     Pvm("TableModelView", "can_mulexport"): (Pvm("Dataset", "can_read"),),
     Pvm("TableModelView", "can_show"): (Pvm("Dataset", "can_read"),),
-    Pvm("TableModelView", "muldelete",): (Pvm("Dataset", "can_write"),),
-    Pvm("TableModelView", "refresh",): (Pvm("Dataset", "can_write"),),
-    Pvm("TableModelView", "yaml_export",): (Pvm("Dataset", "can_read"),),
+    Pvm(
+        "TableModelView",
+        "muldelete",
+    ): (Pvm("Dataset", "can_write"),),
+    Pvm(
+        "TableModelView",
+        "refresh",
+    ): (Pvm("Dataset", "can_write"),),
+    Pvm(
+        "TableModelView",
+        "yaml_export",
+    ): (Pvm("Dataset", "can_read"),),
 }
 
 

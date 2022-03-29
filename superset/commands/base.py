@@ -24,7 +24,7 @@ from superset.commands.utils import populate_owners
 
 class BaseCommand(ABC):
     """
-        Base class for all Command like Superset Logic objects
+    Base class for all Command like Superset Logic objects
     """
 
     @abstractmethod

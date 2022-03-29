@@ -41,7 +41,8 @@ def test_diff():
     # invalid column reference
     with pytest.raises(InvalidPostProcessingError):
         diff(
-            df=timeseries_df, columns={"abc": "abc"},
+            df=timeseries_df,
+            columns={"abc": "abc"},
         )
 
     # diff by columns

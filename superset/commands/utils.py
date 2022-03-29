@@ -34,7 +34,9 @@ if TYPE_CHECKING:
 
 
 def populate_owners(
-    user: User, owner_ids: Optional[List[int]], default_to_user: bool,
+    user: User,
+    owner_ids: Optional[List[int]],
+    default_to_user: bool,
 ) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's

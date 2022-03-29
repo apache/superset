@@ -39,7 +39,10 @@ def get_end_dttm(annotation_id: int) -> datetime:
 
 
 def _insert_annotation_layer(name: str = "", descr: str = "") -> AnnotationLayer:
-    annotation_layer = AnnotationLayer(name=name, descr=descr,)
+    annotation_layer = AnnotationLayer(
+        name=name,
+        descr=descr,
+    )
     db.session.add(annotation_layer)
     db.session.commit()
     return annotation_layer

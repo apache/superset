@@ -90,7 +90,10 @@ def test_rolling():
     # incorrect rolling type
     with pytest.raises(InvalidPostProcessingError):
         pp.rolling(
-            df=timeseries_df, columns={"y": "y"}, rolling_type="abc", window=2,
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="abc",
+            window=2,
         )
 
     # incorrect rolling type options
@@ -191,7 +194,10 @@ def test_rolling_after_pivot_with_multiple_metrics():
     """
     rolling_df = pp.rolling(
         df=pivot_df,
-        columns={"count_metric": "count_metric", "sum_metric": "sum_metric",},
+        columns={
+            "count_metric": "count_metric",
+            "sum_metric": "sum_metric",
+        },
         rolling_type="sum",
         window=2,
         min_periods=0,

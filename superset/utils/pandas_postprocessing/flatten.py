@@ -22,7 +22,10 @@ from superset.utils.pandas_postprocessing.utils import (
 )
 
 
-def flatten(df: pd.DataFrame, reset_index: bool = True,) -> pd.DataFrame:
+def flatten(
+    df: pd.DataFrame,
+    reset_index: bool = True,
+) -> pd.DataFrame:
     """
     Convert N-dimensional DataFrame to a flat DataFrame
 

@@ -39,17 +39,43 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"Database": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Database": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("DatabaseView", "can_add"): (Pvm("Database", "can_write"),),
     Pvm("DatabaseView", "can_delete"): (Pvm("Database", "can_write"),),
-    Pvm("DatabaseView", "can_edit",): (Pvm("Database", "can_write"),),
-    Pvm("DatabaseView", "can_list",): (Pvm("Database", "can_read"),),
-    Pvm("DatabaseView", "can_mulexport",): (Pvm("Database", "can_read"),),
-    Pvm("DatabaseView", "can_post",): (Pvm("Database", "can_write"),),
-    Pvm("DatabaseView", "can_show",): (Pvm("Database", "can_read"),),
-    Pvm("DatabaseView", "muldelete",): (Pvm("Database", "can_write"),),
-    Pvm("DatabaseView", "yaml_export",): (Pvm("Database", "can_read"),),
+    Pvm(
+        "DatabaseView",
+        "can_edit",
+    ): (Pvm("Database", "can_write"),),
+    Pvm(
+        "DatabaseView",
+        "can_list",
+    ): (Pvm("Database", "can_read"),),
+    Pvm(
+        "DatabaseView",
+        "can_mulexport",
+    ): (Pvm("Database", "can_read"),),
+    Pvm(
+        "DatabaseView",
+        "can_post",
+    ): (Pvm("Database", "can_write"),),
+    Pvm(
+        "DatabaseView",
+        "can_show",
+    ): (Pvm("Database", "can_read"),),
+    Pvm(
+        "DatabaseView",
+        "muldelete",
+    ): (Pvm("Database", "can_write"),),
+    Pvm(
+        "DatabaseView",
+        "yaml_export",
+    ): (Pvm("Database", "can_read"),),
 }
 
 

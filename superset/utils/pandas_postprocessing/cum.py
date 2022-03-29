@@ -28,7 +28,11 @@ from superset.utils.pandas_postprocessing.utils import (
 
 
 @validate_column_args("columns")
-def cum(df: DataFrame, operator: str, columns: Dict[str, str],) -> DataFrame:
+def cum(
+    df: DataFrame,
+    operator: str,
+    columns: Dict[str, str],
+) -> DataFrame:
     """
     Calculate cumulative sum/product/min/max for select columns.
 
