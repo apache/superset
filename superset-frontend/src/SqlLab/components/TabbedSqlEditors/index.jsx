@@ -29,6 +29,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
+import { newQueryTabName } from '../../utils/newQueryTabName';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import SqlEditor from '../SqlEditor';
@@ -262,19 +263,7 @@ class TabbedSqlEditors extends React.PureComponent {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    let newTitle = 'Untitled Query 1';
-
-    if (this.props.queryEditors.length > 0) {
-      const untitledQueryNumbers = this.props.queryEditors
-        .filter(x => x.title.match(/^Untitled Query (\d+)$/))
-        .map(x => x.title.replace('Untitled Query ', ''));
-      if (untitledQueryNumbers.length > 0) {
-        // When there are query tabs open, and at least one is called "Untitled Query #"
-        // Where # is a valid number
-        const largestNumber = Math.max.apply(null, untitledQueryNumbers);
-        newTitle = t('Untitled Query %s', largestNumber + 1);
-      }
-    }
+    const newTitle = newQueryTabName(this.props.queryEditors || []);
 
     const qe = {
       title: newTitle,
@@ -429,6 +418,7 @@ class TabbedSqlEditors extends React.PureComponent {
           }
         >
           <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+          Wow!
         </Tooltip>
       </StyledTab>
     );
@@ -471,6 +461,7 @@ class TabbedSqlEditors extends React.PureComponent {
             }
           >
             <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+            Here!
           </Tooltip>
         }
       >
