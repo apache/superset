@@ -25,8 +25,7 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
-import logging
-from typing import Any, Callable, Iterator, List, Optional, Set
+from typing import Callable, List, Optional, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -37,88 +36,21 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
-from sqloxide import parse_sql
 
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
 from superset.extensions import encrypted_field_factory
+from superset.migrations.shared.utils import extract_table_references
 from superset.models.core import Database as OriginalDatabase
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
 down_revision = "5afbb1a5849b"
 
-logger = logging.getLogger("alembic")
-
 Base = declarative_base()
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 DB_CONNECTION_MUTATOR = app.config["DB_CONNECTION_MUTATOR"]
-
-
-# mapping between sqloxide and SQLAlchemy dialects
-sqloxide_dialects = {
-    "ansi": {"trino", "trinonative", "presto"},
-    "hive": {"hive", "databricks"},
-    "ms": {"mssql"},
-    "mysql": {"mysql"},
-    "postgres": {
-        "cockroachdb",
-        "hana",
-        "netezza",
-        "postgres",
-        "postgresql",
-        "redshift",
-        "vertica",
-    },
-    "snowflake": {"snowflake"},
-    "sqlite": {"sqlite", "gsheets", "shillelagh"},
-    "clickhouse": {"clickhouse"},
-}
-
-
-def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
-    """
-    Find all nodes in a SQL tree matching a given key.
-    """
-    if isinstance(element, list):
-        for child in element:
-            yield from find_nodes_by_key(child, target)
-    elif isinstance(element, dict):
-        for key, value in element.items():
-            if key == target:
-                yield value
-            else:
-                yield from find_nodes_by_key(value, target)
-
-
-def get_dependencies(
-    default_schema: Optional[str], expression: str, sqla_dialect: str
-) -> Set[Table]:
-    """
-    Return all the dependencies from a SQL expression.
-    """
-    dialect = "generic"
-    for dialect, sqla_dialects in sqloxide_dialects.items():
-        if sqla_dialect in sqla_dialects:
-            break
-    try:
-        tree = parse_sql(expression, dialect=dialect)
-    except Exception:  # pylint: disable=broad-except
-        logger.warning("Unable to parse query with sqloxide: %s", expression)
-        # fallback to sqlparse
-        parsed = ParsedQuery(expression)
-        return parsed.tables
-
-    tables = [
-        Table(*[part["value"] for part in table["name"][::-1]])
-        for table in find_nodes_by_key(tree, "Table")
-    ]
-    for i, table in enumerate(tables):
-        if table.schema is None:
-            tables[i] = Table(table.table, default_schema, table.catalog)
-
-    return set(tables)
 
 
 class Database(Base):
@@ -327,18 +259,19 @@ def load_or_create_tables(
     )
     new_tables = session.query(NewTable).filter(predicate).all()
 
+    # use original database model to the engine
+    engine = (
+        session.query(OriginalDatabase)
+        .filter_by(id=database_id)
+        .one()
+        .get_sqla_engine(default_schema)
+    )
+    inspector = inspect(engine)
+
     # add missing tables
     existing = {(table.schema, table.name) for table in new_tables}
     for table in tables:
         if (table.schema, table.table) not in existing:
-            # use original database so we can get the engine
-            engine = (
-                session.query(OriginalDatabase)
-                .filter_by(id=database_id)
-                .one()
-                .get_sqla_engine(default_schema)
-            )
-            inspector = inspect(engine)
             column_metadata = inspector.get_columns(table.table, schema=table.schema)
 
             physical_columns = []
@@ -480,7 +413,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             column.is_physical = False
 
         # find referenced tables
-        referenced_tables = get_dependencies(
+        referenced_tables = extract_table_references(
             target.schema, target.sql, dialect_class.name,
         )
         tables = load_or_create_tables(
