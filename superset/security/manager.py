@@ -1410,12 +1410,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
-        if not user or not dashboard.embedded:
+        if not user:
+            return False
+
+        # TODO (embedded): remove this check once uuids are rolled out
+        for resource in user.resources:
+            strid = str(resource["id"])
+            if str(resource["id"]) == str(dashboard.id):
+                return True
+
+        if not dashboard.embedded:
             return False
 
         for resource in user.resources:
             strid = str(resource["id"])
-            # TODO once the uuid is deployed, only check uuid here (no downtime plz)
-            if strid == str(dashboard.id) or strid == str(dashboard.embedded[0].uuid):
+            if strid == str(dashboard.embedded[0].uuid):
                 return True
         return False

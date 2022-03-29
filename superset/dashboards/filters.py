@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+import uuid
+from typing import Any, Optional, Union
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role
@@ -58,6 +59,14 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     arg_name = "dashboard_is_favorite"
     class_name = "Dashboard"
     model = Dashboard
+
+
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
 
 
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -141,11 +150,17 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 for r in guest_user.resources
                 if r["type"] == GuestTokenResourceType.DASHBOARD.value
             ]
-            feature_flagged_filters.append(
+
+            # TODO (embedded): only use uuid filter once uuids are rolled out
+            condition = (
                 Dashboard.embedded.any(
                     EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
                 )
+                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
+                else Dashboard.id.in_(embedded_dashboard_ids)
             )
+
+            feature_flagged_filters.append(condition)
 
         query = query.filter(
             or_(
