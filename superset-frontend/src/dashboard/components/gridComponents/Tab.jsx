@@ -182,27 +182,22 @@ class Tab extends React.PureComponent {
                 <span>
                   {t('You can')}{' '}
                   <a
-                    href={'/chart/add'}
+                    href="/chart/add"
                     rel="noopener noreferrer"
                     target="_blank"
                   >
                     {t('create a new chart')}
                   </a>{' '}
-                  {t(
-                    'You can create a new chart or use existing ones from the panel on the right',
-                  )}
+                  {t('or use existing ones from the panel on the right')}
                 </span>
               ) : (
-                t('You can add the components in the edit mode')
+                <span>
+                  {t('You can add the components in the')}{' '}
+                  <span role="button" onClick={() => setEditMode(true)}>
+                    {t('edit mode')}
+                  </span>
+                </span>
               ))
-            }
-            buttonText={canEdit && !editMode && t('Edit the dashboard')}
-            buttonAction={
-              canEdit &&
-              !editMode &&
-              (() => {
-                setEditMode(true);
-              })
             }
             image={'chart.svg'}
           />

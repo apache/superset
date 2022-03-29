@@ -59,7 +59,8 @@ const EmptyStateContainer = styled.div`
       width: auto;
     }
 
-    & a {
+    & a,
+    & span[role='button'] {
       color: inherit;
       text-decoration: underline;
       &:hover {
