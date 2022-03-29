@@ -543,6 +543,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     setFile([]);
     setImportingModel(false);
+    setPasswords({});
     if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
