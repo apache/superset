@@ -603,7 +603,7 @@ describe('Nativefilters Sanity test', () => {
     // apply first filter value and validate 2nd filter is depden on 1st filter.
     applyNativeFilterValueWithIndex(0, 'East Asia & Pacific');
 
-    getNativeFilterPlaceholderWithIndex(1).should('have.text', '36 options', {
+    getNativeFilterPlaceholderWithIndex(0).should('have.text', '36 options', {
       timeout: 20000,
     });
   });
