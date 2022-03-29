@@ -48,7 +48,9 @@ class CreateExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 "state": self.state,
             }
             command = CreateKeyValueCommand(
-                actor=self.actor, resource=self.resource, value=value,
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
             )
             key = command.run()
             return encode_permalink_key(key=key.id, salt=self.salt)

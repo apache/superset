@@ -156,7 +156,8 @@ class SecretsMigrator:
                     raise Exception from exc
 
             re_encrypted_columns[column_name] = encrypted_type.process_bind_param(
-                unencrypted_value, self._dialect,
+                unencrypted_value,
+                self._dialect,
             )
 
         set_cols = ",".join(

@@ -23,7 +23,7 @@ from superset.exceptions import SupersetException
 
 
 class CommandException(SupersetException):
-    """ Common base class for Command exceptions. """
+    """Common base class for Command exceptions."""
 
     def __repr__(self) -> str:
         if self._exception:
@@ -52,7 +52,7 @@ class ObjectNotFoundError(CommandException):
 
 
 class CommandInvalidError(CommandException):
-    """ Common base class for Command Invalid errors. """
+    """Common base class for Command Invalid errors."""
 
     status = 422
 

@@ -355,13 +355,15 @@ class TestDatabaseModel(SupersetTestCase):
         if main_db.backend == "mysql":
             main_db.get_df("USE superset; SELECT 1", username=test_username)
             mocked_get_sqla_engine.assert_called_with(
-                schema=None, user_name="test_username_param",
+                schema=None,
+                user_name="test_username_param",
             )
 
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(
-            database_name="test_database", sqlalchemy_uri="mysql://root@localhost",
+            database_name="test_database",
+            sqlalchemy_uri="mysql://root@localhost",
         )
         model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
             return_value={Exception: SupersetException}
@@ -568,7 +570,9 @@ class TestSqlaTableModel(SupersetTestCase):
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(
-                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Genders",
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Genders",
             )
             .first()
         )

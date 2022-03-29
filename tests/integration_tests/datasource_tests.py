@@ -158,7 +158,11 @@ class TestDatasource(SupersetTestCase):
 
         # No databases found
         params = prison.dumps(
-            {"datasource_type": "table", "database_name": "foo", "table_name": "bar",}
+            {
+                "datasource_type": "table",
+                "database_name": "foo",
+                "table_name": "bar",
+            }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.client.get(url)
@@ -185,7 +189,11 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps({"datasource_type": "table",})
+        params = prison.dumps(
+            {
+                "datasource_type": "table",
+            }
+        )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         self.assertIn("error", resp)

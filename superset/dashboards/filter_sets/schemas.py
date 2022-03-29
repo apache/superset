@@ -46,7 +46,11 @@ class FilterSetSchema(Schema):
 class FilterSetPostSchema(FilterSetSchema):
     json_metadata_schema: JsonMetadataSchema = JsonMetadataSchema()
     # pylint: disable=W0613
-    name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
+    name = fields.String(
+        required=True,
+        allow_none=False,
+        validate=Length(0, 500),
+    )
     description = fields.String(
         required=False, allow_none=True, validate=[Length(1, 1000)]
     )

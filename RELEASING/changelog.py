@@ -167,7 +167,10 @@ class GitChangeLog:
         return f"### {self._version} ({self._logs[0].time})"
 
     def _parse_change_log(
-        self, changelog: Dict[str, str], pr_info: Dict[str, str], github_login: str,
+        self,
+        changelog: Dict[str, str],
+        pr_info: Dict[str, str],
+        github_login: str,
     ) -> None:
         formatted_pr = (
             f"- [#{pr_info.get('id')}]"
@@ -355,7 +358,8 @@ def compare(base_parameters: BaseParameters) -> None:
 
 @cli.command("changelog")
 @click.option(
-    "--csv", help="The csv filename to export the changelog to",
+    "--csv",
+    help="The csv filename to export the changelog to",
 )
 @click.option(
     "--access_token",
