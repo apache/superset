@@ -102,7 +102,10 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
     while tables:
         table = tables.pop()
         seen.add(table)
-        model = getattr(Base.classes, table)
+        try:
+            model = getattr(Base.classes, table)
+        except AttributeError:
+            continue
         model.__tablename__ = table
         models.append(model)
 

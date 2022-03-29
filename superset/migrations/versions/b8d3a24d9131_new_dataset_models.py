@@ -315,7 +315,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         if column.is_active is False:
             continue
 
-        extra_json = json.loads(column.extra or "{}")
+        try:
+            extra_json = json.loads(column.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
             value = getattr(column, attr)
             if value:
@@ -341,7 +344,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
 
     # create metrics
     for metric in target.metrics:
-        extra_json = json.loads(metric.extra or "{}")
+        try:
+            extra_json = json.loads(metric.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"verbose_name", "metric_type", "d3format"}:
             value = getattr(metric, attr)
             if value:
@@ -371,7 +377,6 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         )
 
     # physical dataset
-    tables = []
     if target.sql is None:
         physical_columns = [column for column in columns if column.is_physical]
 
@@ -385,7 +390,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             is_managed_externally=target.is_managed_externally,
             external_url=target.external_url,
         )
-        tables.append(table)
+        tables = [table]
 
     # virtual dataset
     else:
@@ -406,7 +411,9 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
                 for table in referenced_tables
             ]
         )
-        tables = session.query(NewTable).filter(predicate).all()
+        tables = (
+            session.query(NewTable).filter(predicate).all() if referenced_tables else []
+        )
 
     # create the new dataset
     dataset = NewDataset(
