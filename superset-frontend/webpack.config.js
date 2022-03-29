@@ -414,6 +414,7 @@ const config = {
               svgoConfig: {
                 plugins: {
                   removeViewBox: false,
+                  icon: true,
                 },
               },
             },
