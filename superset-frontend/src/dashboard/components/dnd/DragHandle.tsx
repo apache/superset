@@ -27,7 +27,7 @@ interface DragHandleProps {
 
 const DragHandleContainer = styled.div<{ position: 'left' | 'top' }>`
   ${({ theme, position }) => css`
-    margin-bottom: ${theme.gridUnit}px !important;
+    height: ${theme.gridUnit * 5}px;
     overflow: hidden;
     cursor: move;
     ${position === 'top' &&
