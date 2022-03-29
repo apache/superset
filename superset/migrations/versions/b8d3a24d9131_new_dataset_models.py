@@ -26,7 +26,7 @@ Create Date: 2021-11-11 16:41:53.266965
 
 import json
 import logging
-from typing import Any, Iterator, List, Set
+from typing import Any, Callable, Iterator, List, Optional, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -42,6 +42,7 @@ from sqloxide import parse_sql
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
 from superset.extensions import encrypted_field_factory
+from superset.models.core import Database as OriginalDatabase
 from superset.sql_parse import ParsedQuery, Table
 
 # revision identifiers, used by Alembic.
@@ -91,7 +92,9 @@ def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
                 yield from find_nodes_by_key(value, target)
 
 
-def get_dependencies(expression: str, sqla_dialect: str) -> Set[Table]:
+def get_dependencies(
+    default_schema: Optional[str], expression: str, sqla_dialect: str
+) -> Set[Table]:
     """
     Return all the dependencies from a SQL expression.
     """
@@ -107,10 +110,15 @@ def get_dependencies(expression: str, sqla_dialect: str) -> Set[Table]:
         parsed = ParsedQuery(expression)
         return parsed.tables
 
-    return {
+    tables = [
         Table(*[part["value"] for part in table["name"][::-1]])
         for table in find_nodes_by_key(tree, "Table")
-    }
+    ]
+    for i, table in enumerate(tables):
+        if table.schema is None:
+            tables[i] = Table(table.table, default_schema, table.catalog)
+
+    return set(tables)
 
 
 class Database(Base):
@@ -290,6 +298,79 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
+TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+
+
+def load_or_create_tables(
+    session: Session,
+    database_id: int,
+    default_schema: Optional[str],
+    tables: Set[Table],
+    conditional_quote: Callable[[str], str],
+) -> List[NewTable]:
+    """
+    Load or create new table model instances.
+    """
+    if not tables:
+        return []
+
+    # load existing tables
+    predicate = or_(
+        *[
+            and_(
+                NewTable.database_id == database_id,
+                NewTable.schema == table.schema,
+                NewTable.name == table.table,
+            )
+            for table in tables
+        ]
+    )
+    new_tables = session.query(NewTable).filter(predicate).all()
+
+    # add missing tables
+    existing = {(table.schema, table.name) for table in new_tables}
+    for table in tables:
+        if (table.schema, table.table) not in existing:
+            # use original database so we can get the engine
+            engine = (
+                session.query(OriginalDatabase)
+                .filter_by(id=database_id)
+                .one()
+                .get_sqla_engine(default_schema)
+            )
+            inspector = inspect(engine)
+            column_metadata = inspector.get_columns(table.table, schema=table.schema)
+
+            physical_columns = []
+            for column in column_metadata:
+                physical_columns.append(
+                    NewColumn(
+                        name=column["name"],
+                        type=str(column["type"]),
+                        expression=conditional_quote(column["name"]),
+                        is_temporal=column["type"].python_type.__name__.upper()
+                        in TEMPORAL_TYPES,
+                        is_aggregation=False,
+                        is_physical=True,
+                        is_spatial=False,
+                        is_partition=False,
+                        is_increase_desired=True,
+                    ),
+                )
+            new_tables.append(
+                NewTable(
+                    name=table.table,
+                    schema=table.schema,
+                    catalog=None,
+                    database_id=database_id,
+                    columns=physical_columns,
+                )
+            )
+            existing.add((table.schema, table.table))
+
+    return new_tables
+
+
 def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     """
     Copy old datasets to the new models.
@@ -377,7 +458,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         )
 
     # physical dataset
-    if target.sql is None:
+    if not target.sql:
         physical_columns = [column for column in columns if column.is_physical]
 
         # create table
@@ -399,20 +480,15 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             column.is_physical = False
 
         # find referenced tables
-        referenced_tables = get_dependencies(target.sql, dialect_class.name)
-
-        # predicate for finding the referenced tables
-        predicate = or_(
-            *[
-                and_(
-                    NewTable.schema == (table.schema or target.schema),
-                    NewTable.name == table.table,
-                )
-                for table in referenced_tables
-            ]
+        referenced_tables = get_dependencies(
+            target.schema, target.sql, dialect_class.name,
         )
-        tables = (
-            session.query(NewTable).filter(predicate).all() if referenced_tables else []
+        tables = load_or_create_tables(
+            session,
+            target.database_id,
+            target.schema,
+            referenced_tables,
+            conditional_quote,
         )
 
     # create the new dataset
@@ -422,7 +498,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         expression=target.sql or conditional_quote(target.table_name),
         tables=tables,
         columns=columns,
-        is_physical=target.sql is None,
+        is_physical=not target.sql,
         is_managed_externally=target.is_managed_externally,
         external_url=target.external_url,
     )
