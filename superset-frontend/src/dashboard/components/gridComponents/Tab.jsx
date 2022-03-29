@@ -44,6 +44,7 @@ const propTypes = {
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  canEdit: PropTypes.bool.isRequired,
   filters: PropTypes.object.isRequired,
 
   // grid related
@@ -57,6 +58,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
+  setEditMode: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -193,13 +195,17 @@ class Tab extends React.PureComponent {
               ) : (
                 <span>
                   {t('You can add the components in the')}{' '}
-                  <span role="button" onClick={() => setEditMode(true)}>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setEditMode(true)}
+                  >
                     {t('edit mode')}
                   </span>
                 </span>
               ))
             }
-            image={'chart.svg'}
+            image="chart.svg"
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
