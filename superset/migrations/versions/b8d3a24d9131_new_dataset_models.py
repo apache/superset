@@ -370,7 +370,9 @@ new_tables = [
             "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
         ),
         # Column
-        sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
+        sa.Column(
+            "id", sa.INTEGER(), primary_key=True, autoincrement=True, nullable=False
+        ),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("type", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
@@ -391,7 +393,6 @@ new_tables = [
             server_default=sa.false(),
         ),
         sa.Column("external_url", sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
     ),
     (
         "sl_tables",
@@ -407,8 +408,16 @@ new_tables = [
             "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
         ),
         # Table
-        sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
-        sa.Column("database_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.Column(
+            "id", sa.INTEGER(), primary_key=True, autoincrement=True, nullable=False
+        ),
+        sa.Column(
+            "database_id",
+            sa.INTEGER(),
+            sa.ForeignKey("dbs.id"),
+            autoincrement=False,
+            nullable=False,
+        ),
         sa.Column("catalog", sa.TEXT(), nullable=True),
         sa.Column("schema", sa.TEXT(), nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
@@ -419,8 +428,6 @@ new_tables = [
             server_default=sa.false(),
         ),
         sa.Column("external_url", sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="sl_tables_ibfk_1"),
-        sa.PrimaryKeyConstraint("id"),
     ),
     (
         "sl_datasets",
@@ -436,8 +443,16 @@ new_tables = [
             "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
         ),
         # Dataset
-        sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
-        sa.Column("sqlatable_id", sa.INTEGER(), unique=True, nullable=True),
+        sa.Column(
+            "id", sa.INTEGER(), primary_key=True, autoincrement=True, nullable=False
+        ),
+        sa.Column(
+            "sqlatable_id",
+            sa.INTEGER(),
+            sa.ForeignKey("tables.id"),
+            unique=True,
+            nullable=True,
+        ),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
         sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False),
@@ -448,40 +463,57 @@ new_tables = [
             server_default=sa.false(),
         ),
         sa.Column("external_url", sa.Text(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
     ),
     # Relationships...
     (
         "sl_table_columns",
-        sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["column_id"], ["sl_columns.id"], name="sl_table_columns_ibfk_2"
+        sa.Column(
+            "table_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_tables.id"),
+            autoincrement=False,
+            nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["table_id"], ["sl_tables.id"], name="sl_table_columns_ibfk_1"
+        sa.Column(
+            "column_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_columns.id"),
+            autoincrement=False,
+            nullable=False,
         ),
     ),
     (
         "sl_dataset_columns",
-        sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["column_id"], ["sl_columns.id"], name="sl_dataset_columns_ibfk_2"
+        sa.Column(
+            "dataset_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_datasets.id"),
+            autoincrement=False,
+            nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"], ["sl_datasets.id"], name="sl_dataset_columns_ibfk_1"
+        sa.Column(
+            "column_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_columns.id"),
+            autoincrement=False,
+            nullable=False,
         ),
     ),
     (
         "sl_dataset_tables",
-        sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["dataset_id"], ["sl_datasets.id"], name="sl_dataset_tables_ibfk_1"
+        sa.Column(
+            "dataset_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_datasets.id"),
+            autoincrement=False,
+            nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["table_id"], ["sl_tables.id"], name="sl_dataset_tables_ibfk_2"
+        sa.Column(
+            "table_id",
+            sa.INTEGER(),
+            sa.ForeignKey("sl_tables.id"),
+            autoincrement=False,
+            nullable=False,
         ),
     ),
 ]
