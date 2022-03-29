@@ -140,9 +140,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 dataset_id = target.pop("datasetId", None)
                 if dataset_id is not None:
                     dataset = DatasetDAO.find_by_id(dataset_id)
-                    target["datasetUuid"] = str(dataset.uuid)
-                    if export_related:
-                        yield from ExportDatasetsCommand([dataset_id]).run()
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
+                        if export_related:
+                            yield from ExportDatasetsCommand([dataset_id]).run()
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
