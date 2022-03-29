@@ -39,7 +39,7 @@ describe('FilterDefinitionOption', () => {
 
   it('renders a StyledColumnOption given an adhoc metric', () => {
     render(<FilterDefinitionOption option={sumValueAdhocMetric} />);
-    expect(screen.getByText('source')).toBeVisible();
+    expect(screen.getByText('SUM(source)')).toBeVisible();
   });
 
   it('renders the metric name given a saved metric', () => {

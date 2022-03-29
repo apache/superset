@@ -302,7 +302,6 @@ export default function DataSourcePanel({
         />
         <div className="field-selections">
           <Collapse
-            // bordered
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"
             ghost
