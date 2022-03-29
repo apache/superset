@@ -512,9 +512,9 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(
+def base_json_conv(  # pylint: disable=inconsistent-return-statements
     obj: Any,
-) -> Any:  # pylint: disable=inconsistent-return-statements
+) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
