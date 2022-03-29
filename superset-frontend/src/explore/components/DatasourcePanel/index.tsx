@@ -103,7 +103,6 @@ const LabelWrapper = styled.div`
     font-size: ${theme.typography.sizes.s}px;
     background-color: ${theme.colors.grayscale.light4};
     margin: ${theme.gridUnit * 2}px 0;
-    padding: 0 ${theme.gridUnit}px;
     border-radius: 4px;
     cursor: pointer;
 

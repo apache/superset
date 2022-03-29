@@ -36,6 +36,12 @@ const DatasourceItemContainer = styled.div`
     justify-content: space-between;
     width: 100%;
     height: ${theme.gridUnit * 6}px;
+    padding: 0 ${theme.gridUnit}px;
+
+    // hack to make the drag preview image corners rounded
+    transform: translate(0, 0);
+    background-color: inherit;
+    border-radius: 4px;
 
     > div {
       min-width: 0;
