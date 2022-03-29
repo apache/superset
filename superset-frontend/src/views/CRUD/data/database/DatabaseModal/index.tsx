@@ -818,6 +818,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setHasConnectedDb(false);
     }
     setDB({ type: ActionType.reset });
+    setFile([]);
   };
 
   const renderModalFooter = () => {
