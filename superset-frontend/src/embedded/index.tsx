@@ -47,11 +47,13 @@ const LazyDashboardPage = lazy(
 
 const EmbeddedApp = () => (
   <Router>
-    <Route path="/dashboard/:idOrSlug/embedded">
+    <Route path="/embedded/:uuid/">
       <Suspense fallback={<Loading />}>
         <RootContextProviders>
           <ErrorBoundary>
-            <LazyDashboardPage />
+            <LazyDashboardPage
+              idOrSlug={bootstrapData.embedded!.dashboard_id}
+            />
           </ErrorBoundary>
           <ToastContainer position="top" />
         </RootContextProviders>

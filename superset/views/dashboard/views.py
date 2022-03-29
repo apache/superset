@@ -29,6 +29,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
@@ -132,20 +133,30 @@ class Dashboard(BaseSupersetView):
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
-    @expose("/<dashboard_id_or_slug>/embedded")
+
+class EmbeddedView(BaseSupersetView):
+    """ The views for embedded resources to be rendered in an iframe """
+
+    route_base = "/embedded"
+
+    @expose("/<uuid>")
     @event_logger.log_this_with_extra_payload
     def embedded(
         self,
-        dashboard_id_or_slug: str,
+        uuid: str,
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """
         Server side rendering for a dashboard
-        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        :param uuid: identifier for embedded dashboard
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         """
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return Response(status=404)
+
+        embedded: EmbeddedDashboard = db.session.get(EmbeddedDashboard, uuid)
+        if not embedded:
             return Response(status=404)
 
         # Log in as an anonymous user, just for this view.
@@ -155,11 +166,12 @@ class Dashboard(BaseSupersetView):
         login_manager.reload_user(AnonymousUserMixin())
 
         add_extra_log_payload(
-            dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
+            embedded_dashboard_id=uuid, dashboard_version="v2",
         )
 
         bootstrap_data = {
             "common": common_bootstrap_payload(),
+            "embedded": {"dashboard_id": embedded.dashboard_id,},
         }
 
         return self.render_template(

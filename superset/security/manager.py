@@ -189,7 +189,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
-        "can_manage_embedded",
+        "can_set_embedded",
     }
 
     READ_ONLY_PERMISSION = {

@@ -37,6 +37,9 @@ export let bootstrapData: {
   user?: User | undefined;
   common?: any;
   config?: any;
+  embedded?: {
+    dashboard_id: string;
+  };
 } = {};
 // Configure translation
 if (typeof window !== 'undefined') {
