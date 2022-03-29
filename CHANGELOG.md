@@ -17,6 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
+
+### 1.4.2 (Sat Mar 19 00:08:06 2022 +0200)
+**Features**
+- [#19248](https://github.com/apache/superset/pull/19248) feat: add support for comments in adhoc clauses (@villebro)
+- [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
+
+**Fixes**
+- [#17641](https://github.com/apache/superset/pull/17641) fix(sqla): make text clause escaping optional (@villebro)
+- [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
+
 ### 1.4.1
 **Database Migrations**
 
