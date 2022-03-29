@@ -27,9 +27,6 @@ import {
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
 
-import './vendor/d3tip.css';
-import './Heatmap.css';
-
 const propTypes = {
   data: PropTypes.shape({
     records: PropTypes.arrayOf(
