@@ -1,6 +1,7 @@
 from typing import Any, Set
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 
 from superset import security_manager
@@ -13,6 +14,32 @@ from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query
 from superset.views.base import BaseFilter, DatasourceFilter
 from superset.views.base_api import BaseSupersetModelRestApi
+
+
+class DatasetAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("All Text")
+    arg_name = "dataset_all_text"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                Dataset.name.ilike(ilike_value),
+                Dataset.expression.ilike((ilike_value)),
+            )
+        )
+
+
+class DatasetSchemaFilter(BaseFilter):
+    name = _("schema")
+    arg_name = "eq"
+
+    def apply(self, query: Query, value: bool) -> Query:
+        filter_clause = Dataset.schema == value
+
+        return query.filter(filter_clause)
 
 
 class SLDatasetRestApi(BaseSupersetModelRestApi):
@@ -44,7 +71,13 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
     ]
     order_columns = ["changed_on_delta_humanized", "schema"]
 
-    search_filters = {"expression": [DatasetIsPhysicalOrVirtual]}
+    search_filters = {
+        "expression": [DatasetIsPhysicalOrVirtual],
+        "name": [DatasetAllTextFilter]
+        # "schema": [DatasetSchemaFilter],
+        # "owners": [DatasetOwnersFilter],
+        # "database": [DatasetDatabaseFilter]
+    }
 
     # class DatabaseFilter(BaseFilter):
 

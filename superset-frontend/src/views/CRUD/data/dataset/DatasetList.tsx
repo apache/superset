@@ -278,7 +278,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
         },
         Header: t('Name'),
-        accessor: 'table_name',
+        accessor: 'name',
       },
       {
         Cell: ({
@@ -476,9 +476,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Search'),
-        id: 'table_name',
+        id: 'name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: 'dataset_all_text',
       },
     ],
     [],

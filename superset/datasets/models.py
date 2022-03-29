@@ -99,7 +99,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # String representing the permissions for a given dataset
     # todo(hugh): compute these columns based upon the original SqlaTable models
     # perm = column_property(name)
-    # schema_perm = column_property(name)
+    schema = column_property()
 
     """
     Legacy Properties used to main backwards compatibility for
@@ -117,7 +117,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def schema(self) -> Optional[str]:
-        return None
+        return "public"
 
     @property
     def sql(self) -> Optional[str]:
