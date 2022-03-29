@@ -27,7 +27,6 @@ import App from 'src/profile/components/App';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 import setupApp from 'src/setup/setupApp';
-import './main.less';
 import { theme } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 
