@@ -49,6 +49,10 @@ export interface Props {
   shouldForceUpdate?: number;
 }
 
+const enableExploreDnd = isFeatureEnabled(
+  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+);
+
 const Button = styled.button`
   background: none;
   border: none;
@@ -104,7 +108,7 @@ const LabelWrapper = styled.div`
     background-color: ${theme.colors.grayscale.light4};
     margin: ${theme.gridUnit * 2}px 0;
     border-radius: 4px;
-    cursor: pointer;
+    padding: 0 ${theme.gridUnit}px;
 
     &:first-of-type {
       margin-top: 0;
@@ -113,9 +117,14 @@ const LabelWrapper = styled.div`
       margin-bottom: 0;
     }
 
-    &:hover {
-      background-color: ${theme.colors.grayscale.light3};
-    }
+    ${enableExploreDnd &&
+    css`
+      padding: 0;
+      cursor: pointer;
+      &:hover {
+        background-color: ${theme.colors.grayscale.light3};
+      }
+    `}
 
     & > span {
       white-space: nowrap;
@@ -157,10 +166,6 @@ const LabelContainer = (props: {
     </LabelWrapper>
   );
 };
-
-const enableExploreDnd = isFeatureEnabled(
-  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-);
 
 export default function DataSourcePanel({
   datasource,

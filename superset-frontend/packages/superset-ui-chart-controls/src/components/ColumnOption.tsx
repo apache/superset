@@ -32,6 +32,8 @@ export type ColumnOptionProps = {
 };
 
 const StyleOverrides = styled.span`
+  display: flex;
+  align-items: center;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
