@@ -289,19 +289,3 @@ class DashboardDAO(BaseDAO):
             )
             .all()
         ]
-
-    @staticmethod
-    def upsert_embedded_dashboard(
-        dashboard: Dashboard, allowed_domains: List[str]
-    ) -> EmbeddedDashboard:
-        """
-        Sets up a dashboard to be embeddable.
-        Upsert is used to preserve the embedded_dashboard uuid across updates.
-        """
-        embedded: EmbeddedDashboard = dashboard.embedded[
-            0
-        ] if dashboard.embedded else EmbeddedDashboard()
-        embedded.allow_domain_list = ",".join(allowed_domains)
-        dashboard.embedded = [embedded]
-        db.session.commit()
-        return embedded

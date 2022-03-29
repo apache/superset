@@ -134,55 +134,6 @@ class Dashboard(BaseSupersetView):
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
 
-class EmbeddedView(BaseSupersetView):
-    """ The views for embedded resources to be rendered in an iframe """
-
-    route_base = "/embedded"
-
-    @expose("/<uuid>")
-    @event_logger.log_this_with_extra_payload
-    def embedded(
-        self,
-        uuid: str,
-        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
-    ) -> FlaskResponse:
-        """
-        Server side rendering for a dashboard
-        :param uuid: identifier for embedded dashboard
-        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
-            default value to appease pylint
-        """
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
-            return Response(status=404)
-
-        embedded: EmbeddedDashboard = db.session.get(EmbeddedDashboard, uuid)
-        if not embedded:
-            return Response(status=404)
-
-        # Log in as an anonymous user, just for this view.
-        # This view needs to be visible to all users,
-        # and building the page fails if g.user and/or ctx.user aren't present.
-        login_manager: LoginManager = security_manager.lm
-        login_manager.reload_user(AnonymousUserMixin())
-
-        add_extra_log_payload(
-            embedded_dashboard_id=uuid, dashboard_version="v2",
-        )
-
-        bootstrap_data = {
-            "common": common_bootstrap_payload(),
-            "embedded": {"dashboard_id": embedded.dashboard_id,},
-        }
-
-        return self.render_template(
-            "superset/spa.html",
-            entry="embedded",
-            bootstrap_data=json.dumps(
-                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
-            ),
-        )
-
-
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
     class_permission_name = "Dashboard"

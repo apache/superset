@@ -31,7 +31,11 @@ class EmbeddedDashboard(
 
     """
     A configuration of embedding for a dashboard.
+    Currently, the only embeddable resource is the Dashboard.
+    If we add new embeddable resource types, this model should probably be renamed.
+
     References the dashboard, and contains a config for embedding that dashboard.
+
     This data model allows multiple configurations for a given dashboard,
     but at this time the API only allows setting one.
     """

@@ -25,6 +25,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.views.base import BaseFilter, is_user_admin
@@ -133,14 +134,18 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
             g.user
         ):
+
             guest_user: GuestUser = g.user
             embedded_dashboard_ids = [
                 r["id"]
                 for r in guest_user.resources
                 if r["type"] == GuestTokenResourceType.DASHBOARD.value
             ]
-            if len(embedded_dashboard_ids) != 0:
-                feature_flagged_filters.append(Dashboard.id.in_(embedded_dashboard_ids))
+            feature_flagged_filters.append(
+                Dashboard.embedded.any(
+                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
+                )
+            )
 
         query = query.filter(
             or_(
