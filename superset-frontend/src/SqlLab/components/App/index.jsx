@@ -20,13 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { supersetTheme, t, ThemeProvider } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
-  LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
   LOCALSTORAGE_WARNING_THRESHOLD,
+  LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
@@ -95,18 +95,14 @@ class App extends React.PureComponent {
 
   render() {
     if (this.state.hash && this.state.hash === '#search') {
-      return window.location.replace(
-        `${process.env.APP_PREFIX}/superset/sqllab/history/`,
-      );
+      return window.location.replace('/superset/sqllab/history/');
     }
     return (
-      <ThemeProvider theme={supersetTheme}>
-        <div className="App SqlLab">
-          <QueryAutoRefresh />
-          <TabbedSqlEditors />
-          <ToastContainer />
-        </div>
-      </ThemeProvider>
+      <div className="App SqlLab">
+        <QueryAutoRefresh />
+        <TabbedSqlEditors />
+        <ToastContainer />
+      </div>
     );
   }
 }
