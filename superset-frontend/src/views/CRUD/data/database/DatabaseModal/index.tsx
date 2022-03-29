@@ -410,9 +410,6 @@ function dbReducer(
         ...action.payload,
       };
 
-    // case ActionType.importDatabase:
-    //   return {};
-
     case ActionType.reset:
     default:
       return null;
@@ -445,27 +442,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
-  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation, setValidationErrors] =
-    useDatabaseValidation();
-  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
-  const [dbName, setDbName] = useState('');
-  const [editNewDb, setEditNewDb] = useState<boolean>(false);
-  const [isLoading, setLoading] = useState<boolean>(false);
-  const [testInProgress, setTestInProgress] = useState<boolean>(false);
-  const conf = useCommonConf();
-  const dbImages = getDatabaseImages();
-  const connectionAlert = getConnectionAlert();
-  const isEditMode = !!databaseId;
-  const sslForced = isFeatureEnabled(
-    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
-  );
-  const hasAlert =
-    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
-  const useSqlAlchemyForm =
-    db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
-  const useTabLayout = isEditMode || useSqlAlchemyForm;
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -478,6 +454,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+  // Database import logic
+  const {
+    state: { alreadyExists, passwordsNeeded },
+    importResource,
+  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
+
+  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [validationErrors, getValidation, setValidationErrors] =
+    useDatabaseValidation();
+  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [dbName, setDbName] = useState('');
+  const [editNewDb, setEditNewDb] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+  const [file, setFile] = useState<UploadFile[]>([]);
+  const [importingModel, setImportingModel] = useState<boolean>(false);
+
+  const conf = useCommonConf();
+  const dbImages = getDatabaseImages();
+  const connectionAlert = getConnectionAlert();
+  const isEditMode = !!databaseId;
+  const sslForced = isFeatureEnabled(
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+  );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
+  const useSqlAlchemyForm =
+    db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
+  const useTabLayout = isEditMode || useSqlAlchemyForm;
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
@@ -522,22 +530,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  const [passwordFields, setPasswordFields] = useState<string[]>([]); // set in useEffect
-  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
-    useState<boolean>(false); // set in useEffect
-  const [passwords, setPasswords] = useState<Record<string, string>>({}); // set by user input
-  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false); // set by user input
-  const [file, setFile] = useState<UploadFile[]>([]);
-  const [importingModel, setImportingModel] = useState<boolean>(false);
-  console.log('findme importing', importingModel);
-
-  const {
-    state: { alreadyExists, passwordsNeeded },
-    importResource,
-  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
-
-  console.log('findme STATE', alreadyExists, passwordsNeeded);
-
   const removeFile = (removedFile: UploadFile) => {
     setFile(file.filter(file => file.uid !== removedFile.uid));
     return false;
@@ -550,20 +542,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     clearError();
     setEditNewDb(false);
     setFile([]);
-    setPasswordFields([]);
-    setNeedsOverwriteConfirm(false);
     setImportingModel(false);
     if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
 
-  console.log('findme file', file);
-
   const onChange = (type: any, payload: any) => {
     setDB({ type, payload } as DBReducerActionType);
   };
-
-  console.log('findme DB', db);
 
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -669,10 +655,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!db) {
       setLoading(true);
       setImportingModel(true);
-      // onChange(ActionType.textChange, {
-      //   name: 'database_name',
-      //   value: 'TEST database name',
-      // });
 
       if (!(file[0].originFileObj instanceof File)) return;
       const dbId = await importResource(
@@ -682,9 +664,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
 
       if (dbId) {
-        console.log('findme onsave !db && dbId');
-        setHasConnectedDb(true);
-
         onClose();
         addSuccessToast(t('Database connected'));
       }
@@ -844,7 +823,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
-      if (!hasConnectedDb || editNewDb || !importingModel) {
+      if (!hasConnectedDb || editNewDb || importingModel) {
         return (
           <>
             <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
@@ -873,6 +852,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             data-test="modal-confirm-button"
           >
             {t('Finish')}
+          </StyledFooterButton>
+        </>
+      );
+    }
+
+    // Import doesn't use db, so footer will not render in the if statement above
+    if (importingModel) {
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            {t('Back')}
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onSave}
+          >
+            {t('Connect')}
           </StyledFooterButton>
         </>
       );
@@ -926,17 +923,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
-  // ------------------------------ FINDME START 🚧
-
-  useEffect(() => {
-    setPasswordFields(passwordsNeeded);
-  }, [passwordsNeeded, setPasswordFields]);
-
-  useEffect(() => {
-    console.log('findme UE', needsOverwriteConfirm, alreadyExists);
-    setNeedsOverwriteConfirm(alreadyExists.length > 0);
-  }, [alreadyExists, setNeedsOverwriteConfirm]);
-
   const onDbImport = (info: UploadChangeParam) => {
     setImportingModel(true);
     setFile([
@@ -950,13 +936,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     importResource(info.file.originFileObj, passwords, confirmedOverwrite);
   };
 
-  console.log('findme PASSWORDS', passwords);
-  console.log('findme PASSWORDFIELDS', passwordFields);
-
   const passwordNeededField = () => {
-    // if (passwordFields.length === 0) return null;
+    if (passwordsNeeded.length === 0) return null;
 
-    passwordFields.map(database => (
+    return passwordsNeeded.map(database => (
       <>
         <StyledAlertMargin>
           <Alert
@@ -993,7 +976,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const confirmOverwriteField = () => {
-    console.log('findme AE', alreadyExists);
     if (alreadyExists.length === 0) return null;
 
     return (
@@ -1023,7 +1005,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </>
     );
   };
-  // ------------------------------ FINDME END 🚧
 
   const tabChange = (key: string) => setTabKey(key);
 
@@ -1173,8 +1154,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  console.log('findme importing', importingModel);
-
   if (file.length > 0 && importingModel) {
     return (
       <Modal
@@ -1192,21 +1171,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         centered
         show={show}
         title={<h4>{t('Connect a database')}</h4>}
-        footer={
-          <>
-            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
-              {t('Back')}
-            </StyledFooterButton>
-            <StyledFooterButton
-              key="submit"
-              buttonStyle="primary"
-              onClick={onSave}
-            >
-              {t('Connect')}
-            </StyledFooterButton>
-          </>
-          // renderModalFooter()
-        }
+        footer={renderModalFooter()}
       >
         <ModalHeader
           isLoading={isLoading}
@@ -1217,7 +1182,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           dbName={dbName}
           dbModel={dbModel}
           file={file}
-          // importingModal={importingModel}
         />
         {passwordNeededField()}
         {confirmOverwriteField()}
@@ -1464,7 +1428,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {renderPreferredSelector()}
                 {renderAvailableSelector()}
-                {/* // ------------------------------ FINDME START 🚧 */}
                 <Upload
                   name="databaseFile"
                   id="databaseFile"
@@ -1485,7 +1448,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 </Upload>
               </SelectDatabaseStyles>
             ) : (
-              // ------------------------------ FINDME END 🚧
               <>
                 <ModalHeader
                   isLoading={isLoading}

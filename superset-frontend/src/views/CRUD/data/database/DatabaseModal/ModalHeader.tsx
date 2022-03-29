@@ -64,8 +64,7 @@ const ModalHeader = ({
   dbModel,
   editNewDb,
   file,
-}: // importingModel,
-{
+}: {
   isLoading: boolean;
   isEditMode: boolean;
   useSqlAlchemyForm: boolean;
@@ -77,8 +76,9 @@ const ModalHeader = ({
   file?: UploadFile[];
   passwordFields?: string[];
   needsOverwriteConfirm?: boolean;
-  // importingModel?: boolean;
 }) => {
+  const fileCheck = file && file?.length > 0;
+
   const isEditHeader = (
     <StyledFormHeader>
       <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
@@ -153,8 +153,6 @@ const ModalHeader = ({
       </div>
     </StyledFormHeader>
   );
-
-  const fileCheck = file && file?.length > 0;
 
   const importDbHeader = (
     <StyledStickyHeader>
