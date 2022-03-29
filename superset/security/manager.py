@@ -1414,8 +1414,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         for resource in user.resources:
-            if resource["type"] == GuestTokenResourceType.DASHBOARD.value and str(
-                resource["id"]
-            ) == str(dashboard.embedded[0].uuid):
+            strid = str(resource["id"])
+            # TODO once the uuid is deployed, only check uuid here (no downtime plz)
+            if strid == str(dashboard.id) or strid == str(dashboard.embedded[0].uuid):
                 return True
         return False
