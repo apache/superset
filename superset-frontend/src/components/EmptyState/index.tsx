@@ -58,6 +58,14 @@ const EmptyStateContainer = styled.div`
     & .ant-empty-image svg {
       width: auto;
     }
+
+    & a {
+      color: inherit;
+      text-decoration: underline;
+      &:hover {
+        color: ${theme.colors.grayscale.base};
+      }
+    }
   `}
 `;
 

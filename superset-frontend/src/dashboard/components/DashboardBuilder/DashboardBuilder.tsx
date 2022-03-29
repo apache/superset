@@ -148,6 +148,10 @@ const StyledContent = styled.div<{
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
+const DashboardContentWrapper = styled.div`
+  height: 100%;
+`;
+
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
@@ -401,7 +405,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               image="dashboard.svg"
             />
           )}
-        <div
+        <DashboardContentWrapper
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}
         >
@@ -423,7 +427,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               />
             )}
           </StyledDashboardContent>
-        </div>
+        </DashboardContentWrapper>
       </StyledContent>
     </StyledDiv>
   );
