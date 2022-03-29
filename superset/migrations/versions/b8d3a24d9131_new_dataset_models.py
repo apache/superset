@@ -355,9 +355,8 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     session.add(dataset)
 
 
-def upgrade():
-    # Create tables for the new models.
-    op.create_table(
+new_tables = [
+    (
         "sl_columns",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
@@ -367,52 +366,24 @@ def upgrade():
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
-        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
+        sa.Column(
+            "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
+        ),
         # Column
         sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("type", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
-        sa.Column(
-            "is_physical",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=True,
-        ),
+        sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=True),
         sa.Column("description", sa.TEXT(), nullable=True),
         sa.Column("warning_text", sa.TEXT(), nullable=True),
         sa.Column("unit", sa.TEXT(), nullable=True),
         sa.Column("is_temporal", sa.BOOLEAN(), nullable=False),
-        sa.Column(
-            "is_spatial",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=False,
-        ),
-        sa.Column(
-            "is_partition",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=False,
-        ),
-        sa.Column(
-            "is_aggregation",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=False,
-        ),
-        sa.Column(
-            "is_additive",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=False,
-        ),
-        sa.Column(
-            "is_increase_desired",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=True,
-        ),
+        sa.Column("is_spatial", sa.BOOLEAN(), nullable=False, default=False),
+        sa.Column("is_partition", sa.BOOLEAN(), nullable=False, default=False),
+        sa.Column("is_aggregation", sa.BOOLEAN(), nullable=False, default=False),
+        sa.Column("is_additive", sa.BOOLEAN(), nullable=False, default=False),
+        sa.Column("is_increase_desired", sa.BOOLEAN(), nullable=False, default=True),
         sa.Column(
             "is_managed_externally",
             sa.Boolean(),
@@ -421,9 +392,8 @@ def upgrade():
         ),
         sa.Column("external_url", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-    )
-
-    op.create_table(
+    ),
+    (
         "sl_tables",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
@@ -433,7 +403,9 @@ def upgrade():
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
-        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
+        sa.Column(
+            "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
+        ),
         # Table
         sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
         sa.Column("database_id", sa.INTEGER(), autoincrement=False, nullable=False),
@@ -449,21 +421,8 @@ def upgrade():
         sa.Column("external_url", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(["database_id"], ["dbs.id"], name="sl_tables_ibfk_1"),
         sa.PrimaryKeyConstraint("id"),
-    )
-
-    op.create_table(
-        "sl_table_columns",
-        sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["column_id"], ["sl_columns.id"], name="sl_table_columns_ibfk_2"
-        ),
-        sa.ForeignKeyConstraint(
-            ["table_id"], ["sl_tables.id"], name="sl_table_columns_ibfk_1"
-        ),
-    )
-
-    op.create_table(
+    ),
+    (
         "sl_datasets",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
@@ -473,18 +432,15 @@ def upgrade():
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
-        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
+        sa.Column(
+            "uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True
+        ),
         # Dataset
         sa.Column("id", sa.INTEGER(), autoincrement=True, nullable=False),
-        sa.Column("sqlatable_id", sa.INTEGER(), nullable=True),
+        sa.Column("sqlatable_id", sa.INTEGER(), unique=True, nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
-        sa.Column(
-            "is_physical",
-            sa.BOOLEAN(),
-            nullable=False,
-            default=False,
-        ),
+        sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False),
         sa.Column(
             "is_managed_externally",
             sa.Boolean(),
@@ -493,9 +449,20 @@ def upgrade():
         ),
         sa.Column("external_url", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-    )
-
-    op.create_table(
+    ),
+    # Relationships...
+    (
+        "sl_table_columns",
+        sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.ForeignKeyConstraint(
+            ["column_id"], ["sl_columns.id"], name="sl_table_columns_ibfk_2"
+        ),
+        sa.ForeignKeyConstraint(
+            ["table_id"], ["sl_tables.id"], name="sl_table_columns_ibfk_1"
+        ),
+    ),
+    (
         "sl_dataset_columns",
         sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("column_id", sa.INTEGER(), autoincrement=False, nullable=False),
@@ -505,9 +472,8 @@ def upgrade():
         sa.ForeignKeyConstraint(
             ["dataset_id"], ["sl_datasets.id"], name="sl_dataset_columns_ibfk_1"
         ),
-    )
-
-    op.create_table(
+    ),
+    (
         "sl_dataset_tables",
         sa.Column("dataset_id", sa.INTEGER(), autoincrement=False, nullable=False),
         sa.Column("table_id", sa.INTEGER(), autoincrement=False, nullable=False),
@@ -517,19 +483,14 @@ def upgrade():
         sa.ForeignKeyConstraint(
             ["table_id"], ["sl_tables.id"], name="sl_dataset_tables_ibfk_2"
         ),
-    )
+    ),
+]
 
-    with op.batch_alter_table("sl_columns") as batch_op:
-        batch_op.create_unique_constraint("uq_sl_columns_uuid", ["uuid"])
 
-    with op.batch_alter_table("sl_tables") as batch_op:
-        batch_op.create_unique_constraint("uq_sl_tables_uuid", ["uuid"])
-
-    with op.batch_alter_table("sl_datasets") as batch_op:
-        batch_op.create_unique_constraint("uq_sl_datasets_uuid", ["uuid"])
-        batch_op.create_unique_constraint(
-            "uq_sl_datasets_sqlatable_id", ["sqlatable_id"]
-        )
+def upgrade():
+    # Create tables for the new models.
+    for (table_name, *cols) in new_tables:
+        op.create_table(table_name, *cols)
 
     # copy existing datasets to the new models
     session: Session = db.Session(bind=op.get_bind())
