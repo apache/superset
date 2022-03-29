@@ -133,6 +133,44 @@ class Dashboard(BaseSupersetView):
         db.session.commit()
         return redirect(f"/superset/dashboard/{new_dashboard.id}/?edit=true")
 
+    @expose("/<dashboard_id_or_slug>/embedded")
+    @event_logger.log_this_with_extra_payload
+    def embedded(
+        self,
+        dashboard_id_or_slug: str,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> FlaskResponse:
+        """
+        Server side rendering for a dashboard
+        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
+            default value to appease pylint
+        """
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return Response(status=404)
+
+        # Log in as an anonymous user, just for this view.
+        # This view needs to be visible to all users,
+        # and building the page fails if g.user and/or ctx.user aren't present.
+        login_manager: LoginManager = security_manager.lm
+        login_manager.reload_user(AnonymousUserMixin())
+
+        add_extra_log_payload(
+            dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
+        )
+
+        bootstrap_data = {
+            "common": common_bootstrap_payload(),
+        }
+
+        return self.render_template(
+            "superset/spa.html",
+            entry="embedded",
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
+            ),
+        )
+
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
