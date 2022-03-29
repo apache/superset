@@ -177,10 +177,11 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
 
     # set the default schema in tables that don't have it
     if default_schema:
-        tables = list(tables)
-        for i, table in enumerate(tables):
+        fixed_tables = list(tables)
+        for i, table in enumerate(fixed_tables):
             if table.schema is None:
-                tables[i] = Table(table.table, default_schema, table.catalog)
+                fixed_tables[i] = Table(table.table, default_schema, table.catalog)
+        tables = set(fixed_tables)
 
     # load existing tables
     predicate = or_(
@@ -196,35 +197,38 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     new_tables = session.query(NewTable).filter(predicate).all()
 
     # add missing tables
-    inspector = inspect(engine)
     existing = {(table.schema, table.name) for table in new_tables}
     for table in tables:
         if (table.schema, table.table) not in existing:
-            column_metadata = inspector.get_columns(table.table, schema=table.schema)
-
-            physical_columns = []
-            for column in column_metadata:
-                physical_columns.append(
-                    NewColumn(
-                        name=column["name"],
-                        type=str(column["type"]),
-                        expression=conditional_quote(column["name"]),
-                        is_temporal=column["type"].python_type.__name__.upper()
-                        in TEMPORAL_TYPES,
-                        is_aggregation=False,
-                        is_physical=True,
-                        is_spatial=False,
-                        is_partition=False,
-                        is_increase_desired=True,
-                    ),
+            try:
+                inspector = inspect(engine)
+                column_metadata = inspector.get_columns(
+                    table.table, schema=table.schema
                 )
+            except Exception:  # pylint: disable=broad-except
+                continue
+            columns = [
+                NewColumn(
+                    name=column["name"],
+                    type=str(column["type"]),
+                    expression=conditional_quote(column["name"]),
+                    is_temporal=column["type"].python_type.__name__.upper()
+                    in TEMPORAL_TYPES,
+                    is_aggregation=False,
+                    is_physical=True,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                )
+                for column in column_metadata
+            ]
             new_tables.append(
                 NewTable(
                     name=table.table,
                     schema=table.schema,
                     catalog=None,
                     database_id=database_id,
-                    columns=physical_columns,
+                    columns=columns,
                 )
             )
             existing.add((table.schema, table.table))

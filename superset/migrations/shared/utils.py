@@ -84,9 +84,7 @@ def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
                 yield from find_nodes_by_key(value, target)
 
 
-def extract_table_references(
-    default_schema: Optional[str], sql_text: str, sqla_dialect: str
-) -> Set[Table]:
+def extract_table_references(sql_text: str, sqla_dialect: str) -> Set[Table]:
     """
     Return all the dependencies from a SQL sql_text.
     """
@@ -102,12 +100,7 @@ def extract_table_references(
         parsed = ParsedQuery(sql_text)
         return parsed.tables
 
-    tables = [
+    return {
         Table(*[part["value"] for part in table["name"][::-1]])
         for table in find_nodes_by_key(tree, "Table")
-    ]
-    for i, table in enumerate(tables):
-        if table.schema is None:
-            tables[i] = Table(table.table, default_schema, table.catalog)
-
-    return set(tables)
+    }
