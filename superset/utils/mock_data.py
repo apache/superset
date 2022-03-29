@@ -112,7 +112,9 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.TIME):
         return lambda: time(
-            random.randrange(24), random.randrange(60), random.randrange(60),
+            random.randrange(24),
+            random.randrange(60),
+            random.randrange(60),
         )
 
     if isinstance(

@@ -35,7 +35,10 @@ from superset.models.helpers import (
 
 
 class Column(
-    Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin,
+    Model,
+    AuditMixinNullable,
+    ExtraJSONMixin,
+    ImportExportMixin,
 ):
     """
     A "column".

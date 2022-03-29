@@ -179,7 +179,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
         self.assertEqual(
-            results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
+            results,
+            {
+                "Start-up cost": 0.00,
+                "Total cost": 1537.91,
+            },
         )
 
     def test_estimate_statement_invalid_syntax(self):
@@ -205,15 +209,27 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test test_query_cost_formatter example costs
         """
         raw_cost = [
-            {"Start-up cost": 0.00, "Total cost": 1537.91,},
-            {"Start-up cost": 10.00, "Total cost": 1537.00,},
+            {
+                "Start-up cost": 0.00,
+                "Total cost": 1537.91,
+            },
+            {
+                "Start-up cost": 10.00,
+                "Total cost": 1537.00,
+            },
         ]
         result = PostgresEngineSpec.query_cost_formatter(raw_cost)
         self.assertEqual(
             result,
             [
-                {"Start-up cost": "0.0", "Total cost": "1537.91",},
-                {"Start-up cost": "10.0", "Total cost": "1537.0",},
+                {
+                    "Start-up cost": "0.0",
+                    "Total cost": "1537.91",
+                },
+                {
+                    "Start-up cost": "10.0",
+                    "Total cost": "1537.0",
+                },
             ],
         )
 

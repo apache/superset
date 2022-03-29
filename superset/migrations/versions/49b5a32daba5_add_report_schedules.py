@@ -114,8 +114,14 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("report_schedule_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["report_schedule_id"], ["report_schedule.id"],),
-        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"],),
+        sa.ForeignKeyConstraint(
+            ["report_schedule_id"],
+            ["report_schedule.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["ab_user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
