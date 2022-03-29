@@ -41,7 +41,7 @@ class EmbeddedView(BaseSupersetView):
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """
-        Server side rendering for a dashboard
+        Server side rendering for the embedded dashboard page
         :param uuid: identifier for embedded dashboard
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
