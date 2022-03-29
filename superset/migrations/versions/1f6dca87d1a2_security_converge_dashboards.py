@@ -39,24 +39,63 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"Dashboard": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Dashboard": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("DashboardModelView", "can_add"): (Pvm("Dashboard", "can_write"),),
     Pvm("DashboardModelView", "can_delete"): (Pvm("Dashboard", "can_write"),),
-    Pvm("DashboardModelView", "can_download_dashboards",): (
-        Pvm("Dashboard", "can_read"),
-    ),
-    Pvm("DashboardModelView", "can_edit",): (Pvm("Dashboard", "can_write"),),
-    Pvm("DashboardModelView", "can_favorite_status",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelView", "can_list",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelView", "can_mulexport",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelView", "can_show",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelView", "muldelete",): (Pvm("Dashboard", "can_write"),),
-    Pvm("DashboardModelView", "mulexport",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelViewAsync", "can_list",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelViewAsync", "muldelete",): (Pvm("Dashboard", "can_write"),),
-    Pvm("DashboardModelViewAsync", "mulexport",): (Pvm("Dashboard", "can_read"),),
-    Pvm("Dashboard", "can_new",): (Pvm("Dashboard", "can_write"),),
+    Pvm(
+        "DashboardModelView",
+        "can_download_dashboards",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelView",
+        "can_edit",
+    ): (Pvm("Dashboard", "can_write"),),
+    Pvm(
+        "DashboardModelView",
+        "can_favorite_status",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelView",
+        "can_list",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelView",
+        "can_mulexport",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelView",
+        "can_show",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelView",
+        "muldelete",
+    ): (Pvm("Dashboard", "can_write"),),
+    Pvm(
+        "DashboardModelView",
+        "mulexport",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelViewAsync",
+        "can_list",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "DashboardModelViewAsync",
+        "muldelete",
+    ): (Pvm("Dashboard", "can_write"),),
+    Pvm(
+        "DashboardModelViewAsync",
+        "mulexport",
+    ): (Pvm("Dashboard", "can_read"),),
+    Pvm(
+        "Dashboard",
+        "can_new",
+    ): (Pvm("Dashboard", "can_write"),),
 }
 
 

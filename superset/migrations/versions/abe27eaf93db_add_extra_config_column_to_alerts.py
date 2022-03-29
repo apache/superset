@@ -39,7 +39,12 @@ def upgrade():
 
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(
-            sa.Column("extra", sa.Text(), nullable=True, default="{}",),
+            sa.Column(
+                "extra",
+                sa.Text(),
+                nullable=True,
+                default="{}",
+            ),
         )
     bind.execute(report_schedule.update().values({"extra": "{}"}))
     with op.batch_alter_table("report_schedule") as batch_op:

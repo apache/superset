@@ -373,7 +373,9 @@ def test_import_datasets_sync_argument_columns_metrics(
     assert response.exit_code == 0
     expected_contents = {"dataset.yaml": "hello: world"}
     import_datasets_command.assert_called_with(
-        expected_contents, sync_columns=True, sync_metrics=True,
+        expected_contents,
+        sync_columns=True,
+        sync_metrics=True,
     )
 
 
@@ -408,7 +410,9 @@ def test_import_datasets_sync_argument_columns(
     assert response.exit_code == 0
     expected_contents = {"dataset.yaml": "hello: world"}
     import_datasets_command.assert_called_with(
-        expected_contents, sync_columns=True, sync_metrics=False,
+        expected_contents,
+        sync_columns=True,
+        sync_metrics=False,
     )
 
 
@@ -443,7 +447,9 @@ def test_import_datasets_sync_argument_metrics(
     assert response.exit_code == 0
     expected_contents = {"dataset.yaml": "hello: world"}
     import_datasets_command.assert_called_with(
-        expected_contents, sync_columns=False, sync_metrics=True,
+        expected_contents,
+        sync_columns=False,
+        sync_metrics=True,
     )
 
 

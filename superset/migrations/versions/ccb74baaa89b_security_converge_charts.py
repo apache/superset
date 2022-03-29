@@ -39,22 +39,63 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"Chart": ("can_read", "can_write",)}
+NEW_PVMS = {
+    "Chart": (
+        "can_read",
+        "can_write",
+    )
+}
 PVM_MAP = {
     Pvm("SliceModelView", "can_list"): (Pvm("Chart", "can_read"),),
     Pvm("SliceModelView", "can_show"): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_edit",): (Pvm("Chart", "can_write"),),
-    Pvm("SliceModelView", "can_delete",): (Pvm("Chart", "can_write"),),
-    Pvm("SliceModelView", "can_add",): (Pvm("Chart", "can_write"),),
-    Pvm("SliceModelView", "can_download",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "muldelete",): (Pvm("Chart", "can_write"),),
-    Pvm("SliceModelView", "can_mulexport",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_favorite_status",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_cache_screenshot",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_screenshot",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_data_from_cache",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceAsync", "can_list",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceAsync", "muldelete",): (Pvm("Chart", "can_write"),),
+    Pvm(
+        "SliceModelView",
+        "can_edit",
+    ): (Pvm("Chart", "can_write"),),
+    Pvm(
+        "SliceModelView",
+        "can_delete",
+    ): (Pvm("Chart", "can_write"),),
+    Pvm(
+        "SliceModelView",
+        "can_add",
+    ): (Pvm("Chart", "can_write"),),
+    Pvm(
+        "SliceModelView",
+        "can_download",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceModelView",
+        "muldelete",
+    ): (Pvm("Chart", "can_write"),),
+    Pvm(
+        "SliceModelView",
+        "can_mulexport",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceModelView",
+        "can_favorite_status",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceModelView",
+        "can_cache_screenshot",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceModelView",
+        "can_screenshot",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceModelView",
+        "can_data_from_cache",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceAsync",
+        "can_list",
+    ): (Pvm("Chart", "can_read"),),
+    Pvm(
+        "SliceAsync",
+        "muldelete",
+    ): (Pvm("Chart", "can_write"),),
 }
 
 

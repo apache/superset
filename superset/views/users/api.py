@@ -24,7 +24,7 @@ user_response_schema = UserResponseSchema()
 
 
 class CurrentUserRestApi(BaseApi):
-    """ An api to get information about the current user """
+    """An api to get information about the current user"""
 
     resource_name = "me"
     openapi_spec_tag = "Current User"

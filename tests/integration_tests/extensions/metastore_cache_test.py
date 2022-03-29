@@ -40,7 +40,8 @@ def cache() -> SupersetMetastoreCache:
     from superset.extensions.metastore_cache import SupersetMetastoreCache
 
     return SupersetMetastoreCache(
-        namespace=UUID("ee173d1b-ccf3-40aa-941c-985c15224496"), default_timeout=600,
+        namespace=UUID("ee173d1b-ccf3-40aa-941c-985c15224496"),
+        default_timeout=600,
     )
 
 

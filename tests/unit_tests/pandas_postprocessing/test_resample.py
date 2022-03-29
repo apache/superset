@@ -107,7 +107,9 @@ def test_resample_after_pivot():
         df=df,
         index=["__timestamp"],
         columns=["city"],
-        aggregates={"val": {"operator": "sum"},},
+        aggregates={
+            "val": {"operator": "sum"},
+        },
         flatten_columns=False,
         reset_index=False,
     )
@@ -118,7 +120,12 @@ def test_resample_after_pivot():
     2022-01-11      3.0  2.0  1.0
     2022-01-13      6.0  5.0  4.0
     """
-    resample_df = pp.resample(df=pivot_df, rule="1D", method="asfreq", fill_value=0,)
+    resample_df = pp.resample(
+        df=pivot_df,
+        rule="1D",
+        method="asfreq",
+        fill_value=0,
+    )
     """
                     val
     city        Chicago   LA   NY
@@ -151,12 +158,16 @@ def test_resample_after_pivot():
 def test_resample_should_raise_ex():
     with pytest.raises(InvalidPostProcessingError):
         pp.resample(
-            df=categories_df, rule="1D", method="asfreq",
+            df=categories_df,
+            rule="1D",
+            method="asfreq",
         )
 
     with pytest.raises(InvalidPostProcessingError):
         pp.resample(
-            df=timeseries_df, rule="1D", method="foobar",
+            df=timeseries_df,
+            rule="1D",
+            method="foobar",
         )
 
 

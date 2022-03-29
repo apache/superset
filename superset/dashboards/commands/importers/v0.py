@@ -151,7 +151,8 @@ def import_dashboard(
                 old_dataset_id = target.get("datasetId")
                 if dataset_id_mapping and old_dataset_id is not None:
                     target["datasetId"] = dataset_id_mapping.get(
-                        old_dataset_id, old_dataset_id,
+                        old_dataset_id,
+                        old_dataset_id,
                     )
         dashboard.json_metadata = json.dumps(json_metadata)
 
