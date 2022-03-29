@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 
 class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def __init__(
-        self, actor: User, dashboard_id: str, state: DashboardPermalinkState,
+        self,
+        actor: User,
+        dashboard_id: str,
+        state: DashboardPermalinkState,
     ):
         self.actor = actor
         self.dashboard_id = dashboard_id
@@ -46,7 +49,9 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "state": self.state,
             }
             key = CreateKeyValueCommand(
-                actor=self.actor, resource=self.resource, value=value,
+                actor=self.actor,
+                resource=self.resource,
+                value=value,
             ).run()
             return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:

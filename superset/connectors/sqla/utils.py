@@ -36,7 +36,9 @@ if TYPE_CHECKING:
 
 
 def get_physical_table_metadata(
-    database: Database, table_name: str, schema_name: Optional[str] = None,
+    database: Database,
+    table_name: str,
+    schema_name: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
@@ -72,7 +74,11 @@ def get_physical_table_metadata(
         # from different drivers that fall outside CompileError
         except Exception:  # pylint: disable=broad-except
             col.update(
-                {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
+                {
+                    "type": "UNKNOWN",
+                    "generic_type": None,
+                    "is_dttm": None,
+                }
             )
     return cols
 

@@ -322,7 +322,9 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self, object_url: URL, user_name: Optional[str] = None,
+        self,
+        object_url: URL,
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.

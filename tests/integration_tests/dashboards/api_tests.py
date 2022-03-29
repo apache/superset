@@ -329,7 +329,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
-            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
+            "created_by": {
+                "id": 1,
+                "first_name": "admin",
+                "last_name": "user",
+            },
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
@@ -356,7 +360,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key not in ("changed_on", "changed_on_delta_humanized",):
+            if key not in (
+                "changed_on",
+                "changed_on_delta_humanized",
+            ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
@@ -623,7 +630,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     @pytest.mark.usefixtures("create_dashboards")
     def test_gets_certified_dashboards_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_certified", "value": True,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": True,
+                }
+            ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
@@ -639,7 +652,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     def test_gets_not_certified_dashboards_filter(self):
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_is_certified", "value": False,}
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": False,
+                }
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
@@ -1135,7 +1152,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        dashboard = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            slices=slices,
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}

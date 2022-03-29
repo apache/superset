@@ -974,7 +974,8 @@ class TestCore(SupersetTestCase):
         }
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -1049,7 +1050,8 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -1096,7 +1098,8 @@ class TestCore(SupersetTestCase):
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
-            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
         )
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
@@ -1634,7 +1637,8 @@ class TestCore(SupersetTestCase):
         mock_superset_db_session.query().filter_by().one().return_value = query_mock
         mock_sql_lab_cancel_query.return_value = False
         rv = self.client.post(
-            "/superset/stop_query/", data={"form_data": json.dumps(form_data)},
+            "/superset/stop_query/",
+            data={"form_data": json.dumps(form_data)},
         )
 
         assert rv.status_code == 422

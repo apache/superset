@@ -256,7 +256,11 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
-        QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table_name,
+        QUERY,
+        cta=True,
+        ctas_method=ctas_method,
+        async_=True,
+        tmp_table=tmp_table_name,
     )
 
     query = wait_for_success(result)
