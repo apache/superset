@@ -92,6 +92,35 @@ postgresql:
   postgresqlPassword: superset
 ```
 
+Make sure, you set a unique strong complex alphanumeric string for your SECRET_KEY and use a tool to help you generate
+a sufficiently random sequence.
+
+- To generate a good key you can run, `openssl rand -base64 42`
+
+```yaml
+configOverrides:
+  secret: |
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+
+If you want to change the previous secret key then you should rotate the keys.
+Default secret key for kubernetes deployment is `thisISaSECRET_1234`
+
+```yaml
+configOverrides:
+  my_override: |
+    PREVIOUS_SECRET_KEY = 'YOUR_PREVIOUS_SECRET_KEY'
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+init:
+  command:
+    - /bin/sh
+    - -c
+    - |
+      . {{ .Values.configMountPath }}/superset_bootstrap.sh
+      superset re-encrypt-secrets
+      . {{ .Values.configMountPath }}/superset_init.sh
+```
+
 #### Dependencies
 
 Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
@@ -315,12 +344,10 @@ configOverrides:
     from celery.schedules import crontab
 
     class CeleryConfig(object):
-      BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_IMPORTS = ('superset.sql_lab', )
-      CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-      CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-      CELERY_ANNOTATIONS = {
+      broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      task_annotations = {
           'sql_lab.get_sql_results': {
               'rate_limit': '100/s',
           },
@@ -331,7 +358,7 @@ configOverrides:
               'ignore_result': True,
           },
       }
-      CELERYBEAT_SCHEDULE = {
+      beat_schedule = {
           'reports.scheduler': {
               'task': 'reports.scheduler',
               'schedule': crontab(minute='*', hour='*'),

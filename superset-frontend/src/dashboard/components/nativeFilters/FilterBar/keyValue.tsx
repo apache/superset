@@ -21,7 +21,7 @@ import { DashboardPermalinkValue } from 'src/dashboard/types';
 
 const assembleEndpoint = (
   dashId: string | number,
-  key?: string,
+  key?: string | null,
   tabId?: string,
 ) => {
   let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
@@ -65,7 +65,7 @@ export const createFilterKey = (
       return null;
     });
 
-export const getFilterValue = (dashId: string | number, key: string) =>
+export const getFilterValue = (dashId: string | number, key?: string | null) =>
   SupersetClient.get({
     endpoint: assembleEndpoint(dashId, key),
   })

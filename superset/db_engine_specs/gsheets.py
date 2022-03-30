@@ -82,7 +82,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def modify_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str],
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: Optional[str],
     ) -> None:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
@@ -91,7 +94,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: str,
+        cls,
+        database: "Database",
+        table_name: str,
+        schema_name: str,
     ) -> Dict[str, Any]:
         engine = cls.get_engine(database, schema=schema_name)
         with closing(engine.raw_connection()) as conn:
@@ -150,7 +156,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: GSheetsParametersType,
+        cls,
+        parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         encrypted_credentials = parameters.get("service_account_info") or "{}"
@@ -173,7 +180,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         subject = g.user.email if g.user else None
 
         engine = create_engine(
-            "gsheets://", service_account_info=encrypted_credentials, subject=subject,
+            "gsheets://",
+            service_account_info=encrypted_credentials,
+            subject=subject,
         )
         conn = engine.connect()
         idx = 0

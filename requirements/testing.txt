@@ -116,8 +116,6 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-prompt-toolkit==3.0.19
-    # via ipython
 proto-plus==1.19.7
     # via
     #   google-cloud-bigquery
@@ -178,8 +176,6 @@ trino==0.306
     # via sqlalchemy-trino
 typing-inspect==0.7.1
     # via libcst
-wcwidth==0.2.5
-    # via prompt-toolkit
 websocket-client==1.2.0
     # via docker
 
