@@ -604,7 +604,7 @@ function DashboardList(props: DashboardListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/dashboard/new');
+        window.location.assign('/analytics/dashboard/new');
       },
     });
 

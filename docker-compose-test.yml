@@ -18,8 +18,8 @@ x-superset-image: &superset-image super
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
-x-superset-volumes:
-  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 services:
@@ -42,6 +42,9 @@ services:
       - 8088:8088
     depends_on: *superset-depends-on
     volumes: *superset-volumes
+
+
+
 
 volumes:
   superset_home:
