@@ -17,7 +17,7 @@
 import json
 from typing import Callable
 
-from flask import abort, Response
+from flask import abort
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, LoginManager
 
@@ -29,7 +29,7 @@ from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
 
 class EmbeddedView(BaseSupersetView):
-    """ The views for embedded resources to be rendered in an iframe """
+    """The views for embedded resources to be rendered in an iframe"""
 
     route_base = "/embedded"
 
@@ -60,12 +60,15 @@ class EmbeddedView(BaseSupersetView):
         login_manager.reload_user(AnonymousUserMixin())
 
         add_extra_log_payload(
-            embedded_dashboard_id=uuid, dashboard_version="v2",
+            embedded_dashboard_id=uuid,
+            dashboard_version="v2",
         )
 
         bootstrap_data = {
             "common": common_bootstrap_payload(),
-            "embedded": {"dashboard_id": embedded.dashboard_id,},
+            "embedded": {
+                "dashboard_id": embedded.dashboard_id,
+            },
         }
 
         return self.render_template(

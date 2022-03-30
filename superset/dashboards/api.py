@@ -282,9 +282,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    @with_dashboard
+    @with_dashboard  # pylint: disable=arguments-renamed
     def get(self, dash: Dashboard) -> Response:
         """Gets a dashboard
         ---
@@ -1037,9 +1037,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    @with_dashboard
+    @with_dashboard  # pylint: disable=arguments-renamed
     def get_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Returns the dashboard's embedded configuration
@@ -1080,9 +1080,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    @with_dashboard
+    @with_dashboard  # pylint: disable=arguments-renamed
     def set_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Sets a dashboard's embedded configuration.
@@ -1161,9 +1161,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    @with_dashboard
+    @with_dashboard  # pylint: disable=arguments-renamed
     def delete_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Removes a dashboard's embedded configuration.

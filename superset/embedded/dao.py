@@ -14,23 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from superset import security_manager
 from superset.dao.base import BaseDAO
-from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
-from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.models.slice import Slice
-from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +36,9 @@ class EmbeddedDAO(BaseDAO):
         Sets up a dashboard to be embeddable.
         Upsert is used to preserve the embedded_dashboard uuid across updates.
         """
-        embedded: EmbeddedDashboard = dashboard.embedded[
-            0
-        ] if dashboard.embedded else EmbeddedDashboard()
+        embedded: EmbeddedDashboard = (
+            dashboard.embedded[0] if dashboard.embedded else EmbeddedDashboard()
+        )
         embedded.allow_domain_list = ",".join(allowed_domains)
         dashboard.embedded = [embedded]
         db.session.commit()

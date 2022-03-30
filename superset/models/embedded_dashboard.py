@@ -25,10 +25,7 @@ from sqlalchemy_utils import UUIDType
 from superset.models.helpers import AuditMixinNullable
 
 
-class EmbeddedDashboard(
-    Model, AuditMixinNullable
-):  # pylint: disable=too-few-public-methods
-
+class EmbeddedDashboard(Model, AuditMixinNullable):
     """
     A configuration of embedding for a dashboard.
     Currently, the only embeddable resource is the Dashboard.
@@ -46,7 +43,9 @@ class EmbeddedDashboard(
     allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"), nullable=False)
     dashboard = relationship(
-        "Dashboard", back_populates="embedded", foreign_keys=[dashboard_id],
+        "Dashboard",
+        back_populates="embedded",
+        foreign_keys=[dashboard_id],
     )
 
     @property

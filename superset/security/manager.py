@@ -68,7 +68,6 @@ from superset.exceptions import SupersetSecurityException
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
-    GuestTokenResourceType,
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
