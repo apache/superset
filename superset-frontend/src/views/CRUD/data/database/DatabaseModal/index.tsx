@@ -1156,7 +1156,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (file.length > 0 && importingModel) {
+  if (file.length > 0 && (confirmedOverwrite || passwords)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1435,7 +1435,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   id="databaseFile"
                   data-test="database-file-input"
                   accept=".yaml,.json,.yml,.zip"
-                  // upload is handled by hook
                   customRequest={() => {}}
                   onChange={info => onDbImport(info)}
                   onRemove={removeFile}
