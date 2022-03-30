@@ -206,6 +206,8 @@ const ExploreChartPanel = props => {
           ownState={props.ownState}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
+          chartUpdateStartTime={chart.chartUpdateStartTime}
+          chartUpdateEndTime={chart.chartUpdateEndTime}
           chartStackTrace={chart.chartStackTrace}
           chartId={chart.id}
           chartStatus={chart.chartStatus}
