@@ -63,7 +63,8 @@ def permalink_salt() -> Iterator[str]:
     yield salt
     namespace = get_uuid_namespace(salt)
     db.session.query(KeyValueEntry).filter_by(
-        resource=KeyValueResource.APP, uuid=uuid3(namespace, key),
+        resource=KeyValueResource.APP,
+        uuid=uuid3(namespace, key),
     )
     db.session.commit()
 

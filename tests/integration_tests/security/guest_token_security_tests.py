@@ -35,7 +35,8 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 
 
 @mock.patch.dict(
-    "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
 )
 class TestGuestUserSecurity(SupersetTestCase):
     def authorized_guest(self):
@@ -90,9 +91,9 @@ class TestGuestUserSecurity(SupersetTestCase):
         roles = security_manager.get_user_roles()
         self.assertEqual(guest.roles, roles)
 
-
 @mock.patch.dict(
-    "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
 )
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 class TestGuestUserDashboardAccess(SupersetTestCase):

@@ -129,7 +129,10 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         extra: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            SupersetErrorType.GENERIC_DB_ENGINE_ERROR, message, level, extra,
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            message,
+            level,
+            extra,
         )
 
 
@@ -144,7 +147,10 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
         extra: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            error, message, level, extra,
+            error,
+            message,
+            level,
+            extra,
         )
 
 

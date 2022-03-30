@@ -72,5 +72,8 @@ def cache_dashboard_thumbnail(
             current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
         )
         screenshot.compute_and_cache(
-            user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            thumb_size=thumb_size,
         )

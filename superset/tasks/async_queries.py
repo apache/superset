@@ -71,7 +71,8 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
-    job_metadata: Dict[str, Any], form_data: Dict[str, Any],
+    job_metadata: Dict[str, Any],
+    form_data: Dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.charts.data.commands.get_data_command import ChartDataCommand
@@ -85,7 +86,9 @@ def load_chart_data_into_cache(
         cache_key = result["cache_key"]
         result_url = f"/api/v1/chart/data/{cache_key}"
         async_query_manager.update_job(
-            job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
+            job_metadata,
+            async_query_manager.STATUS_DONE,
+            result_url=result_url,
         )
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while loading chart data, error: %s", ex)
@@ -140,7 +143,9 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         set_and_log_cache(cache_manager.cache, cache_key, cache_value)
         result_url = f"/superset/explore_json/data/{cache_key}"
         async_query_manager.update_job(
-            job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
+            job_metadata,
+            async_query_manager.STATUS_DONE,
+            result_url=result_url,
         )
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while loading explore json, error: %s", ex)

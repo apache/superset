@@ -243,7 +243,8 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     css = fields.String()
     json_metadata = fields.String(
-        description=json_metadata_description, validate=validate_json_metadata,
+        description=json_metadata_description,
+        validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
     certified_by = fields.String(description=certified_by_description, allow_none=True)

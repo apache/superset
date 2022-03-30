@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import { t } from '@superset-ui/core';
@@ -30,6 +30,7 @@ export interface InfoTooltipWithTriggerProps {
   placement?: TooltipPlacement;
   bsStyle?: string;
   className?: string;
+  iconsStyle?: CSSProperties;
 }
 
 export function InfoTooltipWithTrigger({
@@ -40,6 +41,7 @@ export function InfoTooltipWithTrigger({
   icon = 'info-circle',
   className = 'text-muted',
   placement = 'right',
+  iconsStyle = {},
 }: InfoTooltipWithTriggerProps) {
   const iconClass = `fa fa-${icon} ${className} ${
     bsStyle ? `text-${bsStyle}` : ''
@@ -50,7 +52,7 @@ export function InfoTooltipWithTrigger({
       aria-label={t('Show info tooltip')}
       tabIndex={0}
       className={iconClass}
-      style={{ cursor: onClick ? 'pointer' : undefined }}
+      style={{ cursor: onClick ? 'pointer' : undefined, ...iconsStyle }}
       onClick={onClick}
       onKeyPress={
         onClick &&

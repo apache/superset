@@ -107,7 +107,10 @@ class TestDatasetApi(SupersetTestCase):
             for table_name in self.fixture_virtual_table_names:
                 datasets.append(
                     self.insert_dataset(
-                        table_name, [admin.id], main_db, "SELECT * from ab_view_menu;",
+                        table_name,
+                        [admin.id],
+                        main_db,
+                        "SELECT * from ab_view_menu;",
                     )
                 )
             yield datasets
@@ -286,7 +289,10 @@ class TestDatasetApi(SupersetTestCase):
             )
             datasets.append(
                 self.insert_dataset(
-                    "columns", [], get_main_database(), schema="information_schema",
+                    "columns",
+                    [],
+                    get_main_database(),
+                    schema="information_schema",
                 )
             )
             schema_values = [
@@ -570,7 +576,12 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         mock_get_columns.return_value = [
-            {"name": "col", "type": "VARCHAR", "type_generic": None, "is_dttm": None,}
+            {
+                "name": "col",
+                "type": "VARCHAR",
+                "type_generic": None,
+                "is_dttm": None,
+            }
         ]
 
         mock_has_table_by_name.return_value = False

@@ -71,7 +71,9 @@ def example_db_engine(example_db_provider: Callable[[], Database]) -> Engine:
 
 
 @fixture(scope="session")
-def pandas_loader_configuration(support_datetime_type,) -> PandasLoaderConfigurations:
+def pandas_loader_configuration(
+    support_datetime_type,
+) -> PandasLoaderConfigurations:
     return PandasLoaderConfigurations.make_from_dict(
         {SUPPORT_DATETIME_TYPE: support_datetime_type}
     )

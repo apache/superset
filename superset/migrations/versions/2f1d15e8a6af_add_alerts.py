@@ -49,8 +49,14 @@ def upgrade():
         sa.Column("dashboard_id", sa.Integer(), nullable=True),
         sa.Column("last_eval_dttm", sa.DateTime(), nullable=True),
         sa.Column("last_state", sa.String(length=10), nullable=True),
-        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"],),
-        sa.ForeignKeyConstraint(["slice_id"], ["slices.id"],),
+        sa.ForeignKeyConstraint(
+            ["dashboard_id"],
+            ["dashboards.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["slice_id"],
+            ["slices.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_alerts_active"), "alerts", ["active"], unique=False)
@@ -62,7 +68,10 @@ def upgrade():
         sa.Column("dttm_end", sa.DateTime(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=True),
         sa.Column("state", sa.String(length=10), nullable=True),
-        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
+        sa.ForeignKeyConstraint(
+            ["alert_id"],
+            ["alerts.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -70,8 +79,14 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=True),
         sa.Column("alert_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["alert_id"], ["alerts.id"],),
-        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"],),
+        sa.ForeignKeyConstraint(
+            ["alert_id"],
+            ["alerts.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["ab_user.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 

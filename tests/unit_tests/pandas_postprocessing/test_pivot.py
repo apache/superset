@@ -34,37 +34,49 @@ def test_flatten_column_after_pivot():
     """
     # single aggregate cases
     assert (
-        _flatten_column_after_pivot(aggregates=AGGREGATES_SINGLE, column="idx_nulls",)
+        _flatten_column_after_pivot(
+            aggregates=AGGREGATES_SINGLE,
+            column="idx_nulls",
+        )
         == "idx_nulls"
     )
 
     assert (
-        _flatten_column_after_pivot(aggregates=AGGREGATES_SINGLE, column=1234,)
+        _flatten_column_after_pivot(
+            aggregates=AGGREGATES_SINGLE,
+            column=1234,
+        )
         == "1234"
     )
 
     assert (
         _flatten_column_after_pivot(
-            aggregates=AGGREGATES_SINGLE, column=Timestamp("2020-09-29T00:00:00"),
+            aggregates=AGGREGATES_SINGLE,
+            column=Timestamp("2020-09-29T00:00:00"),
         )
         == "2020-09-29 00:00:00"
     )
 
     assert (
-        _flatten_column_after_pivot(aggregates=AGGREGATES_SINGLE, column="idx_nulls",)
+        _flatten_column_after_pivot(
+            aggregates=AGGREGATES_SINGLE,
+            column="idx_nulls",
+        )
         == "idx_nulls"
     )
 
     assert (
         _flatten_column_after_pivot(
-            aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1"),
+            aggregates=AGGREGATES_SINGLE,
+            column=("idx_nulls", "col1"),
         )
         == "col1"
     )
 
     assert (
         _flatten_column_after_pivot(
-            aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", 1234),
+            aggregates=AGGREGATES_SINGLE,
+            column=("idx_nulls", "col1", 1234),
         )
         == "col1, 1234"
     )
@@ -72,7 +84,8 @@ def test_flatten_column_after_pivot():
     # Multiple aggregate cases
     assert (
         _flatten_column_after_pivot(
-            aggregates=AGGREGATES_MULTIPLE, column=("idx_nulls", "asc_idx", "col1"),
+            aggregates=AGGREGATES_MULTIPLE,
+            column=("idx_nulls", "asc_idx", "col1"),
         )
         == "idx_nulls, asc_idx, col1"
     )
@@ -90,7 +103,11 @@ def test_pivot_without_columns():
     """
     Make sure pivot without columns returns correct DataFrame
     """
-    df = pivot(df=categories_df, index=["name"], aggregates=AGGREGATES_SINGLE,)
+    df = pivot(
+        df=categories_df,
+        index=["name"],
+        aggregates=AGGREGATES_SINGLE,
+    )
     assert df.columns.tolist() == ["name", "idx_nulls"]
     assert len(df) == 101
     assert df.sum()[1] == 1050
@@ -235,7 +252,10 @@ def test_pivot_eliminate_cartesian_product_columns():
         df=mock_df,
         index=["dttm"],
         columns=["a", "b"],
-        aggregates={"metric": {"operator": "mean"}, "metric2": {"operator": "mean"},},
+        aggregates={
+            "metric": {"operator": "mean"},
+            "metric2": {"operator": "mean"},
+        },
         drop_missing_columns=False,
     )
     assert list(df.columns) == [

@@ -48,7 +48,8 @@ def test_contribution():
 
     # cell contribution across row
     processed_df = contribution(
-        df, orientation=PostProcessingContributionOrientation.ROW,
+        df,
+        orientation=PostProcessingContributionOrientation.ROW,
     )
     assert processed_df.columns.tolist() == [DTTM_ALIAS, "a", "b", "c"]
     assert_array_equal(processed_df["a"].tolist(), [0.5, 0.25, nan])

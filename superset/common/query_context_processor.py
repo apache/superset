@@ -99,7 +99,10 @@ class QueryContextProcessor:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         cache = QueryCacheManager.get(
-            cache_key, CacheRegion.DATA, self._query_context.force, force_cached,
+            cache_key,
+            CacheRegion.DATA,
+            self._query_context.force,
+            force_cached,
         )
 
         if query_obj and cache_key and not cache.is_loaded:
@@ -235,7 +238,9 @@ class QueryContextProcessor:
         return df
 
     def processing_time_offsets(  # pylint: disable=too-many-locals
-        self, df: pd.DataFrame, query_object: QueryObject,
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
     ) -> CachedTimeOffset:
         query_context = self._query_context
         # ensure query_object is immutable
@@ -250,7 +255,8 @@ class QueryContextProcessor:
         for offset in time_offsets:
             try:
                 query_object_clone.from_dttm = get_past_or_future(
-                    offset, outer_from_dttm,
+                    offset,
+                    outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
@@ -322,7 +328,9 @@ class QueryContextProcessor:
 
             # df left join `offset_metrics_df`
             offset_df = df_utils.left_join_df(
-                left_df=df, right_df=offset_metrics_df, join_keys=join_keys,
+                left_df=df,
+                right_df=offset_metrics_df,
+                join_keys=join_keys,
             )
             offset_slice = offset_df[metrics_mapping.values()]
 
@@ -358,7 +366,9 @@ class QueryContextProcessor:
         return df.to_dict(orient="records")
 
     def get_payload(
-        self, cache_query_context: Optional[bool] = False, force_cached: bool = False,
+        self,
+        cache_query_context: Optional[bool] = False,
+        force_cached: bool = False,
     ) -> Dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
