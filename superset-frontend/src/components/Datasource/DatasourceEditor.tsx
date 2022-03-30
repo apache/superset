@@ -148,8 +148,8 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 });
 
 type CollectionTabTitleProps = {
-  title: string;
-  collection: [];
+  title?: string;
+  collection?: [];
 };
 
 function CollectionTabTitle({ title, collection }: CollectionTabTitleProps) {
@@ -164,29 +164,33 @@ function CollectionTabTitle({ title, collection }: CollectionTabTitleProps) {
   );
 }
 
-// type ColumnCollectionTable
-// ColumnCollectionTable.propTypes = {
-//   columns: PropTypes.array.isRequired,
-//   datasource: PropTypes.object.isRequired,
-//   onColumnsChange: PropTypes.func.isRequired,
-//   onDatasourceChange: PropTypes.func.isRequired,
-//   editableColumnName: PropTypes.bool,
-//   showExpression: PropTypes.bool,
-//   allowAddItem: PropTypes.bool,
-//   allowEditDataType: PropTypes.bool,
-//   itemGenerator: PropTypes.func,
-// };
+type ColumnCollectionTableProps = {
+  columns: [];
+  datasource: object;
+  onColumnsChange: Function;
+  onDatasourceChange: Function;
+  editableColumnName?: boolean;
+  showExpression?: boolean;
+  allowAddItem?: boolean;
+  allowEditDataType?: boolean;
+  itemGenerator?: Function;
+};
+
 function ColumnCollectionTable({
   columns,
   datasource,
   onColumnsChange,
   onDatasourceChange,
   editableColumnName = false,
-  showExpression,
-  allowAddItem,
-  allowEditDataType,
-  itemGenerator,
-}) {
+  showExpression = false,
+  allowAddItem = false,
+  allowEditDataType = false,
+  itemGenerator = () => ({
+    column_name: '<new column>',
+    filterable: true,
+    groupby: true,
+  }),
+}: ColumnCollectionTableProps) {
   return (
     <CollectionTable
       collection={columns}
@@ -376,17 +380,6 @@ function ColumnCollectionTable({
     />
   );
 }
-ColumnCollectionTable.defaultProps = {
-  editableColumnName: false,
-  showExpression: false,
-  allowAddItem: false,
-  allowEditDataType: false,
-  itemGenerator: () => ({
-    column_name: '<new column>',
-    filterable: true,
-    groupby: true,
-  }),
-};
 
 function StackedField({ label, formElement }) {
   return (
