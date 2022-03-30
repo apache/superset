@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { Form } from 'src/components/Form';
+import { styled } from '@superset-ui/core';
 
 import { recurseReactClone } from './utils';
 import Field from './Field';
@@ -31,6 +32,12 @@ interface FieldsetProps {
 }
 
 type fieldKeyType = string | number;
+
+const StyledForm = styled(Form)`
+  .control-label {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
 
 export default class Fieldset extends React.PureComponent<FieldsetProps> {
   static defaultProps = {
@@ -58,10 +65,10 @@ export default class Fieldset extends React.PureComponent<FieldsetProps> {
       compact: this.props.compact,
     });
     return (
-      <Form className="CRUD" layout="vertical">
+      <StyledForm className="CRUD" layout="vertical">
         {title && <legend>{title}</legend>}
         {recurseReactClone(this.props.children, Field, propExtender)}
-      </Form>
+      </StyledForm>
     );
   }
 }
