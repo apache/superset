@@ -1044,9 +1044,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Response
         Returns the dashboard's embedded configuration
         ---
-        post:
+        get:
           description: >-
             Returns the dashboard's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
           responses:
             200:
               description: Result contains the embedded dashboard config
@@ -1084,6 +1090,41 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         post:
           description: >-
             Sets a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedDashboardConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        put:
+          description: >-
+            Sets a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
           requestBody:
             description: The embedded configuration to set
             required: true
@@ -1127,16 +1168,29 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """Response
         Removes a dashboard's embedded configuration.
         ---
-        post:
+        delete:
           description: >-
             Removes a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
           responses:
             200:
               description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             500:
               $ref: '#/components/responses/500'
         """
         dashboard.embedded = []
-        return self.response(200)
+        return self.response(200, message="OK")
