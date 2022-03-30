@@ -53,6 +53,8 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 resource=self.resource,
                 value=value,
             ).run()
+            if key.id is None:
+                raise DashboardPermalinkCreateFailedError("Unexpected missing key id")
             return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
