@@ -52,10 +52,9 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
-import Modal from 'src/components/Modal';
-import { DashboardEmbedModal } from '../DashboardEmbedControls';
 import findPermission from 'src/dashboard/util/findPermission';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

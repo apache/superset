@@ -18,14 +18,14 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { makeApi, styled, SupersetApiError, t } from '@superset-ui/core';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Modal from 'src/components/Modal';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
-import { EmbeddedDashboard } from '../types';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { EmbeddedDashboard } from '../types';
 
 type Props = {
   dashboardId: string;
@@ -162,6 +162,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
         <a
           href="https://www.npmjs.com/package/@superset-ui/embedded-sdk"
           target="_blank"
+          rel="noreferrer"
         >
           {t('Superset Embedded SDK documentation.')}
         </a>
