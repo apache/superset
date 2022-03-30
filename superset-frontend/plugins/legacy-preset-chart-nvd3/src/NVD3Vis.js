@@ -435,7 +435,10 @@ function nvd3Vis(element, props) {
         if (orderBars) {
           data.forEach(d => {
             const newValues = [...d.values]; // need to copy values to avoid redux store changed.
-            d.values = newValues.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
+            // eslint-disable-next-line no-param-reassign
+            d.values = newValues.sort((a, b) =>
+              tryNumify(a.x) < tryNumify(b.x) ? -1 : 1,
+            );
           });
         }
         if (!reduceXTicks) {
