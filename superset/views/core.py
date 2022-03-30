@@ -30,6 +30,7 @@ import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.api import protect
 from flask_appbuilder.security.decorators import (
     has_access,
     has_access_api,
