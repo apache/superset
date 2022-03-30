@@ -30,7 +30,7 @@ const CopyButtonEmbedCode = styled(CopyButton)`
   }
 `;
 
-const EmbedCodeButton = ({ formData, addDangerToast }) => {
+const EmbedCodeContent = ({ formData, addDangerToast }) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
   const [url, setUrl] = useState('');
@@ -149,4 +149,4 @@ const EmbedCodeButton = ({ formData, addDangerToast }) => {
   );
 };
 
-export default EmbedCodeButton;
+export default EmbedCodeContent;

@@ -34,7 +34,7 @@ import { noOp } from 'src/utils/common';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import { toggleActive } from 'src/reports/actions/reports';
 import ViewQueryModal from '../controls/ViewQueryModal';
-import EmbedCodeButton from '../EmbedCodeButton';
+import EmbedCodeContent from '../EmbedCodeContent';
 import { ExploreReport } from './ExploreReport';
 
 const propTypes = {
@@ -326,7 +326,7 @@ const ExploreAdditionalActionsMenu = ({
                 }
                 modalTitle={t('Embed code')}
                 modalBody={
-                  <EmbedCodeButton
+                  <EmbedCodeContent
                     formData={latestQueryFormData}
                     addDangerToast={addDangerToast}
                   />
@@ -389,7 +389,10 @@ const ExploreAdditionalActionsMenu = ({
           </Menu>
         }
       >
-        <MenuTrigger buttonStyle="tertiary">
+        <MenuTrigger
+          buttonStyle="tertiary"
+          aria-label={t('Menu actions trigger')}
+        >
           <Icons.MoreHoriz
             iconColor={theme.colors.primary.dark2}
             iconSize={theme.typography.sizes.m}
