@@ -570,7 +570,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     )
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
-    @check_resource_permissions(check_datasource_perms)
+    # @check_resource_permissions(check_datasource_perms)
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
