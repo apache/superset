@@ -107,7 +107,7 @@ Cypress.Commands.add(
 Cypress.Commands.add('deleteDashboardByName', (name: string) =>
   cy.getDashboards().then(dashboards => {
     for (const element of dashboards) {
-      if (element.dashboard_title == name) {
+      if (element.dashboard_title === name) {
         const elementId = element.id;
         cy.deleteDashboard(elementId);
       }
@@ -181,7 +181,7 @@ Cypress.Commands.add('getCharts', () =>
 Cypress.Commands.add('deleteChartByName', (name: string) =>
   cy.getCharts().then(slices => {
     for (const element of slices) {
-      if (element.slice_name == name) {
+      if (element.slice_name === name) {
         const elementId = element.id;
         cy.deleteChart(elementId);
       }
