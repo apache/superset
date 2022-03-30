@@ -33,12 +33,6 @@ interface FieldsetProps {
 
 type fieldKeyType = string | number;
 
-const StyledForm = styled(Form)`
-  .control-label {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-`;
-
 export default class Fieldset extends React.PureComponent<FieldsetProps> {
   static defaultProps = {
     compact: false,
@@ -65,10 +59,10 @@ export default class Fieldset extends React.PureComponent<FieldsetProps> {
       compact: this.props.compact,
     });
     return (
-      <StyledForm className="CRUD" layout="vertical">
+      <Form className="CRUD" layout="vertical">
         {title && <legend>{title}</legend>}
         {recurseReactClone(this.props.children, Field, propExtender)}
-      </StyledForm>
+      </Form>
     );
   }
 }
