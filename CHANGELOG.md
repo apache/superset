@@ -16,24 +16,30 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-
 ## Change Log
 
-### 1.4.1
+### 1.4.2 (Sat Mar 19 00:08:06 2022 +0200)
+**Features**
+- [#19248](https://github.com/apache/superset/pull/19248) feat: add support for comments in adhoc clauses (@villebro)
+- [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
 
+**Fixes**
+- [#17641](https://github.com/apache/superset/pull/17641) fix(sqla): make text clause escaping optional (@villebro)
+- [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
+
+### 1.4.1
 **Database Migrations**
 
 **Features**
 
 **Fixes**
-
 - [#17980](https://github.com/apache/superset/pull/17980) fix: css template API response, less data (@dpgaspar)
 - [#17984](https://github.com/apache/superset/pull/17984) fix: Change default SECRET_KEY, improve docs and banner warning on de… (@dpgaspar)
 - [#17981](https://github.com/apache/superset/pull/17981) fix: API logger output (@dpgaspar)
 - [#18006](https://github.com/apache/superset/pull/18006) fix: SQL Lab sorting of non-numbers (@etr2460)
 - [#17573](https://github.com/apache/superset/pull/17573) fix(sqllab): Floating numbers not sorting correctly in result column (@lyndsiWilliams)
 - [#17961](https://github.com/apache/superset/pull/17961) fix: update slug name (@pkdotson)
-- [#17992](https://github.com/apache/superset/pull/17992) fix: dashboard reload crash (@pkdotson)
+- [#17992](https://github.com/apache/superset/pull/17992) fix:  dashboard reload crash (@pkdotson)
 - [#18048](https://github.com/apache/superset/pull/18048) fix(dashboard): scope status of native filter not update (@stephenLYZ)
 - [#16869](https://github.com/apache/superset/pull/16869) fix: handle TIME column serialization (@frafra)
 
