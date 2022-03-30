@@ -41,7 +41,7 @@ Base = declarative_base()
 class Slice(Base):
     __tablename__ = "slices"
     id = sa.Column(sa.Integer, primary_key=True)
-    queries = sa.Column(sa.Text)
+    query_context = sa.Column(sa.Text)
 
 
 def upgrade():
