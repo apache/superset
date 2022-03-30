@@ -471,7 +471,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [testInProgress, setTestInProgress] = useState<boolean>(false);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
-  const [file, setFile] = useState<UploadFile[]>([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModal, setImportingModal] = useState<boolean>(false);
 
   const conf = useCommonConf();
@@ -531,7 +531,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const removeFile = (removedFile: UploadFile) => {
-    setFile(file.filter(file => file.uid !== removedFile.uid));
+    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
     return false;
   };
 
@@ -541,7 +541,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
-    setFile([]);
+    setFileList([]);
     setImportingModal(false);
     setPasswords({});
     if (onDatabaseAdd) onDatabaseAdd();
@@ -657,9 +657,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setLoading(true);
       setImportingModal(true);
 
-      if (!(file[0].originFileObj instanceof File)) return;
+      if (!(fileList[0].originFileObj instanceof File)) return;
       const dbId = await importResource(
-        file[0].originFileObj,
+        fileList[0].originFileObj,
         passwords,
         confirmedOverwrite,
       );
@@ -819,7 +819,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setHasConnectedDb(false);
     }
     setDB({ type: ActionType.reset });
-    setFile([]);
+    setFileList([]);
   };
 
   const renderModalFooter = () => {
@@ -927,7 +927,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onDbImport = (info: UploadChangeParam) => {
     setImportingModal(true);
-    setFile([
+    setFileList([
       {
         ...info.file,
         status: 'done',
@@ -1156,7 +1156,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (file.length > 0 && (confirmedOverwrite || passwords)) {
+  if (fileList.length > 0 && (confirmedOverwrite || passwords)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1183,7 +1183,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           db={db}
           dbName={dbName}
           dbModel={dbModel}
-          file={file}
+          fileList={fileList}
         />
         {passwordNeededField()}
         {confirmOverwriteField()}

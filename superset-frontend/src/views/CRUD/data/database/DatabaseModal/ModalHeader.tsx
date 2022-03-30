@@ -63,7 +63,7 @@ const ModalHeader = ({
   dbName,
   dbModel,
   editNewDb,
-  file,
+  fileList,
 }: {
   isLoading: boolean;
   isEditMode: boolean;
@@ -73,11 +73,11 @@ const ModalHeader = ({
   dbName: string;
   dbModel: DatabaseForm;
   editNewDb?: boolean;
-  file?: UploadFile[];
+  fileList?: UploadFile[];
   passwordFields?: string[];
   needsOverwriteConfirm?: boolean;
 }) => {
-  const fileCheck = file && file?.length > 0;
+  const fileCheck = fileList && fileList?.length > 0;
 
   const isEditHeader = (
     <StyledFormHeader>
@@ -159,7 +159,7 @@ const ModalHeader = ({
       <StyledFormHeader>
         <p className="helper-top"> STEP 2 OF 2 </p>
         <h4>Enter the required {dbModel.name} credentials</h4>
-        <p className="helper-bottom">{fileCheck ? file[0].name : ''}</p>
+        <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
       </StyledFormHeader>
     </StyledStickyHeader>
   );
