@@ -859,7 +859,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    // Import doesn't use db, so footer will not render in the if statement above
+    // Import doesn't use db state, so footer will not render in the if statement above
     if (importingModal) {
       return (
         <>
