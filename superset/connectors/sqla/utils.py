@@ -15,13 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import lazy_gettext as _
+from sqlalchemy import and_, inspect, or_
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.columns.models import Column as NewColumn
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
@@ -29,10 +33,14 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, ParsedQuery
+from superset.sql_parse import has_table_query, ParsedQuery, Table
+from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+
+
+TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
 
 
 def get_physical_table_metadata(
@@ -151,3 +159,78 @@ def validate_adhoc_subquery(raw_sql: str) -> None:
                 )
             )
     return
+
+
+def load_or_create_tables(  # pylint: disable=too-many-arguments
+    session: Session,
+    database_id: int,
+    default_schema: Optional[str],
+    tables: Set[Table],
+    conditional_quote: Callable[[str], str],
+    engine: Engine,
+) -> List[NewTable]:
+    """
+    Load or create new table model instances.
+    """
+    if not tables:
+        return []
+
+    # set the default schema in tables that don't have it
+    if default_schema:
+        fixed_tables = list(tables)
+        for i, table in enumerate(fixed_tables):
+            if table.schema is None:
+                fixed_tables[i] = Table(table.table, default_schema, table.catalog)
+        tables = set(fixed_tables)
+
+    # load existing tables
+    predicate = or_(
+        *[
+            and_(
+                NewTable.database_id == database_id,
+                NewTable.schema == table.schema,
+                NewTable.name == table.table,
+            )
+            for table in tables
+        ]
+    )
+    new_tables = session.query(NewTable).filter(predicate).all()
+
+    # add missing tables
+    existing = {(table.schema, table.name) for table in new_tables}
+    for table in tables:
+        if (table.schema, table.table) not in existing:
+            try:
+                inspector = inspect(engine)
+                column_metadata = inspector.get_columns(
+                    table.table, schema=table.schema
+                )
+            except Exception:  # pylint: disable=broad-except
+                continue
+            columns = [
+                NewColumn(
+                    name=column["name"],
+                    type=str(column["type"]),
+                    expression=conditional_quote(column["name"]),
+                    is_temporal=column["type"].python_type.__name__.upper()
+                    in TEMPORAL_TYPES,
+                    is_aggregation=False,
+                    is_physical=True,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                )
+                for column in column_metadata
+            ]
+            new_tables.append(
+                NewTable(
+                    name=table.table,
+                    schema=table.schema,
+                    catalog=None,
+                    database_id=database_id,
+                    columns=columns,
+                )
+            )
+            existing.add((table.schema, table.table))
+
+    return new_tables
