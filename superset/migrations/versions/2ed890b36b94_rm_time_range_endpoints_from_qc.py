@@ -38,8 +38,8 @@ from superset import db
 Base = declarative_base()
 
 
-class MyModel(Base):
-    __tablename__ = "MyModel"
+class Slice(Base):
+    __tablename__ = "slices"
     id = sa.Column(sa.Integer, primary_key=True)
     queries = sa.Column(sa.Text)
 
