@@ -68,7 +68,8 @@ class DatabaseDAO(BaseDAO):
 
     @classmethod
     def get_related_objects(cls, database_id: int) -> Dict[str, Any]:
-        datasets = cls.find_by_id(database_id).tables
+        database: Any = cls.find_by_id(database_id)
+        datasets = database.tables
         dataset_ids = [dataset.id for dataset in datasets]
 
         charts = (
