@@ -388,7 +388,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_get_embedded",
+            "can_delete_embedded",
+            "can_set_embedded",
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
@@ -1723,7 +1730,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         # post succeeds and returns value
         allowed_domains = ["test.example", "embedded.example"]
         resp = self.post_assert_metric(
-            uri, {"allowed_domains": allowed_domains}, "set_embedded",
+            uri,
+            {"allowed_domains": allowed_domains},
+            "set_embedded",
         )
         self.assertEqual(resp.status_code, 200)
         result = json.loads(resp.data.decode("utf-8"))["result"]
