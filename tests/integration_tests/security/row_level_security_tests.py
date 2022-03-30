@@ -218,7 +218,8 @@ RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
 
 
 @mock.patch.dict(
-    "superset.extensions.feature_flag_manager._feature_flags", EMBEDDED_SUPERSET=True,
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
     query_obj: Dict[str, Any] = dict(

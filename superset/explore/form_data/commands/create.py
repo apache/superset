@@ -24,8 +24,9 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.explore.utils import check_access
 from superset.extensions import cache_manager
+from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
-from superset.temporary_cache.utils import cache_key, random_key
+from superset.temporary_cache.utils import cache_key
 from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)

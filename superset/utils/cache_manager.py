@@ -40,7 +40,7 @@ class CacheManager:
     ) -> None:
         cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
-        if required and cache_type in (None, "SupersetMetastoreCache"):
+        if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
             if cache_type is None and not app.debug:
                 logger.warning(
                     "Falling back to the built-in cache, that stores data in the "
@@ -49,12 +49,13 @@ class CacheManager:
                     "another dedicated caching backend for production deployments",
                     cache_config_key,
                 )
+            cache_type = CACHE_IMPORT_PATH
             cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
             cache_config.update(
-                {"CACHE_TYPE": CACHE_IMPORT_PATH, "CACHE_KEY_PREFIX": cache_key_prefix}
+                {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
 
-        if "CACHE_DEFAULT_TIMEOUT" not in cache_config:
+        if cache_type is not None and "CACHE_DEFAULT_TIMEOUT" not in cache_config:
             default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
             cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
 

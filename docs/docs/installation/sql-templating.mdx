@@ -120,7 +120,7 @@ In this section, we'll walkthrough the pre-defined Jinja macros in Superset.
 The `{{ current_username() }}` macro returns the username of the currently logged in user.
 
 If you have caching enabled in your Superset configuration, then by default the the `username` value will be used
-by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
 cache hit in the future and Superset can retrieve cached data.
 
 You can disable the inclusion of the `username` value in the calculation of the
@@ -134,8 +134,8 @@ cache key by adding the following parameter to your Jinja code:
 
 The `{{ current_user_id() }}` macro returns the user_id of the currently logged in user.
 
-If you have caching enabled in your Superset configuration, then by defaul the the `user_id` value will be used
-by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+If you have caching enabled in your Superset configuration, then by default the the `user_id` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
 cache hit in the future and Superset can retrieve cached data.
 
 You can disable the inclusion of the `user_id` value in the calculation of the

@@ -287,8 +287,10 @@ class TestImportExport(SupersetTestCase):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
-        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
-            birth_dash.id, world_health_dash.id
+        export_dash_url = (
+            "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
+                birth_dash.id, world_health_dash.id
+            )
         )
         resp = self.client.get(export_dash_url)
         resp_data = json.loads(resp.data.decode("utf-8"), object_hook=decode_dashboards)
