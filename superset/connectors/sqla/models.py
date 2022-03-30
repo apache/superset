@@ -78,6 +78,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
+    load_or_create_tables,
     validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
@@ -2242,7 +2243,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if column.is_active is False:
                 continue
 
-            extra_json = json.loads(column.extra or "{}")
+            try:
+                extra_json = json.loads(column.extra or "{}")
+            except json.decoder.JSONDecodeError:
+                extra_json = {}
             for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
                 value = getattr(column, attr)
                 if value:
@@ -2269,7 +2273,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # create metrics
         for metric in dataset.metrics:
-            extra_json = json.loads(metric.extra or "{}")
+            try:
+                extra_json = json.loads(metric.extra or "{}")
+            except json.decoder.JSONDecodeError:
+                extra_json = {}
             for attr in {"verbose_name", "metric_type", "d3format"}:
                 value = getattr(metric, attr)
                 if value:
@@ -2300,8 +2307,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
 
         # physical dataset
-        tables = []
-        if dataset.sql is None:
+        if not dataset.sql:
             physical_columns = [column for column in columns if column.is_physical]
 
             # create table
@@ -2314,7 +2320,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 is_managed_externally=dataset.is_managed_externally,
                 external_url=dataset.external_url,
             )
-            tables.append(table)
+            tables = [table]
 
         # virtual dataset
         else:
@@ -2325,18 +2331,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # find referenced tables
             parsed = ParsedQuery(dataset.sql)
             referenced_tables = parsed.tables
-
-            # predicate for finding the referenced tables
-            predicate = or_(
-                *[
-                    and_(
-                        NewTable.schema == (table.schema or dataset.schema),
-                        NewTable.name == table.table,
-                    )
-                    for table in referenced_tables
-                ]
+            tables = load_or_create_tables(
+                session,
+                dataset.database_id,
+                dataset.schema,
+                referenced_tables,
+                conditional_quote,
+                engine,
             )
-            tables = session.query(NewTable).filter(predicate).all()
 
         # create the new dataset
         new_dataset = NewDataset(
@@ -2345,7 +2347,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             expression=dataset.sql or conditional_quote(dataset.table_name),
             tables=tables,
             columns=columns,
-            is_physical=dataset.sql is None,
+            is_physical=not dataset.sql,
             is_managed_externally=dataset.is_managed_externally,
             external_url=dataset.external_url,
         )

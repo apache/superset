@@ -189,6 +189,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
+        "can_set_embedded",
     }
 
     READ_ONLY_PERMISSION = {
@@ -1268,10 +1269,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for dashboard_role in dashboard.roles
             )
 
-        if self.is_guest_user():
-            can_access = self.has_guest_access(
-                GuestTokenResourceType.DASHBOARD, dashboard.id
-            )
+        if self.is_guest_user() and dashboard.embedded:
+            can_access = self.has_guest_access(dashboard)
         else:
             can_access = (
                 is_user_admin()
@@ -1410,15 +1409,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return g.user
         return None
 
-    def has_guest_access(
-        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
-    ) -> bool:
+    def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
             return False
 
-        strid = str(resource_id)
-        for resource in user.resources:
-            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+        dashboards = [
+            r
+            for r in user.resources
+            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        ]
+
+        # TODO (embedded): remove this check once uuids are rolled out
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.id):
+                return True
+
+        if not dashboard.embedded:
+            return False
+
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
