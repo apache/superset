@@ -105,7 +105,7 @@ export function prepareCopyToClipboardTabularData(data, columns) {
     }
     try {
       result += `${Object.values(row).join('\t')}\n`;
-    catch {
+    } catch {
       result += `${Object.values(row)
         .map(value => JSON.stringify(value))
         .join('\t')}\n`;
