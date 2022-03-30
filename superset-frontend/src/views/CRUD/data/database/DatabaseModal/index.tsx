@@ -939,7 +939,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const passwordNeededField = () => {
-    if (passwordsNeeded.length === 0) return null;
+    if (!passwordsNeeded.length) return null;
 
     return passwordsNeeded.map(database => (
       <>
@@ -978,7 +978,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const confirmOverwriteField = () => {
-    if (alreadyExists.length === 0) return null;
+    if (!alreadyExists.length) return null;
 
     return (
       <>
