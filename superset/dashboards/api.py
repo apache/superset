@@ -23,7 +23,7 @@ from typing import Any, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -61,6 +61,7 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardCreatedByMeResponseSchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
     DashboardPostSchema,
@@ -212,6 +213,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
+        DashboardCreatedByMeResponseSchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
         GetFavStarIdsSchema,
@@ -272,8 +274,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         $ref: '#/components/schemas/DashboardGetResponseSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -336,8 +336,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: array
                         items:
                           $ref: '#/components/schemas/DashboardDatasetSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -399,8 +397,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: array
                         items:
                           $ref: '#/components/schemas/ChartEntityResponseSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -426,6 +422,42 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
+
+    @expose("/created_by_me/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,  # pylint: disable=arguments-renamed
+    )
+    @permission_name("can_read")
+    def created_by_me(self, id_or_slug: str) -> Response:
+        """Gets all dashboards created by the current user
+        ---
+        get:
+          description: >-
+            Gets all dashboards created by the current user
+          responses:
+            200:
+              description: Dashboard
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardCreatedByMeResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        dashboards = DashboardDAO.get_dashboards_created_changed_by_user(g.user.id)
+        result = self.dashboard_get_response_schema.dump(dashboards)
+        return self.response(200, result=result)
 
     @expose("/", methods=["POST"])
     @protect()
@@ -461,8 +493,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:

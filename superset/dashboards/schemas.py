@@ -227,6 +227,14 @@ class BaseDashboardSchema(Schema):
         return data
 
 
+class DashboardCreatedByMeResponseSchema(Schema):
+    id = fields.Int()
+    dashboard = fields.Str()
+    title = fields.Str()
+    url = fields.Str()
+    dttm = fields.DateTime()
+
+
 class DashboardPostSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
         description=dashboard_title_description,

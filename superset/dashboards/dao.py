@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
@@ -99,6 +100,25 @@ class DashboardDAO(BaseDAO):
         )
         # drop microseconds in datetime to match with last_modified header
         return max(dashboard_changed_on, slices_changed_on).replace(microsecond=0)
+
+    @staticmethod
+    def get_dashboards_created_changed_by_user(user_id: int) -> List[Dashboard]:
+        """
+        Gets a list of dashboards that were created or changed by a certain user
+        :param user_id: The user id
+        :return: List of dashboards
+        """
+        qry = (
+            db.session.query(Dashboard)
+            .filter(  # pylint: disable=comparison-with-callable
+                or_(
+                    Dashboard.created_by_fk == user_id,
+                    Dashboard.changed_by_fk == user_id,
+                )
+            )
+            .order_by(Dashboard.changed_on.desc())
+        )
+        return qry.all()
 
     @staticmethod
     def get_dashboard_and_datasets_changed_on(  # pylint: disable=invalid-name
