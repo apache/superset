@@ -48,4 +48,4 @@ class TestEmbeddedDAO(SupersetTestCase):
         uuid = str(EmbeddedDAO.upsert(dash, ["test.example.com"]).uuid)
         db.session.expire_all()
         embedded = EmbeddedDAO.find_by_id(uuid)
-        self.assertNotNone(embedded)
+        self.assertIsNotNone(embedded)
