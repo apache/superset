@@ -842,7 +842,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             True,
             True,
             True,
-            [{"name": "val1"}, {"name": "val2<?!@#$312,/'][p098"},],
+            [
+                {"name": "val1"},
+                {"name": "val2<?!@#$312,/'][p098"},
+            ],
         )
 
     def test_estimate_statement_cost(self):

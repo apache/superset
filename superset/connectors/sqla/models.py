@@ -689,7 +689,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def external_metadata(self) -> List[Dict[str, str]]:
         # todo(yongjie): create a pysical table column type in seprated PR
         if self.sql:
-            return get_virtual_table_metadata(dataset=self)
+            return get_virtual_table_metadata(dataset=self)  # type: ignore
         return get_physical_table_metadata(
             database=self.database,
             table_name=self.table_name,
