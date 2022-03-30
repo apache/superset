@@ -65,7 +65,6 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
-  rearrangeColumns: boolean;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -97,7 +96,6 @@ export default function DataTable<D extends object>({
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,
-  rearrangeColumns,
   onColumnOrderChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {

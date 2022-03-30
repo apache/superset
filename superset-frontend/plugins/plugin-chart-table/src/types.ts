@@ -71,7 +71,7 @@ export type TableChartFormData = QueryFormData & {
   emit_filter?: boolean;
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, ColumnConfig>;
-  rearrange_columns?: boolean;
+  allow_rearrange_columns?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -110,7 +110,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
-  rearrangeColumns?: boolean;
+  allowRearrangeColumns?: boolean;
 }
 
 export default {};

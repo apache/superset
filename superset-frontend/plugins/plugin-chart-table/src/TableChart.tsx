@@ -188,7 +188,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
-    rearrangeColumns = false,
+    allowRearrangeColumns = false,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -424,7 +424,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             }}
             onClick={onClick}
             data-column-name={col.id}
-            {...(rearrangeColumns && {
+            {...(allowRearrangeColumns && {
               draggable: 'true',
               onDragStart,
               onDragOver: e => e.preventDefault(),
@@ -510,7 +510,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        rearrangeColumns={rearrangeColumns}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={(filter: string) =>
