@@ -28,8 +28,10 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
+    "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "react": "^16.13.1"
   },
   "publishConfig": {
     "access": "public"
