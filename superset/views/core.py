@@ -725,7 +725,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 )
             if success:
                 flash("Dashboard(s) have been imported", "success")
-                return redirect("/dashboard/list/")
+                return redirect("/analytics/dashboard/list/")
 
         databases = db.session.query(Database).all()
         return self.render_template(
@@ -764,7 +764,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
             except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
-                return redirect("/chart/list/")
+                return redirect("/analytics/chart/list/")
         elif form_data_key:
             parameters = CommandParameters(actor=g.user, key=form_data_key)
             value = GetFormDataCommand(parameters).run()

@@ -721,7 +721,7 @@ class TestCore(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username="gamma")
-        assert "Charts" in self.get_resp("/chart/list/")
+        assert "Charts" in self.get_resp("/analytics/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

@@ -138,7 +138,7 @@ class TestDashboard(SupersetTestCase):
     def test_new_dashboard(self):
         self.login(username="admin")
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
-        url = "/dashboard/new/"
+        url = "/analytics/dashboard/new/"
         resp = self.get_resp(url)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)

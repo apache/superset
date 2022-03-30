@@ -221,7 +221,7 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              window.location.assign('/analytics/dashboard/new');
             },
           },
           {

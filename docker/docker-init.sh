@@ -63,16 +63,3 @@ echo_step "2" "Complete" "Setting up admin user"
 echo_step "3" "Starting" "Setting up roles and perms"
 superset init
 echo_step "3" "Complete" "Setting up roles and perms"
-
-if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
-    # Load some data to play with
-    echo_step "4" "Starting" "Loading examples"
-    # If Cypress run which consumes superset_test_config – load required data for tests
-    if [ "$CYPRESS_CONFIG" == "true" ]; then
-        superset load_test_users
-        superset load_examples --load-test-data
-    else
-        superset load_examples
-    fi
-    echo_step "4" "Complete" "Loading examples"
-fi

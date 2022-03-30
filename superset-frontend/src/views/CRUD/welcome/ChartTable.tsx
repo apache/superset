@@ -222,10 +222,10 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? `/chart/list/?filters=(favorite:(label:${t(
+                  ? `/analytics/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/chart/list/';
+                  : '/analytics/chart/list/';
               history.push(target);
             },
           },

@@ -169,7 +169,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def url(self) -> str:
-        return f"/analytics/superset/dashboard/{self.slug or self.id}/"
+        return f"/analytics{self.slug or self.id}/"
 
     @property
     def datasources(self) -> Set[BaseDatasource]:

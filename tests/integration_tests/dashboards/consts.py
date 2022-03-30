@@ -30,7 +30,7 @@ ADD_SLICES_URL_FORMAT = "/superset/add_slices/{}/"
 
 DELETE_DASHBOARD_VIEW_URL_FORMAT = "/dashboard/delete/{}"
 GET_DASHBOARDS_LIST_VIEW = "/dashboard/list/"
-NEW_DASHBOARD_URL = "/dashboard/new/"
+NEW_DASHBOARD_URL = "/analytics/dashboard/new/"
 GET_CHARTS_API_URL = "/api/v1/chart/"
 
 GAMMA_ROLE_NAME = "Gamma"
