@@ -60,7 +60,7 @@ if (scheduleInfo && config) {
       >
         <br />
       </Form>
-      {true && (
+      {linkback && (
         <StyledLinkBack className="linkback">
           <a href={linkback}>
             <i className="fa fa-link" />
