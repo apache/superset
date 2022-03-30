@@ -109,6 +109,7 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
             padding: ${theme.gridUnit * 2}px;
             font-size: ${theme.typography.sizes.s}px;
             border-radius: 4px;
+            background-color: ${theme.colors.secondary.light5};
           `}
         />
       </div>
