@@ -471,9 +471,9 @@ class QueryContextProcessor:
         annotation_layer: Dict[str, Any], force: bool
     ) -> Dict[str, Any]:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
-        form_data = chart.form_data.copy()
         if not chart:
             raise QueryObjectValidationError(_("The chart does not exist"))
+        form_data = chart.form_data.copy()
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,
