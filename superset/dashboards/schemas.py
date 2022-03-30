@@ -166,6 +166,7 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
 
 
 class DatabaseSchema(Schema):
@@ -242,13 +243,16 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     css = fields.String()
     json_metadata = fields.String(
-        description=json_metadata_description, validate=validate_json_metadata,
+        description=json_metadata_description,
+        validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
     certified_by = fields.String(description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -278,6 +282,8 @@ class DashboardPutSchema(BaseDashboardSchema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartFavStarResponseResult(Schema):
@@ -301,3 +307,5 @@ class ImportV1DashboardSchema(Schema):
     position = fields.Dict()
     metadata = fields.Dict()
     version = fields.String(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)

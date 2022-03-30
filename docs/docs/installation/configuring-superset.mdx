@@ -10,7 +10,7 @@ version: 1
 ### Configuration
 
 To configure your application, you need to create a file `superset_config.py` and add it to your
-`PYTHONPATH`. If your applcation was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
+`PYTHONPATH`. If your application was installed using docker-compose an alternative configuration is required. See [https://github.com/apache/superset/tree/master/docker#readme](https://github.com/apache/superset/tree/master/docker#readme) for details.
 
 Here are some of the parameters you can set in that file:
 ```
@@ -251,10 +251,10 @@ A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](htt
 
 If you want to rotate the SECRET_KEY(change the existing secret key), follow the below steps.
 
-# Add the new SECRET_KEY and PREVIOUS_SECRET_KEY
+Add the new SECRET_KEY and PREVIOUS_SECRET_KEY to `superset_config.py`:
 
 ```python
 PREVIOUS_SECRET_KEY = 'CURRENT_SECRET_KEY' # The default SECRET_KEY for deployment is '21thisismyscretkey12eyyh'
 SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 ```
-# Then run `superset re-encrypt-secrets`
+Then run `superset re-encrypt-secrets`

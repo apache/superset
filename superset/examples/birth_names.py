@@ -186,8 +186,16 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     default_query_context = {
         "result_format": "json",
         "result_type": "full",
-        "datasource": {"id": tbl.id, "type": "table",},
-        "queries": [{"columns": [], "metrics": [],},],
+        "datasource": {
+            "id": tbl.id,
+            "type": "table",
+        },
+        "queries": [
+            {
+                "columns": [],
+                "metrics": [],
+            },
+        ],
     }
 
     admin = get_admin_user()
@@ -381,7 +389,12 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
             ),
             query_context=get_slice_json(
                 default_query_context,
-                queries=[{"columns": ["name", "state"], "metrics": [metric],}],
+                queries=[
+                    {
+                        "columns": ["name", "state"],
+                        "metrics": [metric],
+                    }
+                ],
             ),
         ),
     ]

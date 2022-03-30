@@ -16,6 +16,7 @@
 # under the License.
 from flask import g, Response
 from flask_appbuilder.api import BaseApi, expose, safe
+from flask_jwt_extended.exceptions import NoAuthorizationError
 
 from .schemas import UserResponseSchema
 
@@ -23,7 +24,7 @@ user_response_schema = UserResponseSchema()
 
 
 class CurrentUserRestApi(BaseApi):
-    """ An api to get information about the current user """
+    """An api to get information about the current user"""
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
@@ -51,6 +52,10 @@ class CurrentUserRestApi(BaseApi):
             401:
               $ref: '#/components/responses/401'
         """
-        if g.user is None or g.user.is_anonymous:
+        try:
+            if g.user is None or g.user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
             return self.response_401()
+
         return self.response(200, result=user_response_schema.dump(g.user))

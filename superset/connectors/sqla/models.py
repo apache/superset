@@ -78,6 +78,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
+    load_or_create_tables,
     validate_adhoc_subquery,
 )
 from superset.datasets.models import Dataset as NewDataset
@@ -311,7 +312,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         return self.table
 
     def get_time_filter(
-        self, start_dttm: DateTime, end_dttm: DateTime,
+        self,
+        start_dttm: DateTime,
+        end_dttm: DateTime,
     ) -> ColumnElement:
         col = self.get_sqla_col(label="__time")
         l = []
@@ -687,7 +690,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.sql:
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
-            database=self.database, table_name=self.table_name, schema_name=self.schema,
+            database=self.database,
+            table_name=self.table_name,
+            schema_name=self.schema,
         )
 
     @property
@@ -1013,7 +1018,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return all_filters
         except TemplateError as ex:
             raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+                _(
+                    "Error in jinja expression in RLS filters: %(msg)s",
+                    msg=ex.message,
+                )
             ) from ex
 
     def text(self, clause: str) -> TextClause:
@@ -1233,7 +1241,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ):
                 time_filters.append(
                     columns_by_name[self.main_dttm_col].get_time_filter(
-                        from_dttm, to_dttm,
+                        from_dttm,
+                        to_dttm,
                     )
                 )
             time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
@@ -1444,7 +1453,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if dttm_col and not db_engine_spec.time_groupby_inline:
                     inner_time_filter = [
                         dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm, inner_to_dttm or to_dttm,
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
                         )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
@@ -1473,7 +1483,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric, metrics_by_name, columns_by_name,
+                                series_limit_metric,
+                                metrics_by_name,
+                                columns_by_name,
                             ),
                             not order_desc,
                         )
@@ -1549,7 +1561,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return ob
 
     def _normalize_prequery_result_type(
-        self, row: pd.Series, dimension: str, columns_by_name: Dict[str, TableColumn],
+        self,
+        row: pd.Series,
+        dimension: str,
+        columns_by_name: Dict[str, TableColumn],
     ) -> Union[str, int, float, bool, Text]:
         """
         Convert a prequery result type to its equivalent Python type.
@@ -1594,7 +1609,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             group = []
             for dimension in dimensions:
                 value = self._normalize_prequery_result_type(
-                    row, dimension, columns_by_name,
+                    row,
+                    dimension,
+                    columns_by_name,
                 )
 
                 group.append(groupby_exprs[dimension] == value)
@@ -1933,7 +1950,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_insert(
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -1962,7 +1981,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -1985,7 +2006,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     @staticmethod
     def after_update(  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
-        mapper: Mapper, connection: Connection, target: "SqlaTable",
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -2220,7 +2243,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if column.is_active is False:
                 continue
 
-            extra_json = json.loads(column.extra or "{}")
+            try:
+                extra_json = json.loads(column.extra or "{}")
+            except json.decoder.JSONDecodeError:
+                extra_json = {}
             for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
                 value = getattr(column, attr)
                 if value:
@@ -2247,7 +2273,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # create metrics
         for metric in dataset.metrics:
-            extra_json = json.loads(metric.extra or "{}")
+            try:
+                extra_json = json.loads(metric.extra or "{}")
+            except json.decoder.JSONDecodeError:
+                extra_json = {}
             for attr in {"verbose_name", "metric_type", "d3format"}:
                 value = getattr(metric, attr)
                 if value:
@@ -2278,8 +2307,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             )
 
         # physical dataset
-        tables = []
-        if dataset.sql is None:
+        if not dataset.sql:
             physical_columns = [column for column in columns if column.is_physical]
 
             # create table
@@ -2292,7 +2320,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 is_managed_externally=dataset.is_managed_externally,
                 external_url=dataset.external_url,
             )
-            tables.append(table)
+            tables = [table]
 
         # virtual dataset
         else:
@@ -2303,18 +2331,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             # find referenced tables
             parsed = ParsedQuery(dataset.sql)
             referenced_tables = parsed.tables
-
-            # predicate for finding the referenced tables
-            predicate = or_(
-                *[
-                    and_(
-                        NewTable.schema == (table.schema or dataset.schema),
-                        NewTable.name == table.table,
-                    )
-                    for table in referenced_tables
-                ]
+            tables = load_or_create_tables(
+                session,
+                dataset.database_id,
+                dataset.schema,
+                referenced_tables,
+                conditional_quote,
+                engine,
             )
-            tables = session.query(NewTable).filter(predicate).all()
 
         # create the new dataset
         new_dataset = NewDataset(
@@ -2323,7 +2347,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             expression=dataset.sql or conditional_quote(dataset.table_name),
             tables=tables,
             columns=columns,
-            is_physical=dataset.sql is None,
+            is_physical=not dataset.sql,
             is_managed_externally=dataset.is_managed_externally,
             external_url=dataset.external_url,
         )

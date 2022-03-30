@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from secrets import token_urlsafe
 from typing import Any
 
 SEPARATOR = ";"
@@ -22,7 +21,3 @@ SEPARATOR = ";"
 
 def cache_key(*args: Any) -> str:
     return SEPARATOR.join(str(arg) for arg in args)
-
-
-def random_key() -> str:
-    return token_urlsafe(48)

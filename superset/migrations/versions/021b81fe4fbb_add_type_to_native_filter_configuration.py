@@ -91,7 +91,8 @@ def downgrade():
 
     for dashboard in session.query(Dashboard).all():
         logger.info(
-            "[RemoveTypeToNativeFilter] Updating Dashobard<pk:%s>", dashboard.id,
+            "[RemoveTypeToNativeFilter] Updating Dashobard<pk:%s>",
+            dashboard.id,
         )
         if not dashboard.json_metadata:
             logger.info(
