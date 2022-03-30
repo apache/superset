@@ -51,12 +51,12 @@ def upgrade():
         if slc.query_context:
             try:
                 query_context = json.loads(slc.query_context)
-                queries = query_context.get("queries")
-                for query in queries:
-                    query.get("extras", {}).pop("time_range_endpoints", None)
-                slc.queries = json.dumps(queries)
             except json.decoder.JSONDecodeError:
-                pass
+                continue
+            queries = query_context.get("queries")
+            for query in queries:
+                query.get("extras", {}).pop("time_range_endpoints", None)
+            slc.queries = json.dumps(queries)
 
     session.commit()
     session.close()
