@@ -585,8 +585,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         TODO: break into one endpoint for each return shape"""
         from flask_login import current_user
         logger.warning(f"Current user {current_user}")
-        logger.warning(f"Current user roles {current_user.roles}")
-        current_user
+        logger.warning(f"g.user = {g.user}")
+        # logger.warning(f"Current user roles {current_user.roles}")
+
 
         response_type = utils.ChartDataResultFormat.JSON.value
         responses: List[
