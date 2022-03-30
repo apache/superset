@@ -47,14 +47,11 @@ class Slice(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
-    for m in session.query(MyModel):
-        queries = json.loads(m.queries)
-        for q in queries:
-            extras = q.get("extras")
-            if extras:
-                extras.pop("time_range_endpoints", None)
-        m.queries = json.dumps(queries)
+    for slc in session.query(Slice):
+        queries = json.loads(slc.queries)
+        for query in queries:
+            query.get("extras", {}).pop("time_range_endpoints", None)
+        slc.queries = json.dumps(queries)
 
     session.commit()
     session.close()
