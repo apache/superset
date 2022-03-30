@@ -48,11 +48,15 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
     for slc in session.query(Slice):
-        query_context = json.loads(slc.query_context)
-        queries = query_context.get("queries")
-        for query in queries:
-            query.get("extras", {}).pop("time_range_endpoints", None)
-        slc.queries = json.dumps(queries)
+        if slc.query_context:
+            try:
+                query_context = json.loads(slc.query_context)
+                queries = query_context.get("queries")
+                for query in queries:
+                    query.get("extras", {}).pop("time_range_endpoints", None)
+                slc.queries = json.dumps(queries)
+            except json.decoder.JSONDecodeError:
+                pass
 
     session.commit()
     session.close()
