@@ -148,9 +148,9 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 });
 
 type CollectionTabTitleProps = {
-  title: string,
-  collection: array,
-}
+  title: string;
+  collection: [];
+};
 
 function CollectionTabTitle({ title, collection }: CollectionTabTitleProps) {
   return (
@@ -164,17 +164,24 @@ function CollectionTabTitle({ title, collection }: CollectionTabTitleProps) {
   );
 }
 
-CollectionTabTitle.propTypes = {
-  title: PropTypes.string,
-  collection: PropTypes.array,
-};
-
+// type ColumnCollectionTable
+// ColumnCollectionTable.propTypes = {
+//   columns: PropTypes.array.isRequired,
+//   datasource: PropTypes.object.isRequired,
+//   onColumnsChange: PropTypes.func.isRequired,
+//   onDatasourceChange: PropTypes.func.isRequired,
+//   editableColumnName: PropTypes.bool,
+//   showExpression: PropTypes.bool,
+//   allowAddItem: PropTypes.bool,
+//   allowEditDataType: PropTypes.bool,
+//   itemGenerator: PropTypes.func,
+// };
 function ColumnCollectionTable({
   columns,
   datasource,
   onColumnsChange,
   onDatasourceChange,
-  editableColumnName,
+  editableColumnName = false,
   showExpression,
   allowAddItem,
   allowEditDataType,
@@ -369,17 +376,6 @@ function ColumnCollectionTable({
     />
   );
 }
-ColumnCollectionTable.propTypes = {
-  columns: PropTypes.array.isRequired,
-  datasource: PropTypes.object.isRequired,
-  onColumnsChange: PropTypes.func.isRequired,
-  onDatasourceChange: PropTypes.func.isRequired,
-  editableColumnName: PropTypes.bool,
-  showExpression: PropTypes.bool,
-  allowAddItem: PropTypes.bool,
-  allowEditDataType: PropTypes.bool,
-  itemGenerator: PropTypes.func,
-};
 ColumnCollectionTable.defaultProps = {
   editableColumnName: false,
   showExpression: false,
