@@ -1357,6 +1357,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         try:
             token = self.parse_jwt_guest_token(raw_token)
+            # todo: embedded logging
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
             if token.get("resources") is None:
