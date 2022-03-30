@@ -108,7 +108,12 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
             }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dashboard", "id": "not-a-uuid"}]}
+            {
+                "user": {},
+                "resources": [
+                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                ],
+            }
         )
 
     def test_has_guest_access__regular_user(self):
@@ -149,7 +154,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
 
     def test_has_guest_access__unauthorized_guest_user__different_resource_type(self):
         g.user = security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dirt", "id": self.embedded.id}]}
+            {"user": {}, "resources": [{"type": "dirt", "id": self.embedded.uuid}]}
         )
         has_guest_access = security_manager.has_guest_access(self.dash)
         self.assertFalse(has_guest_access)

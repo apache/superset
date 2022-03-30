@@ -68,6 +68,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
+    GuestTokenResourceType,
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
@@ -1413,17 +1414,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not user:
             return False
 
+        dashboards = [
+            r
+            for r in user.resources
+            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        ]
+
         # TODO (embedded): remove this check once uuids are rolled out
-        for resource in user.resources:
-            strid = str(resource["id"])
+        for resource in dashboards:
             if str(resource["id"]) == str(dashboard.id):
                 return True
 
         if not dashboard.embedded:
             return False
 
-        for resource in user.resources:
-            strid = str(resource["id"])
-            if strid == str(dashboard.embedded[0].uuid):
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
