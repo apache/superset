@@ -107,7 +107,6 @@ def with_dashboard(
     """
 
     def wraps(self: BaseSupersetModelRestApi, id_or_slug: str) -> Response:
-        # pylint: disable=arguments-differ
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             return f(self, dash)
@@ -284,7 +283,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    @with_dashboard  # pylint: disable=arguments-renamed
+    @with_dashboard
+    # pylint: disable=arguments-renamed, arguments-differ
     def get(self, dash: Dashboard) -> Response:
         """Gets a dashboard
         ---
@@ -1039,7 +1039,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
         log_to_statsd=False,
     )
-    @with_dashboard  # pylint: disable=arguments-renamed
+    @with_dashboard
     def get_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Returns the dashboard's embedded configuration
@@ -1082,7 +1082,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
         log_to_statsd=False,
     )
-    @with_dashboard  # pylint: disable=arguments-renamed
+    @with_dashboard
     def set_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Sets a dashboard's embedded configuration.
@@ -1163,7 +1163,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
-    @with_dashboard  # pylint: disable=arguments-renamed
+    @with_dashboard
     def delete_embedded(self, dashboard: Dashboard) -> Response:
         """Response
         Removes a dashboard's embedded configuration.
