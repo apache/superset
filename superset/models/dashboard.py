@@ -152,6 +152,11 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    embedded = relationship(
+        "EmbeddedDashboard",
+        back_populates="dashboard",
+        cascade="all, delete-orphan",
+    )
     _filter_sets = relationship(
         "FilterSet", back_populates="dashboard", cascade="all, delete"
     )

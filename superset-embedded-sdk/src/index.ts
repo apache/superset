@@ -140,7 +140,7 @@ export async function embedDashboard({
         );
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded${dashboardConfig}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}`;
       mountPoint.replaceChildren(iframe);
       log("placed the iframe");
     });

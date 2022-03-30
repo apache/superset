@@ -52,7 +52,9 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
+import findPermission from 'src/dashboard/util/findPermission';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -420,6 +422,14 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  showEmbedModal = () => {
+    this.setState({ showingEmbedModal: true });
+  };
+
+  hideEmbedModal = () => {
+    this.setState({ showingEmbedModal: false });
+  };
+
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
     return attachedReportExists ? (
@@ -498,6 +508,9 @@ class Header extends React.PureComponent {
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+    const userCanCurate =
+      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      findPermission('can_set_embedded', 'Dashboard', user.roles);
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -658,6 +671,14 @@ class Header extends React.PureComponent {
             />
           )}
 
+          {userCanCurate && (
+            <DashboardEmbedModal
+              show={this.state.showingEmbedModal}
+              onHide={this.hideEmbedModal}
+              dashboardId={dashboardInfo.id}
+            />
+          )}
+
           <HeaderActionsDropdown
             addSuccessToast={this.props.addSuccessToast}
             addDangerToast={this.props.addDangerToast}
@@ -683,8 +704,10 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanShare={userCanShare}
             userCanSave={userCanSaveAs}
+            userCanCurate={userCanCurate}
             isLoading={isLoading}
             showPropertiesModal={this.showPropertiesModal}
+            manageEmbedded={this.showEmbedModal}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
             lastModifiedTime={lastModifiedTime}
