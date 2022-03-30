@@ -147,7 +147,6 @@ const truncateLongCells: ControlFormItemSpec<'Checkbox'> = {
   controlType: 'Checkbox',
   label: t('Truncate Cells'),
   description: t('Truncate long cells to the "min width" set above'),
-  width: 150,
   defaultValue: false,
   debounceDelay: 400,
 };
