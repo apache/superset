@@ -23,8 +23,8 @@ import sys
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
+
 with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
