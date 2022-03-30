@@ -472,7 +472,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [file, setFile] = useState<UploadFile[]>([]);
-  const [importingModel, setImportingModel] = useState<boolean>(false);
+  const [importingModal, setImportingModal] = useState<boolean>(false);
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -542,7 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     clearError();
     setEditNewDb(false);
     setFile([]);
-    setImportingModel(false);
+    setImportingModal(false);
     setPasswords({});
     if (onDatabaseAdd) onDatabaseAdd();
     onHide();
@@ -655,7 +655,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Import - doesn't use db state
     if (!db) {
       setLoading(true);
-      setImportingModel(true);
+      setImportingModal(true);
 
       if (!(file[0].originFileObj instanceof File)) return;
       const dbId = await importResource(
@@ -825,7 +825,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
-      if (!hasConnectedDb || editNewDb || importingModel) {
+      if (!hasConnectedDb || editNewDb || importingModal) {
         return (
           <>
             <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
@@ -860,7 +860,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     // Import doesn't use db, so footer will not render in the if statement above
-    if (importingModel) {
+    if (importingModal) {
       return (
         <>
           <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
@@ -926,7 +926,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [availableDbs]);
 
   const onDbImport = (info: UploadChangeParam) => {
-    setImportingModel(true);
+    setImportingModal(true);
     setFile([
       {
         ...info.file,
@@ -1436,7 +1436,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   data-test="database-file-input"
                   accept=".yaml,.json,.yml,.zip"
                   customRequest={() => {}}
-                  onChange={info => onDbImport(info)}
+                  onChange={onDbImport}
                   onRemove={removeFile}
                 >
                   <Button
