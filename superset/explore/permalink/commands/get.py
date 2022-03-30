@@ -42,7 +42,8 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
         try:
             key = decode_permalink_id(self.key, salt=self.salt)
             value: Optional[ExplorePermalinkValue] = GetKeyValueCommand(
-                resource=self.resource, key=key,
+                resource=self.resource,
+                key=key,
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")

@@ -79,7 +79,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   canOverwriteSlice(): boolean {
-    return this.props.slice?.owners?.includes(this.props.userId);
+    return (
+      this.props.slice?.owners?.includes(this.props.userId) &&
+      !this.props.slice?.is_managed_externally
+    );
   }
 
   componentDidMount() {

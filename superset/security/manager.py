@@ -1307,7 +1307,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_current_epoch_time() -> float:
-        """ This is used so the tests can mock time """
+        """This is used so the tests can mock time"""
         return time.time()
 
     @staticmethod
@@ -1376,7 +1376,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
-            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            token=token,
+            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
     def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:

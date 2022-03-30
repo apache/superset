@@ -598,7 +598,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ['"text in double quotes"'], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ['"text in double quotes"'],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -608,7 +614,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ["'text in single quotes'"], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ["'text in single quotes'"],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -618,7 +630,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ['double quotes " in text'], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ['double quotes " in text'],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -628,7 +646,13 @@ def test_filter_on_text_column(text_column_table):
     result_object = table.query(
         {
             "metrics": ["count"],
-            "filter": [{"col": "foo", "val": ["single quotes ' in text"], "op": "IN",}],
+            "filter": [
+                {
+                    "col": "foo",
+                    "val": ["single quotes ' in text"],
+                    "op": "IN",
+                }
+            ],
             "is_timeseries": False,
         }
     )
@@ -652,7 +676,10 @@ def test_should_generate_closed_and_open_time_filter_range():
             database=get_example_database(),
         )
         TableColumn(
-            column_name="datetime_col", type="TIMESTAMP", table=table, is_dttm=True,
+            column_name="datetime_col",
+            type="TIMESTAMP",
+            table=table,
+            is_dttm=True,
         )
         SqlMetric(metric_name="count", expression="count(*)", table=table)
         result_object = table.query(
@@ -719,26 +746,48 @@ def test__normalize_prequery_result_type(
 
     columns_by_name = {
         "foo": TableColumn(
-            column_name="foo", is_dttm=False, table=table, type="STRING",
+            column_name="foo",
+            is_dttm=False,
+            table=table,
+            type="STRING",
         ),
         "bar": TableColumn(
-            column_name="bar", is_dttm=False, table=table, type="BOOLEAN",
+            column_name="bar",
+            is_dttm=False,
+            table=table,
+            type="BOOLEAN",
         ),
         "baz": TableColumn(
-            column_name="baz", is_dttm=False, table=table, type="INTEGER",
+            column_name="baz",
+            is_dttm=False,
+            table=table,
+            type="INTEGER",
         ),
         "qux": TableColumn(
-            column_name="qux", is_dttm=False, table=table, type="FLOAT",
+            column_name="qux",
+            is_dttm=False,
+            table=table,
+            type="FLOAT",
         ),
         "quux": TableColumn(
-            column_name="quuz", is_dttm=True, table=table, type="STRING",
+            column_name="quuz",
+            is_dttm=True,
+            table=table,
+            type="STRING",
         ),
         "quuz": TableColumn(
-            column_name="quux", is_dttm=True, table=table, type="TIMESTAMP",
+            column_name="quux",
+            is_dttm=True,
+            table=table,
+            type="TIMESTAMP",
         ),
     }
 
-    normalized = table._normalize_prequery_result_type(row, dimension, columns_by_name,)
+    normalized = table._normalize_prequery_result_type(
+        row,
+        dimension,
+        columns_by_name,
+    )
 
     assert type(normalized) == type(result)
 

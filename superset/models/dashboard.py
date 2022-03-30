@@ -279,6 +279,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             "slices": [slc.data for slc in self.slices],
             "position_json": positions,
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @cache_manager.cache.memoize(
@@ -343,7 +344,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @debounce(0.1)
     def clear_cache_for_datasource(cls, datasource_id: int) -> None:
         filter_query = select(
-            [dashboard_slices.c.dashboard_id], distinct=True,
+            [dashboard_slices.c.dashboard_id],
+            distinct=True,
         ).select_from(
             join(
                 dashboard_slices,

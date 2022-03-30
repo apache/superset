@@ -170,7 +170,9 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
         if value:
-            return query.filter(role_model.name.ilike(f"%{value}%"),)
+            return query.filter(
+                role_model.name.ilike(f"%{value}%"),
+            )
         return query
 
 
@@ -184,7 +186,15 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
 
     def apply(self, query: Query, value: Any) -> Query:
         if value is True:
-            return query.filter(and_(Dashboard.certified_by.isnot(None),))
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.isnot(None),
+                )
+            )
         if value is False:
-            return query.filter(and_(Dashboard.certified_by.is_(None),))
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.is_(None),
+                )
+            )
         return query

@@ -92,6 +92,8 @@ PROPHET_TIME_GRAIN_MAP = {
     "P1W/1970-01-04T00:00:00Z": "W",
 }
 
+RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
+
 FLAT_COLUMN_SEPARATOR = ", "
 
 
@@ -146,7 +148,8 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
 
 
 def _get_aggregate_funcs(
-    df: DataFrame, aggregates: Dict[str, Dict[str, Any]],
+    df: DataFrame,
+    aggregates: Dict[str, Dict[str, Any]],
 ) -> Dict[str, NamedAgg]:
     """
     Converts a set of aggregate config objects into functions that pandas can use as
@@ -168,7 +171,10 @@ def _get_aggregate_funcs(
             )
         if "operator" not in agg_obj:
             raise InvalidPostProcessingError(
-                _("Operator undefined for aggregator: %(name)s", name=name,)
+                _(
+                    "Operator undefined for aggregator: %(name)s",
+                    name=name,
+                )
             )
         operator = agg_obj["operator"]
         if callable(operator):
@@ -177,7 +183,10 @@ def _get_aggregate_funcs(
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
                 raise InvalidPostProcessingError(
-                    _("Invalid numpy function: %(operator)s", operator=operator,)
+                    _(
+                        "Invalid numpy function: %(operator)s",
+                        operator=operator,
+                    )
                 )
             options = agg_obj.get("options", {})
             aggfunc = partial(func, **options)
