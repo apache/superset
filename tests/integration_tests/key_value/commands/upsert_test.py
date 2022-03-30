@@ -53,6 +53,7 @@ def test_upsert_id_entry(
         key=ID_KEY,
         value=NEW_VALUE,
     ).run()
+    assert key is not None
     assert key.id == ID_KEY
     entry = (
         db.session.query(KeyValueEntry).filter_by(id=int(ID_KEY)).autoflush(False).one()
@@ -75,6 +76,7 @@ def test_upsert_uuid_entry(
         key=UUID_KEY,
         value=NEW_VALUE,
     ).run()
+    assert key is not None
     assert key.uuid == UUID_KEY
     entry = (
         db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).autoflush(False).one()
@@ -93,6 +95,7 @@ def test_upsert_missing_entry(app_context: AppContext, admin: User) -> None:
         key=456,
         value=NEW_VALUE,
     ).run()
+    assert key is not None
     assert key.id == 456
     db.session.query(KeyValueEntry).filter_by(id=456).delete()
     db.session.commit()
