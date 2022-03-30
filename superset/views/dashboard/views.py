@@ -164,6 +164,7 @@ class Dashboard(BaseSupersetView):
 
         bootstrap_data = {
             "common": common_bootstrap_payload(),
+            "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 
         return self.render_template(
