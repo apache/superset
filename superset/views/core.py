@@ -561,7 +561,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         EXPLORE_JSON_METHODS.append("GET")
 
     @api
-    @has_access_api
+    # @has_access_api
     @handle_api_exception
     @event_logger.log_this
     @expose(
@@ -583,6 +583,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payloads based on the request args in the first block
 
         TODO: break into one endpoint for each return shape"""
+        from flask_login import current_user
+        logger.warning(f"Current user {current_user}")
+        logger.warning(f"Current user roles {current_user.roles}")
+        current_user
 
         response_type = utils.ChartDataResultFormat.JSON.value
         responses: List[
