@@ -430,7 +430,14 @@ export function useImportResource(
         body: formData,
         headers: { Accept: 'application/json' },
       })
-        .then(() => true)
+        .then(() => {
+          console.log('findme then');
+          // updateState({
+          //   passwordsNeeded: [],
+          //   alreadyExists: [],
+          // });
+          return true;
+        })
         .catch(response =>
           getClientErrorObject(response).then(error => {
             if (!error.errors) {

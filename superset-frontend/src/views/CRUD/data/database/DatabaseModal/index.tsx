@@ -460,6 +460,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     importResource,
   } = useImportResource('database', t('database'), msg => addDangerToast(msg));
 
+  console.log('findme state', alreadyExists, passwordsNeeded);
+
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [validationErrors, getValidation, setValidationErrors] =
@@ -544,7 +546,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setFileList([]);
     setImportingModal(false);
     setPasswords({});
+    setConfirmedOverwrite(false);
+    console.log('findme 4');
     if (onDatabaseAdd) onDatabaseAdd();
+    console.log('findme 5');
     onHide();
   };
 
@@ -925,7 +930,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
-  const onDbImport = (info: UploadChangeParam) => {
+  const onDbImport = async (info: UploadChangeParam) => {
+    console.log('findme odi 1', alreadyExists.length, passwordsNeeded.length);
     setImportingModal(true);
     setFileList([
       {
@@ -935,7 +941,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ]);
 
     if (!(info.file.originFileObj instanceof File)) return;
-    importResource(info.file.originFileObj, passwords, confirmedOverwrite);
+    await importResource(
+      info.file.originFileObj,
+      passwords,
+      confirmedOverwrite,
+    );
+
+    // if (!alreadyExists.length && JSON.stringify(passwords) === '{}') {
+    //   console.log('findme inside the check!');
+    //   onClose();
+    //   addSuccessToast(t('Database connected'));
+
+    //   if (onDatabaseAdd) onDatabaseAdd();
+    // }
+
+    console.log('findme odi', alreadyExists.length, passwordsNeeded.length);
   };
 
   const passwordNeededField = () => {
@@ -1156,7 +1176,34 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (fileList.length > 0 && (confirmedOverwrite || passwords)) {
+  console.log(
+    'findme import state',
+    fileList.length,
+    alreadyExists.length,
+    passwords,
+    confirmedOverwrite || JSON.stringify(passwords) !== '{}',
+  );
+  if (fileList.length > 0) {
+    console.log(
+      'findme modal',
+      alreadyExists.length,
+      passwordsNeeded.length,
+      confirmedOverwrite,
+      passwords,
+      JSON.stringify(passwords) === '{}' ? 'true' : 'false',
+    );
+
+    console.log('findme before the check!');
+
+    if (!alreadyExists.length && JSON.stringify(passwords) === '{}') {
+      console.log('findme hide modal now');
+      // onClose();
+      // addSuccessToast(t('Database connected'));
+
+      // if (onDatabaseAdd) onDatabaseAdd();
+    }
+    console.log('findme after the check!');
+
     return (
       <Modal
         css={(theme: SupersetTheme) => [
