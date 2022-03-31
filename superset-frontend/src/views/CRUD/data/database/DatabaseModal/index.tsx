@@ -488,8 +488,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
+      const errors = await getValidation(dbToUpdate, true);
+      if (
+        (validationErrors && !isEmpty(validationErrors)) ||
+        !isEmpty(errors)
+      ) {
         return;
       }
       const parameters_schema = isEditMode
