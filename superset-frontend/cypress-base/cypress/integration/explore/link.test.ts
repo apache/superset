@@ -38,7 +38,7 @@ describe('Test explore links', () => {
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('div#query').click();
+    cy.get('[aria-label="Menu actions trigger"]').click();
     cy.get('span').contains('View query').parent().click();
     cy.wait('@chartData').then(() => {
       cy.get('code');
@@ -52,7 +52,12 @@ describe('Test explore links', () => {
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test=embed-code-button]').click();
+    cy.get('[aria-label="Menu actions trigger"]').click();
+    cy.get('div[title="Share"]').trigger('mouseover');
+    // need to use [id= syntax, otherwise error gets triggered because of special character in id
+    cy.get('[id="share_submenu$Menu"]').within(() => {
+      cy.contains('Embed code').parent().click();
+    });
     cy.get('#embed-code-popover').within(() => {
       cy.get('textarea[name=embedCode]').contains('iframe');
     });
