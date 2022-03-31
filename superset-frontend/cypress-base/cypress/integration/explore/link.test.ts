@@ -53,6 +53,7 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[aria-label="Menu actions trigger"]').click();
+    cy.get('div[title="Share"]').click();
     cy.get('span').contains('Embed code').parent().click();
     cy.get('#embed-code-popover').within(() => {
       cy.get('textarea[name=embedCode]').contains('iframe');
