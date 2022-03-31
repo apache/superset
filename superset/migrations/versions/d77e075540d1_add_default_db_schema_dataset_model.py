@@ -29,6 +29,7 @@ down_revision = "58df9d617f14"
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -61,24 +62,62 @@ class Dataset(Base):
 
 
 def upgrade():
-    op.add_column(
-        "sl_datasets",
-        sa.Column("default_schema", sa.Text(), nullable=False, server_default="public"),
-    )
-    op.add_column(
-        "sl_datasets",
-        sa.Column("database_id", sa.Integer(), nullable=False, server_default="0"),
-    )
-
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
+    # initially set value nullable too allow us to create column
+    op.add_column(
+        "sl_datasets",
+        sa.Column(
+            "default_schema",
+            sa.Text(),
+            nullable=True,
+        ),
+    )
+    op.add_column(
+        "sl_datasets",
+        sa.Column(
+            "database_id",
+            sa.Integer(),
+            sa.ForeignKey("dbs.id"),
+            nullable=True,
+        ),
+    )
+
+    # fill in columns with default values
     for sqlatable in session.query(SqlaTable).all():
-        ds = session.query(Dataset).filter(Dataset.sqlatable_id == sqlatable.id).one()
+        try:
+            ds = (
+                session.query(Dataset)
+                .filter(Dataset.sqlatable_id == sqlatable.id)
+                .one()
+            )
+        except sa.orm.exc.NoResultFound:
+            pass
+
         ds.default_schema = sqlatable.schema
         ds.database_id = sqlatable.database_id
 
+    # alter column to be not nullable
+    op.alter_column(
+        "sl_datasets",
+        sa.Column(
+            "default_schema",
+            sa.Text(),
+            nullable=False,
+        ),
+    )
+    op.alter_column(
+        "sl_datasets",
+        sa.Column(
+            "database_id",
+            sa.Integer(),
+            sa.ForeignKey("dbs.id"),
+            nullable=False,
+        ),
+    )
     session.commit()
+    session.close()
 
 
 def downgrade():

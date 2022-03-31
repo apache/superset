@@ -24,7 +24,6 @@ dataset, new models for columns, metrics, and tables were also introduced.
 These models are not fully implemented, and shouldn't be used yet.
 """
 
-from email.policy import default
 from typing import List
 
 import sqlalchemy as sa
@@ -68,6 +67,8 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # model has been deleted this column can be removed.
     sqlatable_id = sa.Column(sa.Integer, nullable=True, unique=True)
 
+    # default values set for filtering + querying if self.expression
+    # doesn't explicitly state which db or schema to read from
     default_schema = sa.Column(sa.Text)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
     default_database: Database = relationship(
@@ -83,13 +84,6 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     name = sa.Column(sa.Text)
 
     expression = sa.Column(sa.Text)
-
-    # default_schema = sa.Column(sa.Text)
-    # database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
-    # default_database: Database = relationship(
-    #     "Database",
-    #     foreign_keys=[database_id],
-    # )
 
     # n:n relationship
     tables: List[Table] = relationship("Table", secondary=table_association_table)
