@@ -93,7 +93,7 @@ def upgrade():
                 .one()
             )
         except sa.orm.exc.NoResultFound:
-            pass
+            continue
 
         ds.default_schema = sqlatable.schema
         ds.database_id = sqlatable.database_id
