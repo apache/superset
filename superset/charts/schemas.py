@@ -24,7 +24,7 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 
-from superset import app
+from superset import app, forecasts
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
@@ -521,9 +521,9 @@ class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptions
     )
 
 
-class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
+class ChartDataForecastOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     """
-    Prophet operation config.
+    Forecast operation config.
     """
 
     time_grain = fields.String(
@@ -580,6 +580,14 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         "An integer value will specify Fourier order of seasonality, `None` will "
         "automatically detect seasonality.",
         example=False,
+    )
+    model_name = fields.String(
+        description="Which model to use for forecasting.",
+        validate=validate.OneOf(
+            choices=list(forecasts.available_models.keys())
+        ),
+        example="prophet.Prophet",
+        required=True,
     )
 
 
@@ -758,7 +766,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
                 "geohash_decode",
                 "geohash_encode",
                 "pivot",
-                "prophet",
+                "forecast",
                 "rolling",
                 "select",
                 "sort",
@@ -1305,12 +1313,12 @@ CHART_SCHEMAS = (
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
-    #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
+    #  in ChartDataPostProcessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
     ChartDataAdhocMetricSchema,
     ChartDataAggregateOptionsSchema,
     ChartDataContributionOptionsSchema,
-    ChartDataProphetOptionsSchema,
+    ChartDataForecastOptionsSchema,
     ChartDataBoxplotOptionsSchema,
     ChartDataPivotOptionsSchema,
     ChartDataRollingOptionsSchema,

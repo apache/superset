@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
-import { prophetOperator } from '../../../src';
+import { forecastOperator } from '../../../src';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -38,13 +38,13 @@ const queryObject: QueryObject = {
   granularity: 'P1Y',
 };
 
-test('should skip prophetOperator', () => {
-  expect(prophetOperator(formData, queryObject)).toEqual(undefined);
+test('should skip forecastOperator', () => {
+  expect(forecastOperator(formData, queryObject)).toEqual(undefined);
 });
 
-test('should do prophetOperator', () => {
+test('should do forecastOperator', () => {
   expect(
-    prophetOperator(
+    forecastOperator(
       {
         ...formData,
         forecastEnabled: true,
@@ -57,7 +57,7 @@ test('should do prophetOperator', () => {
       queryObject,
     ),
   ).toEqual({
-    operation: 'prophet',
+    operation: 'forecast',
     options: {
       time_grain: 'P1Y',
       periods: 3.0,

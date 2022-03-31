@@ -102,8 +102,8 @@ export interface PostProcessingPivot {
   };
 }
 
-export interface PostProcessingProphet {
-  operation: 'prophet';
+export interface PostProcessingForecast {
+  operation: 'forecast';
   options: {
     time_grain: TimeGranularity;
     periods: number;
@@ -111,6 +111,7 @@ export interface PostProcessingProphet {
     yearly_seasonality?: boolean | number;
     weekly_seasonality?: boolean | number;
     daily_seasonality?: boolean | number;
+    model_name: string;
   };
 }
 
@@ -179,7 +180,7 @@ export type PostProcessingRule =
   | PostProcessingBoxplot
   | PostProcessingContribution
   | PostProcessingPivot
-  | PostProcessingProphet
+  | PostProcessingForecast
   | PostProcessingDiff
   | PostProcessingRolling
   | PostProcessingCum
@@ -211,10 +212,10 @@ export function isPostProcessingPivot(
   return rule?.operation === 'pivot';
 }
 
-export function isPostProcessingProphet(
+export function isPostProcessingForecast(
   rule?: PostProcessingRule,
-): rule is PostProcessingProphet {
-  return rule?.operation === 'prophet';
+): rule is PostProcessingForecast {
+  return rule?.operation === 'forecast';
 }
 
 export function isPostProcessingDiff(

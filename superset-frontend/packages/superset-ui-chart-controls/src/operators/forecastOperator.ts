@@ -16,15 +16,15 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingProphet } from '@superset-ui/core';
+import { PostProcessingForecast } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const prophetOperator: PostProcessingFactory<
-  PostProcessingProphet | undefined
+export const forecastOperator: PostProcessingFactory<
+  PostProcessingForecast | undefined
 > = (formData, queryObject) => {
   if (formData.forecastEnabled) {
     return {
-      operation: 'prophet',
+      operation: 'forecast',
       options: {
         time_grain: formData.time_grain_sqla,
         periods: parseInt(formData.forecastPeriods, 10),
@@ -32,6 +32,7 @@ export const prophetOperator: PostProcessingFactory<
         yearly_seasonality: formData.forecastSeasonalityYearly,
         weekly_seasonality: formData.forecastSeasonalityWeekly,
         daily_seasonality: formData.forecastSeasonalityDaily,
+        model_name: formData.forecastModel,
       },
     };
   }

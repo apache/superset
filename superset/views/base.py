@@ -56,6 +56,7 @@ from superset import (
     appbuilder,
     conf,
     db,
+    forecasts,
     get_feature_flags,
     security_manager,
 )
@@ -352,6 +353,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
+    forecasters = list(forecasts.available_models.keys())
+    frontend_config["AVAILABLE_FORECASTERS"] = list(map(list, zip(forecasters, forecasters)))
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,

@@ -31,7 +31,7 @@ import {
   pivotOperator,
   resampleOperator,
   contributionOperator,
-  prophetOperator,
+  forecastOperator,
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
@@ -71,7 +71,7 @@ export default function buildQuery(formData: QueryFormData) {
           pivotOperatorInRuntime,
           rollingWindowOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
-          prophetOperator(formData, baseQueryObject),
+          forecastOperator(formData, baseQueryObject),
         ],
       },
     ];

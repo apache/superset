@@ -153,7 +153,7 @@ lonlat_df = DataFrame(
     }
 )
 
-prophet_df = DataFrame(
+forecast_df = DataFrame(
     {
         "__timestamp": [
             datetime(2018, 12, 31),

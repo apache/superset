@@ -40,7 +40,7 @@ from .fixtures.dataframes import (
     lonlat_df,
     names_df,
     timeseries_df,
-    prophet_df,
+    forecast_df,
     timeseries_df2,
 )
 
@@ -801,11 +801,13 @@ class TestPostProcessing(SupersetTestCase):
         self.assertListEqual(processed_df["b"].tolist(), [1, 9])
         self.assertListEqual(processed_df["pct_a"].tolist(), [0.25, 0.75])
 
-    def test_prophet_valid(self):
-        pytest.importorskip("prophet")
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_valid(self, model_name):
+        if model_name == "prophet.Prophet":
+            pytest.importorskip("prophet")
 
-        df = proc.prophet(
-            df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9
+        df = proc.forecast(
+            df=forecast_df, time_grain="P1M", periods=3, confidence_interval=0.9, model_name=model_name
         )
         columns = {column for column in df.columns}
         assert columns == {
@@ -823,18 +825,20 @@ class TestPostProcessing(SupersetTestCase):
         assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 3, 31)
         assert len(df) == 7
 
-        df = proc.prophet(
-            df=prophet_df, time_grain="P1M", periods=5, confidence_interval=0.9
+        df = proc.forecast(
+            df=forecast_df, time_grain="P1M", periods=5, confidence_interval=0.9, model_name=model_name
         )
         assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
         assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
         assert len(df) == 9
 
-    def test_prophet_valid_zero_periods(self):
-        pytest.importorskip("prophet")
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_valid_zero_periods(self, model_name):
+        if model_name == "prophet.Prophet":
+            pytest.importorskip("prophet")
 
-        df = proc.prophet(
-            df=prophet_df, time_grain="P1M", periods=0, confidence_interval=0.9
+        df = proc.forecast(
+            df=forecast_df, time_grain="P1M", periods=0, confidence_interval=0.9, model_name=model_name
         )
         columns = {column for column in df.columns}
         assert columns == {
@@ -856,59 +860,68 @@ class TestPostProcessing(SupersetTestCase):
         prophet = find_spec("prophet")
         if prophet is None:
             with pytest.raises(QueryObjectValidationError):
-                proc.prophet(
-                    df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9
+                proc.forecast(
+                    df=forecast_df, time_grain="P1M", periods=3, confidence_interval=0.9
                 )
 
-    def test_prophet_missing_temporal_column(self):
-        df = prophet_df.drop(DTTM_ALIAS, axis=1)
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_missing_temporal_column(self, model_name):
+        df = forecast_df.drop(DTTM_ALIAS, axis=1)
 
         self.assertRaises(
             QueryObjectValidationError,
-            proc.prophet,
+            proc.forecast,
             df=df,
             time_grain="P1M",
             periods=3,
             confidence_interval=0.9,
+            model_name=model_name,
         )
 
-    def test_prophet_incorrect_confidence_interval(self):
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_incorrect_confidence_interval(self, model_name):
         self.assertRaises(
             QueryObjectValidationError,
-            proc.prophet,
-            df=prophet_df,
+            proc.forecast,
+            df=forecast_df,
             time_grain="P1M",
             periods=3,
             confidence_interval=0.0,
+            model_name=model_name,
         )
 
         self.assertRaises(
             QueryObjectValidationError,
-            proc.prophet,
-            df=prophet_df,
+            proc.forecast,
+            df=forecast_df,
             time_grain="P1M",
             periods=3,
             confidence_interval=1.0,
+            model_name=model_name,
         )
 
-    def test_prophet_incorrect_periods(self):
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_incorrect_periods(self, model_name):
         self.assertRaises(
             QueryObjectValidationError,
-            proc.prophet,
-            df=prophet_df,
+            proc.forecast,
+            df=forecast_df,
             time_grain="P1M",
             periods=-1,
             confidence_interval=0.8,
+            model_name=model_name,
         )
 
-    def test_prophet_incorrect_time_grain(self):
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_forecast_incorrect_time_grain(self):
         self.assertRaises(
             QueryObjectValidationError,
-            proc.prophet,
-            df=prophet_df,
+            proc.forecast,
+            df=forecast_df,
             time_grain="yearly",
             periods=10,
             confidence_interval=0.8,
+            model_name=model_name,
         )
 
     def test_boxplot_tukey(self):

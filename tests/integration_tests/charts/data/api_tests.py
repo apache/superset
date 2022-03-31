@@ -362,11 +362,13 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         else:
             raise Exception("ds column not found")
 
-    def test_chart_data_prophet(self):
+    @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
+    def test_chart_data_forecast(self, model_name):
         """
-        Chart data API: Ensure prophet post transformation works
+        Chart data API: Ensure forecast post transformation works
         """
-        pytest.importorskip("prophet")
+        if model_name == "prophet.Prophet":
+            pytest.importorskip("prophet")
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -376,11 +378,12 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["queries"][0]["granularity"] = "ds"
         self.query_context_payload["queries"][0]["post_processing"] = [
             {
-                "operation": "prophet",
+                "operation": "forecast",
                 "options": {
                     "time_grain": time_grain,
                     "periods": 3,
                     "confidence_interval": 0.9,
+                    "model_name": model_name,
                 },
             }
         ]

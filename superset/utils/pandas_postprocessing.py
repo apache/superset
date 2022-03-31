@@ -34,6 +34,7 @@ from superset.utils.core import (
     PostProcessingContributionOrientation,
     TIME_COMPARISION,
 )
+from superset import forecasts
 
 NUMPY_FUNCTIONS = {
     "average": np.average,
@@ -84,7 +85,7 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
     "cumsum",
 )
 
-PROPHET_TIME_GRAIN_MAP = {
+FORECAST_TIME_GRAIN_MAP = {
     "PT1S": "S",
     "PT1M": "min",
     "PT5M": "5min",
@@ -729,11 +730,31 @@ def contribution(
     return contribution_df
 
 
-def _prophet_parse_seasonality(
-    input_value: Optional[Union[bool, int]]
-) -> Union[bool, str, int]:
+def _parse_seasonality(
+    input_value: Optional[Union[bool, int]], seasonality_type: str, ds: pd.Series
+) -> Union[bool, int]:
     if input_value is None:
-        return "auto"
+        if ds.dt.tz:
+            ds = ds.dt.tz_convert(None)
+        first = ds.min()
+        last = ds.max()
+        dt = ds.diff()
+        min_dt = dt.iloc[dt.values.nonzero()[0]].min()
+        if seasonality_type == "yearly":
+            # Turns on yearly seasonality if there is >=2 years of history.
+            return 10 if last - first >= pd.Timedelta(days=730) else 0
+        if seasonality_type == "monthly":
+            # Turns on monthly seasonality if there is >=2 months of history, and the
+            #             # spacing between dates in the history is <1 month.
+            return 1 if ((last - first >= np.timedelta64(2, 'M')) and (min_dt < np.timedelta64(1, 'M'))) else 0
+        if seasonality_type == "weekly":
+            # Turns on weekly seasonality if there is >=2 weeks of history, and the
+            # spacing between dates in the history is <7 days.
+            return 3 if ((last - first >= pd.Timedelta(days=14)) and (min_dt < pd.Timedelta(days=7))) else 0
+        if seasonality_type == "daily":
+            # Turns on daily seasonality if there is >=2 days of history, and the
+            # spacing between dates in the history is <1 day.
+            return 4 if ((last - first >= pd.Timedelta(days=2)) and (min_dt < pd.Timedelta(days=1))) else 0
     if isinstance(input_value, bool):
         return input_value
     try:
@@ -742,49 +763,16 @@ def _prophet_parse_seasonality(
         return input_value
 
 
-def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
-    df: DataFrame,
-    confidence_interval: float,
-    yearly_seasonality: Union[bool, str, int],
-    weekly_seasonality: Union[bool, str, int],
-    daily_seasonality: Union[bool, str, int],
-    periods: int,
-    freq: str,
-) -> DataFrame:
-    """
-    Fit a prophet model and return a DataFrame with predicted results.
-    """
-    try:
-        # pylint: disable=import-error,import-outside-toplevel
-        from prophet import Prophet
-
-        prophet_logger = logging.getLogger("prophet.plot")
-        prophet_logger.setLevel(logging.CRITICAL)
-        prophet_logger.setLevel(logging.NOTSET)
-    except ModuleNotFoundError as ex:
-        raise QueryObjectValidationError(_("`prophet` package not installed")) from ex
-    model = Prophet(
-        interval_width=confidence_interval,
-        yearly_seasonality=yearly_seasonality,
-        weekly_seasonality=weekly_seasonality,
-        daily_seasonality=daily_seasonality,
-    )
-    if df["ds"].dt.tz:
-        df["ds"] = df["ds"].dt.tz_convert(None)
-    model.fit(df)
-    future = model.make_future_dataframe(periods=periods, freq=freq)
-    forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
-    return forecast.join(df.set_index("ds"), on="ds").set_index(["ds"])
-
-
-def prophet(  # pylint: disable=too-many-arguments
+def forecast(  # pylint: disable=too-many-arguments
     df: DataFrame,
     time_grain: str,
     periods: int,
     confidence_interval: float,
     yearly_seasonality: Optional[Union[bool, int]] = None,
+    monthly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,
+    model_name: Optional[str] = "prophet.Prophet",
 ) -> DataFrame:
     """
     Add forecasts to each series in a timeseries dataframe, along with confidence
@@ -802,22 +790,25 @@ def prophet(  # pylint: disable=too-many-arguments
     :param confidence_interval: Width of predicted confidence interval
     :param yearly_seasonality: Should yearly seasonality be applied.
            An integer value will specify Fourier order of seasonality.
+    :param monthly_seasonality: Should monthly seasonality be applied.
+           An integer value will specify Fourier order of seasonality.
     :param weekly_seasonality: Should weekly seasonality be applied.
            An integer value will specify Fourier order of seasonality, `None` will
            automatically detect seasonality.
     :param daily_seasonality: Should daily seasonality be applied.
            An integer value will specify Fourier order of seasonality, `None` will
            automatically detect seasonality.
+    :param model_name: name of model to be used for forecasting.
     :return: DataFrame with contributions, with temporal column at beginning if present
     """
     # validate inputs
     if not time_grain:
         raise QueryObjectValidationError(_("Time grain missing"))
-    if time_grain not in PROPHET_TIME_GRAIN_MAP:
+    if time_grain not in FORECAST_TIME_GRAIN_MAP:
         raise QueryObjectValidationError(
             _("Unsupported time grain: %(time_grain)s", time_grain=time_grain,)
         )
-    freq = PROPHET_TIME_GRAIN_MAP[time_grain]
+    freq = FORECAST_TIME_GRAIN_MAP[time_grain]
     # check type at runtime due to marhsmallow schema not being able to handle
     # union types
     if not isinstance(periods, int) or periods < 0:
@@ -832,13 +823,18 @@ def prophet(  # pylint: disable=too-many-arguments
         raise QueryObjectValidationError(_("DataFrame include at least one series"))
 
     target_df = DataFrame()
+    ds = df[DTTM_ALIAS]
+    model = forecasts.get_model(
+        model_name=model_name,
+        confidence_interval=confidence_interval,
+        yearly_seasonality=_parse_seasonality(yearly_seasonality, "yearly", ds),
+        monthly_seasonality=_parse_seasonality(monthly_seasonality, "monthly", ds),
+        weekly_seasonality=_parse_seasonality(weekly_seasonality, "weekly", ds),
+        daily_seasonality=_parse_seasonality(daily_seasonality, "daily", ds),
+    )
     for column in [column for column in df.columns if column != DTTM_ALIAS]:
-        fit_df = _prophet_fit_and_predict(
+        fit_df = model.fit_transform(
             df=df[[DTTM_ALIAS, column]].rename(columns={DTTM_ALIAS: "ds", column: "y"}),
-            confidence_interval=confidence_interval,
-            yearly_seasonality=_prophet_parse_seasonality(yearly_seasonality),
-            weekly_seasonality=_prophet_parse_seasonality(weekly_seasonality),
-            daily_seasonality=_prophet_parse_seasonality(daily_seasonality),
             periods=periods,
             freq=freq,
         )
