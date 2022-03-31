@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from flask.ctx import AppContext
+from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
 
 def test_odbc_impersonation(app_context: AppContext) -> None:
@@ -65,3 +66,26 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
     username = "DoAsUser"
     DrillEngineSpec.modify_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
+
+
+def test_invalid_impersonation(app_context: AppContext) -> None:
+    """
+    Test ``modify_url_for_impersonation`` method when driver == foobar.
+
+    The method raises an exception because impersonation is not supported
+    for drill+foobar.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.drill import DrillEngineSpec
+
+    url = URL("drill+foobar")
+    username = "DoAsUser"
+    exception_type = None
+
+    try:
+        DrillEngineSpec.modify_url_for_impersonation(url, True, username)
+    except Exception as e:
+        exception_type = type(e)
+
+    assert exception_type == SupersetDBAPIProgrammingError
