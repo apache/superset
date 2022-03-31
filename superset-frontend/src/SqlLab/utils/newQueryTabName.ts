@@ -8,6 +8,8 @@ export const newQueryTabName = (
   queryEditors: QueryEditor[],
   initialTitle = `${untitledQuery}1`,
 ): string => {
+  const resultTitle = t(initialTitle);
+
   if (queryEditors.length > 0) {
     const mappedUntitled = queryEditors.filter(qe =>
       qe.title.match(untitledQueryRegex),
@@ -21,8 +23,8 @@ export const newQueryTabName = (
       const largestNumber: number = Math.max(...untitledQueryNumbers);
       return t(`${untitledQuery}%s`, largestNumber + 1);
     }
-    return initialTitle;
+    return resultTitle;
   }
 
-  return initialTitle;
+  return resultTitle;
 };
