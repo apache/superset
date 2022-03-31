@@ -899,7 +899,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             tp = self.get_template_processor()
             expression = tp.process_template(cast(str, metric["sqlExpression"]))
-            validate_adhoc_subquery(expression)
+            expression = validate_adhoc_subquery(
+                expression,
+                self.database_id,
+                self.schema,
+            )
             try:
                 expression = sanitize_clause(expression)
             except QueryClauseValidationException as ex:
@@ -928,7 +932,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if template_processor and expression:
             expression = template_processor.process_template(expression)
         if expression:
-            validate_adhoc_subquery(expression)
+            expression = validate_adhoc_subquery(
+                expression,
+                self.database_id,
+                self.schema,
+            )
             try:
                 expression = sanitize_clause(expression)
             except QueryClauseValidationException as ex:
@@ -982,9 +990,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def _get_sqla_row_level_filters(
+    def get_sqla_row_level_filters(
         self, template_processor: BaseTemplateProcessor
-    ) -> List[str]:
+    ) -> List[TextClause]:
         """
         Return the appropriate row level security filters for
         this table and the current user.
@@ -992,7 +1000,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :param BaseTemplateProcessor template_processor: The template
         processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
-        :rtype: List[str]
         """
         all_filters: List[TextClause] = []
         filter_groups: Dict[Union[int, str], List[TextClause]] = defaultdict(list)
@@ -1145,6 +1152,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 col = cast(AdhocMetric, col)
+                if col.get("sqlExpression"):
+                    col["sqlExpression"] = validate_adhoc_subquery(
+                        cast(str, col["sqlExpression"]),
+                        self.database_id,
+                        self.schema,
+                    )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)
@@ -1194,7 +1207,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     elif selected in columns_by_name:
                         outer = columns_by_name[selected].get_sqla_col()
                     else:
-                        validate_adhoc_subquery(selected)
+                        selected = validate_adhoc_subquery(
+                            selected,
+                            self.database_id,
+                            self.schema,
+                        )
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
@@ -1207,7 +1224,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                validate_adhoc_subquery(selected)
+                selected = validate_adhoc_subquery(
+                    selected,
+                    self.database_id,
+                    self.schema,
+                )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
                     if selected in columns_by_name
@@ -1373,7 +1394,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
-            where_clause_and += self._get_sqla_row_level_filters(template_processor)
+            where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
@@ -1420,7 +1441,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                validate_adhoc_subquery(str(col.expression))
                 col = literal_column(col.name)
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
