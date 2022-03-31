@@ -29,6 +29,7 @@ import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 import NoResultsComponent from './NoResultsComponent';
+import updateTextNode from '../../dimension/svg/updateTextNode';
 
 const defaultProps = {
   FallbackComponent: DefaultFallbackComponent,
@@ -156,12 +157,30 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       queriesData,
       enableNoResults,
       noResults,
+      formData,
       ...rest
     } = this.props as PropsWithDefault;
+    // set the Quarter as [2, 5, 8, 11]
+    const updatedQueriesData =
+      formData?.time_grain_sqla === 'P3M' && queriesData
+        ? [
+            {
+              ...queriesData[0],
+              data: queriesData[0].data.map((item: any) => ({
+                ...item,
+                __timestamp:
+                  item.__timestamp +
+                  (item.__timestamp === 1080777600000
+                    ? 2592000000
+                    : 2678400000),
+              })),
+            },
+          ]
+        : queriesData;
 
     const chartProps = this.createChartProps({
       ...rest,
-      queriesData,
+      queriesData: updatedQueriesData,
       height,
       width,
     });
