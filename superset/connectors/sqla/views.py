@@ -30,7 +30,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
