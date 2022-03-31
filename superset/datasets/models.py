@@ -68,6 +68,13 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # model has been deleted this column can be removed.
     sqlatable_id = sa.Column(sa.Integer, nullable=True, unique=True)
 
+    default_schema = sa.Column(sa.Text)
+    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    default_database: Database = relationship(
+        "Database",
+        foreign_keys=[database_id],
+    )
+
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be
     # **really** long (eg, Google Sheets URLs).
