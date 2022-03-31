@@ -662,12 +662,10 @@ class Header extends React.PureComponent {
             <ReportModal
               show={this.state.showingReportModal}
               onHide={this.hideReportModal}
-              props={{
-                userId: user.userId,
-                userEmail: user.email,
-                dashboardId: dashboardInfo.id,
-                creationMethod: 'dashboards',
-              }}
+              userId={user.userId}
+              userEmail={user.email}
+              dashboardId={dashboardInfo.id}
+              creationMethod="dashboards"
             />
           )}
 
