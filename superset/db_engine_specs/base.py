@@ -311,6 +311,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
 
+    has_catalogs = False
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0

@@ -215,6 +215,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     databaseId: number;
     forceRefresh: boolean;
   }) {
+    // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
     const encodedSchema = encodeURIComponent(schema);
     return `/superset/tables/${databaseId}/${encodedSchema}/undefined/${forceRefresh}/`;
   }
