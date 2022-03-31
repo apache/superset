@@ -1,6 +1,5 @@
 import { QueryFormData } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { RiGlobalFill } from 'react-icons/ri';
 
 const DEFAULT_IP_STRING = '1.1.1.1';
 const IP_STRING = 'ip_string';
@@ -55,16 +54,15 @@ const AtAGlanceCoreDns = (initialFormData: QueryFormData) => {
   return (
     <>
       <div>
-        <RiGlobalFill />
-        <span>Associated Hostnames:</span>
-      </div>
-      <div>
-        <table>
-          {getHostnames(displayData).map((hostname: string) => (
-            <tr>
-              <td>{hostname}</td>
-            </tr>
-          ))}
+        <table className="table table-striped table-condensed">
+          <tbody>
+            {getHostnames(displayData).map((hostname: string) => (
+              <tr>
+                <td>{hostname}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot />
         </table>
       </div>
     </>

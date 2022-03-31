@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { RiGlobalFill } from 'react-icons/ri';
 import { QueryFormData } from '@superset-ui/core';
-// import styles from './styles';
+import styles from './styles';
 
 const DEFAULT_IP_STRING = '1.1.1.1';
 const IP_STRING = 'ip_string';
@@ -60,35 +59,41 @@ const AtAGlanceCoreIp = (initialFormData: QueryFormData) => {
   return (
     <>
       <div>
-        <RiGlobalFill />
-        <span>At a Glance</span>
-      </div>
-      <div>
-        <table>
-          <tr>
-            <td> IP: {ipString}</td>
-          </tr>
-          <tr>
-            <td>ASN: {displayData.asn}</td>
-          </tr>
-          <tr>
-            <td>CARRIER: {displayData.carrier}</td>
-          </tr>
-          <tr>
-            <td>CONNECTION TYPE: {displayData.connectionType}</td>
-          </tr>
-          <tr>
-            <td>ORGANIZATION: {displayData.organization}</td>
-          </tr>
-          <tr>
-            <td>CITY: {displayData.city}</td>
-          </tr>
-          <tr>
-            <td>COUNTRY: {displayData.country}</td>
-          </tr>
-          <tr>
-            <td>DECIMAL: {decimalDisplayData}</td>
-          </tr>
+        <table className="table table-striped table-condensed">
+          <tbody>
+            <tr>
+              <td style={styles.MiddleLine}>IP</td>
+              <td>{ipString}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>ASN</td>
+              <td>{displayData.asn}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>Carrier</td>
+              <td>{displayData.carrier}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>Connection Type</td>
+              <td>{displayData.connectionType}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>Organization</td>
+              <td>{displayData.organization}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>City</td>
+              <td>{displayData.city}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>Country</td>
+              <td>{displayData.country}</td>
+            </tr>
+            <tr>
+              <td style={styles.MiddleLine}>Decimal</td>
+              <td>{decimalDisplayData}</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </>
