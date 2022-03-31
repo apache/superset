@@ -18,7 +18,7 @@
 # pylint: disable=invalid-name, too-many-lines
 
 import unittest
-from typing import Set
+from typing import Optional, Set
 
 import pytest
 import sqlparse
@@ -1404,7 +1404,7 @@ def test_insert_rls(
     # pylint: disable=unused-argument
     def get_rls_for_table(
         candidate: Token, database_id: int, default_schema: str
-    ) -> TokenList:
+    ) -> Optional[TokenList]:
         """
         Return the RLS ``condition`` if ``candidate`` matches ``table``.
         """

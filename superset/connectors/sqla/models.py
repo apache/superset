@@ -1154,7 +1154,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col = cast(AdhocMetric, col)
                 if col.get("sqlExpression"):
                     col["sqlExpression"] = validate_adhoc_subquery(
-                        col["sqlExpression"],
+                        cast(str, col["sqlExpression"]),
                         self.database_id,
                         self.schema,
                     )

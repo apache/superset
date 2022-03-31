@@ -579,6 +579,9 @@ def get_rls_for_table(
         str(filter_)
         for filter_ in dataset._get_sqla_row_level_filters(template_processor)
     )
+    if not predicate:
+        return None
+
     rls = sqlparse.parse(predicate)[0]
     add_table_name(rls, str(dataset))
 
