@@ -215,7 +215,7 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  return buildQuery(
+  const payload = buildQuery(
     {
       ...formData,
       force,
@@ -229,6 +229,15 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
+  if (resultType === 'samples') {
+    // remove row limit and offset to fall back to defaults
+    payload.queries = payload.queries.map(query => ({
+      ...query,
+      row_offset: null,
+      row_limit: null,
+    }));
+  }
+  return payload;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
