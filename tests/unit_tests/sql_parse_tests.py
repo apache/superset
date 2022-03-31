@@ -22,13 +22,14 @@ from typing import Set
 
 import pytest
 import sqlparse
+from pytest_mock import MockerFixture
+from sqlparse.sql import Token, TokenList
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
     add_table_name,
     has_table_query,
     insert_rls,
-    matches_table_name,
     ParsedQuery,
     sanitize_clause,
     strip_comments_from_sql,
@@ -1391,13 +1392,37 @@ def test_has_table_query(sql: str, expected: bool) -> None:
         ),
     ],
 )
-def test_insert_rls(sql: str, table: str, rls: str, expected: str) -> None:
+def test_insert_rls(
+    mocker: MockerFixture, sql: str, table: str, rls: str, expected: str
+) -> None:
     """
     Insert into a statement a given RLS condition associated with a table.
     """
-    statement = sqlparse.parse(sql)[0]
     condition = sqlparse.parse(rls)[0]
-    assert str(insert_rls(statement, table, condition)).strip() == expected.strip()
+    add_table_name(condition, table)
+
+    # pylint: disable=unused-argument
+    def get_rls_for_table(
+        candidate: Token, database_id: int, default_schema: str
+    ) -> TokenList:
+        """
+        Return the RLS ``condition`` if ``candidate`` matches ``table``.
+        """
+        # compare ignoring schema
+        for left, right in zip(str(candidate).split(".")[::-1], table.split(".")[::-1]):
+            if left != right:
+                return None
+        return condition
+
+    mocker.patch("superset.sql_parse.get_rls_for_table", new=get_rls_for_table)
+
+    statement = sqlparse.parse(sql)[0]
+    assert (
+        str(
+            insert_rls(token_list=statement, database_id=1, default_schema="my_schema")
+        ).strip()
+        == expected.strip()
+    )
 
 
 @pytest.mark.parametrize(
@@ -1413,18 +1438,3 @@ def test_add_table_name(rls: str, table: str, expected: str) -> None:
     condition = sqlparse.parse(rls)[0]
     add_table_name(condition, table)
     assert str(condition) == expected
-
-
-@pytest.mark.parametrize(
-    "candidate,table,expected",
-    [
-        ("table", "table", True),
-        ("schema.table", "table", True),
-        ("table", "schema.table", True),
-        ('schema."my table"', '"my table"', True),
-        ('schema."my.table"', '"my.table"', True),
-    ],
-)
-def test_matches_table_name(candidate: str, table: str, expected: bool) -> None:
-    token = sqlparse.parse(candidate)[0].tokens[0]
-    assert matches_table_name(token, table) == expected
