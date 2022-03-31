@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from flask.ctx import AppContext
-from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+from pytest import raises
 
 
 def test_odbc_impersonation(app_context: AppContext) -> None:
@@ -78,14 +78,10 @@ def test_invalid_impersonation(app_context: AppContext) -> None:
     from sqlalchemy.engine.url import URL
 
     from superset.db_engine_specs.drill import DrillEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
     url = URL("drill+foobar")
     username = "DoAsUser"
-    exception_type = None
 
-    try:
+    with raises(SupersetDBAPIProgrammingError):
         DrillEngineSpec.modify_url_for_impersonation(url, True, username)
-    except Exception as e:
-        exception_type = type(e)
-
-    assert exception_type == SupersetDBAPIProgrammingError
