@@ -105,13 +105,13 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add('deleteDashboardByName', (name: string) =>
-  cy.getDashboards().then(dashboards => {
-    for (const element of dashboards) {
+  cy.getDashboards().then((dashboards: any) => {
+    dashboards?.forEach((element: any) => {
       if (element.dashboard_title === name) {
         const elementId = element.id;
         cy.deleteDashboard(elementId);
       }
-    }
+    });
   }),
 );
 
@@ -179,12 +179,12 @@ Cypress.Commands.add('getCharts', () =>
 );
 
 Cypress.Commands.add('deleteChartByName', (name: string) =>
-  cy.getCharts().then(slices => {
-    for (const element of slices) {
+  cy.getCharts().then((slices: any) => {
+    slices?.forEach((element: any) => {
       if (element.slice_name === name) {
         const elementId = element.id;
         cy.deleteChart(elementId);
       }
-    }
+    });
   }),
 );

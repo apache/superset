@@ -61,6 +61,7 @@ describe('Nativefilters Sanity test', () => {
     cy.contains('Actions');
     cy.wait('@dashboardsList').then(xhr => {
       const dashboards = xhr.response?.body.result;
+      /* eslint-disable no-unused-expressions */
       expect(dashboards).not.to.be.undefined;
       const worldBankDashboard = dashboards.find(
         (d: { dashboard_title: string }) =>
