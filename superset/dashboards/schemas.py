@@ -18,10 +18,11 @@ import json
 import re
 from typing import Any, Dict, Union
 
-from marshmallow import fields, post_load, Schema
+from marshmallow import fields, post_dump, post_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
+from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -229,10 +230,18 @@ class BaseDashboardSchema(Schema):
 
 class DashboardCreatedByMeResponseSchema(Schema):
     id = fields.Int()
-    dashboard = fields.Str()
     title = fields.Str()
     url = fields.Str()
-    dttm = fields.DateTime()
+    changed_on = fields.DateTime()
+    dttm = fields.Int()
+
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, data: Dict[str, Any], obj: Dashboard, many: bool = True
+    ) -> Dict[str, Any]:
+        data["dttm"] = utils.json_int_dttm_ser(obj.changed_on)
+        data["title"] = obj.dashboard_title
+        return data
 
 
 class DashboardPostSchema(BaseDashboardSchema):

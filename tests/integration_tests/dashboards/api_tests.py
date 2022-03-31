@@ -161,6 +161,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.commit()
 
     @pytest.fixture()
+    def create_created_by_admin_dashboards(self):
+        with self.create_app().app_context():
+            dashboards = []
+            admin = self.get_user("admin")
+            for cx in range(2):
+                dashboard = self.insert_dashboard(
+                    f"create_title{cx}",
+                    f"create_slug{cx}",
+                    [admin.id],
+                    created_by=admin,
+                )
+                dashboards.append(dashboard)
+
+            yield dashboards
+
+            for dashboard in dashboards:
+                db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.fixture()
     def create_dashboard_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -675,6 +695,33 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 6)
+
+    @pytest.mark.usefixtures("create_created_by_admin_dashboards")
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboards_created_by_me(self):
+        """
+        Dashboard API: Test get dashboards created by current user
+        """
+        uri = f"api/v1/dashboard/created_by_me/"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(data["result"]) == 2
+        assert list(data["result"][0].keys()) == [
+            "changed_on",
+            "dttm",
+            "id",
+            "title",
+            "url",
+        ]
+        expected_results = [
+            {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
+            {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
+        ]
+        for idx, response_item in enumerate(data["result"]):
+            for key, value in expected_results[idx].items():
+                assert response_item[key] == value
 
     def create_dashboard_import(self):
         buf = BytesIO()

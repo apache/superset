@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
-import { User, Dashboard } from '../../types/bootstrapTypes';
+import { User, DashboardResponse } from '../../types/bootstrapTypes';
 
 interface CreatedContentProps {
   user: User;
@@ -49,8 +49,8 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
   }
 
   renderDashboardTable() {
-    const mutator = (data: Dashboard[]) =>
-      data.map(dash => ({
+    const mutator = (data: DashboardResponse) =>
+      data.result.map(dash => ({
         dashboard: <a href={dash.url}>{dash.title}</a>,
         created: moment.utc(dash.dttm).fromNow(),
         _created: dash.dttm,
@@ -59,7 +59,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       <TableLoader
         className="table-condensed"
         mutator={mutator}
-        dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
+        dataEndpoint="/api/v1/dashboard/created_by_me/"
         noDataText={t('No dashboards')}
         columns={['dashboard', 'created']}
         sortable

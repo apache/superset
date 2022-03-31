@@ -46,6 +46,10 @@ export type Dashboard = {
   creator_url?: string;
 };
 
+export type DashboardResponse = {
+  result: Dashboard[];
+};
+
 export interface CommonBootstrapData {
   flash_messages: string[][];
   conf: JsonObject;

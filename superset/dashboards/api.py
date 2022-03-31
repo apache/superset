@@ -140,6 +140,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "set_embedded",
         "delete_embedded",
         "thumbnail",
+        "created_by_me",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -226,6 +227,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     dashboard_dataset_schema = DashboardDatasetSchema()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
+    dashboard_created_by_schema = DashboardCreatedByMeResponseSchema()
 
     base_filters = [["id", DashboardAccessFilter, lambda: []]]
 
@@ -457,10 +459,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    @permission_name("can_read")
-    def created_by_me(self, id_or_slug: str) -> Response:
+    def created_by_me(self) -> Response:
         """Gets all dashboards created by the current user
         ---
         get:
@@ -475,7 +476,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     type: object
                     properties:
                       result:
-                        $ref: '#/components/schemas/DashboardCreatedByMeResponseSchema'
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DashboardCreatedByMeResponseSchema'
             401:
               $ref: '#/components/responses/401'
             403:
@@ -484,7 +487,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         dashboards = DashboardDAO.get_dashboards_created_changed_by_user(g.user.id)
-        result = self.dashboard_get_response_schema.dump(dashboards)
+        result = self.dashboard_created_by_schema.dump(dashboards, many=True)
         return self.response(200, result=result)
 
     @expose("/", methods=["POST"])
