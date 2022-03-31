@@ -161,20 +161,22 @@ export const getEditedObjects = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getUserOwnedObjects = (
+export const getUserObjects = (
   userId: string | number,
   resource: string,
-  filters: Array<Filters> = [
+  filterBy: 'created_by' | 'owners',
+) => {
+  const filters: Filters[] = [
     {
-      col: 'created_by',
-      opr: 'rel_o_m',
+      col: filterBy,
+      opr: filterBy === 'created_by' ? 'rel_o_m' : 'rel_m_m',
       value: `${userId}`,
     },
-  ],
-) =>
-  SupersetClient.get({
+  ];
+  return SupersetClient.get({
     endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
   }).then(res => res.json?.result);
+};
 
 export const getRecentAcitivtyObjs = (
   userId: string | number,

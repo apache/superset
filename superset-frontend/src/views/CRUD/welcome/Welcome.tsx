@@ -35,7 +35,7 @@ import {
   getRecentAcitivtyObjs,
   mq,
   CardContainer,
-  getUserOwnedObjects,
+  getUserObjects,
   loadingCardCount,
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -202,14 +202,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
-    const ownSavedQueryFilters = [
-      {
-        col: 'owners',
-        opr: 'rel_m_m',
-        value: `${id}`,
-      },
-    ];
-    getUserOwnedObjects(id, 'dashboard')
+    getUserObjects(id, 'dashboard', 'owners')
       .then(r => {
         setDashboardData(r);
         setLoadedCount(loadedCount => loadedCount + 1);
@@ -221,7 +214,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           t('There was an issue fetching your dashboards: %s', err),
         );
       });
-    getUserOwnedObjects(id, 'chart')
+    getUserObjects(id, 'chart', 'owners')
       .then(r => {
         setChartData(r);
         setLoadedCount(loadedCount => loadedCount + 1);
@@ -231,7 +224,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(t('There was an issue fetching your chart: %s', err));
       });
-    getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+    getUserObjects(id, 'saved_query', 'created_by')
       .then(r => {
         setQueryData(r);
         setLoadedCount(loadedCount => loadedCount + 1);
