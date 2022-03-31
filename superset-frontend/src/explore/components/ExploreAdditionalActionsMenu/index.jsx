@@ -348,6 +348,9 @@ const ExploreAdditionalActionsMenu = ({
               <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
                 {t('Copy permalink to clipboard')}
               </Menu.Item>
+              <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
+                {t('Share chart by email')}
+              </Menu.Item>
               <Menu.Item key={MENU_KEYS.EMBED_CODE}>
                 <ModalTrigger
                   triggerNode={
@@ -364,9 +367,6 @@ const ExploreAdditionalActionsMenu = ({
                   destroyOnClose
                   responsive
                 />
-              </Menu.Item>
-              <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
-                {t('Share chart by email')}
               </Menu.Item>
             </Menu.SubMenu>
             <Menu.Divider />
