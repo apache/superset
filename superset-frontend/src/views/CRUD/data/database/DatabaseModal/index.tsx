@@ -826,7 +826,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
-      if (!hasConnectedDb || editNewDb || importingModal) {
+      if (!hasConnectedDb || editNewDb) {
         return (
           <>
             <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
