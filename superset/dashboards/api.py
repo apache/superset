@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+import functools
 import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -65,6 +67,8 @@ from superset.dashboards.schemas import (
     DashboardGetResponseSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    EmbeddedDashboardConfigSchema,
+    EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -72,8 +76,10 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
+from superset.embedded.dao import EmbeddedDAO
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
@@ -89,6 +95,27 @@ from superset.views.base_api import (
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+
+
+def with_dashboard(
+    f: Callable[[BaseSupersetModelRestApi, Dashboard], Response]
+) -> Callable[[BaseSupersetModelRestApi, str], Response]:
+    """
+    A decorator that looks up the dashboard by id or slug and passes it to the api.
+    Route must include an <id_or_slug> parameter.
+    Responds with 403 or 404 without calling the route, if necessary.
+    """
+
+    def wraps(self: BaseSupersetModelRestApi, id_or_slug: str) -> Response:
+        try:
+            dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
+            return f(self, dash)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+
+    return functools.update_wrapper(wraps, f)
 
 
 class DashboardRestApi(BaseSupersetModelRestApi):
@@ -108,6 +135,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "favorite_status",
         "get_charts",
         "get_datasets",
+        "get_embedded",
+        "set_embedded",
+        "delete_embedded",
         "thumbnail",
     }
     resource_name = "dashboard"
@@ -193,6 +223,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
     dashboard_dataset_schema = DashboardDatasetSchema()
+    embedded_response_schema = EmbeddedDashboardResponseSchema()
+    embedded_config_schema = EmbeddedDashboardConfigSchema()
 
     base_filters = [["id", DashboardAccessFilter, lambda: []]]
 
@@ -215,6 +247,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
         GetFavStarIdsSchema,
+        EmbeddedDashboardResponseSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -248,9 +281,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,  # pylint: disable=arguments-renamed
+        log_to_statsd=False,
     )
-    def get(self, id_or_slug: str) -> Response:
+    @with_dashboard
+    # pylint: disable=arguments-renamed, arguments-differ
+    def get(self, dash: Dashboard) -> Response:
         """Gets a dashboard
         ---
         get:
@@ -283,15 +318,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=arguments-differ
-        try:
-            dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
-            result = self.dashboard_get_response_schema.dump(dash)
-            return self.response(200, result=result)
-        except DashboardAccessDeniedError:
-            return self.response_403()
-        except DashboardNotFoundError:
-            return self.response_404()
+        result = self.dashboard_get_response_schema.dump(dash)
+        return self.response(200, result=result)
 
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
@@ -1000,4 +1028,169 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             contents, passwords=passwords, overwrite=overwrite
         )
         command.run()
+        return self.response(200, message="OK")
+
+    @expose("/<id_or_slug>/embedded", methods=["GET"])
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def get_embedded(self, dashboard: Dashboard) -> Response:
+        """Response
+        Returns the dashboard's embedded configuration
+        ---
+        get:
+          description: >-
+            Returns the dashboard's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          responses:
+            200:
+              description: Result contains the embedded dashboard config
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not dashboard.embedded:
+            return self.response(404)
+        embedded: EmbeddedDashboard = dashboard.embedded[0]
+        result = self.embedded_response_schema.dump(embedded)
+        return self.response(200, result=result)
+
+    @expose("/<id_or_slug>/embedded", methods=["POST", "PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def set_embedded(self, dashboard: Dashboard) -> Response:
+        """Response
+        Sets a dashboard's embedded configuration.
+        ---
+        post:
+          description: >-
+            Sets a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedDashboardConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        put:
+          description: >-
+            Sets a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedDashboardConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = self.embedded_config_schema.load(request.json)
+            embedded = EmbeddedDAO.upsert(dashboard, body["allowed_domains"])
+            result = self.embedded_response_schema.dump(embedded)
+            return self.response(200, result=result)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+    @expose("/<id_or_slug>/embedded", methods=["DELETE"])
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def delete_embedded(self, dashboard: Dashboard) -> Response:
+        """Response
+        Removes a dashboard's embedded configuration.
+        ---
+        delete:
+          description: >-
+            Removes a dashboard's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          responses:
+            200:
+              description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard.embedded = []
         return self.response(200, message="OK")

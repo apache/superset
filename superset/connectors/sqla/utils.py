@@ -33,7 +33,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, ParsedQuery, Table
+from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
 from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
@@ -136,29 +136,39 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     return cols
 
 
-def validate_adhoc_subquery(raw_sql: str) -> None:
+def validate_adhoc_subquery(
+    sql: str,
+    database_id: int,
+    default_schema: str,
+) -> str:
     """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table
-    :param raw_sql: adhoc sql expression
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
+
+    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
+    predicates to it.
+
+    :param sql: adhoc sql expression
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
     # pylint: disable=import-outside-toplevel
     from superset import is_feature_enabled
 
-    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-        return
-
-    for statement in sqlparse.parse(raw_sql):
+    statements = []
+    for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
-                    level=ErrorLevel.ERROR,
+            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                        message=_("Custom SQL fields cannot contain sub-queries."),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
-            )
-    return
+            statement = insert_rls(statement, database_id, default_schema)
+        statements.append(statement)
+
+    return ";\n".join(str(statement) for statement in statements)
 
 
 def load_or_create_tables(  # pylint: disable=too-many-arguments

@@ -14,42 +14,49 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""deprecate time_range_endpoints
+"""rm_time_range_endpoints_from_qc
 
-Revision ID: ab9a9d86e695
-Revises: b5a422d8e252
-Create Date: 2022-02-25 08:06:14.835094
+Revision ID: 2ed890b36b94
+Revises: 58df9d617f14
+Create Date: 2022-03-29 18:03:48.977741
 
 """
+
+# revision identifiers, used by Alembic.
+revision = "2ed890b36b94"
+down_revision = "58df9d617f14"
+
 import json
 
+import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
-
-# revision identifiers, used by Alembic.
-revision = "ab9a9d86e695"
-down_revision = "b5a422d8e252"
 
 Base = declarative_base()
 
 
 class Slice(Base):
     __tablename__ = "slices"
-    id = Column(Integer, primary_key=True)
-    params = Column(Text)
+    id = sa.Column(sa.Integer, primary_key=True)
+    query_context = sa.Column(sa.Text)
 
 
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
     for slc in session.query(Slice):
-        params = json.loads(slc.params or "{}")
-        params.pop("time_range_endpoints", None)
-        slc.params = json.dumps(params)
+        if slc.query_context:
+            try:
+                query_context = json.loads(slc.query_context)
+            except json.decoder.JSONDecodeError:
+                continue
+            queries = query_context.get("queries")
+            for query in queries:
+                query.get("extras", {}).pop("time_range_endpoints", None)
+            slc.queries = json.dumps(queries)
 
     session.commit()
     session.close()
