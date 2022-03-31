@@ -284,7 +284,7 @@ class ParsedQuery:
         return statements
 
     @staticmethod
-    def _get_table(tlist: TokenList) -> Optional[Table]:
+    def get_table(tlist: TokenList) -> Optional[Table]:
         """
         Return the table if valid, i.e., conforms to the [[catalog.]schema.]table
         construct.
@@ -325,7 +325,7 @@ class ParsedQuery:
         """
         # exclude subselects
         if "(" not in str(token_list):
-            table = self._get_table(token_list)
+            table = self.get_table(token_list)
             if table and not table.table.startswith(CTE_PREFIX):
                 self._tables.add(table)
             return
@@ -555,7 +555,7 @@ def get_rls_for_table(
     if not isinstance(candidate, Identifier):
         candidate = Identifier([Token(Name, candidate.value)])
 
-    table = ParsedQuery._get_table(candidate)  # pylint: disable=protected-access
+    table = ParsedQuery.get_table(candidate)
     if not table:
         return None
 
@@ -577,7 +577,7 @@ def get_rls_for_table(
     # pylint: disable=protected-access
     predicate = " AND ".join(
         str(filter_)
-        for filter_ in dataset._get_sqla_row_level_filters(template_processor)
+        for filter_ in dataset.get_sqla_row_level_filters(template_processor)
     )
     if not predicate:
         return None

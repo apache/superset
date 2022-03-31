@@ -990,7 +990,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
-    def _get_sqla_row_level_filters(
+    def get_sqla_row_level_filters(
         self, template_processor: BaseTemplateProcessor
     ) -> List[TextClause]:
         """
@@ -1394,7 +1394,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
-            where_clause_and += self._get_sqla_row_level_filters(template_processor)
+            where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:

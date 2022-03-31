@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=invalid-name, too-many-lines
+# pylint: disable=invalid-name, redefined-outer-name, unused-argument, protected-access, too-many-lines
 
 import unittest
 from typing import Optional, Set
@@ -23,11 +22,14 @@ from typing import Optional, Set
 import pytest
 import sqlparse
 from pytest_mock import MockerFixture
-from sqlparse.sql import Token, TokenList
+from sqlalchemy import text
+from sqlparse.sql import Identifier, Token, TokenList
+from sqlparse.tokens import Name
 
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
     add_table_name,
+    get_rls_for_table,
     has_table_query,
     insert_rls,
     ParsedQuery,
@@ -1438,3 +1440,31 @@ def test_add_table_name(rls: str, table: str, expected: str) -> None:
     condition = sqlparse.parse(rls)[0]
     add_table_name(condition, table)
     assert str(condition) == expected
+
+
+def test_get_rls_for_table(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Tests for ``get_rls_for_table``.
+    """
+    candidate = Identifier([Token(Name, "some_table")])
+    db = mocker.patch("superset.db")
+    dataset = db.session.query().filter().one_or_none()
+    dataset.__str__.return_value = "some_table"
+
+    dataset.get_sqla_row_level_filters.return_value = [text("organization_id = 1")]
+    assert (
+        str(get_rls_for_table(candidate, 1, "public"))
+        == "some_table.organization_id = 1"
+    )
+
+    dataset.get_sqla_row_level_filters.return_value = [
+        text("organization_id = 1"),
+        text("foo = 'bar'"),
+    ]
+    assert (
+        str(get_rls_for_table(candidate, 1, "public"))
+        == "some_table.organization_id = 1 AND some_table.foo = 'bar'"
+    )
+
+    dataset.get_sqla_row_level_filters.return_value = []
+    assert get_rls_for_table(candidate, 1, "public") is None
