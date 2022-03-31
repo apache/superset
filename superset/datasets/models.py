@@ -77,12 +77,12 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     expression = sa.Column(sa.Text)
 
-    default_schema = sa.Column(sa.Text)
-    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
-    default_database: Database = relationship(
-        "Database",
-        foreign_keys=[database_id],
-    )
+    # default_schema = sa.Column(sa.Text)
+    # database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    # default_database: Database = relationship(
+    #     "Database",
+    #     foreign_keys=[database_id],
+    # )
 
     # n:n relationship
     tables: List[Table] = relationship("Table", secondary=table_association_table)
