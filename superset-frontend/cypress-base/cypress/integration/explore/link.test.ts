@@ -54,7 +54,7 @@ describe('Test explore links', () => {
 
     cy.get('[aria-label="Menu actions trigger"]').click();
     cy.get('div[title="Share"]').trigger('mouseover');
-    cy.get('ul#share_submenu$Menu').within(() => {
+    cy.get('[data-test="ExploreAdditionalActionsMenu_share"]').within(() => {
       cy.contains('Embed code').parent().click();
     });
     cy.get('#embed-code-popover').within(() => {

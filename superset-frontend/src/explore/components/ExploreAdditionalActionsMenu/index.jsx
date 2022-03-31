@@ -344,7 +344,11 @@ const ExploreAdditionalActionsMenu = ({
                 {t('Download as image')}
               </Menu.Item>
             </Menu.SubMenu>
-            <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
+            <Menu.SubMenu
+              title={t('Share')}
+              key={MENU_KEYS.SHARE_SUBMENU}
+              data-test="ExploreAdditionalActionsMenu_share"
+            >
               <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
                 {t('Copy permalink to clipboard')}
               </Menu.Item>
