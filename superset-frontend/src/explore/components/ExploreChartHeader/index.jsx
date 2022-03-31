@@ -22,12 +22,10 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import {
   CategoricalColorNamespace,
-  css,
   SupersetClient,
   styled,
   t,
 } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import {
   fetchUISpecificReport,
   toggleActive,
@@ -35,7 +33,6 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import Icons from 'src/components/Icons';
 import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
@@ -110,14 +107,11 @@ const StyledButtons = styled.span`
   align-items: center;
 `;
 
-const copyTooltipText = t('Copy permalink to clipboard');
-
 export class ExploreChartHeader extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isPropertiesModalOpen: false,
-      copyTooltip: copyTooltipText,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
@@ -291,31 +285,6 @@ export class ExploreChartHeader extends React.PureComponent {
                   isStarred={this.props.isStarred}
                   showTooltip
                 />
-              )}
-              {latestQueryFormData && (
-                <Tooltip
-                  title={this.state.copyTooltip}
-                  placement="top"
-                  onVisibleChange={value =>
-                    !value &&
-                    setTimeout(
-                      () => this.setState({ copyTooltip: copyTooltipText }),
-                      200,
-                    )
-                  }
-                >
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={this.copyLink}
-                    data-test="short-link-button"
-                    css={css`
-                      display: flex;
-                    `}
-                  >
-                    <Icons.Link iconSize="l" />
-                  </div>
-                </Tooltip>
               )}
               {this.state.isPropertiesModalOpen && (
                 <PropertiesModal

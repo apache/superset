@@ -36,6 +36,7 @@ import { toggleActive } from 'src/reports/actions/reports';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { ExploreReport } from './ExploreReport';
+import copyTextToClipboard from '../../../utils/copy';
 
 const propTypes = {
   onOpenPropertiesModal: PropTypes.func,
@@ -51,6 +52,8 @@ const MENU_KEYS = {
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
   EXPORT_TO_JSON: 'export_to_json',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
+  SHARE_SUBMENU: 'share_submenu',
+  COPY_PERMALINK: 'copy_permalink',
   EMBED_CODE: 'embed_code',
   SHARE_BY_EMAIL: 'share_by_email',
   REPORT_SUBMENU: 'report_submenu',
@@ -103,6 +106,7 @@ const ExploreAdditionalActionsMenu = ({
   latestQueryFormData,
   canDownloadCSV,
   addDangerToast,
+  addSuccessToast,
   slice,
   onOpenInEditor,
   onOpenPropertiesModal,
@@ -173,6 +177,19 @@ const ExploreAdditionalActionsMenu = ({
     [latestQueryFormData],
   );
 
+  const copyLink = useCallback(async () => {
+    try {
+      if (!latestQueryFormData) {
+        throw new Error();
+      }
+      const url = await getChartPermalink(latestQueryFormData);
+      await copyTextToClipboard(url);
+      addSuccessToast(t('Copied to clipboard!'));
+    } catch (error) {
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+  }, [addDangerToast, addSuccessToast, latestQueryFormData]);
+
   const handleMenuClick = useCallback(
     ({ key, domEvent }) => {
       switch (key) {
@@ -207,12 +224,19 @@ const ExploreAdditionalActionsMenu = ({
           setIsDropdownVisible(false);
           setOpenSubmenus([]);
           break;
+        case MENU_KEYS.COPY_PERMALINK:
+          copyLink();
+          setIsDropdownVisible(false);
+          setOpenSubmenus([]);
+          break;
         case MENU_KEYS.EMBED_CODE:
           setIsDropdownVisible(false);
+          setOpenSubmenus([]);
           break;
         case MENU_KEYS.SHARE_BY_EMAIL:
           shareByEmail();
           setIsDropdownVisible(false);
+          setOpenSubmenus([]);
           break;
         case MENU_KEYS.SET_UP_REPORT:
           setShowReportModal(true);
@@ -243,6 +267,7 @@ const ExploreAdditionalActionsMenu = ({
       }
     },
     [
+      copyLink,
       dispatch,
       exportCSV,
       exportCSVPivoted,
@@ -319,27 +344,32 @@ const ExploreAdditionalActionsMenu = ({
                 {t('Download as image')}
               </Menu.Item>
             </Menu.SubMenu>
-            <Menu.Item key={MENU_KEYS.EMBED_CODE}>
-              <ModalTrigger
-                triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
-                }
-                modalTitle={t('Embed code')}
-                modalBody={
-                  <EmbedCodeContent
-                    formData={latestQueryFormData}
-                    addDangerToast={addDangerToast}
-                  />
-                }
-                maxWidth={`${theme.gridUnit * 100}px`}
-                destroyOnClose
-                responsive
-              />
-            </Menu.Item>
+            <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
+              <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
+                {t('Copy permalink to clipboard')}
+              </Menu.Item>
+              <Menu.Item key={MENU_KEYS.EMBED_CODE}>
+                <ModalTrigger
+                  triggerNode={
+                    <span data-test="embed-code-button">{t('Embed code')}</span>
+                  }
+                  modalTitle={t('Embed code')}
+                  modalBody={
+                    <EmbedCodeContent
+                      formData={latestQueryFormData}
+                      addDangerToast={addDangerToast}
+                    />
+                  }
+                  maxWidth={`${theme.gridUnit * 100}px`}
+                  destroyOnClose
+                  responsive
+                />
+              </Menu.Item>
+              <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
+                {t('Share chart by email')}
+              </Menu.Item>
+            </Menu.SubMenu>
             <Menu.Divider />
-            <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
-              {t('Share chart by email')}
-            </Menu.Item>
             {canAddReports &&
               (report ? (
                 <Menu.SubMenu

@@ -112,8 +112,7 @@ test('Should open a menu', () => {
 
   expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
   expect(screen.getByText('Download')).toBeInTheDocument();
-  expect(screen.getByText('Embed code')).toBeInTheDocument();
-  expect(screen.getByText('Share chart by email')).toBeInTheDocument();
+  expect(screen.getByText('Share')).toBeInTheDocument();
   expect(screen.getByText('View query')).toBeInTheDocument();
   expect(screen.getByText('Run in SQL Lab')).toBeInTheDocument();
 
@@ -150,6 +149,29 @@ test('Should open download submenu', async () => {
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
   expect(await screen.findByText('Download as image')).toBeInTheDocument();
+});
+
+test('Should open share submenu', async () => {
+  const props = createProps();
+  render(<ExploreAdditionalActionsMenu {...props} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByRole('button'));
+
+  expect(
+    screen.queryByText('Copy permalink to clipboard'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+  expect(screen.queryByText('Share chart by email')).not.toBeInTheDocument();
+
+  expect(screen.getByText('Share')).toBeInTheDocument();
+  userEvent.hover(screen.getByText('Download'));
+  expect(
+    await screen.findByText('Copy permalink to clipboard'),
+  ).toBeInTheDocument();
+  expect(await screen.findByText('Embed code')).toBeInTheDocument();
+  expect(await screen.findByText('Share chart by email')).toBeInTheDocument();
 });
 
 test('Should open report submenu if report exists', async () => {
