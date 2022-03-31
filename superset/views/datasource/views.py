@@ -81,7 +81,7 @@ class Datasource(BaseSupersetView):
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
-            if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            if app.config.get("OLD_API_CHECK_DATASET_OWNERSHIP"):
                 # mimic the behavior of the new dataset command that
                 # checks ownership and ensures that non-admins aren't locked out
                 # of the object
