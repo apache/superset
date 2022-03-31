@@ -17,10 +17,8 @@
 # pylint: disable=too-many-lines
 import json
 import logging
-from ast import literal_eval
 from datetime import datetime
 from io import BytesIO
-from operator import and_, or_
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
@@ -30,12 +28,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
-from sqlalchemy.orm.query import Query
-from sqlalchemy.sql.expression import cast
-from sqlalchemy.sql.functions import func
-from sqlalchemy.sql.sqltypes import JSON
 
-from superset import app, db, event_logger
+from superset import app, event_logger
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -58,7 +52,7 @@ from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
-from superset.databases.filters import DatabaseFilter
+from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
     DatabaseFunctionNamesResponse,
@@ -79,7 +73,6 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.views.base import BaseFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -88,40 +81,6 @@ from superset.views.base_api import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-  Custom filter for the GET list that filters all certified charts
-  """
-
-    name = _("Upload Enabled")
-    arg_name = "upload_is_enabled"
-    model = Database
-
-    def apply(self, query: Query, value: any) -> Query:
-        extra_allowed_databases = []
-        if hasattr(g, "user"):
-            extra_allowed_databases += app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
-                Database, g.user
-            )
-        if len(extra_allowed_databases):
-            return query.filter(Database.allow_file_upload)
-        filtered_query = query.filter(Database.allow_file_upload).filter(
-            func.json_array_length(
-                cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
-            )
-            > 0
-        )
-
-        if security_manager.can_access_all_datasources():
-            return filtered_query
-
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        return filtered_query.filter(
-            or_(Database.perm.in_(perms), Database.schema_perm.in_(schema_perms))
-        )
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -138,7 +97,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "function_names",
         "available",
         "validate_parameters",
-        "upload_enabled",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -1093,44 +1051,3 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()
         return self.response(200, message="OK")
-
-    @expose("/upload_enabled/", methods=["GET"])
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".upload_enabled",
-        log_to_statsd=False,
-    )
-    def upload_enabled(self) -> Response:
-        """Returns a boolean saying whether uploads are enabled for the user
-        ---
-        get:
-          description:
-            Get the status of if any databases have allow file upload enabled
-            and also have a schema in a database that can have files uploaded to it.
-          responses:
-            200:
-              description: Database names
-              content:
-                application/json:
-                  schema:
-                    type: boolean
-            400:
-              $ref: '#/components/responses/400'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            dbs_with_uploads = (
-                db.session.query(Database).filter_by(allow_file_upload=True).all()
-            )
-
-            allow_uploads = any(
-                len(db.get_schema_access_for_file_upload()) >= 1
-                for db in dbs_with_uploads
-            )
-
-            return self.response(200, can_upload=allow_uploads)
-        except:
-            raise DatabaseNotFoundError()

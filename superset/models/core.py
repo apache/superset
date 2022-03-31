@@ -300,16 +300,6 @@ class Database(
     def connect_args(self) -> Dict[str, Any]:
         return self.get_extra().get("engine_params", {}).get("connect_args", {})
 
-    @hybrid_property
-    def upload_enabled(self) -> bool:
-        return (
-            self.allow_file_upload and len(self.get_schema_access_for_file_upload) >= 1
-        )
-
-    @upload_enabled.expression
-    def upload_enabled(cls) -> bool:
-        return cls.allow_file_upload and len(cls.get_schema_access_for_file_upload) >= 1
-
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str

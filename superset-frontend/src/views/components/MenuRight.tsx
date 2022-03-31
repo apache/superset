@@ -185,7 +185,6 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      console.log(json);
       setAllowUploads(json.count >= 1);
     });
   };

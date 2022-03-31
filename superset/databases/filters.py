@@ -16,10 +16,16 @@
 # under the License.
 from typing import Any, Set
 
+from flask import g
+from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
+from sqlalchemy.sql.expression import cast
+from sqlalchemy.sql.functions import func
+from sqlalchemy.sql.sqltypes import JSON
 
-from superset import security_manager
+from superset import app, security_manager
+from superset.models.core import Database
 from superset.views.base import BaseFilter
 
 
@@ -50,4 +56,38 @@ class DatabaseFilter(BaseFilter):
                     [*schema_access_databases, *datasource_access_databases]
                 ),
             )
+        )
+
+
+class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified charts
+    """
+
+    name = _("Upload Enabled")
+    arg_name = "upload_is_enabled"
+    model = Database
+
+    def apply(self, query: Query, value: any) -> Query:
+        extra_allowed_databases = []
+        if hasattr(g, "user"):
+            extra_allowed_databases += app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+                Database, g.user
+            )
+        if len(extra_allowed_databases):
+            return query.filter(Database.allow_file_upload)
+        filtered_query = query.filter(Database.allow_file_upload).filter(
+            func.json_array_length(
+                cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
+            )
+            > 0
+        )
+
+        if security_manager.can_access_all_datasources():
+            return filtered_query
+
+        perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        return filtered_query.filter(
+            or_(Database.perm.in_(perms), Database.schema_perm.in_(schema_perms))
         )

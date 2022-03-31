@@ -19,7 +19,6 @@
 import React from 'react';
 import * as reactRedux from 'react-redux';
 import { render, screen } from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 
@@ -235,8 +234,6 @@ const notanonProps = {
 };
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-
-fetchMock.get('glob*/api/v1/database/upload_enabled/', { can_upload: true });
 
 beforeEach(() => {
   // setup a DOM element as a render target
