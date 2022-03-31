@@ -241,13 +241,13 @@ function DashboardList(props: DashboardListProps) {
             original: { id },
           },
         }: any) =>
-          userId ? (
+          userId && (
             <FaveStar
               itemId={id}
               saveFaveStar={saveFavoriteStatus}
               isStarred={favoriteStatus[id]}
             />
-          ) : null,
+          ),
         Header: '',
         id: 'id',
         disableSortBy: true,
