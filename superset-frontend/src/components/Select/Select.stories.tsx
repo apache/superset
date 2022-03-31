@@ -495,6 +495,7 @@ AsyncSelect.args = {
   pageSize: 10,
   withError: false,
   withInitialValue: false,
+  tokenSeparators: ['\n', '\t', ';'],
 };
 
 AsyncSelect.argTypes = {

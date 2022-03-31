@@ -42,8 +42,8 @@ from superset.models.schedules import (
     SliceEmailSchedule,
 )
 from superset.models.slice import Slice
+from superset.superset_typing import FlaskResponse
 from superset.tasks.schedules import schedule_email_report
-from superset.typing import FlaskResponse
 from superset.utils.core import get_email_address_list, json_iso_dttm_ser
 from superset.views.core import json_success
 

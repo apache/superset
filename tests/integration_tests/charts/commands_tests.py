@@ -176,6 +176,26 @@ class TestExportChartsCommand(SupersetTestCase):
             "dataset_uuid",
         ]
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_command_no_related(self, mock_g):
+        """
+        Test that only the chart is exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_chart = (
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        )
+        command = ExportChartsCommand([example_chart.id], export_related=False)
+        contents = dict(command.run())
+
+        expected = [
+            "metadata.yaml",
+            f"charts/Energy_Sankey_{example_chart.id}.yaml",
+        ]
+        assert expected == list(contents.keys())
+
 
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.charts.commands.importers.v1.utils.g")

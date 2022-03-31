@@ -17,12 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString } from 'lodash';
-import {
-  Behavior,
-  CategoricalColorNamespace,
-  getChartMetadataRegistry,
-} from '@superset-ui/core';
+import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
 
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
@@ -59,6 +54,7 @@ import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
+import { updateColorSchema } from './dashboardInfo';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -92,19 +88,14 @@ export const hydrateDashboard =
       //
     }
 
+    if (metadata?.shared_label_colors) {
+      updateColorSchema(metadata, metadata?.shared_label_colors);
+    }
+
     // Priming the color palette with user's label-color mapping provided in
     // the dashboard's JSON metadata
     if (metadata?.label_colors) {
-      const namespace = metadata.color_namespace;
-      const colorMap = isString(metadata.label_colors)
-        ? JSON.parse(metadata.label_colors)
-        : metadata.label_colors;
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(namespace);
-
-      Object.keys(colorMap).forEach(label => {
-        categoricalNamespace.setColor(label, colorMap[label]);
-      });
+      updateColorSchema(metadata, metadata?.label_colors);
     }
 
     // dashboard layout

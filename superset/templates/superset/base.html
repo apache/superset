@@ -21,7 +21,7 @@
 
 {% block head_css %}
   {{ super() }}
-  <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+  <link rel="icon" type="image/png" href="{{ assets_prefix }}/static/assets/images/favicon.png">
   {{ css_bundle("theme") }}
 {% endblock %}
 

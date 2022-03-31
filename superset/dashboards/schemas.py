@@ -128,6 +128,7 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
+    shared_label_colors = fields.Dict()
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -175,6 +176,7 @@ class DatabaseSchema(Schema):
     allows_subquery = fields.Bool()
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
+    disable_data_preview = fields.Bool()
     explore_database_id = fields.Int()
 
 

@@ -812,7 +812,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
-        Convert Python datetime object to a SQL expression
+        Convert a Python `datetime` object to a SQL expression.
 
         :param target_type: The target type of expression
         :param dttm: The datetime object
@@ -1138,7 +1138,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         sql = parsed_query.stripped()
         sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            sql = sql_query_mutator(sql, user_name, security_manager, database)
+            sql = sql_query_mutator(
+                sql,
+                user_name=user_name,
+                security_manager=security_manager,
+                database=database,
+            )
 
         return sql
 

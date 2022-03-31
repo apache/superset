@@ -60,8 +60,10 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
-export function getValue(option: string | number | { value: string | number }) {
-  return typeof option === 'object' ? option.value : option;
+export function getValue(
+  option: string | number | { value: string | number | null } | null,
+) {
+  return option && typeof option === 'object' ? option.value : option;
 }
 
 type LabeledValue<V> = { label?: ReactNode; value?: V };

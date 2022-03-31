@@ -46,7 +46,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.typing import FormData
+from superset.superset_typing import FormData
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -279,6 +279,7 @@ def apply_display_max_row_limit(
     metadata.
 
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
+    :param rows: The number of rows to apply a limit to
     :returns: The mutated sql_results structure
     """
 

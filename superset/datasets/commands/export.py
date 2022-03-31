@@ -23,7 +23,7 @@ from typing import Iterator, Tuple
 import yaml
 from werkzeug.utils import secure_filename
 
-from superset.commands.export import ExportModelsCommand
+from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
@@ -40,7 +40,9 @@ class ExportDatasetsCommand(ExportModelsCommand):
     not_found = DatasetNotFoundError
 
     @staticmethod
-    def _export(model: SqlaTable) -> Iterator[Tuple[str, str]]:
+    def _export(
+        model: SqlaTable, export_related: bool = True
+    ) -> Iterator[Tuple[str, str]]:
         database_slug = secure_filename(model.database.database_name)
         dataset_slug = secure_filename(model.table_name)
         file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
@@ -76,23 +78,24 @@ class ExportDatasetsCommand(ExportModelsCommand):
         yield file_name, file_content
 
         # include database as well
-        file_name = f"databases/{database_slug}.yaml"
+        if export_related:
+            file_name = f"databases/{database_slug}.yaml"
 
-        payload = model.database.export_to_dict(
-            recursive=False,
-            include_parent_ref=False,
-            include_defaults=True,
-            export_uuids=True,
-        )
-        # TODO (betodealmeida): move this logic to export_to_dict once this
-        # becomes the default export endpoint
-        if payload.get("extra"):
-            try:
-                payload["extra"] = json.loads(payload["extra"])
-            except json.decoder.JSONDecodeError:
-                logger.info("Unable to decode `extra` field: %s", payload["extra"])
+            payload = model.database.export_to_dict(
+                recursive=False,
+                include_parent_ref=False,
+                include_defaults=True,
+                export_uuids=True,
+            )
+            # TODO (betodealmeida): move this logic to export_to_dict once this
+            # becomes the default export endpoint
+            if payload.get("extra"):
+                try:
+                    payload["extra"] = json.loads(payload["extra"])
+                except json.decoder.JSONDecodeError:
+                    logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-        payload["version"] = EXPORT_VERSION
+            payload["version"] = EXPORT_VERSION
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+            file_content = yaml.safe_dump(payload, sort_keys=False)
+            yield file_name, file_content

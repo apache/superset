@@ -428,17 +428,6 @@ class TestCore(SupersetTestCase):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
 
-    def test_tablemodelview_list(self):
-        self.login(username="admin")
-
-        url = "/tablemodelview/list/"
-        resp = self.get_resp(url)
-
-        # assert that a table is listed
-        table = db.session.query(SqlaTable).first()
-        assert table.name in resp
-        assert "/superset/explore/table/{}".format(table.id) in resp
-
     def test_add_slice(self):
         self.login(username="admin")
         # assert that /chart/add responds with 200
@@ -689,30 +678,6 @@ class TestCore(SupersetTestCase):
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
-
-    def test_shortner(self):
-        self.login(username="admin")
-        data = (
-            "//superset/explore/table/1/?viz_type=sankey&groupby=source&"
-            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
-            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id=78&slice_name="
-            "Energy+Sankey&collapsed_fieldsets=&action=&datasource_name="
-            "energy_usage&datasource_id=1&datasource_type=table&"
-            "previous_viz_type=sankey"
-        )
-        resp = self.client.post("/r/shortner/", data=dict(data=data))
-        assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
-
-    def test_shortner_invalid(self):
-        self.login(username="admin")
-        invalid_urls = [
-            "hhttp://invalid.com",
-            "hhttps://invalid.com",
-            "www.invalid.com",
-        ]
-        for invalid_url in invalid_urls:
-            resp = self.client.post("/r/shortner/", data=dict(data=invalid_url))
-            assert resp.status_code == 400
 
     def test_redirect_invalid(self):
         model_url = models.Url(url="hhttp://invalid.com")
@@ -1540,6 +1505,29 @@ class TestCore(SupersetTestCase):
         extra["allows_virtual_table_explore"] = "trash value"
         database.extra = json.dumps(extra)
         self.assertEqual(database.allows_virtual_table_explore, True)
+
+    def test_data_preview_visibility(self):
+        # test that default visibility is allowed
+        database = utils.get_example_database()
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is disabled when extra is set to true
+        extra = database.get_extra()
+        extra["disable_data_preview"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, True)
+
+        # test that visibility is enabled when extra is set to false
+        extra = database.get_extra()
+        extra["disable_data_preview"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
+
+        # test that visibility is not broken with bad values
+        extra = database.get_extra()
+        extra["disable_data_preview"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_data_preview, False)
 
     def test_explore_database_id(self):
         database = superset.utils.database.get_example_database()

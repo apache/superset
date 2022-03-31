@@ -183,9 +183,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
-  const showLegacyDatasourceEditor =
-    isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) &&
-    !isFeatureEnabled(FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR);
+  const showLegacyDatasourceEditor = !isFeatureEnabled(
+    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+  );
 
   return (
     <StyledDatasourceModal

@@ -381,12 +381,12 @@ def change_log(
         with open(csv, "w") as csv_file:
             log_items = list(logs)
             field_names = log_items[0].keys()
-            writer = lib_csv.DictWriter(  # type: ignore
+            writer = lib_csv.DictWriter(
                 csv_file,
                 delimiter=",",
                 quotechar='"',
                 quoting=lib_csv.QUOTE_ALL,
-                fieldnames=field_names,  # type: ignore
+                fieldnames=field_names,
             )
             writer.writeheader()
             for log in logs:

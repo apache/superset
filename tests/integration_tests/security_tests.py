@@ -553,24 +553,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
 
-    def test_gamma_user_schema_access_to_tables(self):
-        self.login(username="gamma")
-        data = str(self.client.get("tablemodelview/list/").data)
-        self.assertIn("wb_health_population", data)
-        self.assertNotIn("birth_names", data)
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_gamma_user_schema_access_to_charts(self):
-        self.login(username="gamma")
-        data = str(self.client.get("api/v1/chart/").data)
-        self.assertIn(
-            "Life Expectancy VS Rural %", data
-        )  # wb_health_population slice, has access
-        self.assertIn(
-            "Parallel Coordinates", data
-        )  # wb_health_population slice, has access
-        self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):

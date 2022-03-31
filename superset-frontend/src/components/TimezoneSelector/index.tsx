@@ -62,11 +62,6 @@ const getTimezoneName = (name: string) => {
   );
 };
 
-export interface TimezoneProps {
-  onTimezoneChange: (value: string) => void;
-  timezone?: string | null;
-}
-
 const ALL_ZONES = moment.tz
   .countries()
   .map(country => moment.tz.zonesForCountry(country, true))
@@ -106,7 +101,15 @@ const matchTimezoneToOptions = (timezone: string) =>
   TIMEZONE_OPTIONS.find(option => option.offsets === getOffsetKey(timezone))
     ?.value || DEFAULT_TIMEZONE.value;
 
-const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
+export type TimezoneSelectorProps = {
+  onTimezoneChange: (value: string) => void;
+  timezone?: string | null;
+};
+
+export default function TimezoneSelector({
+  onTimezoneChange,
+  timezone,
+}: TimezoneSelectorProps) {
   const validTimezone = useMemo(
     () => matchTimezoneToOptions(timezone || moment.tz.guess()),
     [timezone],
@@ -129,6 +132,4 @@ const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
       sortComparator={TIMEZONE_OPTIONS_SORT_COMPARATOR}
     />
   );
-};
-
-export default TimezoneSelector;
+}

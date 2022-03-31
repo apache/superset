@@ -72,7 +72,7 @@ export interface DropdownProps {
 
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper>
+    <MenuDotsWrapper data-test="dropdown-trigger">
       <MenuDots />
     </MenuDotsWrapper>
   </AntdDropdown>

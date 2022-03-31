@@ -37,7 +37,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)

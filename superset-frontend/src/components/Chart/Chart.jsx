@@ -47,6 +47,7 @@ const propTypes = {
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   width: PropTypes.number,
   height: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -70,6 +71,7 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
 };
 
 const BLANK = {};
