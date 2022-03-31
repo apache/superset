@@ -42,8 +42,6 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { getChartPermalink } from 'src/utils/urlUtils';
-import copyTextToClipboard from 'src/utils/copy';
 import RowCountLabel from '../RowCountLabel';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 
@@ -116,7 +114,6 @@ export class ExploreChartHeader extends React.PureComponent {
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
     this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
-    this.copyLink = this.copyLink.bind(this);
   }
 
   componentDidMount() {
@@ -221,21 +218,6 @@ export class ExploreChartHeader extends React.PureComponent {
       ),
     );
     return permissions[0].length > 0;
-  }
-
-  async copyLink() {
-    try {
-      this.setState({ copyTooltip: t('Loading...') });
-      const url = await getChartPermalink(this.props.chart.latestQueryFormData);
-      await copyTextToClipboard(url);
-      this.setState({ copyTooltip: t('Copied to clipboard!') });
-      this.props.addSuccessToast(t('Copied to clipboard!'));
-    } catch (error) {
-      this.setState({ copyTooltip: t('Copying permalink failed.') });
-      this.props.addDangerToast(
-        t('Sorry, something went wrong. Try again later.'),
-      );
-    }
   }
 
   render() {
