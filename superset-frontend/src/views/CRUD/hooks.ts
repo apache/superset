@@ -431,11 +431,10 @@ export function useImportResource(
         headers: { Accept: 'application/json' },
       })
         .then(() => {
-          console.log('findme then');
-          // updateState({
-          //   passwordsNeeded: [],
-          //   alreadyExists: [],
-          // });
+          updateState({
+            passwordsNeeded: [],
+            alreadyExists: [],
+          });
           return true;
         })
         .catch(response =>

@@ -447,10 +447,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         show={databaseModalOpen}
         onHide={handleDatabaseEditModal}
         onDatabaseAdd={() => {
-          console.log('findme 6');
-
           refreshData();
-          console.log('findme 7');
         }}
       />
       {databaseCurrentlyDeleting && (

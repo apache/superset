@@ -456,11 +456,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   );
   // Database import logic
   const {
-    state: { alreadyExists, passwordsNeeded },
+    state: { alreadyExists, passwordsNeeded, loading },
     importResource,
   } = useImportResource('database', t('database'), msg => addDangerToast(msg));
-
-  console.log('findme state', alreadyExists, passwordsNeeded);
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -547,9 +545,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setImportingModal(false);
     setPasswords({});
     setConfirmedOverwrite(false);
-    console.log('findme 4');
     if (onDatabaseAdd) onDatabaseAdd();
-    console.log('findme 5');
     onHide();
   };
 
@@ -897,6 +893,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   );
 
   useEffect(() => {
+    if (!loading && !alreadyExists.length && !passwordsNeeded.length) {
+      onClose();
+      addSuccessToast(t('Database connected'));
+    }
+  }, [alreadyExists, passwordsNeeded, loading]);
+
+  useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
       getAvailableDbs();
@@ -931,7 +934,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [availableDbs]);
 
   const onDbImport = async (info: UploadChangeParam) => {
-    console.log('findme odi 1', alreadyExists.length, passwordsNeeded.length);
     setImportingModal(true);
     setFileList([
       {
@@ -946,16 +948,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       passwords,
       confirmedOverwrite,
     );
-
-    // if (!alreadyExists.length && JSON.stringify(passwords) === '{}') {
-    //   console.log('findme inside the check!');
-    //   onClose();
-    //   addSuccessToast(t('Database connected'));
-
-    //   if (onDatabaseAdd) onDatabaseAdd();
-    // }
-
-    console.log('findme odi', alreadyExists.length, passwordsNeeded.length);
   };
 
   const passwordNeededField = () => {
@@ -1176,34 +1168,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  console.log(
-    'findme import state',
-    fileList.length,
-    alreadyExists.length,
-    passwords,
-    confirmedOverwrite || JSON.stringify(passwords) !== '{}',
-  );
-  if (fileList.length > 0) {
-    console.log(
-      'findme modal',
-      alreadyExists.length,
-      passwordsNeeded.length,
-      confirmedOverwrite,
-      passwords,
-      JSON.stringify(passwords) === '{}' ? 'true' : 'false',
-    );
-
-    console.log('findme before the check!');
-
-    if (!alreadyExists.length && JSON.stringify(passwords) === '{}') {
-      console.log('findme hide modal now');
-      // onClose();
-      // addSuccessToast(t('Database connected'));
-
-      // if (onDatabaseAdd) onDatabaseAdd();
-    }
-    console.log('findme after the check!');
-
+  if (fileList.length > 0 && (alreadyExists.length || passwordsNeeded.length)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
