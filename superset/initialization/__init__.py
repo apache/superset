@@ -277,9 +277,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ROW_LEVEL_SECURITY"
-            ),
         )
 
         #

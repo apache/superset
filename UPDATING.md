@@ -29,6 +29,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [19230](https://github.com/apache/superset/pull/19230): The `ROW_LEVEL_SECURITY` feature flag has been removed (permanently enabled). Any deployments which had set this flag to false will need to verify that the presence of the Row Level Security feature does not interfere with their use case.
 - [19168](https://github.com/apache/superset/pull/19168): Celery upgrade to 5.X has breaking changes on it's command line invocation.
   Please follow: https://docs.celeryq.dev/en/stable/whatsnew-5.2.html#step-1-adjust-your-command-line-invocation
   Consider migrating you celery config if you haven't already: https://docs.celeryq.dev/en/stable/userguide/configuration.html#conf-old-settings-map
