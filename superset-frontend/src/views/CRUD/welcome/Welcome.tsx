@@ -204,8 +204,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     // Sets other activity data in parallel with recents api call
     const ownSavedQueryFilters = [
       {
-        col: 'owners',
-        opr: 'rel_m_m',
+        col: 'created_by',
+        opr: 'rel_o_m',
         value: `${id}`,
       },
     ];
