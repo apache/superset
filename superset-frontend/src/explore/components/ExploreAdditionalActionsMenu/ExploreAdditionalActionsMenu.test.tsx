@@ -166,7 +166,7 @@ test('Should open share submenu', async () => {
   expect(screen.queryByText('Share chart by email')).not.toBeInTheDocument();
 
   expect(screen.getByText('Share')).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(screen.getByText('Share'));
   expect(
     await screen.findByText('Copy permalink to clipboard'),
   ).toBeInTheDocument();
