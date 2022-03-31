@@ -79,6 +79,7 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  standalone: PropTypes.bool,
 };
 
 const CHART_STATUS_MAP = {
@@ -327,7 +328,7 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          {!this.props.dashboardId && (
+          {!this.props.dashboardId && !this.props.standalone && (
             <div
               css={css`
                 display: flex;

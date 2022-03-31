@@ -223,6 +223,7 @@ const ExploreChartPanel = props => {
           timeout={props.timeout}
           triggerQuery={chart.triggerQuery}
           vizType={props.vizType}
+          standalone={props.standalone}
         />
       )
     );
