@@ -15,9 +15,6 @@
   },
   "license": "Apache-2.0",
   "author": "Superset",
-  "sideEffects": [
-    "*.css"
-  ],
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
@@ -31,6 +28,7 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
+    "@emotion/react": "^11.4.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^16.13.1"
