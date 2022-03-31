@@ -1393,8 +1393,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        if is_feature_enabled("ROW_LEVEL_SECURITY"):
-            where_clause_and += self.get_sqla_row_level_filters(template_processor)
+        where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
@@ -1810,7 +1809,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if is_feature_enabled("ROW_LEVEL_SECURITY") and self.is_rls_supported:
+        if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
             ]
