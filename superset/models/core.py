@@ -165,7 +165,7 @@ class Database(
         "allow_file_upload",
         "extra",
     ]
-    extra_import_fields = ["password"]
+    extra_import_fields = ["password", "is_managed_externally", "external_url"]
     export_children = ["tables"]
 
     def __repr__(self) -> str:
@@ -322,7 +322,9 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self, object_url: URL, user_name: Optional[str] = None,
+        self,
+        object_url: URL,
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.

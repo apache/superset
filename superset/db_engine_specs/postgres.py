@@ -188,8 +188,16 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
             lambda match: ARRAY(int(match[2])) if match[2] else String(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^json.*", re.IGNORECASE), JSON(), GenericDataType.STRING,),
-        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), GenericDataType.STRING,),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^enum.*", re.IGNORECASE),
+            ENUM(),
+            GenericDataType.STRING,
+        ),
     )
 
     @classmethod

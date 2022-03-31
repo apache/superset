@@ -79,7 +79,9 @@ def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
 
 
 def validate_metadata_type(
-    metadata: Optional[Dict[str, str]], type_: str, exceptions: List[ValidationError],
+    metadata: Optional[Dict[str, str]],
+    type_: str,
+    exceptions: List[ValidationError],
 ) -> None:
     """Validate that the type declared in METADATA_FILE_NAME is correct"""
     if metadata and "type" in metadata:

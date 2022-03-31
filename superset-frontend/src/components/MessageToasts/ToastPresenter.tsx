@@ -81,7 +81,7 @@ type ToastPresenterProps = Partial<VisualProps> & {
 export default function ToastPresenter({
   toasts,
   removeToast,
-  position = 'top',
+  position = 'bottom',
 }: ToastPresenterProps) {
   return (
     <>

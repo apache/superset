@@ -79,7 +79,9 @@ def _get_timegrains(
 
 
 def _get_query(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool,
+    query_context: "QueryContext",
+    query_obj: "QueryObject",
+    _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}

@@ -104,6 +104,7 @@ export async function embedDashboard({
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
+      iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       // add these ones if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
       // iframe.sandbox.add("allow-forms");
@@ -130,7 +131,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded${dashboardConfig}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });

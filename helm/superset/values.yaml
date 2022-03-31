@@ -148,6 +148,9 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION = True
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+  # secret: |
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #   SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # Same as above but the values are files
 configOverridesFiles: {}
   # extend_timeout: extend_timeout.py
@@ -302,6 +305,8 @@ init:
   # Configure resources
   # Warning: fab command consumes a lot of ram and can
   # cause the process to be killed due to OOM if it exceeds limit
+  # Make sure you are giving a strong password for the admin user creation( else make sure you are changing after setup)
+  # Also change the admin email to your own custom email.
   resources: {}
     # limits:
     #   cpu:

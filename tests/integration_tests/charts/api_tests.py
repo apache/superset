@@ -749,6 +749,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "slice_name": "title",
             "viz_type": None,
             "query_context": None,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["result"], expected_result)
@@ -916,7 +917,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {
+                    "col": "slice_name",
+                    "opr": "chart_all_text",
+                    "value": "energy",
+                }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -932,7 +937,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("create_certified_charts")
     def test_gets_certified_charts_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_is_certified", "value": True,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_is_certified",
+                    "value": True,
+                }
+            ],
             "keys": ["none"],
             "columns": ["slice_name"],
         }
@@ -947,7 +958,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("create_charts")
     def test_gets_not_certified_charts_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_is_certified", "value": False,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "chart_is_certified",
+                    "value": False,
+                }
+            ],
             "keys": ["none"],
             "columns": ["slice_name"],
         }
@@ -964,7 +981,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
+                {
+                    "col": "slice_name",
+                    "opr": "chart_all_text",
+                    "value": "energy",
+                }
             ],
             "keys": ["none"],
             "columns": ["slice_name"],

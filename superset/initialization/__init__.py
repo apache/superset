@@ -67,7 +67,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -141,21 +141,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.embedded.view import EmbeddedView
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import (
-            AlertLogModelView,
-            AlertModelView,
-            AlertObservationModelView,
-            AlertView,
-            ReportView,
-        )
+        from superset.views.alerts import AlertView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -184,10 +180,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.schedules import (
-            DashboardEmailScheduleView,
-            SliceEmailScheduleView,
-        )
         from superset.views.sql_lab import (
             SavedQueryView,
             SavedQueryViewApi,
@@ -219,6 +211,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
@@ -297,6 +290,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
@@ -388,50 +382,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Conditionally setup email views
         #
-        if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-            logging.warning(
-                "ENABLE_SCHEDULED_EMAIL_REPORTS "
-                "is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_separator(
-            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
-        )
-        appbuilder.add_view(
-            DashboardEmailScheduleView,
-            "Dashboard Email Schedules",
-            label=__("Dashboard Emails"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-        appbuilder.add_view(
-            SliceEmailScheduleView,
-            "Chart Emails",
-            label=__("Chart Email Schedules"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-
-        if self.config["ENABLE_ALERTS"]:
-            logging.warning(
-                "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_view(
-            AlertModelView,
-            "Alerts",
-            label=__("Alerts"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-exclamation-triangle",
-            menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
-        )
-        appbuilder.add_view_no_menu(AlertLogModelView)
-        appbuilder.add_view_no_menu(AlertObservationModelView)
 
         appbuilder.add_view(
             AlertView,
@@ -442,7 +392,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
-        appbuilder.add_view_no_menu(ReportView)
 
         appbuilder.add_view(
             AccessRequestsModelView,

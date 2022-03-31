@@ -293,7 +293,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     )
     def test_presto_expand_data_with_complex_row_columns_and_null_values(self):
         cols = [
-            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",}
+            {
+                "name": "row_column",
+                "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
+            }
         ]
         data = [
             {"row_column": '[["a"]]'},
@@ -305,7 +308,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             cols, data
         )
         expected_cols = [
-            {"name": "row_column", "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",},
+            {
+                "name": "row_column",
+                "type": "ROW(NESTED_ROW ROW(NESTED_OBJ VARCHAR))",
+            },
             {"name": "row_column.nested_row", "type": "ROW(NESTED_OBJ VARCHAR)"},
             {"name": "row_column.nested_row.nested_obj", "type": "VARCHAR"},
         ]
@@ -786,7 +792,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             True,
             True,
             True,
-            [{"name": "val1"}, {"name": "val2<?!@#$312,/'][p098"},],
+            [
+                {"name": "val1"},
+                {"name": "val2<?!@#$312,/'][p098"},
+            ],
         )
 
     def test_estimate_statement_cost(self):

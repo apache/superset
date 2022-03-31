@@ -16,102 +16,45 @@
 # under the License.
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING
-from unittest.mock import patch
 from uuid import UUID
 
-if TYPE_CHECKING:
-    from superset.key_value.models import KeyValueEntry
-
 import pytest
-from flask.ctx import AppContext
 
-from superset.key_value.types import Key
+from superset.key_value.exceptions import KeyValueParseKeyError
+from superset.key_value.types import KeyValueResource
 
-RESOURCE = "my-resource"
-UUID_KEY = "3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc"
-ID_KEY = "123"
-
-
-@pytest.fixture
-def key_value_entry(app_context: AppContext):
-    from superset.key_value.models import KeyValueEntry
-
-    return KeyValueEntry(
-        id=int(ID_KEY), uuid=UUID(UUID_KEY), value=json.dumps({"foo": "bar"}),
-    )
+RESOURCE = KeyValueResource.APP
+UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
+ID_KEY = 123
 
 
-def test_parse_permalink_key_uuid_valid(app_context: AppContext) -> None:
-    from superset.key_value.utils import parse_permalink_key
-
-    assert parse_permalink_key(UUID_KEY) == Key(id=None, uuid=UUID(UUID_KEY))
-
-
-def test_parse_permalink_key_id_invalid(app_context: AppContext) -> None:
-    from superset.key_value.utils import parse_permalink_key
-
-    with pytest.raises(ValueError):
-        parse_permalink_key(ID_KEY)
-
-
-@patch("superset.key_value.utils.current_app.config", {"PERMALINK_KEY_TYPE": "id"})
-def test_parse_permalink_key_id_valid(app_context: AppContext) -> None:
-    from superset.key_value.utils import parse_permalink_key
-
-    assert parse_permalink_key(ID_KEY) == Key(id=int(ID_KEY), uuid=None)
-
-
-@patch("superset.key_value.utils.current_app.config", {"PERMALINK_KEY_TYPE": "id"})
-def test_parse_permalink_key_uuid_invalid(app_context: AppContext) -> None:
-    from superset.key_value.utils import parse_permalink_key
-
-    with pytest.raises(ValueError):
-        parse_permalink_key(UUID_KEY)
-
-
-def test_format_permalink_key_uuid(app_context: AppContext) -> None:
-    from superset.key_value.utils import format_permalink_key
-
-    assert format_permalink_key(Key(id=None, uuid=UUID(UUID_KEY))) == UUID_KEY
-
-
-def test_format_permalink_key_id(app_context: AppContext) -> None:
-    from superset.key_value.utils import format_permalink_key
-
-    assert format_permalink_key(Key(id=int(ID_KEY), uuid=None)) == ID_KEY
-
-
-def test_extract_key_uuid(
-    app_context: AppContext, key_value_entry: KeyValueEntry,
-) -> None:
-    from superset.key_value.utils import extract_key
-
-    assert extract_key(key_value_entry, "id") == ID_KEY
-
-
-def test_extract_key_id(
-    app_context: AppContext, key_value_entry: KeyValueEntry,
-) -> None:
-    from superset.key_value.utils import extract_key
-
-    assert extract_key(key_value_entry, "uuid") == UUID_KEY
-
-
-def test_get_filter_uuid(app_context: AppContext,) -> None:
+def test_get_filter_uuid() -> None:
     from superset.key_value.utils import get_filter
 
-    assert get_filter(resource=RESOURCE, key=UUID_KEY, key_type="uuid",) == {
+    assert get_filter(resource=RESOURCE, key=UUID_KEY) == {
         "resource": RESOURCE,
-        "uuid": UUID(UUID_KEY),
+        "uuid": UUID_KEY,
     }
 
 
-def test_get_filter_id(app_context: AppContext,) -> None:
+def test_get_filter_id() -> None:
     from superset.key_value.utils import get_filter
 
-    assert get_filter(resource=RESOURCE, key=ID_KEY, key_type="id",) == {
+    assert get_filter(resource=RESOURCE, key=ID_KEY) == {
         "resource": RESOURCE,
-        "id": int(ID_KEY),
+        "id": ID_KEY,
     }
+
+
+def test_encode_permalink_id_valid() -> None:
+    from superset.key_value.utils import encode_permalink_key
+
+    salt = "abc"
+    assert encode_permalink_key(1, salt) == "AyBn4lm9qG8"
+
+
+def test_decode_permalink_id_invalid() -> None:
+    from superset.key_value.utils import decode_permalink_id
+
+    with pytest.raises(KeyValueParseKeyError):
+        decode_permalink_id("foo", "bar")

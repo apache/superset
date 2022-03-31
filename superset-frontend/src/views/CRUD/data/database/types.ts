@@ -95,6 +95,9 @@ export type DatabaseObject = {
     disable_data_preview?: boolean; // in SQL Lab
   };
 
+  // External management
+  is_managed_externally: boolean;
+
   // Temporary storage
   catalog?: Array<CatalogObject>;
   query_input?: string;

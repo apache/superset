@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
-import { SupersetClient, styled, t, useTheme } from '@superset-ui/core';
+import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -92,58 +92,60 @@ const StyledRangeType = styled(Select)`
 `;
 
 const ContentStyleWrapper = styled.div`
-  .ant-row {
-    margin-top: 8px;
-  }
+  ${({ theme }) => css`
+    .ant-row {
+      margin-top: 8px;
+    }
 
-  .ant-input-number {
-    width: 100%;
-  }
+    .ant-input-number {
+      width: 100%;
+    }
 
-  .ant-picker {
-    padding: 4px 17px 4px;
-    border-radius: 4px;
-    width: 100%;
-  }
+    .ant-picker {
+      padding: 4px 17px 4px;
+      border-radius: 4px;
+      width: 100%;
+    }
 
-  .ant-divider-horizontal {
-    margin: 16px 0;
-  }
+    .ant-divider-horizontal {
+      margin: 16px 0;
+    }
 
-  .control-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #b2b2b2;
-    line-height: 16px;
-    text-transform: uppercase;
-    margin: 8px 0;
-  }
+    .control-label {
+      font-size: 11px;
+      font-weight: ${theme.typography.weights.medium};
+      color: #b2b2b2;
+      line-height: 16px;
+      text-transform: uppercase;
+      margin: 8px 0;
+    }
 
-  .vertical-radio {
-    display: block;
-    height: 40px;
-    line-height: 40px;
-  }
+    .vertical-radio {
+      display: block;
+      height: 40px;
+      line-height: 40px;
+    }
 
-  .section-title {
-    font-style: normal;
-    font-weight: 500;
-    font-size: 15px;
-    line-height: 24px;
-    margin-bottom: 8px;
-  }
+    .section-title {
+      font-style: normal;
+      font-weight: ${theme.typography.weights.bold};
+      font-size: 15px;
+      line-height: 24px;
+      margin-bottom: 8px;
+    }
 
-  .control-anchor-to {
-    margin-top: 16px;
-  }
+    .control-anchor-to {
+      margin-top: 16px;
+    }
 
-  .control-anchor-to-datetime {
-    width: 217px;
-  }
+    .control-anchor-to-datetime {
+      width: 217px;
+    }
 
-  .footer {
-    text-align: right;
-  }
+    .footer {
+      text-align: right;
+    }
+  `}
 `;
 
 const IconWrapper = styled.span`
