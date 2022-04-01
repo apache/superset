@@ -555,11 +555,12 @@ class Database(
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        # before we split sqls using sql parse, however this core code is only reachable
+        # with single sql queries. Thus, we removed the engine spec parser
+        # sqls = self.db_engine_spec.parse_sql(sql)
+        
         with self.get_sqla_engine_with_context(schema) as engine:
             engine_url = engine.url
-        mutate_after_split = config["MUTATE_AFTER_SPLIT"]
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
         def needs_conversion(df_series: pd.Series) -> bool:
             return (
@@ -580,28 +581,9 @@ class Database(
 
         with self.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()
-            for sql_ in sqls[:-1]:
-                if mutate_after_split:
-                    sql_ = sql_query_mutator(
-                        sql_,
-                        security_manager=security_manager,
-                        database=None,
-                    )
-                _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_)
-                cursor.fetchall()
 
-            if mutate_after_split:
-                last_sql = sql_query_mutator(
-                    sqls[-1],
-                    security_manager=security_manager,
-                    database=None,
-                )
-                _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql)
-            else:
-                _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1])
+            _log_query(sql)
+            self.db_engine_spec.execute(cursor, sql)
 
             data = self.db_engine_spec.fetch_data(cursor)
             result_set = SupersetResultSet(

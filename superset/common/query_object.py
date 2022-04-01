@@ -272,7 +272,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
-            self._sanitize_filters()
+            # problematic line where calling sqlparser.parse() causes quadratic
+            # performance for WHERE ... IN (...) clauses
+            # self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
