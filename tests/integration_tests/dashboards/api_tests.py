@@ -716,8 +716,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "url",
         ]
         expected_results = [
-            {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
             {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
+            {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
         ]
         for idx, response_item in enumerate(data["result"]):
             for key, value in expected_results[idx].items():

@@ -102,7 +102,7 @@ class DashboardDAO(BaseDAO):
         return max(dashboard_changed_on, slices_changed_on).replace(microsecond=0)
 
     @staticmethod
-    def get_dashboards_created_changed_by_user(user_id: int) -> List[Dashboard]:
+    def get_dashboards_created_by(user_id: int) -> List[Dashboard]:
         """
         Gets a list of dashboards that were created or changed by a certain user
         :param user_id: The user id

@@ -486,7 +486,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        dashboards = DashboardDAO.get_dashboards_created_changed_by_user(g.user.id)
+        dashboards = DashboardDAO.get_dashboards_created_by(g.user.id)
         result = self.dashboard_created_by_schema.dump(dashboards, many=True)
         return self.response(200, result=result)
 
