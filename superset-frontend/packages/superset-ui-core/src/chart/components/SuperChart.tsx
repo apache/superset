@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,7 +30,6 @@ import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 import NoResultsComponent from './NoResultsComponent';
-import updateTextNode from '../../dimension/svg/updateTextNode';
 
 const defaultProps = {
   FallbackComponent: DefaultFallbackComponent,
@@ -166,13 +166,9 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
         ? [
             {
               ...queriesData[0],
-              data: queriesData[0].data.map((item: any) => ({
+              data: (queriesData[0]?.data || []).map((item: any) => ({
                 ...item,
-                __timestamp:
-                  item.__timestamp +
-                  (item.__timestamp === 1080777600000
-                    ? 2592000000
-                    : 2678400000),
+                __timestamp: item.__timestamp + 31 * 24 * 60 * 60 * 1000,
               })),
             },
           ]
