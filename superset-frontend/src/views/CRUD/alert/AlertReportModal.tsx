@@ -405,7 +405,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
-  // console.log('onAdd', onAdd)
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
