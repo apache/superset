@@ -22,7 +22,17 @@ import {
   nativeFilters,
   exploreView,
 } from 'cypress/support/directories';
-import { testItems } from './dashboard.helper';
+import {
+  cleanUp,
+  testItems,
+  WORLD_HEALTH_CHARTS,
+  waitForChartLoad,
+  clickOnAddFilterInModal,
+  fillValueNativeFilterForm,
+  getNativeFilterPlaceholderWithIndex,
+  addParentFilterWithValue,
+  applyNativeFilterValueWithIndex,
+} from './dashboard.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
@@ -39,21 +49,27 @@ const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
 
 describe('Nativefilters Sanity test', () => {
-  before(() => {
+  beforeEach(() => {
     cy.login();
+    cleanUp();
     cy.intercept('/api/v1/dashboard/?q=**').as('dashboardsList');
     cy.intercept('POST', '**/copy_dash/*').as('copy');
     cy.intercept('/api/v1/dashboard/*').as('dashboard');
-    cy.request(
-      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
-    ).then(xhr => {
-      const dashboards = xhr.body.result;
+    cy.intercept('GET', '**/api/v1/dataset/**').as('datasetLoad');
+    cy.intercept('**/api/v1/dashboard/?q=**').as('dashboardsList');
+    cy.visit('dashboard/list/');
+    cy.contains('Actions');
+    cy.wait('@dashboardsList').then(xhr => {
+      const dashboards = xhr.response?.body.result;
+      /* eslint-disable no-unused-expressions */
+      expect(dashboards).not.to.be.undefined;
       const worldBankDashboard = dashboards.find(
         (d: { dashboard_title: string }) =>
           d.dashboard_title === "World Bank's Data",
       );
       cy.visit(worldBankDashboard.url);
     });
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     cy.get(dashboardView.threeDotsMenuIcon).should('be.visible').click();
     cy.get(dashboardView.saveAsMenuOption).should('be.visible').click();
     cy.get(dashboardView.saveModal.dashboardNameInput)
@@ -65,19 +81,10 @@ describe('Nativefilters Sanity test', () => {
       .its('response.statusCode')
       .should('eq', 200);
   });
-  beforeEach(() => {
-    cy.login();
-    cy.request(
-      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
-    ).then(xhr => {
-      const dashboards = xhr.body.result;
-      const testDashboard = dashboards.find(
-        (d: { dashboard_title: string }) =>
-          d.dashboard_title === testItems.dashboard,
-      );
-      cy.visit(testDashboard.url);
-    });
+  afterEach(() => {
+    cleanUp();
   });
+
   it('User can expand / retract native filter sidebar on a dashboard', () => {
     cy.get(nativeFilters.createFilterButton).should('not.exist');
     cy.get(nativeFilters.filterFromDashboardView.expand)
@@ -390,15 +397,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get('.line').within(() => {
       cy.contains('United States').should('be.visible');
     });
-
-    // clean up the default setting
-    cy.get(nativeFilters.filterFromDashboardView.expand).click({ force: true });
-    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
-    cy.contains('Filter has default value').click();
-    cy.get(nativeFilters.modal.footer)
-      .find(nativeFilters.modal.saveButton)
-      .should('be.visible')
-      .click({ force: true });
   });
 
   it('User can create a time grain filter', () => {
@@ -565,6 +563,51 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filterFromDashboardView.filterName)
       .should('be.visible', { timeout: 40000 })
       .contains('country_name');
+  });
+
+  it('User can create parent filters using "Values are dependent on other filters"', () => {
+    cy.get(nativeFilters.filterFromDashboardView.expand)
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
+    // Create parent filter 'region'.
+    fillValueNativeFilterForm('region', 'wb_health_population', 'region');
+    // Create filter 'country_name' depend on region filter.
+    clickOnAddFilterInModal();
+    fillValueNativeFilterForm(
+      'country_name',
+      'wb_health_population',
+      'country_name',
+    );
+    cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+      () => {
+        cy.contains('Values are dependent on other filters')
+          .should('be.visible')
+          .click();
+      },
+    );
+    addParentFilterWithValue(0, 'region');
+    cy.wait(1000);
+    cy.get(nativeFilters.modal.footer)
+      .contains('Save')
+      .should('be.visible')
+      .click();
+    // Validate both filter in dashboard view.
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    ['region', 'country_name'].forEach(it => {
+      cy.get(nativeFilters.filterFromDashboardView.filterName)
+        .contains(it)
+        .should('be.visible');
+    });
+    getNativeFilterPlaceholderWithIndex(1)
+      .invoke('text')
+      .should('equal', '214 options', { timeout: 20000 });
+    // apply first filter value and validate 2nd filter is depden on 1st filter.
+    applyNativeFilterValueWithIndex(0, 'East Asia & Pacific');
+
+    getNativeFilterPlaceholderWithIndex(0).should('have.text', '36 options', {
+      timeout: 20000,
+    });
   });
 });
 
