@@ -98,17 +98,37 @@ def upgrade():
         ),
     )
 
-    for sqlatable in session.query(SqlaTable).all():
-        try:
-            ds = (
-                session.query(Dataset)
-                .filter(Dataset.sqlatable_id == sqlatable.id)
-                .one()
-            )
-        except sa.orm.exc.NoResultFound:
-            continue
+    total_count = session.query(sa.func.count(SqlaTable.id))
+    per_page = 1000
+    page = 1
+    # breakpoint()
 
-        ds.owners = sqlatable.owners
+    limit = 5
+    offset = 0
+    idx = 0
+    while True:
+        # paginating sqlatable query with offset + limit
+        # trying to not pull all SqlaTable in memory at once
+        query = session.query(SqlaTable).offset(offset).limit(limit).all()
+        if not len(query):
+            break
+
+        # find matching new dataset
+        for sqlatable in query:
+            try:
+                ds = (
+                    session.query(Dataset)
+                    .filter(Dataset.sqlatable_id == sqlatable.id)
+                    .one()
+                )
+            except sa.orm.exc.NoResultFound:
+                continue
+
+            # set owners for new dataset
+            ds.owners = sqlatable.owners
+
+        idx += 1
+        offset = idx * limit
 
     session.commit()
     session.close()

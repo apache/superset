@@ -55,7 +55,7 @@ table_association_table = sa.Table(
 
 dataset_user = sa.Table(
     "sl_dataset_users",
-    Model.metadata,
+    Model.metadata,  # pylint: disable=no-member
     sa.Column("user_id", sa.ForeignKey("ab_user.id")),
     sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
 )
