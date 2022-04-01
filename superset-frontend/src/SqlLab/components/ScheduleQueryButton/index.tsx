@@ -192,7 +192,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       </StyledRow>
       <Row>
         <Col xs={24}>
-          <StyledJsonSchema className="json-schema">
+          <StyledJsonSchema>
             <SchemaForm
               schema={getJSONSchema()}
               uiSchema={getUISchema}
