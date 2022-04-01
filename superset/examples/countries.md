@@ -212,10 +212,10 @@ SP.DYN.LE00.IN | Life expectancy at birth, total (years)
 SP.DYN.LE00.MA.IN | Life expectancy at birth, male (years)
 SP.DYN.SMAM.FE | Mean age at first marriage, female
 SP.DYN.SMAM.MA | Mean age at first marriage, male
-SP.DYN.TFRT.IN | Fertility rate, total (births per person)
+SP.DYN.TFRT.IN | Fertility rate, total (births per woman)
 SP.DYN.TO65.FE.ZS | Survival to age 65, female (% of cohort)
 SP.DYN.TO65.MA.ZS | Survival to age 65, male (% of cohort)
-SP.DYN.WFRT | Wanted fertility rate (births per person)
+SP.DYN.WFRT | Wanted fertility rate (births per woman)
 SP.HOU.FEMA.ZS | Female headed households (% of households with a female head)
 SP.MTR.1519.ZS | Teenage mothers (% of women ages 15-19 who have had children or are currently pregnant)
 SP.POP.0004.FE | Population ages 0-4, female
