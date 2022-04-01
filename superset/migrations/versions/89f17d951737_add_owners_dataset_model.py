@@ -98,12 +98,7 @@ def upgrade():
         ),
     )
 
-    total_count = session.query(sa.func.count(SqlaTable.id))
-    per_page = 1000
-    page = 1
-    # breakpoint()
-
-    limit = 5
+    limit = 1000
     offset = 0
     idx = 0
     while True:
