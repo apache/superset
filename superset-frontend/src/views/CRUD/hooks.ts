@@ -752,8 +752,7 @@ export function useDatabaseValidation() {
                       return {
                         ...obj,
                         error_type,
-                        description:
-                          message || extra?.issue_codes?.[0]?.message,
+                        description: message || extra.issue_codes[0]?.message,
                       };
                     }
 
