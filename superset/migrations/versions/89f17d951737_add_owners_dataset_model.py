@@ -29,11 +29,63 @@ down_revision = "2ed890b36b94"
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+
+from superset import db, security_manager
+
+Base = declarative_base()
+
+
+class User(Base):
+    """Declarative class to do query in upgrade"""
+
+    __tablename__ = "ab_user"
+    id = sa.Column(sa.Integer, primary_key=True)
+
+
+class SqlaTable(Base):
+    __tablename__ = "tables"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    owners = relationship(
+        "User",
+        secondary=sa.Table(
+            "sqlatable_user",
+            Base.metadata,
+            sa.Column("id", sa.Integer, primary_key=True),
+            sa.Column("user_id", sa.Integer, sa.ForeignKey("ab_user.id")),
+            sa.Column("table_id", sa.Integer, sa.ForeignKey("tables.id")),
+        ),
+        backref="tables",
+    )
+
+
+class Dataset(Base):
+    __tablename__ = "sl_datasets"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    sqlatable_id = sa.Column(sa.Integer, nullable=True, unique=True)
+    owners = relationship(
+        "User",
+        secondary=sa.Table(
+            "sl_dataset_users",
+            Base.metadata,
+            sa.Column("id", sa.Integer, primary_key=True),
+            sa.Column("user_id", sa.ForeignKey("ab_user.id")),
+            sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
+        ),
+        backref="sl_datasets",
+    )
 
 
 def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
     op.create_table(
         "sl_dataset_users",
+        sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("user_id", sa.Integer(), nullable=True),
         sa.Column("dataset_id", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
@@ -45,6 +97,21 @@ def upgrade():
             ["ab_user.id"],
         ),
     )
+
+    for sqlatable in session.query(SqlaTable).all():
+        try:
+            ds = (
+                session.query(Dataset)
+                .filter(Dataset.sqlatable_id == sqlatable.id)
+                .one()
+            )
+        except sa.orm.exc.NoResultFound:
+            continue
+
+        ds.owners = sqlatable.owners
+
+    session.commit()
+    session.close()
 
 
 def downgrade():
