@@ -34,6 +34,7 @@ from superset.exceptions import (
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
@@ -91,7 +92,7 @@ def get_physical_table_metadata(
     return cols
 
 
-def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
+def get_virtual_table_metadata(dataset: "SqlaTable") -> List[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
