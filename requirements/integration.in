@@ -18,4 +18,4 @@ pip-compile-multi!=1.5.9
 pre-commit
 tox
 py>=1.10.0
-click==7.1.2
+click

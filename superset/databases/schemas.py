@@ -308,7 +308,12 @@ def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
     engine_specs = get_engine_specs()
     if engine not in engine_specs:
         raise ValidationError(
-            [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
+            [
+                _(
+                    'Engine "%(engine)s" is not a valid engine.',
+                    engine=engine,
+                )
+            ]
         )
     return engine_specs[engine]
 
@@ -324,7 +329,9 @@ class DatabaseValidateParametersSchema(Schema):
         description="DB-specific parameters for configuration",
     )
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
@@ -351,7 +358,9 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         unknown = EXCLUDE
 
     database_name = fields.String(
-        description=database_name_description, required=True, validate=Length(1, 250),
+        description=database_name_description,
+        required=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -386,6 +395,8 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         description=sqlalchemy_uri_description,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
@@ -393,7 +404,9 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         unknown = EXCLUDE
 
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -428,11 +441,15 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=sqlalchemy_uri_description,
         validate=[Length(0, 1024), sqlalchemy_uri_validator],
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
@@ -619,6 +636,8 @@ class ImportV1DatabaseSchema(Schema):
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
     # pylint: disable=no-self-use, unused-argument
     @validates_schema

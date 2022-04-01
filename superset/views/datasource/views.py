@@ -81,7 +81,7 @@ class Datasource(BaseSupersetView):
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
-            if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            if app.config.get("OLD_API_CHECK_DATASET_OWNERSHIP"):
                 # mimic the behavior of the new dataset command that
                 # checks ownership and ensures that non-admins aren't locked out
                 # of the object
@@ -161,8 +161,8 @@ class Datasource(BaseSupersetView):
     def external_metadata_by_name(self, **kwargs: Any) -> FlaskResponse:
         """Gets table metadata from the source system and SQLAlchemy inspector"""
         try:
-            params: ExternalMetadataParams = (
-                ExternalMetadataSchema().load(kwargs.get("rison"))
+            params: ExternalMetadataParams = ExternalMetadataSchema().load(
+                kwargs.get("rison")
             )
         except ValidationError as err:
             return json_error_response(str(err), status=400)

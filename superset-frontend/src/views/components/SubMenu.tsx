@@ -22,8 +22,10 @@ import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
 import { Row } from 'src/components';
-import { Menu, MenuMode } from 'src/components/Menu';
+import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';
+import Icons from 'src/components/Icons';
+import { MenuObjectProps } from './Menu';
 
 const StyledHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -39,11 +41,21 @@ const StyledHeader = styled.div`
   .nav-right {
     display: flex;
     align-items: center;
-    padding: 14px 0;
+    padding: ${({ theme }) => theme.gridUnit * 3.5}px 0;
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     float: right;
     position: absolute;
     right: 0;
+    ul.ant-menu-root {
+      padding: 0px;
+    }
+    li[role='menuitem'] {
+      border: 0;
+      border-bottom: none;
+      &:hover {
+        border-bottom: transparent;
+      }
+    }
   }
   .nav-right-collapse {
     display: flex;
@@ -58,8 +70,10 @@ const StyledHeader = styled.div`
     .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
+        border-bottom: none;
         &:hover {
           border-bottom: none;
+          text-decoration: none;
         }
       }
     }
@@ -117,6 +131,17 @@ const StyledHeader = styled.div`
       margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
+  .ant-menu-submenu {
+    span[role='img'] {
+      position: absolute;
+      right: ${({ theme }) => -theme.gridUnit + -2}px;
+      top: ${({ theme }) => theme.gridUnit + 1}px !important;
+    }
+  }
+  .dropdown-menu-links > div.ant-menu-submenu-title,
+  .ant-menu-submenu-open.ant-menu-submenu-active > div.ant-menu-submenu-title {
+    color: ${({ theme }) => theme.colors.primary.dark1};
+  }
 `;
 
 type MenuChild = {
@@ -152,7 +177,10 @@ export interface SubMenuProps {
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
   color?: string;
+  dropDownLinks?: Array<MenuObjectProps>;
 }
+
+const { SubMenu } = DropdownMenu;
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
@@ -177,6 +205,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         props.buttons.length >= 3 &&
         window.innerWidth >= 795
       ) {
+        // eslint-disable-next-line no-unused-expressions
         setNavRightStyle('nav-right');
       } else if (
         props.buttons &&
@@ -231,6 +260,28 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           })}
         </Menu>
         <div className={navRightStyle}>
+          <Menu mode="horizontal" triggerSubMenuAction="click">
+            {props.dropDownLinks?.map((link, i) => (
+              <SubMenu
+                key={i}
+                title={link.label}
+                icon={<Icons.TriangleDown />}
+                popupOffset={[10, 20]}
+                className="dropdown-menu-links"
+              >
+                {link.childs?.map(item => {
+                  if (typeof item === 'object') {
+                    return (
+                      <DropdownMenu.Item key={item.label}>
+                        <a href={item.url}>{item.label}</a>
+                      </DropdownMenu.Item>
+                    );
+                  }
+                  return null;
+                })}
+              </SubMenu>
+            ))}
+          </Menu>
           {props.buttons?.map((btn, i) => (
             <Button
               key={i}

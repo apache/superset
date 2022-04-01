@@ -725,7 +725,7 @@ describe('async actions', () => {
 
     describe('addTable', () => {
       it('updates the table schema state in the backend', () => {
-        expect.assertions(5);
+        expect.assertions(6);
 
         const database = { disable_data_preview: true };
         const tableName = 'table';
@@ -743,6 +743,7 @@ describe('async actions', () => {
             expect(store.getActions().map(a => a.type)).toEqual(
               expectedActionTypes,
             );
+            expect(store.getActions()[0].prepend).toBeTruthy();
             expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
             expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
             expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(

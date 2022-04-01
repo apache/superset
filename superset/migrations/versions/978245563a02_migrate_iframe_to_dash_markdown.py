@@ -159,7 +159,10 @@ def upgrade():
                 for key_to_remove in keys_to_remove:
                     del position_dict[key_to_remove]
                 dashboard.position_json = json.dumps(
-                    position_dict, indent=None, separators=(",", ":"), sort_keys=True,
+                    position_dict,
+                    indent=None,
+                    separators=(",", ":"),
+                    sort_keys=True,
                 )
                 session.merge(dashboard)
 

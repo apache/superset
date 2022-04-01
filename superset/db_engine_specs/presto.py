@@ -214,7 +214,10 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -487,7 +490,11 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             types.VARBINARY(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^json.*", re.IGNORECASE), types.JSON(), GenericDataType.STRING,),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATETIME(),
@@ -725,10 +732,24 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if tt in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
             return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 

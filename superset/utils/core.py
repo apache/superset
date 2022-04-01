@@ -325,7 +325,9 @@ class TemporalType(str, Enum):
     SMALLDATETIME = "SMALLDATETIME"
     TEXT = "TEXT"
     TIME = "TIME"
+    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
     TIMESTAMP = "TIMESTAMP"
+    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
 
 
 class ColumnTypeSource(Enum):
@@ -354,7 +356,6 @@ try:
                     "value": args["value"],
                 }
             }
-
 
 except NameError:
     pass
@@ -511,7 +512,9 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-statements
+def base_json_conv(  # pylint: disable=inconsistent-return-statements
+    obj: Any,
+) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -1012,7 +1015,8 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
 
 
 def simple_filter_to_adhoc(
-    filter_clause: QueryObjectFilterClause, clause: str = "where",
+    filter_clause: QueryObjectFilterClause,
+    clause: str = "where",
 ) -> AdhocFilterClause:
     result: AdhocFilterClause = {
         "clause": clause.upper(),
@@ -1275,7 +1279,8 @@ def get_metric_name(
 
 
 def get_column_names(
-    columns: Optional[Sequence[Column]], verbose_map: Optional[Dict[str, Any]] = None,
+    columns: Optional[Sequence[Column]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     return [
         column
@@ -1285,7 +1290,8 @@ def get_column_names(
 
 
 def get_metric_names(
-    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     return [
         metric
@@ -1295,7 +1301,8 @@ def get_metric_names(
 
 
 def get_first_metric_name(
-    metrics: Optional[Sequence[Metric]], verbose_map: Optional[Dict[str, Any]] = None,
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
 ) -> Optional[str]:
     metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
@@ -1569,7 +1576,8 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 
 def extract_dataframe_dtypes(
-    df: pd.DataFrame, datasource: Optional["BaseDatasource"] = None,
+    df: pd.DataFrame,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1630,7 +1638,8 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
+    datasource: "BaseDatasource",
+    applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
     applied: List[Dict[str, str]] = []
@@ -1784,7 +1793,10 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return False
 
 
-def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+def apply_max_row_limit(
+    limit: int,
+    max_limit: Optional[int] = None,
+) -> int:
     """
     Override row limit if max global limit is defined
 

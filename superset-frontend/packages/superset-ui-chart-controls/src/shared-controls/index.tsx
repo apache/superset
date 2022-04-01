@@ -44,6 +44,7 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
   JsonArray,
+  ComparisionType,
 } from '@superset-ui/core';
 
 import {
@@ -455,16 +456,12 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     filterOption: ({ data: option }, search) =>
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {
-      const showWarning =
-        state.controls?.comparison_type?.value === 'percentage';
+      const isPercentage =
+        state.controls?.comparison_type?.value === ComparisionType.Percentage;
       return {
-        warning: showWarning
-          ? t(
-              'When `Calculation type` is set to "Percentage change", the Y ' +
-                'Axis Format is forced to `.1%`',
-            )
-          : null,
-        disabled: showWarning,
+        choices: isPercentage
+          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+          : D3_FORMAT_OPTIONS,
       };
     },
   };

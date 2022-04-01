@@ -23,6 +23,7 @@ import { ToastType } from 'src/components/MessageToasts/types';
 
 export type Column = {
   name: string;
+  is_date?: boolean;
 };
 
 export type QueryState =
