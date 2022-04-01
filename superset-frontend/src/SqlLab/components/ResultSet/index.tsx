@@ -278,7 +278,11 @@ export default class ResultSet extends React.PureComponent<
       dbId,
       datasetToOverwrite.datasetId,
       sql,
-      results.selected_columns.map(d => ({ column_name: d.name })),
+      results.selected_columns.map(d => ({
+        column_name: d.name,
+        type: d.type,
+        is_dttm: d.is_dttm,
+      })),
       datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,
     );

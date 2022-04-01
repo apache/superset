@@ -84,6 +84,24 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         }
 
     @patch("superset.queries.saved_queries.filters.g")
+    def test_export_query_command_no_related(self, mock_g):
+        """
+        Test that only the query is exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        command = ExportSavedQueriesCommand(
+            [self.example_query.id], export_related=False
+        )
+        contents = dict(command.run())
+
+        expected = [
+            "metadata.yaml",
+            "queries/examples/schema1/The_answer.yaml",
+        ]
+        assert expected == list(contents.keys())
+
+    @patch("superset.queries.saved_queries.filters.g")
     def test_export_query_command_no_access(self, mock_g):
         """Test that users can't export datasets they don't have access to"""
         mock_g.user = security_manager.find_user("gamma")

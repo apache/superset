@@ -36,7 +36,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { URL_PARAMS } from 'src/constants';
+import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -101,7 +101,7 @@ const Styles = styled.div`
     max-height: 100%;
   }
   .data-source-selection {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
@@ -177,13 +177,7 @@ const updateHistory = debounce(
 
     const urlParams = payload?.url_params || {};
     Object.entries(urlParams).forEach(([key, value]) => {
-      if (
-        ![
-          URL_PARAMS.sliceId.name,
-          URL_PARAMS.formDataKey.name,
-          URL_PARAMS.datasetId.name,
-        ].includes(key)
-      ) {
+      if (!RESERVED_CHART_URL_PARAMS.includes(key)) {
         additionalParam[key] = value;
       }
     });

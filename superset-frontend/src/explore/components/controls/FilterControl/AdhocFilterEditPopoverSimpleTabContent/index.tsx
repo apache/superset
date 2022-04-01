@@ -37,7 +37,6 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input } from 'src/components/Input';
-import { propertyComparator } from 'src/components/Select/Select';
 import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
@@ -405,17 +404,17 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             order: index,
           }))}
         {...operatorSelectProps}
-        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <SelectWithLabel
-          labelText={labelText}
-          options={suggestions}
-          {...comparatorSelectProps}
-          sortComparator={propertyComparator(
-            typeof suggestions[0] === 'number' ? 'value' : 'label',
-          )}
-        />
+        // We need to delay rendering the select because we can't pass a primitive value without options
+        // We can't pass value = [null] and options=[]
+        comparatorSelectProps.value && suggestions.length === 0 ? null : (
+          <SelectWithLabel
+            labelText={labelText}
+            options={suggestions}
+            {...comparatorSelectProps}
+          />
+        )
       ) : (
         <StyledInput
           data-test="adhoc-filter-simple-value"

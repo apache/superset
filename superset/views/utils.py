@@ -40,13 +40,13 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.typing import FormData
+from superset.superset_typing import FormData
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -55,7 +55,7 @@ stats_logger = app.config["STATS_LOGGER"]
 
 
 REJECTED_FORM_DATA_KEYS: List[str] = []
-if not app.config["ENABLE_JAVASCRIPT_CONTROLS"]:
+if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
@@ -279,6 +279,7 @@ def apply_display_max_row_limit(
     metadata.
 
     :param sql_results: The results of a sql query from sql_lab.get_sql_results
+    :param rows: The number of rows to apply a limit to
     :returns: The mutated sql_results structure
     """
 
@@ -417,7 +418,9 @@ def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     return obj and user in obj.owners
 
 
-def check_resource_permissions(check_perms: Callable[..., Any],) -> Callable[..., Any]:
+def check_resource_permissions(
+    check_perms: Callable[..., Any],
+) -> Callable[..., Any]:
     """
     A decorator for checking permissions on a request using the passed-in function.
     """

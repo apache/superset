@@ -25,7 +25,7 @@ export const D3_FORMAT_DOCS = t(
 
 // input choices & options
 export const D3_FORMAT_OPTIONS: [string, string][] = [
-  [NumberFormats.SMART_NUMBER, t('Adaptative formating')],
+  [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
   [',d', ',d (12345.432 => 12,345)'],
   ['.1s', '.1s (12345.432 => 10k)'],
@@ -48,7 +48,7 @@ export const D3_TIME_FORMAT_DOCS = t(
 );
 
 export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
-  [smartDateFormatter.id, t('Adaptative formating')],
+  [smartDateFormatter.id, t('Adaptive formatting')],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],

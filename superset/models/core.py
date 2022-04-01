@@ -165,7 +165,7 @@ class Database(
         "allow_file_upload",
         "extra",
     ]
-    extra_import_fields = ["password"]
+    extra_import_fields = ["password", "is_managed_externally", "external_url"]
     export_children = ["tables"]
 
     def __repr__(self) -> str:
@@ -213,6 +213,13 @@ class Database(
         return self.get_extra().get("explore_database_id", self.id)
 
     @property
+    def disable_data_preview(self) -> bool:
+        # this will prevent any 'trash value' strings from going through
+        if self.get_extra().get("disable_data_preview", False) is not True:
+            return False
+        return True
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -225,6 +232,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
+            "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
         }
 
@@ -314,7 +322,9 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self, object_url: URL, user_name: Optional[str] = None,
+        self,
+        object_url: URL,
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.

@@ -95,10 +95,10 @@ const plugins = [
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
           js: chunks
             .filter(x => x.endsWith('.js'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
         };
       });
 
@@ -414,6 +414,7 @@ const config = {
               svgoConfig: {
                 plugins: {
                   removeViewBox: false,
+                  icon: true,
                 },
               },
             },

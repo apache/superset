@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { SuperChart, logging, Behavior, t } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -31,6 +31,7 @@ const propTypes = {
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -48,9 +49,14 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  postTransformProps: PropTypes.func,
+  source: PropTypes.oneOf(['dashboard', 'explore']),
 };
 
 const BLANK = {};
+
+const BIG_NO_RESULT_MIN_WIDTH = 300;
+const BIG_NO_RESULT_MIN_HEIGHT = 220;
 
 const defaultProps = {
   addFilter: () => BLANK,
@@ -103,6 +109,7 @@ class ChartRenderer extends React.Component {
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
         nextProps.labelColors !== this.props.labelColors ||
+        nextProps.sharedLabelColors !== this.props.sharedLabelColors ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp
       );
@@ -188,6 +195,7 @@ class ChartRenderer extends React.Component {
       filterState,
       formData,
       queriesResponse,
+      postTransformProps,
     } = this.props;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
@@ -212,6 +220,29 @@ class ChartRenderer extends React.Component {
           }`
         : '';
 
+    let noResultsComponent;
+    const noResultTitle = t('No results were returned for this query');
+    const noResultDescription =
+      this.props.source === 'explore'
+        ? t(
+            'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
+          )
+        : undefined;
+    const noResultImage = 'chart.svg';
+    if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
+      noResultsComponent = (
+        <EmptyStateBig
+          title={noResultTitle}
+          description={noResultDescription}
+          image={noResultImage}
+        />
+      );
+    } else {
+      noResultsComponent = (
+        <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+      );
+    }
+
     return (
       <SuperChart
         disableErrorBoundary
@@ -232,15 +263,8 @@ class ChartRenderer extends React.Component {
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
-        noResults={
-          <EmptyStateBig
-            title={t('No results were returned for this query')}
-            description={t(
-              'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
-            )}
-            image="chart.svg"
-          />
-        }
+        noResults={noResultsComponent}
+        postTransformProps={postTransformProps}
       />
     );
   }

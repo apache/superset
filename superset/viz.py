@@ -55,22 +55,27 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
-    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, QueryObjectDict, VizData, VizPayload
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import (
+    Column,
+    Metric,
+    QueryObjectDict,
+    VizData,
+    VizPayload,
+)
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -385,10 +390,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                try:
-                    validate_filter_clause(clause)
-                except QueryClauseValidationException as ex:
-                    raise QueryObjectValidationError(ex.message) from ex
+                sanitized_clause = sanitize_clause(clause)
+                if sanitized_clause != clause:
+                    self.form_data[param] = sanitized_clause
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -458,12 +462,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        cache_dict["rls"] = (
-            security_manager.get_rls_ids(self.datasource)
-            if is_feature_enabled("ROW_LEVEL_SECURITY")
-            and self.datasource.is_rls_supported
-            else []
-        )
+        cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)
@@ -1087,7 +1086,7 @@ class CalHeatmapViz(BaseViz):
                 v = query_obj[DTTM_ALIAS]
                 if hasattr(v, "value"):
                     v = v.value
-                values[str(v / 10 ** 9)] = query_obj.get(metric)
+                values[str(v / 10**9)] = query_obj.get(metric)
             data[metric] = values
 
         try:
@@ -1841,7 +1840,7 @@ class DistributionBarViz(BaseViz):
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(groupby).sum()[sortby].copy()
+        row = df.groupby(groupby)[sortby].sum().copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
@@ -1946,7 +1945,12 @@ class SankeyViz(BaseViz):
         source, target = get_column_names(self.groupby)
         (value,) = self.metric_labels
         df.rename(
-            columns={source: "source", target: "target", value: "value",}, inplace=True,
+            columns={
+                source: "source",
+                target: "target",
+                value: "value",
+            },
+            inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)

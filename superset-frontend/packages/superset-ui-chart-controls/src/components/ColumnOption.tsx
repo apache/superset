@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, ReactNode } from 'react';
-import { styled } from '@superset-ui/core';
+import React, { useState, ReactNode, useLayoutEffect } from 'react';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
-import { ColumnTypeLabel } from './ColumnTypeLabel';
+import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
@@ -32,6 +32,8 @@ export type ColumnOptionProps = {
 };
 
 const StyleOverrides = styled.span`
+  display: flex;
+  align-items: center;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
@@ -47,40 +49,27 @@ export function ColumnOption({
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTooltipText(getColumnTooltipNode(column, labelRef));
   }, [labelRef, column]);
 
   return (
     <StyleOverrides>
       {showType && type !== undefined && <ColumnTypeLabel type={type} />}
-      {column.is_certified && (
-        <CertifiedIconWithTooltip
-          metricName={column.metric_name}
-          certifiedBy={column.certified_by}
-          details={column.certification_details}
-        />
-      )}
-      <Tooltip
-        id="metric-name-tooltip"
-        title={tooltipText}
-        trigger={['hover']}
-        placement="top"
-      >
-        <span className="m-r-5 option-label column-option-label" ref={labelRef}>
+      <Tooltip id="metric-name-tooltip" title={tooltipText}>
+        <span
+          className="option-label column-option-label"
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-right: ${theme.gridUnit}px;
+            `
+          }
+          ref={labelRef}
+        >
           {getColumnLabelText(column)}
         </span>
       </Tooltip>
 
-      {column.description && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="info"
-          tooltip={column.description}
-          label={`descr-${column.column_name}`}
-          placement="top"
-        />
-      )}
       {hasExpression && (
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
@@ -88,6 +77,14 @@ export function ColumnOption({
           tooltip={column.expression}
           label={`expr-${column.column_name}`}
           placement="top"
+        />
+      )}
+
+      {column.is_certified && (
+        <CertifiedIconWithTooltip
+          metricName={column.metric_name}
+          certifiedBy={column.certified_by}
+          details={column.certification_details}
         />
       )}
     </StyleOverrides>

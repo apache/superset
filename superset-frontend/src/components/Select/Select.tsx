@@ -42,7 +42,7 @@ import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption } from './utils';
+import { getValue, hasOption, isObject } from './utils';
 
 const { Option } = AntdSelect;
 
@@ -64,6 +64,7 @@ type PickedSelectProps = Pick<
   | 'onDropdownVisibleChange'
   | 'placeholder'
   | 'showSearch'
+  | 'tokenSeparators'
   | 'value'
 >;
 
@@ -156,6 +157,10 @@ export interface SelectProps extends PickedSelectProps {
    * Works in async mode only (See the options property).
    */
   onError?: (error: string) => void;
+  /**
+   * Customize how filtered options are sorted while users search.
+   * Will not apply to predefined `options` array when users are not searching.
+   */
   sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
 }
 
@@ -306,6 +311,7 @@ const Select = (
     placeholder = t('Select ...'),
     showSearch = true,
     sortComparator = DEFAULT_SORT_COMPARATOR,
+    tokenSeparators,
     value,
     ...props
   }: SelectProps,
@@ -314,8 +320,6 @@ const Select = (
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
-  const initialOptions =
-    options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS;
   const [selectValue, setSelectValue] = useState(value);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(loading);
@@ -346,13 +350,27 @@ const Select = (
       sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
     [inputValue, sortComparator, sortSelectedFirst],
   );
-  const sortComparatorWithoutSearch = useCallback(
+  const sortComparatorForNoSearch = useCallback(
     (a: AntdLabeledValue, b: AntdLabeledValue) =>
-      sortSelectedFirst(a, b) || sortComparator(a, b, ''),
-    [sortComparator, sortSelectedFirst],
+      sortSelectedFirst(a, b) ||
+      // Only apply the custom sorter in async mode because we should
+      // preserve the options order as much as possible.
+      (isAsync ? sortComparator(a, b, '') : 0),
+    [isAsync, sortComparator, sortSelectedFirst],
   );
+
+  const initialOptions = useMemo(
+    () => (options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
+    [options],
+  );
+  const initialOptionsSorted = useMemo(
+    () => initialOptions.slice().sort(sortComparatorForNoSearch),
+    [initialOptions, sortComparatorForNoSearch],
+  );
+
   const [selectOptions, setSelectOptions] =
-    useState<OptionsType>(initialOptions);
+    useState<OptionsType>(initialOptionsSorted);
+
   // add selected values to options list if they are not in it
   const fullSelectOptions = useMemo(() => {
     const missingValues: OptionsType = ensureIsArray(selectValue)
@@ -368,37 +386,33 @@ const Select = (
   const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
 
   const handleOnSelect = (
-    selectedValue: string | number | AntdLabeledValue,
+    selectedItem: string | number | AntdLabeledValue | undefined,
   ) => {
     if (isSingleMode) {
-      setSelectValue(selectedValue);
+      setSelectValue(selectedItem);
     } else {
-      const currentSelected = selectValue
-        ? Array.isArray(selectValue)
-          ? selectValue
-          : [selectValue]
-        : [];
-      if (
-        typeof selectedValue === 'number' ||
-        typeof selectedValue === 'string'
-      ) {
-        setSelectValue([
-          ...(currentSelected as (string | number)[]),
-          selectedValue as string | number,
-        ]);
-      } else {
-        setSelectValue([
-          ...(currentSelected as AntdLabeledValue[]),
-          selectedValue as AntdLabeledValue,
-        ]);
-      }
+      setSelectValue(previousState => {
+        const array = ensureIsArray(previousState);
+        const isLabeledValue = isObject(selectedItem);
+        const value = isLabeledValue ? selectedItem.value : selectedItem;
+        // Tokenized values can contain duplicated values
+        if (!hasOption(value, array)) {
+          const result = [...array, selectedItem];
+          return isLabeledValue
+            ? (result as AntdLabeledValue[])
+            : (result as (string | number)[]);
+        }
+        return previousState;
+      });
     }
     setInputValue('');
   };
 
-  const handleOnDeselect = (value: string | number | AntdLabeledValue) => {
+  const handleOnDeselect = (
+    value: string | number | AntdLabeledValue | undefined,
+  ) => {
     if (Array.isArray(selectValue)) {
-      if (typeof value === 'number' || typeof value === 'string') {
+      if (typeof value === 'number' || typeof value === 'string' || !value) {
         const array = selectValue as (string | number)[];
         setSelectValue(array.filter(element => element !== value));
       } else {
@@ -433,13 +447,13 @@ const Select = (
           mergedData = prevOptions
             .filter(previousOption => !dataValues.has(previousOption.value))
             .concat(data)
-            .sort(sortComparatorWithoutSearch);
+            .sort(sortComparatorForNoSearch);
           return mergedData;
         });
       }
       return mergedData;
     },
-    [sortComparatorWithoutSearch],
+    [sortComparatorForNoSearch],
   );
 
   const fetchPage = useMemo(
@@ -575,11 +589,13 @@ const Select = (
     }
     // if no search input value, force sort options because it won't be sorted by
     // `filterSort`.
-    if (isDropdownVisible && !inputValue && fullSelectOptions.length > 0) {
-      const sortedOptions = [...fullSelectOptions].sort(
-        sortComparatorWithSearch,
-      );
-      if (!isEqual(sortedOptions, fullSelectOptions)) {
+    if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+      const sortedOptions = isAsync
+        ? selectOptions.slice().sort(sortComparatorForNoSearch)
+        : // if not in async mode, revert to the original select options
+          // (with selected options still sorted to the top)
+          initialOptionsSorted;
+      if (!isEqual(sortedOptions, selectOptions)) {
         setSelectOptions(sortedOptions);
       }
     }
@@ -624,10 +640,8 @@ const Select = (
     // when `options` list is updated from component prop, reset states
     fetchedQueries.current.clear();
     setAllValuesLoaded(false);
-    setSelectOptions(
-      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
-    );
-  }, [options]);
+    setSelectOptions(initialOptions);
+  }, [initialOptions]);
 
   useEffect(() => {
     setSelectValue(value);
@@ -690,7 +704,7 @@ const Select = (
         placeholder={placeholder}
         showSearch={shouldShowSearch}
         showArrow
-        tokenSeparators={TOKEN_SEPARATORS}
+        tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
         value={selectValue}
         suffixIcon={getSuffixIcon()}
         menuItemSelectedIcon={

@@ -45,7 +45,9 @@ query_birth_names = {
 QUERY_OBJECTS: Dict[str, Dict[str, object]] = {
     "birth_names": query_birth_names,
     # `:suffix` are overrides only
-    "birth_names:include_time": {"groupby": [DTTM_ALIAS, "name"],},
+    "birth_names:include_time": {
+        "groupby": [DTTM_ALIAS, "name"],
+    },
     "birth_names:orderby_dup_alias": {
         "metrics": [
             {
@@ -93,7 +95,9 @@ QUERY_OBJECTS: Dict[str, Dict[str, object]] = {
             ],
         ],
     },
-    "birth_names:only_orderby_has_metric": {"metrics": [],},
+    "birth_names:only_orderby_has_metric": {
+        "metrics": [],
+    },
 }
 
 ANNOTATION_LAYERS = {
@@ -172,24 +176,37 @@ POSTPROCESSING_OPERATIONS = {
         {
             "operation": "aggregate",
             "options": {
-                "groupby": ["gender"],
+                "groupby": ["name"],
                 "aggregates": {
                     "q1": {
                         "operator": "percentile",
                         "column": "sum__num",
-                        "options": {"q": 25},
+                        # todo: rename "interpolation" to "method" when we updated
+                        #  numpy.
+                        #  https://numpy.org/doc/stable/reference/generated/numpy.percentile.html
+                        "options": {"q": 25, "interpolation": "lower"},
                     },
-                    "median": {"operator": "median", "column": "sum__num",},
+                    "median": {
+                        "operator": "median",
+                        "column": "sum__num",
+                    },
                 },
             },
         },
-        {"operation": "sort", "options": {"columns": {"q1": False, "gender": True},},},
+        {
+            "operation": "sort",
+            "options": {
+                "columns": {"q1": False, "name": True},
+            },
+        },
     ]
 }
 
 
 def get_query_object(
-    query_name: str, add_postprocessing_operations: bool, add_time_offsets: bool,
+    query_name: str,
+    add_postprocessing_operations: bool,
+    add_time_offsets: bool,
 ) -> Dict[str, Any]:
     if query_name not in QUERY_OBJECTS:
         raise Exception(f"QueryObject fixture not defined for datasource: {query_name}")
@@ -244,7 +261,9 @@ class QueryContextGenerator:
             "datasource": {"id": table.id, "type": table.type},
             "queries": [
                 get_query_object(
-                    query_name, add_postprocessing_operations, add_time_offsets,
+                    query_name,
+                    add_postprocessing_operations,
+                    add_time_offsets,
                 )
             ],
             "result_type": ChartDataResultType.FULL,

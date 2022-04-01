@@ -47,7 +47,7 @@ def upgrade():
     session = db.Session(bind=bind)
 
     for slc in session.query(Slice):
-        params = json.loads(slc.params)
+        params = json.loads(slc.params or "{}")
         params.pop("time_range_endpoints", None)
         slc.params = json.dumps(params)
 

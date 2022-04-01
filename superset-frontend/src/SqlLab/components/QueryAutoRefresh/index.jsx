@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -28,12 +28,31 @@ const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 10000;
 
-function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
-  const [offlineState, setOfflineState] = useState(offline);
-  let timer = null;
+class QueryAutoRefresh extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      offline: props.offline,
+    };
+  }
 
-  const shouldCheckForQueries = () => {
+  UNSAFE_componentWillMount() {
+    this.startTimer();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.offline !== this.state.offline) {
+      this.props.actions.setUserOffline(this.state.offline);
+    }
+  }
+
+  componentWillUnmount() {
+    this.stopTimer();
+  }
+
+  shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
+    const { queries } = this.props;
     const now = new Date().getTime();
     const isQueryRunning = q =>
       ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0;
@@ -41,57 +60,46 @@ function QueryAutoRefresh({ offline, queries, queriesLastUpdate, actions }) {
     return Object.values(queries).some(
       q => isQueryRunning(q) && now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
     );
-  };
+  }
 
-  const stopwatch = () => {
+  startTimer() {
+    if (!this.timer) {
+      this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
+    }
+  }
+
+  stopTimer() {
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
-    if (shouldCheckForQueries()) {
+    if (this.shouldCheckForQueries()) {
       SupersetClient.get({
         endpoint: `/superset/queries/${
-          queriesLastUpdate - QUERY_UPDATE_BUFFER_MS
+          this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS
         }`,
         timeout: QUERY_TIMEOUT_LIMIT,
       })
         .then(({ json }) => {
           if (Object.keys(json).length > 0) {
-            actions.refreshQueries(json);
+            this.props.actions.refreshQueries(json);
           }
-
-          setOfflineState(false);
+          this.setState({ offline: false });
         })
         .catch(() => {
-          setOfflineState(true);
+          this.setState({ offline: true });
         });
     } else {
-      setOfflineState(false);
+      this.setState({ offline: false });
     }
-  };
+  }
 
-  const startTimer = () => {
-    if (!timer) {
-      timer = setInterval(stopwatch(), QUERY_UPDATE_FREQ);
-    }
-  };
-
-  const stopTimer = () => {
-    clearInterval(timer);
-    timer = null;
-  };
-
-  useEffect(() => {
-    startTimer();
-    return () => {
-      stopTimer();
-    };
-  }, []);
-
-  useEffect(() => {
-    actions.setUserOffline(offlineState);
-  }, [offlineState]);
-
-  return null;
+  render() {
+    return null;
+  }
 }
-
 QueryAutoRefresh.propTypes = {
   offline: PropTypes.bool.isRequired,
   queries: PropTypes.object.isRequired,

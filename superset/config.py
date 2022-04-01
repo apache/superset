@@ -40,12 +40,11 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from typing_extensions import Literal
-from werkzeug.local import LocalProxy
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
-from superset.typing import CacheConfig
+from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -140,8 +139,6 @@ ROW_LIMIT = 50000
 SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
-SUPERSET_WORKERS = 2  # deprecated
-SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
@@ -236,7 +233,6 @@ APP_NAME = "Superset"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
-APP_ICON_WIDTH = 126
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -302,8 +298,6 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
-AUTH_STRICT_RESPONSE_CODES = True
 
 # ---------------------------------------------------
 # Roles config
@@ -374,6 +368,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
+    # Allow for javascript controls components
+    # this enables programmers to customize certain charts (like the
+    # geospatial ones) by inputing javascript in controls. This exposes
+    # an XSS security vulnerability
+    "ENABLE_JAVASCRIPT_CONTROLS": False,
     "KV_STORE": False,
     # When this feature is enabled, nested types in Presto will be
     # expanded into extra columns and/or arrays. This is experimental,
@@ -385,13 +384,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": False,
+    "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
-    # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/superset/issues/8976
-    # (SIP-34). This is a work in progress so not all features available in FAB have
-    # been implemented.
-    "ENABLE_REACT_CRUD_VIEWS": True,
     # When True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
@@ -402,20 +396,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
-    "VERSIONED_EXPORT": False,
-    # Note that: RowLevelSecurityFilter is only given by default to the Admin role
-    # and the Admin Role does have the all_datasources security permission.
-    # But, if users create a specific role with access to RowLevelSecurityFilter MVC
-    # and a custom datasource access, the table dropdown will not be correctly filtered
-    # by that custom datasource access. So we are assuming a default security config,
-    # a custom security config could potentially give access to setting filters on
-    # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": True,
+    "VERSIONED_EXPORT": True,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    # Enable experimental feature to search for other dashboards
-    "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
@@ -437,6 +421,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALLOW_FULL_CSV_EXPORT": False,
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
+    "ALLOW_ADHOC_SUBQUERY": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -749,13 +734,13 @@ DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
-    CELERYD_LOG_LEVEL = "DEBUG"
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = False
-    CELERY_ANNOTATIONS = {
+    broker_url = "sqla+sqlite:///celerydb.sqlite"
+    imports = ("superset.sql_lab",)
+    result_backend = "db+sqlite:///celery_results.sqlite"
+    worker_log_level = "DEBUG"
+    worker_prefetch_multiplier = 1
+    task_acks_late = False
+    task_annotations = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
         "email_reports.send": {
             "rate_limit": "1/s",
@@ -764,7 +749,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "ignore_result": True,
         },
     }
-    CELERYBEAT_SCHEDULE = {
+    beat_schedule = {
         "email_reports.schedule_hourly": {
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),
@@ -1021,12 +1006,6 @@ PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 # }
 ALLOWED_EXTRA_AUTHENTICATIONS: Dict[str, Dict[str, Callable[..., Any]]] = {}
 
-# Allow for javascript controls components
-# this enables programmers to customize certain charts (like the
-# geospatial ones) by inputing javascript in controls. This exposes
-# an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
-
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
@@ -1052,29 +1031,22 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, user_name, security_manager, database):
+#    def SQL_QUERY_MUTATOR(sql, user_name=user_name, security_manager=security_manager, database=database):
 #        dttm = datetime.now().isoformat()
 #        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+# For backward compatibility, you can unpack any of the above arguments in your
+# function definition, but keep the **kwargs as the last argument to allow new args
+# to be added later without any errors.
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
-    sql: str,
-    user_name: Optional[str],
-    security_manager: LocalProxy,
-    database: "Database",
+    sql: str, **kwargs: Any
 ) -> str:
     return sql
 
 
-# Enable / disable scheduled email reports
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-ENABLE_SCHEDULED_EMAIL_REPORTS = False
-
-# Enable / disable Alerts, where users can define custom SQL that
-# will send emails with screenshots of charts or dashboards periodically
-# if it meets the criteria
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-ENABLE_ALERTS = False
+# This auth provider is used by background (offline) tasks that need to access
+# protected resources. Can be overridden by end users in order to support
+# custom auth mechanisms
+MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 
 # ---------------------------------------------------
 # Alerts & Reports
@@ -1099,43 +1071,6 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
-
-# If enabled, certain features are run in debug mode
-# Current list:
-# * Emails are sent using dry-run mode (logging only)
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-SCHEDULED_EMAIL_DEBUG_MODE = False
-
-# This auth provider is used by background (offline) tasks that need to access
-# protected resources. Can be overridden by end users in order to support
-# custom auth mechanisms
-MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
-
-# Email reports - minimum time resolution (in minutes) for the crontab
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORTS_CRON_RESOLUTION = 15
-
-# The MAX duration (in seconds) a email schedule can run for before being killed
-# by celery.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_ASYNC_TIME_LIMIT_SEC = int(timedelta(minutes=5).total_seconds())
-
-# Send bcc of all reports to this address. Set to None to disable.
-# This is useful for maintaining an audit trail of all email deliveries.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORT_BCC_ADDRESS = None
-
-# User credentials to use for generating reports
-# This user should have permissions to browse all the dashboards and
-# slices.
-# TODO: In the future, login as the owner of the item to generate reports
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORTS_USER = "admin"
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -1250,6 +1185,10 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = None
 
+# Optional prefix to be added to all static asset paths when rendering the UI.
+# This is useful for hosting assets in an external CDN, for example
+STATIC_ASSETS_PREFIX = ""
+
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
@@ -1258,12 +1197,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# Turn this key to False to disable ownership check on the old dataset MVC and
-# datasource API /datasource/save.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-OLD_API_CHECK_DATASET_OWNERSHIP = True
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook
@@ -1336,10 +1269,6 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # Do not show user info or profile in the menu
 MENU_HIDE_USER_INFO = False
-
-# SQLalchemy link doc reference
-SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
-SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # Set to False to only allow viewing own recent activity
 ENABLE_BROAD_ACTIVITY_ACCESS = True

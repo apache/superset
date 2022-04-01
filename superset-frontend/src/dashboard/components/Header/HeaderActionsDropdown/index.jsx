@@ -59,11 +59,13 @@ const propTypes = {
   userCanEdit: PropTypes.bool.isRequired,
   userCanShare: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  userCanCurate: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
   showPropertiesModal: PropTypes.func.isRequired,
+  manageEmbedded: PropTypes.func.isRequired,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
@@ -88,6 +90,7 @@ const MENU_KEYS = {
   EDIT_CSS: 'edit-css',
   DOWNLOAD_AS_IMAGE: 'download-as-image',
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
+  MANAGE_EMBEDDED: 'manage-embedded',
 };
 
 const DropdownButton = styled.div`
@@ -117,8 +120,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   UNSAFE_componentWillMount() {
-    injectCustomCss(this.state.css);
-
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
       .then(({ json }) => {
         const cssTemplates = json.result.map(row => ({
@@ -184,6 +185,10 @@ class HeaderActionsDropdown extends React.PureComponent {
         window.location.replace(url);
         break;
       }
+      case MENU_KEYS.MANAGE_EMBEDDED: {
+        this.props.manageEmbedded();
+        break;
+      }
       default:
         break;
     }
@@ -206,6 +211,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       userCanEdit,
       userCanShare,
       userCanSave,
+      userCanCurate,
       isLoading,
       refreshLimit,
       refreshWarning,
@@ -259,8 +265,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         {userCanShare && (
           <ShareMenuItems
             url={url}
-            copyMenuItemTitle={t('Copy dashboard URL')}
-            emailMenuItemTitle={t('Share dashboard by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={emailSubject}
             emailBody={emailBody}
             addSuccessToast={addSuccessToast}
@@ -312,6 +318,12 @@ class HeaderActionsDropdown extends React.PureComponent {
               templates={this.state.cssTemplates}
               onChange={this.changeCss}
             />
+          </Menu.Item>
+        )}
+
+        {!editMode && userCanCurate && (
+          <Menu.Item key={MENU_KEYS.MANAGE_EMBEDDED}>
+            {t('Embed dashboard')}
           </Menu.Item>
         )}
 
