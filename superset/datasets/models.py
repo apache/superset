@@ -30,6 +30,7 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import relationship
 
+from superset import security_manager
 from superset.columns.models import Column
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -50,6 +51,13 @@ table_association_table = sa.Table(
     Model.metadata,  # pylint: disable=no-member
     sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
     sa.Column("table_id", sa.ForeignKey("sl_tables.id")),
+)
+
+dataset_user = sa.Table(
+    "sl_dataset_users",
+    Model.metadata,
+    sa.Column("user_id", sa.ForeignKey("ab_user.id")),
+    sa.Column("dataset_id", sa.ForeignKey("sl_datasets.id")),
 )
 
 
@@ -90,3 +98,7 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     # Column is managed externally and should be read-only inside Superset
     is_managed_externally = sa.Column(sa.Boolean, nullable=False, default=False)
     external_url = sa.Column(sa.Text, nullable=True)
+
+    owners = relationship(
+        security_manager.user_model, secondary=dataset_user, backref="sl_datasets"
+    )
