@@ -449,6 +449,7 @@ class FilterBox extends React.PureComponent {
 
   render() {
     const { instantFiltering, width, height } = this.props;
+    const { zIndex, gridUnit } = this.props.theme;
     return (
       <>
         <Global
@@ -458,11 +459,11 @@ class FilterBox extends React.PureComponent {
             }
 
             .filter_box {
-              padding: ${this.props.theme.gridUnit * 2 + 2}px 0;
+              padding: ${gridUnit * 2 + 2}px 0;
               overflow: visible !important;
 
               &:hover {
-                z-index: ${this.props.theme.zIndex.max};
+                z-index: ${zIndex.max};
               }
             }
           `}

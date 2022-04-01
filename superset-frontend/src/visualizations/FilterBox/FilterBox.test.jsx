@@ -21,6 +21,7 @@ import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import FilterBox from 'src/visualizations/FilterBox/FilterBox';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import { supersetTheme } from '@superset-ui/core';
 
 describe('FilterBox', () => {
   it('should only add defined non-predefined options to filtersChoices', () => {
@@ -46,9 +47,11 @@ describe('FilterBox', () => {
           },
         ]}
         origSelectedValues={{}}
+        theme={supersetTheme}
       />,
     );
-    const inst = wrapper.instance();
+    const component = wrapper.shallow();
+    const inst = component.instance();
     // choose a predefined value
     inst.setState({ selectedValues: { name: ['John'] } });
     expect(inst.props.filtersChoices.name.length).toEqual(2);
