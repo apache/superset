@@ -53,18 +53,25 @@ const AtAGlanceCoreDns = (initialFormData: QueryFormData) => {
   }
   return (
     <>
-      <div>
-        <table className="table table-striped table-condensed">
-          <tbody>
-            {getHostnames(displayData).map((hostname: string) => (
-              <tr>
-                <td>{hostname}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot />
-        </table>
+      {
+      ipString.includes('/') ?
+        <> 
+          <span>DNS At A Glance chart not avialable for CIDR ranges. Please input a single IP address to use this chart.</span>
+        </>
+        :
+        <div>
+          <table className="table table-striped table-condensed">
+            <tbody>
+              {getHostnames(displayData).map((hostname: string) => (
+                <tr>
+                  <td>{hostname}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot />
+          </table>
       </div>
+      }
     </>
   );
 };
