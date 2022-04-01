@@ -12,8 +12,9 @@ from superset.datasets.filters import (
 )
 from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query
+from superset.tables.models import Table
 from superset.views.base import BaseFilter, DatasourceFilter
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 
 
 class DatasetAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -33,13 +34,19 @@ class DatasetAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
 
 class DatasetSchemaFilter(BaseFilter):
-    name = _("schema")
-    arg_name = "eq"
+    name = _("Schema")
+    arg_name = "schema"
 
-    def apply(self, query: Query, value: bool) -> Query:
+    def apply(self, query: Query, value: Any) -> Query:
+        import sqlalchemy as sa
+
+        breakpoint()
         filter_clause = Dataset.schema == value
+        # query.join(Table)
 
         return query.filter(filter_clause)
+
+        # return query.select_from(sa,join(Dataset, Table)).filter(filter_clause)
 
 
 class SLDatasetRestApi(BaseSupersetModelRestApi):
@@ -67,14 +74,13 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
         "owners",
         "schema",
         "sql",  # "sql",
-        "table_name",  # "table_name",
     ]
     order_columns = ["changed_on_delta_humanized", "schema"]
-
+    search_columns = {"expression", "name", "tables"}
     search_filters = {
         "expression": [DatasetIsPhysicalOrVirtual],
-        "name": [DatasetAllTextFilter]
-        # "schema": [DatasetSchemaFilter],
+        "name": [DatasetAllTextFilter],
+        "tables": [DatasetSchemaFilter],
         # "owners": [DatasetOwnersFilter],
         # "database": [DatasetDatabaseFilter]
     }

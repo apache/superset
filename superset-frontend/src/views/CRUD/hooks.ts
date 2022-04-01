@@ -147,6 +147,8 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
+      console.log(sortBy);
+
       const queryParams = rison.encode_uri({
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',

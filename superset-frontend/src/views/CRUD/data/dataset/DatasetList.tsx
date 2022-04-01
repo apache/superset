@@ -302,6 +302,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'lg',
       },
       {
+        Header: t('Table Schema'),
+        accessor: 'tables',
+        size: 'lg',
+      },
+      {
         Cell: ({
           row: {
             original: { changed_on_delta_humanized: changedOn },
@@ -461,6 +466,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             t('An error occurred while fetching schema values: %s', errMsg),
           ),
         ),
+        paginate: true,
+      },
+      {
+        Header: t('Table Schema'),
+        id: 'tables',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: () => ({
+          data: [{ text: 'test', value: 1 }],
+          totalCount: 1,
+        }),
         paginate: true,
       },
       {
