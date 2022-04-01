@@ -71,6 +71,7 @@ export const StyledScheduleTitle = styled.div`
 
 export const StyledCronPicker = styled(CronPicker)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  max-width: 450px;
 `;
 
 export const StyledCronError = styled.p`
