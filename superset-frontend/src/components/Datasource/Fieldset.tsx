@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { Form } from 'src/components/Form';
-import { styled } from '@superset-ui/core';
 
 import { recurseReactClone } from './utils';
 import Field from './Field';
