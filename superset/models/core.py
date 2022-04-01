@@ -706,7 +706,6 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
-    @property
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:

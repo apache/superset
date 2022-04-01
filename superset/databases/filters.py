@@ -74,6 +74,7 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
             extra_allowed_databases += app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 Database, g.user
             )
+        # If the user has schemas in this config then we simplify this filter to only check for allow_file_upload
         if len(extra_allowed_databases):
             return query.filter(Database.allow_file_upload)
         filtered_query = query.filter(Database.allow_file_upload).filter(

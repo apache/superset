@@ -2817,16 +2817,16 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         db_id = int(request.args["db_id"])
         database = db.session.query(Database).filter_by(id=db_id).one()
         try:
-            schemas_allowed = database.get_schema_access_for_file_upload()
+            schema_allowed = database.get_schema_access_for_file_upload()
             if security_manager.can_access_database(database):
-                return self.json_response(schemas_allowed)
+                return self.json_response(schema_allowed)
             # the list schemas_allowed should not be empty here
             # and the list schemas_allowed_processed returned from security_manager
             # should not be empty either,
             # otherwise the database should have been filtered out
             # in CsvToDatabaseForm
             schemas_allowed_processed = security_manager.get_schemas_accessible_by_user(
-                database, schemas_allowed, False
+                database, schema_allowed, False
             )
             return self.json_response(schemas_allowed_processed)
         except Exception as ex:  # pylint: disable=broad-except
