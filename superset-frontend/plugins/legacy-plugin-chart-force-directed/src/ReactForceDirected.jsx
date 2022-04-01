@@ -34,23 +34,25 @@ ForceDirected.propTypes = {
 };
 
 export default styled(ForceDirected)`
-  .superset-legacy-chart-force-directed {
-    path.link {
-      fill: none;
-      stroke: #000;
-      stroke-width: 1.5px;
+  ${({ theme }) => `
+    .superset-legacy-chart-force-directed {
+      path.link {
+        fill: none;
+        stroke: ${theme.colors.grayscale.dark2};
+        stroke-width: 1.5px;
+      }
+      circle {
+        fill: ${theme.colors.grayscale.light2};
+        stroke: ${theme.colors.grayscale.dark2};
+        stroke-width: 1.5px;
+        stroke-opacity: 1;
+        opacity: ${theme.opacity.heavy};
+      }
+      text {
+        fill: ${theme.colors.grayscale.dark2};
+        font: ${theme.typography.sizes.xs}px ${theme.typography.families.sansSerif};
+        pointer-events: none;
+      }
     }
-    circle {
-      fill: #ccc;
-      stroke: #000;
-      stroke-width: 1.5px;
-      stroke-opacity: 1;
-      opacity: 0.75;
-    }
-    text {
-      fill: #000;
-      font: 10px sans-serif;
-      pointer-events: none;
-    }
-  }
+  `}
 `;
