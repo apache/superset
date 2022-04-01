@@ -450,7 +450,7 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    'Please re-export your file and try importing again',
+                    t('Please re-export your file and try importing again'),
                   ].join('\n'),
                 ),
               );
@@ -467,7 +467,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceLabel, resourceName],
+    [],
   );
 
   return { state, importResource };

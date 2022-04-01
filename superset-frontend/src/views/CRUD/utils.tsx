@@ -400,14 +400,14 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
-    const not_issues_codes = Object.entries(error.extra).filter(
-      ([key, _]) => key !== 'issue_codes',
+    const noIssuesCodes = Object.entries(error.extra).filter(
+      ([key]) => key !== 'issue_codes',
     );
 
-    if (not_issues_codes.length === 0) return true;
+    if (noIssuesCodes.length === 0) return true;
 
-    return !not_issues_codes.every(
-      ([_, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
+    return !noIssuesCodes.every(
+      ([, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
     );
   });
 

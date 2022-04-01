@@ -165,7 +165,7 @@ test('detects if the error message is terminal or if it requires uses interventi
   expect(isTerminal).toBe(false);
 });
 
-test('error message is terminal when the extra field not contains other keys excepting issue_codes', () => {
+test('error message is terminal when the "extra" field contains only the "issue_codes" key', () => {
   expect(hasTerminalValidation(terminalErrorsWithOnlyIssuesCode.errors)).toBe(
     true,
   );
