@@ -18,7 +18,8 @@ import logging
 from typing import Optional, Union
 
 from flask_babel import gettext as _
-from pandas import DataFrame
+import numpy as np
+import pandas as pd
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
@@ -60,7 +61,7 @@ def _parse_seasonality(
 
 
 def forecast(  # pylint: disable=too-many-arguments
-    df: DataFrame,
+    df: pd.DataFrame,
     time_grain: str,
     periods: int,
     confidence_interval: float,
@@ -70,7 +71,7 @@ def forecast(  # pylint: disable=too-many-arguments
     daily_seasonality: Optional[Union[bool, int]] = None,
     model_name: Optional[str] = "prophet.Prophet",
     index: Optional[str] = None,
-) -> DataFrame:
+) -> pd.DataFrame:
     """
     Add forecasts to each series in a timeseries dataframe, along with confidence
     intervals for the prediction. For each series, the operation creates three
@@ -124,7 +125,7 @@ def forecast(  # pylint: disable=too-many-arguments
     if len(df.columns) < 2:
         raise InvalidPostProcessingError(_("DataFrame include at least one series"))
 
-    target_df = DataFrame()
+    target_df = pd.DataFrame()
     ds = df[DTTM_ALIAS]
     model = forecasts.get_model(
         model_name=model_name,

@@ -56,7 +56,7 @@ def register() -> Dict[str, Type[base.BaseForecaster]]:
                 model_mapping["numpy.linalg.lstsq"] = LeastSquaresForecaster
             else:
                 model_mapping[model_name] = ScikitLearnForecaster
-        except AttributeError:
+        except (ModuleNotFoundError, AttributeError):
             pass
     return model_mapping
 

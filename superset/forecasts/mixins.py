@@ -96,7 +96,7 @@ class BootstrapUncertaintyMixin:
 
         # Calculate 95% CI
         sim_values = {'yhat': []}
-        for i in range(500):
+        for i in range(300):
             bootstrap = train_df.sample(n=train_df.shape[0], replace=True).drop(['yhat'], axis=1)
             # fit and predict
             self.fit(bootstrap)

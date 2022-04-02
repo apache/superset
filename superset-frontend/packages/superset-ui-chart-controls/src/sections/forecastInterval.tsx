@@ -30,7 +30,7 @@ export const FORECAST_DEFAULT_DATA = {
   forecastSeasonalityDaily: null,
   forecastSeasonalityWeekly: null,
   forecastSeasonalityYearly: null,
-  forecastModel: ['prophet.Prophet', 'prophet.Prophet'],
+  forecastModel: 'prophet.Prophet',
 };
 
 const appContainer = document.getElementById('app');
