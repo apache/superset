@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import {
   isNeedsPassword,
   isAlreadyExists,
   getPasswordsNeeded,
   getAlreadyExists,
   hasTerminalValidation,
+  checkUploadExtensions,
 } from 'src/views/CRUD/utils';
 
 const terminalErrors = {
@@ -170,4 +172,34 @@ test('does not ask for password when the import type is wrong', () => {
     ],
   };
   expect(hasTerminalValidation(error.errors)).toBe(true);
+});
+
+test('successfully modified rison to encode correctly', () => {
+  const problemCharacters = '& # ? ^ { } [ ] | " = + `';
+
+  problemCharacters.split(' ').forEach(char => {
+    const testObject = { test: char };
+
+    const actualEncoding = rison.encode(testObject);
+    const expectedEncoding = `(test:'${char}')`; // Ex: (test:'&')
+
+    expect(actualEncoding).toEqual(expectedEncoding);
+    expect(rison.decode(actualEncoding)).toEqual(testObject);
+  });
+});
+
+test('checkUploadExtenssions should return valid upload extensions', () => {
+  const uploadExtensionTest = ['a', 'b', 'c'];
+  const randomExtension = ['a', 'c'];
+  const randomExtensionTwo = ['c'];
+  const randomExtensionThree: Array<any> = [];
+  expect(
+    checkUploadExtensions(randomExtension, uploadExtensionTest),
+  ).toBeTruthy();
+  expect(
+    checkUploadExtensions(randomExtensionTwo, uploadExtensionTest),
+  ).toBeTruthy();
+  expect(
+    checkUploadExtensions(randomExtensionThree, uploadExtensionTest),
+  ).toBeFalsy();
 });

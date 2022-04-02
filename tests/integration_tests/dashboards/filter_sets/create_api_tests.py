@@ -94,14 +94,14 @@ class TestCreateFilterSetsApi:
 
     def test_with_dashboard_not_exists__404(
         self,
-        not_exists_dashboard: int,
+        not_exists_dashboard_id: int,
         valid_filter_set_data_for_create: Dict[str, Any],
         client: FlaskClient[Any],
     ):
         # act
         login(client, "admin")
         response = call_create_filter_set(
-            client, not_exists_dashboard, valid_filter_set_data_for_create
+            client, not_exists_dashboard_id, valid_filter_set_data_for_create
         )
 
         # assert

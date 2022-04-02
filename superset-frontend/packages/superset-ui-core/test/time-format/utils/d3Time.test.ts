@@ -20,7 +20,7 @@
 import {
   utcUtils,
   localTimeUtils,
-} from '@superset-ui/core/src/time-format/utils/d3Time';
+} from '../../../src/time-format/utils/d3Time';
 
 describe('utils', () => {
   describe('utcUtils', () => {

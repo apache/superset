@@ -20,11 +20,15 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { styledShallow as shallow } from 'spec/helpers/theming';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState } from 'src/SqlLab/fixtures';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+
+const NOOP = () => {};
 
 const mockedProps = {
   editorQueries: [
@@ -71,13 +75,36 @@ const mockedProps = {
   offline: false,
 };
 
+const mockedEmptyProps = {
+  editorQueries: [],
+  latestQueryId: '',
+  dataPreviewQueries: [],
+  actions: {
+    queryEditorSetSql: NOOP,
+    cloneQueryToNewTab: NOOP,
+    fetchQueryResults: NOOP,
+    clearQueryResults: NOOP,
+    removeQuery: NOOP,
+    setActiveSouthPaneTab: NOOP,
+  },
+  activeSouthPaneTab: '',
+  height: 100,
+  databases: '',
+  offline: false,
+  displayLimit: 100,
+  user: UserWithPermissionsAndRoles,
+  defaultQueryLimit: 100,
+};
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
+const setup = (overrides = {}) => (
+  <SouthPaneContainer store={store} {...mockedProps} {...overrides} />
+);
 
-describe('SouthPane', () => {
-  const getWrapper = () =>
-    shallow(<SouthPaneContainer store={store} {...mockedProps} />).dive();
+describe('SouthPane - Enzyme', () => {
+  const getWrapper = () => shallow(setup()).dive();
 
   let wrapper;
 
@@ -93,5 +120,22 @@ describe('SouthPane', () => {
     expect(wrapper.find(ResultSet).props().query.id).toEqual(
       mockedProps.latestQueryId,
     );
+  });
+});
+
+describe('SouthPane - RTL', () => {
+  const renderAndWait = overrides => {
+    const mounted = act(async () => {
+      render(setup(overrides));
+    });
+
+    return mounted;
+  };
+  it('Renders an empty state for results', async () => {
+    await renderAndWait(mockedEmptyProps);
+
+    const emptyStateText = screen.getByText(/run a query to display results/i);
+
+    expect(emptyStateText).toBeVisible();
   });
 });

@@ -346,17 +346,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
       ['groupby'],
       ['limit'],
       ['timeseries_limit_metric'],
-      [
-        {
-          name: 'order_desc',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Sort Descending'),
-            default: true,
-            description: t('Whether to sort descending or ascending'),
-          },
-        },
-      ],
+      ['order_desc'],
       [
         {
           name: 'contribution',
@@ -451,6 +441,8 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
               '1 year',
               '104 weeks',
               '2 years',
+              '156 weeks',
+              '3 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +

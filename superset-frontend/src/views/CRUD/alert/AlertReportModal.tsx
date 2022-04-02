@@ -42,6 +42,7 @@ import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
+import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -86,37 +87,30 @@ const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
     value: '<',
-    order: 0,
   },
   {
     label: t('> (Larger than)'),
     value: '>',
-    order: 1,
   },
   {
     label: t('<= (Smaller or equal)'),
     value: '<=',
-    order: 2,
   },
   {
     label: t('>= (Larger or equal)'),
     value: '>=',
-    order: 3,
   },
   {
     label: t('== (Is equal)'),
     value: '==',
-    order: 4,
   },
   {
     label: t('!= (Is not equal)'),
     value: '!=',
-    order: 5,
   },
   {
     label: t('Not null'),
     value: 'not null',
-    order: 6,
   },
 ];
 
@@ -154,6 +148,7 @@ const DEFAULT_ALERT = {
   sql: '',
   validator_config_json: {},
   validator_type: '',
+  force_screenshot: false,
   grace_period: undefined,
 };
 
@@ -340,6 +335,10 @@ const StyledRadioGroup = styled(Radio.Group)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
+const StyledCheckbox = styled(AntdCheckbox)`
+  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
+`;
+
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -416,6 +415,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
   );
+  const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -509,9 +509,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
+    const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
+      force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -586,7 +588,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/api/v1/report/related/owners?q=${query}`,
+          endpoint: `/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -666,7 +668,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadDashboardOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,
@@ -740,7 +742,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadChartOptions = useMemo(
     () =>
       (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
+        const query = rison.encode_uri({
           filter: input,
           page,
           page_size: pageSize,
@@ -854,6 +856,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onContentTypeChange = (event: any) => {
     const { target } = event;
+    // When switch content type, reset force_screenshot to false
+    setForceScreenshot(false);
     // Gives time to close the select before changing the type
     setTimeout(() => setContentType(target.value), 200);
   };
@@ -862,6 +866,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
 
     setReportFormat(target.value);
+  };
+
+  const onForceScreenshotChange = (event: any) => {
+    setForceScreenshot(event.target.checked);
   };
 
   // Make sure notification settings has the required info
@@ -968,6 +976,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (resource.chart) {
         setChartVizType((resource.chart as ChartObject).viz_type);
       }
+      setForceScreenshot(resource.force_screenshot);
 
       setCurrentAlert({
         ...resource,
@@ -1178,7 +1187,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
-                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1337,17 +1345,33 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onDashboardChange}
             />
             {formatOptionEnabled && (
+              <>
+                <div className="inline-container">
+                  <StyledRadioGroup
+                    onChange={onFormatChange}
+                    value={reportFormat}
+                  >
+                    <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                    <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                      <StyledRadio value="TEXT">
+                        {t('Send as text')}
+                      </StyledRadio>
+                    )}
+                  </StyledRadioGroup>
+                </div>
+              </>
+            )}
+            {(isReport || contentType === 'dashboard') && (
               <div className="inline-container">
-                <StyledRadioGroup
-                  onChange={onFormatChange}
-                  value={reportFormat}
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
                 >
-                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
-                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
-                  {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                    <StyledRadio value="TEXT">{t('Send as text')}</StyledRadio>
-                  )}
-                </StyledRadioGroup>
+                  Ignore cache when generating screenshot
+                </StyledCheckbox>
               </div>
             )}
             <StyledSectionTitle>

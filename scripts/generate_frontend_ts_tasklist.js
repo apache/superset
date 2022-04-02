@@ -68,6 +68,7 @@ while (directories.length) {
   directories = directories.concat(
     getDirectories("./")
       .reverse() // For ABC order when pushed into the Array
+      .filter((name) => name !== "node_modules") // Don't include node_modules in our packages
       .map((directory) => `${curDirectory}/${directory}`)
   );
   process.chdir(DEFAULT_DIRECTORY);

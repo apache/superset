@@ -21,7 +21,7 @@ import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
 import {
   nativeFiltersInfo,
   mockDataMaskInfo,
-} from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+} from 'src/dashboard/fixtures/mockNativeFilters';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';

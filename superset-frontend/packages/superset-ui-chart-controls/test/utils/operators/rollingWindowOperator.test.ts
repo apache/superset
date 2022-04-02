@@ -79,7 +79,6 @@ test('rolling_type: cumsum', () => {
         'count(*)': 'count(*)',
         'sum(val)': 'sum(val)',
       },
-      is_pivot_df: true,
     },
   });
 });
@@ -102,42 +101,13 @@ test('rolling_type: sum/mean/std', () => {
           'count(*)': 'count(*)',
           'sum(val)': 'sum(val)',
         },
-        is_pivot_df: true,
       },
     });
   });
 });
 
-test('rolling window and "actual values" in the time compare', () => {
-  expect(
-    rollingWindowOperator(
-      {
-        ...formData,
-        rolling_type: 'cumsum',
-        comparison_type: 'values',
-        time_compare: ['1 year ago', '1 year later'],
-      },
-      queryObject,
-    ),
-  ).toEqual({
-    operation: 'cum',
-    options: {
-      operator: 'sum',
-      columns: {
-        'count(*)': 'count(*)',
-        'count(*)__1 year ago': 'count(*)__1 year ago',
-        'count(*)__1 year later': 'count(*)__1 year later',
-        'sum(val)': 'sum(val)',
-        'sum(val)__1 year ago': 'sum(val)__1 year ago',
-        'sum(val)__1 year later': 'sum(val)__1 year later',
-      },
-      is_pivot_df: true,
-    },
-  });
-});
-
-test('rolling window and "difference / percentage / ratio" in the time compare', () => {
-  const comparisionTypes = ['difference', 'percentage', 'ratio'];
+test('should append compared metrics when sets time compare type', () => {
+  const comparisionTypes = ['values', 'difference', 'percentage', 'ratio'];
   comparisionTypes.forEach(cType => {
     expect(
       rollingWindowOperator(
@@ -154,12 +124,13 @@ test('rolling window and "difference / percentage / ratio" in the time compare',
       options: {
         operator: 'sum',
         columns: {
-          [`${cType}__count(*)__count(*)__1 year ago`]: `${cType}__count(*)__count(*)__1 year ago`,
-          [`${cType}__count(*)__count(*)__1 year later`]: `${cType}__count(*)__count(*)__1 year later`,
-          [`${cType}__sum(val)__sum(val)__1 year ago`]: `${cType}__sum(val)__sum(val)__1 year ago`,
-          [`${cType}__sum(val)__sum(val)__1 year later`]: `${cType}__sum(val)__sum(val)__1 year later`,
+          'count(*)': 'count(*)',
+          'count(*)__1 year ago': 'count(*)__1 year ago',
+          'count(*)__1 year later': 'count(*)__1 year later',
+          'sum(val)': 'sum(val)',
+          'sum(val)__1 year ago': 'sum(val)__1 year ago',
+          'sum(val)__1 year later': 'sum(val)__1 year later',
         },
-        is_pivot_df: true,
       },
     });
   });

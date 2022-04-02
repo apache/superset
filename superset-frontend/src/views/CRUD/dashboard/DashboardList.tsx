@@ -30,7 +30,7 @@ import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import ListView, {
   ListViewProps,
   Filter,
@@ -46,7 +46,6 @@ import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import OmniContainer from 'src/components/OmniContainer';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
@@ -141,6 +140,7 @@ function DashboardList(props: DashboardListProps) {
   const handleDashboardImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Dashboard imported'));
   };
 
   const { userId } = props.user;
@@ -687,8 +687,6 @@ function DashboardList(props: DashboardListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
-
-      <OmniContainer />
 
       {preparingExport && <Loading />}
     </>

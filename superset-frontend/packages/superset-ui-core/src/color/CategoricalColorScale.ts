@@ -22,12 +22,12 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
+import getSharedLabelColor from './SharedLabelColorSingleton';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
-
 interface CategoricalColorScale {
-  (x: { toString(): string }): string;
+  (x: { toString(): string }, y?: number): string;
 }
 
 class CategoricalColorScale extends ExtensibleFunction {
@@ -46,7 +46,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
   constructor(colors: string[], parentForcedColors?: ColorsLookup) {
-    super((value: string) => this.getColor(value));
+    super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
@@ -55,20 +55,27 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.forcedColors = {};
   }
 
-  getColor(value?: string) {
+  getColor(value?: string, sliceId?: number) {
     const cleanedValue = stringifyAndTrim(value);
+    const sharedLabelColor = getSharedLabelColor();
+
     const parentColor =
       this.parentForcedColors && this.parentForcedColors[cleanedValue];
     if (parentColor) {
+      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
       return parentColor;
     }
 
     const forcedColor = this.forcedColors[cleanedValue];
     if (forcedColor) {
+      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
       return forcedColor;
     }
 
-    return this.scale(cleanedValue);
+    const color = this.scale(cleanedValue);
+    sharedLabelColor.addSlice(cleanedValue, color, sliceId);
+
+    return color;
   }
 
   /**

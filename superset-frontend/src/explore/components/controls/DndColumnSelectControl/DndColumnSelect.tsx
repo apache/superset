@@ -31,12 +31,13 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
+import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: Record<string, ColumnMeta>;
+  isTemporal?: boolean;
 };
 
 export function DndColumnSelect(props: DndColumnSelectProps) {
@@ -49,6 +50,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     ghostButtonText,
     name,
     label,
+    isTemporal,
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -141,6 +143,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
       optionSelector.values.map((column, idx) =>
         isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX) ? (
           <ColumnSelectPopoverTrigger
+            key={idx}
             columns={popoverOptions}
             onColumnEdit={newColumn => {
               if (isColumnMeta(newColumn)) {
@@ -151,6 +154,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
               onChange(optionSelector.getValues());
             }}
             editedColumn={column}
+            isTemporal={isTemporal}
           >
             <OptionWrapper
               key={idx}
@@ -244,6 +248,7 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
         togglePopover={togglePopover}
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
+        isTemporal={isTemporal}
       >
         <div />
       </ColumnSelectPopoverTrigger>

@@ -16,18 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { isEmpty } from 'lodash';
 import { getClientErrorObject } from './getClientErrorObject';
-import { URL_PARAMS } from '../constants';
+import {
+  RESERVED_CHART_URL_PARAMS,
+  RESERVED_DASHBOARD_URL_PARAMS,
+  URL_PARAMS,
+} from '../constants';
+import { getActiveFilters } from '../dashboard/util/activeDashboardFilters';
+import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilterValues';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
-export function getUrlParam(param: UrlParam & { type: 'string' }): string;
-export function getUrlParam(param: UrlParam & { type: 'number' }): number;
-export function getUrlParam(param: UrlParam & { type: 'boolean' }): boolean;
-export function getUrlParam(param: UrlParam & { type: 'object' }): object;
-export function getUrlParam(param: UrlParam & { type: 'rison' }): object;
+export function getUrlParam(
+  param: UrlParam & { type: 'string' },
+): string | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'number' },
+): number | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'boolean' },
+): boolean | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'object' },
+): object | null;
+export function getUrlParam(param: UrlParam & { type: 'rison' }): object | null;
+export function getUrlParam(
+  param: UrlParam & { type: 'rison | string' },
+): string | object | null;
 export function getUrlParam({ name, type }: UrlParam): unknown {
   const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
@@ -62,25 +80,89 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
       try {
         return rison.decode(urlParam);
       } catch {
-        return null;
+        return urlParam;
       }
     default:
       return urlParam;
   }
 }
 
-export function getShortUrl(longUrl: string) {
+function getUrlParams(excludedParams: string[]): URLSearchParams {
+  const urlParams = new URLSearchParams();
+  const currentParams = new URLSearchParams(window.location.search);
+  currentParams.forEach((value, key) => {
+    if (!excludedParams.includes(key)) urlParams.append(key, value);
+  });
+  return urlParams;
+}
+
+type UrlParamEntries = [string, string][];
+
+function getUrlParamEntries(urlParams: URLSearchParams): UrlParamEntries {
+  const urlEntries: [string, string][] = [];
+  urlParams.forEach((value, key) => urlEntries.push([key, value]));
+  return urlEntries;
+}
+
+function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
+  const excludedParams = excludedUrlParams || RESERVED_CHART_URL_PARAMS;
+  const urlParams = getUrlParams(excludedParams);
+  const filterBoxFilters = getActiveFilters();
+  if (
+    !isEmpty(filterBoxFilters) &&
+    !excludedParams.includes(URL_PARAMS.preselectFilters.name)
+  )
+    urlParams.append(
+      URL_PARAMS.preselectFilters.name,
+      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+    );
+  return getUrlParamEntries(urlParams);
+}
+
+function getDashboardUrlParams(): UrlParamEntries {
+  const urlParams = getUrlParams(RESERVED_DASHBOARD_URL_PARAMS);
+  const filterBoxFilters = getActiveFilters();
+  if (!isEmpty(filterBoxFilters))
+    urlParams.append(
+      URL_PARAMS.preselectFilters.name,
+      JSON.stringify(serializeActiveFilterValues(getActiveFilters())),
+    );
+  return getUrlParamEntries(urlParams);
+}
+
+function getPermalink(endpoint: string, jsonPayload: JsonObject) {
   return SupersetClient.post({
-    endpoint: '/r/shortner/',
-    postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-    parseMethod: 'text',
-    stringify: false, // the url saves with an extra set of string quotes without this
+    endpoint,
+    jsonPayload,
   })
-    .then(({ text }) => text)
+    .then(result => result.json.url as string)
     .catch(response =>
       // @ts-ignore
       getClientErrorObject(response).then(({ error, statusText }) =>
         Promise.reject(error || statusText),
       ),
     );
+}
+
+export function getChartPermalink(
+  formData: Pick<QueryFormData, 'datasource'>,
+  excludedUrlParams?: string[],
+) {
+  return getPermalink('/api/v1/explore/permalink', {
+    formData,
+    urlParams: getChartUrlParams(excludedUrlParams),
+  });
+}
+
+export function getDashboardPermalink(
+  dashboardId: string,
+  filterState: JsonObject,
+  hash?: string,
+) {
+  // only encode filter box state if non-empty
+  return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
+    filterState,
+    urlParams: getDashboardUrlParams(),
+    hash,
+  });
 }

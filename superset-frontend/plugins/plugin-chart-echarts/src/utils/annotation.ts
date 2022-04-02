@@ -34,11 +34,11 @@ import {
 export function evalFormula(
   formula: FormulaAnnotationLayer,
   data: TimeseriesDataRecord[],
-): [Date, number][] {
+): [number, number][] {
   const { value: expression } = formula;
 
   return data.map(row => [
-    new Date(Number(row.__timestamp)),
+    Number(row.__timestamp),
     evalExpression(expression, row.__timestamp as number),
   ]);
 }

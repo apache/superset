@@ -119,6 +119,7 @@ function Icicle(element, props) {
     partitionThreshold,
     useRichTooltip,
     timeSeriesOption = 'not_time',
+    sliceId,
   } = props;
 
   const div = d3.select(element);
@@ -385,7 +386,7 @@ function Icicle(element, props) {
 
     // Apply color scheme
     g.selectAll('rect').style('fill', d => {
-      d.color = colorFn(d.name);
+      d.color = colorFn(d.name, sliceId);
 
       return d.color;
     });

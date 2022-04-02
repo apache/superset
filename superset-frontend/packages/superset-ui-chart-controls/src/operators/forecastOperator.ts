@@ -16,12 +16,14 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingForecast } from '@superset-ui/core';
+
+import { DTTM_ALIAS, PostProcessingForecast } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-export const forecastOperator: PostProcessingFactory<
-  PostProcessingForecast | undefined
-> = (formData, queryObject) => {
+export const forecastOperator: PostProcessingFactory<PostProcessingForecast> = (
+  formData,
+  queryObject,
+) => {
   if (formData.forecastEnabled) {
     return {
       operation: 'forecast',
@@ -33,6 +35,7 @@ export const forecastOperator: PostProcessingFactory<
         weekly_seasonality: formData.forecastSeasonalityWeekly,
         daily_seasonality: formData.forecastSeasonalityDaily,
         model_name: formData.forecastModel,
+        index: formData.x_axis || DTTM_ALIAS,
       },
     };
   }

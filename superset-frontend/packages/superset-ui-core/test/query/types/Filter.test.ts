@@ -21,7 +21,7 @@ import {
   isUnaryAdhocFilter,
   isBinaryAdhocFilter,
   isSetAdhocFilter,
-} from '@superset-ui/core/src/query/types/Filter';
+} from '@superset-ui/core';
 
 describe('Filter type guards', () => {
   describe('isUnaryAdhocFilter', () => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { forwardRef } from 'react';
 import {
   Editor as OrigEditor,
   IEditSession,
@@ -112,7 +112,7 @@ export default function AsyncAceEditor(
       defaultTheme ||
       aceModules.find(x => x.startsWith('theme/'))?.replace('theme/', '');
 
-    return React.forwardRef<AceEditor, AsyncAceEditorProps>(
+    return forwardRef<AceEditor, AsyncAceEditorProps>(
       function ExtendedAceEditor(
         {
           keywords,

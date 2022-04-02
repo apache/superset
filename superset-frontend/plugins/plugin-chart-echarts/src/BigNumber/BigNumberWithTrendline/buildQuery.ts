@@ -18,13 +18,13 @@
  */
 import {
   buildQueryContext,
-  DTTM_ALIAS,
   PostProcessingResample,
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  flattenOperator,
   rollingWindowOperator,
-  TIME_COLUMN,
+  sortOperator,
 } from '@superset-ui/chart-controls';
 
 const TIME_GRAIN_MAP: Record<string, string> = {
@@ -36,9 +36,9 @@ const TIME_GRAIN_MAP: Record<string, string> = {
   PT30M: '30min',
   PT1H: 'H',
   P1D: 'D',
-  P1M: 'M',
-  P3M: 'Q',
-  P1Y: 'A',
+  P1M: 'MS',
+  P3M: 'QS',
+  P1Y: 'AS',
   // TODO: these need to be mapped carefully, as the first day of week
   //  can vary from engine to engine
   // P1W: 'W',
@@ -50,12 +50,10 @@ const TIME_GRAIN_MAP: Record<string, string> = {
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
+    // todo: move into full advanced analysis section here
     const rollingProc = rollingWindowOperator(formData, baseQueryObject);
-    if (rollingProc) {
-      rollingProc.options = { ...rollingProc.options, is_pivot_df: false };
-    }
     const { time_grain_sqla } = formData;
-    let resampleProc: PostProcessingResample | undefined;
+    let resampleProc: PostProcessingResample;
     if (rollingProc && time_grain_sqla) {
       const rule = TIME_GRAIN_MAP[time_grain_sqla];
       if (rule) {
@@ -65,7 +63,6 @@ export default function buildQuery(formData: QueryFormData) {
             method: 'asfreq',
             rule,
             fill_value: null,
-            time_column: TIME_COLUMN,
           },
         };
       }
@@ -75,16 +72,10 @@ export default function buildQuery(formData: QueryFormData) {
         ...baseQueryObject,
         is_timeseries: true,
         post_processing: [
-          {
-            operation: 'sort',
-            options: {
-              columns: {
-                [DTTM_ALIAS]: true,
-              },
-            },
-          },
+          sortOperator(formData, baseQueryObject),
           resampleProc,
           rollingProc,
+          flattenOperator(formData, baseQueryObject),
         ],
       },
     ];

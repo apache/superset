@@ -18,12 +18,12 @@
  */
 import fetchMock from 'fetch-mock';
 
-import callApiAndParseWithTimeout from '@superset-ui/core/src/connection/callApi/callApiAndParseWithTimeout';
+import callApiAndParseWithTimeout from '../../../src/connection/callApi/callApiAndParseWithTimeout';
 
 // we import these via * so that we can spy on the 'default' property of the object
-import * as callApi from '@superset-ui/core/src/connection/callApi/callApi';
-import * as parseResponse from '@superset-ui/core/src/connection/callApi/parseResponse';
-import * as rejectAfterTimeout from '@superset-ui/core/src/connection/callApi/rejectAfterTimeout';
+import * as callApi from '../../../src/connection/callApi/callApi';
+import * as parseResponse from '../../../src/connection/callApi/parseResponse';
+import * as rejectAfterTimeout from '../../../src/connection/callApi/rejectAfterTimeout';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 

@@ -144,7 +144,12 @@ class ProphetForecaster(BaseForecaster):
         weekly_seasonality: Union[bool, int],
         daily_seasonality: Union[bool, int],
     ) -> None:
+        # pylint: disable=import-outside-toplevel
         from prophet import Prophet
+
+        prophet_logger = logging.getLogger("prophet.plot")
+        prophet_logger.setLevel(logging.CRITICAL)
+        prophet_logger.setLevel(logging.NOTSET)
         self.model = Prophet(
             interval_width=confidence_interval,
             yearly_seasonality=yearly_seasonality,

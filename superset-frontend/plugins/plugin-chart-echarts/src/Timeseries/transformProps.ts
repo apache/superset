@@ -20,37 +20,42 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
+  DataRecordValue,
+  DTTM_ALIAS,
+  GenericDataType,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
-  DataRecordValue,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
+  EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
 } from './types';
-import { ForecastSeriesEnum, ProphetValue } from '../types';
+import { ForecastSeriesEnum, ForecastValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
-  dedupSeries,
-  extractTimeseriesSeries,
-  getLegendProps,
   currentSeries,
+  dedupSeries,
+  extractSeries,
+  getColtypesMapping,
+  getLegendProps,
 } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
-  extractProphetValuesFromTooltipParams,
-  formatProphetTooltipSeries,
-  rebaseTimeseriesDatum,
-} from '../utils/prophet';
+  extractForecastValuesFromTooltipParams,
+  formatForecastTooltipSeries,
+  rebaseForecastDatum,
+} from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -77,8 +82,10 @@ export default function transformProps(
     datasource,
   } = chartProps;
   const { verboseMap = {} } = datasource;
+  const [queryData] = queriesData;
   const { annotation_data: annotationData_, data = [] } =
-    queriesData[0] as TimeseriesChartDataResponseResult;
+    queryData as TimeseriesChartDataResponseResult;
+  const dataTypes = getColtypesMapping(queryData);
   const annotationData = annotationData_ || {};
 
   const {
@@ -106,40 +113,62 @@ export default function transformProps(
     tooltipSortByMetric,
     zoomable,
     richTooltip,
+    xAxis: xAxisOrig,
     xAxisLabelRotation,
     emitFilter,
     groupby,
     showValue,
     onlyTotal,
+    percentageThreshold,
     xAxisTitle,
     yAxisTitle,
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseTimeseriesDatum(data, verboseMap);
-  const rawSeries = extractTimeseriesSeries(rebasedData, {
+  const rebasedData = rebaseForecastDatum(data, verboseMap);
+  const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
+  const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+    xAxis: xAxisCol,
+    removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
   );
+  const xAxisDataType = dataTypes?.[xAxisCol];
+  let xAxisType: 'time' | 'value' | 'category';
+  switch (xAxisDataType) {
+    case GenericDataType.TEMPORAL:
+      xAxisType = 'time';
+      break;
+    case GenericDataType.NUMERIC:
+      xAxisType = 'value';
+      break;
+    default:
+      xAxisType = 'category';
+      break;
+  }
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
   const totalStackedValues: number[] = [];
   const showValueIndexes: number[] = [];
+  const thresholdValues: number[] = [];
 
   rebasedData.forEach(data => {
     const values = Object.keys(data).reduce((prev, curr) => {
-      if (curr === '__timestamp') {
+      if (curr === xAxisCol) {
         return prev;
       }
       const value = data[curr] || 0;
       return prev + (value as number);
     }, 0);
     totalStackedValues.push(values);
+    thresholdValues.push(((percentageThreshold || 0) / 100) * values);
   });
 
   if (stack) {
@@ -168,7 +197,9 @@ export default function transformProps(
       onlyTotal,
       totalStackedValues,
       showValueIndexes,
+      thresholdValues,
       richTooltip,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -188,7 +219,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -196,11 +229,18 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(
@@ -223,8 +263,14 @@ export default function transformProps(
     if (max === undefined) max = 1;
   }
 
-  const tooltipFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
-  const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+  const tooltipFormatter =
+    xAxisDataType === GenericDataType.TEMPORAL
+      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      : String;
+  const xAxisFormatter =
+    xAxisDataType === GenericDataType.TEMPORAL
+      ? getXAxisFormatter(xAxisTimeFormat)
+      : String;
 
   const labelMap = series.reduce(
     (acc: Record<string, DataRecordValue[]>, datum) => {
@@ -249,8 +295,8 @@ export default function transformProps(
     legendMargin,
     addXAxisLabelOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
 
   const legendData = rawSeries
@@ -269,9 +315,9 @@ export default function transformProps(
       ...padding,
     },
     xAxis: {
-      type: 'time',
+      type: xAxisType,
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: true,
@@ -289,7 +335,7 @@ export default function transformProps(
       axisLabel: { formatter },
       scale: truncateYAxis,
       name: yAxisTitle,
-      nameGap: yAxisTitleMargin,
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
@@ -300,19 +346,19 @@ export default function transformProps(
         const xValue: number = richTooltip
           ? params[0].value[0]
           : params.value[0];
-        const prophetValue: any[] = richTooltip ? params : [params];
+        const forecastValue: any[] = richTooltip ? params : [params];
 
         if (richTooltip && tooltipSortByMetric) {
-          prophetValue.sort((a, b) => b.data[1] - a.data[1]);
+          forecastValue.sort((a, b) => b.data[1] - a.data[1]);
         }
 
         const rows: Array<string> = [`${tooltipFormatter(xValue)}`];
-        const prophetValues: Record<string, ProphetValue> =
-          extractProphetValuesFromTooltipParams(prophetValue);
+        const forecastValues: Record<string, ForecastValue> =
+          extractForecastValuesFromTooltipParams(forecastValue);
 
-        Object.keys(prophetValues).forEach(key => {
-          const value = prophetValues[key];
-          const content = formatProphetTooltipSeries({
+        Object.keys(forecastValues).forEach(key => {
+          const value = forecastValues[key];
+          const content = formatForecastTooltipSeries({
             ...value,
             seriesName: key,
             formatter,

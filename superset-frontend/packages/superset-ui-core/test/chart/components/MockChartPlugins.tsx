@@ -19,8 +19,7 @@
 
 /* eslint-disable max-classes-per-file */
 import React from 'react';
-import { QueryFormData } from '@superset-ui/core';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core/src/chart';
+import { QueryFormData, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 
 const DIMENSION_STYLE = {
   fontSize: 36,

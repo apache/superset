@@ -35,8 +35,9 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
-export interface ExlorePageBootstrapData extends JsonObject {
+export interface ExplorePageBootstrapData extends JsonObject {
   can_add: boolean;
   can_download: boolean;
   can_overwrite: boolean;
@@ -48,11 +49,12 @@ export interface ExlorePageBootstrapData extends JsonObject {
   form_data: QueryFormData;
   slice: Slice | null;
   standalone: boolean;
+  force: boolean;
   user: UserWithPermissionsAndRoles;
 }
 
 export default function getInitialState(
-  bootstrapData: ExlorePageBootstrapData,
+  bootstrapData: ExplorePageBootstrapData,
 ) {
   const { form_data: initialFormData } = bootstrapData;
   const { slice } = bootstrapData;
@@ -75,6 +77,11 @@ export default function getInitialState(
       bootstrapData,
       initialFormData,
     ) as ControlStateMapping,
+    controlsTransferred: [],
+    timeFormattedColumns: getItem(
+      LocalStorageKeys.explore__data_table_time_formatted_columns,
+      {},
+    ),
   };
 
   // apply initial mapStateToProps for all controls, must execute AFTER

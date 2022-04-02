@@ -19,9 +19,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { t, styled, withTheme } from '@superset-ui/core';
+import { getUrlParam } from 'src/utils/urlUtils';
 
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import {
@@ -32,6 +34,7 @@ import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { URL_PARAMS } from 'src/constants';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -180,8 +183,16 @@ class DatasourceControl extends React.PureComponent {
 
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
-    const { datasource, onChange } = this.props;
+    const { datasource, onChange, theme } = this.props;
     const isMissingDatasource = datasource.id == null;
+    let isMissingParams = false;
+    if (isMissingDatasource) {
+      const datasetId = getUrlParam(URL_PARAMS.datasetId);
+      const sliceId = getUrlParam(URL_PARAMS.sliceId);
+      if (!datasetId && !sliceId) {
+        isMissingParams = true;
+      }
+    }
 
     const isSqlSupported = datasource.type === 'table';
 
@@ -224,13 +235,13 @@ class DatasourceControl extends React.PureComponent {
           )}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
+              <Icons.AlertSolid iconColor={theme.colors.warning.base} />
             </Tooltip>
           )}
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <Dropdown
+          <AntdDropdown
             overlay={datasourceMenu}
             trigger={['click']}
             data-test="datasource-menu"
@@ -241,10 +252,28 @@ class DatasourceControl extends React.PureComponent {
                 data-test="datasource-menu-trigger"
               />
             </Tooltip>
-          </Dropdown>
+          </AntdDropdown>
         </div>
         {/* missing dataset */}
-        {isMissingDatasource && (
+        {isMissingDatasource && isMissingParams && (
+          <div className="error-alert">
+            <ErrorAlert
+              level="warning"
+              title={t('Missing URL parameters')}
+              source="explore"
+              subtitle={
+                <>
+                  <p>
+                    {t(
+                      'The URL is missing the dataset_id or slice_id parameters.',
+                    )}
+                  </p>
+                </>
+              }
+            />
+          </div>
+        )}
+        {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
               level="warning"
@@ -296,4 +325,4 @@ class DatasourceControl extends React.PureComponent {
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
 
-export default DatasourceControl;
+export default withTheme(DatasourceControl);

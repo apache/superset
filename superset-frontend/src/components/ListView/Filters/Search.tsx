@@ -19,7 +19,7 @@
 import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { AntdInput as Input } from 'src/common/components';
+import { AntdInput } from 'src/components';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
 import { BaseFilter } from './Base';
@@ -38,7 +38,7 @@ const SearchIcon = styled(Icons.Search)`
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(AntdInput)`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
@@ -51,8 +51,7 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      // encode plus signs to prevent them from being converted into a space
-      onSubmit(value.trim().replace(/\+/g, '%2B'));
+      onSubmit(value.trim());
     }
   };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

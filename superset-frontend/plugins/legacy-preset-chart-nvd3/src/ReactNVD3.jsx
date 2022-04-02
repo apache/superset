@@ -44,7 +44,8 @@ NVD3.propTypes = {
 };
 
 export default styled(NVD3)`
-  .superset-legacy-chart-nvd3-dist-bar, .superset-legacy-chart-nvd3-bar {
+  .superset-legacy-chart-nvd3-dist-bar,
+  .superset-legacy-chart-nvd3-bar {
     overflow-x: auto !important;
     svg {
       &.nvd3-svg {
@@ -62,7 +63,7 @@ export default styled(NVD3)`
     }
     .nvtooltip tr.highlight td {
       font-weight: ${({ theme }) => theme.typography.weights.bold};
-      font-size: 15px !important;
+      font-size: ${({ theme }) => theme.typography.sizes.m}px !important;
     }
     text.nv-axislabel {
       font-size: ${({ theme }) => theme.typography.sizes.m} !important;
@@ -159,15 +160,15 @@ export default styled(NVD3)`
   .d3-tip.nv-event-annotation-layer-NATIVE {
     width: 200px;
     border-radius: 2px;
-    background-color: #484848;
+    background-color: ${({ theme }) => theme.colors.grayscale.base};
     fill-opacity: 0.6;
-    margin: 8px;
-    padding: 8px;
-    color: #fff;
+    margin: ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    color: ${({ theme }) => theme.colors.grayscale.light5};
     &:after {
-      content: '\25BC';
+      content: '\\25BC';
       font-size: ${({ theme }) => theme.typography.sizes.m};
-      color: #484848;
+      color: ${({ theme }) => theme.colors.grayscale.base};
       position: absolute;
       bottom: -14px;
       left: 94px;

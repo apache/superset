@@ -79,6 +79,8 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
           ),
         },
       },
+    ],
+    [
       {
         name: 'forecastSeasonalityYearly',
         config: {
@@ -115,6 +117,8 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
           ),
         },
       },
+    ],
+    [
       {
         name: 'forecastSeasonalityDaily',
         config: {

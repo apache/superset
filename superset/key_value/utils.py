@@ -14,10 +14,52 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from __future__ import annotations
 
-SEPARATOR = ";"
+from hashlib import md5
+from secrets import token_urlsafe
+from typing import Union
+from uuid import UUID
+
+import hashids
+from flask_babel import gettext as _
+
+from superset.key_value.exceptions import KeyValueParseKeyError
+from superset.key_value.types import KeyValueFilter, KeyValueResource
+
+HASHIDS_MIN_LENGTH = 11
 
 
-def cache_key(*args: Any) -> str:
-    return SEPARATOR.join(str(arg) for arg in args)
+def random_key() -> str:
+    return token_urlsafe(48)
+
+
+def get_filter(resource: KeyValueResource, key: Union[int, UUID]) -> KeyValueFilter:
+    try:
+        filter_: KeyValueFilter = {"resource": resource.value}
+        if isinstance(key, UUID):
+            filter_["uuid"] = key
+        else:
+            filter_["id"] = key
+        return filter_
+    except ValueError as ex:
+        raise KeyValueParseKeyError() from ex
+
+
+def encode_permalink_key(key: int, salt: str) -> str:
+    obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
+    return obj.encode(key)
+
+
+def decode_permalink_id(key: str, salt: str) -> int:
+    obj = hashids.Hashids(salt, min_length=HASHIDS_MIN_LENGTH)
+    ids = obj.decode(key)
+    if len(ids) == 1:
+        return ids[0]
+    raise KeyValueParseKeyError(_("Invalid permalink key"))
+
+
+def get_uuid_namespace(seed: str) -> UUID:
+    md5_obj = md5()
+    md5_obj.update(seed.encode("utf-8"))
+    return UUID(md5_obj.hexdigest())

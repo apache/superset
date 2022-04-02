@@ -30,7 +30,6 @@ import {
   sections,
   sharedControls,
   emitFilterControl,
-  legacySortBy,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -67,6 +66,7 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.metrics,
               validators: [validateNonEmpty],
+              rerender: ['conditional_formatting'],
             },
           },
         ],
@@ -90,15 +90,41 @@ const config: ControlPanelConfig = {
         ],
         ['adhoc_filters'],
         emitFilterControl,
+        ['series_limit'],
         [
           {
             name: 'row_limit',
             config: {
               ...sharedControls.row_limit,
+              label: t('Cell limit'),
+              description: t('Limits the number of cells that get retrieved.'),
             },
           },
         ],
-        ...legacySortBy,
+        // TODO(kgabryje): add series_columns control after control panel is redesigned to avoid clutter
+        [
+          {
+            name: 'series_limit_metric',
+            config: {
+              ...sharedControls.series_limit_metric,
+              description: t(
+                'Metric used to define how the top series are sorted if a series or cell limit is present. ' +
+                  'If undefined reverts to the first metric (where appropriate).',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort Descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+            },
+          },
+        ],
       ],
     },
     {

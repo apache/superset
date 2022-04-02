@@ -430,8 +430,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }}
               />
             ) : null}
-            {label}
-            <SortIcon column={col} />
+            <div
+              css={{
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              <span>{label}</span>
+              <SortIcon column={col} />
+            </div>
           </th>
         ),
         Footer: totals ? (

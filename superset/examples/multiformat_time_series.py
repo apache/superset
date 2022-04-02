@@ -21,8 +21,8 @@ from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
 from superset import app, db
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 
+from ..utils.database import get_example_database
 from .helpers import (
     get_example_data,
     get_slice_json,

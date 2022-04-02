@@ -22,7 +22,7 @@ import Split from 'react-split';
 import { styled, SupersetClient, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
   setItem,
@@ -34,7 +34,6 @@ import { buildV1ChartDataPayload } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  addHistory: PropTypes.func,
   onQuery: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
@@ -52,6 +51,7 @@ const propTypes = {
   form_data: PropTypes.object,
   ownState: PropTypes.object,
   standalone: PropTypes.number,
+  force: PropTypes.bool,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -131,7 +131,7 @@ const ExploreChartPanel = props => {
       if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
-          force: false,
+          force: props.force,
           resultFormat: 'json',
           resultType: 'full',
           setDataMask: null,
@@ -227,6 +227,7 @@ const ExploreChartPanel = props => {
           chartId={chart.id}
           chartStatus={chart.chartStatus}
           triggerRender={props.triggerRender}
+          force={props.force}
           datasource={props.datasource}
           errorMessage={props.errorMessage}
           formData={props.form_data}
@@ -286,7 +287,6 @@ const ExploreChartPanel = props => {
     <ConnectedExploreChartHeader
       ownState={props.ownState}
       actions={props.actions}
-      addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
       dashboardId={props.dashboardId}

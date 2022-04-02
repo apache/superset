@@ -44,7 +44,7 @@ const propTypes = {
 const formatNumber = getNumberFormatter(NumberFormats.FLOAT);
 
 function Sankey(element, props) {
-  const { data, width, height, colorScheme } = props;
+  const { data, width, height, colorScheme, sliceId } = props;
   const div = d3.select(element);
   div.classed(`superset-legacy-chart-sankey`, true);
   const margin = {
@@ -219,7 +219,7 @@ function Sankey(element, props) {
     .attr('width', sankey.nodeWidth())
     .style('fill', d => {
       const name = d.name || 'N/A';
-      d.color = colorFn(name.replace(/ .*/, ''));
+      d.color = colorFn(name, sliceId);
 
       return d.color;
     })

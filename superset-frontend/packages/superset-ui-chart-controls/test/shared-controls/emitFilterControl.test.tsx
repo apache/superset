@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { emitFilterControl } from '../../src/shared-controls/emitFilterControl';
+import { emitFilterControl } from '@superset-ui/chart-controls';
 
 describe('isFeatureFlagEnabled', () => {
   it('returns empty array for unset feature flag', () => {

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
+import { Row, Col } from 'src/components';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';

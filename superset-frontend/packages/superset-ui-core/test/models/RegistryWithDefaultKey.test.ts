@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Registry, RegistryWithDefaultKey } from '@superset-ui/core/src';
+import { Registry, RegistryWithDefaultKey } from '@superset-ui/core';
 
 describe('RegistryWithDefaultKey', () => {
   let registry: RegistryWithDefaultKey<number>;

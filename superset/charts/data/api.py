@@ -21,7 +21,7 @@ import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson
-from flask import g, make_response, request
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -44,13 +44,11 @@ from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import create_zip, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
-    from flask import Response
-
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
@@ -243,7 +241,9 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-        return self._get_data_response(command, form_data=form_data)
+        return self._get_data_response(
+            command, form_data=form_data, datasource=query_context.datasource
+        )
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
@@ -306,16 +306,13 @@ class ChartDataRestApi(ChartRestApi):
         Execute command as an async query.
         """
         # First, look for the chart query results in the cache.
+        result = None
         try:
             result = command.run(force_cached=True)
+            if result is not None:
+                return self._send_chart_response(result)
         except ChartDataCacheLoadError:
-            result = None  # type: ignore
-
-        already_cached_result = result is not None
-
-        # If the chart query has already been cached, return it immediately.
-        if already_cached_result:
-            return self._send_chart_response(result)
+            pass
 
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
@@ -350,9 +347,25 @@ class ChartDataRestApi(ChartRestApi):
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
 
-            # return the first result
-            data = result["queries"][0]["data"]
-            return CsvResponse(data, headers=generate_download_headers("csv"))
+            if not result["queries"]:
+                return self.response_400(_("Empty query result"))
+
+            if len(result["queries"]) == 1:
+                # return single query results csv format
+                data = result["queries"][0]["data"]
+                return CsvResponse(data, headers=generate_download_headers("csv"))
+
+            # return multi-query csv results bundled as a zip file
+            encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            files = {
+                f"query_{idx + 1}.csv": result["data"].encode(encoding)
+                for idx, result in enumerate(result["queries"])
+            }
+            return Response(
+                create_zip(files),
+                headers=generate_download_headers("zip"),
+                mimetype="application/zip",
+            )
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(

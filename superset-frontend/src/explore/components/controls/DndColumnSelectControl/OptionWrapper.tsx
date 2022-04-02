@@ -144,7 +144,6 @@ export default function OptionWrapper(
       <StyledColumnOption
         column={transformedCol as ColumnMeta}
         labelRef={labelRef}
-        showTooltip={!!shouldShowTooltip}
         showType
       />
     );

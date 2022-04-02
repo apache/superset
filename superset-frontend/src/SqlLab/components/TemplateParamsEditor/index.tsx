@@ -99,7 +99,7 @@ function TemplateParamsEditor({
           title={t('Edit template parameters')}
           trigger={['hover']}
         >
-          <div role="button">
+          <div role="button" css={{ width: 'inherit' }}>
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (

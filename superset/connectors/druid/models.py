@@ -58,7 +58,7 @@ from superset.exceptions import SupersetException
 from superset.extensions import encrypted_field_factory
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
-from superset.typing import (
+from superset.superset_typing import (
     AdhocMetric,
     AdhocMetricColumn,
     FilterValues,
@@ -127,7 +127,6 @@ try:
         def __init__(self, name: str, post_aggregator: Dict[str, Any]) -> None:
             self.name = name
             self.post_aggregator = post_aggregator
-
 
 except NameError:
     pass
@@ -948,9 +947,7 @@ class DruidDatasource(Model, BaseDatasource):
         )
         return aggs, post_aggs
 
-    def values_for_column(
-        self, column_name: str, limit: int = 10000, contain_null: bool = True,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Retrieve some values for the given column"""
         logger.info(
             "Getting values for columns [{}] limited to [{}]".format(column_name, limit)

@@ -19,11 +19,11 @@
  */
 import { PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { TIME_COLUMN } from './utils';
 
-export const resampleOperator: PostProcessingFactory<
-  PostProcessingResample | undefined
-> = (formData, queryObject) => {
+export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
+  formData,
+  queryObject,
+) => {
   const resampleZeroFill = formData.resample_method === 'zerofill';
   const resampleMethod = resampleZeroFill ? 'asfreq' : formData.resample_method;
   const resampleRule = formData.resample_rule;
@@ -34,7 +34,6 @@ export const resampleOperator: PostProcessingFactory<
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
-        time_column: TIME_COLUMN,
       },
     };
   }

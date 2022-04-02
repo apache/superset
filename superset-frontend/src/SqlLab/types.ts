@@ -18,9 +18,12 @@
  */
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { ToastType } from 'src/components/MessageToasts/types';
 
 export type Column = {
   name: string;
+  is_date?: boolean;
 };
 
 export type QueryState =
@@ -68,6 +71,19 @@ export type Query = {
   rows: number;
   queryLimit: number;
   limitingFactor: string;
+  endDttm: number;
+  duration: string;
+  startDttm: number;
+  time: Record<string, any>;
+  user: Record<string, any>;
+  userId: number;
+  db: Record<string, any>;
+  started: string;
+  querylink: Record<string, any>;
+  queryId: number;
+  executedSql: string;
+  output: string | Record<string, any>;
+  actions: Record<string, any>;
 };
 
 export interface QueryEditor {
@@ -82,3 +98,30 @@ export interface QueryEditor {
     errors: SupersetError[];
   };
 }
+
+export type toastState = {
+  id: string;
+  toastType: ToastType;
+  text: string;
+  duration: number;
+  noDuplicate: boolean;
+};
+
+export type RootState = {
+  sqlLab: {
+    activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
+    alerts: any[];
+    databases: Record<string, any>;
+    offline: boolean;
+    queries: Query[];
+    queryEditors: QueryEditor[];
+    tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
+    tables: Record<string, any>[];
+    queriesLastUpdate: number;
+    user: UserWithPermissionsAndRoles;
+    errorMessage: string | null;
+  };
+  localStorageUsageInKilobytes: number;
+  messageToasts: toastState[];
+  common: {};
+};

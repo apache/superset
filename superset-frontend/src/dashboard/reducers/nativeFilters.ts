@@ -24,8 +24,11 @@ import {
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterSet, NativeFiltersState } from './types';
-import { FilterConfiguration } from '../components/nativeFilters/types';
+import {
+  FilterSet,
+  FilterConfiguration,
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({

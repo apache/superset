@@ -42,7 +42,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
@@ -136,8 +136,8 @@ function DashboardTable({
     const filters = [];
     if (filterName === 'Mine') {
       filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
+        id: 'owners',
+        operator: 'rel_m_m',
         value: `${user?.userId}`,
       });
     } else if (filterName === 'Favorite') {

@@ -23,6 +23,7 @@ import { Select } from 'src/components';
 import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -144,7 +145,7 @@ export default function DatabaseSelector({
     schema ? { label: schema, value: schema } : undefined,
   );
   const [refresh, setRefresh] = useState(0);
-
+  const { addSuccessToast } = useToasts();
   const loadDatabases = useMemo(
     () =>
       async (
@@ -224,6 +225,7 @@ export default function DatabaseSelector({
           }
           setSchemaOptions(options);
           setLoadingSchemas(false);
+          if (refresh > 0) addSuccessToast('List refreshed');
         })
         .catch(() => {
           setLoadingSchemas(false);

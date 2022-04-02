@@ -77,8 +77,7 @@ class AlertCommand(BaseCommand):
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
-
-            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)  # type: ignore
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
 

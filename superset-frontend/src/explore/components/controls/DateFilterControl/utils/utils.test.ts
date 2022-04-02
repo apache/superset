@@ -316,19 +316,16 @@ describe('formatTimeRange', () => {
     expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
     expect(formatTimeRange('No filter')).toBe('No filter');
     expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
-      'Yesterday < col < Tomorrow',
+      'Yesterday ≤ col < Tomorrow',
     );
-    expect(
-      formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00', [
-        'inclusive',
-        'exclusive',
-      ]),
-    ).toBe('2010-07-30 ≤ col < 2020-07-30');
-    expect(
-      formatTimeRange('2010-07-30T01:00:00 : ', ['exclusive', 'inclusive']),
-    ).toBe('2010-07-30T01:00:00 < col ≤ ∞');
+    expect(formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00')).toBe(
+      '2010-07-30 ≤ col < 2020-07-30',
+    );
+    expect(formatTimeRange('2010-07-30T01:00:00 : ')).toBe(
+      '2010-07-30T01:00:00 ≤ col < ∞',
+    );
     expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
-      '-∞ < col < 2020-07-30',
+      '-∞ ≤ col < 2020-07-30',
     );
   });
 });

@@ -75,7 +75,7 @@ dashboard_export: Dict[str, Any] = {
                             "datasource_name": "birth_names_2",
                             "datasource_type": "table",
                             "id": 83,
-                            "params": '{"adhoc_filters": [], "datasource": "3__table", "granularity_sqla": "ds", "header_font_size": 0.4, "metric": {"aggregate": "SUM", "column": {"column_name": "num_california", "expression": "CASE WHEN state = \'CA\' THEN num ELSE 0 END"}, "expressionType": "SIMPLE", "label": "SUM(num_california)"}, "slice_id": 83, "subheader_font_size": 0.15, "time_range": "100 years ago : now", "time_range_endpoints": ["unknown", "inclusive"], "url_params": {}, "viz_type": "big_number_total", "y_axis_format": "SMART_NUMBER", "remote_id": 83, "datasource_name": "birth_names_2", "schema": null, "database_name": "examples"}',
+                            "params": '{"adhoc_filters": [], "datasource": "3__table", "granularity_sqla": "ds", "header_font_size": 0.4, "metric": {"aggregate": "SUM", "column": {"column_name": "num_california", "expression": "CASE WHEN state = \'CA\' THEN num ELSE 0 END"}, "expressionType": "SIMPLE", "label": "SUM(num_california)"}, "slice_id": 83, "subheader_font_size": 0.15, "time_range": "100 years ago : now", "url_params": {}, "viz_type": "big_number_total", "y_axis_format": "SMART_NUMBER", "remote_id": 83, "datasource_name": "birth_names_2", "schema": null, "database_name": "examples"}',
                             "slice_name": "Number of California Births",
                             "viz_type": "big_number_total",
                         }
@@ -373,7 +373,7 @@ dataset_config: Dict[str, Any] = {
     "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": "dttm > sysdate() -10 ",
+    "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
     "metrics": [
         {
             "metric_name": "count",
@@ -449,7 +449,7 @@ chart_config: Dict[str, Any] = {
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
 
-dashboard_config = {
+dashboard_config: Dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",
@@ -492,7 +492,9 @@ dashboard_config = {
     },
     "metadata": {
         "timed_refresh_immune_slices": [83],
-        "filter_scopes": {"83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},},
+        "filter_scopes": {
+            "83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},
+        },
         "expanded_slices": {"83": True},
         "refresh_frequency": 0,
         "default_filters": "{}",

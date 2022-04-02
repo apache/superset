@@ -38,16 +38,8 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
+        ['order_desc'],
         [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-            },
-          },
           {
             name: 'contribution',
             config: {
@@ -201,6 +193,8 @@ const config: ControlPanelConfig = {
                 '1 year',
                 '104 weeks',
                 '2 years',
+                '156 weeks',
+                '3 years',
               ]),
               description: t(
                 'Overlay one or more timeseries from a ' +

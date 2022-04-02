@@ -29,7 +29,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
-import sqlparse
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -92,7 +91,6 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
 
 
 class CssTemplate(Model, AuditMixinNullable):
-
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
@@ -153,6 +151,9 @@ class Database(
     encrypted_extra = Column(encrypted_field_factory.create(Text), nullable=True)
     impersonate_user = Column(Boolean, default=False)
     server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
+
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
@@ -164,7 +165,7 @@ class Database(
         "allow_file_upload",
         "extra",
     ]
-    extra_import_fields = ["password"]
+    extra_import_fields = ["password", "is_managed_externally", "external_url"]
     export_children = ["tables"]
 
     def __repr__(self) -> str:
@@ -212,6 +213,13 @@ class Database(
         return self.get_extra().get("explore_database_id", self.id)
 
     @property
+    def disable_data_preview(self) -> bool:
+        # this will prevent any 'trash value' strings from going through
+        if self.get_extra().get("disable_data_preview", False) is not True:
+            return False
+        return True
+
+    @property
     def data(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -224,6 +232,7 @@ class Database(
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
             "parameters": self.parameters,
+            "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
         }
 
@@ -245,7 +254,10 @@ class Database(
         uri = make_url(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore # pylint: disable=line-too-long,useless-suppression
+            # pylint: disable=useless-suppression
+            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
+                uri, encrypted_extra=encrypted_extra
+            )
         except Exception:  # pylint: disable=broad-except
             parameters = {}
 
@@ -310,7 +322,9 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self, object_url: URL, user_name: Optional[str] = None,
+        self,
+        object_url: URL,
+        user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
@@ -331,7 +345,14 @@ class Database(
                 effective_username = g.user.username
         return effective_username
 
-    @memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
+    @memoized(
+        watch=(
+            "impersonate_user",
+            "sqlalchemy_uri_decrypted",
+            "extra",
+            "encrypted_extra",
+        )
+    )
     def get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -366,7 +387,7 @@ class Database(
         if connect_args:
             params["connect_args"] = connect_args
 
-        params.update(self.get_encrypted_extra())
+        self.update_encrypted_extra_params(params)
 
         if DB_CONNECTION_MUTATOR:
             if not source and request and request.referrer:
@@ -399,7 +420,7 @@ class Database(
         mutator: Optional[Callable[[pd.DataFrame], None]] = None,
         username: Optional[str] = None,
     ) -> pd.DataFrame:
-        sqls = [str(s).strip(" ;") for s in sqlparse.parse(sql)]
+        sqls = self.db_engine_spec.parse_sql(sql)
 
         engine = self.get_sqla_engine(schema=schema, user_name=username)
         username = utils.get_username() or username
@@ -444,9 +465,8 @@ class Database(
 
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
-        if (
-            engine.dialect.identifier_preparer._double_percents  # pylint: disable=protected-access
-        ):
+        # pylint: disable=protected-access
+        if engine.dialect.identifier_preparer._double_percents:  # noqa
             sql = sql.replace("%%", "%")
 
         return sql
@@ -478,7 +498,9 @@ class Database(
     def apply_limit_to_sql(
         self, sql: str, limit: int = 1000, force: bool = False
     ) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
+        if self.db_engine_spec.allow_limit_clause:
+            return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
+        return self.db_engine_spec.apply_top_to_sql(sql, limit)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
@@ -639,6 +661,9 @@ class Database(
                 logger.error(ex, exc_info=True)
                 raise ex
         return encrypted_extra
+
+    def update_encrypted_extra_params(self, params: Dict[str, Any]) -> None:
+        self.db_engine_spec.update_encrypted_extra_params(self, params)
 
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
         extra = self.get_extra()
