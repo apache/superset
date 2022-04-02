@@ -17,14 +17,14 @@
 """add_on_saved_query_delete_tab_state_null_constraint"
 
 Revision ID: 58df9d617f14
-Revises: 8b841273bec3
+Revises: 6766938c6065
 Create Date: 2022-03-16 23:24:40.278937
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "58df9d617f14"
-down_revision = "8b841273bec3"
+down_revision = "6766938c6065"
 
 import sqlalchemy as sa
 from alembic import op

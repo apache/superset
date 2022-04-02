@@ -17,14 +17,14 @@
 """sql_lab_models_database_constraint_updates
 
 Revision ID: 8b841273bec3
-Revises: 6766938c6065
+Revises: 2ed890b36b94
 Create Date: 2022-03-16 21:07:48.768425
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "8b841273bec3"
-down_revision = "6766938c6065"
+down_revision = "2ed890b36b94"
 
 import sqlalchemy as sa
 from alembic import op
