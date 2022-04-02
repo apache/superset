@@ -220,7 +220,6 @@ export default function getControlItemsMap({
     .filter(
       (controlItem: CustomControlItem) =>
         controlItem?.config?.renderTrigger &&
-        controlItem.name !== 'sortAscending' &&
         controlItem?.config?.type === 'SelectControl',
     )
     .forEach(controlItem => {
@@ -245,7 +244,7 @@ export default function getControlItemsMap({
               t('Populate "Default value" to enable this control')
             }
           >
-            <StyledRowFormItem
+            <StyledFormItem
               key={controlItem.name}
               name={['filters', filterId, 'controlValues', controlItem.name]}
               initialValue={initialValue}
@@ -273,7 +272,7 @@ export default function getControlItemsMap({
                 value={controlItem.config.value || initialValue}
                 choices={controlItem.config.choices}
               />
-            </StyledRowFormItem>
+            </StyledFormItem>
           </Tooltip>
         </>
       );
