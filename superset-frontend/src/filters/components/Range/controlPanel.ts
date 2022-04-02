@@ -111,7 +111,9 @@ const config: ControlPanelConfig = {
                 [25, 25],
                 [100, 100],
               ],
-              description: t('Set the slider step size.'),
+              description: t(
+                'Set the slider step size. Note, the step size is in increments of the transformed scale, not the original value scale.',
+              ),
             },
           },
         ],
