@@ -163,7 +163,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
-  const rangeValue = enableSingleValue === undefined;
+  // value can be false for a dashboard filter
+  const rangeValue =
+    enableSingleValue === undefined || enableSingleValue === false;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const transformScale = useCallback(
