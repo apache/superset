@@ -180,6 +180,10 @@ class Database(
         return self.db_engine_spec.allows_subqueries
 
     @property
+    def has_catalogs(self) -> bool:
+        return self.db_engine_spec.has_catalogs
+
+    @property
     def function_names(self) -> List[str]:
         try:
             return self.db_engine_spec.get_function_names(self)
@@ -234,6 +238,7 @@ class Database(
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
+            "has_catalogs": self.has_catalogs
         }
 
     @property

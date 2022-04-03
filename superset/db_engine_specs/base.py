@@ -310,6 +310,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
+    # Whetherthe database engine supports catalogs structure.
+    # If True, then catalogs will be fetched for the database engine
+    has_catalogs = False
 
     has_catalogs = False
 

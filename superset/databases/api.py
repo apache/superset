@@ -150,6 +150,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "id",
         "disable_data_preview",
+        "has_catalogs"
     ]
     add_columns = [
         "database_name",
@@ -515,6 +516,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         database = self.datamodel.get(pk, self._base_filters)
         if not database:
             return self.response_404()
+        if not database.has_catalogs:
+          return self.response(
+                500, message="Database does not support catalogs"
+          )
         try:
             catalogs = database.get_all_catalog_names(
                 cache=database.schema_cache_enabled,
@@ -577,6 +582,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         database = self.datamodel.get(pk, self._base_filters)
         if not database:
             return self.response_404()
+        if not database.has_catalogs:
+          return self.response(
+                500, message="Database does not support catalogs"
+          )
         try:
             schemas = database.get_all_catalog_schema_names(
               catalog_name=catalog_name,

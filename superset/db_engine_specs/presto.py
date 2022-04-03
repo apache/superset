@@ -136,6 +136,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     engine_name = "Presto"
     allows_alias_to_source_column = False
 
+    has_catalogs = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",

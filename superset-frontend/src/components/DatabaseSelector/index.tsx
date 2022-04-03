@@ -25,8 +25,6 @@ import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
-import { isPrestoDatabase } from './utils';
-
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
     .refresh {
@@ -77,6 +75,7 @@ type DatabaseValue = {
   database_name: string;
   backend: string;
   allow_multi_schema_metadata_fetch: boolean;
+  has_catalogs: boolean;
 };
 
 export type DatabaseObject = {
@@ -84,6 +83,7 @@ export type DatabaseObject = {
   database_name: string;
   backend: string;
   allow_multi_schema_metadata_fetch: boolean;
+  has_catalogs: boolean;
 };
 
 type SchemaValue = { label: string; value: string };
@@ -165,17 +165,15 @@ export default function DatabaseSelector({
   const { addSuccessToast } = useToasts();
 
   useEffect(() => {
-    if (currentDb) fetchData();
+    if (currentDb) {
+      if (currentDb.has_catalogs) fetchCatalogs();
+      else fetchSchemas(currentDb);
+    }
   }, [currentDb]);
 
   useEffect(() => {
     if (currentDb && currentCatalog) fetchSchemas(currentDb);
   }, [currentCatalog]);
-
-  function fetchData() {
-    if (isPrestoDatabase(currentDb)) fetchCatalogs();
-    else fetchSchemas(currentDb);
-  }
 
   const loadDatabases = useMemo(
     () =>
@@ -221,7 +219,7 @@ export default function DatabaseSelector({
   function fetchSchemas(currentDb: DatabaseValue) {
     setLoadingSchemas(true);
     const queryParams = rison.encode({ force: schemaRefresh > 0 });
-    const endpoint = isPrestoDatabase(currentDb)
+    const endpoint = currentDb.has_catalogs
       ? `/api/v1/database/${currentDb.value}/${currentCatalog?.value}/schemas/?q=${queryParams}`
       : `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
     SupersetClient.get({ endpoint })
@@ -243,7 +241,7 @@ export default function DatabaseSelector({
   }
 
   function showSchema(db: DatabaseObject | undefined) {
-    return isPrestoDatabase(db) ? !!currentCatalog : true;
+    return db?.has_catalogs ? !!currentCatalog : true;
   }
 
   function getQueryParams({
@@ -286,6 +284,7 @@ export default function DatabaseSelector({
       id: row.id,
       value: row.id,
       backend: row.backend,
+      has_catalogs: row.has_catalogs,
       database_name: row.database_name,
       label: (
         <SelectLabel backend={row.backend} databaseName={row.database_name} />
@@ -409,7 +408,7 @@ export default function DatabaseSelector({
   return (
     <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {renderDatabaseSelect()}
-      {isPrestoDatabase(db) && renderCatalogSelect()}
+      {db?.has_catalogs && renderCatalogSelect()}
       {showSchema(db) && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );

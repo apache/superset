@@ -22,6 +22,7 @@ import React, {
   ReactNode,
   useMemo,
   useEffect,
+  useCallback,
 } from 'react';
 import { JsonObject, styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
@@ -34,8 +35,6 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-
-import { isPrestoDatabase } from '../DatabaseSelector/utils';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -206,27 +205,29 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   }, [refresh, currentDatabase, currentCatalog, currentSchema, onTablesLoad]);
 
-  function getEndpoint({
-    schema,
-    databaseId,
-    forceRefresh,
-  }: {
-    schema: string;
-    databaseId: number;
-    forceRefresh: boolean;
-  }) {
-    // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
-    const encodedSchema = encodeURIComponent(schema);
-    return `/superset/tables/${databaseId}/${encodedSchema}/undefined/${forceRefresh}/`;
-  }
+  const getEndpoint = useCallback(
+    ({
+      schema,
+      databaseId,
+      forceRefresh,
+    }: {
+      schema: string;
+      databaseId: number;
+      forceRefresh: boolean;
+    }) => {
+      // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
+      const encodedSchema = encodeURIComponent(schema);
+      return `/superset/tables/${databaseId}/${encodedSchema}/undefined/${forceRefresh}/`;
+    },
+    [schema],
+  );
 
-  function shouldLoadTables(database: DatabaseObject | undefined) {
-    return isPrestoDatabase(database)
+  const shouldLoadTables = (database: DatabaseObject | undefined) =>
+    database?.has_catalogs
       ? currentDatabase && currentCatalog && currentSchema
       : currentDatabase && currentSchema;
-  }
 
-  function mapAndSetTables(json: JsonObject, forceRefresh: boolean) {
+  const mapAndSetTables = (json: JsonObject, forceRefresh: boolean) => {
     let currentTable;
     const options: TableOption[] = json.options.map((table: Table) => {
       const option = {
@@ -243,16 +244,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     setCurrentTable(currentTable);
     setLoadingTables(false);
     if (forceRefresh) addSuccessToast('List updated');
-  }
+  };
 
-  function fetchTables(endpoint: string, forceRefresh: boolean) {
+  const fetchTables = (endpoint: string, forceRefresh: boolean) =>
     SupersetClient.get({ endpoint })
       .then(({ json }) => mapAndSetTables(json, forceRefresh))
       .catch(e => {
         setLoadingTables(false);
         handleError(t('There was an error loading the tables'));
       });
-  }
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
