@@ -21,7 +21,6 @@ import cx from 'classnames';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import CertifiedBadge from '../CertifiedBadge';
-
 export interface EditableTitleProps {
   canEdit?: boolean;
   editing?: boolean;

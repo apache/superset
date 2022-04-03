@@ -22,6 +22,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import {
   CategoricalColorNamespace,
+  css,
   SupersetClient,
   styled,
   t,
@@ -67,37 +68,39 @@ const propTypes = {
 };
 
 const StyledHeader = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: space-between;
-
-  span[role='button'] {
+  ${({ theme }) => css`
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     height: 100%;
-  }
 
-  .title-panel {
-    display: flex;
-    align-items: center;
-  }
-
-  .right-button-panel {
-    display: flex;
-    align-items: center;
-
-    > .btn-group {
-      flex: 0 0 auto;
-      margin-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='button'] {
+      display: flex;
+      height: 100%;
     }
-  }
 
-  .action-button {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
-      ${({ theme }) => theme.gridUnit}px;
-  }
+    .title-panel {
+      display: flex;
+      align-items: center;
+    }
+
+    .right-button-panel {
+      display: flex;
+      align-items: center;
+
+      > .btn-group {
+        flex: 0 0 auto;
+        margin-left: ${theme.gridUnit}px;
+      }
+    }
+
+    .action-button {
+      color: ${theme.colors.grayscale.base};
+      margin: 0 ${theme.gridUnit * 1.5}px 0 ${theme.gridUnit}px;
+    }
+  `}
 `;
 
 const StyledButtons = styled.span`
@@ -235,16 +238,8 @@ export class ExploreChartHeader extends React.PureComponent {
       this.props.chart.chartStatus,
     );
     return (
-      <StyledHeader id="slice-header" className="panel-title-large">
+      <StyledHeader id="slice-header">
         <div className="title-panel">
-          {slice?.certified_by && (
-            <>
-              <CertifiedBadge
-                certifiedBy={slice.certified_by}
-                details={slice.certification_details}
-              />{' '}
-            </>
-          )}
           <EditableTitle
             title={this.getSliceName()}
             canEdit={
@@ -256,7 +251,14 @@ export class ExploreChartHeader extends React.PureComponent {
             }
             onSaveTitle={this.props.actions.updateChartTitle}
           />
-
+          {slice?.certified_by && (
+            <>
+              <CertifiedBadge
+                certifiedBy={slice.certified_by}
+                details={slice.certification_details}
+              />{' '}
+            </>
+          )}
           {this.props.slice && (
             <StyledButtons>
               {user.userId && (
