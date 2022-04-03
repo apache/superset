@@ -122,7 +122,8 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     # Todo: move it and the view.utils.core to utils package
 
     def _determine_time_range_endpoints(
-        self, raw_endpoints: Optional[Tuple[str, str]] = None,
+        self,
+        raw_endpoints: Optional[Tuple[str, str]] = None,
     ) -> Optional[Tuple[TimeRangeEndpoint, TimeRangeEndpoint]]:
         if (
             self._config["SIP_15_GRACE_PERIOD_END"]

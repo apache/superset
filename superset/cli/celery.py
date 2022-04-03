@@ -30,7 +30,10 @@ logger = logging.getLogger(__name__)
 @click.command()
 @with_appcontext
 @click.option(
-    "--workers", "-w", type=int, help="Number of celery server workers to fire up",
+    "--workers",
+    "-w",
+    type=int,
+    help="Number of celery server workers to fire up",
 )
 def worker(workers: int) -> None:
     """Starts a Superset worker for async SQL query execution."""
@@ -52,10 +55,16 @@ def worker(workers: int) -> None:
 @click.command()
 @with_appcontext
 @click.option(
-    "-p", "--port", default="5555", help="Port on which to start the Flower process",
+    "-p",
+    "--port",
+    default="5555",
+    help="Port on which to start the Flower process",
 )
 @click.option(
-    "-a", "--address", default="localhost", help="Address on which to run the service",
+    "-a",
+    "--address",
+    default="localhost",
+    help="Address on which to run the service",
 )
 def flower(port: int, address: str) -> None:
     """Runs a Celery Flower web server

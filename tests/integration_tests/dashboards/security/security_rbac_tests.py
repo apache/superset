@@ -281,7 +281,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post
@@ -341,7 +344,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboards_list_view_response(
-            response, len(published_dashboards), published_dashboards, draft_dashboards,
+            response,
+            len(published_dashboards),
+            published_dashboards,
+            draft_dashboards,
         )
 
         # post
