@@ -19,13 +19,12 @@
 
 import React, { ReactNode } from 'react';
 import {
+  render,
   fireEvent,
   getByText,
-  render,
   waitFor,
 } from 'spec/helpers/testing-library';
-import brace from 'brace';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 import TemplateParamsEditor from 'src/SqlLab/components/TemplateParamsEditor';
 
@@ -48,8 +47,6 @@ describe('TemplateParamsEditor', () => {
       { wrapper: ThemeWrapper },
     );
     fireEvent.click(getByText(container, 'Parameters'));
-    const spy = jest.spyOn(brace, 'acequire');
-    spy.mockReturnValue({ setCompleters: () => 'foo' });
     await waitFor(() => {
       expect(baseElement.querySelector('#ace-editor')).toBeInTheDocument();
     });
