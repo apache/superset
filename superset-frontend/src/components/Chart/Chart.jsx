@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { css, styled, logging, t } from '@superset-ui/core';
+import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
@@ -30,19 +30,14 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
-import Timer from '../Timer';
-import CachedLabel from '../CachedLabel';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
   datasource: PropTypes.object,
-  chartUpdateStartTime: PropTypes.number,
-  chartUpdateEndTime: PropTypes.number,
   // current chart is included by dashboard
   dashboardId: PropTypes.number,
   // original selected values for FilterBox viz
@@ -79,13 +74,6 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
-  standalone: PropTypes.bool,
-};
-
-const CHART_STATUS_MAP = {
-  failed: 'danger',
-  loading: 'warning',
-  success: 'success',
 };
 
 const BLANK = {};
@@ -144,7 +132,6 @@ class Chart extends React.PureComponent {
     super(props);
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
-    this.refreshCachedQuery = this.refreshCachedQuery.bind(this);
   }
 
   componentDidMount() {
@@ -169,17 +156,6 @@ class Chart extends React.PureComponent {
       }
       this.runQuery();
     }
-  }
-
-  refreshCachedQuery() {
-    this.props.actions.postChartFormData(
-      this.props.formData,
-      true,
-      this.props.timeout,
-      this.props.chartId,
-      undefined,
-      this.props.ownState,
-    );
   }
 
   runQuery() {
@@ -282,11 +258,8 @@ class Chart extends React.PureComponent {
       onQuery,
       refreshOverlayVisible,
       queriesResponse = [],
-      formData,
       isDeactivatedViz = false,
       width,
-      chartUpdateStartTime,
-      chartUpdateEndTime,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
@@ -315,7 +288,6 @@ class Chart extends React.PureComponent {
       );
     }
 
-    const firstQueryResponse = queriesResponse?.[0];
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
@@ -328,36 +300,6 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          {!this.props.dashboardId && !this.props.standalone && (
-            <div
-              css={css`
-                display: flex;
-                justify-content: flex-end;
-                & .ant-tag:last-of-type {
-                  margin: 0;
-                }
-              `}
-            >
-              {!isLoading && firstQueryResponse && (
-                <RowCountLabel
-                  rowcount={Number(firstQueryResponse.rowcount) || 0}
-                  limit={Number(formData?.row_limit) || 0}
-                />
-              )}
-              {!isLoading && firstQueryResponse?.is_cached && (
-                <CachedLabel
-                  onClick={this.refreshCachedQuery}
-                  cachedTimestamp={firstQueryResponse.cached_dttm}
-                />
-              )}
-              <Timer
-                startTime={chartUpdateStartTime}
-                endTime={chartUpdateEndTime}
-                isRunning={isLoading}
-                status={CHART_STATUS_MAP[chartStatus]}
-              />
-            </div>
-          )}
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
             data-test="slice-container"

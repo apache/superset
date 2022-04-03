@@ -30,6 +30,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { ChartPills } from './ChartPills';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -116,6 +117,10 @@ const ExploreChartPanel = props => {
     refreshMode: 'debounce',
     refreshRate: 300,
   });
+  const { height: pillsHeight, ref: pillsRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 1000,
+  });
   const [splitSizes, setSplitSizes] = useState(
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
@@ -150,10 +155,16 @@ const ExploreChartPanel = props => {
   }, [updateQueryContext]);
 
   const calcSectionHeight = useCallback(
-    percent =>
-      (parseInt(props.height, 10) * percent) / 100 -
-      (gutterHeight / 2 + gutterMargin),
-    [gutterHeight, gutterMargin, props.height, props.standalone],
+    percent => {
+      let containerHeight = parseInt(props.height, 10);
+      if (pillsHeight) {
+        containerHeight -= pillsHeight;
+      }
+      return (
+        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
+      );
+    },
+    [gutterHeight, gutterMargin, pillsHeight, props.height, props.standalone],
   );
 
   const [tableSectionHeight, setTableSectionHeight] = useState(
@@ -177,6 +188,17 @@ const ExploreChartPanel = props => {
 
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
+  };
+
+  const refreshCachedQuery = () => {
+    props.actions.postChartFormData(
+      props.form_data,
+      true,
+      props.timeout,
+      props.chart.id,
+      undefined,
+      props.ownState,
+    );
   };
 
   const onCollapseChange = openPanelName => {
@@ -206,8 +228,6 @@ const ExploreChartPanel = props => {
           ownState={props.ownState}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
-          chartUpdateStartTime={chart.chartUpdateStartTime}
-          chartUpdateEndTime={chart.chartUpdateEndTime}
           chartStackTrace={chart.chartStackTrace}
           chartId={chart.id}
           chartStatus={chart.chartStatus}
@@ -223,7 +243,6 @@ const ExploreChartPanel = props => {
           timeout={props.timeout}
           triggerQuery={chart.triggerQuery}
           vizType={props.vizType}
-          standalone={props.standalone}
         />
       )
     );
@@ -232,6 +251,15 @@ const ExploreChartPanel = props => {
   const panelBody = useMemo(
     () => (
       <div className="panel-body" ref={chartPanelRef}>
+        <ChartPills
+          queriesResponse={props.chart.queriesResponse}
+          chartStatus={props.chart.chartStatus}
+          chartUpdateStartTime={props.chart.chartUpdateStartTime}
+          chartUpdateEndTime={props.chart.chartUpdateEndTime}
+          refreshCachedQuery={refreshCachedQuery}
+          rowLimit={props.form_data?.row_limit}
+          ref={pillsRef}
+        />
         {renderChart()}
       </div>
     ),
