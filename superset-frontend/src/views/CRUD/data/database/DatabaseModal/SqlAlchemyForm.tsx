@@ -45,7 +45,10 @@ const SqlAlchemyTab = ({
     fallbackDocsUrl =
       SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL;
     fallbackDisplayText =
-      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL;
+      SupersetText.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DISPLAY_TEXT;
+  } else {
+    fallbackDocsUrl = 'https://docs.sqlalchemy.org/en/13/core/engines.html';
+    fallbackDisplayText = 'SQLAlchemy docs';
   }
   return (
     <>

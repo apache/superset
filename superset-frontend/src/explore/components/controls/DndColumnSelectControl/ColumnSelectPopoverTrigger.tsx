@@ -23,10 +23,10 @@ import {
   isAdhocColumn,
   isColumnMeta,
 } from '@superset-ui/chart-controls';
-import Popover from 'src/components/Popover';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -37,6 +37,7 @@ interface ColumnSelectPopoverTriggerProps {
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
   children: React.ReactNode;
+  isTemporal?: boolean;
 }
 
 const defaultPopoverLabel = t('My column');
@@ -48,6 +49,7 @@ const ColumnSelectPopoverTrigger = ({
   onColumnEdit,
   isControlledComponent,
   children,
+  isTemporal,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
@@ -102,6 +104,7 @@ const ColumnSelectPopoverTrigger = ({
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
+          isTemporal={isTemporal}
         />
       </ExplorePopoverContent>
     ),
@@ -110,6 +113,7 @@ const ColumnSelectPopoverTrigger = ({
       editedColumn,
       getCurrentTab,
       handleClosePopover,
+      isTemporal,
       onColumnEdit,
       popoverLabel,
     ],
@@ -133,8 +137,7 @@ const ColumnSelectPopoverTrigger = ({
   );
 
   return (
-    <Popover
-      placement="right"
+    <ControlPopover
       trigger="click"
       content={overlayContent}
       defaultVisible={visible}
@@ -144,7 +147,7 @@ const ColumnSelectPopoverTrigger = ({
       destroyTooltipOnHide
     >
       {children}
-    </Popover>
+    </ControlPopover>
   );
 };
 

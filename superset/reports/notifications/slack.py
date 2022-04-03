@@ -29,6 +29,7 @@ from superset import app
 from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _message_template(self, table: str = "") -> str:
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
         return __(
             """*%(name)s*
 
@@ -58,7 +64,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 """,
             name=self._content.name,
             description=self._content.description or "",
-            url=self._content.url,
+            url=url,
             table=table,
         )
 

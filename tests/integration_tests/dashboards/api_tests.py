@@ -72,7 +72,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}}',
         "published": False,
     }
 
@@ -329,7 +329,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "changed_by_name": "",
             "changed_by_url": "",
             "charts": [],
-            "created_by": {"id": 1, "first_name": "admin", "last_name": "user",},
+            "created_by": {
+                "id": 1,
+                "first_name": "admin",
+                "last_name": "user",
+            },
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
@@ -349,13 +353,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "url": "/superset/dashboard/slug1/",
             "slug": "slug1",
             "thumbnail_url": dashboard.thumbnail_url,
+            "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
         self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key not in ("changed_on", "changed_on_delta_humanized",):
+            if key not in (
+                "changed_on",
+                "changed_on_delta_humanized",
+            ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)
@@ -380,7 +388,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_get_embedded",
+            "can_delete_embedded",
+            "can_set_embedded",
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
@@ -622,7 +637,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     @pytest.mark.usefixtures("create_dashboards")
     def test_gets_certified_dashboards_filter(self):
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_certified", "value": True,}],
+            "filters": [
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": True,
+                }
+            ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
@@ -638,7 +659,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
     def test_gets_not_certified_dashboards_filter(self):
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_is_certified", "value": False,}
+                {
+                    "col": "id",
+                    "opr": "dashboard_is_certified",
+                    "value": False,
+                }
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
@@ -1134,7 +1159,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
 
-        dashboard = self.insert_dashboard("title1", "slug1", [admin.id], slices=slices,)
+        dashboard = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            slices=slices,
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
@@ -1331,6 +1361,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"VERSIONED_EXPORT": False},
+        clear=True,
+    )
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
@@ -1343,10 +1378,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
-        # freeze time to ensure filename is deterministic
-        with freeze_time("2020-01-01T00:00:00Z"):
-            rv = self.get_assert_metric(uri, "export")
-            headers = generate_download_headers("json")["Content-Disposition"]
+        rv = self.get_assert_metric(uri, "export")
+        headers = generate_download_headers("json")["Content-Disposition"]
 
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
@@ -1376,11 +1409,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(dashboard)
         db.session.commit()
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     def test_export_bundle(self):
         """
         Dashboard API: Test dashboard export
@@ -1396,11 +1424,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf = BytesIO(rv.data)
         assert is_zipfile(buf)
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     def test_export_bundle_not_found(self):
         """
         Dashboard API: Test dashboard export not found
@@ -1411,11 +1434,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": True},
-        clear=True,
-    )
     def test_export_bundle_not_allowed(self):
         """
         Dashboard API: Test dashboard export not allowed
@@ -1699,3 +1717,58 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_embedded_dashboards(self):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/embedded"
+
+        # initial get should return 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)
+
+        # post succeeds and returns value
+        allowed_domains = ["test.example", "embedded.example"]
+        resp = self.post_assert_metric(
+            uri,
+            {"allowed_domains": allowed_domains},
+            "set_embedded",
+        )
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # get returns value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # save uuid for later
+        original_uuid = result["uuid"]
+
+        # put succeeds and returns value
+        resp = self.post_assert_metric(uri, {"allowed_domains": []}, "set_embedded")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # get returns changed value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertEqual(result["uuid"], original_uuid)
+        self.assertEqual(result["allowed_domains"], [])
+
+        # delete succeeds
+        resp = self.delete_assert_metric(uri, "delete_embedded")
+        self.assertEqual(resp.status_code, 200)
+
+        # get returns 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)

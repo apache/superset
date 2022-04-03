@@ -21,10 +21,10 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Popover from 'src/components/Popover';
 import FilterBoxItemControl from 'src/explore/components/controls/FilterBoxItemControl';
 import FormRow from 'src/components/FormRow';
 import datasources from 'spec/fixtures/mockDatasource';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 const defaultProps = {
   label: 'some label',
@@ -46,7 +46,7 @@ describe('FilterBoxItemControl', () => {
   });
 
   it('renders a Popover', () => {
-    expect(wrapper.find(Popover)).toExist();
+    expect(wrapper.find(ControlPopover)).toExist();
   });
 
   it('renderForms does the job', () => {

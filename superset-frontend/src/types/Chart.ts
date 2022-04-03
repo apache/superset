@@ -43,6 +43,7 @@ export interface Chart {
   form_data: {
     viz_type: string;
   };
+  is_managed_externally: boolean;
 }
 
 export type Slice = {
@@ -55,6 +56,7 @@ export type Slice = {
   certification_details?: string;
   form_data?: QueryFormData;
   query_context?: object;
+  is_managed_externally: boolean;
 };
 
 export default Chart;

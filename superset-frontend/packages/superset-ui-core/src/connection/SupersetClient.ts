@@ -35,7 +35,7 @@ function getInstance(): SupersetClientClass {
 const SupersetClient: SupersetClientInterface = {
   configure: config => {
     singletonClient = new SupersetClientClass(config);
-    return singletonClient;
+    return SupersetClient;
   },
   reset: () => {
     singletonClient = undefined;

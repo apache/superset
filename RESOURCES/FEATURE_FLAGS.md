@@ -41,8 +41,8 @@ These features are **finished** but currently being tested. They are usable, but
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
 - DASHBOARD_NATIVE_FILTERS
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
-- OMNIBAR
 - VERSIONED_EXPORT
+- ENABLE_JAVASCRIPT_CONTROLS
 
 ## Stable
 These features flags are **safe for production** and have been tested.
@@ -52,7 +52,6 @@ These features flags are **safe for production** and have been tested.
 - ESCAPE_MARKDOWN_HTML
 - ENABLE_TEMPLATE_PROCESSING
 - LISTVIEWS_DEFAULT_CARD_VIEW
-- ROW_LEVEL_SECURITY
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
 - SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
 - SQLLAB_BACKEND_PERSISTENCE
@@ -63,4 +62,3 @@ These features flags currently default to True and **will be removed in a future
 
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
-- ENABLE_REACT_CRUD_VIEWS

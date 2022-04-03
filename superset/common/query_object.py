@@ -17,8 +17,10 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta
+from pprint import pformat
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as _
@@ -26,11 +28,12 @@ from pandas import DataFrame
 
 from superset.common.chart_data import ChartDataResultType
 from superset.exceptions import (
+    InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
-from superset.sql_parse import validate_filter_clause
-from superset.typing import Column, Metric, OrderBy
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -97,7 +100,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     result_type: Optional[ChartDataResultType]
-    row_limit: int
+    row_limit: Optional[int]
     row_offset: int
     series_columns: List[Column]
     series_limit: int
@@ -124,7 +127,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         order_desc: bool = True,
         orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
-        row_limit: int,
+        row_limit: Optional[int],
         row_offset: Optional[int] = None,
         series_columns: Optional[List[Column]] = None,
         series_limit: int = 0,
@@ -271,7 +274,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         try:
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
-            self._validate_filters()
+            self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
@@ -290,12 +293,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
             )
 
-    def _validate_filters(self) -> None:
+    def _sanitize_filters(self) -> None:
         for param in ("where", "having"):
             clause = self.extras.get(param)
             if clause:
                 try:
-                    validate_filter_clause(clause)
+                    sanitized_clause = sanitize_clause(clause)
+                    if sanitized_clause != clause:
+                        self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
@@ -333,6 +338,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "to_dttm": self.to_dttm,
         }
         return query_object_dict
+
+    def __repr__(self) -> str:
+        # we use `print` or `logging` output QueryObject
+        return json.dumps(
+            self.to_dict(),
+            sort_keys=True,
+            default=str,
+        )
 
     def cache_key(self, **extra: Any) -> str:
         """
@@ -395,14 +408,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         :raises QueryObjectValidationError: If the post processing operation
                  is incorrect
         """
+        logger.debug("post_processing: \n %s", pformat(self.post_processing))
         for post_process in self.post_processing:
             operation = post_process.get("operation")
             if not operation:
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _("`operation` property of post processing object undefined")
                 )
             if not hasattr(pandas_postprocessing, operation):
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _(
                         "Unsupported post processing operation: %(operation)s",
                         type=operation,

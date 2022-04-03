@@ -19,12 +19,22 @@
 
 import { IFRAME_COMMS_MESSAGE_TYPE } from './const';
 
+// We can swap this out for the actual switchboard package once it gets published
+import { Switchboard } from '@superset-ui/switchboard';
+import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
+
 /**
  * The function to fetch a guest token from your Host App's backend server.
  * The Host App backend must supply an API endpoint
  * which returns a guest token with appropriate resource access.
  */
 export type GuestTokenFetchFn = () => Promise<string>;
+
+export type UiConfigType = {
+  hideTitle?: boolean
+  hideTab?: boolean
+  hideChartControls?: boolean
+}
 
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
@@ -35,6 +45,19 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
+  /** The dashboard UI config: hideTitle, hideTab, hideChartControls **/
+  dashboardUiConfig?: UiConfigType
+  /** Are we in debug mode? */
+  debug?: boolean
+}
+
+export type Size = {
+  width: number, height: number
+}
+
+export type EmbeddedDashboard = {
+  getScrollSize: () => Promise<Size>
+  unmount: () => void
 }
 
 /**
@@ -44,22 +67,44 @@ export async function embedDashboard({
   id,
   supersetDomain,
   mountPoint,
-  fetchGuestToken
-}: EmbedDashboardParams) {
+  fetchGuestToken,
+  dashboardUiConfig,
+  debug = false
+}: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
-    console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
+    if (debug) {
+      console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
+    }
   }
 
   log('embedding');
 
-  async function mountIframe(): Promise<MessagePort> {
+  function calculateConfig() {
+    let configNumber = 0
+    if(dashboardUiConfig) {
+      if(dashboardUiConfig.hideTitle) {
+        configNumber += 1
+      }
+      if(dashboardUiConfig.hideTab) {
+        configNumber += 2
+      }
+      if(dashboardUiConfig.hideChartControls) {
+        configNumber += 8
+      }
+    }
+    return configNumber
+  }
+
+  async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
+      const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
+      iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       // add these ones if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
       // iframe.sandbox.add("allow-forms");
@@ -83,10 +128,10 @@ export async function embedDashboard({
         log('sent message channel to the iframe');
 
         // return our port from the promise
-        resolve(ourPort);
+        resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
@@ -94,18 +139,29 @@ export async function embedDashboard({
 
   const [guestToken, ourPort] = await Promise.all([
     fetchGuestToken(),
-    mountIframe()
+    mountIframe(),
   ]);
 
-  ourPort.postMessage({ guestToken });
+  ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
+
+  async function refreshGuestToken() {
+    const newGuestToken = await fetchGuestToken();
+    ourPort.emit('guestToken', { guestToken: newGuestToken });
+    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+  }
+
+  setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   function unmount() {
     log('unmounting');
     mountPoint.replaceChildren();
   }
 
+  const getScrollSize = () => ourPort.get<Size>('getScrollSize');
+
   return {
-    unmount
+    getScrollSize,
+    unmount,
   };
 }

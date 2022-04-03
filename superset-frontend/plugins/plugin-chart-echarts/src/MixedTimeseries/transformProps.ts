@@ -50,6 +50,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -127,6 +128,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -175,9 +177,12 @@ export default function transformProps(
       stack,
       yAxisIndex,
       filterState,
+      seriesKey: entry.name,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
+
   rawSeriesB.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area: areaB,
@@ -189,6 +194,10 @@ export default function transformProps(
       stack: stackB,
       yAxisIndex: yAxisIndexB,
       filterState,
+      seriesKey: primarySeries.has(entry.name as string)
+        ? `${entry.name} (1)`
+        : entry.name,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -197,7 +206,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data1, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data1, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -205,11 +216,18 @@ export default function transformProps(
             data1,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data1, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data1,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(
@@ -246,8 +264,8 @@ export default function transformProps(
     null,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
   const labelMap = rawSeriesA.reduce((acc, datum) => {
     const label = datum.name as string;
@@ -277,7 +295,7 @@ export default function transformProps(
     xAxis: {
       type: 'time',
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         formatter: xAxisFormatter,
@@ -295,7 +313,7 @@ export default function transformProps(
         axisLabel: { formatter },
         scale: truncateYAxis,
         name: yAxisTitle,
-        nameGap: yAxisTitleMargin,
+        nameGap: convertInteger(yAxisTitleMargin),
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },

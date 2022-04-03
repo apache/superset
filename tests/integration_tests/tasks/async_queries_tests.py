@@ -113,7 +113,8 @@ class TestAsyncQueries(SupersetTestCase):
 
         with pytest.raises(SoftTimeLimitExceeded):
             with mock.patch.object(
-                async_queries, "ensure_user_is_set",
+                async_queries,
+                "ensure_user_is_set",
             ) as ensure_user_is_set:
                 ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
                 load_chart_data_into_cache(job_metadata, form_data)
@@ -128,7 +129,6 @@ class TestAsyncQueries(SupersetTestCase):
         form_data = {
             "datasource": f"{table.id}__table",
             "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
             "granularity_sqla": "ds",
             "time_range": "No filter",
             "metrics": ["count"],
@@ -200,7 +200,8 @@ class TestAsyncQueries(SupersetTestCase):
 
         with pytest.raises(SoftTimeLimitExceeded):
             with mock.patch.object(
-                async_queries, "ensure_user_is_set",
+                async_queries,
+                "ensure_user_is_set",
             ) as ensure_user_is_set:
                 ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
                 load_explore_json_into_cache(job_metadata, form_data)

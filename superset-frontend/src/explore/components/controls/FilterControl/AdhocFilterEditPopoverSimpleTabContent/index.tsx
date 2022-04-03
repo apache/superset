@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/components';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -36,8 +36,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input } from 'src/common/components';
-import { propertyComparator } from 'src/components/Select/Select';
+import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 
 const StyledInput = styled(Input)`
@@ -373,7 +372,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   return (
     <>
       <Select
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
@@ -395,7 +394,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...subjectSelectProps}
       />
       <Select
-        css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevant(op, subject))
           .map((option, index) => ({
@@ -405,17 +404,17 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             order: index,
           }))}
         {...operatorSelectProps}
-        sortComparator={propertyComparator('order')}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        <SelectWithLabel
-          labelText={labelText}
-          options={suggestions}
-          {...comparatorSelectProps}
-          sortComparator={propertyComparator(
-            typeof suggestions[0] === 'number' ? 'value' : 'label',
-          )}
-        />
+        // We need to delay rendering the select because we can't pass a primitive value without options
+        // We can't pass value = [null] and options=[]
+        comparatorSelectProps.value && suggestions.length === 0 ? null : (
+          <SelectWithLabel
+            labelText={labelText}
+            options={suggestions}
+            {...comparatorSelectProps}
+          />
+        )
       ) : (
         <StyledInput
           data-test="adhoc-filter-simple-value"

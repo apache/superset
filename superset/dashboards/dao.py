@@ -265,6 +265,7 @@ class DashboardDAO(BaseDAO):
         md["refresh_frequency"] = data.get("refresh_frequency", 0)
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
+        md["shared_label_colors"] = data.get("shared_label_colors", {})
 
         dashboard.json_metadata = json.dumps(md)
 

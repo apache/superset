@@ -27,13 +27,7 @@ import {
 export const DTTM_ALIAS = '__timestamp';
 
 export const EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS: (keyof ExtraFormDataOverrideExtras)[] =
-  [
-    'druid_time_origin',
-    'relative_start',
-    'relative_end',
-    'time_grain_sqla',
-    'time_range_endpoints',
-  ];
+  ['druid_time_origin', 'relative_start', 'relative_end', 'time_grain_sqla'];
 
 export const EXTRA_FORM_DATA_APPEND_KEYS: (keyof ExtraFormDataAppend)[] = [
   'adhoc_filters',

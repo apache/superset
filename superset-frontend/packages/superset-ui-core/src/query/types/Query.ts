@@ -19,7 +19,7 @@
  */
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
-import { AppliedTimeExtras, TimeRange, TimeRangeEndpoints } from './Time';
+import { AppliedTimeExtras, TimeRange } from './Time';
 import { AnnotationLayer } from './AnnotationLayer';
 import {
   QueryFields,
@@ -59,7 +59,6 @@ export type QueryObjectExtras = Partial<{
   relative_start?: string;
   relative_end?: string;
   time_grain_sqla?: TimeGranularity;
-  time_range_endpoints?: TimeRangeEndpoints;
   /** WHERE condition */
   where?: string;
 }>;

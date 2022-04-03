@@ -15,16 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from secrets import token_urlsafe
 
+from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.form_data.utils import check_access
+from superset.explore.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.exceptions import KeyValueCreateFailedError
+from superset.key_value.utils import random_key
+from superset.temporary_cache.commands.exceptions import TemporaryCacheCreateFailedError
+from superset.temporary_cache.utils import cache_key
+from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +37,18 @@ class CreateFormDataCommand(BaseCommand):
         self._cmd_params = cmd_params
 
     def run(self) -> str:
+        self.validate()
         try:
             dataset_id = self._cmd_params.dataset_id
             chart_id = self._cmd_params.chart_id
+            tab_id = self._cmd_params.tab_id
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
             check_access(dataset_id, chart_id, actor)
-            key = token_urlsafe(48)
+            contextual_key = cache_key(session.get("_id"), tab_id, dataset_id, chart_id)
+            key = cache_manager.explore_form_data_cache.get(contextual_key)
+            if not key or not tab_id:
+                key = random_key()
             if form_data:
                 state: TemporaryExploreState = {
                     "owner": actor.get_user_id(),
@@ -49,10 +57,12 @@ class CreateFormDataCommand(BaseCommand):
                     "form_data": form_data,
                 }
                 cache_manager.explore_form_data_cache.set(key, state)
+                cache_manager.explore_form_data_cache.set(contextual_key, key)
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")
-            raise KeyValueCreateFailedError() from ex
+            raise TemporaryCacheCreateFailedError() from ex
 
     def validate(self) -> None:
-        pass
+        if self._cmd_params.form_data:
+            validate_json(self._cmd_params.form_data)

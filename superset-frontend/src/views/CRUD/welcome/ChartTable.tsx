@@ -126,8 +126,8 @@ function ChartTable({
 
     if (filterName === 'Mine') {
       filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
+        id: 'owners',
+        operator: 'rel_m_m',
         value: `${user?.userId}`,
       });
     } else if (filterName === 'Favorite') {

@@ -57,7 +57,7 @@ const rawFormData = {
 function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
-  extraQueryData = {},
+  extraQueryData: any = {},
 ): BigNumberWithTrendlineChartProps {
   return {
     width: 200,

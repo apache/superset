@@ -31,6 +31,8 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
+import dashboardComponents from '../../visualizations/presets/dashboardComponents';
+import NewDynamicComponent from './gridComponents/new/NewDynamicComponent';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -106,6 +108,14 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewHeader />
                       <NewMarkdown />
                       <NewDivider />
+                      {dashboardComponents
+                        .getAll()
+                        .map(({ key: componentKey, metadata }) => (
+                          <NewDynamicComponent
+                            metadata={metadata}
+                            componentKey={componentKey}
+                          />
+                        ))}
                     </Tabs.TabPane>
                     <Tabs.TabPane
                       key={2}

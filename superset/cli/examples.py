@@ -93,10 +93,16 @@ def load_examples_run(
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
 @click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(
-    "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data",
+    "--only-metadata",
+    "-m",
+    is_flag=True,
+    help="Only load metadata, skip actual data",
 )
 @click.option(
-    "--force", "-f", is_flag=True, help="Force load data even if table already exists",
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Force load data even if table already exists",
 )
 def load_examples(
     load_test_data: bool,

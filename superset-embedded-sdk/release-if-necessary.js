@@ -21,8 +21,16 @@ const { execSync } = require('child_process');
 const axios = require('axios');
 const { name, version } = require('./package.json');
 
+function log(...args) {
+  console.log('[embedded-sdk-release]', ...args);
+}
+
+function logError(...args) {
+  console.error('[embedded-sdk-release]', ...args);
+}
+
 (async () => {
-  console.log(`checking if ${name}@${version} needs releasing`);
+  log(`checking if ${name}@${version} needs releasing`);
 
   const packageUrl = `https://registry.npmjs.org/${name}/${version}`;
   // npm commands output a bunch of garbage in the edge cases,
@@ -33,14 +41,21 @@ const { name, version } = require('./package.json');
   });
 
   if (status === 200) {
-    console.log('version already exists on npm, exiting');
+    log('version already exists on npm, exiting');
   } else if (status === 404) {
-    console.log('release required, building');
-    execSync('npm run build');
-    execSync('npm publish --access public');
-    console.log(`published ${version} to npm`);
+    log('release required, building');
+    try {
+      execSync('npm run build', { stdio: 'pipe' });
+      log('build successful, publishing')
+      execSync('npm publish --access public', { stdio: 'pipe' });
+      log(`published ${version} to npm`);
+    } catch (err) {
+      console.error(String(err.stdout));
+      logError('Encountered an error, details should be above');
+      process.exitCode = 1;
+    }
   } else {
-    console.error(`ERROR: Received unexpected http status code ${status} from GET ${packageUrl}
+    logError(`ERROR: Received unexpected http status code ${status} from GET ${packageUrl}
 The embedded sdk release script might need to be fixed, or maybe you just need to try again later.`);
     process.exitCode = 1;
   }

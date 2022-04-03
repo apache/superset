@@ -19,7 +19,9 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import React, { FC, useCallback, useMemo } from 'react';
-import { JsonObject, styled, css } from '@superset-ui/core';
+import { JsonObject, styled, css, t } from '@superset-ui/core';
+import { Global } from '@emotion/react';
+import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -30,10 +32,12 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { URL_PARAMS } from 'src/constants';
-import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import {
+  setDirectPathToChild,
+  setEditMode,
+} from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
@@ -48,20 +52,21 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
-import { Global } from '@emotion/react';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import {
+  BUILDER_SIDEPANEL_WIDTH,
+  CLOSED_FILTER_BAR_WIDTH,
+  FILTER_BAR_HEADER_HEIGHT,
+  FILTER_BAR_TABS_HEIGHT,
+  HEADER_HEIGHT,
+  MAIN_HEADER_HEIGHT,
+  OPEN_FILTER_BAR_WIDTH,
+  TABS_HEIGHT,
+} from 'src/dashboard/constants';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
-
-const MAIN_HEADER_HEIGHT = 53;
-const TABS_HEIGHT = 50;
-const HEADER_HEIGHT = 72;
-const CLOSED_FILTER_BAR_WIDTH = 32;
-const OPEN_FILTER_BAR_WIDTH = 260;
-const FILTER_BAR_HEADER_HEIGHT = 80;
-const FILTER_BAR_TABS_HEIGHT = 46;
-const BUILDER_SIDEPANEL_WIDTH = 374;
 
 type DashboardBuilderProps = {};
 
@@ -133,7 +138,7 @@ const StyledHeader = styled.div`
   grid-column: 2;
   grid-row: 1;
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 100;
 `;
 
@@ -149,6 +154,7 @@ const StyledContent = styled.div<{
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
+  nativeFiltersEnabled: boolean;
 }>`
   display: flex;
   flex-direction: row;
@@ -163,14 +169,19 @@ const StyledDashboardContent = styled.div<{
 
   .grid-container {
     /* without this, the grid will not get smaller upon toggling the builder panel on */
-    width: 0px;
+    width: 0;
     flex: 1;
     position: relative;
     margin-top: ${({ theme }) => theme.gridUnit * 6}px;
     margin-right: ${({ theme }) => theme.gridUnit * 8}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-    margin-left: ${({ theme, dashboardFiltersOpen, editMode }) => {
-      if (!dashboardFiltersOpen && !editMode) {
+    margin-left: ${({
+      theme,
+      dashboardFiltersOpen,
+      editMode,
+      nativeFiltersEnabled,
+    }) => {
+      if (!dashboardFiltersOpen && !editMode && nativeFiltersEnabled) {
         return 0;
       }
       return theme.gridUnit * 8;
@@ -187,6 +198,7 @@ const StyledDashboardContent = styled.div<{
 
   .dashboard-builder-sidepane {
     width: ${BUILDER_SIDEPANEL_WIDTH}px;
+    z-index: 1;
   }
 
   .dashboard-component-chart-holder {
@@ -207,6 +219,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
+  );
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
@@ -283,9 +298,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const draggableStyle = useMemo(
     () => ({
-      marginLeft: dashboardFiltersOpen || editMode ? 0 : -32,
+      marginLeft:
+        dashboardFiltersOpen || editMode || !nativeFiltersEnabled ? 0 : -32,
     }),
-    [dashboardFiltersOpen, editMode],
+    [dashboardFiltersOpen, editMode, nativeFiltersEnabled],
   );
 
   const renderDraggableContent = useCallback(
@@ -374,6 +390,22 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             `div > .filterStatusPopover.ant-popover{z-index: 101}`}
           `}
         />
+        {!editMode &&
+          !topLevelTabs &&
+          dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
+            <EmptyStateBig
+              title={t('There are no charts added to this dashboard')}
+              description={
+                canEdit &&
+                t(
+                  'Go to the edit mode to configure the dashboard and add charts',
+                )
+              }
+              buttonText={canEdit && t('Edit the dashboard')}
+              buttonAction={() => dispatch(setEditMode(true))}
+              image="dashboard.svg"
+            />
+          )}
         <div
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -382,6 +414,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             className="dashboard-content"
             dashboardFiltersOpen={dashboardFiltersOpen}
             editMode={editMode}
+            nativeFiltersEnabled={nativeFiltersEnabled}
           >
             {showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />

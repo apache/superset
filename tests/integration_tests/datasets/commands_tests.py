@@ -219,6 +219,26 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "database_uuid",
         ]
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_dataset_command_no_related(self, mock_g):
+        """
+        Test that only datasets are exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+        example_dataset = _get_table_from_list_by_name(
+            "energy_usage", example_db.tables
+        )
+        command = ExportDatasetsCommand([example_dataset.id], export_related=False)
+        contents = dict(command.run())
+
+        assert list(contents.keys()) == [
+            "metadata.yaml",
+            "datasets/examples/energy_usage.yaml",
+        ]
+
 
 class TestImportDatasetsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

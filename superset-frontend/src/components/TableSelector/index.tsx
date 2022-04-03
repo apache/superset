@@ -208,15 +208,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
               currentTable = option;
             }
           });
-          if (onTablesLoad) {
-            onTablesLoad(json.options);
-          }
+
+          onTablesLoad?.(json.options);
           setTableOptions(options);
           setCurrentTable(currentTable);
           setLoadingTables(false);
           if (forceRefresh) addSuccessToast('List updated');
         })
-        .catch(e => {
+        .catch(() => {
           setLoadingTables(false);
           handleError(t('There was an error loading the tables'));
         });

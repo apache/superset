@@ -40,6 +40,7 @@ export const user: UserWithPermissionsAndRoles = {
   userId: 5,
   email: 'alpha@alpha.com',
   isActive: true,
+  isAnonymous: false,
   permissions: {
     datasource_access: ['table1', 'table2'],
     database_access: ['db1', 'db2', 'db3'],

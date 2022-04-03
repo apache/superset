@@ -27,10 +27,6 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 0;
   }
-
-  h4 {
-    font-weight: 600;
-  }
 `;
 
 export const StyledTopSection = styled.div`
@@ -95,7 +91,6 @@ export const TimezoneHeaderStyle = (theme: SupersetTheme) => css`
 
 export const SectionHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
-  font-weight: ${theme.typography.weights.bold};
 `;
 
 export const StyledMessageContentTitle = styled.div`
@@ -110,4 +105,25 @@ export const StyledRadio = styled(Radio)`
 
 export const StyledRadioGroup = styled(Radio.Group)`
   margin-left: ${({ theme }) => theme.gridUnit * 0.5}px;
+`;
+
+export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
+  border: ${theme.colors.error.base} 1px solid;
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  color: ${theme.colors.error.dark2};
+  .ant-alert-message {
+    font-size: ${theme.typography.sizes.s + 1}px;
+    font-weight: bold;
+  }
+  .ant-alert-description {
+    font-size: ${theme.typography.sizes.s + 1}px;
+    line-height: ${theme.gridUnit * 4}px;
+    .ant-alert-icon {
+      margin-right: ${theme.gridUnit * 2.5}px;
+      font-size: ${theme.typography.sizes.l + 1}px;
+      position: relative;
+      top: ${theme.gridUnit / 4}px;
+    }
+  }
 `;
