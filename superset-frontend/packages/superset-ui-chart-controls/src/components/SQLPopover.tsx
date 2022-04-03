@@ -20,9 +20,9 @@ import React from 'react';
 import { Popover } from 'antd';
 import type { PopoverProps } from 'antd/lib/popover';
 import AceEditor from 'react-ace';
-import 'brace/mode/sql';
 import { CalculatorOutlined } from '@ant-design/icons';
 import { css, styled, useTheme, t } from '@superset-ui/core';
+import 'ace-builds/src-noconflict/mode-sql';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`

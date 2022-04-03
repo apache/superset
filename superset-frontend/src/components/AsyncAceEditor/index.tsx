@@ -24,6 +24,7 @@ import {
   TextMode as OrigTextMode,
 } from 'brace';
 import AceEditor, { IAceEditorProps } from 'react-ace';
+import { acequire } from 'ace-builds/src-noconflict/ace';
 import AsyncEsmComponent, {
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
@@ -101,7 +102,6 @@ export default function AsyncAceEditor(
   }: AsyncAceEditorOptions = {},
 ) {
   return AsyncEsmComponent(async () => {
-    const { default: ace } = await import('brace');
     const { default: ReactAceEditor } = await import('react-ace');
 
     await Promise.all(aceModules.map(x => aceModuleLoaders[x]()));
@@ -126,9 +126,6 @@ export default function AsyncAceEditor(
         ref,
       ) {
         if (keywords) {
-          // ace doesn't have property acequire if there are multiple ace editors on a page
-          // @ts-ignore
-          const acequire = ace.acequire ?? ace.require;
           const langTools = acequire('ace/ext/language_tools');
           const completer = {
             getCompletions: (
