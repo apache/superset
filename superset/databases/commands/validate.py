@@ -57,7 +57,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             raise InvalidEngineError(
                 SupersetError(
                     message=__(
-                        'Engine "%(engine)s" is not a valid engine.', engine=engine,
+                        'Engine "%(engine)s" is not a valid engine.',
+                        engine=engine,
                     ),
                     error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
                     level=ErrorLevel.ERROR,
@@ -101,7 +102,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(  # type: ignore
-            self._properties.get("parameters"), encrypted_extra,
+            self._properties.get("parameters"),
+            encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted

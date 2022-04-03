@@ -52,7 +52,6 @@ These features flags are **safe for production** and have been tested.
 - ESCAPE_MARKDOWN_HTML
 - ENABLE_TEMPLATE_PROCESSING
 - LISTVIEWS_DEFAULT_CARD_VIEW
-- ROW_LEVEL_SECURITY
 - SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
 - SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
 - SQLLAB_BACKEND_PERSISTENCE

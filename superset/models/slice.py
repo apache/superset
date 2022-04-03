@@ -227,6 +227,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "slice_url": self.slice_url,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @property

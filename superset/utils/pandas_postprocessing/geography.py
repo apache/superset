@@ -50,7 +50,10 @@ def geohash_decode(
 
 
 def geohash_encode(
-    df: DataFrame, geohash: str, longitude: str, latitude: str,
+    df: DataFrame,
+    geohash: str,
+    longitude: str,
+    latitude: str,
 ) -> DataFrame:
     """
     Encode longitude and latitude into geohash
@@ -65,7 +68,8 @@ def geohash_encode(
         encode_df = df[[latitude, longitude]]
         encode_df.columns = ["latitude", "longitude"]
         encode_df["geohash"] = encode_df.apply(
-            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]), axis=1,
+            lambda row: geohash_lib.encode(row["latitude"], row["longitude"]),
+            axis=1,
         )
         return _append_columns(df, encode_df, {"geohash": geohash})
     except ValueError as ex:

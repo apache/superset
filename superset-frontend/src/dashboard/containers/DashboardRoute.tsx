@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/core';
-import Component from './Heatmap';
+import React, { FC } from 'react';
+import { useParams } from 'react-router-dom';
+import { DashboardPage } from './DashboardPage';
 
-export default reactify(Component);
+const DashboardRoute: FC = () => {
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  return <DashboardPage idOrSlug={idOrSlug} />;
+};
+
+export default DashboardRoute;

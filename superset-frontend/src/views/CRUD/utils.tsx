@@ -166,8 +166,8 @@ export const getUserOwnedObjects = (
   resource: string,
   filters: Array<Filters> = [
     {
-      col: 'created_by',
-      opr: 'rel_o_m',
+      col: 'owners',
+      opr: 'rel_m_m',
       value: `${userId}`,
     },
   ],
