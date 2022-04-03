@@ -106,7 +106,7 @@ class BootstrapUncertaintyMixin:  # pylint: disable=too-few-public-methods
             sim = self.predict(df.drop(["y", "yhat"], axis=1)).set_index(["ds"])
 
             for k, v in sim_values.items():
-                sim_values[k].append(sim[k])
+                v.append(sim[k])
         for k, v in sim_values.items():
             sim_values[k] = np.column_stack(v)
 

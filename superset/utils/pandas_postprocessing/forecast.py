@@ -26,10 +26,10 @@ from superset.utils.pandas_postprocessing.utils import FORECAST_TIME_GRAIN_MAP
 from superset import forecasts
 
 
-def _parse_seasonality(
+def _parse_seasonality(  # pylint: disable=invalid-name
     input_value: Optional[Union[bool, int]],
     seasonality_type: str,
-    ds: pd.Series,  # pylint: disable=invalid-name
+    ds: pd.Series,
 ) -> Union[bool, int]:
     if input_value is None:
         if ds.dt.tz:
@@ -149,15 +149,15 @@ def forecast(  # pylint: disable=too-many-arguments, too-many-locals
 
     target_df = pd.DataFrame()
     ds = df[DTTM_ALIAS]
-    model = forecasts.get_model(
-        model_name=model_name,
-        confidence_interval=confidence_interval,
-        yearly_seasonality=_parse_seasonality(yearly_seasonality, "yearly", ds),
-        monthly_seasonality=_parse_seasonality(monthly_seasonality, "monthly", ds),
-        weekly_seasonality=_parse_seasonality(weekly_seasonality, "weekly", ds),
-        daily_seasonality=_parse_seasonality(daily_seasonality, "daily", ds),
-    )
     for column in [column for column in df.columns if column != DTTM_ALIAS]:
+        model = forecasts.get_model(
+            model_name=model_name,
+            confidence_interval=confidence_interval,
+            yearly_seasonality=_parse_seasonality(yearly_seasonality, "yearly", ds),
+            monthly_seasonality=_parse_seasonality(monthly_seasonality, "monthly", ds),
+            weekly_seasonality=_parse_seasonality(weekly_seasonality, "weekly", ds),
+            daily_seasonality=_parse_seasonality(daily_seasonality, "daily", ds),
+        )
         fit_df = model.fit_transform(
             df=df[[DTTM_ALIAS, column]].rename(columns={DTTM_ALIAS: "ds", column: "y"}),
             periods=periods,

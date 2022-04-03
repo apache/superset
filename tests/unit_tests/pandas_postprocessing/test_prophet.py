@@ -18,19 +18,27 @@ from datetime import datetime
 from importlib.util import find_spec
 
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
-from superset.utils.pandas_postprocessing import forecast
 from tests.unit_tests.fixtures.dataframes import forecast_df
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_valid(model_name):
+def test_forecast_valid(app_context: AppContext, model_name: str) -> None:
     if model_name == "prophet.Prophet":
         pytest.importorskip("prophet")
 
-    df = forecast(df=forecast_df, time_grain="P1M", periods=3, confidence_interval=0.9, model_name=model_name)
+    from superset.utils.pandas_postprocessing import forecast
+
+    df = forecast(
+        df=forecast_df,
+        time_grain="P1M",
+        periods=3,
+        confidence_interval=0.9,
+        model_name=model_name,
+    )
     columns = {column for column in df.columns}
     assert columns == {
         DTTM_ALIAS,
@@ -48,21 +56,30 @@ def test_forecast_valid(model_name):
     assert len(df) == 7
 
     df = forecast(
-        df=forecast_df, time_grain="P1M", periods=5, confidence_interval=0.9,
-        model_name=model_name)
+        df=forecast_df,
+        time_grain="P1M",
+        periods=5,
+        confidence_interval=0.9,
+        model_name=model_name,
+    )
     assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
     assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
     assert len(df) == 9
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_valid_zero_periods(model_name):
+def test_forecast_valid_zero_periods(app_context: AppContext, model_name: str) -> None:
     if model_name == "prophet.Prophet":
         pytest.importorskip("prophet")
 
+    from superset.utils.pandas_postprocessing import forecast
+
     df = forecast(
-        df=forecast_df, time_grain="P1M", periods=0, confidence_interval=0.9,
-        model_name=model_name
+        df=forecast_df,
+        time_grain="P1M",
+        periods=0,
+        confidence_interval=0.9,
+        model_name=model_name,
     )
     columns = {column for column in df.columns}
     assert columns == {
@@ -85,17 +102,24 @@ def test_prophet_import():
     dynamic_module = find_spec("prophet")
     if dynamic_module is None:
         with pytest.raises(InvalidPostProcessingError):
+            from superset.utils.pandas_postprocessing import forecast
+
             forecast(
-                df=forecast_df, time_grain="P1M", periods=3, confidence_interval=0.9,
-                model_name="prophet.Prophet"
+                df=forecast_df,
+                time_grain="P1M",
+                periods=3,
+                confidence_interval=0.9,
+                model_name="prophet.Prophet",
             )
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_missing_temporal_column(model_name):
+def test_forecast_missing_temporal_column(app_context: AppContext, model_name: str) -> None:
     df = forecast_df.drop(DTTM_ALIAS, axis=1)
 
     with pytest.raises(InvalidPostProcessingError):
+        from superset.utils.pandas_postprocessing import forecast
+
         forecast(
             df=df,
             time_grain="P1M",
@@ -106,7 +130,9 @@ def test_forecast_missing_temporal_column(model_name):
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_confidence_interval(model_name):
+def test_forecast_incorrect_confidence_interval(app_context: AppContext, model_name: str) -> None:
+    from superset.utils.pandas_postprocessing import forecast
+
     with pytest.raises(InvalidPostProcessingError):
         forecast(
             df=forecast_df,
@@ -127,8 +153,10 @@ def test_forecast_incorrect_confidence_interval(model_name):
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_periods(model_name):
+def test_forecast_incorrect_periods(app_context: AppContext, model_name: str) -> None:
     with pytest.raises(InvalidPostProcessingError):
+        from superset.utils.pandas_postprocessing import forecast
+
         forecast(
             df=forecast_df,
             time_grain="P1M",
@@ -139,8 +167,10 @@ def test_forecast_incorrect_periods(model_name):
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_time_grain(model_name):
+def test_forecast_incorrect_time_grain(app_context: AppContext, model_name: str) -> None:
     with pytest.raises(InvalidPostProcessingError):
+        from superset.utils.pandas_postprocessing import forecast
+
         forecast(
             df=forecast_df,
             time_grain="yearly",

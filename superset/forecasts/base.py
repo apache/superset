@@ -100,8 +100,8 @@ class BaseForecaster:
         -------
         Dataframe with extended periods.
         """
-        self.history_dates = (
-            pd.to_datetime(  # pylint: disable=attribute-defined-outside-init
+        self.history_dates = (  # pylint: disable=attribute-defined-outside-init
+            pd.to_datetime(
                 pd.Series(df["ds"].unique(), name="ds")
             ).sort_values()
         )
@@ -333,8 +333,8 @@ class ScikitLearnForecaster(
     """Class for forecasting in superset using the scikit-learn API implementation
     of any model. E.g. Scikit-learn, XGBoost, LightGBM, etc."""
 
-    def __init__(
-        self,  # pylint: disable=too-many-arguments,super-init-not-called
+    def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
+        self,
         model_name,
         confidence_interval,
         yearly_seasonality,

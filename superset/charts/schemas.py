@@ -591,9 +591,7 @@ class ChartDataForecastOptionsSchema(ChartDataPostProcessingOperationOptionsSche
     )
     model_name = fields.String(
         description="Which model to use for forecasting.",
-        validate=validate.OneOf(
-            choices=list(forecasts.available_models.keys())
-        ),
+        validate=validate.OneOf(choices=list(forecasts.available_models.keys())),
         example="prophet.Prophet",
         required=True,
     )

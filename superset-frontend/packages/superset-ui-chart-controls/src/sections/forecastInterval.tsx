@@ -34,7 +34,9 @@ export const FORECAST_DEFAULT_DATA = {
 };
 
 const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(appContainer?.getAttribute('data-bootstrap') || '{}');
+const bootstrapData = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
 
 export const forecastIntervalControls: ControlPanelSectionConfig = {
   label: t('Predictive Analytics'),
