@@ -16,14 +16,14 @@
 # under the License.
 from __future__ import annotations
 
-import pandas as pd
-import numpy as np
 import logging
-
 from importlib import import_module
-from typing import Union, Type
+from typing import Type, Union
 
-from .mixins import TSFeatureTransformerMixin, BootstrapUncertaintyMixin
+import numpy as np
+import pandas as pd
+
+from .mixins import BootstrapUncertaintyMixin, TSFeatureTransformerMixin
 
 
 class BaseForecaster:
@@ -35,7 +35,13 @@ class BaseForecaster:
     arguments (no ``*args`` or ``**kwargs``).
     """
 
-    def __init__(self, yearly_seasonality: Union[bool, int], monthly_seasonality: Union[bool, int], weekly_seasonality: Union[bool, int], daily_seasonality: Union[bool, int]) -> None:
+    def __init__(
+        self,
+        yearly_seasonality: Union[bool, int],
+        monthly_seasonality: Union[bool, int],
+        weekly_seasonality: Union[bool, int],
+        daily_seasonality: Union[bool, int],
+    ) -> None:
         raise NotImplementedError("Subclasses should implement this!")
 
     def fit(self, df: pd.DataFrame) -> Type[BaseForecaster]:
@@ -94,22 +100,29 @@ class BaseForecaster:
         -------
         Dataframe with extended periods.
         """
-        self.history_dates = pd.to_datetime(
-            pd.Series(df['ds'].unique(), name='ds')).sort_values()
+        self.history_dates = (
+            pd.to_datetime(  # pylint: disable=attribute-defined-outside-init
+                pd.Series(df["ds"].unique(), name="ds")
+            ).sort_values()
+        )
         last_date = self.history_dates.max()
         dates = pd.date_range(
             start=last_date,
             periods=periods + 1,  # An extra in case we include start
-            freq=freq)
+            freq=freq,
+        )
         dates = dates[dates > last_date]  # Drop start if equals last_date
         dates = dates[:periods]  # Return correct number of periods
         dates = np.concatenate((np.array(self.history_dates), dates))
 
-        return pd.DataFrame({'ds': dates})
+        return pd.DataFrame({"ds": dates})
 
-    def fit_transform(self, df,
-                      periods,
-                      freq,) -> pd.DataFrame:
+    def fit_transform(
+        self,
+        df,
+        periods,
+        freq,
+    ) -> pd.DataFrame:
         """Fit a regression model and return a DataFrame with predicted results.
         Parameters
         ----------
@@ -125,18 +138,20 @@ class BaseForecaster:
         future = self.make_future_dataframe(df, periods, freq)
         # unique features
         feature_df = self.feature_transform(future)
-        train_df = df.merge(feature_df, how='left', on='ds')
+        train_df = df.merge(feature_df, how="left", on="ds")
         self.fit(train_df)
         prediction = self.predict(feature_df)
         forecast = prediction.join(df.set_index("ds"), on="ds")
-        forecast = self.predict_uncertainty(forecast)[["ds", "yhat", "yhat_lower", "yhat_upper", "y"]].set_index(["ds"])
+        forecast = self.predict_uncertainty(forecast)[
+            ["ds", "yhat", "yhat_lower", "yhat_upper", "y"]
+        ].set_index(["ds"])
         return forecast
 
 
 class ProphetForecaster(BaseForecaster):
     """Class for forecasting in superset using Prophet."""
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
         model_name: str,
         confidence_interval: float,
@@ -145,7 +160,7 @@ class ProphetForecaster(BaseForecaster):
         weekly_seasonality: Union[bool, int],
         daily_seasonality: Union[bool, int],
     ) -> None:
-        # pylint: disable=import-outside-toplevel
+        # pylint: disable=import-error,import-outside-toplevel
         from prophet import Prophet
 
         prophet_logger = logging.getLogger("prophet.plot")
@@ -175,14 +190,14 @@ class ProphetForecaster(BaseForecaster):
         Returns
         -------
         The fitted Forecaster object."""
-        if ('ds' not in df) or ('y' not in df):
+        if ("ds" not in df) or ("y" not in df):
             raise ValueError(
                 'Dataframe must have columns "ds" and "y" with the dates and '
-                'values respectively.'
+                "values respectively."
             )
-        history = df[df['y'].notnull()].copy()
+        history = df[df["y"].notnull()].copy()
         if history.shape[0] < 2:
-            raise ValueError('Dataframe has less than 2 non-NaN rows.')
+            raise ValueError("Dataframe has less than 2 non-NaN rows.")
         self.model.fit(df)
         self.fitted = True
         return self
@@ -208,7 +223,7 @@ class ProphetForecaster(BaseForecaster):
         Dataframe with the forecast values.
         """
         if self.fitted is False:
-            raise Exception('Model has not been fit.')
+            raise Exception("Model has not been fit.")
         return self.model.predict(df)
 
     def predict_uncertainty(self, df):
@@ -223,9 +238,12 @@ class ProphetForecaster(BaseForecaster):
         return df
 
 
-class LeastSquaresForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixin, BaseForecaster):
+class LeastSquaresForecaster(
+    TSFeatureTransformerMixin, BootstrapUncertaintyMixin, BaseForecaster
+):
     """Class for forecasting in superset using the numpy least-squares solver."""
-    def __init__(
+
+    def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
         model_name: str,
         confidence_interval: float,
@@ -278,16 +296,16 @@ class LeastSquaresForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixi
         Returns
         -------
         The fitted Forecaster object."""
-        if ('ds' not in df) or ('y' not in df):
+        if ("ds" not in df) or ("y" not in df):
             raise ValueError(
                 'Dataframe must have columns "ds" and "y" with the dates and '
-                'values respectively.'
+                "values respectively."
             )
-        history = df[df['y'].notnull()].copy()
+        history = df[df["y"].notnull()].copy()
         if history.shape[0] < 2:
-            raise ValueError('Dataframe has less than 2 non-NaN rows.')
-        X = df.drop(['ds', 'y'], axis=1)
-        y = df['y']
+            raise ValueError("Dataframe has less than 2 non-NaN rows.")
+        X = df.drop(["ds", "y"], axis=1)  # pylint: disable=invalid-name
+        y = df["y"]
         self.weights = np.linalg.lstsq(X, y, rcond=None)[0]
         self.fitted = True
         return self
@@ -302,24 +320,29 @@ class LeastSquaresForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixi
         Dataframe with the forecast values.
         """
         if self.fitted is False:
-            raise Exception('Model has not been fit.')
-        w = self.weights
-        X = df.drop(['ds'], axis=1)
-        df["yhat"] = X@w
+            raise Exception("Model has not been fit.")
+        w = self.weights  # pylint: disable=invalid-name
+        X = df.drop(["ds"], axis=1)  # pylint: disable=invalid-name
+        df["yhat"] = X @ w
         return df
 
 
-class ScikitLearnForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixin, BaseForecaster):
+class ScikitLearnForecaster(
+    TSFeatureTransformerMixin, BootstrapUncertaintyMixin, BaseForecaster
+):
     """Class for forecasting in superset using the scikit-learn API implementation
     of any model. E.g. Scikit-learn, XGBoost, LightGBM, etc."""
-    def __init__(self,
-                 model_name,
-                 confidence_interval,
-                 yearly_seasonality,
-                 monthly_seasonality,
-                 weekly_seasonality,
-                 daily_seasonality):
-        module, cls = model_name.rsplit('.', 1)
+
+    def __init__(
+        self,  # pylint: disable=too-many-arguments,super-init-not-called
+        model_name,
+        confidence_interval,
+        yearly_seasonality,
+        monthly_seasonality,
+        weekly_seasonality,
+        daily_seasonality,
+    ):
+        module, cls = model_name.rsplit(".", 1)
         model_cls = getattr(import_module(module), cls)
         self.model = model_cls()
         self.model_name = model_name
@@ -365,16 +388,16 @@ class ScikitLearnForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixin
         Returns
         -------
         The fitted Forecaster object."""
-        if ('ds' not in df) or ('y' not in df):
+        if ("ds" not in df) or ("y" not in df):
             raise ValueError(
                 'Dataframe must have columns "ds" and "y" with the dates and '
-                'values respectively.'
+                "values respectively."
             )
-        history = df[df['y'].notnull()].copy()
+        history = df[df["y"].notnull()].copy()
         if history.shape[0] < 2:
-            raise ValueError('Dataframe has less than 2 non-NaN rows.')
-        X = df.drop(['ds', 'y'], axis=1)
-        y = df['y']
+            raise ValueError("Dataframe has less than 2 non-NaN rows.")
+        X = df.drop(["ds", "y"], axis=1)  # pylint: disable=invalid-name
+        y = df["y"]
         self.model.fit(X, y)
         self.fitted = True
         return self
@@ -389,7 +412,7 @@ class ScikitLearnForecaster(TSFeatureTransformerMixin, BootstrapUncertaintyMixin
         Dataframe with the forecast values.
         """
         if self.fitted is False:
-            raise Exception('Model has not been fit.')
-        X = df.drop(['ds'], axis=1)
+            raise Exception("Model has not been fit.")
+        X = df.drop(["ds"], axis=1)  # pylint: disable=invalid-name
         df["yhat"] = self.model.predict(X)
         return df

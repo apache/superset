@@ -14,18 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Type, Union, Dict
-from . import base
-from .base import BaseForecaster, ProphetForecaster, LeastSquaresForecaster, ScikitLearnForecaster
+from importlib import import_module
+from typing import Dict, Type, Union
 
 from superset import app
 
-from importlib import import_module
+from . import base
+from .base import (
+    BaseForecaster,
+    LeastSquaresForecaster,
+    ProphetForecaster,
+    ScikitLearnForecaster,
+)
 
 config = app.config
 
 
-def get_model(
+def get_model(  # pylint: disable=too-many-arguments
     model_name: str,
     confidence_interval: float,
     yearly_seasonality: Union[bool, int],
@@ -48,7 +53,7 @@ def register() -> Dict[str, Type[base.BaseForecaster]]:
     model_mapping = {}
     for model_name in config["ALLOWED_FORECASTERS"]:
         try:
-            mod_name, cls_name = model_name.rsplit('.', 1)
+            mod_name, cls_name = model_name.rsplit(".", 1)
             getattr(import_module(mod_name), cls_name)
             if model_name == "prophet.Prophet":
                 model_mapping["prophet.Prophet"] = ProphetForecaster

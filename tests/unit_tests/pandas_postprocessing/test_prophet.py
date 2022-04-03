@@ -139,7 +139,7 @@ def test_forecast_incorrect_periods(model_name):
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_time_grain():
+def test_forecast_incorrect_time_grain(model_name):
     with pytest.raises(InvalidPostProcessingError):
         forecast(
             df=forecast_df,

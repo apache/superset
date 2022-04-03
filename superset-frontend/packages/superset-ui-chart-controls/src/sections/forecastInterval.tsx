@@ -146,9 +146,7 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
           label: 'Forecast Model',
           choices: bootstrapData.common.conf.AVAILABLE_FORECASTERS,
           default: FORECAST_DEFAULT_DATA.forecastModel,
-          description: t(
-            'Which model to use for forecasting.',
-          ),
+          description: t('Which model to use for forecasting.'),
         },
       },
     ],

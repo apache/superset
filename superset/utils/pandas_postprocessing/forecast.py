@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
 from typing import Optional, Union
 
 from flask_babel import gettext as _
@@ -28,7 +27,9 @@ from superset import forecasts
 
 
 def _parse_seasonality(
-    input_value: Optional[Union[bool, int]], seasonality_type: str, ds: pd.Series
+    input_value: Optional[Union[bool, int]],
+    seasonality_type: str,
+    ds: pd.Series,  # pylint: disable=invalid-name
 ) -> Union[bool, int]:
     if input_value is None:
         if ds.dt.tz:
@@ -43,15 +44,36 @@ def _parse_seasonality(
         if seasonality_type == "monthly":
             # Turns on monthly seasonality if there is >=2 months of history, and the
             #             # spacing between dates in the history is <1 month.
-            return 1 if ((last - first >= np.timedelta64(2, 'M')) and (min_dt < np.timedelta64(1, 'M'))) else 0
+            return (
+                1
+                if (
+                    (last - first >= np.timedelta64(2, "M"))
+                    and (min_dt < np.timedelta64(1, "M"))
+                )
+                else 0
+            )
         if seasonality_type == "weekly":
             # Turns on weekly seasonality if there is >=2 weeks of history, and the
             # spacing between dates in the history is <7 days.
-            return 3 if ((last - first >= pd.Timedelta(days=14)) and (min_dt < pd.Timedelta(days=7))) else 0
+            return (
+                3
+                if (
+                    (last - first >= pd.Timedelta(days=14))
+                    and (min_dt < pd.Timedelta(days=7))
+                )
+                else 0
+            )
         if seasonality_type == "daily":
             # Turns on daily seasonality if there is >=2 days of history, and the
             # spacing between dates in the history is <1 day.
-            return 4 if ((last - first >= pd.Timedelta(days=2)) and (min_dt < pd.Timedelta(days=1))) else 0
+            return (
+                4
+                if (
+                    (last - first >= pd.Timedelta(days=2))
+                    and (min_dt < pd.Timedelta(days=1))
+                )
+                else 0
+            )
     if isinstance(input_value, bool):
         return input_value
     try:
@@ -60,7 +82,7 @@ def _parse_seasonality(
         return input_value
 
 
-def forecast(  # pylint: disable=too-many-arguments
+def forecast(  # pylint: disable=too-many-arguments, too-many-locals
     df: pd.DataFrame,
     time_grain: str,
     periods: int,

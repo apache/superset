@@ -356,7 +356,9 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         for k in FRONTEND_CONF_KEYS
     }
     forecasters = list(forecasts.available_models.keys())
-    frontend_config["AVAILABLE_FORECASTERS"] = list(map(list, zip(forecasters, forecasters)))
+    frontend_config["AVAILABLE_FORECASTERS"] = list(
+        map(list, zip(forecasters, forecasters))
+    )
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
