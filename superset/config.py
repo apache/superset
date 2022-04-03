@@ -397,14 +397,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
-    # Note that: RowLevelSecurityFilter is only given by default to the Admin role
-    # and the Admin Role does have the all_datasources security permission.
-    # But, if users create a specific role with access to RowLevelSecurityFilter MVC
-    # and a custom datasource access, the table dropdown will not be correctly filtered
-    # by that custom datasource access. So we are assuming a default security config,
-    # a custom security config could potentially give access to setting filters on
-    # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": True,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
@@ -743,7 +735,7 @@ DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = ("superset.sql_lab", "superset.tasks")
+    imports = ("superset.sql_lab",)
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_log_level = "DEBUG"
     worker_prefetch_multiplier = 1
@@ -1051,6 +1043,11 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
+# This auth provider is used by background (offline) tasks that need to access
+# protected resources. Can be overridden by end users in order to support
+# custom auth mechanisms
+MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
+
 # ---------------------------------------------------
 # Alerts & Reports
 # ---------------------------------------------------
@@ -1074,43 +1071,6 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
-
-# If enabled, certain features are run in debug mode
-# Current list:
-# * Emails are sent using dry-run mode (logging only)
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-SCHEDULED_EMAIL_DEBUG_MODE = False
-
-# This auth provider is used by background (offline) tasks that need to access
-# protected resources. Can be overridden by end users in order to support
-# custom auth mechanisms
-MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
-
-# Email reports - minimum time resolution (in minutes) for the crontab
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORTS_CRON_RESOLUTION = 15
-
-# The MAX duration (in seconds) a email schedule can run for before being killed
-# by celery.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_ASYNC_TIME_LIMIT_SEC = int(timedelta(minutes=5).total_seconds())
-
-# Send bcc of all reports to this address. Set to None to disable.
-# This is useful for maintaining an audit trail of all email deliveries.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORT_BCC_ADDRESS = None
-
-# User credentials to use for generating reports
-# This user should have permissions to browse all the dashboards and
-# slices.
-# TODO: In the future, login as the owner of the item to generate reports
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-EMAIL_REPORTS_USER = "admin"
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -1237,12 +1197,6 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: Optional[str] = None
-
-# Turn this key to False to disable ownership check on the old dataset MVC and
-# datasource API /datasource/save.
-#
-# Warning: This config key is deprecated and will be removed in version 2.0.0"
-OLD_API_CHECK_DATASET_OWNERSHIP = True
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook

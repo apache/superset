@@ -35,12 +35,18 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
         "position": {
             "CHART1": {
                 "id": "CHART1",
-                "meta": {"chartId": 101, "uuid": "uuid1",},
+                "meta": {
+                    "chartId": 101,
+                    "uuid": "uuid1",
+                },
                 "type": "CHART",
             },
             "CHART2": {
                 "id": "CHART2",
-                "meta": {"chartId": 102, "uuid": "uuid2",},
+                "meta": {
+                    "chartId": 102,
+                    "uuid": "uuid2",
+                },
                 "type": "CHART",
             },
         },

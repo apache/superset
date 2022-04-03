@@ -20,6 +20,7 @@ import pandas as pd
 from flask_babel import gettext as _
 
 from superset.exceptions import InvalidPostProcessingError
+from superset.utils.pandas_postprocessing.utils import RESAMPLE_METHOD
 
 
 def resample(
@@ -40,9 +41,15 @@ def resample(
     """
     if not isinstance(df.index, pd.DatetimeIndex):
         raise InvalidPostProcessingError(_("Resample operation requires DatetimeIndex"))
+    if method not in RESAMPLE_METHOD:
+        raise InvalidPostProcessingError(
+            _("Resample method should in ") + ", ".join(RESAMPLE_METHOD) + "."
+        )
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)
+    elif method == "linear":
+        _df = df.resample(rule).interpolate()
     else:
         _df = getattr(df.resample(rule), method)()
     return _df

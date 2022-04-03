@@ -111,7 +111,10 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
         get_validator_by_name.return_value = validator
         validator.validate.return_value = [
             SQLValidationAnnotation(
-                message="This worked", line_number=4, start_column=12, end_column=42,
+                message="This worked",
+                line_number=4,
+                start_column=12,
+                end_column=42,
             )
         ]
 

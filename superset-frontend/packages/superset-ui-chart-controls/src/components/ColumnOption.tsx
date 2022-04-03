@@ -17,13 +17,13 @@
  * under the License.
  */
 import React, { useState, ReactNode, useLayoutEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from './Tooltip';
-import { ColumnTypeLabel } from './ColumnTypeLabel';
-import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
+import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import { ColumnMeta } from '../types';
 import { getColumnLabelText, getColumnTooltipNode } from './labelUtils';
+import { SQLPopover } from './SQLPopover';
 
 export type ColumnOptionProps = {
   column: ColumnMeta;
@@ -32,6 +32,8 @@ export type ColumnOptionProps = {
 };
 
 const StyleOverrides = styled.span`
+  display: flex;
+  align-items: center;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
@@ -54,26 +56,25 @@ export function ColumnOption({
   return (
     <StyleOverrides>
       {showType && type !== undefined && <ColumnTypeLabel type={type} />}
+      <Tooltip id="metric-name-tooltip" title={tooltipText}>
+        <span
+          className="option-label column-option-label"
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-right: ${theme.gridUnit}px;
+            `
+          }
+          ref={labelRef}
+        >
+          {getColumnLabelText(column)}
+        </span>
+      </Tooltip>
+      {hasExpression && <SQLPopover sqlExpression={expression} />}
       {column.is_certified && (
         <CertifiedIconWithTooltip
           metricName={column.metric_name}
           certifiedBy={column.certified_by}
           details={column.certification_details}
-        />
-      )}
-      <Tooltip id="metric-name-tooltip" title={tooltipText}>
-        <span className="m-r-5 option-label column-option-label" ref={labelRef}>
-          {getColumnLabelText(column)}
-        </span>
-      </Tooltip>
-
-      {hasExpression && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="question-circle-o"
-          tooltip={column.expression}
-          label={`expr-${column.column_name}`}
-          placement="top"
         />
       )}
     </StyleOverrides>

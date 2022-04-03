@@ -101,7 +101,7 @@ const Styles = styled.div`
     max-height: 100%;
   }
   .data-source-selection {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }

@@ -34,7 +34,10 @@ import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex'
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import {
+  setDirectPathToChild,
+  setEditMode,
+} from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/hooks/useElementOnScreen';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
@@ -398,6 +401,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   'Go to the edit mode to configure the dashboard and add charts',
                 )
               }
+              buttonText={canEdit && t('Edit the dashboard')}
+              buttonAction={() => dispatch(setEditMode(true))}
               image="dashboard.svg"
             />
           )}
