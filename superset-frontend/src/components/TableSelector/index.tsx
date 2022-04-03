@@ -203,6 +203,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       if (previousRefresh !== refresh) setPreviousRefresh(refresh);
       fetchTables(encodedEndpoint, forceRefresh);
     }
+    // We are using the refresh state to re-trigger the query
+    // previousRefresh should be out of dependencies array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh, currentDatabase, currentCatalog, currentSchema, onTablesLoad]);
 
   const getEndpoint = useCallback(

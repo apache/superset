@@ -194,7 +194,7 @@ export default function DatabaseSelector({
     [formMode, getDbList, handleError, sqlLabMode],
   );
 
-  function fetchCatalogs() {
+  const fetchCatalogs = () => {
     setLoadingCatalogs(true);
     const queryParams = rison.encode({ force: catalogRefresh > 0 });
     const endpoint = `/api/v1/database/${currentDb?.value}/catalogs/?q=${queryParams}`;
@@ -214,9 +214,9 @@ export default function DatabaseSelector({
         setLoadingCatalogs(false);
         handleError(t('There was an error loading the catalogs'));
       });
-  }
+  };
 
-  function fetchSchemas(currentDb: DatabaseValue) {
+  const fetchSchemas = (currentDb: DatabaseValue) => {
     setLoadingSchemas(true);
     const queryParams = rison.encode({ force: schemaRefresh > 0 });
     const endpoint = currentDb.has_catalogs
@@ -238,13 +238,12 @@ export default function DatabaseSelector({
         setLoadingSchemas(false);
         handleError(t('There was an error loading the schemas'));
       });
-  }
+  };
 
-  function showSchema(db: DatabaseObject | undefined) {
-    return db?.has_catalogs ? !!currentCatalog : true;
-  }
+  const showSchema = (db: DatabaseObject | undefined) =>
+    db?.has_catalogs ? !!currentCatalog : true;
 
-  function getQueryParams({
+  const getQueryParams = ({
     page,
     search,
     pageSize,
@@ -252,7 +251,7 @@ export default function DatabaseSelector({
     page: number;
     search: string;
     pageSize: number;
-  }) {
+  }) => {
     const filters =
       formMode || !sqlLabMode
         ? { filters: [{ col: 'database_name', opr: 'ct', value: search }] }
@@ -273,9 +272,9 @@ export default function DatabaseSelector({
       order_direction: 'asc',
       order_columns: 'database_name',
     });
-  }
+  };
 
-  function getDatabasesFromResponse(json: JsonObject) {
+  const getDatabasesFromResponse = (json: JsonObject) => {
     const { result } = json;
     if (getDbList) getDbList(result);
     if (result.length === 0)
@@ -292,7 +291,7 @@ export default function DatabaseSelector({
       allow_multi_schema_metadata_fetch: row.allow_multi_schema_metadata_fetch,
     }));
     return { data: options, totalCount: options.length };
-  }
+  };
 
   function changeDataBase(
     value: { label: string; value: number },
