@@ -15,9 +15,6 @@
   },
   "license": "Apache-2.0",
   "author": "Superset",
-  "sideEffects": [
-    "*.css"
-  ],
   "main": "lib/index.js",
   "module": "esm/index.js",
   "files": [
@@ -31,7 +28,8 @@
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*"
+    "@superset-ui/core": "*",
+    "react": "^16.13.1"
   },
   "publishConfig": {
     "access": "public"
