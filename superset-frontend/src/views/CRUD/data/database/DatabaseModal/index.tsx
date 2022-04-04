@@ -68,6 +68,7 @@ import {
   antDModalStyles,
   antDTabsStyles,
   buttonLinkStyles,
+  importDbButtonLinkStyles,
   alchemyButtonLinkStyles,
   TabHeader,
   formHelperStyles,
@@ -1453,7 +1454,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <Button
                     data-test="import-database-btn"
                     buttonStyle="link"
-                    css={buttonLinkStyles}
+                    css={importDbButtonLinkStyles}
                   >
                     {t('Import database from file')}
                   </Button>

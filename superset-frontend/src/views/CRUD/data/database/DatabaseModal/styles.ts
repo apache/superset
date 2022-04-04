@@ -422,6 +422,13 @@ export const buttonLinkStyles = (theme: SupersetTheme) => css`
   padding-right: ${theme.gridUnit * 2}px;
 `;
 
+export const importDbButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-size: ${theme.gridUnit * 3.5}px;
+  font-weight: ${theme.typography.weights.normal};
+  text-transform: initial;
+  padding-right: ${theme.gridUnit * 2}px;
+`;
+
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
   font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
