@@ -295,7 +295,7 @@ export function handleDashboardDelete(
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   return SupersetClient.delete({
     endpoint: `${process.env.APP_PREFIX}/api/v1/dashboard/${id}`,
