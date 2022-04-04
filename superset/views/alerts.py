@@ -36,7 +36,6 @@ class BaseAlertReportView(BaseSupersetView):
     @permission_name("read")
     def list(self) -> FlaskResponse:
         if not is_feature_enabled("ALERT_REPORTS"):
-            print('are you hitting here')
             return abort(404)
         return super().render_app_template()
 
