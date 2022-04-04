@@ -117,8 +117,7 @@ class App extends React.PureComponent {
     }
     return (
       <div className="App SqlLab">
-        <QueryAutoRefresh />
-        <TabbedSqlEditors />
+        {content}
         <ToastContainer />
       </div>
     );
