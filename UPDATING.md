@@ -22,7 +22,7 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 1.5.0
 
 ### Breaking Changes
 
