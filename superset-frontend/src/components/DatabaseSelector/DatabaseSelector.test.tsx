@@ -31,6 +31,7 @@ const createProps = () => ({
     database_name: 'test',
     backend: 'test-postgresql',
     allow_multi_schema_metadata_fetch: false,
+    has_catalogs: false,
   },
   formMode: false,
   isDatabaseSelectEnabled: true,
