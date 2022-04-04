@@ -397,13 +397,13 @@ function StackedField({ label, formElement }: StackedFieldProps) {
   );
 }
 
-function FormContainer({ children }) {
+type FormContainerProps = {
+  children: Node;
+};
+
+function FormContainer({ children }: FormContainerProps) {
   return <Card padded>{children}</Card>;
 }
-
-FormContainer.propTypes = {
-  children: PropTypes.node,
-};
 
 const propTypes = {
   datasource: PropTypes.object.isRequired,
