@@ -325,7 +325,11 @@ const TimeTable = ({
       : [];
 
   return (
-    <TimeTableStyles className={`time-table ${className}`} height={height}>
+    <TimeTableStyles
+      data-test="time-table"
+      className={`${className}`}
+      height={height}
+    >
       <TableView
         className="table-no-hover"
         columns={memoizedColumns}
