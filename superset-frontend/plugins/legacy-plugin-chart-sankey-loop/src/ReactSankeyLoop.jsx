@@ -32,7 +32,7 @@ export default styled(Sankey)`
   ${({ theme }) => `
     .superset-legacy-chart-sankey-loop .node rect {
       cursor: move;
-      fill-opacity: 0.9;
+      fill-opacity: ${theme.opacity.heavy};
       shape-rendering: crispEdges;
     }
 
@@ -44,20 +44,20 @@ export default styled(Sankey)`
     .superset-legacy-chart-sankey-loop .link {
       fill: none;
       stroke: ${theme.colors.grayscale.dark2};
-      stroke-opacity: 0.2;
+      stroke-opacity: ${theme.opacity.light};
     }
 
     .superset-legacy-chart-sankey-loop .link:hover {
-      stroke-opacity: 0.5;
+      stroke-opacity: ${theme.opacity.mediumHeavy};
     }
 
     .superset-legacy-chart-sankey-loop .link path {
-      opacity: 0.2;
+      opacity: ${theme.opacity.mediumLight};
       stroke-opacity: 0;
     }
 
     .superset-legacy-chart-sankey-loop .link:hover path {
-      opacity: 0.5;
+      opacity: ${theme.opacity.heavy};
     }
 
     .superset-legacy-chart-sankey-loop .link text {
