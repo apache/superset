@@ -56,7 +56,7 @@ const AtAGlanceCoreDns = (initialFormData: QueryFormData) => {
       {
       ipString.includes('/') ?
         <> 
-          <span>DNS At A Glance chart not avialable for CIDR ranges. Please input a single IP address to use this chart.</span>
+          <span>DNS At A Glance chart not available for CIDR ranges. Please input a single IP address to use this chart.</span>
         </>
         :
         <div>
