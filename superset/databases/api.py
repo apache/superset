@@ -25,7 +25,6 @@ from zipfile import ZipFile
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
@@ -170,9 +169,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
-    search_columns = ["allow_file_upload"]
+    search_columns = ["allow_file_upload", "expose_in_sqllab"]
 
-    search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
+    search_filters = {
+        "allow_file_upload": [DatabaseUploadEnabledFilter],
+        "expose_in_sqllab": [DatabaseFilter],
+    }
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
@@ -957,8 +959,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             }
 
             if hasattr(engine_spec, "default_driver"):
-                # type: ignore
-                payload["default_driver"] = engine_spec.default_driver
+                payload["default_driver"] = engine_spec.default_driver  # type: ignore
 
             # show configuration parameters for DBs that support it
             if (

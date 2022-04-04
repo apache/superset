@@ -59,36 +59,52 @@ class DatabaseFilter(BaseFilter):
         )
 
 
-class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DatabaseUploadEnabledFilter(BaseFilter):
     """
-    Custom filter for the GET list that filters all certified charts
+    Custom filter for the GET list that filters all databases based on allow_file_upload
     """
 
     name = _("Upload Enabled")
     arg_name = "upload_is_enabled"
-    model = Database
 
-    def apply(self, query: Query, value: any) -> Query:
-        extra_allowed_databases = []
+    def can_access_databases(  # noqa pylint: disable=no-self-use
+        self,
+        view_menu_name: str,
+    ) -> Set[str]:
+        return {
+            security_manager.unpack_database_and_schema(vm).database
+            for vm in security_manager.user_view_menu_names(view_menu_name)
+        }
+
+    def apply(self, query: Query, value: Any) -> Query:
+
+        filtered_query = query.filter(Database.allow_file_upload)
+
+        database_perms = security_manager.user_view_menu_names("database_access")
+        schema_access_databases = self.can_access_databases("schema_access")
+
+        datasource_access_databases = self.can_access_databases("datasource_access")
+
         if hasattr(g, "user"):
-            extra_allowed_databases += app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
-                Database, g.user
-            )
-        # If the user has schemas in this config then we simplify this filter to only check for allow_file_upload
-        if len(extra_allowed_databases):
-            return query.filter(Database.allow_file_upload)
-        filtered_query = query.filter(Database.allow_file_upload).filter(
+            allowed_schemas = [
+                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](db, g.user)
+                for db in datasource_access_databases
+            ]
+
+            if len(allowed_schemas):
+                return filtered_query
+
+        schema_filtered_query = filtered_query.filter(
             func.json_array_length(
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
             )
             > 0
         )
-
-        if security_manager.can_access_all_datasources():
-            return filtered_query
-
-        perms = security_manager.user_view_menu_names("datasource_access")
-        schema_perms = security_manager.user_view_menu_names("schema_access")
-        return filtered_query.filter(
-            or_(Database.perm.in_(perms), Database.schema_perm.in_(schema_perms))
+        return schema_filtered_query.filter(
+            or_(
+                self.model.perm.in_(database_perms),
+                self.model.database_name.in_(
+                    [*schema_access_databases, *datasource_access_databases]
+                ),
+            )
         )
