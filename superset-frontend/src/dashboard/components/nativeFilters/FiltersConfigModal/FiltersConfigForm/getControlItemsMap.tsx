@@ -32,7 +32,7 @@ import {
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem } from 'src/components/Form';
 import SelectControl from 'src/explore/components/controls/SelectControl';
-import { RuleObject, StoreValue } from 'rc-field-form/lib/interface';
+import { RuleObject } from 'antd/lib/form';
 import {
   doesColumnMatchFilterType,
   getControlItems,
@@ -68,7 +68,7 @@ const getControlItemRules = (
 ) => {
   if (validators) {
     const v = validators.map(validator => ({
-      validator: (rule: RuleObject, value: StoreValue) => {
+      validator: (_rule: RuleObject, value: unknown) => {
         const errorMessage = validator(value);
         if (errorMessage !== false && errorMessage !== true) {
           return Promise.reject(new Error(errorMessage));
