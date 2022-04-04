@@ -52,3 +52,8 @@ class BaseAlertReportView(BaseSupersetView):
 class AlertView(BaseAlertReportView):
     route_base = "/alert"
     class_permission_name = "ReportSchedule"
+
+
+class ReportView(BaseAlertReportView):
+    route_base = "/report"
+    class_permission_name = "ReportSchedule"
