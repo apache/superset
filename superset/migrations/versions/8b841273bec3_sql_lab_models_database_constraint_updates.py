@@ -37,15 +37,23 @@ def upgrade():
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
     with op.batch_alter_table("tab_state") as batch_op:
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"id"}, "dbs", insp),
-            type_="foreignkey",
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "tab_state", {"id"}, "dbs", insp
         )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
 
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"client_id"}, "query", insp),
-            type_="foreignkey",
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "tab_state", {"client_id"}, "query", insp
         )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
 
         batch_op.create_foreign_key(
             "tab_state_database_id_fkey",
@@ -64,10 +72,15 @@ def upgrade():
         )
 
     with op.batch_alter_table("table_schema") as batch_op:
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("table_schema", {"id"}, "dbs", insp),
-            type_="foreignkey",
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "table_schema", {"id"}, "dbs", insp
         )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
+
         batch_op.create_foreign_key(
             "table_schema_database_id_fkey",
             "dbs",
@@ -82,14 +95,23 @@ def downgrade():
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
     with op.batch_alter_table("tab_state") as batch_op:
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"id"}, "dbs", insp),
-            type_="foreignkey",
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "tab_state", {"id"}, "dbs", insp
         )
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"client_id"}, "query", insp),
-            type_="foreignkey",
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
+
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "tab_state", {"client_id"}, "query", insp
         )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
 
         batch_op.create_foreign_key(
             "tab_state_database_id_fkey", "dbs", ["database_id"], ["id"]
@@ -102,10 +124,15 @@ def downgrade():
         )
 
     with op.batch_alter_table("table_schema") as batch_op:
-        batch_op.drop_constraint(
-            generic_find_fk_constraint_name("table_schema", {"id"}, "dbs", insp),
-            type_="foreignkey",
+        table_schema_id_constraint = generic_find_fk_constraint_name(
+            "table_schema", {"id"}, "dbs", insp
         )
+        if table_schema_id_constraint:
+            batch_op.drop_constraint(
+                table_schema_id_constraint,
+                type_="foreignkey",
+            )
+
         batch_op.create_foreign_key(
             "table_schema_database_id_fkey", "dbs", ["database_id"], ["id"]
         )
