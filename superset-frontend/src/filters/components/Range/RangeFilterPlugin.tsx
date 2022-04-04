@@ -117,25 +117,6 @@ const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
   `}
 `;
 
-const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
-
-// lower and upper are NOT transformed!!!!
-const getLabel = (lower: number | null, upper: number | null): string => {
-  if (lower !== null && upper !== null && lower === upper) {
-    return `x = ${numberFormatter(lower)}`;
-  }
-  if (lower !== null && upper !== null) {
-    return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
-  }
-  if (lower !== null) {
-    return `x ≥ ${numberFormatter(lower)}`;
-  }
-  if (upper !== null) {
-    return `x ≤ ${numberFormatter(upper)}`;
-  }
-  return '';
-};
-
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
     data,
@@ -176,6 +157,32 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale,
     [scaling],
   );
+
+  const numberFormatter = useMemo(() => {
+    if (stepSize < 1) {
+      const decimals = Math.abs(Math.floor(Math.log10(stepSize)));
+      // need to make sure displayed numbers show the correct sig figs
+      return getNumberFormatter(`.${decimals}f`);
+    }
+    return getNumberFormatter(NumberFormats.SMART_NUMBER);
+  }, [stepSize]);
+
+  // lower and upper are NOT transformed!!!!
+  const getLabel = (lower: number | null, upper: number | null): string => {
+    if (lower !== null && upper !== null && lower === upper) {
+      return `x = ${numberFormatter(lower)}`;
+    }
+    if (lower !== null && upper !== null) {
+      return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
+    }
+    if (lower !== null) {
+      return `x ≥ ${numberFormatter(lower)}`;
+    }
+    if (upper !== null) {
+      return `x ≤ ${numberFormatter(upper)}`;
+    }
+    return '';
+  };
 
   const [value, setValue] = useState<[number, number]>(
     (defaultValue ?? [min, enableSingleExactValue ? min : max]).map(
