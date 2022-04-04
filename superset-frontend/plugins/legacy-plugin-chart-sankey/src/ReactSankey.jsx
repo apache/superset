@@ -39,7 +39,7 @@ export default styled(SankeyComponent)`
       .node {
         rect {
           cursor: move;
-          fill-opacity: 0.9;
+          fill-opacity: ${theme.opacity.heavy};
           shape-rendering: crispEdges;
         }
         text {
@@ -51,9 +51,9 @@ export default styled(SankeyComponent)`
       .link {
         fill: none;
         stroke: ${theme.colors.grayscale.dark2};
-        stroke-opacity: 0.2;
+        stroke-opacity: ${theme.opacity.light};
         &:hover {
-          stroke-opacity: 0.5;
+          stroke-opacity: ${theme.opacity.mediumLight};
         }
       }
       .opacity-0 {
