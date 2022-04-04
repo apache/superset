@@ -386,7 +386,7 @@ type StackedFieldProps = {
   formElement?: Node;
 };
 
-function StackedField({ label, formElement }) {
+function StackedField({ label, formElement }: StackedFieldProps) {
   return (
     <div>
       <div>
