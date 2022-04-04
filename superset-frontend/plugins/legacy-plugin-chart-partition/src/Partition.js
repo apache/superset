@@ -26,7 +26,6 @@ import {
   getTimeFormatter,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import './Partition.css';
 
 // Compute dx, dy, x, y for each node and
 // return an array of nodes in breadth-first order
