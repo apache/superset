@@ -39,7 +39,7 @@ export default styled(ParallelCoordianes)`
       overflow: auto;
       div.row {
         &:hover {
-          background-color: #ccc;
+          background-color: ${({ theme }) => theme.colors.grayscale.light2};
         }
       }
     }
