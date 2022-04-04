@@ -816,9 +816,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
-    if (editNewDb) {
-      setHasConnectedDb(false);
-    }
+    if (editNewDb) setHasConnectedDb(false);
+    if (importingModal) setImportingModal(false);
     setDB({ type: ActionType.reset });
     setFileList([]);
   };
