@@ -19,6 +19,7 @@
 import {
   CustomControlItem,
   InfoTooltipWithTrigger,
+  ControlValueValidator,
 } from '@superset-ui/chart-controls';
 import React from 'react';
 import { AntdCheckbox, FormInstance } from 'src/components';
@@ -31,6 +32,7 @@ import {
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem } from 'src/components/Form';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import { RuleObject, StoreValue } from 'rc-field-form/lib/interface';
 import {
   doesColumnMatchFilterType,
   getControlItems,
@@ -59,6 +61,25 @@ export interface ControlItemsProps {
 const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
+
+// converts the controlPanel validators to an rc-field-form rule
+const getControlItemRules = (
+  validators: ControlValueValidator[] | undefined,
+) => {
+  if (validators) {
+    const v = validators.map(validator => ({
+      validator: (rule: RuleObject, value: StoreValue) => {
+        const errorMessage = validator(value);
+        if (errorMessage !== false && errorMessage !== true) {
+          return Promise.reject(new Error(errorMessage));
+        }
+        return Promise.resolve();
+      },
+    }));
+    return v;
+  }
+  return undefined;
+};
 
 export default function getControlItemsMap({
   datasetId,
@@ -255,6 +276,7 @@ export default function getControlItemsMap({
                   {t(`${controlItem.config?.label}`) || t('Select')}
                 </StyledLabel>
               }
+              rules={getControlItemRules(controlItem.config.validators)}
             >
               <SelectControl
                 name={controlItem.name}

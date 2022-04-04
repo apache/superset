@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty, validateNumber } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   sections,
@@ -100,6 +100,7 @@ const config: ControlPanelConfig = {
               label: t('Step Size'),
               default: 1,
               renderTrigger: true,
+              validators: [validateNonEmpty, validateNumber],
               freeForm: true,
               choices: [
                 [0.001, 0.001],
