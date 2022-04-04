@@ -381,6 +381,11 @@ function ColumnCollectionTable({
   );
 }
 
+type StackedFieldProps = {
+  label?: string;
+  formElement?: Node;
+};
+
 function StackedField({ label, formElement }) {
   return (
     <div>
@@ -391,11 +396,6 @@ function StackedField({ label, formElement }) {
     </div>
   );
 }
-
-StackedField.propTypes = {
-  label: PropTypes.string,
-  formElement: PropTypes.node,
-};
 
 function FormContainer({ children }) {
   return <Card padded>{children}</Card>;
