@@ -98,27 +98,29 @@ const defaultProps = {
 };
 
 const StyledFilterContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  label {
+  ${({ theme }) => `
     display: flex;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
+    flex-direction: column;
+    margin-bottom: ${theme.gridUnit * 2 + 2}px;
 
-  .filter-badge-container {
-    width: 30px;
-    padding-right: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-  }
+    &:last-child {
+      margin-bottom: 0;
+    }
 
-  .filter-badge-container + div {
-    width: 100%;
-  }
+    label {
+      display: flex;
+      font-weight: ${theme.typography.weights.bold};
+    }
+
+    .filter-badge-container {
+      width: 30px;
+      padding-right: ${theme.gridUnit * 2 + 2}px;
+    }
+
+    .filter-badge-container + div {
+      width: 100%;
+    }
+  `}
 `;
 
 class FilterBox extends React.PureComponent {
