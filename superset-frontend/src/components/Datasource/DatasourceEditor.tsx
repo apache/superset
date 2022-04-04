@@ -398,25 +398,24 @@ function StackedField({ label, formElement }: StackedFieldProps) {
 }
 
 type FormContainerProps = {
-  children: Node;
+  children?: Node;
 };
 
 function FormContainer({ children }: FormContainerProps) {
   return <Card padded>{children}</Card>;
 }
 
-const propTypes = {
-  datasource: PropTypes.object.isRequired,
-  onChange: PropTypes.func,
-  addSuccessToast: PropTypes.func.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
+type OwnersSelectorProps = {
+  datasource: object;
+  onChange?: Function;
+  addSuccessToast: Function;
+  addDangerToast: Function;
 };
 
-const defaultProps = {
-  onChange: () => {},
-};
-
-function OwnersSelector({ datasource, onChange }) {
+function OwnersSelector({
+  datasource,
+  onChange = () => {},
+}: OwnersSelectorProps) {
   const loadOptions = useCallback((search = '', page, pageSize) => {
     const query = rison.encode({ filter: search, page, page_size: pageSize });
     return SupersetClient.get({
