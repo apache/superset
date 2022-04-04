@@ -273,7 +273,7 @@ function Icicle(element, props) {
             '<tr>' +
             '<td>' +
             '<div ' +
-            `style='border: 2px solid ${atNode ? 'black' : 'transparent'};` +
+            `style='border: 2px solid ${atNode ? 'white' : 'transparent'};` +
             `background-color: ${n.color};'` +
             '></div>' +
             '</td>' +
