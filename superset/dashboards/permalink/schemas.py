@@ -19,7 +19,9 @@ from marshmallow import fields, Schema
 
 class DashboardPermalinkPostSchema(Schema):
     filterState = fields.Dict(
-        required=False, allow_none=True, description="Native filter state",
+        required=False,
+        allow_none=True,
+        description="Native filter state",
     )
     urlParams = fields.List(
         fields.Tuple(

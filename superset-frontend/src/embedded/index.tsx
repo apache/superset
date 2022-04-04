@@ -45,18 +45,22 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const EmbeddedRoute = () => (
+  <Suspense fallback={<Loading />}>
+    <RootContextProviders>
+      <ErrorBoundary>
+        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+      </ErrorBoundary>
+      <ToastContainer position="top" />
+    </RootContextProviders>
+  </Suspense>
+);
+
 const EmbeddedApp = () => (
   <Router>
-    <Route path="/dashboard/:idOrSlug/embedded">
-      <Suspense fallback={<Loading />}>
-        <RootContextProviders>
-          <ErrorBoundary>
-            <LazyDashboardPage />
-          </ErrorBoundary>
-          <ToastContainer position="top" />
-        </RootContextProviders>
-      </Suspense>
-    </Route>
+    {/* todo (embedded) remove this line after uuids are deployed */}
+    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
+    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
   </Router>
 );
 
@@ -64,9 +68,9 @@ const appMountPoint = document.getElementById('app')!;
 
 const MESSAGE_TYPE = '__embedded_comms__';
 
-if (!window.parent) {
+if (!window.parent || window.parent === window) {
   appMountPoint.innerHTML =
-    'This page is intended to be embedded in an iframe, but no window.parent was found.';
+    'This page is intended to be embedded in an iframe, but it looks like that is not the case.';
 }
 
 // if the page is embedded in an origin that hasn't

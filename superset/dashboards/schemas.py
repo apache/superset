@@ -243,7 +243,8 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     css = fields.String()
     json_metadata = fields.String(
-        description=json_metadata_description, validate=validate_json_metadata,
+        description=json_metadata_description,
+        validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
     certified_by = fields.String(description=certified_by_description, allow_none=True)
@@ -308,3 +309,15 @@ class ImportV1DashboardSchema(Schema):
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+
+
+class EmbeddedDashboardConfigSchema(Schema):
+    allowed_domains = fields.List(fields.String(), required=True)
+
+
+class EmbeddedDashboardResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    dashboard_id = fields.String()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)

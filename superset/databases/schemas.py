@@ -308,7 +308,12 @@ def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
     engine_specs = get_engine_specs()
     if engine not in engine_specs:
         raise ValidationError(
-            [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
+            [
+                _(
+                    'Engine "%(engine)s" is not a valid engine.',
+                    engine=engine,
+                )
+            ]
         )
     return engine_specs[engine]
 
@@ -324,7 +329,9 @@ class DatabaseValidateParametersSchema(Schema):
         description="DB-specific parameters for configuration",
     )
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
@@ -351,7 +358,9 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         unknown = EXCLUDE
 
     database_name = fields.String(
-        description=database_name_description, required=True, validate=Length(1, 250),
+        description=database_name_description,
+        required=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -395,7 +404,9 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         unknown = EXCLUDE
 
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
@@ -436,7 +447,9 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     database_name = fields.String(
-        description=database_name_description, allow_none=True, validate=Length(1, 250),
+        description=database_name_description,
+        allow_none=True,
+        validate=Length(1, 250),
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)

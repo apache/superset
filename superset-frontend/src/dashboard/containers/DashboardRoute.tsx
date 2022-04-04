@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// -------------------------------------------------------------
-// Glyphicons are not supported and used by react-json-schema
-// -------------------------------------------------------------
-.json-schema {
-  i.glyphicon {
-    display: none;
-  }
-  .btn-add::after {
-    content: '+';
-  }
-  .array-item-move-up::after {
-    content: '↑';
-  }
-  .array-item-move-down::after {
-    content: '↓';
-  }
-  .array-item-remove::after {
-    content: '-';
-  }
-}
-// -------------------------------------------------------------
+import React, { FC } from 'react';
+import { useParams } from 'react-router-dom';
+import { DashboardPage } from './DashboardPage';
+
+const DashboardRoute: FC = () => {
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  return <DashboardPage idOrSlug={idOrSlug} />;
+};
+
+export default DashboardRoute;

@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 @click.group(
-    cls=FlaskGroup, context_settings={"token_normalize_func": normalize_token},
+    cls=FlaskGroup,
+    context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
 def superset() -> None:

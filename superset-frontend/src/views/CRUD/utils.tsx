@@ -166,8 +166,8 @@ export const getUserOwnedObjects = (
   resource: string,
   filters: Array<Filters> = [
     {
-      col: 'created_by',
-      opr: 'rel_o_m',
+      col: 'owners',
+      opr: 'rel_m_m',
       value: `${userId}`,
     },
   ],
@@ -285,7 +285,7 @@ export function handleDashboardDelete(
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,

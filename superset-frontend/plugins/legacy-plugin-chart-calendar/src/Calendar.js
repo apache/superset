@@ -21,7 +21,6 @@ import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import CalHeatMap from './vendor/cal-heatmap';
-import './vendor/cal-heatmap.css';
 
 const propTypes = {
   data: PropTypes.shape({

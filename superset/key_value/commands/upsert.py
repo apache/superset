@@ -42,6 +42,7 @@ class UpsertKeyValueCommand(BaseCommand):
     key: Union[int, UUID]
     expires_on: Optional[datetime]
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         resource: KeyValueResource,
@@ -96,11 +97,10 @@ class UpsertKeyValueCommand(BaseCommand):
             db.session.merge(entry)
             db.session.commit()
             return Key(entry.id, entry.uuid)
-        else:
-            return CreateKeyValueCommand(
-                resource=self.resource,
-                value=self.value,
-                actor=self.actor,
-                key=self.key,
-                expires_on=self.expires_on,
-            ).run()
+        return CreateKeyValueCommand(
+            resource=self.resource,
+            value=self.value,
+            actor=self.actor,
+            key=self.key,
+            expires_on=self.expires_on,
+        ).run()

@@ -16,28 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-.superset-legacy-chart-rose path {
-  transition: fill-opacity 180ms linear;
-  stroke: #fff;
-  stroke-width: 1px;
-  stroke-opacity: 1;
-  fill-opacity: 0.75;
-}
-
-.superset-legacy-chart-rose text {
-  font: 400 12px Arial, sans-serif;
-  pointer-events: none;
-}
-
-.superset-legacy-chart-rose .clickable path {
-  cursor: pointer;
-}
-
-.superset-legacy-chart-rose .hover path {
-  fill-opacity: 1;
-}
-
-.nv-legend .nv-series {
-  cursor: pointer;
+declare module '*.svg' {
+  const content: any;
+  export default content;
 }
