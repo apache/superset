@@ -456,11 +456,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  // Database import logic
-  const {
-    state: { alreadyExists, passwordsNeeded, loading: importLoading },
-    importResource,
-  } = useImportResource('database', t('database'), msg => addDangerToast(msg));
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -550,6 +545,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
+
+  // Database import logic
+  const {
+    state: {
+      alreadyExists,
+      passwordsNeeded,
+      loading: importLoading,
+      errored: importErrored,
+    },
+    importResource,
+  } = useImportResource('database', t('database'), msg => {
+    addDangerToast(msg);
+    onClose();
+  });
 
   const onChange = (type: any, payload: any) => {
     setDB({ type, payload } as DBReducerActionType);
@@ -906,12 +915,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       !importLoading &&
       !alreadyExists.length &&
       !passwordsNeeded.length &&
-      !isLoading // This prevents a double toast for non-related imports
+      !isLoading && // This prevents a double toast for non-related imports
+      !importErrored // This prevents a success toast on error
     ) {
       onClose();
       addSuccessToast(t('Database connected'));
     }
-  }, [alreadyExists, passwordsNeeded, importLoading]);
+  }, [alreadyExists, passwordsNeeded, importLoading, importErrored]);
 
   useEffect(() => {
     if (show) {
