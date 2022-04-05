@@ -36,6 +36,8 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
@@ -56,6 +58,15 @@ const propTypes = {
   timeout: PropTypes.number,
   chart: chartPropShape,
 };
+
+const SaveButton = styled(Button)`
+  ${({ theme }) => css`
+    color: ${theme.colors.primary.dark2};
+    & > span[role='img'] {
+      margin-right: 0;
+    }
+  `}
+`;
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -231,8 +242,9 @@ export class ExploreChartHeader extends React.PureComponent {
       isStarred,
       sliceUpdated,
       sliceName,
+      onSaveChart,
     } = this.props;
-    const { latestQueryFormData, sliceFormData } = chart;
+    const { latestQueryFormData, sliceFormData, chartStatus } = chart;
     const oldSliceName = slice?.slice_name;
     return (
       <StyledHeader id="slice-header">
@@ -283,6 +295,14 @@ export class ExploreChartHeader extends React.PureComponent {
           )}
         </div>
         <div className="right-button-panel">
+          <SaveButton
+            buttonStyle="secondary"
+            onClick={onSaveChart}
+            disabled={chartStatus === 'loading'}
+          >
+            <Icons.SaveOutlined iconSize="l" />
+            {t('Save')}
+          </SaveButton>
           <ExploreAdditionalActionsMenu
             onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}

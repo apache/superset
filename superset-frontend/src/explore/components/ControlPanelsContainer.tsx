@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React, {
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -58,6 +59,7 @@ import { ChartState } from 'src/explore/types';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ControlPanelAlert } from './ControlPanelAlert';
+import { RunQueryButton } from './RunQueryButton';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -67,6 +69,9 @@ export type ControlPanelsContainerProps = {
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
+  errorMessage: ReactNode;
+  onQuery: () => void;
+  onStop: () => void;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -76,7 +81,24 @@ export type ExpandedControlPanelSectionConfig = Omit<
   controlSetRows: ExpandedControlItem[][];
 };
 
+const ActionButtonsContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    flex-direction: column;
+    align-items: center;
+    padding: ${theme.gridUnit * 4}px;
+    background: linear-gradient(transparent, white 25%);
+
+    & > button {
+      min-width: ${theme.gridUnit * 39}px;
+    }
+  `};
+`;
+
 const Styles = styled.div`
+  position: relative;
   height: 100%;
   width: 100%;
   overflow: auto;
@@ -350,7 +372,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           box-shadow: none;
 
           &:last-child {
-            padding-bottom: ${theme.gridUnit * 10}px;
+            padding-bottom: ${theme.gridUnit * 2}px;
           }
 
           .panel-body {
@@ -475,6 +497,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           </Tabs.TabPane>
         )}
       </ControlPanelsTabs>
+      <ActionButtonsContainer>
+        <RunQueryButton
+          onQuery={props.onQuery}
+          onStop={props.onStop}
+          errorMessage={props.errorMessage}
+          loading={props.chart.chartStatus === 'loading'}
+        />
+      </ActionButtonsContainer>
     </Styles>
   );
 };

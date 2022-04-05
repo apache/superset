@@ -560,6 +560,7 @@ function ExploreViewContainer(props) {
           chart={props.chart}
           user={props.user}
           reports={props.reports}
+          onSaveChart={toggleModal}
         />
       </ExploreHeaderContainer>
       <ExplorePanelContainer id="explore-container">
@@ -671,16 +672,6 @@ function ExploreViewContainer(props) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <QueryAndSaveBtns
-            canAdd={!!(props.can_add || props.can_overwrite)}
-            onQuery={onQuery}
-            onSave={toggleModal}
-            onStop={onStop}
-            loading={props.chart.chartStatus === 'loading'}
-            chartIsStale={chartIsStale}
-            errorMessage={renderErrorMessage()}
-            datasourceType={props.datasource_type}
-          />
           <ConnectedControlPanelsContainer
             exploreState={props.exploreState}
             actions={props.actions}
@@ -689,6 +680,9 @@ function ExploreViewContainer(props) {
             chart={props.chart}
             datasource_type={props.datasource_type}
             isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+            onQuery={onQuery}
+            onStop={onStop}
+            errorMessage={renderErrorMessage()}
           />
         </Resizable>
         <div
