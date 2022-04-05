@@ -139,7 +139,7 @@ export const ChartEditableTitle = ({
   };
 
   const handleChange = (ev: any) => {
-    if (!canEdit) {
+    if (!canEdit || !isEditing) {
       return;
     }
     setCurrentTitle(ev.target.value);
