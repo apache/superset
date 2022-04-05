@@ -6,7 +6,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { isAggMode, validateAggControlValues } from './shared';
 
-export const GroupByControlSetItem: ControlSetItem = {
+export const groupByControlSetItem: ControlSetItem = {
   name: 'groupby',
   override: {
     visibility: isAggMode,

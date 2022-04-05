@@ -13,7 +13,7 @@ import {
 import React from 'react';
 import { getQueryMode, isRawMode } from './shared';
 
-export const all_columns: typeof sharedControls.groupby = {
+export const allColumns: typeof sharedControls.groupby = {
   type: 'SelectControl',
   label: t('Columns'),
   description: t('Columns to display'),
@@ -36,7 +36,7 @@ export const all_columns: typeof sharedControls.groupby = {
   visibility: isRawMode,
 };
 
-export const dnd_all_columns: typeof sharedControls.groupby = {
+const dndAllColumns: typeof sharedControls.groupby = {
   type: 'DndColumnSelect',
   label: t('Columns'),
   description: t('Columns to display'),
@@ -59,9 +59,9 @@ export const dnd_all_columns: typeof sharedControls.groupby = {
   visibility: isRawMode,
 };
 
-export const AllColumnsControlSetItem: ControlSetItem = {
+export const allColumnsControlSetItem: ControlSetItem = {
   name: 'all_columns',
   config: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-    ? dnd_all_columns
-    : all_columns,
+    ? dndAllColumns
+    : allColumns,
 };

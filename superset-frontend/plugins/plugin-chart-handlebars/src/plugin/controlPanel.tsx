@@ -23,29 +23,29 @@ import {
 } from '@superset-ui/chart-controls';
 import { addLocaleData, t } from '@superset-ui/core';
 import i18n from '../i18n';
-import { AllColumnsControlSetItem } from './controls/columns';
-import { GroupByControlSetItem } from './controls/groupBy';
-import { HandlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
-import { IncludeTimeControlSetItem } from './controls/includeTime';
+import { allColumnsControlSetItem } from './controls/columns';
+import { groupByControlSetItem } from './controls/groupBy';
+import { handlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
+import { includeTimeControlSetItem } from './controls/includeTime';
 import {
-  RowLimitControlSetItem,
-  TimeSeriesLimitMetricControlSetItem,
+  rowLimitControlSetItem,
+  timeSeriesLimitMetricControlSetItem,
 } from './controls/limits';
 import {
-  MetricsControlSetItem,
-  PercentMetricsControlSetItem,
-  ShowTotalsControlSetItem,
+  metricsControlSetItem,
+  percentMetricsControlSetItem,
+  showTotalsControlSetItem,
 } from './controls/metrics';
 import {
-  OrderByControlSetItem,
-  OrderDescendingControlSetItem,
+  orderByControlSetItem,
+  orderDescendingControlSetItem,
 } from './controls/orderBy';
 import {
-  ServerPageLengthControlSetItem,
-  ServerPaginationControlSetRow,
+  serverPageLengthControlSetItem,
+  serverPaginationControlSetRow,
 } from './controls/pagination';
-import { QueryModeControlSetItem } from './controls/queryMode';
-import { StyleControlSetItem } from './controls/style';
+import { queryModeControlSetItem } from './controls/queryMode';
+import { styleControlSetItem } from './controls/style';
 
 addLocaleData(i18n);
 
@@ -131,15 +131,15 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [QueryModeControlSetItem],
-        [GroupByControlSetItem],
-        [MetricsControlSetItem, AllColumnsControlSetItem],
-        [PercentMetricsControlSetItem],
-        [TimeSeriesLimitMetricControlSetItem, OrderByControlSetItem],
-        ServerPaginationControlSetRow,
-        [RowLimitControlSetItem, ServerPageLengthControlSetItem],
-        [IncludeTimeControlSetItem, OrderDescendingControlSetItem],
-        [ShowTotalsControlSetItem],
+        [queryModeControlSetItem],
+        [groupByControlSetItem],
+        [metricsControlSetItem, allColumnsControlSetItem],
+        [percentMetricsControlSetItem],
+        [timeSeriesLimitMetricControlSetItem, orderByControlSetItem],
+        serverPaginationControlSetRow,
+        [rowLimitControlSetItem, serverPageLengthControlSetItem],
+        [includeTimeControlSetItem, orderDescendingControlSetItem],
+        [showTotalsControlSetItem],
         ['adhoc_filters'],
         emitFilterControl,
       ],
@@ -148,8 +148,8 @@ const config: ControlPanelConfig = {
       label: t('Options'),
       expanded: true,
       controlSetRows: [
-        [HandlebarsTemplateControlSetItem],
-        [StyleControlSetItem],
+        [handlebarsTemplateControlSetItem],
+        [styleControlSetItem],
       ],
     },
   ],

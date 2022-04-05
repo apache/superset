@@ -36,7 +36,7 @@ const HandlebarsTemplateControl = (
   );
 };
 
-export const HandlebarsTemplateControlSetItem: ControlSetItem = {
+export const handlebarsTemplateControlSetItem: ControlSetItem = {
   name: 'handlebarsTemplate',
   config: {
     ...sharedControls.entity,

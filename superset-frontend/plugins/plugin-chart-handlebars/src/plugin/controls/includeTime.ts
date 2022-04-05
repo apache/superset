@@ -2,7 +2,7 @@ import { ControlSetItem } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { isAggMode } from './shared';
 
-export const IncludeTimeControlSetItem: ControlSetItem = {
+export const includeTimeControlSetItem: ControlSetItem = {
   name: 'include_time',
   config: {
     type: 'CheckboxControl',
