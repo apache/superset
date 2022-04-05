@@ -617,7 +617,7 @@ export const testDatabaseConnection = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   SupersetClient.post({
-    endpoint: 'api/v1/database/test_connection',
+    endpoint: 'analytics/api/v1/database/test_connection',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(

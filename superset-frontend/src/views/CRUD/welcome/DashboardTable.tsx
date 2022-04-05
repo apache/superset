@@ -230,10 +230,10 @@ function DashboardTable({
             onClick: () => {
               const target =
                 dashboardFilter === 'Favorite'
-                  ? `/dashboard/list/?filters=(favorite:(label:${t(
+                  ? `/analytics/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
-                  : '/dashboard/list/';
+                  : '/analytics/dashboard/list/';
               history.push(target);
             },
           },
