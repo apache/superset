@@ -31,7 +31,7 @@ export const sanitizeFormData = (formData: JsonObject): JsonObject =>
   omit(formData, TEMPORARY_CONTROLS);
 
 const assembleEndpoint = (key?: string, tabId?: string) => {
-  let endpoint = 'analytics/api/v1/explore/form_data';
+  let endpoint = '${APP_PREFIX}/api/v1/explore/form_data';
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }

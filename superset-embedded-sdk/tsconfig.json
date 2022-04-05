@@ -2,24 +2,22 @@
   "compilerOptions": {
     // syntax rules
     "strict": true,
-
     "moduleResolution": "node",
-
     // environment
     "target": "es6",
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "module": "esnext",
-
     // output
     "outDir": "./dist",
     "emitDeclarationOnly": true,
     "declaration": true
   },
-
   "include": [
     "src/**/*"
   ],
-
   "exclude": [
     "tests",
     "dist",

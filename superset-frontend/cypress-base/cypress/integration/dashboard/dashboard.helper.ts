@@ -1,4 +1,5 @@
 import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
+import { APP_PREFIX } from '../../../../src/constants';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -18,8 +19,8 @@ import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const WORLD_HEALTH_DASHBOARD = '/analytics/superset/dashboard/world_health/';
-export const TABBED_DASHBOARD = '/analytics/superset/dashboard/tabbed_dash/';
+export const WORLD_HEALTH_DASHBOARD = `/${APP_PREFIX}/superset/dashboard/world_health/`;
+export const TABBED_DASHBOARD = `/${APP_PREFIX}/superset/dashboard/tabbed_dash/`;
 
 export const testItems = {
   dashboard: 'Cypress Sales Dashboard',

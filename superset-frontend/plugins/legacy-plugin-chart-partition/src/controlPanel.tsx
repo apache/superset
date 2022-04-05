@@ -111,9 +111,9 @@ const config: ControlPanelConfig = {
                   ),
                 },
                 {
-                  label: t('Advanced Analytics'),
+                  label: t('Advanced ${APP_PREFIX}'),
                   value: 'adv_anal',
-                  description: t('Use the Advanced Analytics options below'),
+                  description: t('Use the Advanced ${APP_PREFIX} options below'),
                 },
               ],
               optionRenderer: (op: ColumnMeta) => (
@@ -231,7 +231,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Advanced Analytics'),
+      label: t('Advanced ${APP_PREFIX}'),
       tabOverride: 'data',
       description: t(
         'This section contains options ' +

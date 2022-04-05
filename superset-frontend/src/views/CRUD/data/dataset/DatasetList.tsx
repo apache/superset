@@ -63,6 +63,7 @@ import {
   PASSWORDS_NEEDED_MESSAGE,
   CONFIRM_OVERWRITE_MESSAGE,
 } from './constants';
+import { APP_PREFIX } from '../../../../constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -160,7 +161,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
       SupersetClient.get({
-        endpoint: `/analytics/api/v1/dataset/${id}`,
+        endpoint: `/${APP_PREFIX}/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
           const addCertificationFields = json.result.columns.map(
@@ -191,7 +192,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const openDatasetDeleteModal = (dataset: Dataset) =>
     SupersetClient.get({
-      endpoint: `/analytics/api/v1/dataset/${dataset.id}/related_objects`,
+      endpoint: `/${APP_PREFIX}/api/v1/dataset/${dataset.id}/related_objects`,
     })
       .then(({ json = {} }) => {
         setDatasetCurrentlyDeleting({
@@ -539,7 +540,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleDatasetDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/dataset/${id}`,
+      endpoint: `/${APP_PREFIX}/api/v1/dataset/${id}`,
     }).then(
       () => {
         refreshData();
@@ -556,7 +557,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/dataset/?q=${rison.encode(
+      endpoint: `/${APP_PREFIX}/api/v1/dataset/?q=${rison.encode(
         datasetsToDelete.map(({ id }) => id),
       )}`,
     }).then(

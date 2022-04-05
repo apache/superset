@@ -27,6 +27,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { APP_PREFIX } from '../../constants';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -100,7 +101,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
     setIsSaving(true);
     SupersetClient.post({
-      endpoint: '/analytics/datasource/save/',
+      endpoint: `/${APP_PREFIX}/datasource/save/`,
       postPayload: {
         data: {
           ...currentDatasource,

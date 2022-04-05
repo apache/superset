@@ -78,16 +78,19 @@ necessary environment variables. Change your current directory to `superset/RELE
 and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (BASH):
+
 ```bash
 . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Usage (ZSH):
+
 ```bash
 source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Example:
+
 ```bash
 source set_release_env.sh 0.38.0rc1 myid@apache.org
 ```
@@ -130,12 +133,14 @@ Change log script requires a github token and will try to use your env var GITHU
 you can also pass the token using the parameter `--access_token`.
 
 Example:
+
 ```bash
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog
 ```
 
 You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
 Example:
+
 ```bash
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
 ```
@@ -180,13 +185,14 @@ the tag and create a signed source tarball from it:
 Note that `make_tarball.sh`:
 
 - By default assumes you have already executed an SVN checkout to `$HOME/svn/superset_dev`.
-This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
+  This can be overridden by setting `SUPERSET_SVN_DEV_PATH` environment var to a different svn dev directory
 - Will refuse to craft a new release candidate if a release already exists on your local svn dev directory
 - Will check `package.json` version number and fails if it's not correctly set
 
 ### Build and test the created source tarball
 
 To build and run the **local copy** of the recently created tarball:
+
 ```bash
 # Build and run a release candidate tarball
 ./test_run_tarball.sh local
@@ -208,6 +214,7 @@ svn update
 ### Build and test from SVN source tarball
 
 To build and run the recently created tarball **from SVN**:
+
 ```bash
 # Build and run a release candidate tarball
 ./test_run_tarball.sh
@@ -216,6 +223,7 @@ To build and run the recently created tarball **from SVN**:
 ```
 
 ### Voting
+
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
 https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fbe813252762879@<dev.superset.apache.org>
@@ -269,6 +277,7 @@ https://www.apache.org/info/verification.html
 ## Publishing a successful release
 
 Upon a successful vote, you'll have to copy the folder into the non-"dev/" folder.
+
 ```bash
 cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
 cd ~/svn/superset/
@@ -280,6 +289,7 @@ svn update
 ```
 
 Then tag the final release:
+
 ```bash
 # Go to the root directory of the repo, e.g. `~/src/superset`
 cd ~/src/superset/

@@ -148,7 +148,7 @@ how to set up a development environment.
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
   - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
-](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
+    ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Documentation for Superset End-Users (by Preset)](https://docs.preset.io/docs/terminology)
 - Deploying Superset
   - [Official Docker image](https://hub.docker.com/r/apache/superset)
@@ -156,11 +156,12 @@ how to set up a development environment.
 - Recordings of Past [Superset Community Events](https://preset.io/events)
   - [Live Demo: Interactive Time-series Analysis with Druid and Superset](https://preset.io/events/2021-03-02-interactive-time-series-analysis-with-druid-and-superset/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
-	- [Superset Contributor Bootcamp](https://preset.io/events/superset-contributor-bootcamp-dec-21/)
-	- [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
-	- [Apache Superset 1.3 Meetup](https://preset.io/events/apache-superset-1-3/)
-	- [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
+  - [Superset Contributor Bootcamp](https://preset.io/events/superset-contributor-bootcamp-dec-21/)
+  - [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
+  - [Apache Superset 1.3 Meetup](https://preset.io/events/apache-superset-1-3/)
+  - [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
 - Visualizations
+
   - [Building Custom Viz Plugins](https://superset.apache.org/docs/installation/building-custom-viz-plugins)
   - [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)

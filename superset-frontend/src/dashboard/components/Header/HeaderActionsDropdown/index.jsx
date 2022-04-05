@@ -37,6 +37,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { APP_PREFIX } from '../../../../constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -118,7 +119,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
   UNSAFE_componentWillMount() {
     SupersetClient.get({
-      endpoint: '/analytics/csstemplateasyncmodelview/api/read',
+      endpoint: `/${APP_PREFIX}/csstemplateasyncmodelview/api/read`,
     })
       .then(({ json }) => {
         const cssTemplates = json.result.map(row => ({

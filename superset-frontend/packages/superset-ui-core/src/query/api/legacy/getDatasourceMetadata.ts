@@ -32,7 +32,7 @@ export default function getDatasourceMetadata({
 }: Params) {
   return client
     .get({
-      endpoint: `/analytics/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      endpoint: `/${APP_PREFIX}/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
       ...requestConfig,
     })
     .then(response => response.json as Datasource);

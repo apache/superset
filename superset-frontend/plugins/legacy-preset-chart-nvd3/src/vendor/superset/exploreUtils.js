@@ -19,14 +19,16 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import safeStringify from 'fast-safe-stringify';
+// @ts-ignore
+import { APP_PREFIX } from '../../../../../src/constants';
 
 const MAX_URL_LENGTH = 8000;
 
 export function getURIDirectory(formData, endpointType = 'base') {
   // Building the directory part of the URI
-  let directory = '/analytics/superset/explore/';
+  let directory = `/${APP_PREFIX}/superset/explore/`;
   if (['json', 'csv', 'query', 'results', 'samples'].includes(endpointType)) {
-    directory = '/analytics/superset/explore_json/';
+    directory = `/${APP_PREFIX}/superset/explore_json/`;
   }
 
   return directory;

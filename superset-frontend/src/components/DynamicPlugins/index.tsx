@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { omitBy } from 'lodash';
+import { APP_PREFIX } from '../../constants';
 
 const metadataRegistry = getChartMetadataRegistry();
 
@@ -151,7 +152,7 @@ function pluginContextReducer(
 
 const pluginApi = makeApi<{}, { result: Plugin[] }>({
   method: 'GET',
-  endpoint: '/analytics/dynamic-plugins/api/read',
+  endpoint: `/${APP_PREFIX}/dynamic-plugins/api/read`,
 });
 
 const sharedModules = {

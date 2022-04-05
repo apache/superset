@@ -20,77 +20,78 @@ import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
+import { APP_PREFIX } from '../constants';
 
 const AnnotationLayersList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AnnotationLayersList" */ 'src/views/CRUD/annotationlayers/AnnotationLayersList'
+      /* webpackChunkName: "AnnotationLayersList" */ `src/views/CRUD/annotationlayers/AnnotationLayersList`
     ),
 );
 const AlertList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AlertList" */ 'src/views/CRUD/alert/AlertList'
+      /* webpackChunkName: "AlertList" */ `src/views/CRUD/alert/AlertList`
     ),
 );
 const AnnotationList = lazy(
   () =>
     import(
-      /* webpackChunkName: "AnnotationList" */ 'src/views/CRUD/annotation/AnnotationList'
+      /* webpackChunkName: "AnnotationList" */ `src/views/CRUD/annotation/AnnotationList`
     ),
 );
 const ChartList = lazy(
   () =>
     import(
-      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
+      /* webpackChunkName: "ChartList" */ `src/views/CRUD/chart/ChartList`
     ),
 );
 const CssTemplatesList = lazy(
   () =>
     import(
-      /* webpackChunkName: "CssTemplatesList" */ 'src/views/CRUD/csstemplates/CssTemplatesList'
+      /* webpackChunkName: "CssTemplatesList" */ `src/views/CRUD/csstemplates/CssTemplatesList`
     ),
 );
 const DashboardList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
+      /* webpackChunkName: "DashboardList" */ `src/views/CRUD/dashboard/DashboardList`
     ),
 );
 const DashboardPage = lazy(
   () =>
     import(
-      /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
+      /* webpackChunkName: "DashboardPage" */ `src/dashboard/containers/DashboardPage`
     ),
 );
 const DatabaseList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatabaseList" */ 'src/views/CRUD/data/database/DatabaseList'
+      /* webpackChunkName: "DatabaseList" */ `src/views/CRUD/data/database/DatabaseList`
     ),
 );
 const DatasetList = lazy(
   () =>
     import(
-      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
+      /* webpackChunkName: "DatasetList" */ `src/views/CRUD/data/dataset/DatasetList`
     ),
 );
 const ExecutionLog = lazy(
   () =>
     import(
-      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
+      /* webpackChunkName: "ExecutionLog" */ `src/views/CRUD/alert/ExecutionLog`
     ),
 );
 const QueryList = lazy(
   () =>
     import(
-      /* webpackChunkName: "QueryList" */ 'src/views/CRUD/data/query/QueryList'
+      /* webpackChunkName: "QueryList" */ `src/views/CRUD/data/query/QueryList`
     ),
 );
 const SavedQueryList = lazy(
   () =>
     import(
-      /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
+      /* webpackChunkName: "SavedQueryList" */ `src/views/CRUD/data/savedquery/SavedQueryList`
     ),
 );
 
@@ -103,66 +104,66 @@ type Routes = {
 
 export const routes: Routes = [
   {
-    path: '/analytics/superset/welcome/',
+    path: `/${APP_PREFIX}/superset/welcome/`,
     Component: Welcome,
   },
   {
-    path: '/analytics/dashboard/list/',
+    path: `/${APP_PREFIX}/dashboard/list/`,
     Component: DashboardList,
   },
   {
-    path: '/analytics/superset/dashboard/:idOrSlug/',
+    path: `/${APP_PREFIX}/superset/dashboard/:idOrSlug/`,
     Component: DashboardPage,
   },
   {
-    path: '/analytics/chart/list/',
+    path: `/${APP_PREFIX}/chart/list/`,
     Component: ChartList,
   },
   {
-    path: '/analytics/tablemodelview/list/',
+    path: `/${APP_PREFIX}/tablemodelview/list/`,
     Component: DatasetList,
   },
   {
-    path: '/analytics/databaseview/list/',
+    path: `/${APP_PREFIX}/databaseview/list/`,
     Component: DatabaseList,
   },
   {
-    path: '/analytics/savedqueryview/list/',
+    path: `/${APP_PREFIX}/savedqueryview/list/`,
     Component: SavedQueryList,
   },
   {
-    path: '/analytics/csstemplatemodelview/list/',
+    path: `/${APP_PREFIX}/csstemplatemodelview/list/`,
     Component: CssTemplatesList,
   },
   {
-    path: '/analytics/annotationlayermodelview/list/',
+    path: `/${APP_PREFIX}/annotationlayermodelview/list/`,
     Component: AnnotationLayersList,
   },
   {
-    path: '/analytics/annotationmodelview/:annotationLayerId/annotation/',
+    path: `/${APP_PREFIX}/annotationmodelview/:annotationLayerId/annotation/`,
     Component: AnnotationList,
   },
   {
-    path: '/analytics/superset/sqllab/history/',
+    path: `/${APP_PREFIX}/superset/sqllab/history/`,
     Component: QueryList,
   },
   {
-    path: '/analytics/alert/list/',
+    path: `/${APP_PREFIX}/alert/list/`,
     Component: AlertList,
   },
   {
-    path: '/analytics/report/list/',
+    path: `/${APP_PREFIX}/report/list/`,
     Component: AlertList,
     props: {
       isReportEnabled: true,
     },
   },
   {
-    path: '/analytics/alert/:alertId/log/',
+    path: `/${APP_PREFIX}/alert/:alertId/log/`,
     Component: ExecutionLog,
   },
   {
-    path: '/analytics/report/:alertId/log/',
+    path: `/${APP_PREFIX}/report/:alertId/log/`,
     Component: ExecutionLog,
     props: {
       isReportEnabled: true,

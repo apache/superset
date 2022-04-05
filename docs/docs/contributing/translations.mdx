@@ -11,6 +11,7 @@ We use [Flask-Babel](https://flask-babel.tkte.ch/) to translate Superset.
 In Python files, we use the following
 [translation functions](https://flask-babel.tkte.ch/#using-translations) from
 `Flask-Babel`:
+
 - `gettext` and `lazy_gettext` (usually aliased to `_`): for translating singular
   strings.
 - `ngettext`: for translating strings that might become plural.
@@ -31,7 +32,7 @@ In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import { t, tn } from "@superset-ui/translation";
+import { t, tn } from '@superset-ui/translation';
 ```
 
 ### Enabling language selection
@@ -65,6 +66,7 @@ easier to translate the application to your target language:
 [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html)
 
 To create a dictionary for a new language, first make sure the necessary dependencies are installed:
+
 ```bash
 pip install -r superset/translations/requirements.txt
 ```

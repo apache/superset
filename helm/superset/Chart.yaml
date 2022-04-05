@@ -24,11 +24,11 @@ maintainers:
     url: https://github.com/craig-rueda
 version: 0.5.10
 dependencies:
-- name: postgresql
-  version: 10.2.0
-  repository: https://charts.bitnami.com/bitnami
-  condition: postgresql.enabled
-- name: redis
-  version: 16.3.1
-  repository: https://charts.bitnami.com/bitnami
-  condition: redis.enabled
+  - name: postgresql
+    version: 10.2.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 16.3.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

@@ -23,6 +23,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '.';
 import { toggleStyle, infoTooltip } from '../styles';
+import { APP_PREFIX } from '../../../../../../constants';
 
 export const hostField = ({
   required,
@@ -105,7 +106,7 @@ export const usernameField = ({
     value={db?.parameters?.username}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.username}
-    placeholder={t('e.g. Analytics')}
+    placeholder={t(`e.g. analytics`)}
     label={t('Username')}
     onChange={changeMethods.onParametersChange}
   />

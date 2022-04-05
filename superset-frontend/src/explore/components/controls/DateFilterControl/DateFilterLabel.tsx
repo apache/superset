@@ -68,7 +68,7 @@ const guessFrame = (timeRange: string): FrameType => {
 
 const fetchTimeRange = async (timeRange: string) => {
   const query = rison.encode_uri(timeRange);
-  const endpoint = `/analytics/api/v1/time_range/?q=${query}`;
+  const endpoint = `/${APP_PREFIX}/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(

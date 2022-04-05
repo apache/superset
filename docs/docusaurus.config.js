@@ -35,10 +35,8 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
-    themes: [
-        '@saucelabs/theme-github-codeblock'
-    ],
-   plugins: [
+  themes: ['@saucelabs/theme-github-codeblock'],
+  plugins: [
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -237,8 +235,6 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
-
-
 };
 
 module.exports = config;

@@ -34,6 +34,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
+//const {APP_PREFIX} = require("./src/constants");
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');

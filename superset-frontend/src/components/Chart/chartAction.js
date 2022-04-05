@@ -43,6 +43,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { APP_PREFIX } from '../../constants';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -186,7 +187,7 @@ const v1ChartDataRequest = async (
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
   const url = getChartDataUri({
-    path: '/analytics/api/v1/chart/data',
+    path: `/${APP_PREFIX}/api/v1/chart/data`,
     qs,
     allowDomainSharding,
   }).toString();

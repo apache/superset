@@ -12,6 +12,7 @@ Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching
 Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
 local filesystem. Custom cache backends are also supported. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
 The following cache configurations can be customized:
+
 - Metadata cache (optional): `CACHE_CONFIG`
 - Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
 - SQL Lab query results (optional): `RESULTS_BACKEND`. See [Async Queries via Celery](/docs/installation/async-queries-celery) for details

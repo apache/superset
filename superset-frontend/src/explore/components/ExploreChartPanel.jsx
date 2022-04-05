@@ -139,7 +139,7 @@ const ExploreChartPanel = props => {
         });
 
         await SupersetClient.put({
-          endpoint: `/analytics/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/${APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query_context: JSON.stringify(queryContext),

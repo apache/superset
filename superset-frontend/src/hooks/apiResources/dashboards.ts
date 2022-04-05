@@ -20,10 +20,11 @@
 import { Dashboard, Datasource } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
+import { APP_PREFIX } from '../../constants';
 
 export const useDashboard = (idOrSlug: string | number) =>
   useTransformedResource(
-    useApiV1Resource<Dashboard>(`/analytics/api/v1/dashboard/${idOrSlug}`),
+    useApiV1Resource<Dashboard>(`/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}`),
     dashboard => ({
       ...dashboard,
       metadata:
@@ -35,12 +36,14 @@ export const useDashboard = (idOrSlug: string | number) =>
 
 // gets the chart definitions for a dashboard
 export const useDashboardCharts = (idOrSlug: string | number) =>
-  useApiV1Resource<Chart[]>(`/analytics/api/v1/dashboard/${idOrSlug}/charts`);
+  useApiV1Resource<Chart[]>(
+    `/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}/charts`,
+  );
 
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset
 // that are necessary for rendering the given dashboard
 export const useDashboardDatasets = (idOrSlug: string | number) =>
   useApiV1Resource<Datasource[]>(
-    `/analytics/api/v1/dashboard/${idOrSlug}/datasets`,
+    `/${APP_PREFIX}/api/v1/dashboard/${idOrSlug}/datasets`,
   );

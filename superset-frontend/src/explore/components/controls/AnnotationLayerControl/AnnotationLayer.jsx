@@ -42,6 +42,7 @@ import {
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { APP_PREFIX } from '../../../../constants';
 
 const AUTOMATIC_COLOR = '';
 
@@ -283,7 +284,7 @@ export default class AnnotationLayer extends React.PureComponent {
         });
       } else if (requiresQuery(sourceType)) {
         SupersetClient.get({
-          endpoint: '/analytics/superset/user_slices',
+          endpoint: `/${APP_PREFIX}/superset/user_slices`,
         }).then(({ json }) => {
           const registry = getChartMetadataRegistry();
           this.setState({

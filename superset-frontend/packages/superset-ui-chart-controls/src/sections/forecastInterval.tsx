@@ -33,7 +33,7 @@ export const FORECAST_DEFAULT_DATA = {
 };
 
 export const forecastIntervalControls: ControlPanelSectionConfig = {
-  label: t('Predictive Analytics'),
+  label: t('Predictive ${APP_PREFIX}'),
   expanded: false,
   controlSetRows: [
     [

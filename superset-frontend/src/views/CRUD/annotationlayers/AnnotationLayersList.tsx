@@ -37,6 +37,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from './AnnotationLayerModal';
 import { AnnotationLayerObject } from './types';
+import { APP_PREFIX } from '../../../constants';
 
 const PAGE_SIZE = 25;
 const MOMENT_FORMAT = 'MMM DD, YYYY';
@@ -83,7 +84,7 @@ function AnnotationLayersList({
 
   const handleLayerDelete = ({ id, name }: AnnotationLayerObject) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/annotation_layer/${id}`,
+      endpoint: `/${APP_PREFIX}/api/v1/annotation_layer/${id}`,
     }).then(
       () => {
         refreshData();
@@ -98,7 +99,7 @@ function AnnotationLayersList({
 
   const handleBulkLayerDelete = (layersToDelete: AnnotationLayerObject[]) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/annotation_layer/?q=${rison.encode(
+      endpoint: `/${APP_PREFIX}/api/v1/annotation_layer/?q=${rison.encode(
         layersToDelete.map(({ id }) => id),
       )}`,
     }).then(

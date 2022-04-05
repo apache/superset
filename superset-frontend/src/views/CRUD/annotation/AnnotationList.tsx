@@ -36,6 +36,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from './types';
 import AnnotationModal from './AnnotationModal';
+import { APP_PREFIX } from '../../../constants';
 
 const PAGE_SIZE = 25;
 
@@ -96,7 +97,7 @@ function AnnotationList({
     async function fetchAnnotationLayer() {
       try {
         const response = await SupersetClient.get({
-          endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}`,
+          endpoint: `/${APP_PREFIX}/api/v1/annotation_layer/${annotationLayerId}`,
         });
         setAnnotationLayerName(response.json.result.name);
       } catch (response) {
@@ -110,7 +111,7 @@ function AnnotationList({
 
   const handleAnnotationDelete = ({ id, short_descr }: AnnotationObject) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
+      endpoint: `/${APP_PREFIX}/api/v1/annotation_layer/${annotationLayerId}/annotation/${id}`,
     }).then(
       () => {
         refreshData();
@@ -129,7 +130,7 @@ function AnnotationList({
     annotationsToDelete: AnnotationObject[],
   ) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
+      endpoint: `/${APP_PREFIX}/api/v1/annotation_layer/${annotationLayerId}/annotation/?q=${rison.encode(
         annotationsToDelete.map(({ id }) => id),
       )}`,
     }).then(

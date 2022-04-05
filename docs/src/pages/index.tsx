@@ -19,9 +19,7 @@
 import React, { useRef, useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
-import {
-  Button, Col, Row, Carousel,
-} from 'antd';
+import { Button, Col, Row, Carousel } from 'antd';
 import styled from '@emotion/styled';
 import { supersetTheme } from '@superset-ui/style';
 import {
@@ -250,19 +248,17 @@ const CarouselSection = styled('div')`
 `;
 
 const StyledDatabaseImg = styled.img`
-  width: ${(props) => props.width};
-  height: ${(props) => props.height};
+  width: ${props => props.width};
+  height: ${props => props.height};
 `;
 interface featureProps {
-  icon: React.ReactNode,
-  title: string,
-  descr: string,
+  icon: React.ReactNode;
+  title: string;
+  descr: string;
 }
 const Feature = ({ icon, title, descr }: featureProps) => (
   <li className="feature">
-    <div className="imagePlaceHolder">
-      {icon}
-    </div>
+    <div className="imagePlaceHolder">{icon}</div>
     <div className="featureText">
       <h3>{title}</h3>
       {descr}
@@ -275,7 +271,7 @@ export default function Home(): JSX.Element {
 
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const onChange = (index) => {
+  const onChange = index => {
     setSlideIndex(index);
   };
 
@@ -286,182 +282,183 @@ export default function Home(): JSX.Element {
     >
       <StyledMain>
         <StyledTitleContainer>
-            <img className="logo-horiz" src="img/superset-logo-horiz-apache.svg" alt="logo-horiz" />
-            <div className="info-text">
-              Apache Superset is a modern data exploration and visualization
-              platform
-            </div>
-            <div className="github-section">
-              <span className="github-button">
-                <GitHubButton
-                  href="https://github.com/apache/superset"
-                  data-size="large"
-                  data-show-count="true"
-                  aria-label="Star apache/superset on GitHub"
-                >
-                  Star
-                </GitHubButton>
-              </span>
-              <span className="github-button">
-                <GitHubButton
-                  href="https://github.com/apache/superset/subscription"
-                  data-size="large"
-                  data-show-count="true"
-                  aria-label="Watch apache/superset on GitHub"
-                >
-                  Watch
-                </GitHubButton>
-              </span>
-              <span className="github-button">
-                <GitHubButton
-                  href="https://github.com/apache/superset/fork"
-                  data-size="large"
-                  data-show-count="true"
-                  aria-label="Fork apache/superset on GitHub"
-                >
-                  Fork
-                </GitHubButton>
-              </span>
-            </div>
-            <div>
-              <Link to="/docs/intro">
-                <Button type="primary">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
+          <img
+            className="logo-horiz"
+            src="img/superset-logo-horiz-apache.svg"
+            alt="logo-horiz"
+          />
+          <div className="info-text">
+            Apache Superset is a modern data exploration and visualization
+            platform
+          </div>
+          <div className="github-section">
+            <span className="github-button">
+              <GitHubButton
+                href="https://github.com/apache/superset"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Star apache/superset on GitHub"
+              >
+                Star
+              </GitHubButton>
+            </span>
+            <span className="github-button">
+              <GitHubButton
+                href="https://github.com/apache/superset/subscription"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Watch apache/superset on GitHub"
+              >
+                Watch
+              </GitHubButton>
+            </span>
+            <span className="github-button">
+              <GitHubButton
+                href="https://github.com/apache/superset/fork"
+                data-size="large"
+                data-show-count="true"
+                aria-label="Fork apache/superset on GitHub"
+              >
+                Fork
+              </GitHubButton>
+            </span>
+          </div>
+          <div>
+            <Link to="/docs/intro">
+              <Button type="primary">Get Started</Button>
+            </Link>
+          </div>
         </StyledTitleContainer>
 
         <StyledFeatures>
-            <StyledHeading>Overview</StyledHeading>
-            <div className="info-text info-text-smaller">
-              Superset is fast, lightweight, intuitive, and loaded with options
-              that make it easy for users of all skill sets to explore and
-              visualize their data, from simple line charts to highly detailed
-              geospatial charts.
-            </div>
-            <ul className="featureList ant-row">
-              <Row>
-                <Col sm={24} md={12}>
-                  <Feature
-                    icon={<FireOutlined className="warning-color" />}
-                    title="Powerful yet easy to use"
-                    descr={`
+          <StyledHeading>Overview</StyledHeading>
+          <div className="info-text info-text-smaller">
+            Superset is fast, lightweight, intuitive, and loaded with options
+            that make it easy for users of all skill sets to explore and
+            visualize their data, from simple line charts to highly detailed
+            geospatial charts.
+          </div>
+          <ul className="featureList ant-row">
+            <Row>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<FireOutlined className="warning-color" />}
+                  title="Powerful yet easy to use"
+                  descr={`
                     Quickly and easily integrate and explore your data, using
                     either our simple no-code viz builder or state of the art SQL
                     IDE.
                   `}
-                  />
-                </Col>
+                />
+              </Col>
 
-                <Col sm={24} md={12}>
-                  <Feature
-                    icon={<DatabaseOutlined className="info-color" />}
-                    title="Integrates with modern databases"
-                    descr={`
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DatabaseOutlined className="info-color" />}
+                  title="Integrates with modern databases"
+                  descr={`
                     Superset can connect to any SQL based datasource
                     through SQLAlchemy, including modern cloud native databases
                     and engines at petabyte scale.
                   `}
-                  />
-                </Col>
-              </Row>
-              <Row>
-                <Col sm={24} md={12}>
-                  <Feature
-                    icon={<DeploymentUnitOutlined className="success-color" />}
-                    title="Modern architecture"
-                    descr={`
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DeploymentUnitOutlined className="success-color" />}
+                  title="Modern architecture"
+                  descr={`
                     Superset is lightweight and highly scalable, leveraging the
                     power of your existing data infrastructure without requiring
                     yet another ingestion layer.
                   `}
-                  />
-                </Col>
-                <Col sm={24} md={12}>
-                  <Feature
-                    icon={<DotChartOutlined className="alert-color" />}
-                    title="Rich visualizations and dashboards"
-                    descr={`
+                />
+              </Col>
+              <Col sm={24} md={12}>
+                <Feature
+                  icon={<DotChartOutlined className="alert-color" />}
+                  title="Rich visualizations and dashboards"
+                  descr={`
                     Superset ships with a wide array of beautiful visualizations.
                     Our visualization plug-in architecture makes it easy to build
                     custom visualizations that drop directly into Superset.
                   `}
-                  />
-                </Col>
-              </Row>
-            </ul>
+                />
+              </Col>
+            </Row>
+          </ul>
         </StyledFeatures>
 
         <CarouselSection>
-            <StyledHeading>Explore</StyledHeading>
-            <div className="toggleContainer">
-              <div className="toggleBtns">
-                <div
-                  className={`toggle ${slideIndex === 0 ? 'active' : null}`}
-                  onClick={() => slider.current.goTo(0)}
-                  role="button"
-                >
-                  <h2>Explore</h2>
-                  <span>
-                    Explore your data using the array of data visualizations.
-                  </span>
-                </div>
-
-                <div
-                  className={`toggle ${slideIndex === 1 ? 'active' : null}`}
-                  onClick={() => slider.current.goTo(1)}
-                  role="button"
-                >
-                  <h2>View</h2>
-                  <span>View your data through interactive dashboards</span>
-                </div>
-                <div
-                  className={`toggle ${slideIndex === 2 ? 'active' : null}`}
-                  onClick={() => slider.current.goTo(2)}
-                  role="button"
-                >
-                  <h2>Investigate</h2>
-                  <span>Use SQL Lab to write queries to explore your data</span>
-                </div>
+          <StyledHeading>Explore</StyledHeading>
+          <div className="toggleContainer">
+            <div className="toggleBtns">
+              <div
+                className={`toggle ${slideIndex === 0 ? 'active' : null}`}
+                onClick={() => slider.current.goTo(0)}
+                role="button"
+              >
+                <h2>Explore</h2>
+                <span>
+                  Explore your data using the array of data visualizations.
+                </span>
               </div>
-              <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
-                <div className="imageContainer">
-                  <img src="img/explorer5.jpg" alt="" />
-                </div>
-                <div className="imageContainer">
-                  <img src="img/dashboard3.png" alt="" />
-                </div>
-                <div className="imageContainer">
-                  <img src="img/sqllab5.jpg" alt="" />
-                </div>
-              </Carousel>
+
+              <div
+                className={`toggle ${slideIndex === 1 ? 'active' : null}`}
+                onClick={() => slider.current.goTo(1)}
+                role="button"
+              >
+                <h2>View</h2>
+                <span>View your data through interactive dashboards</span>
+              </div>
+              <div
+                className={`toggle ${slideIndex === 2 ? 'active' : null}`}
+                onClick={() => slider.current.goTo(2)}
+                role="button"
+              >
+                <h2>Investigate</h2>
+                <span>Use SQL Lab to write queries to explore your data</span>
+              </div>
             </div>
-            <StyledIntegrations>
-              <StyledHeading>Supported Databases</StyledHeading>
+            <Carousel ref={slider} effect="scrollx" afterChange={onChange}>
+              <div className="imageContainer">
+                <img src="img/explorer5.jpg" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="img/dashboard3.png" alt="" />
+              </div>
+              <div className="imageContainer">
+                <img src="img/sqllab5.jpg" alt="" />
+              </div>
+            </Carousel>
+          </div>
+          <StyledIntegrations>
+            <StyledHeading>Supported Databases</StyledHeading>
 
-              <ul className="database-list">
-                {Databases.map(
-                  ({
-                    title, imgName: imageName, width, height,
-                  }) => (
-                    <li>
-                      <StyledDatabaseImg src={`img/databases/${imageName}`} title={title} width={width || 'auto'} height={height || '50px'}/>
-                    </li>
-                  ),
-                )}
-              </ul>
-              <span className="databaseSub">
-                ... and many other
-                <a href="docs/databases/installing-database-drivers">
-                  {' '}
-                  compatible databases
-                  {' '}
-                </a>
-              </span>
-            </StyledIntegrations>
+            <ul className="database-list">
+              {Databases.map(({ title, imgName: imageName, width, height }) => (
+                <li>
+                  <StyledDatabaseImg
+                    src={`img/databases/${imageName}`}
+                    title={title}
+                    width={width || 'auto'}
+                    height={height || '50px'}
+                  />
+                </li>
+              ))}
+            </ul>
+            <span className="databaseSub">
+              ... and many other
+              <a href="docs/databases/installing-database-drivers">
+                {' '}
+                compatible databases{' '}
+              </a>
+            </span>
+          </StyledIntegrations>
         </CarouselSection>
-
       </StyledMain>
     </Layout>
   );

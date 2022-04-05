@@ -16,4 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const CHART_LIST = '/analytics/chart/list/';
+import { APP_PREFIX } from '../../../../src/constants';
+
+export const CHART_LIST = `/${APP_PREFIX}/chart/list/`;

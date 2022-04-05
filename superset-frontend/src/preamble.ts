@@ -27,6 +27,7 @@ import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
 import { User } from './types/bootstrapTypes';
+import { APP_PREFIX } from './constants';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -75,7 +76,7 @@ export const theme = merge(
 
 const getMe = makeApi<void, User>({
   method: 'GET',
-  endpoint: '/analytics/api/v1/me/',
+  endpoint: `/${APP_PREFIX}/api/v1/me/`,
 });
 
 /**

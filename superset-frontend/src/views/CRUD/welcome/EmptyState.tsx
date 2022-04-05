@@ -21,6 +21,7 @@ import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { WelcomeTable } from './types';
+import { APP_PREFIX } from '../../../constants';
 
 const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.Charts]: t('charts'),
@@ -54,14 +55,14 @@ type Redirects = Record<
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/analytics/chart/add',
-    [WelcomeTable.Dashboards]: '/analytics/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/analytics/superset/sqllab?new=true',
+    [WelcomeTable.Charts]: `/${APP_PREFIX}/chart/add`,
+    [WelcomeTable.Dashboards]: `/${APP_PREFIX}/dashboard/new`,
+    [WelcomeTable.SavedQueries]: `/${APP_PREFIX}/superset/sqllab?new=true`,
   };
   const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/analytics/chart/list',
-    [WelcomeTable.Dashboards]: '/analytics/dashboard/list/',
-    [WelcomeTable.SavedQueries]: '/analytics/savedqueryview/list/',
+    [WelcomeTable.Charts]: `/${APP_PREFIX}/chart/list`,
+    [WelcomeTable.Dashboards]: `/${APP_PREFIX}/dashboard/list/`,
+    [WelcomeTable.SavedQueries]: `/${APP_PREFIX}/savedqueryview/list/`,
   };
   const tableIcon: Record<WelcomeTable, string> = {
     [WelcomeTable.Charts]: 'empty-charts.svg',
@@ -106,7 +107,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     return (
       <EmptyContainer>
         <Empty
-          image={`/analytics/static/assets/images/${tableIcon[tableName]}`}
+          image={`/${APP_PREFIX}/static/assets/images/${tableIcon[tableName]}`}
           description={
             tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
           }
@@ -138,7 +139,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   return (
     <EmptyContainer>
       <Empty
-        image="/analytics/static/assets/images/star-circle.svg"
+        image={`${APP_PREFIX}/static/assets/images/star-circle.svg`}
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}

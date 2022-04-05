@@ -6,13 +6,14 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "strictNullChecks": true,
-
     /* Modules */
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "node",
     "paths": {
-      "@superset-ui/core": ["./packages/superset-ui-core/src"],
+      "@superset-ui/core": [
+        "./packages/superset-ui-core/src"
+      ],
       "@superset-ui/chart-controls": [
         "./packages/superset-ui-chart-controls/src"
       ],
@@ -22,16 +23,21 @@
       "@superset-ui/legacy-preset-chart-*": [
         "./plugins/legacy-preset-chart-*/src"
       ],
-      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
-      "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"]
+      "@superset-ui/plugin-chart-*": [
+        "./plugins/plugin-chart-*/src"
+      ],
+      "@superset-ui/preset-chart-*": [
+        "./plugins/preset-chart-*/src"
+      ],
+      "@superset-ui/switchboard": [
+        "./packages/superset-ui-switchboard/src"
+      ]
     },
     "types": [
       "@emotion/react/types/css-prop",
       "jest",
       "@testing-library/jest-dom"
     ],
-
     /* Emit */
     "declaration": true,
     "declarationMap": true,
@@ -39,26 +45,24 @@
     "noEmitOnError": true,
     "outDir": "./dist",
     "sourceMap": true,
-
     /* JavaScript Support */
     "allowJs": true,
-
     /* Interop Constraints */
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": false,
     "forceConsistentCasingInFileNames": true,
-
     /* Backwards Compatibility */
     "suppressImplicitAnyIndexErrors": true,
-
     /* Language and Environment */
     "target": "esnext",
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "esnext"],
-
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     /* Projects */
     "composite": true,
-
     /* Completeness */
     "skipLibCheck": true
   },

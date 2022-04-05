@@ -24,13 +24,13 @@ cli:
   fetcher: custom
 analyze:
   modules:
-  - name: assets
-    type: npm
-    target: superset-frontend
-    path: superset-frontend
-  - name: base
-    type: pip
-    target: .
-    path: .
-    options:
-      requirements: ./requirements/base.txt
+    - name: assets
+      type: npm
+      target: superset-frontend
+      path: superset-frontend
+    - name: base
+      type: pip
+      target: .
+      path: .
+      options:
+        requirements: ./requirements/base.txt

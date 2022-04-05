@@ -18,7 +18,7 @@
  */
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { RollingType, ComparisionType } from './AdvancedAnalytics';
+import { RollingType, ComparisionType } from './Advanced${APP_PREFIX}';
 
 export type NumpyFunction =
   | 'average'
