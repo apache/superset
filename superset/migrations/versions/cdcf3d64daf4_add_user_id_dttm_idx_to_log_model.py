@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_user_id_dttm_idx_to_log_model
+"""Add user_id and dttm composite index to Log model
 
 Revision ID: cdcf3d64daf4
 Revises: 2ed890b36b94
@@ -26,12 +26,13 @@ Create Date: 2022-04-05 13:27:06.028908
 revision = 'cdcf3d64daf4'
 down_revision = '2ed890b36b94'
 
+
 from alembic import op
 
 
 def upgrade():
-    op.create_index('logs_user_id_dttm_idx', 'logs', ['user_id', 'dttm'], unique=False)
+    op.create_index(op.f("ix_logs_user_id_dttm"), "logs", ["user_id", "dttm"], unique=False)
 
 
 def downgrade():
-    op.drop_index('logs_user_id_dttm_idx', table_name='logs')
+    op.drop_index(op.f("ix_logs_user_id_dttm"), table_name="logs")
