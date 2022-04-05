@@ -20,10 +20,10 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
-from databases.utils import make_url_safe
 from flask import current_app
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 

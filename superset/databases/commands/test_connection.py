@@ -19,7 +19,6 @@ import sqlite3
 from contextlib import closing
 from typing import Any, Dict, Optional
 
-from databases.utils import make_url_safe
 from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
@@ -34,6 +33,7 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger

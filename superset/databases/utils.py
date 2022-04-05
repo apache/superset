@@ -16,11 +16,10 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
-from databases.commands.exceptions import DatabaseInvalidError
 from sqlalchemy.engine.url import make_url, URL
-from sqlalchemy.exc import ArgumentError
 
 from superset import app
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.models.core import Database
 
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]

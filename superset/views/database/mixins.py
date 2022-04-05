@@ -16,14 +16,13 @@
 # under the License.
 import inspect
 
-from databases.utils import make_url_safe
 from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
-from sqlalchemy.engine.url import make_url
 
 from superset import app, security_manager
 from superset.databases.filters import DatabaseFilter
+from superset.databases.utils import make_url_safe
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri

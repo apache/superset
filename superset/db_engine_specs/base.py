@@ -40,7 +40,6 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from databases.utils import make_url_safe
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -59,6 +58,7 @@ from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
+from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.models.sql_types.base import literal_dttm_type_factory

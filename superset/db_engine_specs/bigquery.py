@@ -23,7 +23,6 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKIN
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from databases.utils import make_url_safe
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -34,6 +33,7 @@ from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType

@@ -17,14 +17,12 @@
 
 from typing import Optional, Type
 
-from databases.commands.exceptions import DatabaseInvalidError
-from databases.utils import make_url_safe
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ArgumentError
 
 from superset import security_manager
+from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.databases.utils import make_url_safe
 from superset.models.core import Database
 
 

@@ -18,8 +18,6 @@ import inspect
 import json
 from typing import Any, Dict, Optional, Type
 
-from databases.commands.exceptions import DatabaseInvalidError
-from databases.utils import make_url_safe
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
@@ -30,6 +28,8 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset import db
+from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK

@@ -18,7 +18,6 @@ import json
 from contextlib import closing
 from typing import Any, Dict, Optional
 
-from databases.utils import make_url_safe
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from sqlalchemy.engine.url import make_url
@@ -31,6 +30,7 @@ from superset.databases.commands.exceptions import (
     InvalidParametersError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType

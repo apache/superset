@@ -29,7 +29,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
-from databases.utils import make_url_safe
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -44,9 +43,9 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.engine import Connection, Dialect, Engine, url
+from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -55,6 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin

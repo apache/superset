@@ -28,19 +28,19 @@ from urllib import parse
 
 import pandas as pd
 import simplejson as json
-from databases.utils import make_url_safe
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
