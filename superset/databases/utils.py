@@ -105,6 +105,13 @@ def get_table_metadata(
 
 
 def make_url_safe(raw_url: str) -> URL:
+    """
+    Wrapper for SQLAlchemy's make_url(), which tends to raise too detailed of
+    errors, which inevitably find their way into server logs. ArgumentErrors
+    tend to contain usernames and passwords, which makes them non-log-friendly
+    :param raw_url:
+    :return:
+    """
     try:
         return make_url(raw_url.strip())
     except Exception:
