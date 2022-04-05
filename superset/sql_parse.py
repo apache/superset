@@ -574,7 +574,6 @@ def get_rls_for_table(
         return None
 
     template_processor = dataset.get_template_processor()
-    # pylint: disable=protected-access
     predicate = " AND ".join(
         str(filter_)
         for filter_ in dataset.get_sqla_row_level_filters(template_processor)
