@@ -327,7 +327,7 @@ const TimeTable = ({
   return (
     <TimeTableStyles
       data-test="time-table"
-      className={`${className}`}
+      className={className}
       height={height}
     >
       <TableView
