@@ -232,7 +232,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [dashboard_title]);
 
   useEffect(() => {
-    if (css) {
+    if (typeof css === 'string') {
       // returning will clean up custom css
       // when dashboard unmounts or changes
       return injectCustomCss(css);
