@@ -36,14 +36,15 @@ when available.
 
 - Complex dashboards with lots of native filters and charts will render considerably
   faster. See the videos that shows the rendering time of a complex dashboard go from
-  11 to 3 seconds ([#19064](https://github.com/apache/superset/pull/19064)). The Native
-  Filter Bar has been redesigned, along with moving the "Apply" and "Clear all" buttons
-  to the bottom:
+  11 to 3 seconds: [#19064](https://github.com/apache/superset/pull/19064). In
+  addition, applying filters and switching tabs is also much smoother.
+- The Native Filter Bar has been redesigned, along with moving the "Apply" and
+  "Clear all" buttons to the bottom:
 
 ![Filter bar](media/filter_bar.png)
 
-- Native filters can now define multiple parent filters, making it possible to do arbitrarily
-  complex cascading filter structures:
+- Native filters can now be made dependent on multiple filters. This makes it possible
+  to restrict the available values in a filter based on the selection of other filters.
 
 ![Parent filters](media/parent_filters.png)
 
@@ -117,8 +118,6 @@ when available.
   [#17556](https://github.com/apache/superset/pull/17556)
 - Single and double quotes will no longer be removed from filter values:
   [#17881](https://github.com/apache/superset/pull/17881)
-- Default Flask secret key has changed due to security reasons:
-  [#17984](https://github.com/apache/superset/pull/17984)
 - Previously `QUERY_COST_FORMATTERS_BY_ENGINE`, `SQL_VALIDATORS_BY_ENGINE` and
   `SCHEDULED_QUERIES` were expected to be defined in the feature flag dictionary in
   the `config.py` file. These should now be defined as a top-level config, with the
