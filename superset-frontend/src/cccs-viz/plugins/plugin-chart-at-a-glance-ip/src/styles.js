@@ -47,6 +47,14 @@ const HostnameTitle = {
   'padding-bottom': '1px',
 };
 
+const MiddleLine = {
+  borderRight: '1px solid #e0e0e0',
+};
+
+const BottomLine = {
+  borderBottom: '1px solid #e0e0e0',
+};
+
 const styles = {
   Datum,
   DatumLink,
@@ -55,6 +63,8 @@ const styles = {
   DropListHeader,
   RowBullet,
   HostnameTitle,
+  MiddleLine,
+  BottomLine,
 };
 
 export default styles;

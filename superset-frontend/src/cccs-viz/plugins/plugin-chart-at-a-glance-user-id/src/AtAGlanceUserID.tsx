@@ -1,23 +1,51 @@
 import React, { useState } from 'react';
-import { RiGlobalFill } from 'react-icons/ri';
 import { QueryFormData } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
+import styles from './styles';
 
 type DataManager = {
-  formData: QueryFormData;
   data: any[];
   isInit: boolean;
   isLoading: boolean;
   isError: boolean;
 };
 
-// TODO: https://cccs.atlassian.net/browse/CLDN-1258
-// Fix this so links between dashboards will work again
-// const IP_DASHBOARD_ID = 19;
-// const IP_FILTER_ID = 'vxX3zR2Tz';
-// const SUPERSET_URL = 'http://localhost:9000';
-// const IP_DASHBOARD_LINK = `${SUPERSET_URL}/superset/dashboard/${IP_DASHBOARD_ID}/?native_filters=%28NATIVE_FILTER-${IP_FILTER_ID}%3A%28__cache%3A%28label%3APLEASEREPLACETHIS%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28PLEASEREPLACETHIS%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28PLEASEREPLACETHIS%29%29%29%29%2CfilterState%3A%28label%3APLEASEREPLACETHIS%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28PLEASEREPLACETHIS%29%29%2Cid%3ANATIVE_FILTER-${IP_FILTER_ID}%2CownState%3A%28%29%29%29`;
-// END TODO
+type AtAGlanceUserIDProps = QueryFormData & {
+  ipDashboardId: string;
+  ipDashboardFilterId: string;
+  ipDashBoardBaseUrl: string;
+};
+
+const generateClientIpLinksList = (
+  ipList: any,
+  ipDashBoardBaseUrl: string,
+  ipDashboardId: string,
+  ipDashboardFilterId: string,
+) => (
+  <table
+    className="table table-striped table-condensed"
+    style={styles.AtAGlanceLists}
+  >
+    <tbody>
+      {ipList.map((a: { client_ip: string }) => (
+        <tr>
+          <td>
+            <a
+              href={
+                `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${a.client_ip}'` +
+                `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${a.client_ip}'` +
+                `%29%29%29%29%2CfilterState%3A%28label%3A'${a.client_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
+                `%2CownState%3A%28%29%29%29`
+              }
+            >
+              {a.client_ip}
+            </a>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
 
 /**
  *   getPayloadField:
@@ -49,12 +77,17 @@ const getPayloadField = (field: string, payload: any) => {
     // eslint-disable-next-line no-console
     console.log(e);
     value = 'Something went wrong';
+    // This will be caught by supersets default error handling that wraps and will display this message the the user
+    throw new Error(
+      'Error fetching values from dataset. This may be caused by having this viz on the incorrect dataset.',
+    );
   }
+
   return value;
 };
 
 // Main Component
-function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
+function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   const [userIDString, setUserIDString] = useState('user@domain.invalid,');
 
   let canadianIpsList: any[] = [];
@@ -63,8 +96,7 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
   let unsuccessfulNonCanadianIpsList: any[] = [];
 
   const [aadDataManager, setAadDataManger] = useState<DataManager>({
-    formData: initialFormData,
-    data: initialFormData.data,
+    data: props.data,
     isInit: false,
     isLoading: false,
     isError: false,
@@ -74,18 +106,17 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
 
   for (
     let i = 0;
-    i < initialFormData.formData?.extraFormData?.filters?.length;
+    i < props.formData?.extraFormData?.filters?.length;
     // eslint-disable-next-line no-plusplus
     i++
   ) {
-    const filter = initialFormData.formData.extraFormData.filters[i];
+    const filter = props.formData.extraFormData.filters[i];
     if (filter.col === 'user_id') {
       const localUserId: string = filter.val[0];
       if (localUserId !== userIDString) {
         setAadDataManger({
           ...aadDataManager,
-          data: initialFormData.data,
-          formData: initialFormData,
+          data: props.data,
         });
         setUserIDString(localUserId);
         hasFiltered = false;
@@ -136,11 +167,7 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
   }
 
   return (
-    <>
-      <div>
-        <RiGlobalFill />
-        <span>At a Glance</span>
-      </div>
+    <div style={styles.AtAGlance}>
       <div>
         <table>
           <tr>
@@ -171,26 +198,17 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
                   </span>
                 }
                 key="1"
+                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  <ul>
-                    {canadianIpsList.map((a: { client_ip: string }) => (
-                      <li>
-                        {/* TODO: https://cccs.atlassian.net/browse/CLDN-1258
-                        Add link back in
-                        <a
-                          href={IP_DASHBOARD_LINK.replaceAll(
-                            'PLEASEREPLACETHIS',
-                            `'${a.client_ip}'`,
-                          )}
-                        > */}
-                        {a.client_ip}
-                        {/* </a> */}
-                      </li>
-                    ))}
-                  </ul>
+                  generateClientIpLinksList(
+                    canadianIpsList,
+                    props.ipDashBoardBaseUrl,
+                    props.ipDashboardId,
+                    props.ipDashboardFilterId,
+                  )
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -204,15 +222,17 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
                   </span>
                 }
                 key="2"
+                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  <ul>
-                    {nonCanadianIpsList.map((a: { client_ip: string }) => (
-                      <li>{a.client_ip}</li>
-                    ))}
-                  </ul>
+                  generateClientIpLinksList(
+                    nonCanadianIpsList,
+                    props.ipDashBoardBaseUrl,
+                    props.ipDashboardId,
+                    props.ipDashboardFilterId,
+                  )
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -226,17 +246,17 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
                   </span>
                 }
                 key="3"
+                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  <ul>
-                    {unsuccessfulCanadianIpsList.map(
-                      (a: { client_ip: string }) => (
-                        <li>{a.client_ip}</li>
-                      ),
-                    )}
-                  </ul>
+                  generateClientIpLinksList(
+                    unsuccessfulCanadianIpsList,
+                    props.ipDashBoardBaseUrl,
+                    props.ipDashboardId,
+                    props.ipDashboardFilterId,
+                  )
                 )}
               </Collapse.Panel>
               <Collapse.Panel
@@ -250,24 +270,24 @@ function AtAGlanceUserIDCore(initialFormData: QueryFormData) {
                   </span>
                 }
                 key="4"
+                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
                 ) : (
-                  <ul>
-                    {unsuccessfulNonCanadianIpsList.map(
-                      (a: { client_ip: string }) => (
-                        <li>{a.client_ip}</li>
-                      ),
-                    )}
-                  </ul>
+                  generateClientIpLinksList(
+                    unsuccessfulNonCanadianIpsList,
+                    props.ipDashBoardBaseUrl,
+                    props.ipDashboardId,
+                    props.ipDashboardFilterId,
+                  )
                 )}
               </Collapse.Panel>
             </Collapse>
           </tr>
         </table>
       </div>
-    </>
+    </div>
   );
 }
 

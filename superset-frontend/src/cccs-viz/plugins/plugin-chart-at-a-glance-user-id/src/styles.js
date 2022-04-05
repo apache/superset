@@ -39,7 +39,7 @@ const SectionTitle = {
 };
 
 const UrlList = {
-  hight: '100%',
+  height: '100%',
   width: '100%',
   maxWidth: 360,
   overflow: 'auto',
@@ -54,17 +54,29 @@ const UrlListItem = {
 
 const HostList = {
   maxHeight: 200,
+  overflow: 'auto',
 };
 
 const RowBullet = {
   display: 'list-item',
   'list-style-type': 'disc',
-  'list-style-position': 'inside'
+  'list-style-position': 'inside',
 };
 
 const HostnameTitle = {
   'padding-left': '5px',
   'margin-bottom': '0',
+};
+
+const AtAGlance = {
+  maxHeight: '300px',
+  overflow: 'auto',
+};
+
+const AtAGlanceLists = {
+  maxHeight: '100%',
+  maxWidth: '100%',
+  overflow: 'auto',
 };
 
 const styles = {
@@ -78,6 +90,8 @@ const styles = {
   HostList,
   RowBullet,
   HostnameTitle,
+  AtAGlance,
+  AtAGlanceLists,
 };
 
 export default styles;
