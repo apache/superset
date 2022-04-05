@@ -39,7 +39,11 @@ import { Tooltip } from 'src/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
+import {
+  APP_PREFIX,
+  DATETIME_WITH_TIME_ZONE,
+  TIME_WITH_MS,
+} from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
@@ -99,7 +103,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   const handleQueryPreview = useCallback(
     (id: number) => {
       SupersetClient.get({
-        endpoint: `/analytics/api/v1/query/${id}`,
+        endpoint: `/${APP_PREFIX}/api/v1/query/${id}`,
       }).then(
         ({ json = {} }) => {
           setQueryCurrentlyPreviewing({ ...json.result });
@@ -315,7 +319,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <a href={`/analytics/superset/sqllab?queryId=${id}`}>
+            <a href={`/${APP_PREFIX}/superset/sqllab?queryId=${id}`}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
             </a>
           </Tooltip>
@@ -404,7 +408,9 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           queries={queries}
           fetchData={handleQueryPreview}
           openInSqlLab={(id: number) =>
-            window.location.assign(`/analytics/superset/sqllab?queryId=${id}`)
+            window.location.assign(
+              `/${APP_PREFIX}/superset/sqllab?queryId=${id}`,
+            )
           }
           show
         />

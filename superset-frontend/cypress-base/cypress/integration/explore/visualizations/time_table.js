@@ -17,13 +17,16 @@
  * under the License.
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+import { APP_PREFIX } from '../../../../../src/constants';
 
 describe('Visualization > Time TableViz', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'time_table' };
 
   beforeEach(() => {
     cy.login();
-    cy.intercept('POST', '/analytics/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', `/${APP_PREFIX}/superset/explore_json/**`).as(
+      'getJson',
+    );
   });
 
   it('Test time series table multiple metrics last year total', () => {

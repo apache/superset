@@ -81,7 +81,7 @@ export const ExploreChartHeader = ({
 
   const fetchChartDashboardData = async () => {
     await SupersetClient.get({
-      endpoint: `/analytics/api/v1/chart/${slice.slice_id}`,
+      endpoint: `/${APP_PREFIX}/api/v1/chart/${slice.slice_id}`,
     })
       .then(res => {
         const response = res?.json?.result;

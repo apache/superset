@@ -124,7 +124,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     ],
   },
   {
-    label: t('Advanced Analytics'),
+    label: t('Advanced ${APP_PREFIX}'),
     tabOverride: 'data',
     description: t(
       'This section contains options ' +

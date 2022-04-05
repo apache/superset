@@ -21,6 +21,7 @@ export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
 export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
+export const APP_PREFIX = 'analytics';
 
 export const URL_PARAMS = {
   migrationState: {

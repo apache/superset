@@ -22,7 +22,7 @@ import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
-  label: t('Advanced Analytics'),
+  label: t('Advanced ${APP_PREFIX}'),
   tabOverride: 'data',
   description: t(
     'This section contains options ' +

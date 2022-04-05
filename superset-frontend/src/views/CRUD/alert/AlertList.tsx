@@ -31,7 +31,7 @@ import ListView, {
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import { Switch } from 'src/components/Switch';
-import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
+import { APP_PREFIX, DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
@@ -70,7 +70,7 @@ interface AlertListProps {
 const deleteAlerts = makeApi<number[], { message: string }>({
   requestType: 'rison',
   method: 'DELETE',
-  endpoint: '/analytics/api/v1/report/',
+  endpoint: `/${APP_PREFIX}/api/v1/report/`,
 });
 
 const RefreshContainer = styled.div`
@@ -153,7 +153,7 @@ function AlertList({
 
   const handleAlertDelete = ({ id, name }: AlertObject) => {
     SupersetClient.delete({
-      endpoint: `/analytics/api/v1/report/${id}`,
+      endpoint: `/${APP_PREFIX}/api/v1/report/${id}`,
     }).then(
       () => {
         refreshData();

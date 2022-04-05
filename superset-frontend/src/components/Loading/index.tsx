@@ -20,6 +20,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
+import { APP_PREFIX } from '../../constants';
 
 export type PositionOption =
   | 'floating'
@@ -57,7 +58,7 @@ const LoaderImg = styled.img`
 `;
 export default function Loading({
   position = 'floating',
-  image = '/analytics/static/assets/images/loading.gif',
+  image = `/${APP_PREFIX}/static/assets/images/loading.gif`,
   className,
 }: Props) {
   return (

@@ -49,6 +49,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
+import { APP_PREFIX } from 'src/constants';
 
 enum DatasetRadioState {
   SAVE_NEW = 1,
@@ -427,7 +428,7 @@ export default class ResultSet extends React.PureComponent<
 
       const response = await makeApi({
         method: 'GET',
-        endpoint: '/analytics/api/v1/dataset',
+        endpoint: `/${APP_PREFIX}/api/v1/dataset`,
       })(`q=${queryParams}`);
 
       return response.result.map(
@@ -550,7 +551,7 @@ export default class ResultSet extends React.PureComponent<
             {this.props.csv && (
               <Button
                 buttonSize="small"
-                href={`/analytics/superset/csv/${this.props.query.id}`}
+                href={`/${APP_PREFIX}/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>

@@ -6,5 +6,8 @@
     "rootDir": "."
   },
   "extends": "../../tsconfig.json",
-  "include": ["**/*", "../../types/**/*"]
+  "include": [
+    "**/*",
+    "../../types/**/*",
+  ],
 }

@@ -46,7 +46,7 @@ export const SupersetListViewCard = () => (
   <ListViewCard
     title="Superset Card Title"
     loading={boolean('loading', false)}
-    url="/analytics/superset/dashboard/births/"
+    url="/${APP_PREFIX}/superset/dashboard/births/"
     imgURL={text('imgURL', 'https://picsum.photos/800/600')}
     imgFallbackURL={select(
       imgFallbackKnob.label,

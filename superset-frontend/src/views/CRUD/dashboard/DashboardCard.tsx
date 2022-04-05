@@ -30,6 +30,7 @@ import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
+import { APP_PREFIX } from '../../../constants';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -161,7 +162,7 @@ function DashboardCard({
         url={bulkSelectEnabled ? undefined : dashboard.url}
         linkComponent={Link}
         imgURL={dashboard.thumbnail_url}
-        imgFallbackURL="/analytics/static/assets/images/dashboard-card-fallback.svg"
+        imgFallbackURL={`/${APP_PREFIX}/static/assets/images/dashboard-card-fallback.svg`}
         description={t('Modified %s', dashboard.changed_on_delta_humanized)}
         coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={

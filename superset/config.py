@@ -242,7 +242,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 # ------------------------------
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
-
+APP_PREFIX = 'analytics'
 # Specify the App icon
 APP_ICON = "/analytics/static/assets/images/superset-logo-horiz.png"
 

@@ -25,8 +25,9 @@ import { safeStringify } from '../utils/safeStringify';
 import { LOG_EVENT } from '../logger/actions';
 import { LOG_EVENT_TYPE_TIMING } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
+import { APP_PREFIX } from '../constants';
 
-const LOG_ENDPOINT = '/analytics/superset/log/?explode=events';
+const LOG_ENDPOINT = `/${APP_PREFIX}/superset/log/?explode=events`;
 const sendBeacon = events => {
   if (events.length <= 0) {
     return;

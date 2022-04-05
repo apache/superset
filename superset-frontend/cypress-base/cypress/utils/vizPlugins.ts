@@ -64,9 +64,9 @@ export function getChartDataRouteForSlice(slice: Slice) {
   const isLegacy = isLegacyChart(vizType);
   const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
   if (isLegacy) {
-    return `/analytics/superset/explore_json/?*${formData}*`;
+    return `/${APP_PREFIX}/superset/explore_json/?*${formData}*`;
   }
-  return `/analytics/api/v1/chart/data?*${formData}*`;
+  return `/${APP_PREFIX}/api/v1/chart/data?*${formData}*`;
 }
 
 export function getChartAlias(slice: Slice): string {
@@ -89,7 +89,7 @@ export function interceptChart({
   legacy?: boolean;
   method?: 'POST' | 'GET';
 }) {
-  const urlBase = legacy ? '**/analytics/superset/explore_json/' : '**/analytics/api/v1/chart/data';
+  const urlBase = legacy ? '**/${APP_PREFIX}/superset/explore_json/' : '**/${APP_PREFIX}/api/v1/chart/data';
   let url;
   if (sliceId) {
     const encodedFormData = encodeURIComponent(

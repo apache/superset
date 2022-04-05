@@ -160,7 +160,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Advanced Analytics'),
+      label: t('Advanced ${APP_PREFIX}'),
       expanded: false,
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key

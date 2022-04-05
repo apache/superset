@@ -569,7 +569,7 @@ export const exploreView = {
         },
       },
     },
-    advancedAnalyticsSection: {
+    advanced${APP_PREFIX}Section: {
       timeShift: {
         container: dataTestLocator('time_compare'),
         input: 'input[type=text]',

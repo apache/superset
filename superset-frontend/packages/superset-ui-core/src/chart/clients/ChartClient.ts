@@ -31,6 +31,8 @@ import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySinglet
 import { QueryData } from '../types/QueryResponse';
 import { AnnotationLayerMetadata } from '../types/Annotation';
 import { PlainObject } from '../types/Base';
+// @ts-ignore
+import { APP_PREFIX } from '../../../../../../src/constants';
 
 // This expands to Partial<All> & (union of all possible single-property types)
 type AtLeastOne<All, Each = { [K in keyof All]: Pick<All, K> }> = Partial<All> &
@@ -72,7 +74,7 @@ export default class ChartClient {
     if ('sliceId' in input) {
       const promise = this.client
         .get({
-          endpoint: `/analytics/api/v1/form_data/?slice_id=${input.sliceId}`,
+          endpoint: `/${APP_PREFIX}/api/v1/form_data/?slice_id=${input.sliceId}`,
           ...options,
         } as RequestConfig)
         .then(response => response.json as QueryFormData);
@@ -109,14 +111,14 @@ export default class ChartClient {
         (await buildQueryRegistry.get(visType)) ?? (() => formData);
       const requestConfig: RequestConfig = useLegacyApi
         ? {
-            endpoint: '/analytics/superset/explore_json/',
+            endpoint: `/${APP_PREFIX}/superset/explore_json/`,
             postPayload: {
               form_data: buildQuery(formData),
             },
             ...options,
           }
         : {
-            endpoint: '/analytics/api/v1/chart/data',
+            endpoint: `/${APP_PREFIX}/api/v1/chart/data`,
             jsonPayload: {
               query_context: buildQuery(formData),
             },
@@ -139,7 +141,7 @@ export default class ChartClient {
   ): Promise<Datasource> {
     return this.client
       .get({
-        endpoint: `/analytics/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+        endpoint: `/${APP_PREFIX}/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
         ...options,
       } as RequestConfig)
       .then(response => response.json as Datasource);

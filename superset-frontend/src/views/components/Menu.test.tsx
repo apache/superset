@@ -22,6 +22,7 @@ import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
+import { APP_PREFIX } from '../../constants';
 
 const dropdownItems = [
   {
@@ -74,7 +75,7 @@ const dropdownItems = [
   },
   {
     label: 'Dashboard',
-    url: '/analytics/dashboard/new',
+    url: `/${APP_PREFIX}/dashboard/new`,
     icon: 'fa-fw fa-dashboard',
     perm: 'can_write',
     view: 'Dashboard',

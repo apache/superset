@@ -42,6 +42,7 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+import { APP_PREFIX } from '../../constants';
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
@@ -159,7 +160,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/analytics/superset/sqllab?new=true',
+      url: `/${APP_PREFIX}/superset/sqllab?new=true`,
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -175,7 +176,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/analytics/dashboard/new',
+      url: `/${APP_PREFIX}/dashboard/new`,
       icon: 'fa-fw fa-dashboard',
       perm: 'can_write',
       view: 'Dashboard',

@@ -644,7 +644,7 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       cachedSupersetGet({
-        endpoint: `/analytics/api/v1/dataset/${datasetId}`,
+        endpoint: `/${APP_PREFIX}/api/v1/dataset/${datasetId}`,
       })
         .then((response: JsonResponse) => {
           setMetrics(response.json?.result?.metrics);
