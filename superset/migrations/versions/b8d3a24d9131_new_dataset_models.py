@@ -31,7 +31,6 @@ from uuid import uuid4
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
@@ -39,6 +38,7 @@ from sqlalchemy_utils import UUIDType
 
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
+from superset.databases.utils import make_url_safe
 from superset.extensions import encrypted_field_factory
 from superset.migrations.shared.utils import extract_table_references
 from superset.models.core import Database as OriginalDatabase
@@ -323,7 +323,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     )
     if not database:
         return
-    url = make_url(database.sqlalchemy_uri)
+    url = make_url_safe(database.sqlalchemy_uri)
     dialect_class = url.get_dialect()
     conditional_quote = dialect_class().identifier_preparer.quote
 
