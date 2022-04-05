@@ -37,7 +37,6 @@ from sqlalchemy import (
     create_engine,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     MetaData,
     String,
