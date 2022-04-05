@@ -691,6 +691,10 @@ export function useDatabaseValidation() {
                           url: string;
                           idx: number;
                         };
+                        issue_codes?: {
+                          code?: number;
+                          message?: string;
+                        }[];
                       };
                       message: string;
                     },
@@ -746,6 +750,14 @@ export function useDatabaseValidation() {
                         ),
                       };
                     }
+                    if (extra.issue_codes?.length) {
+                      return {
+                        ...obj,
+                        error_type,
+                        description: message || extra.issue_codes[0]?.message,
+                      };
+                    }
+
                     return obj;
                   },
                   {},
