@@ -130,8 +130,8 @@ def cta_result(ctas_method: CtasMethod):
     if backend() != "presto":
         return [], []
     if ctas_method == CtasMethod.TABLE:
-        return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_date": False}]
-    return [{"result": True}], [{"name": "result", "type": "BOOLEAN", "is_date": False}]
+        return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_dttm": False}]
+    return [{"result": True}], [{"name": "result", "type": "BOOLEAN", "is_dttm": False}]
 
 
 # TODO(bkyryliuk): quote table and schema names for all databases

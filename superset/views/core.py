@@ -2109,7 +2109,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 column_name=column_name,
                 filterable=True,
                 groupby=True,
-                is_dttm=config_.get("is_date", False),
+                is_dttm=config_.get("is_dttm", False),
                 type=config_.get("type", False),
             )
             cols.append(col)

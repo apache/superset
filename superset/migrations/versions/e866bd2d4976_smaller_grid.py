@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """smaller_grid
+
 Revision ID: e866bd2d4976
 Revises: 21e88bc06c02
 Create Date: 2018-02-13 08:07:40.766277
