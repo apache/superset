@@ -22,13 +22,11 @@ import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
-import { JsonValue, QueryFormData } from '@superset-ui/core';
+import { styled, JsonValue, QueryFormData } from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
-
-import './Control.less';
 
 export type ControlProps = {
   // the actual action dispatcher (via bindActionCreators) has identical
@@ -55,6 +53,10 @@ export type ControlProps = {
  */
 export type ControlComponentProps<ValueType extends JsonValue = JsonValue> =
   Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
+
+const StyledControl = styled.div`
+  padding-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
 
 export default function Control(props: ControlProps) {
   const {
@@ -101,7 +103,7 @@ export default function Control(props: ControlProps) {
   }
 
   return (
-    <div
+    <StyledControl
       className="Control"
       data-test={name}
       style={hidden ? { display: 'none' } : undefined}
@@ -111,6 +113,6 @@ export default function Control(props: ControlProps) {
       <ErrorBoundary>
         <ControlComponent onChange={onChange} hovered={hovered} {...props} />
       </ErrorBoundary>
-    </div>
+    </StyledControl>
   );
 }
