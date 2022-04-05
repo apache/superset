@@ -36,21 +36,11 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
-import Timer from 'src/components/Timer';
-import CachedLabel from 'src/components/CachedLabel';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import RowCountLabel from '../RowCountLabel';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 import { ChartEditableTitle } from './ChartEditableTitle';
-
-const CHART_STATUS_MAP = {
-  failed: 'danger',
-  loading: 'warning',
-  success: 'success',
-};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -85,7 +75,7 @@ const StyledHeader = styled.div`
       display: flex;
       align-items: center;
       min-width: 0;
-      margin-right: ${theme.gridUnit * 6}px;
+      margin-right: ${theme.gridUnit * 12}px;
     }
 
     .right-button-panel {
@@ -231,20 +221,8 @@ export class ExploreChartHeader extends React.PureComponent {
       sliceUpdated,
       sliceName,
     } = this.props;
-    const {
-      chartStatus,
-      chartUpdateEndTime,
-      chartUpdateStartTime,
-      latestQueryFormData,
-      queriesResponse,
-      sliceFormData,
-    } = chart;
-    // TODO: when will get appropriate design for multi queries use all results and not first only
-    const queryResponse = queriesResponse?.[0];
+    const { latestQueryFormData, sliceFormData } = chart;
     const oldSliceName = slice?.slice_name;
-    const chartFinished = ['failed', 'rendered', 'success'].includes(
-      chartStatus,
-    );
     return (
       <StyledHeader id="slice-header">
         <div className="title-panel">
@@ -296,24 +274,6 @@ export class ExploreChartHeader extends React.PureComponent {
           )}
         </div>
         <div className="right-button-panel">
-          {chartFinished && queryResponse && (
-            <RowCountLabel
-              rowcount={Number(queryResponse.rowcount) || 0}
-              limit={Number(formData.row_limit) || 0}
-            />
-          )}
-          {chartFinished && queryResponse && queryResponse.is_cached && (
-            <CachedLabel
-              onClick={this.postChartFormData.bind(this)}
-              cachedTimestamp={queryResponse.cached_dttm}
-            />
-          )}
-          <Timer
-            startTime={chartUpdateStartTime}
-            endTime={chartUpdateEndTime}
-            isRunning={chartStatus === 'loading'}
-            status={CHART_STATUS_MAP[chartStatus]}
-          />
           <ExploreAdditionalActionsMenu
             onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}
@@ -337,7 +297,4 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(
-  null,
-  mapDispatchToProps,
-)(withToasts(ExploreChartHeader));
+export default connect(null, mapDispatchToProps)(ExploreChartHeader);
