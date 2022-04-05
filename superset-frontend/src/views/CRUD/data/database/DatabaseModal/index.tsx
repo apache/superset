@@ -25,6 +25,7 @@ import {
 import React, {
   FunctionComponent,
   useEffect,
+  useRef,
   useState,
   useReducer,
   Reducer,
@@ -457,7 +458,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   );
   // Database import logic
   const {
-    state: { alreadyExists, passwordsNeeded, loading },
+    state: { alreadyExists, passwordsNeeded, loading: importLoading },
     importResource,
   } = useImportResource('database', t('database'), msg => addDangerToast(msg));
 
@@ -892,12 +893,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </>
   );
 
+  const firstUpdate = useRef(true); // Captures first render
+  // Only runs when importing files don't need user input
   useEffect(() => {
-    if (!loading && !alreadyExists.length && !passwordsNeeded.length) {
+    // Will not run on first render
+    if (firstUpdate.current) {
+      firstUpdate.current = false;
+      return;
+    }
+
+    if (
+      !importLoading &&
+      !alreadyExists.length &&
+      !passwordsNeeded.length &&
+      !isLoading // This prevents a double toast for non-related imports
+    ) {
       onClose();
       addSuccessToast(t('Database connected'));
     }
-  }, [alreadyExists, passwordsNeeded, loading]);
+  }, [alreadyExists, passwordsNeeded, importLoading]);
 
   useEffect(() => {
     if (show) {
