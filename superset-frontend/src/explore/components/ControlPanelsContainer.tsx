@@ -34,6 +34,7 @@ import {
   QueryFormData,
   DatasourceType,
   css,
+  SupersetTheme,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -60,6 +61,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ControlPanelAlert } from './ControlPanelAlert';
 import { RunQueryButton } from './RunQueryButton';
+import { Tooltip } from '../../components/Tooltip';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -381,7 +383,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           box-shadow: none;
 
           &:last-child {
-            padding-bottom: ${theme.gridUnit * 2}px;
+            padding-bottom: ${theme.gridUnit * 16}px;
           }
 
           .panel-body {
@@ -463,6 +465,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
+  const dataTabTitle = useMemo(
+    () => (
+      <>
+        <span>{t('Data')}</span>
+        {props.errorMessage && (
+          <span
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.typography.sizes.xs}px;
+              margin-left: ${theme.gridUnit * 2}px;
+            `}
+          >
+            {' '}
+            <Tooltip
+              id="query-error-tooltip"
+              placement="right"
+              title={props.errorMessage}
+            >
+              <i className="fa fa-exclamation-circle text-danger fa-lg" />
+            </Tooltip>
+          </span>
+        )}
+      </>
+    ),
+    [props.errorMessage],
+  );
+
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (
     !controlPanelRegistry.has(props.form_data.viz_type) &&
@@ -481,7 +509,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         fullWidth={showCustomizeTab}
         allowOverflow={false}
       >
-        <Tabs.TabPane key="query" tab={t('Data')}>
+        <Tabs.TabPane key="query" tab={dataTabTitle}>
           <Collapse
             bordered
             defaultActiveKey={expandedQuerySections}
