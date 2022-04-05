@@ -235,9 +235,10 @@ class DashboardCreatedByMeResponseSchema(Schema):
     changed_on = fields.DateTime()
     dttm = fields.Int()
 
+    @staticmethod
     @post_dump(pass_original=True)
     def post_dump(
-        self, data: Dict[str, Any], obj: Dashboard, many: bool = True
+        data: Dict[str, Any], obj: Dashboard, many: bool = True  # pylint: disable=unused-argument
     ) -> Dict[str, Any]:
         data["dttm"] = utils.json_int_dttm_ser(obj.changed_on)
         data["title"] = obj.dashboard_title
