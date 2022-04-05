@@ -22,6 +22,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import {
   CategoricalColorNamespace,
+  css,
   SupersetClient,
   styled,
   t,
@@ -33,7 +34,6 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
 import Timer from 'src/components/Timer';
@@ -44,6 +44,7 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import RowCountLabel from '../RowCountLabel';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
+import { ChartEditableTitle } from './ChartEditableTitle';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -53,8 +54,8 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  can_overwrite: PropTypes.bool.isRequired,
-  can_download: PropTypes.bool.isRequired,
+  canOverwrite: PropTypes.bool.isRequired,
+  canDownload: PropTypes.bool.isRequired,
   dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
@@ -67,37 +68,41 @@ const propTypes = {
 };
 
 const StyledHeader = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: space-between;
-
-  span[role='button'] {
+  ${({ theme }) => css`
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     height: 100%;
-  }
 
-  .title-panel {
-    display: flex;
-    align-items: center;
-  }
-
-  .right-button-panel {
-    display: flex;
-    align-items: center;
-
-    > .btn-group {
-      flex: 0 0 auto;
-      margin-left: ${({ theme }) => theme.gridUnit}px;
+    span[role='button'] {
+      display: flex;
+      height: 100%;
     }
-  }
 
-  .action-button {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
-      ${({ theme }) => theme.gridUnit}px;
-  }
+    .title-panel {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      margin-right: ${theme.gridUnit * 6}px;
+    }
+
+    .right-button-panel {
+      display: flex;
+      align-items: center;
+
+      > .btn-group {
+        flex: 0 0 auto;
+        margin-left: ${theme.gridUnit}px;
+      }
+    }
+
+    .action-button {
+      color: ${theme.colors.grayscale.base};
+      margin: 0 ${theme.gridUnit * 1.5}px 0 ${theme.gridUnit}px;
+    }
+  `}
 `;
 
 const StyledButtons = styled.span`
@@ -173,13 +178,6 @@ export class ExploreChartHeader extends React.PureComponent {
       .catch(() => {});
   }
 
-  getSliceName() {
-    const { sliceName, table_name: tableName } = this.props;
-    const title = sliceName || t('%s - untitled', tableName);
-
-    return title;
-  }
-
   postChartFormData() {
     this.props.actions.postChartFormData(
       this.props.form_data,
@@ -221,22 +219,45 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const { user, form_data: formData, slice } = this.props;
+    const {
+      actions,
+      chart,
+      user,
+      formData,
+      slice,
+      canOverwrite,
+      canDownload,
+      isStarred,
+      sliceUpdated,
+      sliceName,
+    } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
       chartUpdateStartTime,
       latestQueryFormData,
       queriesResponse,
-    } = this.props.chart;
+      sliceFormData,
+    } = chart;
     // TODO: when will get appropriate design for multi queries use all results and not first only
     const queryResponse = queriesResponse?.[0];
+    const oldSliceName = slice?.slice_name;
     const chartFinished = ['failed', 'rendered', 'success'].includes(
-      this.props.chart.chartStatus,
+      chartStatus,
     );
     return (
-      <StyledHeader id="slice-header" className="panel-title-large">
+      <StyledHeader id="slice-header">
         <div className="title-panel">
+          <ChartEditableTitle
+            title={sliceName}
+            canEdit={
+              !slice ||
+              canOverwrite ||
+              (slice?.owners || []).includes(user?.userId)
+            }
+            onSave={actions.updateChartTitle}
+            placeholder={t('Add the name of the chart')}
+          />
           {slice?.certified_by && (
             <>
               <CertifiedBadge
@@ -245,26 +266,14 @@ export class ExploreChartHeader extends React.PureComponent {
               />{' '}
             </>
           )}
-          <EditableTitle
-            title={this.getSliceName()}
-            canEdit={
-              !this.props.slice ||
-              this.props.can_overwrite ||
-              (this.props.slice?.owners || []).includes(
-                this.props?.user?.userId,
-              )
-            }
-            onSaveTitle={this.props.actions.updateChartTitle}
-          />
-
-          {this.props.slice && (
+          {slice && (
             <StyledButtons>
               {user.userId && (
                 <FaveStar
-                  itemId={this.props.slice.slice_id}
-                  fetchFaveStar={this.props.actions.fetchFaveStar}
-                  saveFaveStar={this.props.actions.saveFaveStar}
-                  isStarred={this.props.isStarred}
+                  itemId={slice.slice_id}
+                  fetchFaveStar={actions.fetchFaveStar}
+                  saveFaveStar={actions.saveFaveStar}
+                  isStarred={isStarred}
                   showTooltip
                 />
               )}
@@ -272,15 +281,15 @@ export class ExploreChartHeader extends React.PureComponent {
                 <PropertiesModal
                   show={this.state.isPropertiesModalOpen}
                   onHide={this.closePropertiesModal}
-                  onSave={this.props.sliceUpdated}
-                  slice={this.props.slice}
+                  onSave={sliceUpdated}
+                  slice={slice}
                 />
               )}
-              {this.props.chart.sliceFormData && (
+              {sliceFormData && (
                 <AlteredSliceTag
                   className="altered"
-                  origFormData={this.props.chart.sliceFormData}
-                  currentFormData={formData}
+                  origFormData={{ ...sliceFormData, chartTitle: oldSliceName }}
+                  currentFormData={{ ...formData, chartTitle: sliceName }}
                 />
               )}
             </StyledButtons>
@@ -306,10 +315,10 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <ExploreAdditionalActionsMenu
-            onOpenInEditor={this.props.actions.redirectSQLLab}
+            onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}
-            slice={this.props.slice}
-            canDownloadCSV={this.props.can_download}
+            slice={slice}
+            canDownloadCSV={canDownload}
             latestQueryFormData={latestQueryFormData}
             canAddReports={this.canAddReports()}
           />
