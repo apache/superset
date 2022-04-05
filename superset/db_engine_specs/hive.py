@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from databases.utils import make_url_safe
 from flask import current_app, g
 from sqlalchemy import Column, text
 from sqlalchemy.engine.base import Engine
@@ -510,7 +511,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set optional param

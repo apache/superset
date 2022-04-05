@@ -17,6 +17,8 @@
 
 from typing import Optional, Type
 
+from databases.commands.exceptions import DatabaseInvalidError
+from databases.utils import make_url_safe
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.engine.url import make_url
@@ -33,8 +35,8 @@ def sqlalchemy_uri_validator(
     Check if a user has submitted a valid SQLAlchemy URI
     """
     try:
-        make_url(uri.strip())
-    except (ArgumentError, AttributeError) as ex:
+        make_url_safe(uri.strip())
+    except DatabaseInvalidError as ex:
         raise exception(
             [
                 _(

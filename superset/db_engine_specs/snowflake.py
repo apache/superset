@@ -22,6 +22,7 @@ from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from databases.utils import make_url_safe
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy.engine.url import make_url, URL
@@ -220,7 +221,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             Dict[str, str]
         ] = None,
     ) -> Any:
-        url = make_url(uri)
+        url = make_url_safe(uri)
         query = dict(url.query.items())
         return {
             "username": url.username,

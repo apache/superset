@@ -18,6 +18,8 @@ import inspect
 import json
 from typing import Any, Dict, Optional, Type
 
+from databases.commands.exceptions import DatabaseInvalidError
+from databases.utils import make_url_safe
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
@@ -144,8 +146,8 @@ def sqlalchemy_uri_validator(value: str) -> str:
     Validate if it's a valid SQLAlchemy URI and refuse SQLLite by default
     """
     try:
-        uri = make_url(value.strip())
-    except (ArgumentError, AttributeError, ValueError) as ex:
+        uri = make_url_safe(value.strip())
+    except DatabaseInvalidError as ex:
         raise ValidationError(
             [
                 _(
@@ -649,7 +651,7 @@ class ImportV1DatabaseSchema(Schema):
             return
 
         uri = data["sqlalchemy_uri"]
-        password = make_url(uri).password
+        password = make_url_safe(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
 

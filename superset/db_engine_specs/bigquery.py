@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKIN
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from databases.utils import make_url_safe
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -377,7 +378,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
-        value = make_url(uri)
+        value = make_url_safe(uri)
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:

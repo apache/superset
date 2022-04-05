@@ -28,6 +28,8 @@ import backoff
 import humanize
 import pandas as pd
 import simplejson as json
+from databases.commands.exceptions import DatabaseInvalidError
+from databases.utils import make_url_safe
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1330,7 +1332,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         uri = request.json.get("uri")
         try:
             if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(make_url(uri))
+                check_sqlalchemy_uri(make_url_safe(uri))
             # if the database already exists in the database, only its safe
             # (password-masked) URI would be shown in the UI and would be passed in the
             # form data so if the database already exists and the form was submitted
@@ -1371,7 +1373,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(ex.message)
         except (NoSuchModuleError, ModuleNotFoundError):
             logger.info("Invalid driver")
-            driver_name = make_url(uri).drivername
+            driver_name = make_url_safe(uri).drivername
             return json_error_response(
                 _(
                     "Could not load database driver: %(driver_name)s",
@@ -1379,7 +1381,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 400,
             )
-        except ArgumentError:
+        except DatabaseInvalidError:
             logger.info("Invalid URI")
             return json_error_response(
                 _(

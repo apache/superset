@@ -28,6 +28,7 @@ from urllib import parse
 
 import pandas as pd
 import simplejson as json
+from databases.utils import make_url_safe
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
@@ -235,7 +236,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Presto connection, enable impersonation, and set optional param

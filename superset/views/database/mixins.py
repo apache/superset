@@ -16,6 +16,7 @@
 # under the License.
 import inspect
 
+from databases.utils import make_url_safe
 from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
@@ -209,7 +210,7 @@ class DatabaseMixin:
 
     def _pre_add_update(self, database: Database) -> None:
         if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-            check_sqlalchemy_uri(make_url(database.sqlalchemy_uri))
+            check_sqlalchemy_uri(make_url_safe(database.sqlalchemy_uri))
         self.check_extra(database)
         self.check_encrypted_extra(database)
         if database.server_cert:

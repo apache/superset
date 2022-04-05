@@ -18,6 +18,7 @@ import json
 from contextlib import closing
 from typing import Any, Dict, Optional
 
+from databases.utils import make_url_safe
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from sqlalchemy.engine.url import make_url
@@ -121,7 +122,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             with closing(engine.raw_connection()) as conn:
                 alive = engine.dialect.do_ping(conn)
         except Exception as ex:
-            url = make_url(sqlalchemy_uri)
+            url = make_url_safe(sqlalchemy_uri)
             context = {
                 "hostname": url.host,
                 "password": url.password,

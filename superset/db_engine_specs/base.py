@@ -40,6 +40,7 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from databases.utils import make_url_safe
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -1633,7 +1634,7 @@ class BasicParametersMixin:
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
-        url = make_url(uri)
+        url = make_url_safe(uri)
         query = {
             key: value
             for (key, value) in url.query.items()

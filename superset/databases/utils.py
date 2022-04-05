@@ -16,6 +16,10 @@
 # under the License.
 from typing import Any, Dict, List, Optional
 
+from databases.commands.exceptions import DatabaseInvalidError
+from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.exc import ArgumentError
+
 from superset import app
 from superset.models.core import Database
 
@@ -101,3 +105,10 @@ def get_table_metadata(
         "indexes": keys,
         "comment": table_comment,
     }
+
+
+def make_url_safe(raw_url: str) -> URL:
+    try:
+        return make_url(raw_url.strip())
+    except Exception:
+        raise DatabaseInvalidError()
