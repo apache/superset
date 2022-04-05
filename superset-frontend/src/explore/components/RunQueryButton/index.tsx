@@ -21,24 +21,26 @@ import React, { ReactNode } from 'react';
 import { t } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { ExplorePageState } from '../../reducers/getInitialState';
+import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 
 export type RunQueryButtonProps = {
   loading: boolean;
   onQuery: () => void;
   onStop: () => void;
   errorMessage: ReactNode;
+  isNewChart: boolean;
 };
+
 export const RunQueryButton = ({
   loading,
   onQuery,
   onStop,
   errorMessage,
+  isNewChart,
 }: RunQueryButtonProps) => {
   const canAdd = useSelector<ExplorePageState, boolean>(
     ({ explore }) => explore.can_add || explore.can_overwrite,
   );
-  const queryButtonStyle = errorMessage ? 'danger' : 'primary';
   return loading ? (
     <Button onClick={onStop} buttonStyle="warning" disabled={!canAdd}>
       <i className="fa fa-stop-circle-o" /> {t('Stop')}
@@ -46,11 +48,11 @@ export const RunQueryButton = ({
   ) : (
     <Button
       onClick={onQuery}
-      buttonStyle={queryButtonStyle}
+      buttonStyle="primary"
       disabled={!!errorMessage}
       data-test="run-query-button"
     >
-      {t('Update the chart')}
+      {isNewChart ? t('Create the chart') : t('Update the chart')}
     </Button>
   );
 };

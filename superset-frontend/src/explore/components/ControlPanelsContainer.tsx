@@ -101,10 +101,12 @@ const Styles = styled.div`
   position: relative;
   height: 100%;
   width: 100%;
-  overflow: auto;
-  overflow-x: visible;
+
+  // Resizable add overflow-y: auto as a style to this div
+  // To override it, we need to use !important
+  overflow: visible !important;
   #controlSections {
-    min-height: 100%;
+    height: 100%;
     overflow: visible;
   }
   .nav-tabs {
@@ -127,15 +129,22 @@ const Styles = styled.div`
 `;
 
 const ControlPanelsTabs = styled(Tabs)`
-  .ant-tabs-nav-list {
-    width: ${({ fullWidth }) => (fullWidth ? '100%' : '50%')};
-  }
-  .ant-tabs-content-holder {
-    overflow: visible;
-  }
-  .ant-tabs-tabpane {
+  ${({ theme, fullWidth }) => css`
     height: 100%;
-  }
+    overflow: visible;
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+    .ant-tabs-nav-list {
+      width: ${fullWidth ? '100%' : '50%'};
+    }
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+    .ant-tabs-content-holder {
+      padding-top: ${theme.gridUnit * 4}px;
+    }
+  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -470,6 +479,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         id="controlSections"
         data-test="control-tabs"
         fullWidth={showCustomizeTab}
+        allowOverflow={false}
       >
         <Tabs.TabPane key="query" tab={t('Data')}>
           <Collapse
@@ -503,6 +513,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           onStop={props.onStop}
           errorMessage={props.errorMessage}
           loading={props.chart.chartStatus === 'loading'}
+          isNewChart={!props.chart.queriesResponse}
         />
       </ActionButtonsContainer>
     </Styles>
