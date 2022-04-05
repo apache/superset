@@ -34,7 +34,6 @@ import {
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
 import Timer from 'src/components/Timer';
@@ -45,6 +44,7 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import RowCountLabel from '../RowCountLabel';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
+import { ChartEditableTitle } from './ChartEditableTitle';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -84,6 +84,8 @@ const StyledHeader = styled.div`
     .title-panel {
       display: flex;
       align-items: center;
+      min-width: 0;
+      margin-right: ${theme.gridUnit * 6}px;
     }
 
     .right-button-panel {
@@ -178,9 +180,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
   getSliceName() {
     const { sliceName, table_name: tableName } = this.props;
-    const title = sliceName || t('%s - untitled', tableName);
-
-    return title;
+    return sliceName || t('%s - untitled', tableName);
   }
 
   postChartFormData() {
@@ -240,16 +240,15 @@ export class ExploreChartHeader extends React.PureComponent {
     return (
       <StyledHeader id="slice-header">
         <div className="title-panel">
-          <EditableTitle
+          <ChartEditableTitle
             title={this.getSliceName()}
             canEdit={
-              !this.props.slice ||
+              !slice ||
               this.props.can_overwrite ||
-              (this.props.slice?.owners || []).includes(
-                this.props?.user?.userId,
-              )
+              (slice?.owners || []).includes(user?.userId)
             }
-            onSaveTitle={this.props.actions.updateChartTitle}
+            onSave={this.props.actions.updateChartTitle}
+            placeholder={t('Add the name of the chart')}
           />
           {slice?.certified_by && (
             <>
@@ -263,7 +262,7 @@ export class ExploreChartHeader extends React.PureComponent {
             <StyledButtons>
               {user.userId && (
                 <FaveStar
-                  itemId={this.props.slice.slice_id}
+                  itemId={slice.slice_id}
                   fetchFaveStar={this.props.actions.fetchFaveStar}
                   saveFaveStar={this.props.actions.saveFaveStar}
                   isStarred={this.props.isStarred}

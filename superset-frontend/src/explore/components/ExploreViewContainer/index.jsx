@@ -95,12 +95,6 @@ const ExploreHeaderContainer = styled.div`
     height: ${theme.gridUnit * 16}px;
     padding: 0 ${theme.gridUnit * 4}px;
 
-    .title-panel {
-      min-width: 0;
-      font-size: ${theme.typography.sizes.xl}px;
-      font-weight: ${theme.typography.weights.bold};
-    }
-
     .editable-title {
       overflow: hidden;
 
@@ -154,7 +148,7 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 2}px;
+      padding: 0 ${theme.gridUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
         text-transform: uppercase;
