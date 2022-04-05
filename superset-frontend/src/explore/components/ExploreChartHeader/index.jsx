@@ -54,8 +54,8 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  can_overwrite: PropTypes.bool.isRequired,
-  can_download: PropTypes.bool.isRequired,
+  canOverwrite: PropTypes.bool.isRequired,
+  canDownload: PropTypes.bool.isRequired,
   dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
@@ -178,11 +178,6 @@ export class ExploreChartHeader extends React.PureComponent {
       .catch(() => {});
   }
 
-  getSliceName() {
-    const { sliceName, table_name: tableName } = this.props;
-    return sliceName || t('%s - untitled', tableName);
-  }
-
   postChartFormData() {
     this.props.actions.postChartFormData(
       this.props.form_data,
@@ -224,30 +219,43 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const { user, form_data: formData, slice } = this.props;
+    const {
+      actions,
+      chart,
+      user,
+      formData,
+      slice,
+      canOverwrite,
+      canDownload,
+      isStarred,
+      sliceUpdated,
+      sliceName,
+    } = this.props;
     const {
       chartStatus,
       chartUpdateEndTime,
       chartUpdateStartTime,
       latestQueryFormData,
       queriesResponse,
-    } = this.props.chart;
+      sliceFormData,
+    } = chart;
     // TODO: when will get appropriate design for multi queries use all results and not first only
     const queryResponse = queriesResponse?.[0];
+    const oldSliceName = slice?.slice_name;
     const chartFinished = ['failed', 'rendered', 'success'].includes(
-      this.props.chart.chartStatus,
+      chartStatus,
     );
     return (
       <StyledHeader id="slice-header">
         <div className="title-panel">
           <ChartEditableTitle
-            title={this.getSliceName()}
+            title={sliceName}
             canEdit={
               !slice ||
-              this.props.can_overwrite ||
+              canOverwrite ||
               (slice?.owners || []).includes(user?.userId)
             }
-            onSave={this.props.actions.updateChartTitle}
+            onSave={actions.updateChartTitle}
             placeholder={t('Add the name of the chart')}
           />
           {slice?.certified_by && (
@@ -258,14 +266,14 @@ export class ExploreChartHeader extends React.PureComponent {
               />{' '}
             </>
           )}
-          {this.props.slice && (
+          {slice && (
             <StyledButtons>
               {user.userId && (
                 <FaveStar
                   itemId={slice.slice_id}
-                  fetchFaveStar={this.props.actions.fetchFaveStar}
-                  saveFaveStar={this.props.actions.saveFaveStar}
-                  isStarred={this.props.isStarred}
+                  fetchFaveStar={actions.fetchFaveStar}
+                  saveFaveStar={actions.saveFaveStar}
+                  isStarred={isStarred}
                   showTooltip
                 />
               )}
@@ -273,15 +281,15 @@ export class ExploreChartHeader extends React.PureComponent {
                 <PropertiesModal
                   show={this.state.isPropertiesModalOpen}
                   onHide={this.closePropertiesModal}
-                  onSave={this.props.sliceUpdated}
-                  slice={this.props.slice}
+                  onSave={sliceUpdated}
+                  slice={slice}
                 />
               )}
-              {this.props.chart.sliceFormData && (
+              {sliceFormData && (
                 <AlteredSliceTag
                   className="altered"
-                  origFormData={this.props.chart.sliceFormData}
-                  currentFormData={formData}
+                  origFormData={{ ...sliceFormData, chartTitle: oldSliceName }}
+                  currentFormData={{ ...formData, chartTitle: sliceName }}
                 />
               )}
             </StyledButtons>
@@ -307,10 +315,10 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <ExploreAdditionalActionsMenu
-            onOpenInEditor={this.props.actions.redirectSQLLab}
+            onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}
-            slice={this.props.slice}
-            canDownloadCSV={this.props.can_download}
+            slice={slice}
+            canDownloadCSV={canDownload}
             latestQueryFormData={latestQueryFormData}
             canAddReports={this.canAddReports()}
           />
