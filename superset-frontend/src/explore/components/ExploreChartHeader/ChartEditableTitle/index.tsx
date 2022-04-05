@@ -17,7 +17,15 @@
  * under the License.
  */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+  ChangeEvent,
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { css, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useResizeDetector } from 'react-resize-detector';
@@ -100,7 +108,7 @@ export const ChartEditableTitle = ({
   // we make additional span component, place it somewhere out of view and copy input
   // then we can measure the width of that span to resize the input element
   useLayoutEffect(() => {
-    if (sizerRef.current) {
+    if (sizerRef?.current) {
       sizerRef.current.innerHTML = (currentTitle || placeholder).replace(
         /\s/g,
         '&nbsp;',
@@ -119,14 +127,14 @@ export const ChartEditableTitle = ({
     }
   }, [inputWidth, containerWidth]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (!canEdit || isEditing) {
       return;
     }
     setIsEditing(true);
-  };
+  }, [canEdit, isEditing]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     if (!canEdit) {
       return;
     }
@@ -136,24 +144,30 @@ export const ChartEditableTitle = ({
       onSave(formattedTitle);
     }
     setIsEditing(false);
-  };
+  }, [canEdit, currentTitle, onSave, title]);
 
-  const handleChange = (ev: any) => {
-    if (!canEdit || !isEditing) {
-      return;
-    }
-    setCurrentTitle(ev.target.value);
-  };
+  const handleChange = useCallback(
+    (ev: ChangeEvent<HTMLInputElement>) => {
+      if (!canEdit || !isEditing) {
+        return;
+      }
+      setCurrentTitle(ev.target.value);
+    },
+    [canEdit, isEditing],
+  );
 
-  const handleKeyPress = (ev: any) => {
-    if (!canEdit) {
-      return;
-    }
-    if (ev.key === 'Enter') {
-      ev.preventDefault();
-      contentRef.current?.blur();
-    }
-  };
+  const handleKeyPress = useCallback(
+    (ev: KeyboardEvent<HTMLInputElement>) => {
+      if (!canEdit) {
+        return;
+      }
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        contentRef.current?.blur();
+      }
+    },
+    [canEdit],
+  );
 
   return (
     <Styles ref={containerRef}>
