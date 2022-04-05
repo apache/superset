@@ -22,7 +22,7 @@ import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/common/components';
+import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -117,7 +117,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
-  addSuccessToast,
   onModelImport,
   show,
   onHide,
@@ -184,7 +183,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
     ).then(result => {
       if (result) {
-        addSuccessToast(t('The import was successful'));
         clearModal();
         onModelImport();
       }

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
 import {
+  JsonObject,
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
@@ -25,7 +25,7 @@ import {
   AnnotationType,
   buildQueryObject,
   QueryObject,
-} from '../../src/query';
+} from '@superset-ui/core';
 
 describe('buildQueryObject', () => {
   let query: QueryObject;
@@ -152,6 +152,28 @@ describe('buildQueryObject', () => {
     expect(query.timeseries_limit_metric).toEqual(metric);
   });
 
+  it('should build series_limit_metric', () => {
+    const metric = 'country';
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'pivot_table_v2',
+      series_limit_metric: metric,
+    });
+    expect(query.series_limit_metric).toEqual(metric);
+  });
+
+  it('should build series_limit_metric as undefined when empty array', () => {
+    const metric: any = [];
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'pivot_table_v2',
+      series_limit_metric: metric,
+    });
+    expect(query.series_limit_metric).toEqual(undefined);
+  });
+
   it('should handle null and non-numeric row_limit and row_offset', () => {
     const baseQuery = {
       datasource: '5__table',
@@ -205,6 +227,7 @@ describe('buildQueryObject', () => {
         name: 'My Formula',
         opacity: AnnotationOpacity.Low,
         show: true,
+        showLabel: false,
         style: AnnotationStyle.Solid,
         value: '10*sin(x)',
         width: 1,
@@ -213,6 +236,7 @@ describe('buildQueryObject', () => {
         annotationType: AnnotationType.Interval,
         color: null,
         show: false,
+        showLabel: false,
         name: 'My Interval',
         sourceType: AnnotationSourceType.Native,
         style: AnnotationStyle.Dashed,
@@ -231,6 +255,7 @@ describe('buildQueryObject', () => {
         },
         sourceType: AnnotationSourceType.Table,
         show: false,
+        showLabel: false,
         timeColumn: 'ds',
         style: AnnotationStyle.Dashed,
         value: 1,

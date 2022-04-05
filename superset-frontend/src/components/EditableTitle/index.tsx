@@ -236,6 +236,7 @@ export default function EditableTitle({
           <StyledCertifiedBadge
             certifiedBy={certifiedBy}
             details={certificationDetails}
+            size="xl"
           />{' '}
         </>
       )}

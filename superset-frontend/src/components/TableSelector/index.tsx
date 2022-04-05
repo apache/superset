@@ -33,6 +33,7 @@ import DatabaseSelector, {
 import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -167,6 +168,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [previousRefresh, setPreviousRefresh] = useState(0);
   const [loadingTables, setLoadingTables] = useState(false);
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
+  const { addSuccessToast } = useToasts();
 
   useEffect(() => {
     // reset selections
@@ -206,14 +208,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
               currentTable = option;
             }
           });
-          if (onTablesLoad) {
-            onTablesLoad(json.options);
-          }
+
+          onTablesLoad?.(json.options);
           setTableOptions(options);
           setCurrentTable(currentTable);
           setLoadingTables(false);
+          if (forceRefresh) addSuccessToast('List updated');
         })
-        .catch(e => {
+        .catch(() => {
           setLoadingTables(false);
           handleError(t('There was an error loading the tables'));
         });

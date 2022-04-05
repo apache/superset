@@ -74,7 +74,6 @@ function TemplateParamsEditor({
         syntax.
       </p>
       <StyledConfigEditor
-        keywords={[]}
         mode={language}
         minLines={25}
         maxLines={50}
@@ -99,7 +98,7 @@ function TemplateParamsEditor({
           title={t('Edit template parameters')}
           trigger={['hover']}
         >
-          <div role="button">
+          <div role="button" css={{ width: 'inherit' }}>
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (

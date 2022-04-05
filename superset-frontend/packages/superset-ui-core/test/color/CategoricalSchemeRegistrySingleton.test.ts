@@ -20,7 +20,7 @@
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
-} from '@superset-ui/core/src/color';
+} from '@superset-ui/core';
 
 describe('CategoricalSchemeRegistry', () => {
   it('has default value out-of-the-box', () => {

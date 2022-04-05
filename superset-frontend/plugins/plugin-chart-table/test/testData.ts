@@ -79,6 +79,8 @@ const basicQueryResult: ChartDataResponseResult = {
   rowcount: 100,
   stacktrace: null,
   status: 'success',
+  from_dttm: null,
+  to_dttm: null,
 };
 
 /**
@@ -110,6 +112,13 @@ const basic: TableChartProps = {
           sum__num: 2467,
           '%pct_nice': 0.00001,
           'abc.com': 'bar',
+        },
+        {
+          __timestamp: null,
+          name: 'Maria',
+          sum__num: 12342,
+          '%pct_nice': 0.341,
+          'abc.com': 'baz',
         },
       ],
     },

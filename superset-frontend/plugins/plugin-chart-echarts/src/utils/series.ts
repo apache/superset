@@ -21,11 +21,11 @@ import {
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
+  DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
   NumberFormatter,
   TimeFormatter,
-  TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
 import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
@@ -36,37 +36,40 @@ function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
 }
 
-export function extractTimeseriesSeries(
-  data: TimeseriesDataRecord[],
-  opts: { fillNeighborValue?: number } = {},
+export function extractSeries(
+  data: DataRecord[],
+  opts: {
+    fillNeighborValue?: number;
+    xAxis?: string;
+    removeNulls?: boolean;
+  } = {},
 ): SeriesOption[] {
-  const { fillNeighborValue } = opts;
+  const { fillNeighborValue, xAxis = DTTM_ALIAS, removeNulls = false } = opts;
   if (data.length === 0) return [];
-  const rows: TimeseriesDataRecord[] = data.map(datum => ({
+  const rows: DataRecord[] = data.map(datum => ({
     ...datum,
-    __timestamp:
-      datum.__timestamp || datum.__timestamp === 0
-        ? new Date(datum.__timestamp)
-        : null,
+    [xAxis]: datum[xAxis],
   }));
 
   return Object.keys(rows[0])
-    .filter(key => key !== '__timestamp')
+    .filter(key => key !== xAxis && key !== DTTM_ALIAS)
     .map(key => ({
       id: key,
       name: key,
-      data: rows.map((row, idx) => {
-        const isNextToDefinedValue =
-          isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
-        return [
-          row.__timestamp,
-          !isDefined(row[key]) &&
-          isNextToDefinedValue &&
-          fillNeighborValue !== undefined
-            ? fillNeighborValue
-            : row[key],
-        ];
-      }),
+      data: rows
+        .map((row, idx) => {
+          const isNextToDefinedValue =
+            isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
+          return [
+            row[xAxis],
+            !isDefined(row[key]) &&
+            isNextToDefinedValue &&
+            fillNeighborValue !== undefined
+              ? fillNeighborValue
+              : row[key],
+          ];
+        })
+        .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null)),
     }));
 }
 
@@ -85,9 +88,6 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'number') {
-    return numberFormatter ? numberFormatter(name) : name.toString();
-  }
   if (typeof name === 'boolean') {
     return name.toString();
   }
@@ -96,13 +96,19 @@ export function formatSeriesName(
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
   }
+  if (typeof name === 'number') {
+    return numberFormatter ? numberFormatter(name) : name.toString();
+  }
   return name;
 }
 
 export const getColtypesMapping = ({
   coltypes = [],
   colnames = [],
-}: ChartDataResponseResult): Record<string, GenericDataType> =>
+}: Pick<ChartDataResponseResult, 'coltypes' | 'colnames'>): Record<
+  string,
+  GenericDataType
+> =>
   colnames.reduce(
     (accumulator, item, index) => ({ ...accumulator, [item]: coltypes[index] }),
     {},
@@ -119,7 +125,7 @@ export function extractGroupbyLabel({
   groupby?: string[] | null;
   numberFormatter?: NumberFormatter;
   timeFormatter?: TimeFormatter;
-  coltypeMapping: Record<string, GenericDataType>;
+  coltypeMapping?: Record<string, GenericDataType>;
 }): string {
   return ensureIsArray(groupby)
     .map(val =>

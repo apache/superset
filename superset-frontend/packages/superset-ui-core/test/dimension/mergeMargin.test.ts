@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { mergeMargin } from '@superset-ui/core/src';
+import { mergeMargin } from '@superset-ui/core';
 
 describe('mergeMargin(margin1, margin2, mode?)', () => {
   it('combines two given margin', () => {

@@ -78,7 +78,7 @@ describe('DatasourceEditor', () => {
     });
     userEvent.click(getToggles[0]);
     const getTextboxes = screen.getAllByRole('textbox');
-    expect(getTextboxes.length).toEqual(12);
+    expect(getTextboxes.length).toEqual(5);
 
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');

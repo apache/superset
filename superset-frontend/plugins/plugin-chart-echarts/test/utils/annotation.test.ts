@@ -18,8 +18,8 @@
  */
 import {
   AnnotationLayer,
+  AnnotationData,
   AnnotationOpacity,
-  AnnotationResult,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
@@ -88,6 +88,7 @@ describe('extractAnnotationLabels', () => {
         show: true,
         style: AnnotationStyle.Solid,
         value: 'sin(x)',
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Formula,
@@ -95,6 +96,7 @@ describe('extractAnnotationLabels', () => {
         show: false,
         style: AnnotationStyle.Solid,
         value: 'sin(2x)',
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Interval,
@@ -103,6 +105,7 @@ describe('extractAnnotationLabels', () => {
         show: true,
         style: AnnotationStyle.Solid,
         value: 1,
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Timeseries,
@@ -111,6 +114,7 @@ describe('extractAnnotationLabels', () => {
         style: AnnotationStyle.Dashed,
         sourceType: AnnotationSourceType.Line,
         value: 1,
+        showLabel: true,
       },
       {
         annotationType: AnnotationType.Timeseries,
@@ -119,9 +123,10 @@ describe('extractAnnotationLabels', () => {
         style: AnnotationStyle.Dashed,
         sourceType: AnnotationSourceType.Line,
         value: 1,
+        showLabel: true,
       },
     ];
-    const results: AnnotationResult = {
+    const results: AnnotationData = {
       'My Interval': {
         columns: ['col'],
         records: [{ col: 1 }],
@@ -147,6 +152,7 @@ describe('evalFormula', () => {
     show: true,
     style: AnnotationStyle.Solid,
     value: 'x+1',
+    showLabel: true,
   };
   it('Should evaluate a regular formula', () => {
     const data: TimeseriesDataRecord[] = [
@@ -155,8 +161,8 @@ describe('evalFormula', () => {
     ];
 
     expect(evalFormula(layer, data)).toEqual([
-      [new Date(0), 1],
-      [new Date(10), 11],
+      [0, 1],
+      [10, 11],
     ]);
   });
 
@@ -167,8 +173,8 @@ describe('evalFormula', () => {
     ];
 
     expect(evalFormula({ ...layer, value: 'y  = x* 2   -1' }, data)).toEqual([
-      [new Date(0), -1],
-      [new Date(10), 19],
+      [0, -1],
+      [10, 19],
     ]);
   });
 });

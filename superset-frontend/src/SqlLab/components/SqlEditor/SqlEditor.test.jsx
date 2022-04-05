@@ -32,7 +32,7 @@ import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import {
   queryEditorSetFunctionNames,
   queryEditorSetSelectedText,
@@ -126,6 +126,6 @@ describe('SqlEditor', () => {
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = buildWrapper(updatedProps);
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(Dropdown)).toExist();
+    expect(wrapper.find(AntdDropdown)).toExist();
   });
 });

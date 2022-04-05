@@ -54,7 +54,6 @@ from superset.utils.core import (
     get_form_data_token,
     get_iterable,
     get_email_address_list,
-    get_or_create_db,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -67,18 +66,14 @@ from superset.utils.core import (
     parse_ssl_cert,
     parse_js_uri_path_item,
     split,
-    TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
 )
+from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
-from superset.views.utils import (
-    build_extra_filters,
-    get_form_data,
-    get_time_range_endpoints,
-)
+from superset.views.utils import build_extra_filters, get_form_data
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
@@ -744,58 +739,6 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(ArgumentError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
-    def test_get_time_range_endpoints(self):
-        self.assertEqual(
-            get_time_range_endpoints(form_data={}),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
-        self.assertEqual(
-            get_time_range_endpoints(
-                form_data={"time_range_endpoints": ["inclusive", "inclusive"]}
-            ),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1_druid"}),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
-        slc = Mock()
-        slc.datasource.database.get_extra.return_value = {}
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-            (TimeRangeEndpoint.UNKNOWN, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        slc.datasource.database.get_extra.return_value = {
-            "time_range_endpoints": ["inclusive", "inclusive"]
-        }
-
-        self.assertEqual(
-            get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-        )
-
-        self.assertIsNone(get_time_range_endpoints(form_data={}, slc=slc))
-
-        with app.app_context():
-            app.config["SIP_15_GRACE_PERIOD_END"] = date.today() + timedelta(days=1)
-
-            self.assertEqual(
-                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE),
-            )
-
-            app.config["SIP_15_GRACE_PERIOD_END"] = date.today()
-
-            self.assertEqual(
-                get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-                (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-            )
-
     def test_get_iterable(self):
         self.assertListEqual(get_iterable(123), [123])
         self.assertListEqual(get_iterable([123]), [123])
@@ -851,7 +794,11 @@ class TestUtils(SupersetTestCase):
         }
         merge_extra_form_data(form_data)
         self.assertEqual(
-            form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
@@ -883,7 +830,9 @@ class TestUtils(SupersetTestCase):
         form_data = {
             "time_range": "Last 10 days",
             "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {"time_range": "Last year",},
+            "extra_form_data": {
+                "time_range": "Last year",
+            },
         }
         merge_extra_filters(form_data)
         self.assertEqual(
@@ -958,12 +907,6 @@ class TestUtils(SupersetTestCase):
     def test_get_form_data_default(self) -> None:
         with app.test_request_context():
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
-            )
-
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_args(self) -> None:
@@ -971,29 +914,13 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": json.dumps({"foo": "bar"})}
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_form(self) -> None:
         with app.test_request_context(data={"form_data": json.dumps({"foo": "bar"})}):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_form_with_queries(self) -> None:
@@ -1005,15 +932,7 @@ class TestUtils(SupersetTestCase):
             }
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "url_params": {"foo": "bar"},
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"url_params": {"foo": "bar"}})
             self.assertEqual(slc, None)
 
     def test_get_form_data_request_args_and_form(self) -> None:
@@ -1022,16 +941,7 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": json.dumps({"baz": "bar"})},
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {
-                    "baz": "bar",
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"baz": "bar", "foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_globals(self) -> None:
@@ -1039,15 +949,7 @@ class TestUtils(SupersetTestCase):
             g.form_data = {"foo": "bar"}
             form_data, slc = get_form_data()
             delattr(g, "form_data")
-
-            self.assertEqual(
-                form_data,
-                {
-                    "foo": "bar",
-                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
-                },
-            )
-
+            self.assertEqual(form_data, {"foo": "bar"})
             self.assertEqual(slc, None)
 
     def test_get_form_data_corrupted_json(self) -> None:
@@ -1056,12 +958,7 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": '{"baz": "bar"'},
         ):
             form_data, slc = get_form_data()
-
-            self.assertEqual(
-                form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
-            )
-
+            self.assertEqual(form_data, {})
             self.assertEqual(slc, None)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

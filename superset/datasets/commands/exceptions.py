@@ -179,3 +179,7 @@ class DatasetForbiddenError(ForbiddenError):
 
 class DatasetImportError(ImportFailedError):
     message = _("Import dataset failed for an unknown reason")
+
+
+class DatasetAccessDeniedError(ForbiddenError):
+    message = _("You don't have access to this dataset.")

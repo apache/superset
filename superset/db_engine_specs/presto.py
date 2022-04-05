@@ -23,19 +23,7 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    List,
-    Match,
-    Optional,
-    Pattern,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
@@ -49,11 +37,10 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
-from sqlalchemy.types import TypeEngine
 
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -66,6 +53,7 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -95,28 +83,29 @@ CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
     r"line (?P<location>.+?): Catalog '(?P<catalog_name>.+?)' does not exist"
 )
 
-
 logger = logging.getLogger(__name__)
 
 
-def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
+def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
     """
     Get the children of a complex Presto type (row or array).
 
     For arrays, we return a single list with the base type:
 
-        >>> get_children(dict(name="a", type="ARRAY(BIGINT)"))
-        [{"name": "a", "type": "BIGINT"}]
+        >>> get_children(dict(name="a", type="ARRAY(BIGINT)", is_dttm=False))
+        [{"name": "a", "type": "BIGINT", "is_dttm": False}]
 
     For rows, we return a list of the columns:
 
-        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)"))
-        [{'name': 'a._col0', 'type': 'BIGINT'}, {'name': 'a.foo', 'type': 'VARCHAR'}]
+        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)",  is_dttm=False))
+        [{'name': 'a._col0', 'type': 'BIGINT', 'is_dttm': False}, {'name': 'a.foo', 'type': 'VARCHAR', 'is_dttm': False}]  # pylint: disable=line-too-long
 
     :param column: dictionary representing a Presto column
     :return: list of dictionaries representing children columns
     """
     pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
+    if not column["type"]:
+        raise ValueError
     match = pattern.match(column["type"])
     if not match:
         raise Exception(f"Unable to parse column type {column['type']}")
@@ -125,7 +114,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     type_ = group["type"].upper()
     children_type = group["children"]
     if type_ == "ARRAY":
-        return [{"name": column["name"], "type": children_type}]
+        return [{"name": column["name"], "type": children_type, "is_dttm": False}]
 
     if type_ == "ROW":
         nameless_columns = 0
@@ -139,7 +128,12 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
                 name = f"_col{nameless_columns}"
                 type_ = parts[0]
                 nameless_columns += 1
-            columns.append({"name": f"{column['name']}.{name.lower()}", "type": type_})
+            _column: ResultSetColumnType = {
+                "name": f"{column['name']}.{name.lower()}",
+                "type": type_,
+                "is_dttm": False,
+            }
+            columns.append(_column)
         return columns
 
     raise Exception(f"Unknown type {type_}!")
@@ -228,7 +222,10 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -449,86 +446,86 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
             types.BOOLEAN,
-            utils.GenericDataType.BOOLEAN,
+            GenericDataType.BOOLEAN,
         ),
         (
             re.compile(r"^tinyint.*", re.IGNORECASE),
             TinyInteger(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
             types.SMALLINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
             types.INTEGER(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
             types.BIGINT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
             types.FLOAT(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
             types.DECIMAL(),
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
             lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^varbinary.*", re.IGNORECASE),
             types.VARBINARY(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^json.*", re.IGNORECASE),
             types.JSON(),
-            utils.GenericDataType.STRING,
+            GenericDataType.STRING,
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
             types.DATETIME(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^timestamp.*", re.IGNORECASE),
             types.TIMESTAMP(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^interval.*", re.IGNORECASE),
             Interval(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
         (
             re.compile(r"^time.*", re.IGNORECASE),
             types.Time(),
-            utils.GenericDataType.TEMPORAL,
+            GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.STRING),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.STRING),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.STRING),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), GenericDataType.STRING),
     )
 
     @classmethod
@@ -743,10 +740,24 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"""from_iso8601_date('{dttm.date().isoformat()}')"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if tt in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
             return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 
@@ -776,8 +787,10 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def expand_data(  # pylint: disable=too-many-locals
-        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
-    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
+        cls, columns: List[ResultSetColumnType], data: List[Dict[Any, Any]]
+    ) -> Tuple[
+        List[ResultSetColumnType], List[Dict[Any, Any]], List[ResultSetColumnType]
+    ]:
         """
         We do not immediately display rows and arrays clearly in the data grid. This
         method separates out nested fields and data values to help clearly display
@@ -805,7 +818,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         # process each column, unnesting ARRAY types and
         # expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
-        all_columns: List[Dict[str, Any]] = []
+        all_columns: List[ResultSetColumnType] = []
         expanded_columns = []
         current_array_level = None
         while to_process:
@@ -825,7 +838,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             name = column["name"]
             values: Optional[Union[str, List[Any]]]
 
-            if column["type"].startswith("ARRAY("):
+            if column["type"] and column["type"].startswith("ARRAY("):
                 # keep processing array children; we append to the right so that
                 # multiple nested arrays are processed breadth-first
                 to_process.append((get_children(column)[0], level + 1))
@@ -859,7 +872,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
                     i += 1
 
-            if column["type"].startswith("ROW("):
+            if column["type"] and column["type"].startswith("ROW("):
                 # expand columns; we append them to the left so they are added
                 # immediately after the parent
                 expanded = get_children(column)
@@ -1217,15 +1230,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         native_type: Optional[str],
         db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings

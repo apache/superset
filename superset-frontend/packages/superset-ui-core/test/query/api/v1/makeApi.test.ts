@@ -17,11 +17,8 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  JsonValue,
-  SupersetClientClass,
-} from '@superset-ui/core/src/connection';
-import { makeApi, SupersetApiError } from '@superset-ui/core/src/query';
+import { JsonValue, SupersetClientClass } from '@superset-ui/core';
+import { makeApi, SupersetApiError } from '../../../../src/query';
 import setupClientForTest from '../setupClientForTest';
 
 describe('makeApi()', () => {
@@ -98,7 +95,7 @@ describe('makeApi()', () => {
 
     const expected = new FormData();
     expected.append('request', JSON.stringify('test'));
-    const received = fetchMock.lastOptions().body as FormData;
+    const received = fetchMock.lastOptions()?.body as FormData;
 
     expect(received).toBeInstanceOf(FormData);
     expect(received.get('request')).toEqual(expected.get('request'));

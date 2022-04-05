@@ -103,6 +103,7 @@ export default function transformProps(
     showLabels,
     showLegend,
     emitFilter,
+    sliceId,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_FUNNEL_FORM_DATA,
@@ -145,7 +146,7 @@ export default function transformProps(
       value: datum[metricLabel],
       name,
       itemStyle: {
-        color: colorFn(name),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,

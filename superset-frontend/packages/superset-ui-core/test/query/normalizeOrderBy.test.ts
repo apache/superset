@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { normalizeOrderBy, QueryObject } from '@superset-ui/core/src/query';
+import { normalizeOrderBy, QueryObject } from '@superset-ui/core';
 
 describe('normalizeOrderBy', () => {
   it('should not change original queryObject when orderby populated', () => {
@@ -183,6 +183,7 @@ describe('normalizeOrderBy', () => {
       datasource: '5__table',
       viz_type: 'table',
       time_range: '1 year ago : 2013',
+      // @ts-ignore
       orderby: [['count(*)', 'true']],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');

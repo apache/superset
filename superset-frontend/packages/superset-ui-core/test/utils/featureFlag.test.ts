@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { FeatureFlag, isFeatureEnabled } from '../../src';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 describe('isFeatureFlagEnabled', () => {
   window.featureFlags = {

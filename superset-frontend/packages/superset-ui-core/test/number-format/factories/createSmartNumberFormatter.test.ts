@@ -17,10 +17,7 @@
  * under the License.
  */
 
-import {
-  NumberFormatter,
-  createSmartNumberFormatter,
-} from '@superset-ui/core/src';
+import { NumberFormatter, createSmartNumberFormatter } from '@superset-ui/core';
 
 describe('createSmartNumberFormatter(options)', () => {
   it('creates an instance of NumberFormatter', () => {

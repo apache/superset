@@ -29,7 +29,7 @@ import {
   getChartMetadataRegistry,
   getChartTransformPropsRegistry,
   reactify,
-} from '@superset-ui/core/src/chart';
+} from '@superset-ui/core';
 
 describe('index', () => {
   it('exports modules', () => {

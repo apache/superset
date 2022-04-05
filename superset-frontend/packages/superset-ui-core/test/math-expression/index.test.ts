@@ -17,10 +17,7 @@
  * under the License.
  */
 
-import {
-  evalExpression,
-  isValidExpression,
-} from '@superset-ui/core/src/math-expression';
+import { evalExpression, isValidExpression } from '@superset-ui/core';
 
 test('evalExpression evaluates constants correctly', () => {
   expect(evalExpression('0', 10)).toEqual(0);

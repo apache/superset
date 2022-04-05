@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AdhocMetric, GenericDataType } from '../src';
+import { AdhocMetric, GenericDataType } from '@superset-ui/core';
 
 export const NUM_METRIC: AdhocMetric = {
   expressionType: 'SIMPLE',

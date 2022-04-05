@@ -89,9 +89,5 @@ export default function extractExtras(formData: QueryFormData): ExtractedExtra {
     delete extract.time_grain_sqla;
   }
 
-  // map time range endpoints:
-  if (formData.time_range_endpoints)
-    extras.time_range_endpoints = formData.time_range_endpoints;
-
   return extract;
 }

@@ -43,7 +43,7 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -179,12 +179,14 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
@@ -456,7 +458,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
     @mock.patch(
@@ -621,7 +624,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
         db.session.delete(test_database)
@@ -1036,7 +1040,9 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
-    @mock.patch("superset.databases.commands.test_connection.event_logger",)
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger",
+    )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
     ):
@@ -1417,7 +1423,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
+    @mock.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",
+    )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
         if example_db.backend in {"hive", "presto"}:

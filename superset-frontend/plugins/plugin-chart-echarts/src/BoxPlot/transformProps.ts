@@ -36,6 +36,7 @@ import {
   getColtypesMapping,
   sanitizeHtml,
 } from '../utils/series';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
@@ -62,6 +63,7 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
   } = formData as BoxPlotQueryFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -97,9 +99,9 @@ export default function transformProps(
             datum[`${metric}__outliers`],
           ],
           itemStyle: {
-            color: colorFn(groupbyLabel),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered ? OpacityEnum.SemiTransparent : 0.6,
-            borderColor: colorFn(groupbyLabel),
+            borderColor: colorFn(groupbyLabel, sliceId),
           },
         };
       });
@@ -137,7 +139,7 @@ export default function transformProps(
             },
           },
           itemStyle: {
-            color: colorFn(groupbyLabel),
+            color: colorFn(groupbyLabel, sliceId),
             opacity: isFiltered
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,
@@ -240,8 +242,8 @@ export default function transformProps(
     null,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -253,7 +255,7 @@ export default function transformProps(
       data: transformedData.map(row => row.name),
       axisLabel,
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
     },
     yAxis: {
@@ -261,7 +263,7 @@ export default function transformProps(
       type: 'value',
       axisLabel: { formatter: numberFormatter },
       name: yAxisTitle,
-      nameGap: yAxisTitleMargin,
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {

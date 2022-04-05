@@ -30,7 +30,6 @@ const createProps = () => ({
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
-      time_range_endpoints: ['inclusive', 'exclusive'],
       granularity_sqla: 'time_start',
       time_range: 'No filter',
       all_columns_x: ['age'],
@@ -66,7 +65,6 @@ const createProps = () => ({
       row_limit: 10000,
       slice_id: 318,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
       viz_type: 'histogram',
       x_axis_label: 'age',
@@ -98,14 +96,11 @@ const createProps = () => ({
 test('Cancelling changes to the properties should reset previous properties', () => {
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
-
-  const openModal = screen.getByRole('button', {
-    name: 'Edit chart properties',
-  });
   const newChartName = 'New chart name';
   const prevChartName = props.slice_name;
 
-  userEvent.click(openModal);
+  userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  userEvent.click(screen.getByText('Edit chart properties'));
 
   const nameInput = screen.getByRole('textbox', { name: 'Name' });
 
@@ -116,7 +111,8 @@ test('Cancelling changes to the properties should reset previous properties', ()
 
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-  userEvent.click(openModal);
+  userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  userEvent.click(screen.getByText('Edit chart properties'));
 
   expect(screen.getByDisplayValue(prevChartName)).toBeInTheDocument();
 });

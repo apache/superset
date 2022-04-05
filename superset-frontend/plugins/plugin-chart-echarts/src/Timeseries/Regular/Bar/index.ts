@@ -17,11 +17,13 @@
  * under the License.
  */
 import {
-  t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
+  ChartMetadata,
+  ChartPlugin,
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
 } from '@superset-ui/core';
 import buildQuery from '../../buildQuery';
 import controlPanel from './controlPanel';
@@ -58,9 +60,11 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
-        ),
+        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Bar Charts are used to show metrics as a series of bars.')
+          : t(
+              'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
+            ),
         exampleGallery: [
           { url: example1 },
           { url: example2 },
@@ -72,7 +76,9 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Bar Chart v2'),
+        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Bar Chart v2')
+          : t('Time-series Bar Chart v2'),
         tags: [
           t('ECharts'),
           t('Predictive'),

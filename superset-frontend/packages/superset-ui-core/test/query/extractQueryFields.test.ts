@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import extractQueryFields from '@superset-ui/core/src/query/extractQueryFields';
-import { configure } from '../../src/translation';
-import { QueryMode, DTTM_ALIAS } from '../../src';
+import { configure, QueryMode, DTTM_ALIAS } from '@superset-ui/core';
+import extractQueryFields from '../../src/query/extractQueryFields';
 import { NUM_METRIC } from '../fixtures';
 
 configure();

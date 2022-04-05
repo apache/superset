@@ -17,18 +17,17 @@
  * under the License.
  */
 
-import getTimeFormatterRegistry, {
+import {
+  TimeGranularity,
+  LOCAL_PREFIX,
+  PREVIEW_TIME,
   getTimeFormatter,
   formatTime,
   getTimeFormatterForGranularity,
   formatTimeRange,
-} from '@superset-ui/core/src/time-format/TimeFormatterRegistrySingleton';
-import TimeFormatterRegistry from '@superset-ui/core/src/time-format/TimeFormatterRegistry';
-import { PREVIEW_TIME } from '@superset-ui/core/src/time-format/TimeFormatter';
-import {
-  TimeGranularity,
-  LOCAL_PREFIX,
-} from '@superset-ui/core/src/time-format';
+  getTimeFormatterRegistry,
+} from '@superset-ui/core';
+import TimeFormatterRegistry from '../../src/time-format/TimeFormatterRegistry';
 
 describe('TimeFormatterRegistrySingleton', () => {
   describe('getTimeFormatterRegistry()', () => {

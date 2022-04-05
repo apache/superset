@@ -27,11 +27,42 @@ import {
   css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { intersection } from 'lodash';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
+import findPermission from 'src/dashboard/util/findPermission';
 import { Dashboard, Filters } from './types';
+
+// Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
+// Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
+(() => {
+  const risonRef: {
+    not_idchar: string;
+    not_idstart: string;
+    id_ok: RegExp;
+    next_id: RegExp;
+  } = rison as any;
+
+  const l = [];
+  for (let hi = 0; hi < 16; hi += 1) {
+    for (let lo = 0; lo < 16; lo += 1) {
+      if (hi + lo === 0) continue;
+      const c = String.fromCharCode(hi * 16 + lo);
+      if (!/\w|[-_./~]/.test(c))
+        l.push(`\\u00${hi.toString(16)}${lo.toString(16)}`);
+    }
+  }
+
+  risonRef.not_idchar = l.join('');
+  risonRef.not_idstart = '-0123456789';
+
+  const idrx = `[^${risonRef.not_idstart}${risonRef.not_idchar}][^${risonRef.not_idchar}]*`;
+
+  risonRef.id_ok = new RegExp(`^${idrx}$`);
+  risonRef.next_id = new RegExp(idrx, 'g');
+})();
 
 const createFetchResourceMethod =
   (method: string) =>
@@ -43,7 +74,7 @@ const createFetchResourceMethod =
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-    const queryParams = rison.encode({
+    const queryParams = rison.encode_uri({
       filter: filterValue,
       page,
       page_size: pageSize,
@@ -133,20 +164,17 @@ export const getEditedObjects = (userId: string | number) => {
 export const getUserOwnedObjects = (
   userId: string | number,
   resource: string,
-) => {
-  const filters = {
-    created: [
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: `${userId}`,
-      },
-    ],
-  };
-  return SupersetClient.get({
-    endpoint: `/api/v1/${resource}/?q=${getParams(filters.created)}`,
+  filters: Array<Filters> = [
+    {
+      col: 'owners',
+      opr: 'rel_m_m',
+      value: `${userId}`,
+    },
+  ],
+) =>
+  SupersetClient.get({
+    endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
   }).then(res => res.json?.result);
-};
 
 export const getRecentAcitivtyObjs = (
   userId: string | number,
@@ -257,7 +285,7 @@ export function handleDashboardDelete(
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -380,3 +408,31 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
             isNeedsPassword(payload) || isAlreadyExists(payload),
         ),
   );
+
+export const checkUploadExtensions = (
+  perm: Array<string>,
+  cons: Array<string>,
+) => {
+  if (perm !== undefined) {
+    return intersection(perm, cons).length > 0;
+  }
+  return false;
+};
+
+export const uploadUserPerms = (
+  roles: Record<string, [string, string][]>,
+  csvExt: Array<string>,
+  colExt: Array<string>,
+  excelExt: Array<string>,
+  allowedExt: Array<string>,
+) => ({
+  canUploadCSV:
+    findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
+    checkUploadExtensions(csvExt, allowedExt),
+  canUploadColumnar:
+    checkUploadExtensions(colExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles),
+  canUploadExcel:
+    checkUploadExtensions(excelExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles),
+});

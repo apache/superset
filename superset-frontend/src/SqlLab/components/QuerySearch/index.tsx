@@ -37,6 +37,11 @@ interface QuerySearchProps {
   actions: {
     addDangerToast: (msg: string) => void;
     setDatabases: (data: Record<string, any>) => Record<string, any>;
+    queryEditorSetSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
   };
   displayLimit: number;
 }

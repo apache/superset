@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { validateInteger } from '@superset-ui/core/src';
+import { validateInteger } from '@superset-ui/core';
 import './setup';
 
 describe('validateInteger()', () => {

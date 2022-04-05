@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 
 def left_join_df(
-    left_df: pd.DataFrame, right_df: pd.DataFrame, join_keys: List[str],
+    left_df: pd.DataFrame,
+    right_df: pd.DataFrame,
+    join_keys: List[str],
 ) -> pd.DataFrame:
     df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
     df.reset_index(inplace=True)

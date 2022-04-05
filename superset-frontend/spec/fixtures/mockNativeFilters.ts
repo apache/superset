@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData } from '@superset-ui/core';
-import { NativeFilterType } from 'src/dashboard/components/nativeFilters/types';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from '../../src/dataMask/types';
+import {
+  DataMaskStateWithId,
+  ExtraFormData,
+  NativeFiltersState,
+  NativeFilterType,
+} from '@superset-ui/core';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -53,6 +55,7 @@ export const nativeFilters: NativeFiltersState = {
       },
       type: NativeFilterType.NATIVE_FILTER,
       description: '',
+      chartsInScope: [18],
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
@@ -83,6 +86,7 @@ export const nativeFilters: NativeFiltersState = {
       },
       type: NativeFilterType.NATIVE_FILTER,
       description: '2 letter code',
+      chartsInScope: [18],
     },
   },
 };
@@ -454,7 +458,7 @@ export const mockQueryDataForCountries = [
 export const buildNativeFilter = (
   id: string,
   name: string,
-  parents: string[],
+  dependencies: string[],
 ) => ({
   id,
   controlValues: {
@@ -479,7 +483,7 @@ export const buildNativeFilter = (
     filterState: {},
     ownState: {},
   },
-  cascadeParentIds: parents,
+  cascadeParentIds: dependencies,
   scope: {
     rootPath: ['ROOT_ID'],
     excluded: [],

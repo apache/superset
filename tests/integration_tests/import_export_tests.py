@@ -45,7 +45,8 @@ from superset.dashboards.commands.importers.v0 import import_chart, import_dashb
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database, get_example_default_schema
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
@@ -286,8 +287,10 @@ class TestImportExport(SupersetTestCase):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
-        export_dash_url = "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
-            birth_dash.id, world_health_dash.id
+        export_dash_url = (
+            "/dashboard/export_dashboards_form?id={}&id={}&action=go".format(
+                birth_dash.id, world_health_dash.id
+            )
         )
         resp = self.client.get(export_dash_url)
         resp_data = json.loads(resp.data.decode("utf-8"), object_hook=decode_dashboards)

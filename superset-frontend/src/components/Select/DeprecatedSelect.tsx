@@ -26,19 +26,19 @@ import BasicSelect, {
   SelectComponentsConfig,
   components as defaultComponents,
   createFilter,
+  Props as SelectProps,
 } from 'react-select';
 import Async from 'react-select/async';
 import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
 
-import { SelectComponents } from 'react-select/src/components';
+import type { SelectComponents } from 'react-select/src/components';
 import {
   SortableContainer,
   SortableElement,
   SortableContainerProps,
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
-import { Props as SelectProps } from 'react-select/src/Select';
 import { useTheme } from '@superset-ui/core';
 import {
   WindowedSelectComponentType,

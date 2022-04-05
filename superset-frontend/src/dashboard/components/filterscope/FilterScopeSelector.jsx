@@ -30,7 +30,7 @@ import getKeyForFilterScopeTree from 'src/dashboard/util/getKeyForFilterScopeTre
 import getSelectedChartIdForFilterScopeTree from 'src/dashboard/util/getSelectedChartIdForFilterScopeTree';
 import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 import getRevertedFilterScope from 'src/dashboard/util/getRevertedFilterScope';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -106,7 +106,7 @@ export default class FilterScopeSelector extends React.PureComponent {
               const expanded = getFilterScopeParentNodes(nodes, 1);
               // force display filter_box chart as unchecked, but show checkbox as disabled
               const chartIdsInFilterScope = (
-                getChartIdsInFilterScope({
+                getChartIdsInFilterBoxScope({
                   filterScope: dashboardFilters[filterId].scopes[columnName],
                 }) || []
               ).filter(id => id !== filterId);

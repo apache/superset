@@ -327,6 +327,10 @@ export const nativeFilters = {
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
   },
+  addFilterButton: {
+    button: `.ant-modal-content [data-test="new-dropdown-icon"]`,
+    dropdownItem: '.ant-dropdown-menu-item',
+  },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),
     datasetName: dataTestLocator('filters-config-modal__datasource-input'),
@@ -335,16 +339,22 @@ export const nativeFilters = {
     columnEmptyInput: '.ant-select-selection-placeholder',
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
     fieldInput: dataTestLocator('field-input'),
+    filterTypeItem: '.ant-select-selection-item',
   },
   filterFromDashboardView: {
+    filterValueInput: '[class="ant-select-selection-search-input"]',
     expand: dataTestLocator('filter-bar__expand-button'),
     collapse: dataTestLocator('filter-bar__collapse-button'),
     filterName: dataTestLocator('filter-control-name'),
-    filterContent: '.ant-select-selection-item-content',
+    filterContent: '.ant-select-selection-item',
+    createFilterButton: dataTestLocator('filter-bar__create-filter'),
+    timeRangeFilterContent: dataTestLocator('time-range-trigger'),
   },
   createFilterButton: dataTestLocator('filter-bar__create-filter'),
   removeFilter: '[aria-label="remove"]',
+  silentLoading: '.loading inline-centered css-101mkpk',
   filterConfigurationSections: {
+    displayedSection: 'div[style="height: 100%; overflow-y: auto;"]',
     collapseExpandButton: '.ant-collapse-arrow',
     checkedCheckbox: '.ant-checkbox-wrapper-checked',
     infoTooltip: '[aria-label="Show info tooltip"]',
@@ -460,13 +470,14 @@ export const exploreView = {
   saveModal: {
     modal: '.ant-modal-content',
     chartNameInput: dataTestLocator('new-chart-name'),
-    dashboardNameInput: '#dashboard-creatable-select',
+    dashboardNameInput: '.ant-select-selection-search-input',
     addToDashboardInput: dataTestLocator(
       'save-chart-modal-select-dashboard-form',
     ),
     saveButton: dataTestLocator('btn-modal-save'),
     saveAsCircle: dataTestLocator('saveas-radio'),
     overwriteCircle: dataTestLocator('save-overwrite-radio'),
+    saveAndGoToDashboard: '#btn_modal_save_goto_dash',
   },
   controlPanel: {
     panel: dataTestLocator('control-tabs'),

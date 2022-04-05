@@ -19,9 +19,8 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
-import { RadioChangeEvent } from 'antd/lib/radio';
+import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
@@ -36,8 +35,11 @@ import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import FilterableTable from 'src/components/FilterableTable/FilterableTable';
+import FilterableTable, {
+  MAX_COLUMNS_FOR_TABLE,
+} from 'src/components/FilterableTable/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { exploreChart } from 'src/explore/exploreUtils';
@@ -276,7 +278,11 @@ export default class ResultSet extends React.PureComponent<
       dbId,
       datasetToOverwrite.datasetId,
       sql,
-      results.selected_columns.map(d => ({ column_name: d.name })),
+      results.selected_columns.map(d => ({
+        column_name: d.name,
+        type: d.type,
+        is_dttm: d.is_dttm,
+      })),
       datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,
     );
@@ -525,13 +531,9 @@ export default class ResultSet extends React.PureComponent<
           />
           <ResultSetButtons>
             {this.props.visualize &&
-              this.props.database &&
-              this.props.database.allows_virtual_table_explore && (
+              this.props.database?.allows_virtual_table_explore && (
                 <ExploreResultsButton
-                  // @ts-ignore Redux types are difficult to work with, ignoring for now
-                  query={this.props.query}
                   database={this.props.database}
-                  actions={this.props.actions}
                   onClick={this.handleExploreBtnClick}
                 />
               )}
@@ -552,6 +554,7 @@ export default class ResultSet extends React.PureComponent<
                   <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
+              hideTooltip
             />
           </ResultSetButtons>
           {this.props.search && (
@@ -560,7 +563,12 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter results')}
+              disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
+              placeholder={
+                columns.length > MAX_COLUMNS_FOR_TABLE
+                  ? t('Too many columns to filter')
+                  : t('Filter results')
+              }
             />
           )}
         </ResultSetControls>
@@ -579,18 +587,20 @@ export default class ResultSet extends React.PureComponent<
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!this.props.user?.roles?.Admin;
+    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
+
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
       withoutAdmin: t(
         'The number of results displayed is limited to %(rows)d. ' +
           'Please add additional limits/filters, download to csv, or contact an admin ' +
           'to see more rows up to the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
     };
     const shouldUseDefaultDropdownAlert =
@@ -653,7 +663,7 @@ export default class ResultSet extends React.PureComponent<
             <Alert
               type="warning"
               onClose={this.onAlertClose}
-              message={t('%(rows)d rows returned', { rows })}
+              message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
                   ? displayMaxRowsReachedMessage.withAdmin
@@ -723,11 +733,10 @@ export default class ResultSet extends React.PureComponent<
                   </Button>
                   <ExploreCtasResultsButton
                     // @ts-ignore Redux types are difficult to work with, ignoring for now
+                    actions={this.props.actions}
                     table={tempTable}
                     schema={tempSchema}
                     dbId={exploreDBId}
-                    database={this.props.database}
-                    actions={this.props.actions}
                   />
                 </ButtonGroup>
               </>
@@ -801,8 +810,8 @@ export default class ResultSet extends React.PureComponent<
         );
       }
     }
-    let progressBar;
     let trackingUrl;
+    let progressBar;
     if (query.progress > 0) {
       progressBar = (
         <ProgressBar
@@ -825,14 +834,17 @@ export default class ResultSet extends React.PureComponent<
       query && query.extra && query.extra.progress
         ? query.extra.progress
         : null;
+
     return (
       <div style={LOADING_STYLES}>
         <div>{!progressBar && <Loading position="normal" />}</div>
+        {/* show loading bar whenever progress bar is completed but needs time to render */}
+        <div>{query.progress === 100 && <Loading position="normal" />}</div>
         <QueryStateLabel query={query} />
         <div>
           {progressMsg && <Alert type="success" message={progressMsg} />}
         </div>
-        <div>{progressBar}</div>
+        <div>{query.progress !== 100 && progressBar}</div>
         <div>{trackingUrl}</div>
       </div>
     );

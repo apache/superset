@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
+import * as redux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
@@ -30,7 +31,7 @@ import * as featureFlags from 'src/featureFlags';
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -39,6 +40,17 @@ import { act } from 'react-dom/test-utils';
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
+
+const mockAppState = {
+  common: {
+    config: {
+      CSV_EXTENSIONS: ['csv'],
+      EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+      COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+      ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+    },
+  },
+};
 
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
@@ -94,12 +106,22 @@ fetchMock.get(databaseRelatedEndpoint, {
   },
 });
 
+const useSelectorMock = jest.spyOn(redux, 'useSelector');
+
 describe('DatabaseList', () => {
+  useSelectorMock.mockReturnValue({
+    CSV_EXTENSIONS: ['csv'],
+    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+  });
+
   const wrapper = mount(
     <Provider store={store}>
       <DatabaseList user={mockUser} />
     </Provider>,
   );
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
@@ -195,6 +217,7 @@ describe('RTL', () => {
           <DatabaseList user={mockUser} />
         </QueryParamProvider>,
         { useRedux: true },
+        mockAppState,
       );
     });
 

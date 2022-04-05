@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from superset.dataframe import df_to_records
-from superset.typing import DbapiDescription
+from superset.superset_typing import DbapiDescription
 
 
 def test_df_to_records(app_context: None) -> None:
