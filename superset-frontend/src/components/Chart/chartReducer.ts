@@ -33,6 +33,7 @@ export const chart: ChartState = {
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
+  latestQueryCacheInvalidated: false,
   sliceFormData: null,
   queryController: null,
   queriesResponse: null,
@@ -61,6 +62,7 @@ export default function chartReducer(
         chartStatus: 'success',
         chartAlert: null,
         queriesResponse: action.queriesResponse,
+        latestQueryCacheInvalidated: !!action.cacheInvalidated,
         chartUpdateEndTime: now(),
       };
     },
@@ -106,6 +108,7 @@ export default function chartReducer(
           : t('Network error.'),
         chartUpdateEndTime: now(),
         queriesResponse: action.queriesResponse,
+        latestQueryCacheInvalidated: !!action.cacheInvalidated,
         chartStackTrace: action.queriesResponse
           ? action.queriesResponse?.[0]?.stacktrace
           : null,

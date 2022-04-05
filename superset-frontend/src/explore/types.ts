@@ -46,6 +46,7 @@ export interface ChartState {
   chartUpdateStartTime: number;
   lastRendered: number;
   latestQueryFormData: Partial<QueryFormData>;
+  latestQueryCacheInvalidated: boolean;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData | null;

@@ -22,6 +22,7 @@ import React, {
   useMemo,
   useState,
   MouseEvent,
+  useRef,
 } from 'react';
 import {
   css,
@@ -238,6 +239,8 @@ export const DataTablesPane = ({
   ownState,
   errorMessage,
   queriesResponse,
+  chartUpdateCacheInvalidationStatus,
+  latestQueryCacheInvalidated,
 }: {
   queryFormData: Record<string, any>;
   chartStatus: string;
@@ -245,6 +248,8 @@ export const DataTablesPane = ({
   onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   queriesResponse: Record<string, any>;
+  chartUpdateCacheInvalidationStatus: (status: boolean) => void;
+  latestQueryCacheInvalidated: boolean;
 }) => {
   const theme = useTheme();
   const [data, setData] = useState(getDefaultDataTablesState(undefined));
@@ -263,15 +268,22 @@ export const DataTablesPane = ({
     getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
+  const latestQueryCacheInvalidatedRef = useRef(latestQueryCacheInvalidated);
+  latestQueryCacheInvalidatedRef.current = latestQueryCacheInvalidated;
+
   const getData = useCallback(
     (resultType: 'samples' | 'results') => {
       setIsLoading(prevIsLoading => ({
         ...prevIsLoading,
         [resultType]: true,
       }));
+
+      chartUpdateCacheInvalidationStatus(false);
+
       return getChartDataRequest({
         formData: queryFormData,
         resultFormat: 'json',
+        force: !!latestQueryCacheInvalidatedRef.current,
         resultType,
         ownState,
       })
@@ -331,7 +343,7 @@ export const DataTablesPane = ({
           });
         });
     },
-    [queryFormData, columnNames],
+    [chartUpdateCacheInvalidationStatus, queryFormData, columnNames],
   );
 
   useEffect(() => {

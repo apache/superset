@@ -55,8 +55,17 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(queriesResponse, key) {
-  return { type: CHART_UPDATE_SUCCEEDED, queriesResponse, key };
+export function chartUpdateSucceeded(
+  queriesResponse,
+  key,
+  cacheInvalidated = false,
+) {
+  return {
+    type: CHART_UPDATE_SUCCEEDED,
+    queriesResponse,
+    key,
+    cacheInvalidated,
+  };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
@@ -65,8 +74,18 @@ export function chartUpdateStopped(key) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(queriesResponse, key) {
-  return { type: CHART_UPDATE_FAILED, queriesResponse, key };
+export function chartUpdateFailed(
+  queriesResponse,
+  key,
+  cacheInvalidated = false,
+) {
+  return { type: CHART_UPDATE_FAILED, queriesResponse, key, cacheInvalidated };
+}
+
+export const CHART_UPDATE_CACHE_INVALIDATION_STATUS =
+  'CHART_UPDATE_CACHE_INVALIDATION_STATUS';
+export function chartUpdateCacheInvalidationStatus(status) {
+  return { type: CHART_UPDATE_CACHE_INVALIDATION_STATUS, status };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -437,11 +456,11 @@ export function exploreJSON(
             }),
           ),
         );
-        return dispatch(chartUpdateSucceeded(queriesResponse, key));
+        return dispatch(chartUpdateSucceeded(queriesResponse, key, force));
       })
       .catch(response => {
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-          return dispatch(chartUpdateFailed([response], key));
+          return dispatch(chartUpdateFailed([response], key, force));
         }
 
         const appendErrorLog = (errorDetails, isCached) => {
@@ -468,7 +487,7 @@ export function exploreJSON(
           } else {
             appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
           }
-          return dispatch(chartUpdateFailed([parsedResponse], key));
+          return dispatch(chartUpdateFailed([parsedResponse], key, force));
         });
       });
 
