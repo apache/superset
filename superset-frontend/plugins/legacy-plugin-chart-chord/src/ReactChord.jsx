@@ -52,7 +52,7 @@ export default styled(Chord)`
       stroke-width: 0.25px;
     }
     .superset-legacy-chart-chord svg #circle:hover path.fade {
-      opacity:  ${theme.opacity.mediumLight};
+      opacity:  ${theme.opacity.light};
     }
   `}
 `;
