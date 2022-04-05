@@ -20,7 +20,6 @@ from datetime import datetime
 import pytest
 from flask.ctx import AppContext
 
-from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(

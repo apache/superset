@@ -26,8 +26,6 @@ def test_import_chart(app_context: None, session: Session) -> None:
     Test importing a chart.
     """
     from superset.charts.commands.importers.v1.utils import import_chart
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -50,8 +48,6 @@ def test_import_chart_managed_externally(app_context: None, session: Session) ->
     Test importing a chart that is managed externally.
     """
     from superset.charts.commands.importers.v1.utils import import_chart
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import chart_config
 

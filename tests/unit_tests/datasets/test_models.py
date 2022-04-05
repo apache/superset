@@ -18,7 +18,6 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals, invalid-name, too-many-lines
 
 import json
-from datetime import datetime, timezone
 
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
@@ -865,11 +864,9 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
     """
     Test that deleting a ``SqlaTable`` also deletes the corresponding ``Dataset``.
     """
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -908,11 +905,9 @@ def test_update_sqlatable(
         "superset.security.SupersetSecurityManager.get_session", return_value=session
     )
 
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -969,11 +964,9 @@ def test_update_sqlatable_schema(
     )
     mocker.patch("superset.datasets.dao.db.session", session)
 
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1021,7 +1014,6 @@ def test_update_sqlatable_metric(
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1125,11 +1117,9 @@ def test_quote_expressions(app_context: None, session: Session) -> None:
     """
     Test that expressions are quoted appropriately in columns and datasets.
     """
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1170,7 +1160,6 @@ def test_update_physical_sqlatable(
     )
     mocker.patch("superset.datasets.dao.db.session", session)
 
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
@@ -1279,12 +1268,10 @@ def test_update_physical_sqlatable_no_dataset(
     )
     mocker.patch("superset.datasets.dao.db.session", session)
 
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
     from superset.tables.models import Table
-    from superset.tables.schemas import TableSchema
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member

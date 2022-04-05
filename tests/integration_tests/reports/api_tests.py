@@ -41,11 +41,6 @@ from superset.models.reports import (
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
@@ -776,9 +771,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create report schedule with unsaved chart
         """
         self.login(username="admin")
-        chart = db.session.query(Slice).first()
-        dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        db.session.query(Slice).first()
+        db.session.query(Dashboard).first()
+        get_example_database()
 
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -805,9 +800,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create report schedule with no dashboard id
         """
         self.login(username="admin")
-        chart = db.session.query(Slice).first()
-        dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        db.session.query(Slice).first()
+        db.session.query(Dashboard).first()
+        get_example_database()
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name3",
@@ -833,8 +828,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         self.login(username="admin")
         chart = db.session.query(Slice).first()
-        dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        db.session.query(Dashboard).first()
+        get_example_database()
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name4",
@@ -890,9 +885,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test create multiple reports with the same creation method
         """
         self.login(username="admin")
-        chart = db.session.query(Slice).first()
+        db.session.query(Slice).first()
         dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        get_example_database()
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
             "name": "name4",

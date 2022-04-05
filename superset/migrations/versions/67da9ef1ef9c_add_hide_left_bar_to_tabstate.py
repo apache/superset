@@ -28,7 +28,6 @@ down_revision = "1412ec1e5a7b"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import mysql
 from sqlalchemy.sql import expression
 
 

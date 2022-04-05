@@ -16,21 +16,12 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset cache warmup"""
-import datetime
 import json
 from unittest.mock import MagicMock
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
-from sqlalchemy import String, Date, Float
 
 import pytest
-import pandas as pd
 
-from superset.models.slice import Slice
-from superset.utils.database import get_example_database
 
 from superset import db
 
@@ -43,11 +34,6 @@ from superset.tasks.cache import (
 )
 
 from .base_tests import SupersetTestCase
-from .dashboard_utils import create_dashboard, create_slice, create_table_metadata
-from .fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
-)
 
 URL_PREFIX = "http://0.0.0.0:8081"
 

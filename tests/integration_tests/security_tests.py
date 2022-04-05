@@ -48,18 +48,6 @@ from superset.utils.urls import get_url_host
 from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.public_role import (
-    public_role_like_gamma,
-    public_role_like_test_role,
-)
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -1260,7 +1248,7 @@ class TestGuestTokens(SupersetTestCase):
         now = time.time()
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
-        aud = get_url_host()
+        get_url_host()
 
         claims = {
             "user": user,

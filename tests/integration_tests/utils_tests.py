@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -23,20 +22,14 @@ import json
 import os
 import re
 from typing import Any, Tuple, List, Optional
-from unittest.mock import Mock, patch
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 import numpy as np
 import pandas as pd
 import pytest
-from flask import Flask, g
+from flask import g
 import marshmallow
 from sqlalchemy.exc import ArgumentError
 
-import tests.integration_tests.test_app
 from superset import app, db, security_manager
 from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
@@ -75,10 +68,6 @@ from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
 from superset.views.utils import build_extra_filters, get_form_data
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 from .fixtures.certificates import ssl_certificate
 

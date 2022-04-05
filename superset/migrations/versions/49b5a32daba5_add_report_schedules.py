@@ -29,7 +29,6 @@ down_revision = "96e99fb176a0"
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.exc import OperationalError
 
 
 def upgrade():

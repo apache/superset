@@ -27,7 +27,6 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 import pytest
 import prison
 import yaml
-from sqlalchemy.sql import func
 
 from freezegun import freeze_time
 from sqlalchemy import and_
@@ -51,14 +50,6 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 DASHBOARDS_FIXTURE_COUNT = 10
 

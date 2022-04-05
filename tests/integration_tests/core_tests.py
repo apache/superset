@@ -27,15 +27,10 @@ from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 import pytest
 import pytz
 import random
-import re
 import unittest
 from unittest import mock
 
@@ -45,10 +40,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.models.cache import CacheKey
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
 from tests.integration_tests.test_app import app
 import superset.views.utils
 from superset import (
@@ -75,10 +66,6 @@ from superset.views import core as views
 from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 logger = logging.getLogger(__name__)
 

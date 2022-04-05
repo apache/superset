@@ -28,7 +28,6 @@ from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
-from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(

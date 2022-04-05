@@ -25,23 +25,10 @@ from flask import g
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
-    GuestTokenRlsRule,
     GuestTokenResourceType,
     GuestUser,
 )
 from ..base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
-from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,
-    load_unicode_data,
-)
 
 
 class TestRowLevelSecurity(SupersetTestCase):

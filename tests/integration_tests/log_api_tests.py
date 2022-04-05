@@ -98,7 +98,7 @@ class TestLogApi(SupersetTestCase):
         Log API: Test get list
         """
         admin_user = self.get_user("admin")
-        log = self.insert_log("action", admin_user)
+        self.insert_log("action", admin_user)
         self.login(username="gamma")
         uri = "api/v1/log/"
         rv = self.client.get(uri)

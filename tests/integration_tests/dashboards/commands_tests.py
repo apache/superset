@@ -16,7 +16,7 @@
 # under the License.
 import itertools
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -45,10 +45,6 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     dataset_metadata_config,
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
 )
 
 

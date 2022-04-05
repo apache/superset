@@ -23,7 +23,6 @@ import pytest
 
 import numpy as np
 import pandas as pd
-import sqlalchemy as sa
 from flask import Flask
 from pytest_mock import MockFixture
 from sqlalchemy.sql import text
@@ -44,10 +43,6 @@ from superset.utils.core import (
     backend,
 )
 from superset.utils.database import get_example_database
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase

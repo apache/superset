@@ -24,7 +24,6 @@ import json
 
 import sqlalchemy as sa
 from alembic import op
-from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -87,4 +86,3 @@ def downgrade():
         dashboard.position_json = json.dumps(positions, indent=2)
         session.merge(dashboard)
         session.commit()
-    pass

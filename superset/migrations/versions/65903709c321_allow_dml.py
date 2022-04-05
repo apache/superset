@@ -41,4 +41,3 @@ def downgrade():
         op.drop_column("dbs", "allow_dml")
     except Exception as ex:
         logging.exception(ex)
-        pass

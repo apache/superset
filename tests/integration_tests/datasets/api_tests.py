@@ -40,14 +40,6 @@ from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
-)
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     database_metadata_config,

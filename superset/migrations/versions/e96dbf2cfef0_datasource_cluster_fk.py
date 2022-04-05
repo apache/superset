@@ -24,7 +24,6 @@ Create Date: 2020-01-08 01:17:40.127610
 import sqlalchemy as sa
 from alembic import op
 
-from superset import db
 from superset.utils.core import (
     generic_find_fk_constraint_name,
     generic_find_uq_constraint_name,

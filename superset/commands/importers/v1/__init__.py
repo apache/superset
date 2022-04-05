@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Dict, List, Optional, Set
 
-from marshmallow import Schema, validate
+from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
 
@@ -26,12 +26,9 @@ from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
     load_configs,
     load_metadata,
-    load_yaml,
-    METADATA_FILE_NAME,
     validate_metadata_type,
 )
 from superset.dao.base import BaseDAO
-from superset.models.core import Database
 
 
 class ImportModelsCommand(BaseCommand):

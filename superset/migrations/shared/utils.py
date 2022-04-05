@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Iterator, Optional, Set
+from typing import Any, Iterator, Set
 
 from alembic import op
 from sqlalchemy import engine_from_config

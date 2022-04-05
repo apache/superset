@@ -26,7 +26,6 @@ from flask.ctx import AppContext
 from superset.extensions import db
 from tests.integration_tests.key_value.commands.fixtures import (
     ID_KEY,
-    key_value_entry,
     RESOURCE,
     UUID_KEY,
     VALUE,

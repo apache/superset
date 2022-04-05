@@ -57,15 +57,6 @@ from superset.reports.commands.exceptions import (
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.database import get_example_database
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices_module_scope,
-    load_world_bank_data,
-)
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 from tests.integration_tests.utils import read_fixture
@@ -1485,7 +1476,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == OWNER_EMAIL
 
@@ -1613,9 +1604,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     """
     ExecuteReport Command: Test soft timeout on screenshot
     """
-    from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.reports.commands.exceptions import AlertQueryTimeout
 
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
@@ -1623,7 +1612,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
             TEST_ID, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_report_email_chart)
+    get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == OWNER_EMAIL
 
@@ -1828,7 +1817,7 @@ def test_grace_period_error_flap(
 )
 @patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
 def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
-    from datetime import datetime, timedelta
+    pass
 
     from celery.exceptions import SoftTimeLimitExceeded
 

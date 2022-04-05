@@ -27,7 +27,7 @@ from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    pass
 
 logger = logging.getLogger(__name__)
 

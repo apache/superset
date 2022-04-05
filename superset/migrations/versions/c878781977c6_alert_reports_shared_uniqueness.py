@@ -31,9 +31,7 @@ from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
-from sqlalchemy.engine.reflection import Inspector
 
-from superset.utils.core import generic_find_uq_constraint_name
 
 report_schedule = sa.Table(
     "report_schedule",

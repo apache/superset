@@ -34,7 +34,7 @@ from alembic import op
 
 def upgrade():
     kwargs: Dict[str, str] = {}
-    bind = op.get_bind()
+    op.get_bind()
     op.add_column(
         "dbs",
         sa.Column("server_cert", sa.LargeBinary(), nullable=True, **kwargs),

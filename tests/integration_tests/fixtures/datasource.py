@@ -18,7 +18,6 @@
 from typing import Any, Dict
 
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database
 
 
 def get_datasource_post() -> Dict[str, Any]:

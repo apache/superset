@@ -24,7 +24,7 @@ Create Date: 2019-07-15 12:00:32.267507
 import logging
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, Table
+from sqlalchemy import Column, ForeignKey, Integer, and_
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db

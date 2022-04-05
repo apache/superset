@@ -21,7 +21,6 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session
 
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError

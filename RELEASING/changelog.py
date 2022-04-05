@@ -93,7 +93,7 @@ class GitChangeLog:
             if not pull_request:
                 pull_request = github_repo.get_pull(pr_number)
                 self._github_prs[pr_number] = pull_request
-        except BadCredentialsException as ex:
+        except BadCredentialsException:
             print(
                 f"Bad credentials to github provided"
                 f" use access_token parameter or set GITHUB_TOKEN"

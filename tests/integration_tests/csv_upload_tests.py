@@ -22,20 +22,17 @@ import os
 import shutil
 from typing import Dict, Optional
 
-from unittest import mock
 
 import pandas as pd
 import pytest
 
 import superset.utils.database
 from superset.sql_parse import Table
-from superset import security_manager
-from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db
 from superset.models.core import Database
 from superset.utils import core as utils
-from tests.integration_tests.base_tests import get_resp, login, SupersetTestCase
+from tests.integration_tests.base_tests import get_resp, login
 
 logger = logging.getLogger(__name__)
 

@@ -31,7 +31,6 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import mysql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
@@ -96,4 +95,3 @@ def downgrade() -> None:
     This script fixes b56500de1855_add_uuid_column_to_import_mixin.py by adding any
     uuid columns that might have been skipped. There's no downgrade.
     """
-    pass

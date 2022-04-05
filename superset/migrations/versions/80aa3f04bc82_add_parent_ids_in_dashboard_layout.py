@@ -24,11 +24,9 @@ Create Date: 2019-04-09 16:27:03.392872
 import json
 import logging
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
 from superset import db
 

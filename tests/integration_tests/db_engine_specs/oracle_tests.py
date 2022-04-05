@@ -38,7 +38,7 @@ class TestOracleDbEngineSpec(TestDbEngineSpec):
         expr = OracleEngineSpec.get_timestamp_expr(col, None, "P1M")
         result = str(expr.compile(dialect=oracle.dialect()))
         self.assertEqual(result, "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')")
-        dttm = self.get_dttm()
+        self.get_dttm()
 
     def test_column_datatype_to_string(self):
         test_cases = (

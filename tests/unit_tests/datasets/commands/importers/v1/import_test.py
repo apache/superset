@@ -28,9 +28,8 @@ def test_import_dataset(app_context: None, session: Session) -> None:
     """
     Test importing a dataset.
     """
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
-    from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     engine = session.get_bind()
@@ -141,7 +140,7 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
     """
     Test importing a dataset when the column extra is a string.
     """
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
@@ -221,9 +220,8 @@ def test_import_dataset_managed_externally(app_context: None, session: Session) 
     """
     Test importing a dataset that is managed externally.
     """
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.commands.importers.v1.utils import import_dataset
-    from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import dataset_config
 
@@ -234,7 +232,7 @@ def test_import_dataset_managed_externally(app_context: None, session: Session) 
     session.add(database)
     session.flush()
 
-    dataset_uuid = uuid.uuid4()
+    uuid.uuid4()
     config = copy.deepcopy(dataset_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"

@@ -18,20 +18,12 @@
 from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
-from superset.app import create_app
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import (
-    appbuilder,
     cache_manager,
-    db,
-    event_logger,
     feature_flag_manager,
     manifest_processor,
     results_backend_manager,
-    security_manager,
-    talisman,
 )
-from superset.security import SupersetSecurityManager
 
 #  All of the fields located here should be considered legacy. The correct way
 #  to declare "global" dependencies is to define it in extensions.py,

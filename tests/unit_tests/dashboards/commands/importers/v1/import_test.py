@@ -25,9 +25,7 @@ def test_import_dashboard(app_context: None, session: Session) -> None:
     """
     Test importing a dashboard.
     """
-    from superset.connectors.sqla.models import SqlaTable
     from superset.dashboards.commands.importers.v1.utils import import_dashboard
-    from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config
 
@@ -49,9 +47,7 @@ def test_import_dashboard_managed_externally(
     """
     Test importing a dashboard that is managed externally.
     """
-    from superset.connectors.sqla.models import SqlaTable
     from superset.dashboards.commands.importers.v1.utils import import_dashboard
-    from superset.models.core import Database
     from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config
 

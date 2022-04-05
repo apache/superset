@@ -17,11 +17,10 @@
 import logging
 import time
 import unittest
-from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
+from datetime import timedelta
+from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app
 from freezegun import freeze_time
 
 from superset import security_manager

@@ -21,7 +21,6 @@ from datetime import datetime
 from flask.ctx import AppContext
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from tests.unit_tests.fixtures.common import dttm
 
 SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "

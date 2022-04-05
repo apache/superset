@@ -29,7 +29,7 @@ down_revision = "67da9ef1ef9c"
 import json
 
 from alembic import op
-from sqlalchemy import and_, Column, Integer, Text
+from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -66,7 +66,6 @@ def upgrade():
         except Exception as e:
             print(e)
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            pass
 
     session.commit()
     session.close()
@@ -96,7 +95,6 @@ def downgrade():
         except Exception as e:
             print(e)
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            pass
 
     session.commit()
     session.close()

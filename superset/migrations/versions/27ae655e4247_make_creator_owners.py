@@ -28,7 +28,6 @@ down_revision = "d8bc074f7aad"
 
 from alembic import op
 from flask import g
-from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, Table
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship

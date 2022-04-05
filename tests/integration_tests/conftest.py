@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -61,7 +61,7 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
+        get_example_database().get_sqla_engine()
 
         # drop sqlachemy tables
 

@@ -113,4 +113,3 @@ def downgrade():
     except SQLAlchemyError as ex:
         print(f"An error occurred while downgrading annotation permissions: {ex}")
         session.rollback()
-    pass

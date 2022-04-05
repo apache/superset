@@ -17,7 +17,6 @@
 import io
 
 import pandas as pd
-import pytest
 
 from superset.utils import csv
 

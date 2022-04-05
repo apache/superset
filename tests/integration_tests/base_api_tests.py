@@ -16,20 +16,15 @@
 # under the License.
 # isort:skip_file
 import json
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
-import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi, requires_json
+from superset.views.base_api import BaseSupersetModelRestApi
 
 from .base_tests import SupersetTestCase
 

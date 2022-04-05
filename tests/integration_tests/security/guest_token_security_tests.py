@@ -25,13 +25,8 @@ from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.embedded.dao import EmbeddedDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.security.guest_token import GuestTokenResourceType
 from superset.sql_parse import Table
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 
 @mock.patch.dict(

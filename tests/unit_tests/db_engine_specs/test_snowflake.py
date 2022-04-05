@@ -22,7 +22,6 @@ import pytest
 from flask.ctx import AppContext
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(

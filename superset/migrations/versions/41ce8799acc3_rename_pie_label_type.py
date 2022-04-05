@@ -67,7 +67,6 @@ def upgrade():
         except Exception as e:
             print(e)
             print(f"Parsing params for slice {slc.id} failed.")
-            pass
 
     session.commit()
     session.close()
@@ -95,7 +94,6 @@ def downgrade():
         except Exception as e:
             print(e)
             print(f"Parsing params for slice {slc.id} failed.")
-            pass
 
     session.commit()
     session.close()

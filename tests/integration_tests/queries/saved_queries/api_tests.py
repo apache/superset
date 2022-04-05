@@ -26,7 +26,6 @@ import pytest
 import prison
 from sqlalchemy.sql import func, and_
 
-import tests.integration_tests.test_app
 from superset import db
 from superset.models.core import Database
 from superset.models.core import FavStar
@@ -545,7 +544,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test create
         """
-        admin = self.get_user("admin")
+        self.get_user("admin")
         example_db = get_example_database()
 
         post_data = {

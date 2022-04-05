@@ -20,7 +20,6 @@ from unittest import mock
 import pytest
 from flask.ctx import AppContext
 
-from tests.unit_tests.fixtures.common import dttm
 
 
 def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:

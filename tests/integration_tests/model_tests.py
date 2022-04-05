@@ -20,18 +20,12 @@ import textwrap
 import unittest
 from unittest import mock
 
-from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 
 import pytest
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime
 
-import tests.integration_tests.test_app
 from superset import app, db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
@@ -41,10 +35,6 @@ from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
-)
 
 
 class TestDatabaseModel(SupersetTestCase):

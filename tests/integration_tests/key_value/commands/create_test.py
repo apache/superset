@@ -17,17 +17,13 @@
 from __future__ import annotations
 
 import pickle
-from uuid import UUID
 
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 
 from superset.extensions import db
 from tests.integration_tests.key_value.commands.fixtures import (
-    admin,
-    ID_KEY,
     RESOURCE,
-    UUID_KEY,
     VALUE,
 )
 

@@ -78,7 +78,7 @@ def upgrade():
     for slc in filter_box_slices.all():
         try:
             upgrade_slice(slc)
-        except Exception as ex:
+        except Exception:
             logging.exception(e)
 
     session.commit()

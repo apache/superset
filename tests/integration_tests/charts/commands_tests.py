@@ -19,7 +19,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from flask import g
 
 from superset import db, security_manager
 from superset.charts.commands.create import CreateChartCommand
@@ -33,10 +32,6 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
-)
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,

@@ -18,8 +18,6 @@ import json
 
 import pytest
 
-from superset import db
-from superset.models.dashboard import Dashboard
 from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
 

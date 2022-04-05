@@ -26,7 +26,6 @@ Create Date: 2020-12-14 10:49:36.110805
 revision = "42b4c9e01447"
 down_revision = "1f6dca87d1a2"
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -105,4 +104,3 @@ def downgrade():
     except SQLAlchemyError as ex:
         print(f"An error occurred while downgrading permissions: {ex}")
         session.rollback()
-    pass

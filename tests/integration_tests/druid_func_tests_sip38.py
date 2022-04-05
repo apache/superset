@@ -19,7 +19,6 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-import tests.integration_tests.test_app
 import superset.connectors.druid.models as models
 from superset.connectors.druid.models import DruidColumn, DruidDatasource, DruidMetric
 from superset.exceptions import SupersetException

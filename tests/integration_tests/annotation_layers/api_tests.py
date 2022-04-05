@@ -22,13 +22,11 @@ import pytest
 import prison
 from sqlalchemy.sql import func
 
-import tests.integration_tests.test_app
 from superset import db
 from superset.models.annotations import Annotation, AnnotationLayer
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.annotation_layers.fixtures import (
-    create_annotation_layers,
     get_end_dttm,
     get_start_dttm,
 )

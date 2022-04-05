@@ -18,7 +18,6 @@ import datetime
 import math
 from typing import Any
 
-import pytest
 
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 

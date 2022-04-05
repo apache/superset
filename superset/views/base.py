@@ -80,7 +80,7 @@ from superset.utils import core as utils
 from .utils import bootstrap_user_data
 
 if TYPE_CHECKING:
-    from superset.connectors.druid.views import DruidClusterModelView
+    pass
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",

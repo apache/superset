@@ -23,9 +23,8 @@ Create Date: 2021-02-14 11:46:02.379832
 """
 import json
 
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, or_, String, Text
+from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db

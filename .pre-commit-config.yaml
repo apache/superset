@@ -51,3 +51,12 @@ repos:
       - id: prettier
         args: ['--ignore-path=./superset-frontend/.prettierignore']
         files: 'superset-frontend'
+  - repo: https://github.com/myint/autoflake.git
+    rev: v1.4
+    hooks:
+      - id: autoflake
+        args: [
+          --in-place,
+          --remove-all-unused-imports,
+          --remove-unused-variables,
+        ]

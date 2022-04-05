@@ -22,10 +22,6 @@ from superset import db
 from superset.embedded.dao import EmbeddedDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
-)
 
 
 class TestEmbeddedDAO(SupersetTestCase):
