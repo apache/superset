@@ -71,7 +71,7 @@ RUN cd /app/superset-frontend \
 ######################################################################
 # Final lean image...
 ######################################################################
-ARG PY_VER=3.8.12
+ARG PY_VER=3.8.13
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
