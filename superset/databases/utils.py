@@ -113,6 +113,6 @@ def make_url_safe(raw_url: str) -> URL:
     :return:
     """
     try:
-        return make_url(raw_url.strip())
+        return make_url(raw_url.strip())  # noqa
     except Exception:
         raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
