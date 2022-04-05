@@ -23,15 +23,17 @@ Create Date: 2022-04-05 13:27:06.028908
 """
 
 # revision identifiers, used by Alembic.
-revision = 'cdcf3d64daf4'
-down_revision = 'b0d0249074e4'
+revision = "cdcf3d64daf4"
+down_revision = "b0d0249074e4"
 
 
 from alembic import op
 
 
 def upgrade():
-    op.create_index(op.f("ix_logs_user_id_dttm"), "logs", ["user_id", "dttm"], unique=False)
+    op.create_index(
+        op.f("ix_logs_user_id_dttm"), "logs", ["user_id", "dttm"], unique=False
+    )
 
 
 def downgrade():
