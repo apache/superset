@@ -16,7 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/core';
+import React from 'react';
+import { reactify, styled } from '@superset-ui/core';
 import Component from './Treemap';
 
-export default reactify(Component);
+const ReactComponent = reactify(Component);
+
+const Treemap = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactComponent {...otherProps} />
+  </div>
+);
+
+export default styled(Treemap)`
+  ${({ theme }) => `
+    .superset-legacy-chart-treemap text {
+      font-size: ${theme.typography.sizes.s}px;
+      pointer-events: none;
+    }
+
+    .superset-legacy-chart-treemap tspan:last-child {
+      font-size: ${theme.typography.sizes.xs}px;
+      fill-opacity: 0.8;
+    }
+
+    .superset-legacy-chart-treemap .node rect {
+      shape-rendering: crispEdges;
+    }
+
+    .superset-legacy-chart-treemap .node--hover rect {
+      stroke: ${theme.colors.grayscale.dark2};
+    }
+  `}
+`;
