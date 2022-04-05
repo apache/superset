@@ -14,20 +14,45 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""deprecate time_range_endpoints
+"""deprecate time_range_endpoints v2
 
-Revision ID: ab9a9d86e695
-Revises: b5a422d8e252
-Create Date: 2022-02-25 08:06:14.835094
+Revision ID: b0d0249074e4
+Revises: 2ed890b36b94
+Create Date: 2022-04-04 15:04:05.606340
 
 """
+import json
+
+from alembic import op
+from sqlalchemy import Column, Integer, Text
+from sqlalchemy.ext.declarative import declarative_base
+
+from superset import db
+
 # revision identifiers, used by Alembic.
-revision = "ab9a9d86e695"
-down_revision = "b5a422d8e252"
+revision = "b0d0249074e4"
+down_revision = "2ed890b36b94"
+
+Base = declarative_base()
+
+
+class Slice(Base):
+    __tablename__ = "slices"
+    id = Column(Integer, primary_key=True)
+    params = Column(Text)
 
 
 def upgrade():
-    pass
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    for slc in session.query(Slice).filter(Slice.params.like("%time_range_endpoints%")):
+        params = json.loads(slc.params)
+        params.pop("time_range_endpoints", None)
+        slc.params = json.dumps(params)
+
+    session.commit()
+    session.close()
 
 
 def downgrade():
