@@ -715,6 +715,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "title",
             "url",
         ]
+        if backend() == "sqlite":
+            # sqlite doesn't support ms timestamps not possible to infer proper ordering
+            return
         expected_results = [
             {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
             {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
