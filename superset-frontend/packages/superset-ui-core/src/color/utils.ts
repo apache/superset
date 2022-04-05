@@ -73,3 +73,9 @@ export function getAnalogousColors(colors: string[], results: number) {
 
   return generatedColors;
 }
+
+export function addAlpha(color: string, opacity: number): string {
+  // coerce values so ti is between 0 and 1.
+  const rounded = Math.round(Math.min(Math.max(opacity || 1, 0), 1) * 255);
+  return color + rounded.toString(16).toUpperCase();
+}
