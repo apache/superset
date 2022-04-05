@@ -17,14 +17,14 @@
 """Add user_id and dttm composite index to Log model
 
 Revision ID: cdcf3d64daf4
-Revises: 2ed890b36b94
+Revises: b0d0249074e4
 Create Date: 2022-04-05 13:27:06.028908
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'cdcf3d64daf4'
-down_revision = '2ed890b36b94'
+down_revision = 'b0d0249074e4'
 
 
 from alembic import op
