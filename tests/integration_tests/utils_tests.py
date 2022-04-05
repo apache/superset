@@ -24,6 +24,8 @@ import os
 import re
 from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
+
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
