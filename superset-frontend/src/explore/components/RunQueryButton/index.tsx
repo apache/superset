@@ -52,7 +52,7 @@ export const RunQueryButton = ({
       disabled={!!errorMessage}
       data-test="run-query-button"
     >
-      {isNewChart ? t('Create the chart') : t('Update the chart')}
+      {isNewChart ? t('Create chart') : t('Update chart')}
     </Button>
   );
 };
