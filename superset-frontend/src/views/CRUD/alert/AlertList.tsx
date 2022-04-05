@@ -264,22 +264,23 @@ function AlertList({
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { created_by },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: any) =>
+          created_by ? `${created_by.first_name} ${created_by.last_name}` : '',
+        Header: t('Created by'),
+        id: 'created_by',
         disableSortBy: true,
         size: 'xl',
       },
       {
         Cell: ({
           row: {
-            original: { created_by },
+            original: { owners = [] },
           },
-        }: any) => <FacePile users={[created_by]} />,
-        Header: t('Created by'),
-        id: 'created_by',
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        id: 'owners',
         disableSortBy: true,
         size: 'xl',
       },
