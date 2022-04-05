@@ -37,6 +37,7 @@ from sqlalchemy import (
     create_engine,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     MetaData,
     String,
@@ -809,6 +810,10 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     dttm = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
+
+    __table_args__ = (
+        Index('logs_user_id_dttm_idx', "user_id", "dttm"),
+    )
 
 
 class FavStarClassName(str, enum.Enum):
