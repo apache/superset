@@ -128,6 +128,7 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
+    shared_label_colors = fields.Dict()
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -165,6 +166,7 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
 
 
 class DatabaseSchema(Schema):
@@ -175,6 +177,7 @@ class DatabaseSchema(Schema):
     allows_subquery = fields.Bool()
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
+    disable_data_preview = fields.Bool()
     explore_database_id = fields.Int()
 
 
@@ -240,13 +243,16 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     css = fields.String()
     json_metadata = fields.String(
-        description=json_metadata_description, validate=validate_json_metadata,
+        description=json_metadata_description,
+        validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
     certified_by = fields.String(description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -276,6 +282,8 @@ class DashboardPutSchema(BaseDashboardSchema):
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class ChartFavStarResponseResult(Schema):
@@ -299,3 +307,17 @@ class ImportV1DashboardSchema(Schema):
     position = fields.Dict()
     metadata = fields.Dict()
     version = fields.String(required=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
+
+
+class EmbeddedDashboardConfigSchema(Schema):
+    allowed_domains = fields.List(fields.String(), required=True)
+
+
+class EmbeddedDashboardResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    dashboard_id = fields.String()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)

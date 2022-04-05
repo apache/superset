@@ -42,7 +42,7 @@ export const useFilters = () => {
   const preselectedNativeFilters = useSelector<any, Filters>(
     state => state.dashboardState?.preselectNativeFilters,
   );
-  const nativeFilters = useSelector<any, Filters>(
+  const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters.filters,
   );
   return useMemo(

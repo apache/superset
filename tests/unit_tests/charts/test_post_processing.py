@@ -1351,7 +1351,6 @@ def test_table():
         "table_timestamp_format": "smart_date",
         "time_grain_sqla": "P1D",
         "time_range": "No filter",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "url_params": {},
         "viz_type": "table",
     }

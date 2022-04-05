@@ -182,7 +182,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allows_virtual_table_explore"
@@ -194,6 +194,24 @@ const ExtraOptions = ({
                 <InfoTooltip
                   tooltip={t(
                     'When enabled, users are able to visualize SQL Lab results in Explore.',
+                  )}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="disable_data_preview"
+                  indeterminate={false}
+                  checked={!!db?.extra_json?.disable_data_preview}
+                  onChange={onExtraInputChange}
+                  labelText={t('Disable SQL Lab data preview queries')}
+                />
+                <InfoTooltip
+                  tooltip={t(
+                    'Disable data preview when fetching table metadata in SQL Lab. ' +
+                      ' Useful to avoid browser performance issues when using ' +
+                      ' databases with very wide tables.',
                   )}
                 />
               </div>

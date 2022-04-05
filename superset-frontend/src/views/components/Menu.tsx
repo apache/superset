@@ -21,13 +21,8 @@ import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import {
-  MainNav as DropdownMenu,
-  MenuMode,
-  Row,
-  Col,
-  Grid,
-} from 'src/common/components';
+import { Row, Col, Grid } from 'src/components';
+import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
@@ -40,7 +35,6 @@ interface BrandProps {
   path: string;
   icon: string;
   alt: string;
-  width: string | number;
   tooltip: string;
   text: string;
 }
@@ -72,14 +66,14 @@ export interface MenuProps {
   isFrontendRoute?: (path?: string) => boolean;
 }
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
   name?: string;
   icon?: string;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
-  perm?: string | Array<any> | boolean;
+  perm?: string | boolean;
   view?: string;
 }
 
@@ -102,6 +96,17 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* must be exactly the height of the Antd navbar */
+    min-height: 50px;
+    padding: ${({ theme }) =>
+      `${theme.gridUnit}px ${theme.gridUnit * 2}px ${theme.gridUnit}px ${
+        theme.gridUnit * 4
+      }px`};
+    max-width: ${({ theme }) => `${theme.gridUnit * 37}px`};
+    img {
+      height: 100%;
+      object-fit: contain;
+    }
   }
   .navbar-brand-text {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -199,7 +204,7 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
-  const uiConig = useUiConfig();
+  const uiConfig = useUiConfig();
   const theme = useTheme();
 
   useEffect(() => {
@@ -215,7 +220,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone || uiConig.hideNav) return <></>;
+  if (standalone || uiConfig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,
@@ -247,7 +252,7 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-') {
+          if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {
@@ -278,7 +283,7 @@ export function Menu({
             arrowPointAtCenter
           >
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img src={brand.icon} alt={brand.alt} />
             </a>
           </Tooltip>
           {brand.text && (
@@ -291,8 +296,9 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map(item => {
+            {menu.map((item, index) => {
               const props = {
+                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {

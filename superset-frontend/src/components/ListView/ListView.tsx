@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useEffect } from 'react';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import Alert from 'src/components/Alert';
 import EmptyImage from 'src/assets/images/empty.svg';
 import cx from 'classnames';

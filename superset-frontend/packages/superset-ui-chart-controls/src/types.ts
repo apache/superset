@@ -171,6 +171,8 @@ export type TabOverride = 'data' | 'customize' | boolean;
  *    bubbled up to the control header, section header and query panel header.
  * - warning: text shown as a tooltip on a warning icon in the control's header
  * - error: text shown as a tooltip on a error icon in the control's header
+ * - shouldMapStateToProps: a function that receives the previous and current app state
+ *   and determines if the control needs to recalculate it's props based on the new state.
  * - mapStateToProps: a function that receives the App's state and return an object of k/v
  *    to overwrite configuration at runtime. This is useful to alter a component based on
  *    anything external to it, like another control's value. For instance it's possible to
@@ -198,6 +200,13 @@ export interface BaseControlConfig<
   /**
    * Add additional props to chart control.
    */
+  shouldMapStateToProps?: (
+    prevState: ControlPanelState,
+    state: ControlPanelState,
+    controlState: ControlState,
+    // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+    chartState?: AnyDict,
+  ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
     controlState: ControlState,

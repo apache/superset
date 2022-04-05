@@ -127,6 +127,7 @@ export default function transformProps(
     showUpperLabels,
     dashboardId,
     emitFilter,
+    sliceId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
@@ -223,7 +224,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${child.name}`),
+        color: colorFn(`${child.name}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -259,7 +260,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: CategoricalColorNamespace.getColor(),
+        color: '#1FA8C9',
       },
     },
   ];

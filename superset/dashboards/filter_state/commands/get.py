@@ -20,12 +20,12 @@ from flask import current_app as app
 
 from superset.dashboards.dao import DashboardDAO
 from superset.extensions import cache_manager
-from superset.key_value.commands.get import GetKeyValueCommand
-from superset.key_value.commands.parameters import CommandParameters
-from superset.key_value.utils import cache_key
+from superset.temporary_cache.commands.get import GetTemporaryCacheCommand
+from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.temporary_cache.utils import cache_key
 
 
-class GetFilterStateCommand(GetKeyValueCommand):
+class GetFilterStateCommand(GetTemporaryCacheCommand):
     def __init__(self, cmd_params: CommandParameters) -> None:
         super().__init__(cmd_params)
         config = app.config["FILTER_STATE_CACHE_CONFIG"]

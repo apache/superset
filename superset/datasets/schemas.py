@@ -81,6 +81,8 @@ class DatasetPostSchema(Schema):
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     owners = fields.List(fields.Integer())
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -101,6 +103,8 @@ class DatasetPutSchema(Schema):
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     extra = fields.String(allow_none=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetRelatedChart(Schema):
@@ -214,6 +218,8 @@ class ImportV1DatasetSchema(Schema):
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

@@ -42,7 +42,7 @@ def select(
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
     :return: Subset of columns in original DataFrame
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     df_select = df.copy(deep=False)
     if columns:

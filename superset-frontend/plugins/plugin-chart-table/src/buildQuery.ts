@@ -144,6 +144,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
+        order_desc: undefined, // we don't need orderby stuff here,
+        orderby: undefined, // because this query will be used for get total aggregation.
       });
     }
 

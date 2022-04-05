@@ -42,7 +42,7 @@ import Select, { propertyComparator } from 'src/components/Select/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { Checkbox } from 'src/common/components';
+import { AntdCheckbox } from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -87,37 +87,30 @@ const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
     value: '<',
-    order: 0,
   },
   {
     label: t('> (Larger than)'),
     value: '>',
-    order: 1,
   },
   {
     label: t('<= (Smaller or equal)'),
     value: '<=',
-    order: 2,
   },
   {
     label: t('>= (Larger or equal)'),
     value: '>=',
-    order: 3,
   },
   {
     label: t('== (Is equal)'),
     value: '==',
-    order: 4,
   },
   {
     label: t('!= (Is not equal)'),
     value: '!=',
-    order: 5,
   },
   {
     label: t('Not null'),
     value: 'not null',
-    order: 6,
   },
 ];
 
@@ -342,7 +335,7 @@ const StyledRadioGroup = styled(Radio.Group)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
-const StyledCheckbox = styled(Checkbox)`
+const StyledCheckbox = styled(AntdCheckbox)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
@@ -595,7 +588,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/api/v1/report/related/owners?q=${query}`,
+          endpoint: `/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -940,7 +933,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
       setCurrentAlert({ ...DEFAULT_ALERT });
-      setForceScreenshot(contentType === 'chart' && !isReport);
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -1195,7 +1187,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
-                      sortComparator={propertyComparator('order')}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1369,18 +1360,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     )}
                   </StyledRadioGroup>
                 </div>
-                {isReport && (
-                  <div className="inline-container">
-                    <StyledCheckbox
-                      className="checkbox"
-                      checked={forceScreenshot}
-                      onChange={onForceScreenshotChange}
-                    >
-                      Ignore cache when generating screenshot
-                    </StyledCheckbox>
-                  </div>
-                )}
               </>
+            )}
+            {(isReport || contentType === 'dashboard') && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="bypass-cache"
+                  className="checkbox"
+                  checked={forceScreenshot}
+                  onChange={onForceScreenshotChange}
+                >
+                  Ignore cache when generating screenshot
+                </StyledCheckbox>
+              </div>
             )}
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>

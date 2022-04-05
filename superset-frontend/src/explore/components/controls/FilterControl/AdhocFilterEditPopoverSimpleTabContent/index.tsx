@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, SupersetClient, styled } from '@superset-ui/core';
-import { Select } from 'src/components';
 import FormItem from 'src/components/Form/FormItem';
+import { Select } from 'src/components';
+import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -37,9 +37,9 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { propertyComparator } from 'src/components/Select/Select';
+import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import useBusinessTypes from './useBusinessTypes';
@@ -429,7 +429,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   return (
     <>
       <Select
-        css={theme => ({
+        css={(theme: SupersetTheme) => ({
           marginTop: theme.gridUnit * 4,
           marginBottom: theme.gridUnit * 4,
         })}
@@ -452,7 +452,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...subjectSelectProps}
       />
       <Select
-        css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevantWrapper(op, subject))
           .map((option, index) => ({
@@ -462,12 +462,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             order: index,
           }))}
         {...operatorSelectProps}
-        sortComparator={propertyComparator('order')}
       />
-      <StyledFormItem
-        validateStatus={businessTypesState.errorMessage ? 'error' : 'success'}
-      >
-        {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
+      {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
+        // We need to delay rendering the select because we can't pass a primitive value without options
+        // We can't pass value = [null] and options=[]
+        comparatorSelectProps.value && suggestions.length === 0 ? null : (
           <Tooltip
             title={
               businessTypesState.errorMessage ||
@@ -478,34 +477,31 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
               labelText={labelText}
               options={suggestions}
               {...comparatorSelectProps}
-              sortComparator={propertyComparator(
-                typeof suggestions[0] === 'number' ? 'value' : 'label',
-              )}
             />
           </Tooltip>
-        ) : (
-          <Tooltip
-            title={
-              businessTypesState.errorMessage ||
-              businessTypesState.parsedBusinessType
+        )
+      ) : (
+        <Tooltip
+        title={
+          businessTypesState.errorMessage ||
+          businessTypesState.parsedBusinessType
+        }
+        >
+        <StyledInput
+          data-test="adhoc-filter-simple-value"
+          name="filter-value"
+          ref={ref => {
+            if (ref && shouldFocusComparator) {
+              ref.focus();
             }
-          >
-            <StyledInput
-              data-test="adhoc-filter-simple-value"
-              name="filter-value"
-              ref={ref => {
-                if (ref && shouldFocusComparator) {
-                  ref.focus();
-                }
-              }}
-              onChange={onInputComparatorChange}
-              value={comparator}
-              placeholder={t('Filter value (case sensitive)')}
-              disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
-            />
-          </Tooltip>
-        )}
-      </StyledFormItem>
+          }}
+          onChange={onInputComparatorChange}
+          value={comparator}
+          placeholder={t('Filter value (case sensitive)')}
+          disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
+          />
+       </Tooltip>
+      )}
     </>
   );
 };

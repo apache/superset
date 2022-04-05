@@ -18,54 +18,40 @@
  * under the License.
  */
 import {
-  ComparisionType,
   DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   NumpyFunction,
   PostProcessingPivot,
 } from '@superset-ui/core';
-import {
-  getMetricOffsetsMap,
-  isValidTimeCompare,
-  TIME_COMPARISON_SEPARATOR,
-} from './utils';
+import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
 import { PostProcessingFactory } from './types';
 
-export const timeComparePivotOperator: PostProcessingFactory<
-  PostProcessingPivot | undefined
-> = (formData, queryObject) => {
-  const comparisonType = formData.comparison_type;
-  const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
+export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
+  (formData, queryObject) => {
+    const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
 
-  if (isValidTimeCompare(formData, queryObject)) {
-    const valuesAgg = Object.fromEntries(
-      [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
-        metric,
-        // use the 'mean' aggregates to avoid drop NaN
-        { operator: 'mean' as NumpyFunction },
-      ]),
-    );
-    const changeAgg = Object.fromEntries(
-      [...metricOffsetMap.entries()]
-        .map(([offset, metric]) =>
-          [comparisonType, metric, offset].join(TIME_COMPARISON_SEPARATOR),
-        )
-        // use the 'mean' aggregates to avoid drop NaN
-        .map(metric => [metric, { operator: 'mean' as NumpyFunction }]),
-    );
+    if (isValidTimeCompare(formData, queryObject)) {
+      const aggregates = Object.fromEntries(
+        [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
+          metric,
+          // use the 'mean' aggregates to avoid drop NaN
+          { operator: 'mean' as NumpyFunction },
+        ]),
+      );
 
-    return {
-      operation: 'pivot',
-      options: {
-        index: [formData.x_axis || DTTM_ALIAS],
-        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
-        aggregates:
-          comparisonType === ComparisionType.Values ? valuesAgg : changeAgg,
-        drop_missing_columns: false,
-      },
-    };
-  }
+      return {
+        operation: 'pivot',
+        options: {
+          index: [formData.x_axis || DTTM_ALIAS],
+          columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
+          drop_missing_columns: false,
+          flatten_columns: false,
+          reset_index: false,
+          aggregates,
+        },
+      };
+    }
 
-  return undefined;
-};
+    return undefined;
+  };

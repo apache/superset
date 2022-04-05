@@ -92,7 +92,11 @@ export type DatabaseObject = {
 
     version?: string;
     cost_estimate_enabled?: boolean; // in SQL Lab
+    disable_data_preview?: boolean; // in SQL Lab
   };
+
+  // External management
+  is_managed_externally: boolean;
 
   // Temporary storage
   catalog?: Array<CatalogObject>;

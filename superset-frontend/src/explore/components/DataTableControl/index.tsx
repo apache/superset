@@ -30,11 +30,13 @@ import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
 import { useDispatch } from 'react-redux';
-import { Input, Space } from 'src/common/components';
+import { Space } from 'src/components';
+import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
   SLOW_DEBOUNCE,
+  NULL_DISPLAY,
 } from 'src/constants';
 import { Radio } from 'src/components/Radio';
 import Icons from 'src/components/Icons';
@@ -47,6 +49,10 @@ import {
   setTimeFormattedColumn,
   unsetTimeFormattedColumn,
 } from 'src/explore/actions/exploreActions';
+
+export const CellNull = styled('span')`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -301,6 +307,9 @@ export const useTableColumns = (
                   }
                   if (value === false) {
                     return BOOL_FALSE_DISPLAY;
+                  }
+                  if (value === null) {
+                    return <CellNull>{NULL_DISPLAY}</CellNull>;
                   }
                   if (timeFormattedColumnIndex > -1) {
                     return timeFormatter(value);

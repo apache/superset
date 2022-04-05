@@ -92,7 +92,10 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         self.assert200(response)
         token = json.loads(response.data)["token"]
         decoded_token = jwt.decode(
-            token, self.app.config["GUEST_TOKEN_JWT_SECRET"], audience=get_url_host()
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
         )
         self.assertEqual(user, decoded_token["user"])
         self.assertEqual(resource, decoded_token["resources"][0])

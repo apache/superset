@@ -73,8 +73,8 @@ from superset.exceptions import (
 )
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
+from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
@@ -317,7 +317,6 @@ def menu_data() -> Dict[str, Any]:
             "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
-            "width": appbuilder.app.config["APP_ICON_WIDTH"],
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
@@ -630,7 +629,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
 
-class CsvResponse(Response):  # pylint: disable=too-many-ancestors
+class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """

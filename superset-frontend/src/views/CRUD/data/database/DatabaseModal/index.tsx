@@ -30,7 +30,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Select } from 'src/common/components';
+import { AntdSelect } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -214,7 +214,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = {};
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -348,6 +348,7 @@ function dbReducer(
         } as DatabaseObject['extra_json'];
 
         deserializeExtraJSON = {
+          ...deserializeExtraJSON,
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
@@ -684,25 +685,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {t('Or choose from a list of other databases we support:')}
       </h4>
       <div className="control-label">{t('Supported databases')}</div>
-      <Select
+      <AntdSelect
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        showSearch
       >
         {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
           .map((database: DatabaseForm) => (
-            <Select.Option value={database.name} key={database.name}>
+            <AntdSelect.Option value={database.name} key={database.name}>
               {database.name}
-            </Select.Option>
+            </AntdSelect.Option>
           ))}
         {/* Allow users to connect to DB via legacy SQLA form */}
-        <Select.Option value="Other" key="Other">
+        <AntdSelect.Option value="Other" key="Other">
           {t('Other')}
-        </Select.Option>
-      </Select>
+        </AntdSelect.Option>
+      </AntdSelect>
       <Alert
         showIcon
         closable={false}
@@ -815,12 +817,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return [];
   };
 
-  const renderEditModalFooter = () => (
+  const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
       <StyledFooterButton key="close" onClick={onClose}>
         {t('Close')}
       </StyledFooterButton>
-      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+      <StyledFooterButton
+        key="submit"
+        buttonStyle="primary"
+        onClick={onSave}
+        disabled={db?.is_managed_externally}
+        tooltip={
+          db?.is_managed_externally
+            ? t(
+                "This database is managed externally, and can't be edited in Superset",
+              )
+            : ''
+        }
+      >
         {t('Finish')}
       </StyledFooterButton>
     </>
@@ -1031,7 +1045,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
+      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
     >
       <StyledStickyHeader>
         <TabHeader>

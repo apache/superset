@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # type: ignore
+import math
 from copy import copy
 from datetime import timedelta
 
@@ -60,7 +61,6 @@ FEATURE_FLAGS = {
     "KV_STORE": True,
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
-    "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
     "ALERT_REPORTS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
 }
@@ -85,10 +85,9 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
-CACHE_DEFAULT_TIMEOUT = int(timedelta(minutes=10).total_seconds())
 
 CACHE_CONFIG = {
-    "CACHE_TYPE": "redis",
+    "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=1).total_seconds()),
     "CACHE_KEY_PREFIX": "superset_cache",
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
@@ -98,6 +97,18 @@ DATA_CACHE_CONFIG = {
     **CACHE_CONFIG,
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(seconds=30).total_seconds()),
     "CACHE_KEY_PREFIX": "superset_data_cache",
+}
+
+FILTER_STATE_CACHE_CONFIG = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_THRESHOLD": math.inf,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+}
+
+EXPLORE_FORM_DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_THRESHOLD": math.inf,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
 }
 
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"

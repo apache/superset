@@ -107,6 +107,7 @@ export default function transformProps(
     intervalColorIndices,
     valueFormatter,
     emitFilter,
+    sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -147,7 +148,7 @@ export default function transformProps(
         value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
         name,
         itemStyle: {
-          color: colorFn(index),
+          color: colorFn(index, sliceId),
         },
         title: {
           offsetCenter: [
@@ -175,7 +176,7 @@ export default function transformProps(
         item = {
           ...item,
           itemStyle: {
-            color: colorFn(index),
+            color: colorFn(index, sliceId),
             opacity: OpacityEnum.SemiTransparent,
           },
           detail: {

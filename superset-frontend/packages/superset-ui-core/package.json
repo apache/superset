@@ -70,6 +70,8 @@
     "@emotion/styled": "^11.3.0",
     "@types/react": "*",
     "@types/react-loadable": "*",
+    "@types/tinycolor2": "*",
+    "tinycolor2": "*",
     "react": "^16.13.1",
     "react-loadable": "^5.5.0"
   }

@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import { FormLabel } from 'src/components/Form';
 

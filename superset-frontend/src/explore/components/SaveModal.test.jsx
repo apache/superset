@@ -64,7 +64,7 @@ describe('SaveModal', () => {
       }
       return arg;
     }),
-    form_data: { datasource: '107__table' },
+    form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
   };
   const mockEvent = {
     target: {
@@ -168,11 +168,11 @@ describe('SaveModal', () => {
       defaultProps.actions.saveSlice.restore();
     });
 
-    it('should save slice', () => {
+    it('should save slice without url_params in form_data', () => {
       const wrapper = getWrapper();
       wrapper.instance().saveOrOverwrite(true);
       const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[0]).toEqual(defaultProps.form_data);
+      expect(args[0]).toEqual({ datasource: '107__table' });
     });
 
     it('existing dashboard', () => {
@@ -219,7 +219,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              'http://localhost/mock_dashboard/',
+              'http://localhost/mock_dashboard/?foo=bar',
             );
             done();
           });
@@ -235,7 +235,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/',
+              '/mock_slice/?foo=bar',
             );
             done();
           });
@@ -248,7 +248,7 @@ describe('SaveModal', () => {
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
             expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/',
+              '/mock_slice/?foo=bar',
             );
             done();
           });

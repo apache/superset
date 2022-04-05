@@ -84,9 +84,6 @@ params:
     metrics: metrics
   row_limit: null
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   treemap_ratio: 1.618033988749895
   url_params:
     preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":

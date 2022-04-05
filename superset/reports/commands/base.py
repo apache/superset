@@ -47,7 +47,7 @@ class BaseReportScheduleCommand(BaseCommand):
     def validate_chart_dashboard(
         self, exceptions: List[ValidationError], update: bool = False
     ) -> None:
-        """ Validate chart or dashboard relation """
+        """Validate chart or dashboard relation"""
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")

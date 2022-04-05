@@ -95,7 +95,9 @@ class BaseReportState:
         self._execution_id = execution_id
 
     def set_state_and_log(
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
@@ -104,7 +106,8 @@ class BaseReportState:
         now_dttm = datetime.utcnow()
         self.set_state(state, now_dttm)
         self.create_log(
-            state, error_message=error_message,
+            state,
+            error_message=error_message,
         )
 
     def set_state(self, state: ReportState, dttm: datetime) -> None:
@@ -147,7 +150,6 @@ class BaseReportState:
         Get the url for this report schedule: chart or dashboard
         """
         force = "true" if self._report_schedule.force_screenshot else "false"
-
         if self._report_schedule.chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -173,7 +175,7 @@ class BaseReportState:
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
             standalone=DashboardStandaloneMode.REPORT.value,
-            # force=force,  TODO (betodealmeida) implement this
+            force=force,
             **kwargs,
         )
 
@@ -532,12 +534,14 @@ class ReportWorkingState(BaseReportState):
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportState.ERROR, error_message=str(exception_timeout),
+                ReportState.ERROR,
+                error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportState.WORKING, error_message=str(exception_working),
+            ReportState.WORKING,
+            error_message=str(exception_working),
         )
         raise exception_working
 

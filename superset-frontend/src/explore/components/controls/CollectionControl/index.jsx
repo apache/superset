@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/common/components';
+import { List } from 'src/components';
 import shortid from 'shortid';
 import { t, withTheme } from '@superset-ui/core';
 import {

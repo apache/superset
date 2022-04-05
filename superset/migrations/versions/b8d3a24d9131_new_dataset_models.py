@@ -25,25 +25,24 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
-from typing import Any, Dict, List, Optional, Type
+from typing import Callable, List, Optional, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine import create_engine, Engine
-from sqlalchemy.engine.url import make_url, URL
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, db_engine_specs
+from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
-from superset.extensions import encrypted_field_factory, security_manager
-from superset.sql_parse import ParsedQuery
-from superset.utils.memoized import memoized
+from superset.extensions import encrypted_field_factory
+from superset.migrations.shared.utils import extract_table_references
+from superset.models.core import Database as OriginalDatabase
+from superset.sql_parse import Table
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
@@ -77,86 +76,6 @@ class Database(Base):
         ),
     )
     server_cert = sa.Column(encrypted_field_factory.create(sa.Text), nullable=True)
-
-    @property
-    def sqlalchemy_uri_decrypted(self) -> str:
-        try:
-            url = make_url(self.sqlalchemy_uri)
-        except (ArgumentError, ValueError):
-            return "dialect://invalid_uri"
-        if custom_password_store:
-            url.password = custom_password_store(url)
-        else:
-            url.password = self.password
-        return str(url)
-
-    @property
-    def backend(self) -> str:
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
-
-    @classmethod
-    @memoized
-    def get_db_engine_spec_for_backend(
-        cls, backend: str
-    ) -> Type[db_engine_specs.BaseEngineSpec]:
-        engines = db_engine_specs.get_engine_specs()
-        return engines.get(backend, db_engine_specs.BaseEngineSpec)
-
-    @property
-    def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        return self.get_db_engine_spec_for_backend(self.backend)
-
-    def get_extra(self) -> Dict[str, Any]:
-        return self.db_engine_spec.get_extra_params(self)
-
-    def get_effective_user(
-        self, object_url: URL, user_name: Optional[str] = None,
-    ) -> Optional[str]:
-        effective_username = None
-        if self.impersonate_user:
-            effective_username = object_url.username
-            if user_name:
-                effective_username = user_name
-
-        return effective_username
-
-    def get_encrypted_extra(self) -> Dict[str, Any]:
-        return json.loads(self.encrypted_extra) if self.encrypted_extra else {}
-
-    @memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
-    def get_sqla_engine(self, schema: Optional[str] = None) -> Engine:
-        extra = self.get_extra()
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
-        effective_username = self.get_effective_user(sqlalchemy_url, "admin")
-        # If using MySQL or Presto for example, will set url.username
-        self.db_engine_spec.modify_url_for_impersonation(
-            sqlalchemy_url, self.impersonate_user, effective_username
-        )
-
-        params = extra.get("engine_params", {})
-        connect_args = params.get("connect_args", {})
-        if self.impersonate_user:
-            self.db_engine_spec.update_impersonation_config(
-                connect_args, str(sqlalchemy_url), effective_username
-            )
-
-        if connect_args:
-            params["connect_args"] = connect_args
-
-        params.update(self.get_encrypted_extra())
-
-        if DB_CONNECTION_MUTATOR:
-            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
-                sqlalchemy_url,
-                params,
-                effective_username,
-                security_manager,
-                "migration",
-            )
-
-        return create_engine(sqlalchemy_url, **params)
 
 
 class TableColumn(Base):
@@ -311,6 +230,85 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
+TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+
+
+def load_or_create_tables(
+    session: Session,
+    database_id: int,
+    default_schema: Optional[str],
+    tables: Set[Table],
+    conditional_quote: Callable[[str], str],
+) -> List[NewTable]:
+    """
+    Load or create new table model instances.
+    """
+    if not tables:
+        return []
+
+    # set the default schema in tables that don't have it
+    if default_schema:
+        tables = list(tables)
+        for i, table in enumerate(tables):
+            if table.schema is None:
+                tables[i] = Table(table.table, default_schema, table.catalog)
+
+    # load existing tables
+    predicate = or_(
+        *[
+            and_(
+                NewTable.database_id == database_id,
+                NewTable.schema == table.schema,
+                NewTable.name == table.table,
+            )
+            for table in tables
+        ]
+    )
+    new_tables = session.query(NewTable).filter(predicate).all()
+
+    # use original database model to get the engine
+    engine = (
+        session.query(OriginalDatabase)
+        .filter_by(id=database_id)
+        .one()
+        .get_sqla_engine(default_schema)
+    )
+    inspector = inspect(engine)
+
+    # add missing tables
+    existing = {(table.schema, table.name) for table in new_tables}
+    for table in tables:
+        if (table.schema, table.table) not in existing:
+            column_metadata = inspector.get_columns(table.table, schema=table.schema)
+            columns = [
+                NewColumn(
+                    name=column["name"],
+                    type=str(column["type"]),
+                    expression=conditional_quote(column["name"]),
+                    is_temporal=column["type"].python_type.__name__.upper()
+                    in TEMPORAL_TYPES,
+                    is_aggregation=False,
+                    is_physical=True,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                )
+                for column in column_metadata
+            ]
+            new_tables.append(
+                NewTable(
+                    name=table.table,
+                    schema=table.schema,
+                    catalog=None,
+                    database_id=database_id,
+                    columns=columns,
+                )
+            )
+            existing.add((table.schema, table.table))
+
+    return new_tables
+
+
 def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     """
     Copy old datasets to the new models.
@@ -321,10 +319,13 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     # table names
     database = (
         target.database
-        or session.query(Database).filter_by(id=target.database_id).one()
+        or session.query(Database).filter_by(id=target.database_id).first()
     )
-    engine = database.get_sqla_engine(schema=target.schema)
-    conditional_quote = engine.dialect.identifier_preparer.quote
+    if not database:
+        return
+    url = make_url(database.sqlalchemy_uri)
+    dialect_class = url.get_dialect()
+    conditional_quote = dialect_class().identifier_preparer.quote
 
     # create columns
     columns = []
@@ -333,7 +334,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         if column.is_active is False:
             continue
 
-        extra_json = json.loads(column.extra or "{}")
+        try:
+            extra_json = json.loads(column.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
             value = getattr(column, attr)
             if value:
@@ -359,7 +363,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
 
     # create metrics
     for metric in target.metrics:
-        extra_json = json.loads(metric.extra or "{}")
+        try:
+            extra_json = json.loads(metric.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"verbose_name", "metric_type", "d3format"}:
             value = getattr(metric, attr)
             if value:
@@ -389,8 +396,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         )
 
     # physical dataset
-    tables = []
-    if target.sql is None:
+    if not target.sql:
         physical_columns = [column for column in columns if column.is_physical]
 
         # create table
@@ -403,7 +409,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             is_managed_externally=target.is_managed_externally,
             external_url=target.external_url,
         )
-        tables.append(table)
+        tables = [table]
 
     # virtual dataset
     else:
@@ -412,20 +418,14 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             column.is_physical = False
 
         # find referenced tables
-        parsed = ParsedQuery(target.sql)
-        referenced_tables = parsed.tables
-
-        # predicate for finding the referenced tables
-        predicate = or_(
-            *[
-                and_(
-                    NewTable.schema == (table.schema or target.schema),
-                    NewTable.name == table.table,
-                )
-                for table in referenced_tables
-            ]
+        referenced_tables = extract_table_references(target.sql, dialect_class.name)
+        tables = load_or_create_tables(
+            session,
+            target.database_id,
+            target.schema,
+            referenced_tables,
+            conditional_quote,
         )
-        tables = session.query(NewTable).filter(predicate).all()
 
     # create the new dataset
     dataset = NewDataset(
@@ -434,7 +434,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         expression=target.sql or conditional_quote(target.table_name),
         tables=tables,
         columns=columns,
-        is_physical=target.sql is None,
+        is_physical=not target.sql,
         is_managed_externally=target.is_managed_externally,
         external_url=target.external_url,
     )
@@ -459,16 +459,46 @@ def upgrade():
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("type", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
-        sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=True,),
+        sa.Column(
+            "is_physical",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=True,
+        ),
         sa.Column("description", sa.TEXT(), nullable=True),
         sa.Column("warning_text", sa.TEXT(), nullable=True),
         sa.Column("unit", sa.TEXT(), nullable=True),
         sa.Column("is_temporal", sa.BOOLEAN(), nullable=False),
-        sa.Column("is_spatial", sa.BOOLEAN(), nullable=False, default=False,),
-        sa.Column("is_partition", sa.BOOLEAN(), nullable=False, default=False,),
-        sa.Column("is_aggregation", sa.BOOLEAN(), nullable=False, default=False,),
-        sa.Column("is_additive", sa.BOOLEAN(), nullable=False, default=False,),
-        sa.Column("is_increase_desired", sa.BOOLEAN(), nullable=False, default=True,),
+        sa.Column(
+            "is_spatial",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=False,
+        ),
+        sa.Column(
+            "is_partition",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=False,
+        ),
+        sa.Column(
+            "is_aggregation",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=False,
+        ),
+        sa.Column(
+            "is_additive",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=False,
+        ),
+        sa.Column(
+            "is_increase_desired",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=True,
+        ),
         sa.Column(
             "is_managed_externally",
             sa.Boolean(),
@@ -539,7 +569,12 @@ def upgrade():
         sa.Column("sqlatable_id", sa.INTEGER(), nullable=True),
         sa.Column("name", sa.TEXT(), nullable=False),
         sa.Column("expression", sa.TEXT(), nullable=False),
-        sa.Column("is_physical", sa.BOOLEAN(), nullable=False, default=False,),
+        sa.Column(
+            "is_physical",
+            sa.BOOLEAN(),
+            nullable=False,
+            default=False,
+        ),
         sa.Column(
             "is_managed_externally",
             sa.Boolean(),

@@ -167,6 +167,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type_generic",
         "database.backend",
         "columns.business_type",
+        "is_managed_externally",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()

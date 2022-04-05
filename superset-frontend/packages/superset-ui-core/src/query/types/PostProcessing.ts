@@ -64,25 +64,34 @@ export interface Aggregates {
   };
 }
 
-export interface PostProcessingAggregation {
+export type DefaultPostProcessing = undefined;
+
+interface _PostProcessingAggregation {
   operation: 'aggregation';
   options: {
     groupby: string[];
     aggregates: Aggregates;
   };
 }
+export type PostProcessingAggregation =
+  | _PostProcessingAggregation
+  | DefaultPostProcessing;
 
-export interface PostProcessingBoxplot {
+export type BoxPlotQueryObjectWhiskerType = 'tukey' | 'min/max' | 'percentile';
+interface _PostProcessingBoxplot {
   operation: 'boxplot';
   options: {
     groupby: string[];
     metrics: string[];
-    whisker_type: 'tukey' | 'min/max' | 'percentile';
+    whisker_type: BoxPlotQueryObjectWhiskerType;
     percentiles?: [number, number];
   };
 }
+export type PostProcessingBoxplot =
+  | _PostProcessingBoxplot
+  | DefaultPostProcessing;
 
-export interface PostProcessingContribution {
+interface _PostProcessingContribution {
   operation: 'contribution';
   options?: {
     orientation?: 'row' | 'column';
@@ -90,8 +99,11 @@ export interface PostProcessingContribution {
     rename_columns?: string[];
   };
 }
+export type PostProcessingContribution =
+  | _PostProcessingContribution
+  | DefaultPostProcessing;
 
-export interface PostProcessingPivot {
+interface _PostProcessingPivot {
   operation: 'pivot';
   options: {
     aggregates: Aggregates;
@@ -107,8 +119,9 @@ export interface PostProcessingPivot {
     reset_index?: boolean;
   };
 }
+export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
 
-export interface PostProcessingProphet {
+interface _PostProcessingProphet {
   operation: 'prophet';
   options: {
     time_grain: TimeGranularity;
@@ -119,8 +132,11 @@ export interface PostProcessingProphet {
     daily_seasonality?: boolean | number;
   };
 }
+export type PostProcessingProphet =
+  | _PostProcessingProphet
+  | DefaultPostProcessing;
 
-export interface PostProcessingDiff {
+interface _PostProcessingDiff {
   operation: 'diff';
   options: {
     columns: string[];
@@ -128,28 +144,31 @@ export interface PostProcessingDiff {
     axis: PandasAxis;
   };
 }
+export type PostProcessingDiff = _PostProcessingDiff | DefaultPostProcessing;
 
-export interface PostProcessingRolling {
+interface _PostProcessingRolling {
   operation: 'rolling';
   options: {
     rolling_type: RollingType;
     window: number;
     min_periods: number;
     columns: string[];
-    is_pivot_df?: boolean;
   };
 }
+export type PostProcessingRolling =
+  | _PostProcessingRolling
+  | DefaultPostProcessing;
 
-export interface PostProcessingCum {
+interface _PostProcessingCum {
   operation: 'cum';
   options: {
     columns: string[];
     operator: NumpyFunction;
-    is_pivot_df?: boolean;
   };
 }
+export type PostProcessingCum = _PostProcessingCum | DefaultPostProcessing;
 
-export interface PostProcessingCompare {
+export interface _PostProcessingCompare {
   operation: 'compare';
   options: {
     source_columns: string[];
@@ -158,26 +177,39 @@ export interface PostProcessingCompare {
     drop_original_columns: boolean;
   };
 }
+export type PostProcessingCompare =
+  | _PostProcessingCompare
+  | DefaultPostProcessing;
 
-export interface PostProcessingSort {
+interface _PostProcessingSort {
   operation: 'sort';
   options: {
     columns: Record<string, boolean>;
   };
 }
+export type PostProcessingSort = _PostProcessingSort | DefaultPostProcessing;
 
-export interface PostProcessingResample {
+interface _PostProcessingResample {
   operation: 'resample';
   options: {
     method: string;
     rule: string;
     fill_value?: number | null;
-    time_column: string;
-    // If AdhocColumn doesn't have a label, it will be undefined.
-    // todo: we have to give an explicit label for AdhocColumn.
-    groupby_columns?: Array<string | undefined>;
   };
 }
+export type PostProcessingResample =
+  | _PostProcessingResample
+  | DefaultPostProcessing;
+
+interface _PostProcessingFlatten {
+  operation: 'flatten';
+  options?: {
+    reset_index?: boolean;
+  };
+}
+export type PostProcessingFlatten =
+  | _PostProcessingFlatten
+  | DefaultPostProcessing;
 
 /**
  * Parameters for chart data postprocessing.
@@ -194,7 +226,8 @@ export type PostProcessingRule =
   | PostProcessingCum
   | PostProcessingCompare
   | PostProcessingSort
-  | PostProcessingResample;
+  | PostProcessingResample
+  | PostProcessingFlatten;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,
