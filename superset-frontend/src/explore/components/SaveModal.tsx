@@ -76,6 +76,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
+    this.isNewDashboard = this.isNewDashboard.bind(this);
+  }
+
+  isNewDashboard(): boolean {
+    return !!(!this.state.saveToDashboardId && this.state.newDashboardName);
   }
 
   canOverwriteSlice(): boolean {
@@ -195,7 +200,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               }
               onClick={() => this.saveOrOverwrite(true)}
             >
-              {t('Save & go to dashboard')}
+              {this.isNewDashboard()
+                ? t('Save & go to new dashboard')
+                : t('Save & go to dashboard')}
             </Button>
             <Button
               id="btn_modal_save"
@@ -207,6 +214,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             >
               {!this.canOverwriteSlice() && this.props.slice
                 ? t('Save as new chart')
+                : this.isNewDashboard()
+                ? t('Save to new dashboard')
                 : t('Save')}
             </Button>
           </div>
