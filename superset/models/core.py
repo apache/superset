@@ -248,7 +248,7 @@ class Database(
     @property
     def backend(self) -> str:
         sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+        return sqlalchemy_url.get_backend_name()
 
     @property
     def parameters(self) -> Dict[str, Any]:

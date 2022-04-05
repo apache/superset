@@ -28,7 +28,6 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 

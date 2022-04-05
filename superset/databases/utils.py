@@ -115,4 +115,4 @@ def make_url_safe(raw_url: str) -> URL:
     try:
         return make_url(raw_url.strip())
     except Exception:
-        raise DatabaseInvalidError()
+        raise DatabaseInvalidError()  # pylint: disable=raise-missing-from

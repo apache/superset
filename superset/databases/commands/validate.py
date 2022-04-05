@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
-from sqlalchemy.engine.url import make_url
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
