@@ -36,7 +36,7 @@ import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 interface QueryTableQuery
-  extends Omit<Query, 'state' | 'sql' | 'progress' | 'output' | 'results'> {
+  extends Omit<Query, 'state' | 'sql' | 'progress' | 'results'> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
