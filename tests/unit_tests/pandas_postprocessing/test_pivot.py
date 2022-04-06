@@ -17,10 +17,10 @@
 
 import numpy as np
 import pytest
+from flask.ctx import AppContext
 from pandas import DataFrame, Timestamp, to_datetime
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing import _flatten_column_after_pivot, pivot
 from tests.unit_tests.fixtures.dataframes import categories_df, single_metric_df
 from tests.unit_tests.pandas_postprocessing.utils import (
     AGGREGATES_MULTIPLE,
@@ -28,10 +28,12 @@ from tests.unit_tests.pandas_postprocessing.utils import (
 )
 
 
-def test_flatten_column_after_pivot():
+def test_flatten_column_after_pivot(app_context: AppContext):
     """
     Test pivot column flattening function
     """
+    from superset.utils.pandas_postprocessing import _flatten_column_after_pivot
+
     # single aggregate cases
     assert (
         _flatten_column_after_pivot(
@@ -99,10 +101,12 @@ def test_flatten_column_after_pivot():
     )
 
 
-def test_pivot_without_columns():
+def test_pivot_without_columns(app_context: AppContext):
     """
     Make sure pivot without columns returns correct DataFrame
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     df = pivot(
         df=categories_df,
         index=["name"],
@@ -113,10 +117,12 @@ def test_pivot_without_columns():
     assert df.sum()[1] == 1050
 
 
-def test_pivot_with_single_column():
+def test_pivot_with_single_column(app_context: AppContext):
     """
     Make sure pivot with single column returns correct DataFrame
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     df = pivot(
         df=categories_df,
         index=["name"],
@@ -137,10 +143,12 @@ def test_pivot_with_single_column():
     assert len(df) == 5
 
 
-def test_pivot_with_multiple_columns():
+def test_pivot_with_multiple_columns(app_context: AppContext):
     """
     Make sure pivot with multiple columns returns correct DataFrame
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     df = pivot(
         df=categories_df,
         index=["name"],
@@ -150,10 +158,12 @@ def test_pivot_with_multiple_columns():
     assert len(df.columns) == 1 + 3 * 5  # index + possible permutations
 
 
-def test_pivot_fill_values():
+def test_pivot_fill_values(app_context: AppContext):
     """
     Make sure pivot with fill values returns correct DataFrame
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     df = pivot(
         df=categories_df,
         index=["name"],
@@ -164,10 +174,12 @@ def test_pivot_fill_values():
     assert df.sum()[1] == 382
 
 
-def test_pivot_fill_column_values():
+def test_pivot_fill_column_values(app_context: AppContext):
     """
     Make sure pivot witn null column names returns correct DataFrame
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     df_copy = categories_df.copy()
     df_copy["category"] = None
     df = pivot(
@@ -180,10 +192,12 @@ def test_pivot_fill_column_values():
     assert df.columns.tolist() == ["name", "<NULL>"]
 
 
-def test_pivot_exceptions():
+def test_pivot_exceptions(app_context: AppContext):
     """
     Make sure pivot raises correct Exceptions
     """
+    from superset.utils.pandas_postprocessing import pivot
+
     # Missing index
     with pytest.raises(TypeError):
         pivot(df=categories_df, columns=["dept"], aggregates=AGGREGATES_SINGLE)
@@ -216,7 +230,9 @@ def test_pivot_exceptions():
         )
 
 
-def test_pivot_eliminate_cartesian_product_columns():
+def test_pivot_eliminate_cartesian_product_columns(app_context: AppContext):
+    from superset.utils.pandas_postprocessing import pivot
+
     # single metric
     mock_df = DataFrame(
         {
@@ -268,7 +284,9 @@ def test_pivot_eliminate_cartesian_product_columns():
     assert np.isnan(df["metric, 1, 1"][0])
 
 
-def test_pivot_without_flatten_columns_and_reset_index():
+def test_pivot_without_flatten_columns_and_reset_index(app_context: AppContext):
+    from superset.utils.pandas_postprocessing import pivot
+
     df = pivot(
         df=single_metric_df,
         index=["dttm"],

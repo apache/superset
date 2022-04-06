@@ -18,8 +18,8 @@ from typing import Any, Dict, Optional
 from unittest.mock import Mock, patch
 
 from pytest import fixture, mark
+from flask.ctx import AppContext
 
-from superset.common.query_object_factory import QueryObjectFactory
 from tests.common.query_context_generator import QueryContextGenerator
 
 
@@ -58,12 +58,12 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
 
 @fixture
 def query_object_factory(
-    app_config: Dict[str, Any], connector_registry: Mock, session_factory: Mock
-) -> QueryObjectFactory:
+    app_context: AppContext, app_config: Dict[str, Any], connector_registry: Mock, session_factory: Mock
+) -> Any:
     import superset.common.query_object_factory as mod
 
     mod.apply_max_row_limit = apply_max_row_limit
-    return QueryObjectFactory(app_config, connector_registry, session_factory)
+    return mod.QueryObjectFactory(app_config, connector_registry, session_factory)
 
 
 @fixture
@@ -74,7 +74,7 @@ def raw_query_context() -> Dict[str, Any]:
 class TestQueryObjectFactory:
     def test_query_context_limit_and_offset_defaults(
         self,
-        query_object_factory: QueryObjectFactory,
+        query_object_factory: Any,
         raw_query_context: Dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]
@@ -88,7 +88,7 @@ class TestQueryObjectFactory:
 
     def test_query_context_limit(
         self,
-        query_object_factory: QueryObjectFactory,
+        query_object_factory: Any,
         raw_query_context: Dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]
@@ -103,7 +103,7 @@ class TestQueryObjectFactory:
 
     def test_query_context_null_post_processing_op(
         self,
-        query_object_factory: QueryObjectFactory,
+        query_object_factory: Any,
         raw_query_context: Dict[str, Any],
     ):
         raw_query_object = raw_query_context["queries"][0]

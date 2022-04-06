@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing.select import select
 from tests.unit_tests.fixtures.dataframes import timeseries_df
 
 
-def test_select():
+def test_select(app_context: AppContext):
+    from superset.utils.pandas_postprocessing.select import select
+
     # reorder columns
     post_df = select(df=timeseries_df, columns=["y", "label"])
     assert post_df.columns.tolist() == ["y", "label"]

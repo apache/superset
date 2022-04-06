@@ -14,14 +14,41 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import numpy as np
 import pandas as pd
 
 
-class TSFeatureTransformerMixin:
+class DataFrameForecasterProto(Protocol):
+    """Protocol for df processing methods."""
+
+    df: pd.DataFrame
+    yearly_seasonality: Union[bool, int]
+    monthly_seasonality: Union[bool, int]
+    weekly_seasonality: Union[bool, int]
+    daily_seasonality: Union[bool, int]
+    feature_value_map: Dict[str, List[str]]
+    interval_width: float
+    fit: Any
+    predict: Any
+
     def feature_transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        ...
+
+    def get_dummies(
+        self, pdf: pd.DataFrame, feature: str, values: Optional[List[str]]
+    ) -> None:
+        ...
+
+    def predict_uncertainty(self, df: pd.DataFrame) -> pd.DataFrame:
+        ...
+
+
+class TSFeatureTransformerMixin:
+    def feature_transform(
+        self: DataFrameForecasterProto, df: pd.DataFrame
+    ) -> pd.DataFrame:
         """Extract features from dates.
         Parameters
         ----------
@@ -61,7 +88,12 @@ class TSFeatureTransformerMixin:
 
         return df
 
-    def get_dummies(self, pdf: pd.DataFrame, feature: str, values: List[str]) -> None:
+    def get_dummies(
+        self: DataFrameForecasterProto,
+        pdf: pd.DataFrame,
+        feature: str,
+        values: Optional[List[str]],
+    ) -> None:
 
         if feature in pdf.columns:
             if values is not None:
@@ -83,7 +115,9 @@ class TSFeatureTransformerMixin:
 
 
 class BootstrapUncertaintyMixin:  # pylint: disable=too-few-public-methods
-    def predict_uncertainty(self, df):
+    def predict_uncertainty(
+        self: DataFrameForecasterProto, df: pd.DataFrame
+    ) -> pd.DataFrame:
         """Prediction intervals for yhat using the bootstrap method.
         Parameters
         ----------
@@ -96,7 +130,7 @@ class BootstrapUncertaintyMixin:  # pylint: disable=too-few-public-methods
         train_df = df[df["y"].notnull()]
 
         # Calculate 95% CI
-        sim_values = {"yhat": []}
+        sim_values: Dict[str, List[pd.Series]] = {"yhat": []}
         for _ in range(300):
             bootstrap = train_df.sample(n=train_df.shape[0], replace=True).drop(
                 ["yhat"], axis=1

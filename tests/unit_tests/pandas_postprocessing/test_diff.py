@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing import diff
 from tests.unit_tests.fixtures.dataframes import timeseries_df, timeseries_df2
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
-def test_diff():
+def test_diff(app_context: AppContext):
+    from superset.utils.pandas_postprocessing import diff
+
     # overwrite column
     post_df = diff(df=timeseries_df, columns={"y": "y"})
     assert post_df.columns.tolist() == ["label", "y"]

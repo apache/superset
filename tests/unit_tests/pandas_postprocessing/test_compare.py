@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import pandas as pd
+from flask.ctx import AppContext
 
 from superset.constants import PandasPostprocessingCompare as PPC
-from superset.utils import pandas_postprocessing as pp
-from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import multiple_metrics_df, timeseries_df2
 
 
-def test_compare_should_not_side_effect():
+def test_compare_should_not_side_effect(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     _timeseries_df2 = timeseries_df2.copy()
     pp.compare(
         df=_timeseries_df2,
@@ -33,7 +34,9 @@ def test_compare_should_not_side_effect():
     assert _timeseries_df2.equals(timeseries_df2)
 
 
-def test_compare_diff():
+def test_compare_diff(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     # `difference` comparison
     post_df = pp.compare(
         df=timeseries_df2,
@@ -79,7 +82,9 @@ def test_compare_diff():
     )
 
 
-def test_compare_percentage():
+def test_compare_percentage(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     # `percentage` comparison
     post_df = pp.compare(
         df=timeseries_df2,
@@ -107,7 +112,9 @@ def test_compare_percentage():
     )
 
 
-def test_compare_ratio():
+def test_compare_ratio(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     # `ratio` comparison
     post_df = pp.compare(
         df=timeseries_df2,
@@ -135,7 +142,9 @@ def test_compare_ratio():
     )
 
 
-def test_compare_multi_index_column():
+def test_compare_multi_index_column(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     index = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03"])
     index.name = "__timestamp"
     iterables = [["m1", "m2"], ["a", "b"], ["x", "y"]]
@@ -179,7 +188,10 @@ def test_compare_multi_index_column():
     )
 
 
-def test_compare_after_pivot():
+def test_compare_after_pivot(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+    from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+
     pivot_df = pp.pivot(
         df=multiple_metrics_df,
         index=["dttm"],

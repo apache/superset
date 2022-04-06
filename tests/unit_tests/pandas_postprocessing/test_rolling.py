@@ -16,10 +16,9 @@
 # under the License.
 import pandas as pd
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils import pandas_postprocessing as pp
-from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import (
     multiple_metrics_df,
     single_metric_df,
@@ -28,7 +27,9 @@ from tests.unit_tests.fixtures.dataframes import (
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
-def test_rolling_should_not_side_effect():
+def test_rolling_should_not_side_effect(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     _timeseries_df = timeseries_df.copy()
     pp.rolling(
         df=timeseries_df,
@@ -40,7 +41,9 @@ def test_rolling_should_not_side_effect():
     assert _timeseries_df.equals(timeseries_df)
 
 
-def test_rolling():
+def test_rolling(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     # sum rolling type
     post_df = pp.rolling(
         df=timeseries_df,
@@ -107,7 +110,9 @@ def test_rolling():
         )
 
 
-def test_rolling_should_empty_df():
+def test_rolling_should_empty_df(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
@@ -126,7 +131,10 @@ def test_rolling_should_empty_df():
     assert rolling_df.empty is True
 
 
-def test_rolling_after_pivot_with_single_metric():
+def test_rolling_after_pivot_with_single_metric(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+    from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
@@ -173,7 +181,10 @@ def test_rolling_after_pivot_with_single_metric():
     )
 
 
-def test_rolling_after_pivot_with_multiple_metrics():
+def test_rolling_after_pivot_with_multiple_metrics(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+    from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+
     pivot_df = pp.pivot(
         df=multiple_metrics_df,
         index=["dttm"],

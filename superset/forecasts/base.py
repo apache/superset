@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from importlib import import_module
-from typing import Type, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -35,8 +35,10 @@ class BaseForecaster:
     arguments (no ``*args`` or ``**kwargs``).
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
+        model_name: str,
+        confidence_interval: float,
         yearly_seasonality: Union[bool, int],
         monthly_seasonality: Union[bool, int],
         weekly_seasonality: Union[bool, int],
@@ -44,7 +46,7 @@ class BaseForecaster:
     ) -> None:
         raise NotImplementedError("Subclasses should implement this!")
 
-    def fit(self, df: pd.DataFrame) -> Type[BaseForecaster]:
+    def fit(self, df: pd.DataFrame) -> BaseForecaster:
         """Fit the forecasting model.
         Parameters
         ----------
@@ -77,7 +79,7 @@ class BaseForecaster:
         """
         raise NotImplementedError("Subclasses should implement this!")
 
-    def predict_uncertainty(self, df) -> pd.DataFrame:
+    def predict_uncertainty(self, df: pd.DataFrame) -> pd.DataFrame:
         """Prediction intervals for yhat.
         Parameters
         ----------
@@ -88,7 +90,9 @@ class BaseForecaster:
         """
         raise NotImplementedError("Subclasses should implement this!")
 
-    def make_future_dataframe(self, df, periods, freq) -> pd.DataFrame:
+    def make_future_dataframe(
+        self, df: pd.DataFrame, periods: int, freq: str
+    ) -> pd.DataFrame:
         """Creates dataframe that extends forward from the end of history for the
         requested number of periods.
         Parameters
@@ -101,9 +105,7 @@ class BaseForecaster:
         Dataframe with extended periods.
         """
         self.history_dates = (  # pylint: disable=attribute-defined-outside-init
-            pd.to_datetime(
-                pd.Series(df["ds"].unique(), name="ds")
-            ).sort_values()
+            pd.to_datetime(pd.Series(df["ds"].unique(), name="ds")).sort_values()
         )
         last_date = self.history_dates.max()
         dates = pd.date_range(
@@ -119,9 +121,9 @@ class BaseForecaster:
 
     def fit_transform(
         self,
-        df,
-        periods,
-        freq,
+        df: pd.DataFrame,
+        periods: int,
+        freq: str,
     ) -> pd.DataFrame:
         """Fit a regression model and return a DataFrame with predicted results.
         Parameters
@@ -181,7 +183,7 @@ class ProphetForecaster(BaseForecaster):
         self.history_dates = None
         self.fitted = False
 
-    def fit(self, df: pd.DataFrame) -> Type[BaseForecaster]:
+    def fit(self, df: pd.DataFrame) -> ProphetForecaster:
         """Fit the prophet model.
         Parameters
         ----------
@@ -226,7 +228,7 @@ class ProphetForecaster(BaseForecaster):
             raise Exception("Model has not been fit.")
         return self.model.predict(df)
 
-    def predict_uncertainty(self, df):
+    def predict_uncertainty(self, df: pd.DataFrame) -> pd.DataFrame:
         """Prediction intervals for yhat.
         Parameters
         ----------
@@ -287,7 +289,7 @@ class LeastSquaresForecaster(
             ],
         }
 
-    def fit(self, df: pd.DataFrame) -> Type[BaseForecaster]:
+    def fit(self, df: pd.DataFrame) -> LeastSquaresForecaster:
         """Solve for the least-squares solution.
         Parameters
         ----------
@@ -335,13 +337,13 @@ class ScikitLearnForecaster(
 
     def __init__(  # pylint: disable=too-many-arguments,super-init-not-called
         self,
-        model_name,
-        confidence_interval,
-        yearly_seasonality,
-        monthly_seasonality,
-        weekly_seasonality,
-        daily_seasonality,
-    ):
+        model_name: str,
+        confidence_interval: float,
+        yearly_seasonality: Union[bool, int],
+        monthly_seasonality: Union[bool, int],
+        weekly_seasonality: Union[bool, int],
+        daily_seasonality: Union[bool, int],
+    ) -> None:
         module, cls = model_name.rsplit(".", 1)
         model_cls = getattr(import_module(module), cls)
         self.model = model_cls()
@@ -379,7 +381,7 @@ class ScikitLearnForecaster(
             ],
         }
 
-    def fit(self, df: pd.DataFrame) -> Type[BaseForecaster]:
+    def fit(self, df: pd.DataFrame) -> ScikitLearnForecaster:
         """Fit the forecasting model.
         Parameters
         ----------

@@ -17,20 +17,24 @@
 import numpy as np
 import pandas as pd
 import pytest
+from flask.ctx import AppContext
 from pandas import to_datetime
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils import pandas_postprocessing as pp
 from tests.unit_tests.fixtures.dataframes import categories_df, timeseries_df
 
 
-def test_resample_should_not_side_effect():
+def test_resample_should_not_side_effect(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     _timeseries_df = timeseries_df.copy()
     pp.resample(df=_timeseries_df, rule="1D", method="ffill")
     assert _timeseries_df.equals(timeseries_df)
 
 
-def test_resample():
+def test_resample(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     post_df = pp.resample(df=timeseries_df, rule="1D", method="ffill")
     """
                label    y
@@ -63,7 +67,9 @@ def test_resample():
     )
 
 
-def test_resample_zero_fill():
+def test_resample_zero_fill(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     post_df = pp.resample(df=timeseries_df, rule="1D", method="asfreq", fill_value=0)
     assert post_df.equals(
         pd.DataFrame(
@@ -86,7 +92,9 @@ def test_resample_zero_fill():
     )
 
 
-def test_resample_after_pivot():
+def test_resample_after_pivot(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     df = pd.DataFrame(
         data={
             "__timestamp": pd.to_datetime(
@@ -155,7 +163,9 @@ def test_resample_after_pivot():
     )
 
 
-def test_resample_should_raise_ex():
+def test_resample_should_raise_ex(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     with pytest.raises(InvalidPostProcessingError):
         pp.resample(
             df=categories_df,
@@ -171,7 +181,9 @@ def test_resample_should_raise_ex():
         )
 
 
-def test_resample_linear():
+def test_resample_linear(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     df = pd.DataFrame(
         index=to_datetime(["2019-01-01", "2019-01-05", "2019-01-08"]),
         data={"label": ["a", "e", "j"], "y": [1.0, 5.0, 8.0]},

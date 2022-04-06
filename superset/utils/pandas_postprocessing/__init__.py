@@ -21,13 +21,13 @@ from superset.utils.pandas_postprocessing.contribution import contribution
 from superset.utils.pandas_postprocessing.cum import cum
 from superset.utils.pandas_postprocessing.diff import diff
 from superset.utils.pandas_postprocessing.flatten import flatten
+from superset.utils.pandas_postprocessing.forecast import forecast
 from superset.utils.pandas_postprocessing.geography import (
     geodetic_parse,
     geohash_decode,
     geohash_encode,
 )
 from superset.utils.pandas_postprocessing.pivot import pivot
-from superset.utils.pandas_postprocessing.forecast import forecast
 from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select

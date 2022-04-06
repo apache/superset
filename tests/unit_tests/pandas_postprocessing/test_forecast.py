@@ -114,7 +114,9 @@ def test_prophet_import():
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_missing_temporal_column(app_context: AppContext, model_name: str) -> None:
+def test_forecast_missing_temporal_column(
+    app_context: AppContext, model_name: str
+) -> None:
     df = forecast_df.drop(DTTM_ALIAS, axis=1)
 
     with pytest.raises(InvalidPostProcessingError):
@@ -130,7 +132,9 @@ def test_forecast_missing_temporal_column(app_context: AppContext, model_name: s
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_confidence_interval(app_context: AppContext, model_name: str) -> None:
+def test_forecast_incorrect_confidence_interval(
+    app_context: AppContext, model_name: str
+) -> None:
     from superset.utils.pandas_postprocessing import forecast
 
     with pytest.raises(InvalidPostProcessingError):
@@ -167,7 +171,9 @@ def test_forecast_incorrect_periods(app_context: AppContext, model_name: str) ->
 
 
 @pytest.mark.parametrize("model_name", ["numpy.linalg.lstsq", "prophet.Prophet"])
-def test_forecast_incorrect_time_grain(app_context: AppContext, model_name: str) -> None:
+def test_forecast_incorrect_time_grain(
+    app_context: AppContext, model_name: str
+) -> None:
     with pytest.raises(InvalidPostProcessingError):
         from superset.utils.pandas_postprocessing import forecast
 

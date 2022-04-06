@@ -16,10 +16,9 @@
 # under the License.
 import pandas as pd
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils import pandas_postprocessing as pp
-from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import (
     multiple_metrics_df,
     single_metric_df,
@@ -28,7 +27,9 @@ from tests.unit_tests.fixtures.dataframes import (
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
-def test_cum_should_not_side_effect():
+def test_cum_should_not_side_effect(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     _timeseries_df = timeseries_df.copy()
     pp.cum(
         df=timeseries_df,
@@ -38,7 +39,9 @@ def test_cum_should_not_side_effect():
     assert _timeseries_df.equals(timeseries_df)
 
 
-def test_cum():
+def test_cum(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+
     # create new column (cumsum)
     post_df = pp.cum(
         df=timeseries_df,
@@ -77,7 +80,10 @@ def test_cum():
         )
 
 
-def test_cum_after_pivot_with_single_metric():
+def test_cum_after_pivot_with_single_metric(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+    from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
@@ -118,7 +124,10 @@ def test_cum_after_pivot_with_single_metric():
     )
 
 
-def test_cum_after_pivot_with_multiple_metrics():
+def test_cum_after_pivot_with_multiple_metrics(app_context: AppContext):
+    from superset.utils import pandas_postprocessing as pp
+    from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+
     pivot_df = pp.pivot(
         df=multiple_metrics_df,
         index=["dttm"],

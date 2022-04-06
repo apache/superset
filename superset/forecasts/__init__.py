@@ -19,7 +19,6 @@ from typing import Dict, Type, Union
 
 from superset import app
 
-from . import base
 from .base import (
     BaseForecaster,
     LeastSquaresForecaster,
@@ -37,7 +36,7 @@ def get_model(  # pylint: disable=too-many-arguments
     monthly_seasonality: Union[bool, int],
     weekly_seasonality: Union[bool, int],
     daily_seasonality: Union[bool, int],
-) -> Type[base.BaseForecaster]:
+) -> BaseForecaster:
     model = available_models[model_name]
     return model(
         model_name=model_name,
@@ -49,8 +48,8 @@ def get_model(  # pylint: disable=too-many-arguments
     )
 
 
-def register() -> Dict[str, Type[base.BaseForecaster]]:
-    model_mapping = {}
+def register() -> Dict[str, Type[BaseForecaster]]:
+    model_mapping: Dict[str, Type[BaseForecaster]] = {}
     for model_name in config["ALLOWED_FORECASTERS"]:
         try:
             mod_name, cls_name = model_name.rsplit(".", 1)

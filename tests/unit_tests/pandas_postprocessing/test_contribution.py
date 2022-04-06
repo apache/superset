@@ -18,16 +18,18 @@
 from datetime import datetime
 
 import pytest
+from flask.ctx import AppContext
 from numpy import nan
 from numpy.testing import assert_array_equal
 from pandas import DataFrame
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
-from superset.utils.pandas_postprocessing import contribution
 
 
-def test_contribution():
+def test_contribution(app_context: AppContext):
+    from superset.utils.pandas_postprocessing import contribution
+
     df = DataFrame(
         {
             DTTM_ALIAS: [

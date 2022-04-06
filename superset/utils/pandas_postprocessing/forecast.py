@@ -16,14 +16,14 @@
 # under the License.
 from typing import Optional, Union
 
-from flask_babel import gettext as _
 import numpy as np
 import pandas as pd
+from flask_babel import gettext as _
 
+from superset import forecasts
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing.utils import FORECAST_TIME_GRAIN_MAP
-from superset import forecasts
 
 
 def _parse_seasonality(  # pylint: disable=invalid-name
@@ -158,7 +158,7 @@ def forecast(  # pylint: disable=too-many-arguments, too-many-locals
             weekly_seasonality=_parse_seasonality(weekly_seasonality, "weekly", ds),
             daily_seasonality=_parse_seasonality(daily_seasonality, "daily", ds),
         )
-        fit_df = model.fit_transform(
+        fit_df = model.fit_transform(  # type: ignore
             df=df[[DTTM_ALIAS, column]].rename(columns={DTTM_ALIAS: "ds", column: "y"}),
             periods=periods,
             freq=freq,

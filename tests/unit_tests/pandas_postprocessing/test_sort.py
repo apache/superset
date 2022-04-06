@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.pandas_postprocessing import sort
 from tests.unit_tests.fixtures.dataframes import categories_df
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
-def test_sort():
+def test_sort(app_context: AppContext):
+    from superset.utils.pandas_postprocessing import sort
+
     df = sort(df=categories_df, columns={"category": True, "asc_idx": False})
     assert series_to_list(df["asc_idx"])[1] == 96
 

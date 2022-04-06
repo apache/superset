@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from flask.ctx import AppContext
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
-from superset.utils.pandas_postprocessing import boxplot
 from tests.unit_tests.fixtures.dataframes import names_df
 
 
-def test_boxplot_tukey():
+def test_boxplot_tukey(app_context: AppContext) -> None:
+    from superset.utils.pandas_postprocessing import boxplot
+
     df = boxplot(
         df=names_df,
         groupby=["region"],
@@ -44,7 +46,9 @@ def test_boxplot_tukey():
     assert len(df) == 4
 
 
-def test_boxplot_min_max():
+def test_boxplot_min_max(app_context: AppContext) -> None:
+    from superset.utils.pandas_postprocessing import boxplot
+
     df = boxplot(
         df=names_df,
         groupby=["region"],
@@ -66,7 +70,9 @@ def test_boxplot_min_max():
     assert len(df) == 4
 
 
-def test_boxplot_percentile():
+def test_boxplot_percentile(app_context: AppContext) -> None:
+    from superset.utils.pandas_postprocessing import boxplot
+
     df = boxplot(
         df=names_df,
         groupby=["region"],
@@ -89,7 +95,9 @@ def test_boxplot_percentile():
     assert len(df) == 4
 
 
-def test_boxplot_percentile_incorrect_params():
+def test_boxplot_percentile_incorrect_params(app_context: AppContext) -> None:
+    from superset.utils.pandas_postprocessing import boxplot
+
     with pytest.raises(InvalidPostProcessingError):
         boxplot(
             df=names_df,
