@@ -133,8 +133,8 @@ interface _PostProcessingForecast {
     model_name: string;
   };
 }
-export type PostProcessingProphet =
-  | _PostProcessingProphet
+export type PostProcessingForecast =
+  | _PostProcessingForecast
   | DefaultPostProcessing;
 
 interface _PostProcessingDiff {

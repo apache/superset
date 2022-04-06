@@ -17,8 +17,8 @@
 from typing import Any, Dict, Optional
 from unittest.mock import Mock, patch
 
-from pytest import fixture, mark
 from flask.ctx import AppContext
+from pytest import fixture, mark
 
 from tests.common.query_context_generator import QueryContextGenerator
 
@@ -58,7 +58,10 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
 
 @fixture
 def query_object_factory(
-    app_context: AppContext, app_config: Dict[str, Any], connector_registry: Mock, session_factory: Mock
+    app_context: AppContext,
+    app_config: Dict[str, Any],
+    connector_registry: Mock,
+    session_factory: Mock,
 ) -> Any:
     import superset.common.query_object_factory as mod
 
