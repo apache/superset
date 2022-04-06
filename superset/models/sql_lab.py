@@ -118,7 +118,7 @@ class Query(Model, ExtraJSONMixin):
             "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
-            "db": self.database.database_name,
+            "db": self.database.database_name if self.database else None,
             "endDttm": self.end_time,
             "errorMessage": self.error_message,
             "executedSql": self.executed_sql,
