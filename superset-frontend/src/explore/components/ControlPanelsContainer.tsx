@@ -60,7 +60,7 @@ import { Tooltip } from 'src/components/Tooltip';
 
 import ControlRow from './ControlRow';
 import Control from './Control';
-import { ControlPanelAlert } from './ControlPanelAlert';
+import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 
 export type ControlPanelsContainerProps = {
@@ -443,7 +443,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const DatasourceAlert = useCallback(
     () =>
       hasControlsTransferred ? (
-        <ControlPanelAlert
+        <ExploreAlert
           title={t('Keep control settings?')}
           bodyText={t(
             "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
@@ -455,7 +455,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           type="info"
         />
       ) : (
-        <ControlPanelAlert
+        <ExploreAlert
           title={t('No form settings were maintained')}
           bodyText={t(
             'We were unable to carry over any controls when switching to this new dataset.',
