@@ -21,9 +21,11 @@ import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 
+// same as superset.result_set.ResultSetColumnType
 export type Column = {
   name: string;
-  is_date?: boolean;
+  type: string | null;
+  is_dttm: boolean;
 };
 
 export type QueryState =

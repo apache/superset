@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,7 +44,6 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
-  JsonArray,
   ComparisionType,
 } from '@superset-ui/core';
 
@@ -352,7 +352,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        (controls?.timeseries_limit_metric.value as JsonArray).length,
+        !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
