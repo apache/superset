@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useCallback, useState } from 'react';
+import React, { ReactNode, useCallback, useState, useEffect } from 'react';
+import { isEqual } from 'lodash';
 import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
 import { styled, JsonValue, QueryFormData } from '@superset-ui/core';
+import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
@@ -42,6 +44,8 @@ export type ControlProps = {
   validationErrors?: any[];
   hidden?: boolean;
   renderTrigger?: boolean;
+  default?: JsonValue;
+  isVisible?: boolean;
 };
 
 /**
@@ -60,15 +64,36 @@ export default function Control(props: ControlProps) {
     name,
     type,
     hidden,
+    isVisible,
   } = props;
 
   const [hovered, setHovered] = useState(false);
+  const wasVisible = usePrevious(isVisible);
   const onChange = useCallback(
     (value: any, errors: any[]) => setControlValue(name, value, errors),
     [name, setControlValue],
   );
 
-  if (!type) return null;
+  useEffect(() => {
+    if (
+      wasVisible === true &&
+      isVisible === false &&
+      props.default !== undefined &&
+      !isEqual(props.value, props.default)
+    ) {
+      // reset control value if setting to invisible
+      setControlValue?.(name, props.default);
+    }
+  }, [
+    name,
+    wasVisible,
+    isVisible,
+    setControlValue,
+    props.value,
+    props.default,
+  ]);
+
+  if (!type || isVisible === false) return null;
 
   const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
   if (!ControlComponent) {
