@@ -267,13 +267,12 @@ function Icicle(element, props) {
       if (useRichTooltip) {
         const nodes = getAncestors(d);
         nodes.reverse().forEach(n => {
-          const atNode = n.depth === d.depth;
           t += '<tbody>';
           t +=
             '<tr>' +
             '<td>' +
             '<div ' +
-            `style='border: 2px solid ${atNode ? 'white' : 'transparent'};` +
+            `style='border: 2px solid transparent;` +
             `background-color: ${n.color};'` +
             '></div>' +
             '</td>' +
