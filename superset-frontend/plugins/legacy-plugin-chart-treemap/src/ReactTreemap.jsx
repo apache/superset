@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,24 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/core';
-import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
-import data from './data';
+import { reactify, styled } from '@superset-ui/core';
+import Component from './Treemap';
 
-new ForceDirectedChartPlugin().configure({ key: 'force-directed' }).register();
+const ReactComponent = reactify(Component);
 
-export default {
-  title: 'Legacy Chart Plugins/legacy-plugin-chart-force-directed',
-};
-
-export const basic = () => (
-  <SuperChart
-    chartType="force-directed"
-    width={400}
-    height={400}
-    queriesData={[{ data }]}
-  />
+const Treemap = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactComponent {...otherProps} />
+  </div>
 );
+
+export default styled(Treemap)`
+  ${({ theme }) => `
+    .superset-legacy-chart-treemap text {
+      font-size: ${theme.typography.sizes.s}px;
+      pointer-events: none;
+    }
+
+    .superset-legacy-chart-treemap tspan:last-child {
+      font-size: ${theme.typography.sizes.xs}px;
+      fill-opacity: 0.8;
+    }
+
+    .superset-legacy-chart-treemap .node rect {
+      shape-rendering: crispEdges;
+    }
+
+    .superset-legacy-chart-treemap .node--hover rect {
+      stroke: ${theme.colors.grayscale.dark2};
+    }
+  `}
+`;

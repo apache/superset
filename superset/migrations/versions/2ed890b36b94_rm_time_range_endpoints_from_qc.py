@@ -30,7 +30,6 @@ import json
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -47,16 +46,17 @@ class Slice(Base):
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
-    for slc in session.query(Slice):
-        if slc.query_context:
-            try:
-                query_context = json.loads(slc.query_context)
-            except json.decoder.JSONDecodeError:
-                continue
-            queries = query_context.get("queries")
-            for query in queries:
-                query.get("extras", {}).pop("time_range_endpoints", None)
-            slc.queries = json.dumps(queries)
+    for slc in session.query(Slice).filter(
+        Slice.query_context.like("%time_range_endpoints%")
+    ):
+        try:
+            query_context = json.loads(slc.query_context)
+        except json.decoder.JSONDecodeError:
+            continue
+        queries = query_context.get("queries")
+        for query in queries:
+            query.get("extras", {}).pop("time_range_endpoints", None)
+        slc.queries = json.dumps(queries)
 
     session.commit()
     session.close()
