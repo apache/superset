@@ -37,7 +37,7 @@ import {
 } from './types';
 
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
-import { getRangeExtraFormData } from '../../utils';
+import { getRangeExtraFormData, roundDecimals } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
 const LIGHT_BLUE = '#99e7f0';
@@ -130,16 +130,53 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState,
     inputRef,
   } = props;
-  const [row] = data;
-  // @ts-ignore
-  const { min, max }: { min: number; max: number } = row;
   const {
     groupby,
     defaultValue,
-    stepSize,
+    stepSize = 1,
     scaling = PluginFilterRangeScalingFunctions.LINEAR,
     enableSingleValue,
   } = formData;
+
+  const transformScale = useCallback(
+    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].transformScale,
+    [scaling],
+  );
+  const inverseScale = useCallback(
+    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale,
+    [scaling],
+  );
+  // # digits of precision in the step size? Doesn't work for multi digit
+  const stepSizeDecimals = Math.abs(Math.floor(Math.log10(stepSize)));
+  const [row] = data;
+  // @ts-ignore
+  const { min, max } = useMemo(() => {
+    // @ts-ignore
+    const { min: tempMin, max: tempMax }: { min: number; max: number } = row;
+    return {
+      min: tempMin,
+      // this is ugly but it bumps the max val up to an integer multiple of
+      // stepSize greater than the min value
+      max: inverseScale(
+        roundDecimals(
+          transformScale(
+            tempMin +
+              inverseScale(
+                roundDecimals(
+                  // limits must be integer multiples of the stepSize
+                  Math.ceil(transformScale(tempMax - tempMin) / stepSize) *
+                    stepSize,
+                  stepSizeDecimals,
+                ),
+              ),
+          ),
+          stepSizeDecimals,
+        ),
+      ),
+    };
+  }, [row, stepSize]);
+  const minTransformed = transformScale(min);
+  const maxTransformed = transformScale(max);
 
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
@@ -149,23 +186,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     enableSingleValue === undefined || enableSingleValue === false;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
-  const transformScale = useCallback(
-    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].transformScale,
-    [scaling],
-  );
-  const inverseScale = useCallback(
-    SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale,
-    [scaling],
-  );
 
   const numberFormatter = useMemo(() => {
     if (stepSize < 1) {
-      const decimals = Math.abs(Math.floor(Math.log10(stepSize)));
       // need to make sure displayed numbers show the correct sig figs
-      return getNumberFormatter(`.${decimals}f`);
+      return getNumberFormatter(`.${stepSizeDecimals}f`);
     }
     return getNumberFormatter(NumberFormats.SMART_NUMBER);
-  }, [stepSize]);
+  }, [stepSize, stepSizeDecimals]);
 
   // lower and upper are NOT transformed!!!!
   const getLabel = (lower: number | null, upper: number | null): string => {
@@ -192,9 +220,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [marks, setMarks] = useState<{ [key: number]: string }>({});
   const minIndex = 0;
   const maxIndex = 1;
+  // minMax uses transformed values
   const minMax = useMemo(
-    () => value ?? [min ?? 0, max].map(transformScale),
-    [max, min, value, transformScale],
+    () => value ?? [minTransformed ?? 0, maxTransformed],
+    [maxTransformed, minTransformed, value],
   );
 
   const tipFormatter = (value: number) =>
@@ -227,27 +256,29 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       return {
-        lower: lowerRaw > Number(transformScale(min)) ? lowerRaw : null,
-        upper: upperRaw < Number(transformScale(max)) ? upperRaw : null,
+        lower: lowerRaw > Number(minTransformed) ? lowerRaw : null,
+        upper: upperRaw < Number(maxTransformed) ? upperRaw : null,
       };
     },
-    [max, min, transformScale, value, enableSingleExactValue],
+    [maxTransformed, minTransformed, value, enableSingleExactValue],
   );
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
+      // value is transformed, min and max are NOT transformed
       let val = value;
       if (value[0] === min && value[1] === max) {
         // after a filter value reset, make sure it's a transformed value
         val = [transformScale(value[0]), transformScale(value[1])];
       }
+      // FIXME: this doesn't work properly. Eg, stepSize = 0.35 for [0, 1]
       // antd apparently uses the floor value, not the rounded value...?
       // which causes issues like log(123) = 2.0899
-      if (val[1] === Math.floor(transformScale(max) / stepSize) * stepSize) {
-        val = [val[0], transformScale(max)];
+      if (val[1] >= roundDecimals(maxTransformed, stepSizeDecimals)) {
+        val = [val[0], maxTransformed];
       }
-      if (val[0] === Math.floor(transformScale(min) / stepSize) * stepSize) {
-        val = [transformScale(min), val[1]];
+      if (val[0] <= roundDecimals(minTransformed, stepSizeDecimals)) {
+        val = [minTransformed, val[1]];
       }
       // value is transformed
       setValue(val);
@@ -262,12 +293,20 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           inverseScale(upper),
         ),
         filterState: {
-          value: lower !== null || upper !== null ? value : null,
+          value: lower !== null || upper !== null ? val : null,
           label: getLabel(inverseScale(lower), inverseScale(upper)),
         },
       });
     },
-    [col, getBounds, setDataMask, getMarks, inverseScale, transformScale],
+    [
+      col,
+      getBounds,
+      setDataMask,
+      getMarks,
+      inverseScale,
+      transformScale,
+      stepSizeDecimals,
+    ],
   );
 
   // value is transformed
@@ -282,7 +321,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    let filterStateValue = filterState.value ?? [min, max].map(transformScale);
+    let filterStateValue = filterState.value ?? [
+      minTransformed,
+      maxTransformed,
+    ];
     if (enableSingleMaxValue) {
       const filterStateMax =
         filterStateValue[maxIndex] <= minMax[maxIndex]
@@ -358,8 +400,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           >
             {enableSingleMaxValue && (
               <AntdSlider
-                min={transformScale(min) ?? 0}
-                max={transformScale(max) ?? undefined}
+                min={minTransformed ?? 0}
+                max={maxTransformed ?? undefined}
                 value={minMax[maxIndex]}
                 tipFormatter={tipFormatter}
                 marks={marks}
@@ -371,8 +413,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             {enableSingleMinValue && (
               <StyledMinSlider
                 validateStatus={filterState.validateStatus}
-                min={transformScale(min) ?? 0}
-                max={transformScale(max) ?? undefined}
+                min={minTransformed ?? 0}
+                max={maxTransformed ?? undefined}
                 value={minMax[minIndex]}
                 tipFormatter={tipFormatter}
                 marks={marks}
@@ -383,8 +425,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             )}
             {enableSingleExactValue && (
               <AntdSlider
-                min={transformScale(min) ?? 0}
-                max={transformScale(max) ?? undefined}
+                min={minTransformed ?? 0}
+                max={maxTransformed ?? undefined}
                 included={false}
                 value={minMax[minIndex]}
                 tipFormatter={tipFormatter}
@@ -397,8 +439,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             {rangeValue && (
               <AntdSlider
                 range
-                min={transformScale(min) ?? 0}
-                max={transformScale(max) ?? undefined}
+                min={minTransformed ?? 0}
+                max={maxTransformed ?? undefined}
                 value={minMax}
                 onAfterChange={handleAfterChange}
                 onChange={handleChange}

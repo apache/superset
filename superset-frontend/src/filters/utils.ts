@@ -26,6 +26,10 @@ import {
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
+// round a float to this many decimal values
+export const roundDecimals = (num: number, decimals: number) =>
+  Math.round((num + Number.EPSILON) * 10 ** decimals) / 10 ** decimals;
+
 export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],

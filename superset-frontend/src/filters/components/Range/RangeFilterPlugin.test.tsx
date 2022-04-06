@@ -26,6 +26,7 @@ import {
   PluginFilterRangeScalingFunctions,
   SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION,
 } from './types';
+import { roundDecimals } from '../../utils';
 
 const rangeProps = {
   formData: {
@@ -86,6 +87,25 @@ const rangeProps = {
   isRefreshing: false,
   appSection: AppSection.DASHBOARD,
 };
+
+describe('ScalingFunctions', () => {
+  Object.keys(PluginFilterRangeScalingFunctions).forEach(scaling => {
+    [0, 1e-5, 1e-2, 1, 1e4, 1e6, 1e8].forEach(val =>
+      it(`inverse should undo transform (using ${scaling}, ${val})`, () =>
+        expect(
+          // make sure it's good to 6 decimal places
+          roundDecimals(
+            SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].inverseScale(
+              SCALING_FUNCTION_ENUM_TO_SCALING_FUNCTION[scaling].transformScale(
+                val,
+              ),
+            ),
+            6,
+          ),
+        ).toEqual(val)),
+    );
+  });
+});
 
 describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
