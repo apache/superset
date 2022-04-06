@@ -299,6 +299,7 @@ export class ExploreChartHeader extends React.PureComponent {
             buttonStyle="secondary"
             onClick={onSaveChart}
             disabled={chartStatus === 'loading'}
+            data-test="query-save-button"
           >
             <Icons.SaveOutlined iconSize="l" />
             {t('Save')}
