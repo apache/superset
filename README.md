@@ -161,7 +161,7 @@ how to set up a development environment.
 	- [Apache Superset 1.3 Meetup](https://preset.io/events/apache-superset-1-3/)
 	- [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
 - Visualizations
-  - [Building Custom Viz Plugins](https://superset.apache.org/docs/installation/building-custom-viz-plugins)
+  - [Creating Viz Plugins](https://superset.apache.org/docs/contributing/creating-viz-plugins/)
   - [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 
