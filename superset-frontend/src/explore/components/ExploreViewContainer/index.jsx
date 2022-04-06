@@ -48,7 +48,6 @@ import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
-import QueryAndSaveBtns from '../QueryAndSaveBtns';
 import DataSourcePanel from '../DatasourcePanel';
 import { mountExploreUrl } from '../../exploreUtils';
 import { areObjectsEqual } from '../../../reduxUtils';
@@ -682,6 +681,7 @@ function ExploreViewContainer(props) {
             isDatasourceMetaLoading={props.isDatasourceMetaLoading}
             onQuery={onQuery}
             onStop={onStop}
+            canStopQuery={props.can_add || props.can_overwrite}
             errorMessage={renderErrorMessage()}
           />
         </Resizable>

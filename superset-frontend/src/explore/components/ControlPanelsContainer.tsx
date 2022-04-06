@@ -74,6 +74,7 @@ export type ControlPanelsContainerProps = {
   errorMessage: ReactNode;
   onQuery: () => void;
   onStop: () => void;
+  canStopQuery: boolean;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -542,6 +543,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           errorMessage={props.errorMessage}
           loading={props.chart.chartStatus === 'loading'}
           isNewChart={!props.chart.queriesResponse}
+          canStopQuery={props.canStopQuery}
         />
       </ActionButtonsContainer>
     </Styles>

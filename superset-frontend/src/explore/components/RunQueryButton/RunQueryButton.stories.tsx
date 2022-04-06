@@ -17,29 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import QueryAndSaveBtns, { QueryAndSaveBtnsProps } from './QueryAndSaveBtns';
+import { RunQueryButton, RunQueryButtonProps } from '.';
 
 export default {
-  title: 'QueryAndSaveBtns',
-  component: QueryAndSaveBtns,
+  title: 'RunQueryButton',
+  component: RunQueryButton,
 };
 
-export const InteractiveQueryAndSaveBtnsProps = (
-  args: QueryAndSaveBtnsProps,
-) => <QueryAndSaveBtns {...args} />;
+export const InteractiveRunQueryButtonProps = (args: RunQueryButtonProps) => (
+  <RunQueryButton {...args} />
+);
 
-InteractiveQueryAndSaveBtnsProps.args = {
-  canAdd: true,
+InteractiveRunQueryButtonProps.args = {
+  canStopQuery: true,
   loading: false,
+  errorMessage: null,
+  isNewChart: false,
 };
 
-InteractiveQueryAndSaveBtnsProps.argTypes = {
+InteractiveRunQueryButtonProps.argTypes = {
   onQuery: { action: 'onQuery' },
-  onSave: { action: 'onSave' },
   onStop: { action: 'onStop' },
 };
 
-InteractiveQueryAndSaveBtnsProps.story = {
+InteractiveRunQueryButtonProps.story = {
   parameters: {
     knobs: {
       disable: true,
