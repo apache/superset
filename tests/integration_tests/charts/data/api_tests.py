@@ -17,8 +17,10 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import time
 import unittest
 import copy
+import numpy as np
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
@@ -589,11 +591,40 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["queries"][0]["filters"] = []
         self.query_context_payload["queries"][0]["extras"][
             "where"
-        ] = "state = 'CA') OR (state = 'NY'"
+        ] = "state = 'CA') OR (stata = 'NY'"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
         assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_long_where_parameter(self):
+        long_clause = np.loadtxt("tests/example_data/test-long-where-clause-1k.txt", delimiter=",", dtype=str).tolist()
+        self.query_context_payload["queries"][0]["filters"][2]["val"] = long_clause
+        start_a = time.time()
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        compute_time_a = time.time() - start_a
+        table = self.get_table_by_id(1)
+        del self.query_context_payload["queries"][0]["time_range"]
+        sqla_query = table.get_sqla_query(**{
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["gender"],
+            "metrics": ["count"],
+            "is_timeseries": False,
+            "filter": self.query_context_payload["queries"][0]["filters"],
+            "extras": {},
+        })
+        start_b = time.time()
+        sql = table.database.compile_sqla_query(sqla_query.sqla_query)
+        result = table.database.get_df(sql, schema=table.schema)
+        compute_time_b = time.time() - start_b
+
+        buffer_time = 2
+        self.assertLess(compute_time_a,
+                        compute_time_b+buffer_time,
+                        f"computation of post query payload: {compute_time_a} sec is higher than unparsed sqla querying time: {compute_time_b} sec plus {buffer_time} sec buffer time")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_where_parameter_including_comment___200(self):
