@@ -89,6 +89,9 @@ const engineSpecificAlertMapping = {
 };
 
 const errorAlertMapping = {
+  GENERIC_DB_ENGINE_ERROR: {
+    message: t('Generic database engine error'),
+  },
   CONNECTION_MISSING_PARAMETERS_ERROR: {
     message: t('Missing Required Fields'),
     description: t('Please complete all required fields.'),
@@ -929,6 +932,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           }
           description={
             errorAlertMapping[validationErrors?.error_type]?.description ||
+            validationErrors?.description ||
             JSON.stringify(validationErrors)
           }
           showIcon

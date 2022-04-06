@@ -24,6 +24,7 @@ import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import DragDroppable from './dnd/DragDroppable';
 import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
+import { TAB_TYPE } from '../util/componentTypes';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
@@ -137,9 +138,11 @@ class DashboardGrid extends React.PureComponent {
       gridComponent,
       handleComponentDrop,
       depth,
-      editMode,
       width,
       isComponentVisible,
+      editMode,
+      canEdit,
+      setEditMode,
     } = this.props;
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
@@ -147,26 +150,70 @@ class DashboardGrid extends React.PureComponent {
     const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
     const { isResizing, rowGuideTop } = this.state;
 
+    const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
+    const shouldDisplayTopLevelTabEmptyState =
+      shouldDisplayEmptyState && gridComponent.type === TAB_TYPE;
+
+    const dashboardEmptyState = editMode && (
+      <EmptyStateBig
+        title={t('Drag and drop components and charts to the dashboard')}
+        description={t(
+          'You can create a new chart or use existing ones from the panel on the right',
+        )}
+        buttonText={
+          <>
+            <i className="fa fa-plus" />
+            {t('Create a new chart')}
+          </>
+        }
+        buttonAction={() => {
+          window.open('/chart/add', '_blank', 'noopener noreferrer');
+        }}
+        image="chart.svg"
+      />
+    );
+
+    const topLevelTabEmptyState = editMode ? (
+      <EmptyStateBig
+        title={t('Drag and drop components to this tab')}
+        description={t(
+          `You can create a new chart or use existing ones from the panel on the right`,
+        )}
+        buttonText={
+          <>
+            <i className="fa fa-plus" />
+            {t('Create a new chart')}
+          </>
+        }
+        buttonAction={() => {
+          window.open('/chart/add', '_blank', 'noopener noreferrer');
+        }}
+        image="chart.svg"
+      />
+    ) : (
+      <EmptyStateBig
+        title={t('There are no components added to this tab')}
+        description={
+          canEdit && t('You can add the components in the edit mode.')
+        }
+        buttonText={canEdit && t('Edit the dashboard')}
+        buttonAction={
+          canEdit &&
+          (() => {
+            setEditMode(true);
+          })
+        }
+        image="chart.svg"
+      />
+    );
+
     return width < 100 ? null : (
       <>
-        {editMode && gridComponent?.children?.length === 0 && (
+        {shouldDisplayEmptyState && (
           <DashboardEmptyStateContainer>
-            <EmptyStateBig
-              title={t('Drag and drop components and charts to the dashboard')}
-              description={t(
-                'You can create new charts or use existing ones from the panel on the right',
-              )}
-              buttonText={
-                <>
-                  <i className="fa fa-plus" />
-                  {t('Create a new chart')}
-                </>
-              }
-              buttonAction={() => {
-                window.location.assign('/chart/add');
-              }}
-              image="chart.svg"
-            />
+            {shouldDisplayTopLevelTabEmptyState
+              ? topLevelTabEmptyState
+              : dashboardEmptyState}
           </DashboardEmptyStateContainer>
         )}
         <div className="dashboard-grid" ref={this.setGridRef}>

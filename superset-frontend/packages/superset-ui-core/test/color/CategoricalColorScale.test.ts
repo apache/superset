@@ -62,28 +62,15 @@ describe('CategoricalColorScale', () => {
       expect(c2).not.toBe(c3);
       expect(c3).not.toBe(c1);
     });
-    it('recycles colors when number of items exceed available colors', () => {
-      const colorSet: { [key: string]: number } = {};
+    it('get analogous colors when number of items exceed available colors', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      const colors = [
-        scale.getColor('pig'),
-        scale.getColor('horse'),
-        scale.getColor('cat'),
-        scale.getColor('cow'),
-        scale.getColor('donkey'),
-        scale.getColor('goat'),
-      ];
-      colors.forEach(color => {
-        if (colorSet[color]) {
-          colorSet[color] += 1;
-        } else {
-          colorSet[color] = 1;
-        }
-      });
-      expect(Object.keys(colorSet)).toHaveLength(3);
-      ['blue', 'red', 'green'].forEach(color => {
-        expect(colorSet[color]).toBe(2);
-      });
+      scale.getColor('pig');
+      scale.getColor('horse');
+      scale.getColor('cat');
+      scale.getColor('cow');
+      scale.getColor('donkey');
+      scale.getColor('goat');
+      expect(scale.range()).toHaveLength(6);
     });
   });
   describe('.setColor(value, forcedColor)', () => {

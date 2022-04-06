@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,24 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/* eslint-disable no-magic-numbers */
 import React from 'react';
-import { SuperChart } from '@superset-ui/core';
-import ForceDirectedChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
-import data from './data';
-
-new ForceDirectedChartPlugin().configure({ key: 'force-directed' }).register();
+import RowCountLabel from '.';
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-plugin-chart-force-directed',
+  title: 'RowCountLabel',
+  component: RowCountLabel,
 };
 
-export const basic = () => (
-  <SuperChart
-    chartType="force-directed"
-    width={400}
-    height={400}
-    queriesData={[{ data }]}
-  />
+const options = {
+  loading: {
+    loading: true,
+  },
+  full: {
+    rowcount: 100,
+    limit: 100,
+  },
+  medium: {
+    rowcount: 50,
+    limit: 100,
+  },
+  suffix: {
+    rowcount: 1,
+    suffix: 'suffix',
+  },
+};
+
+export const RowCountLabelGallery = () => (
+  <>
+    {Object.keys(options).map(name => (
+      <>
+        <h4>{name}</h4>
+        <RowCountLabel
+          loading={options[name].loading}
+          rowcount={options[name].rowcount}
+          limit={options[name].limit}
+          suffix={options[name].suffix}
+        />
+      </>
+    ))}
+  </>
 );

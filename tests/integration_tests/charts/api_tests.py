@@ -17,11 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from datetime import datetime
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
-import humanize
 import prison
 import pytest
 import yaml
@@ -803,7 +801,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         Dashboard API: Test get charts changed on
         """
         admin = self.get_user("admin")
-        start_changed_on = datetime.now()
         chart = self.insert_chart("foo_a", [admin.id], 1, description="ZY_bar")
 
         self.login(username="admin")
@@ -817,9 +814,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            data["result"][0]["changed_on_delta_humanized"],
-            humanize.naturaltime(datetime.now() - start_changed_on),
+        assert data["result"][0]["changed_on_delta_humanized"] in (
+            "now",
+            "a second ago",
         )
 
         # rollback changes
