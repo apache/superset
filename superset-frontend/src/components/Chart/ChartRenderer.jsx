@@ -42,7 +42,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
   setDataMask: PropTypes.func,
@@ -94,7 +94,7 @@ class ChartRenderer extends React.Component {
       nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
       !nextProps.queriesResponse?.[0]?.error &&
-      !nextProps.refreshOverlayVisible;
+      !nextProps.chartIsStale;
 
     if (resultsReady) {
       this.hasQueryResponseChange =
@@ -170,12 +170,12 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, vizType, chartId, refreshOverlayVisible } =
+    const { chartAlert, chartStatus, vizType, chartId, chartIsStale } =
       this.props;
 
     // Skip chart rendering
     if (
-      refreshOverlayVisible ||
+      chartIsStale ||
       chartStatus === 'loading' ||
       !!chartAlert ||
       chartStatus === null

@@ -51,7 +51,7 @@ const propTypes = {
   standalone: PropTypes.number,
   force: PropTypes.bool,
   timeout: PropTypes.number,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
   triggerRender: PropTypes.bool,

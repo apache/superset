@@ -64,7 +64,7 @@ const propTypes = {
   chartStackTrace: PropTypes.string,
   queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
@@ -256,14 +256,14 @@ class Chart extends React.PureComponent {
       chartStatus,
       errorMessage,
       onQuery,
-      refreshOverlayVisible,
+      chartIsStale,
       queriesResponse = [],
       isDeactivatedViz = false,
       width,
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-    const isFaded = refreshOverlayVisible && !errorMessage;
+    const isFaded = chartIsStale && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));

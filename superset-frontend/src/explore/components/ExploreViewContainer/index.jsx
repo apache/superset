@@ -493,7 +493,7 @@ function ExploreViewContainer(props) {
       <ExploreChartPanel
         {...props}
         errorMessage={errorMessage}
-        refreshOverlayVisible={chartIsStale}
+        chartIsStale={chartIsStale}
         onQuery={onQuery}
       />
     );

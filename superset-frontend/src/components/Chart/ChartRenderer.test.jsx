@@ -32,15 +32,13 @@ const requiredProps = {
 describe('ChartRenderer', () => {
   it('should render SuperChart', () => {
     const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible={false} />,
+      <ChartRenderer {...requiredProps} chartIsStale={false} />,
     );
     expect(wrapper.find(SuperChart)).toExist();
   });
 
-  it('should not render SuperChart when refreshOverlayVisible is true', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} refreshOverlayVisible />,
-    );
+  it('should not render SuperChart when chartIsStale is true', () => {
+    const wrapper = shallow(<ChartRenderer {...requiredProps} chartIsStale />);
     expect(wrapper.find(SuperChart)).not.toExist();
   });
 });
