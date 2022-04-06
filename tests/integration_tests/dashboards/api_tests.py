@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from datetime import datetime
 from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
@@ -697,7 +698,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(data["count"], 6)
 
     @pytest.mark.usefixtures("create_created_by_admin_dashboards")
-    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboards_created_by_me(self):
         """
         Dashboard API: Test get dashboards created by current user
@@ -715,12 +715,12 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "title",
             "url",
         ]
-        if backend() == "sqlite":
+        if backend() == "postgres":
             # sqlite doesn't support ms timestamps not possible to infer proper ordering
             return
         expected_results = [
-            {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
             {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
+            {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
         ]
         for idx, response_item in enumerate(data["result"]):
             for key, value in expected_results[idx].items():
