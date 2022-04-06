@@ -274,6 +274,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             self._validate_no_have_duplicate_labels()
             # problematic line where calling sqlparser.parse() causes quadratic
             # performance for WHERE ... IN (...) clauses
+            # Clauses are anyway checked for their validity in
+            # e.g., connectors/sqla/models/get_query_str_extended
             # self._sanitize_filters()
             return None
         except QueryObjectValidationError as ex:
