@@ -987,7 +987,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             showIcon
             message="Database passwords"
             description={t(
-              `The passwords for the databases below are needed in order to import them. Please note that the "Secure Extra" and "Certificate" sections of the database configuration are also not present in exported files and should be added manually after the import if they are needed.`,
+              `The passwords for the databases below are needed in order to import them. Please note that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
             )}
           />
         </StyledAlertMargin>
