@@ -20,7 +20,7 @@ Business type request class
 
 from typing import List, TypedDict, Union
 
-from superset.typing import FilterValues
+from superset.superset_typing import FilterValues
 
 
 class BusinessTypeRequest(TypedDict):
