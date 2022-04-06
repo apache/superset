@@ -17,8 +17,8 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from datetime import datetime
 from io import BytesIO
+from time import sleep
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
@@ -28,7 +28,6 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 import pytest
 import prison
 import yaml
-from sqlalchemy.sql import func
 
 from freezegun import freeze_time
 from sqlalchemy import and_
@@ -173,6 +172,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     [admin.id],
                     created_by=admin,
                 )
+                sleep(1)
                 dashboards.append(dashboard)
 
             yield dashboards
@@ -695,7 +695,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 6)
+        self.assertEqual(data["count"], 5)
 
     @pytest.mark.usefixtures("create_created_by_admin_dashboards")
     def test_get_dashboards_created_by_me(self):
@@ -715,9 +715,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "title",
             "url",
         ]
-        if backend() == "postgres":
-            # sqlite doesn't support ms timestamps not possible to infer proper ordering
-            return
         expected_results = [
             {"title": "create_title1", "url": "/superset/dashboard/create_slug1/"},
             {"title": "create_title0", "url": "/superset/dashboard/create_slug0/"},
