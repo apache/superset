@@ -34,6 +34,7 @@ from sqlalchemy import and_, inspect, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy_utils import UUIDType
 
 from superset import app, db
@@ -233,6 +234,13 @@ class NewDataset(Base):
 TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
 
 
+def is_column_type_temporal(column_type: TypeEngine) -> bool:
+    try:
+        return column_type.python_type.__name__.upper() in TEMPORAL_TYPES
+    except NotImplementedError:
+        return False
+
+
 def load_or_create_tables(
     session: Session,
     database_id: int,
@@ -285,8 +293,7 @@ def load_or_create_tables(
                     name=column["name"],
                     type=str(column["type"]),
                     expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
+                    is_temporal=is_column_type_temporal(column["type"]),
                     is_aggregation=False,
                     is_physical=True,
                     is_spatial=False,
