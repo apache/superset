@@ -66,7 +66,7 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data tr:hover {
-      background-color: ${theme.colors.grayscale.light2};
+      background-color: ${theme.colors.grayscale.light3};
     }
 
     .reactable-data tr .false {
@@ -86,14 +86,14 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data .control td {
-      background-color: ${theme.colors.grayscale.light2};
+      background-color: ${theme.colors.grayscale.light3};
     }
 
     .reactable-header-sortable:hover,
     .reactable-header-sortable:focus,
     .reactable-header-sort-asc,
     .reactable-header-sort-desc {
-      background-color: ${theme.colors.grayscale.light2};
+      background-color: ${theme.colors.grayscale.light3};
       position: relative;
     }
 
