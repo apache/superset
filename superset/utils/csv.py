@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
 import urllib.request
 from typing import Any, Dict, Optional
@@ -21,6 +22,8 @@ from urllib.error import URLError
 
 import pandas as pd
 import simplejson
+
+logger = logging.getLogger(__name__)
 
 negative_number_re = re.compile(r"^-[0-9.]+$")
 
@@ -95,6 +98,9 @@ def get_chart_dataframe(
         return None
 
     result = simplejson.loads(content.decode("utf-8"))
+    pd.set_option(
+        "display.float_format", lambda x: str(x)
+    )  # need to convert float value to string to show full long number
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     # rebuild hierarchical columns and index
