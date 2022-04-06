@@ -637,7 +637,7 @@ msgstr "实际时间范围"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:28
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
-msgid "Adaptative formating"
+msgid "Adaptive formatting"
 msgstr "自动匹配格式化"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267
