@@ -59,13 +59,13 @@ describe('color utils', () => {
         getContrastingColor('#0000');
       }).toThrow();
     });
-    describe('addAlpha', () => {
-      it('adds 20% opacity to black', () => {
-        expect(addAlpha('#000000', 0.2)).toBe('#00000033');
-      });
-      it('adds 50% opacity to white', () => {
-        expect(addAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF80');
-      });
+  });
+  describe('addAlpha', () => {
+    it('adds 20% opacity to black', () => {
+      expect(addAlpha('#000000', 0.2)).toBe('#00000033');
+    });
+    it('adds 50% opacity to white', () => {
+      expect(addAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF80');
     });
   });
 });
