@@ -113,10 +113,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # the global Flask app
         #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
+        from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
-        from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi

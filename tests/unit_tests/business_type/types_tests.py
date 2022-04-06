@@ -22,8 +22,12 @@ import sqlalchemy
 from flask.ctx import AppContext
 from sqlalchemy import Column, Integer
 from tests.integration_tests.base_tests import SupersetTestCase
-from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_request import (
+    AdvancedDataTypeRequest,
+)
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 from superset.advanced_data_type.internet_address import internet_address
@@ -59,7 +63,10 @@ def test_ip_func_valid_ip(app_context: None):
 
 def test_cidr_func_invalid_ip(app_context: None):
     """Test to see if the cidr_func behaves as expected when an invalid IP is passed in"""
-    cidr_request: AdvancedDataTypeRequest = {"advanced_data_type": "cidr", "values": ["abc"]}
+    cidr_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "cidr",
+        "values": ["abc"],
+    }
     cidr_response: AdvancedDataTypeResponse = {
         "values": [],
         "error_message": "'abc' does not appear to be an IPv4 or IPv6 network",
@@ -80,7 +87,10 @@ def test_cidr_func_invalid_ip(app_context: None):
 def test_port_translation_func_valid_port_number(app_context: None):
     """Test to see if the port_translation_func behaves as expected when a valid port number
     is passed in"""
-    port_request: AdvancedDataTypeRequest = {"advanced_data_type": "port", "values": ["80"]}
+    port_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "port",
+        "values": ["80"],
+    }
     port_response: AdvancedDataTypeResponse = {
         "values": [[80]],
         "error_message": "",
@@ -125,7 +135,10 @@ def test_port_translation_func_valid_port_name(app_context: None):
 def test_port_translation_func_invalid_port_name(app_context: None):
     """Test to see if the port_translation_func behaves as expected when an invalid port name
     is passed in"""
-    port_request: AdvancedDataTypeRequest = {"advanced_data_type": "port", "values": ["abc"]}
+    port_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "port",
+        "values": ["abc"],
+    }
     port_response: AdvancedDataTypeResponse = {
         "values": [],
         "error_message": "'abc' does not appear to be a port name or number",

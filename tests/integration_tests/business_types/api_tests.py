@@ -30,8 +30,12 @@ from unittest import mock
 from sqlalchemy import Column
 from typing import Any, List
 from superset.advanced_data_type.advanced_data_type import AdvancedDataType
-from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_request import (
+    AdvancedDataTypeRequest,
+)
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 
@@ -78,7 +82,8 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
     resource_name = "advanced_data_type"
 
     @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": 1},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS",
+        {"type": 1},
     )
     def test_types_type_request(self):
         """
@@ -112,7 +117,8 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": 1},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS",
+        {"type": 1},
     )
     def test_types_convert_bad_request_type_not_found(self):
         """
@@ -126,7 +132,8 @@ class TestAdvancedDataTypeApi(SupersetTestCase):
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": test_type},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS",
+        {"type": test_type},
     )
     def test_types_convert_request(self):
         """

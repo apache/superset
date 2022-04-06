@@ -49,7 +49,6 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
-from typing_extensions import Literal
 
 from superset.advanced_data_type.advanced_data_type import AdvancedDataType
 from superset.advanced_data_type.internet_address import internet_address
@@ -179,7 +178,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # Your App secret key. Make sure you override it on superset_config.py.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = "ASDASDASDASDDSA"
+SECRET_KEY = "CHANGE_ME_SECRET_KEY"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")

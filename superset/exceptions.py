@@ -26,6 +26,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 class SupersetException(Exception):
     status = 500
     message = ""
+
     def __init__(
         self,
         message: str = "",
@@ -197,6 +198,7 @@ class QueryObjectValidationError(SupersetException):
 
 class AdvancedDataTypeResponseError(SupersetException):
     status = 400
+
 
 class InvalidPostProcessingError(SupersetException):
     status = 400

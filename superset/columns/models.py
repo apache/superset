@@ -77,7 +77,6 @@ class Column(
     # Advnced Type
     advanced_data_type = sa.Column(sa.Text)
 
-
     # Is this a time column? Useful for plotting time series.
     is_temporal = sa.Column(sa.Boolean, default=False)
 

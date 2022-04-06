@@ -677,7 +677,9 @@ class TestDatasetApi(SupersetTestCase):
         assert new_col_dict["description"] in [col.description for col in columns]
         assert new_col_dict["expression"] in [col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
-        assert new_col_dict["advanced_data_type"] in [col.advanced_data_type for col in columns]
+        assert new_col_dict["advanced_data_type"] in [
+            col.advanced_data_type for col in columns
+        ]
 
         db.session.delete(dataset)
         db.session.commit()

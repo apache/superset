@@ -427,7 +427,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     // When the column is not a advanced data type,
     // the advanced data type endpoint should not be called
     await waitFor(() =>
-      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        0,
+      ),
     );
   });
 
@@ -461,7 +463,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     // When the column is a advanced data type,
     // the advanced data type endpoint should be called
     await waitFor(() =>
-      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        1,
+      ),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
   });
@@ -496,7 +500,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     // When the column is a advanced data type but an error response is given by the endpoint,
     // the save button should be disabled
     await waitFor(() =>
-      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(
+        1,
+      ),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(false);
   });
@@ -531,7 +537,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
     // When the column is a advanced data type,
     // the advanced data type endpoint should be called
     await waitFor(() =>
-      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(
+        1,
+      ),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
 

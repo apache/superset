@@ -20,8 +20,12 @@ from typing import Any, List
 from sqlalchemy import Column
 
 from superset.advanced_data_type.advanced_data_type import AdvancedDataType
-from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_request import (
+    AdvancedDataTypeRequest,
+)
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 

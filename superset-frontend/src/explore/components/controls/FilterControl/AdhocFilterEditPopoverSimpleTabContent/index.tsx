@@ -482,25 +482,25 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         )
       ) : (
         <Tooltip
-        title={
-          advancedDataTypesState.errorMessage ||
-          advancedDataTypesState.parsedAdvancedDataType
-        }
+          title={
+            advancedDataTypesState.errorMessage ||
+            advancedDataTypesState.parsedAdvancedDataType
+          }
         >
-        <StyledInput
-          data-test="adhoc-filter-simple-value"
-          name="filter-value"
-          ref={ref => {
-            if (ref && shouldFocusComparator) {
-              ref.focus();
-            }
-          }}
-          onChange={onInputComparatorChange}
-          value={comparator}
-          placeholder={t('Filter value (case sensitive)')}
-          disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
+          <StyledInput
+            data-test="adhoc-filter-simple-value"
+            name="filter-value"
+            ref={ref => {
+              if (ref && shouldFocusComparator) {
+                ref.focus();
+              }
+            }}
+            onChange={onInputComparatorChange}
+            value={comparator}
+            placeholder={t('Filter value (case sensitive)')}
+            disabled={DISABLE_INPUT_OPERATORS.includes(operatorId)}
           />
-       </Tooltip>
+        </Tooltip>
       )}
     </>
   );

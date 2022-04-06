@@ -24,8 +24,12 @@ from typing import Any, Callable, List
 from sqlalchemy import Column
 from sqlalchemy.sql.expression import BinaryExpression
 
-from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_request import (
+    AdvancedDataTypeRequest,
+)
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.utils.core import FilterOperator
 
 

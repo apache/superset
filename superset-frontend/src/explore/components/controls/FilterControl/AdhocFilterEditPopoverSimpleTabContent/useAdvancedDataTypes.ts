@@ -49,7 +49,10 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
         return;
       }
       debounce(() => {
-        const queryParams = rison.encode({ type: subjectAdvancedDataType, values });
+        const queryParams = rison.encode({
+          type: subjectAdvancedDataType,
+          values,
+        });
         const endpoint = `/api/v1/advanced_data_type/convert?q=${queryParams}`;
         SupersetClient.get({ endpoint })
           .then(({ json }) => {

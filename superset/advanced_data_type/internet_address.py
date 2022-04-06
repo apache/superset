@@ -20,8 +20,12 @@ from typing import Any, List
 from sqlalchemy import Column, or_
 
 from superset.advanced_data_type.advanced_data_type import AdvancedDataType
-from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_request import (
+    AdvancedDataTypeRequest,
+)
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 
@@ -40,7 +44,6 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
             FilterStringOperators.IN,
             FilterStringOperators.LESS_THAN,
             FilterStringOperators.LESS_THAN_OR_EQUAL,
-            
         ],
     }
     if req["values"] == [""]:
@@ -88,7 +91,6 @@ def cidr_translate_filter_func(
         single_values = [val for val in values if not isinstance(val, dict)]
         if operator == FilterOperator.IN.value:
             cond = col.in_(single_values)
-            dict_cond = []
             for dictionary in dict_items:
                 cond = cond | (col <= dictionary["end"]) & (col >= dictionary["start"])
         elif operator == FilterOperator.NOT_IN.value:

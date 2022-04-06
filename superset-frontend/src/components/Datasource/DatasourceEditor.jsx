@@ -408,7 +408,9 @@ function ColumnCollectionTable({
                 );
               },
               type: d => (d ? <Label>{d}</Label> : null),
-              advanced_data_type: d => <Label onChange={onColumnsChange}>{d}</Label>,
+              advanced_data_type: d => (
+                <Label onChange={onColumnsChange}>{d}</Label>
+              ),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,

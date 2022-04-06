@@ -72,7 +72,9 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.columns.models import Column as NewColumn
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -84,12 +86,12 @@ from superset.connectors.sqla.utils import (
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
-from superset.exceptions import AdvancedDataTypeResponseError, QueryObjectValidationError
-from superset.extensions import feature_flag_manager
 from superset.exceptions import (
+    AdvancedDataTypeResponseError,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -1348,16 +1350,23 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
                 if (
                     col_advanced_data_type != ""
-                    and feature_flag_manager.is_feature_enabled("ENABLE_ADVANCED_DATA_TYPES")
+                    and feature_flag_manager.is_feature_enabled(
+                        "ENABLE_ADVANCED_DATA_TYPES"
+                    )
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
                         col_advanced_data_type
                     ].translate_type(
-                        {"type": col_advanced_data_type, "values": values,}
+                        {
+                            "type": col_advanced_data_type,
+                            "values": values,
+                        }
                     )
                     if bus_resp["error_message"]:
-                        raise AdvancedDataTypeResponseError(_(bus_resp["error_message"]))
+                        raise AdvancedDataTypeResponseError(
+                            _(bus_resp["error_message"])
+                        )
 
                     where_clause_and.append(
                         ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(

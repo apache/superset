@@ -21,7 +21,9 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.advanced_data_type_response import (
+    AdvancedDataTypeResponse,
+)
 from superset.advanced_data_type.schemas import advanced_data_type_convert_schema
 from superset.extensions import event_logger
 
@@ -99,7 +101,9 @@ class AdvancedDataTypeRestApi(BaseApi):
         items = kwargs["rison"]
         advanced_data_type = items.get("type")
         if not advanced_data_type:
-            return self.response(400, message=_("Missing advanced data type in request"))
+            return self.response(
+                400, message=_("Missing advanced data type in request")
+            )
         values = items["values"]
         if not values:
             return self.response(400, message=_("Missing values in request"))
@@ -113,7 +117,9 @@ class AdvancedDataTypeRestApi(BaseApi):
                 ),
             )
         bus_resp: AdvancedDataTypeResponse = addon.translate_type(
-            {"values": values,}
+            {
+                "values": values,
+            }
         )
         return self.response(200, result=bus_resp)
 
