@@ -584,7 +584,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     verbose_name = Column(String(1024))
     is_active = Column(Boolean, default=True)
     type = Column(Text)
-    business_type = Column(String(255))
+    advanced_data_type = Column(String(255))
     groupby = Column(Boolean, default=True)
     filterable = Column(Boolean, default=True)
     description = Column(Text)
@@ -660,7 +660,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
             "groupby",
             "is_dttm",
             "type",
-            "business_type",
+            "advanced_data_type",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
 

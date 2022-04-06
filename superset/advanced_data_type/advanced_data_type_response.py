@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Business type response class
+AdvancedDataType response class
 """
 
 from typing import Any, List, Optional, TypedDict
@@ -23,9 +23,9 @@ from typing import Any, List, Optional, TypedDict
 from superset.utils.core import FilterStringOperators
 
 
-class BusinessTypeResponse(TypedDict, total=False):
+class AdvancedDataTypeResponse(TypedDict, total=False):
     """
-    Business type response
+    AdvancedDataType response
     """
 
     error_message: Optional[str]

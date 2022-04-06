@@ -125,7 +125,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
-  business_type: null
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: revenue-expenses
@@ -138,7 +138,7 @@ columns:
   is_dttm: 1
   is_active: null
   type: TIMESTAMP
-  business_type: null
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -150,7 +150,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
-  business_type: null
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -162,7 +162,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
-  business_type: null
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -174,7 +174,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
-  business_type: null
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null

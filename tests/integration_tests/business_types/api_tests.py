@@ -29,13 +29,13 @@ from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
 from unittest import mock
 from sqlalchemy import Column
 from typing import Any, List
-from superset.business_type.business_type import BusinessType
-from superset.business_type.business_type_request import BusinessTypeRequest
-from superset.business_type.business_type_response import BusinessTypeResponse
+from superset.advanced_data_type.advanced_data_type import AdvancedDataType
+from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
+from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 
-target_resp: BusinessTypeResponse = {
+target_resp: AdvancedDataTypeResponse = {
     "values": [],
     "error_message": "",
     "display_value": "",
@@ -50,7 +50,7 @@ target_resp: BusinessTypeResponse = {
 }
 
 
-def translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+def translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
     return target_resp
 
 
@@ -58,7 +58,7 @@ def translate_filter_func(col: Column, op: FilterOperator, values: List[Any]):
     pass
 
 
-test_type: BusinessType = BusinessType(
+test_type: AdvancedDataType = AdvancedDataType(
     verbose_name="type",
     valid_data_types=["int"],
     translate_type=translation_func,
@@ -66,26 +66,26 @@ test_type: BusinessType = BusinessType(
     translate_filter=translate_filter_func,
 )
 
-CHART_DATA_URI = "api/v1/chart/business_type"
+CHART_DATA_URI = "api/v1/chart/advanced_data_type"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestBusinessTypeApi(SupersetTestCase):
+class TestAdvancedDataTypeApi(SupersetTestCase):
     """
-    Test the Business Type API to ensure it works as intended
+    Test the Advanced Data Type API to ensure it works as intended
     """
 
-    resource_name = "business_type"
+    resource_name = "advanced_data_type"
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": 1},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": 1},
     )
     def test_types_type_request(self):
         """
-        Business Type API: Test to see if the API call returns all the valid business types
+        Advanced Data Type API: Test to see if the API call returns all the valid advanced data types
         """
         self.login(username="admin")
-        uri = f"api/v1/business_type/types"
+        uri = f"api/v1/advanced_data_type/types"
         response_value = self.client.get(uri)
         data = json.loads(response_value.data.decode("utf-8"))
         assert response_value.status_code == 200
@@ -93,49 +93,49 @@ class TestBusinessTypeApi(SupersetTestCase):
 
     def test_types_convert_bad_request_no_vals(self):
         """
-        Business Type API: Test request to see if it behaves as expected when no values are passed
+        Advanced Data Type API: Test request to see if it behaves as expected when no values are passed
         """
         self.login(username="admin")
         arguments = {"type": "type", "values": []}
-        uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
+        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
         response_value = self.client.get(uri)
         assert response_value.status_code == 400
 
     def test_types_convert_bad_request_no_type(self):
         """
-        Business Type API: Test request to see if it behaves as expected when no type is passed
+        Advanced Data Type API: Test request to see if it behaves as expected when no type is passed
         """
         self.login(username="admin")
         arguments = {"type": "", "values": [1]}
-        uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
+        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
         response_value = self.client.get(uri)
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": 1},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": 1},
     )
     def test_types_convert_bad_request_type_not_found(self):
         """
-        Business Type API: Test request to see if it behaves as expected when passed in type is
+        Advanced Data Type API: Test request to see if it behaves as expected when passed in type is
         not found/not valid
         """
         self.login(username="admin")
         arguments = {"type": "not_found", "values": [1]}
-        uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
+        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
         response_value = self.client.get(uri)
         assert response_value.status_code == 400
 
     @mock.patch(
-        "superset.business_type.api.BUSINESS_TYPE_ADDONS", {"type": test_type},
+        "superset.advanced_data_type.api.ADVANCED_DATA_TYPE_ADDONS", {"type": test_type},
     )
     def test_types_convert_request(self):
         """
-        Business Type API: Test request to see if it behaves as expected when a valid type
+        Advanced Data Type API: Test request to see if it behaves as expected when a valid type
         and valid values are passed in
         """
         self.login(username="admin")
         arguments = {"type": "type", "values": [1]}
-        uri = f"api/v1/business_type/convert?q={prison.dumps(arguments)}"
+        uri = f"api/v1/advanced_data_type/convert?q={prison.dumps(arguments)}"
         response_value = self.client.get(uri)
         assert response_value.status_code == 200
         data = json.loads(response_value.data.decode("utf-8"))

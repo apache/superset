@@ -72,7 +72,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.business_type.business_type_response import BusinessTypeResponse
+from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -84,7 +84,7 @@ from superset.connectors.sqla.utils import (
 )
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
-from superset.exceptions import BusinessTypesResponseError, QueryObjectValidationError
+from superset.exceptions import AdvancedDataTypeResponseError, QueryObjectValidationError
 from superset.extensions import feature_flag_manager
 from superset.exceptions import (
     QueryClauseValidationException,
@@ -124,7 +124,7 @@ from superset.utils.core import (
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -235,7 +235,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         "is_dttm",
         "is_active",
         "type",
-        "business_type",
+        "advanced_data_type",
         "groupby",
         "filterable",
         "expression",
@@ -407,7 +407,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             "is_dttm",
             "type",
             "type_generic",
-            "business_type",
+            "advanced_data_type",
             "python_date_format",
             "is_certified",
             "certified_by",
@@ -1334,9 +1334,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
-                col_busniness_type = col_obj.business_type if col_obj else ""
+                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
 
-                if col_spec and not col_busniness_type:
+                if col_spec and not col_advanced_data_type:
                     target_type = col_spec.generic_type
                 else:
                     target_type = GenericDataType.STRING
@@ -1346,22 +1346,21 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_column_type=target_type,
                     is_list_target=is_list_target,
                 )
-
                 if (
-                    col_busniness_type != ""
-                    and feature_flag_manager.is_feature_enabled("ENABLE_BUSINESS_TYPES")
+                    col_advanced_data_type != ""
+                    and feature_flag_manager.is_feature_enabled("ENABLE_ADVANCED_DATA_TYPES")
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
-                    bus_resp: BusinessTypeResponse = BUSINESS_TYPE_ADDONS[
-                        col_busniness_type
+                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
+                        col_advanced_data_type
                     ].translate_type(
-                        {"type": col_busniness_type, "values": values,}
+                        {"type": col_advanced_data_type, "values": values,}
                     )
                     if bus_resp["error_message"]:
-                        raise BusinessTypesResponseError(_(bus_resp["error_message"]))
+                        raise AdvancedDataTypeResponseError(_(bus_resp["error_message"]))
 
                     where_clause_and.append(
-                        BUSINESS_TYPE_ADDONS[col_busniness_type].translate_filter(
+                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
                             sqla_col, op, bus_resp["values"]
                         )
                     )

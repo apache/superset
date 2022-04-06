@@ -53,7 +53,7 @@ const simpleAdhocFilter = new AdhocFilter({
 
 const businessTestAdhocFilterTest = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
-  subject: 'businessType',
+  subject: 'advancedDataType',
   operatorId: null,
   operator: null,
   comparator: null,
@@ -91,13 +91,13 @@ const options = [
   sumValueAdhocMetric,
 ];
 
-const getBusinessTypeTestProps = (overrides?: Record<string, any>) => {
+const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const props = {
     adhocFilter: businessTestAdhocFilterTest,
     onChange,
-    options: [{ type: 'DOUBLE', column_name: 'businessType', id: 5 }],
+    options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
     datasource: {
       id: 'test-id',
       columns: [],
@@ -360,11 +360,11 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   });
 });
 
-const BUSINESS_TYPE_ENDPOINT_VALID =
-  'glob:*/api/v1/business_type/convert?q=(type:type,values:!(v))';
-const BUSINESS_TYPE_ENDPOINT_INVALID =
-  'glob:*/api/v1/business_type/convert?q=(type:type,values:!(e))';
-fetchMock.get(BUSINESS_TYPE_ENDPOINT_VALID, {
+const ADVANCED_DATA_TYPE_ENDPOINT_VALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(v))';
+const ADVANCED_DATA_TYPE_ENDPOINT_INVALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(e))';
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_VALID, {
   result: {
     display_value: 'VALID',
     error_message: '',
@@ -372,7 +372,7 @@ fetchMock.get(BUSINESS_TYPE_ENDPOINT_VALID, {
     values: ['VALID'],
   },
 });
-fetchMock.get(BUSINESS_TYPE_ENDPOINT_INVALID, {
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
   result: {
     display_value: '',
     error_message: 'error',
@@ -381,7 +381,7 @@ fetchMock.get(BUSINESS_TYPE_ENDPOINT_INVALID, {
   },
 });
 
-describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
+describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {
       render(
@@ -398,7 +398,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: FeatureFlag) =>
-          featureFlag === FeatureFlag.ENABLE_BUSINESS_TYPES,
+          featureFlag === FeatureFlag.ENABLE_ADVANCED_DATA_TYPES,
       );
   });
 
@@ -406,10 +406,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
     isFeatureEnabledMock.restore();
   });
 
-  it('should not call API when column has no business type', async () => {
+  it('should not call API when column has no advanced data type', async () => {
     fetchMock.resetHistory();
 
-    const props = getBusinessTypeTestProps();
+    const props = getAdvancedDataTypeTestProps();
 
     await setupFilter(props);
 
@@ -424,23 +424,23 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       userEvent.type(filterValueField, '{enter}');
     });
 
-    // When the column is not a business type,
-    // the business type endpoint should not be called
+    // When the column is not a advanced data type,
+    // the advanced data type endpoint should not be called
     await waitFor(() =>
-      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(0),
     );
   });
 
-  it('should call API when column has business type', async () => {
+  it('should call API when column has advanced data type', async () => {
     fetchMock.resetHistory();
 
-    const props = getBusinessTypeTestProps({
+    const props = getAdvancedDataTypeTestProps({
       options: [
         {
           type: 'DOUBLE',
-          column_name: 'businessType',
+          column_name: 'advancedDataType',
           id: 5,
-          business_type: 'type',
+          advanced_data_type: 'type',
         },
       ],
     });
@@ -458,10 +458,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       userEvent.type(filterValueField, '{enter}');
     });
 
-    // When the column is a business type,
-    // the business type endpoint should be called
+    // When the column is a advanced data type,
+    // the advanced data type endpoint should be called
     await waitFor(() =>
-      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
   });
@@ -469,13 +469,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
   it('save button should be disabled if error message from API is returned', async () => {
     fetchMock.resetHistory();
 
-    const props = getBusinessTypeTestProps({
+    const props = getAdvancedDataTypeTestProps({
       options: [
         {
           type: 'DOUBLE',
-          column_name: 'businessType',
+          column_name: 'advancedDataType',
           id: 5,
-          business_type: 'type',
+          advanced_data_type: 'type',
         },
       ],
     });
@@ -493,24 +493,24 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       userEvent.type(filterValueField, '{enter}');
     });
 
-    // When the column is a business type but an error response is given by the endpoint,
+    // When the column is a advanced data type but an error response is given by the endpoint,
     // the save button should be disabled
     await waitFor(() =>
-      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(1),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(false);
   });
 
-  it('business type operator list should update after API response', async () => {
+  it('advanced data type operator list should update after API response', async () => {
     fetchMock.resetHistory();
 
-    const props = getBusinessTypeTestProps({
+    const props = getAdvancedDataTypeTestProps({
       options: [
         {
           type: 'DOUBLE',
-          column_name: 'businessType',
+          column_name: 'advancedDataType',
           id: 5,
-          business_type: 'type',
+          advanced_data_type: 'type',
         },
       ],
     });
@@ -528,10 +528,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent Business Type Test', () => {
       userEvent.type(filterValueField, '{enter}');
     });
 
-    // When the column is a business type,
-    // the business type endpoint should be called
+    // When the column is a advanced data type,
+    // the advanced data type endpoint should be called
     await waitFor(() =>
-      expect(fetchMock.calls(BUSINESS_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+      expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
     );
     expect(props.validHandler.lastCall.args[0]).toBe(true);
 

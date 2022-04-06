@@ -20,53 +20,53 @@ import { useCallback, useState } from 'react';
 import { ensureIsArray, SupersetClient, t } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import rison from 'rison';
-import { BusinessTypesState, Props } from './index';
+import { AdvancedDataTypesState, Props } from './index';
 
-const INITIAL_BUSINESS_TYPES_STATE: BusinessTypesState = {
-  parsedBusinessType: '',
-  businessTypeOperatorList: [],
+const INITIAL_ADVANCED_DATA_TYPES_STATE: AdvancedDataTypesState = {
+  parsedAdvancedDataType: '',
+  advancedDataTypeOperatorList: [],
   errorMessage: '',
 };
 
-const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
-  const [businessTypesState, setBusinessTypesState] =
-    useState<BusinessTypesState>(INITIAL_BUSINESS_TYPES_STATE);
-  const [subjectBusinessType, setSubjectBusinessType] = useState<
+const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
+  const [advancedDataTypesState, setAdvancedDataTypesState] =
+    useState<AdvancedDataTypesState>(INITIAL_ADVANCED_DATA_TYPES_STATE);
+  const [subjectAdvancedDataType, setSubjectAdvancedDataType] = useState<
     string | undefined
   >();
 
-  const fetchBusinessTypeValueCallback = useCallback(
+  const fetchAdvancedDataTypeValueCallback = useCallback(
     (
       comp: string | string[],
-      businessTypesState: BusinessTypesState,
-      subjectBusinessType?: string,
+      advancedDataTypesState: AdvancedDataTypesState,
+      subjectAdvancedDataType?: string,
     ) => {
       const values = ensureIsArray(comp);
       console.log(values);
-      console.log(subjectBusinessType);
-      if (!subjectBusinessType) {
-        setBusinessTypesState(INITIAL_BUSINESS_TYPES_STATE);
+      console.log(subjectAdvancedDataType);
+      if (!subjectAdvancedDataType) {
+        setAdvancedDataTypesState(INITIAL_ADVANCED_DATA_TYPES_STATE);
         return;
       }
       debounce(() => {
-        const queryParams = rison.encode({ type: subjectBusinessType, values });
-        const endpoint = `/api/v1/business_type/convert?q=${queryParams}`;
+        const queryParams = rison.encode({ type: subjectAdvancedDataType, values });
+        const endpoint = `/api/v1/advanced_data_type/convert?q=${queryParams}`;
         SupersetClient.get({ endpoint })
           .then(({ json }) => {
-            setBusinessTypesState({
-              parsedBusinessType: json.result.display_value,
-              businessTypeOperatorList: json.result.valid_filter_operators,
+            setAdvancedDataTypesState({
+              parsedAdvancedDataType: json.result.display_value,
+              advancedDataTypeOperatorList: json.result.valid_filter_operators,
               errorMessage: json.result.error_message,
             });
             // Changed due to removal of status field
             validHandler(!json.result.error_message);
           })
           .catch(() => {
-            setBusinessTypesState({
-              parsedBusinessType: '',
-              businessTypeOperatorList:
-                businessTypesState.businessTypeOperatorList,
-              errorMessage: t('Failed to retrieve business types'),
+            setAdvancedDataTypesState({
+              parsedAdvancedDataType: '',
+              advancedDataTypeOperatorList:
+                advancedDataTypesState.advancedDataTypeOperatorList,
+              errorMessage: t('Failed to retrieve advanced type'),
             });
             validHandler(false);
           });
@@ -75,7 +75,7 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
     [validHandler],
   );
 
-  const fetchSubjectBusinessType = (props: Props) => {
+  const fetchSubjectAdvancedDataType = (props: Props) => {
     const option = props.options.find(
       option =>
         ('column_name' in option &&
@@ -83,20 +83,20 @@ const useBusinessTypes = (validHandler: (isValid: boolean) => void) => {
         ('optionName' in option &&
           option.optionName === props.adhocFilter.subject),
     );
-    if (option && 'business_type' in option) {
-      setSubjectBusinessType(option.business_type);
+    if (option && 'advanced_data_type' in option) {
+      setSubjectAdvancedDataType(option.advanced_data_type);
     } else {
       props.validHandler(true);
     }
   };
 
   return {
-    businessTypesState,
-    subjectBusinessType,
-    setBusinessTypesState,
-    fetchBusinessTypeValueCallback,
-    fetchSubjectBusinessType,
+    advancedDataTypesState,
+    subjectAdvancedDataType,
+    setAdvancedDataTypesState,
+    fetchAdvancedDataTypeValueCallback,
+    fetchSubjectAdvancedDataType,
   };
 };
 
-export default useBusinessTypes;
+export default useAdvancedDataTypes;

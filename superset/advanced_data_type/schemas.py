@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Schemas for business types
+Schemas for advanced data types
 """
 
-business_type_convert_schema = {
+advanced_data_type_convert_schema = {
     "type": "array",
     "items": {
         "type": "object",

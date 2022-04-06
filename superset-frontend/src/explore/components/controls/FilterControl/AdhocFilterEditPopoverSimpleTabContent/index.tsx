@@ -42,7 +42,7 @@ import { propertyComparator } from 'src/components/Select/Select';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import useBusinessTypes from './useBusinessTypes';
+import useAdvancedDataTypes from './useAdvancedDataTypes';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -72,7 +72,7 @@ export interface SimpleColumnType {
   optionName?: string;
   filterBy?: string;
   value?: string;
-  business_type?: string;
+  advanced_data_type?: string;
 }
 
 export interface SimpleExpressionType {
@@ -112,9 +112,9 @@ export interface Props {
   validHandler: (isValid: boolean) => void;
 }
 
-export interface BusinessTypesState {
-  parsedBusinessType: string;
-  businessTypeOperatorList: string[];
+export interface AdvancedDataTypesState {
+  parsedAdvancedDataType: string;
+  advancedDataTypeOperatorList: string[];
   errorMessage: string;
 }
 
@@ -262,16 +262,16 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     useState(false);
 
   const {
-    businessTypesState,
-    subjectBusinessType,
-    fetchBusinessTypeValueCallback,
-    fetchSubjectBusinessType,
-  } = useBusinessTypes(props.validHandler);
+    advancedDataTypesState,
+    subjectAdvancedDataType,
+    fetchAdvancedDataTypeValueCallback,
+    fetchSubjectAdvancedDataType,
+  } = useAdvancedDataTypes(props.validHandler);
   // TODO: This does not need to exist, just use the busninessTypeOperatorList list
   const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
-    subjectBusinessType
+    subjectAdvancedDataType
       ? isOperatorRelevant(operator, subject) &&
-        businessTypesState.businessTypeOperatorList.includes(operator)
+        advancedDataTypesState.advancedDataTypeOperatorList.includes(operator)
       : isOperatorRelevant(operator, subject);
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -405,23 +405,23 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
-      fetchSubjectBusinessType(props);
+    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+      fetchSubjectAdvancedDataType(props);
     }
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
-      fetchBusinessTypeValueCallback(
+    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+      fetchAdvancedDataTypeValueCallback(
         comparator === undefined ? '' : comparator,
-        businessTypesState,
-        subjectBusinessType,
+        advancedDataTypesState,
+        subjectAdvancedDataType,
       );
     }
-  }, [comparator, subjectBusinessType, fetchBusinessTypeValueCallback]);
+  }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)) {
+    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
       setComparator(props.adhocFilter.comparator);
     }
   }, [props.adhocFilter.comparator]);
@@ -466,11 +466,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         // We need to delay rendering the select because we can't pass a primitive value without options
         // We can't pass value = [null] and options=[]
-        comparatorSelectProps.value && suggestions.length === 0 ? null : (
+        comparatorSelectProps.value && suggestions.length === 1 ? null : (
           <Tooltip
             title={
-              businessTypesState.errorMessage ||
-              businessTypesState.parsedBusinessType
+              advancedDataTypesState.errorMessage ||
+              advancedDataTypesState.parsedAdvancedDataType
             }
           >
             <SelectWithLabel
@@ -483,8 +483,8 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       ) : (
         <Tooltip
         title={
-          businessTypesState.errorMessage ||
-          businessTypesState.parsedBusinessType
+          advancedDataTypesState.errorMessage ||
+          advancedDataTypesState.parsedAdvancedDataType
         }
         >
         <StyledInput

@@ -19,9 +19,9 @@ from typing import Any, Dict, List
 
 from sqlalchemy import Column
 
-from superset.business_type.business_type import BusinessType
-from superset.business_type.business_type_request import BusinessTypeRequest
-from superset.business_type.business_type_response import BusinessTypeResponse
+from superset.advanced_data_type.advanced_data_type import AdvancedDataType
+from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
+from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 port_conversion_dict: Dict[str, List[int]] = {
@@ -49,11 +49,11 @@ port_conversion_dict: Dict[str, List[int]] = {
 }
 
 
-def port_translation_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
     """
-    Convert a passed in BusinessTypeRequest to a BusinessTypeResponse
+    Convert a passed in AdvancedDataTypeRequest to a AdvancedDataTypeResponse
     """
-    resp: BusinessTypeResponse = {
+    resp: AdvancedDataTypeResponse = {
         "values": [],
         "error_message": "",
         "display_value": "",
@@ -130,7 +130,7 @@ def port_translate_filter_func(
     return return_expression
 
 
-port: BusinessType = BusinessType(
+port: AdvancedDataType = AdvancedDataType(
     verbose_name="port",
     description="represents of a port",
     valid_data_types=["int"],

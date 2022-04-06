@@ -174,10 +174,10 @@ function ColumnCollectionTable({
     <CollectionTable
       collection={columns}
       tableColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? [
               'column_name',
-              'business_type',
+              'advanced_data_type',
               'type',
               'is_dttm',
               'main_dttm_col',
@@ -194,10 +194,10 @@ function ColumnCollectionTable({
             ]
       }
       sortColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? [
               'column_name',
-              'business_type',
+              'advanced_data_type',
               'type',
               'is_dttm',
               'main_dttm_col',
@@ -267,14 +267,14 @@ function ColumnCollectionTable({
                 }
               />
             )}
-            {isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ? (
+            {isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES) ? (
               <Field
-                fieldKey="business_type"
-                label={t('Business type')}
+                fieldKey="advanced_data_type"
+                label={t('Advanced data type')}
                 control={
                   <TextControl
-                    controlId="business_type"
-                    placeholder={t('Business type')}
+                    controlId="advanced_data_type"
+                    placeholder={t('Advanced Data type')}
                   />
                 }
               />
@@ -339,10 +339,10 @@ function ColumnCollectionTable({
         </FormContainer>
       }
       columnLabels={
-        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? {
               column_name: t('Column'),
-              business_type: t('Business type'),
+              advanced_data_type: t('Advanced data type'),
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
@@ -360,7 +360,7 @@ function ColumnCollectionTable({
       }
       onChange={onColumnsChange}
       itemRenderers={
-        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
           ? {
               column_name: (v, onItemChange, _, record) =>
                 editableColumnName ? (
@@ -408,7 +408,7 @@ function ColumnCollectionTable({
                 );
               },
               type: d => (d ? <Label>{d}</Label> : null),
-              business_type: d => <Label onChange={onColumnsChange}>{d}</Label>,
+              advanced_data_type: d => <Label onChange={onColumnsChange}>{d}</Label>,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,

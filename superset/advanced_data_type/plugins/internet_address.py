@@ -19,17 +19,17 @@ from typing import Any, List
 
 from sqlalchemy import Column
 
-from superset.business_type.business_type import BusinessType
-from superset.business_type.business_type_request import BusinessTypeRequest
-from superset.business_type.business_type_response import BusinessTypeResponse
+from superset.advanced_data_type.advanced_data_type import AdvancedDataType
+from superset.advanced_data_type.advanced_data_type_request import AdvancedDataTypeRequest
+from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 
-def cidr_func(req: BusinessTypeRequest) -> BusinessTypeResponse:
+def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
     """
-    Convert a passed in BusinessTypeRequest to a BusinessTypeResponse
+    Convert a passed in AdvancedDataTypeRequest to a AdvancedDataTypeResponse
     """
-    resp: BusinessTypeResponse = {
+    resp: AdvancedDataTypeResponse = {
         "values": [],
         "error_message": "",
         "display_value": "",
@@ -129,7 +129,7 @@ def cidr_translate_filter_func(
     return return_expression
 
 
-internet_address: BusinessType = BusinessType(
+internet_address: AdvancedDataType = AdvancedDataType(
     verbose_name="internet address",
     description="represents both an ip and cidr range",
     valid_data_types=["int"],

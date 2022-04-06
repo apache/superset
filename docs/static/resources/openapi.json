@@ -3205,7 +3205,7 @@
           "owners": {
             "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
-          "business_type": {
+          "advanced_data_type": {
             "maxLength": 255,
             "minLength": 1,
             "nullable": true,
@@ -4251,7 +4251,7 @@
             "nullable": true,
             "type": "string"
           },
-          "business_type": {
+          "advanced_data_type": {
             "maxLength": 255,
             "minLength": 1,
             "nullable": true,

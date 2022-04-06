@@ -21,29 +21,29 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, permission_name, protect, rison, safe
 from flask_babel import lazy_gettext as _
 
-from superset.business_type.business_type_response import BusinessTypeResponse
-from superset.business_type.schemas import business_type_convert_schema
+from superset.advanced_data_type.advanced_data_type_response import AdvancedDataTypeResponse
+from superset.advanced_data_type.schemas import advanced_data_type_convert_schema
 from superset.extensions import event_logger
 
 config = app.config
-BUSINESS_TYPE_ADDONS = config["BUSINESS_TYPE_ADDONS"]
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
-class BusinessTypeRestApi(BaseApi):
+class AdvancedDataTypeRestApi(BaseApi):
     """
-    Business Type Rest API
-    -Will return available business types when the /types endpoint is accessed
-    -Will return a BusinessTypeResponse object when the /convert endpoint is accessed
+    Advanced Data Type Rest API
+    -Will return available AdvancedDataTypes when the /types endpoint is accessed
+    -Will return a AdvancedDataTypeResponse object when the /convert endpoint is accessed
     and is passed in valid arguments
     """
 
     allow_browser_login = True
     include_route_methods = {"get", "get_types"}
-    resource_name = "business_type"
+    resource_name = "advanced_data_type"
 
-    openapi_spec_tag = "Business Type"
+    openapi_spec_tag = "Advanced Data Type"
     apispec_parameter_schemas = {
-        "business_type_convert_schema": business_type_convert_schema,
+        "advanced_data_type_convert_schema": advanced_data_type_convert_schema,
     }
 
     @protect()
@@ -56,22 +56,22 @@ class BusinessTypeRestApi(BaseApi):
     )
     @rison()
     def get(self, **kwargs: Any) -> Response:
-        """Returns a BusinessTypeResponse object populated with the passed in args
+        """Returns a AdvancedDataTypeResponse object populated with the passed in args
         ---
         get:
           description: >-
-            Returns a BusinessTypeResponse object populated with the passed in args.
+            Returns a AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
             name: q
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/business_type_convert_schema'
+                  $ref: '#/components/schemas/AdvancedData_type_convert_schema'
           responses:
             200:
               description: >-
-                BusinessTypeResponse object has been returned.
+                AdvancedDataTypeResponse object has been returned.
               content:
                 application/json:
                   schema:
@@ -97,22 +97,22 @@ class BusinessTypeRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         items = kwargs["rison"]
-        business_type = items.get("type")
-        if not business_type:
-            return self.response(400, message=_("Missing business type in request"))
+        advanced_data_type = items.get("type")
+        if not advanced_data_type:
+            return self.response(400, message=_("Missing advanced data type in request"))
         values = items["values"]
         if not values:
             return self.response(400, message=_("Missing values in request"))
-        addon = BUSINESS_TYPE_ADDONS.get(business_type)
+        addon = ADVANCED_DATA_TYPES.get(advanced_data_type)
         if not addon:
             return self.response(
                 400,
                 message=_(
-                    "Invalid business type: %(business_type)s",
-                    business_type=business_type,
+                    "Invalid advanced data type: %(advanced_data_type)s",
+                    advanced_data_type=advanced_data_type,
                 ),
             )
-        bus_resp: BusinessTypeResponse = addon.translate_type(
+        bus_resp: AdvancedDataTypeResponse = addon.translate_type(
             {"values": values,}
         )
         return self.response(200, result=bus_resp)
@@ -126,16 +126,16 @@ class BusinessTypeRestApi(BaseApi):
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     def get_types(self) -> Response:
-        """Returns a list of available business types
+        """Returns a list of available advanced data types
         ---
         get:
           description: >-
-            Returns a list of available business types.
+            Returns a list of available advanced data types.
           responses:
             200:
               description: >-
                 a successful return of the available
-                business types has taken place.
+                advanced data types has taken place.
               content:
                 application/json:
                   schema:
@@ -153,4 +153,4 @@ class BusinessTypeRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
 
-        return self.response(200, result=list(BUSINESS_TYPE_ADDONS.keys()))
+        return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))

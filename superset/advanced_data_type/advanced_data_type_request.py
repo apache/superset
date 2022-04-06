@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Business type request class
+AdvancedDataType request class
 """
 
 from typing import List, TypedDict, Union
@@ -23,12 +23,12 @@ from typing import List, TypedDict, Union
 from superset.superset_typing import FilterValues
 
 
-class BusinessTypeRequest(TypedDict):
+class AdvancedDataTypeRequest(TypedDict):
     """
-    Business type request
+    AdvancedDataType request
     """
 
-    business_type: str
+    advanced_data_type: str
     values: List[
         Union[FilterValues, None]
     ]  # unparsed value (usually text when passed from text box)

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""adding_business_type.py
+"""adding_advanced_data_type.py
 Revision ID: 6f139c533bea
 Revises: b8d3a24d9131
 Create Date: 2021-05-27 16:10:59.567684
@@ -30,13 +30,17 @@ down_revision = "b0d0249074e4"
 
 def upgrade():
     with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
+        batch_op.add_column(sa.Column("advanced_data_type", sa.VARCHAR(255), nullable=True,))
     with op.batch_alter_table("columns") as batch_op:
-        batch_op.add_column(sa.Column("business_type", sa.VARCHAR(255), nullable=True,))
+        batch_op.add_column(sa.Column("advanced_data_type", sa.VARCHAR(255), nullable=True,))
+    with op.batch_alter_table("sl_columns") as batch_op:
+        batch_op.add_column(sa.Column("advanced_data_type", sa.Text, nullable=True,))
 
 
 def downgrade():
     with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.drop_column("business_type")
+        batch_op.drop_column("advanced_data_type")
     with op.batch_alter_table("columns") as batch_op:
-        batch_op.drop_column("business_type")
+        batch_op.drop_column("advanced_data_type")
+    with op.batch_alter_table("sl_columns") as batch_op:
+        batch_op.drop_column("advanced_data_type")

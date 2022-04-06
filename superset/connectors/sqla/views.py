@@ -66,7 +66,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "verbose_name",
         "description",
         "type",
-        "business_type",
+        "advanced_data_type",
         "groupby",
         "filterable",
         "table",
@@ -80,7 +80,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "column_name",
         "verbose_name",
         "type",
-        "business_type",
+        "advanced_data_type",
         "groupby",
         "filterable",
         "is_dttm",
@@ -146,7 +146,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):
         "is_dttm": _("Is temporal"),
         "python_date_format": _("Datetime Format"),
         "type": _("Type"),
-        "business_type": _("Business Type"),
+        "advanced_data_type": _("Business Data Type"),
     }
     validators_columns = {
         "python_date_format": [

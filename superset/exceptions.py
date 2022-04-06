@@ -195,7 +195,7 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
-class BusinessTypesResponseError(SupersetException):
+class AdvancedDataTypeResponseError(SupersetException):
     status = 400
 
 class InvalidPostProcessingError(SupersetException):
