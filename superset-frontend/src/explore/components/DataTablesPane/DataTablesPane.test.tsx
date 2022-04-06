@@ -56,6 +56,8 @@ const createProps = () => ({
   },
   chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
+  chartUpdateCacheInvalidationStatus: jest.fn(),
+  latestQueryCacheInvalidated: false,
   queriesResponse: [
     {
       colnames: [],

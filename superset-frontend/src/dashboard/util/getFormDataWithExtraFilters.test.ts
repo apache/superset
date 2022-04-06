@@ -31,6 +31,7 @@ describe('getFormDataWithExtraFilters', () => {
     chartUpdateStartTime: 1,
     lastRendered: 1,
     latestQueryFormData: {},
+    latestQueryCacheInvalidated: false,
     sliceFormData: null,
     queryController: null,
     queriesResponse: null,

@@ -107,6 +107,7 @@ export default function getInitialState(
     chartUpdateEndTime: null,
     chartUpdateStartTime: 0,
     latestQueryFormData: getFormDataFromControls(exploreState.controls),
+    latestQueryCacheInvalidated: false,
     sliceFormData,
     queryController: null,
     queriesResponse: null,
