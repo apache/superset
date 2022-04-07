@@ -304,7 +304,6 @@ export const useTableColumns = (
                     key
                   ),
                 Cell: ({ value }) => {
-                  console.log('value', value);
                   if (value === true) {
                     return BOOL_TRUE_DISPLAY;
                   }
