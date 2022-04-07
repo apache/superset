@@ -553,7 +553,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       alreadyExists,
       passwordsNeeded,
       loading: importLoading,
-      errored: importErrored,
+      failed: importErrored,
     },
     importResource,
   } = useImportResource('database', t('database'), msg => {

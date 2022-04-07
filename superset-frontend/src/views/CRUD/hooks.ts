@@ -381,7 +381,7 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
   alreadyExists: string[];
-  errored: boolean;
+  failed: boolean;
 }
 
 export function useImportResource(
@@ -393,7 +393,7 @@ export function useImportResource(
     loading: false,
     passwordsNeeded: [],
     alreadyExists: [],
-    errored: false,
+    failed: false,
   });
 
   function updateState(update: Partial<ImportResourceState>) {
@@ -409,7 +409,7 @@ export function useImportResource(
       // Set loading state
       updateState({
         loading: true,
-        errored: false,
+        failed: false,
       });
 
       const formData = new FormData();
@@ -437,14 +437,14 @@ export function useImportResource(
           updateState({
             passwordsNeeded: [],
             alreadyExists: [],
-            errored: false,
+            failed: false,
           });
           return true;
         })
         .catch(response =>
           getClientErrorObject(response).then(error => {
             updateState({
-              errored: true,
+              failed: true,
             });
             if (!error.errors) {
               handleErrorMsg(
