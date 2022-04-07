@@ -19,7 +19,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager

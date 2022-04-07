@@ -18,11 +18,10 @@ import json
 import re
 from typing import Any, Dict, Union
 
-from marshmallow import fields, post_dump, post_load, Schema
+from marshmallow import fields, post_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.exceptions import SupersetException
-from superset.models.dashboard import Dashboard
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}

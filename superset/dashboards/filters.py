@@ -54,10 +54,12 @@ class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-
     arg_name = "created_by_me"
 
     def apply(self, query: Query, value: Any) -> Query:
-        return query.filter(  # pylint: disable=comparison-with-callable
+        return query.filter(
             or_(
-                Dashboard.created_by_fk == g.user.get_user_id(),
-                Dashboard.changed_by_fk == g.user.get_user_id(),
+                Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
+                Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
             )
         )
 
