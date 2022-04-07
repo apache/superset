@@ -969,6 +969,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
+  // This forces the modal to scroll until the importing filename is in view
+  useEffect(() => {
+    if (importingModal) {
+      document
+        .getElementsByClassName('ant-upload-list-item-name')[0]
+        .scrollIntoView();
+    }
+  }, [importingModal]);
+
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingModal(true);
     setFileList([
