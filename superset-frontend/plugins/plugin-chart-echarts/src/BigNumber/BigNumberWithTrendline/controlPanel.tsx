@@ -217,6 +217,52 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Resample')}</h1>],
+        [
+          {
+            name: 'resample_rule',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Rule'),
+              default: null,
+              choices: [
+                ['1T', '1 minutely frequency'],
+                ['1H', '1 hourly frequency'],
+                ['1D', '1 calendar day frequency'],
+                ['7D', '7 calendar day frequency'],
+                ['1MS', '1 month start frequency'],
+                ['1M', '1 month end frequency'],
+                ['1AS', '1 year start frequency'],
+                ['1A', '1 year end frequency'],
+              ],
+              description: t('Pandas resample rule'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'resample_method',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Fill method'),
+              default: null,
+              choices: [
+                ['asfreq', 'Null imputation'],
+                ['zerofill', 'Zero imputation'],
+                ['linear', 'Linear interpolation'],
+                ['ffill', 'Forward values'],
+                ['bfill', 'Backward values'],
+                ['median', 'Median values'],
+                ['mean', 'Mean values'],
+                ['sum', 'Sum values'],
+              ],
+              description: t('Pandas resample method'),
+            },
+          },
+        ],
       ],
     },
   ],

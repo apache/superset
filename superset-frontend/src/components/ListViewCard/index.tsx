@@ -26,7 +26,7 @@ import CertifiedBadge from '../CertifiedBadge';
 const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
 const StyledCard = styled(AntdCard)`

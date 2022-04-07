@@ -100,7 +100,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     result_type: Optional[ChartDataResultType]
-    row_limit: int
+    row_limit: Optional[int]
     row_offset: int
     series_columns: List[Column]
     series_limit: int
@@ -127,7 +127,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         order_desc: bool = True,
         orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
-        row_limit: int,
+        row_limit: Optional[int],
         row_offset: Optional[int] = None,
         series_columns: Optional[List[Column]] = None,
         series_limit: int = 0,

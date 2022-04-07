@@ -28,9 +28,9 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { ChartPills } from './ChartPills';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -63,7 +63,6 @@ const GUTTER_SIZE_FACTOR = 1.25;
 
 const CHART_PANEL_PADDING_HORIZ = 30;
 const CHART_PANEL_PADDING_VERTICAL = 15;
-const HEADER_PADDING = 15;
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
@@ -78,8 +77,8 @@ const Styles = styled.div`
   box-shadow: none;
   height: 100%;
 
-  & > div:last-of-type {
-    flex-basis: 100%;
+  & > div {
+    height: 100%;
   }
 
   .gutter {
@@ -114,13 +113,13 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const { height: hHeight, ref: headerRef } = useResizeDetector({
-    refreshMode: 'debounce',
-    refreshRate: 300,
-  });
   const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
+  });
+  const { height: pillsHeight, ref: pillsRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 1000,
   });
   const [splitSizes, setSplitSizes] = useState(
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
@@ -157,20 +156,15 @@ const ExploreChartPanel = props => {
 
   const calcSectionHeight = useCallback(
     percent => {
-      let headerHeight;
-      if (props.standalone) {
-        headerHeight = 0;
-      } else if (hHeight) {
-        headerHeight = hHeight + HEADER_PADDING;
-      } else {
-        headerHeight = 50;
+      let containerHeight = parseInt(props.height, 10);
+      if (pillsHeight) {
+        containerHeight -= pillsHeight;
       }
-      const containerHeight = parseInt(props.height, 10) - headerHeight;
       return (
         (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
       );
     },
-    [gutterHeight, gutterMargin, props.height, props.standalone, hHeight],
+    [gutterHeight, gutterMargin, pillsHeight, props.height, props.standalone],
   );
 
   const [tableSectionHeight, setTableSectionHeight] = useState(
@@ -194,6 +188,17 @@ const ExploreChartPanel = props => {
 
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
+  };
+
+  const refreshCachedQuery = () => {
+    props.actions.postChartFormData(
+      props.form_data,
+      true,
+      props.timeout,
+      props.chart.id,
+      undefined,
+      props.ownState,
+    );
   };
 
   const onCollapseChange = openPanelName => {
@@ -246,6 +251,15 @@ const ExploreChartPanel = props => {
   const panelBody = useMemo(
     () => (
       <div className="panel-body" ref={chartPanelRef}>
+        <ChartPills
+          queriesResponse={props.chart.queriesResponse}
+          chartStatus={props.chart.chartStatus}
+          chartUpdateStartTime={props.chart.chartUpdateStartTime}
+          chartUpdateEndTime={props.chart.chartUpdateEndTime}
+          refreshCachedQuery={refreshCachedQuery}
+          rowLimit={props.form_data?.row_limit}
+          ref={pillsRef}
+        />
         {renderChart()}
       </div>
     ),
@@ -283,34 +297,12 @@ const ExploreChartPanel = props => {
     return standaloneChartBody;
   }
 
-  const header = (
-    <ConnectedExploreChartHeader
-      ownState={props.ownState}
-      actions={props.actions}
-      can_overwrite={props.can_overwrite}
-      can_download={props.can_download}
-      dashboardId={props.dashboardId}
-      isStarred={props.isStarred}
-      slice={props.slice}
-      sliceName={props.sliceName}
-      table_name={props.table_name}
-      form_data={props.form_data}
-      timeout={props.timeout}
-      chart={props.chart}
-      user={props.user}
-      reports={props.reports}
-    />
-  );
-
   const elementStyle = (dimension, elementSize, gutterSize) => ({
     [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
   });
 
   return (
     <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
-      <div className="panel-heading" ref={headerRef}>
-        {header}
-      </div>
       {props.vizType === 'filter_box' ? (
         panelBody
       ) : (
