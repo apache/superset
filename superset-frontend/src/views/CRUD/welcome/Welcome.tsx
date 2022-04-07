@@ -113,23 +113,31 @@ const WelcomeContainer = styled.div`
 `;
 
 const WelcomeNav = styled.div`
-  height: 50px;
-  background-color: white;
-  .navbar-brand {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  .switch {
-    float: right;
-    margin: ${({ theme }) => theme.gridUnit * 5}px;
-    display: flex;
-    flex-direction: row;
-    span {
-      display: block;
-      margin: ${({ theme }) => theme.gridUnit * 1}px;
-      line-height: 1;
+  ${({ theme }) => `
+    height: 50px;
+    background-color: ${theme.colors.grayscale.light5};
+    & > span {
+      display: flex;
+      float: left;
+      height: 50px;
+      font-size: ${theme.typography.sizes.l}px;
+      padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 2 + 2}px;
+      line-height: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.gridUnit * 2}px;
+      font-weight: ${theme.typography.weights.bold};
     }
-  }
+    .switch {
+      float: right;
+      margin: ${theme.gridUnit * 5}px;
+      display: flex;
+      flex-direction: row;
+      span {
+        display: block;
+        margin: ${theme.gridUnit * 1}px;
+        line-height: 1;
+      }
+    }
+  `}
 `;
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
@@ -275,7 +283,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span className="navbar-brand">Home</span>
+        <span>Home</span>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
             <AntdSwitch checked={checked} onChange={handleToggle} />
