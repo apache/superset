@@ -834,7 +834,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleDisableOnImport = () => {
-    if (importLoading || (alreadyExists && !confirmedOverwrite)) return true;
+    if (
+      importLoading ||
+      (alreadyExists.length && !confirmedOverwrite) ||
+      (passwordsNeeded.length && JSON.stringify(passwords) === '{}')
+    )
+      return true;
     return false;
   };
 
