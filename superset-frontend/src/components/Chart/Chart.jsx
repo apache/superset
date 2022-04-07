@@ -22,7 +22,6 @@ import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -108,24 +107,22 @@ const Styles = styled.div`
   }
 `;
 
-const RefreshOverlayWrapper = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.typography.families.monospace};
-  white-space: pre;
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
 `;
+
+const requiredFieldsMissingWarning = isFeatureEnabled(
+  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+)
+  ? t(
+      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+    )
+  : t(
+      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+    );
 
 class Chart extends React.PureComponent {
   constructor(props) {
@@ -255,7 +252,6 @@ class Chart extends React.PureComponent {
       chartAlert,
       chartStatus,
       errorMessage,
-      onQuery,
       chartIsStale,
       queriesResponse = [],
       isDeactivatedViz = false,
@@ -269,20 +265,11 @@ class Chart extends React.PureComponent {
       return queriesResponse.map(item => this.renderErrorMessage(item));
     }
 
-    if (errorMessage) {
-      const description = isFeatureEnabled(
-        FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-      )
-        ? t(
-            'Drag and drop values into highlighted field(s) on the left control panel and run query',
-          )
-        : t(
-            'Select values in highlighted field(s) on the left control panel and run query',
-          );
+    if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
       return (
         <EmptyStateBig
           title={t('Add required control values to preview chart')}
-          description={description}
+          description={requiredFieldsMissingWarning}
           image="chart.svg"
         />
       );
@@ -317,25 +304,13 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          <div
-            className={`slice_container ${isFaded ? ' faded' : ''}`}
-            data-test="slice-container"
-          >
+          <div className="slice_container" data-test="slice-container">
             <ChartRenderer
               {...this.props}
               source={this.props.dashboardId ? 'dashboard' : 'explore'}
               data-test={this.props.vizType}
             />
           </div>
-
-          {!isLoading && !chartAlert && isFaded && (
-            <RefreshOverlayWrapper>
-              <Button onClick={onQuery} buttonStyle="primary">
-                {t('Run query')}
-              </Button>
-            </RefreshOverlayWrapper>
-          )}
-
           {isLoading && !isDeactivatedViz && <Loading />}
         </Styles>
       </ErrorBoundary>

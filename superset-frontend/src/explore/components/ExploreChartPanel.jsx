@@ -16,10 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, styled, SupersetClient, useTheme } from '@superset-ui/core';
+import debounce from 'lodash/debounce';
+import {
+  css,
+  ensureIsArray,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -31,6 +46,8 @@ import {
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
+import { ExploreAlert } from './ExploreAlert';
+import { isFeatureEnabled } from '../../featureFlags';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -104,6 +121,16 @@ const Styles = styled.div`
   }
 `;
 
+const requiredFieldsMissingWarning = isFeatureEnabled(
+  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+)
+  ? t(
+      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+    )
+  : t(
+      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+    );
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -134,6 +161,13 @@ const ExploreChartPanel = ({
   const [splitSizes, setSplitSizes] = useState(
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
+
+  const showAlertBanner =
+    !props.chartAlert &&
+    props.chartIsStale &&
+    props.chart.chartStatus !== 'failed' &&
+    ensureIsArray(props.chart.queriesResponse).length > 0;
+
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {
@@ -171,7 +205,7 @@ const ExploreChartPanel = ({
     setSplitSizes(sizes);
   };
 
-  const refreshCachedQuery = () => {
+  const refreshCachedQuery = useCallback(() => {
     actions.postChartFormData(
       formData,
       true,
@@ -180,7 +214,13 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
-  };
+  }, [
+    props.actions,
+    props.chart.id,
+    props.form_data,
+    props.ownState,
+    props.timeout,
+  ]);
 
   const onCollapseChange = useCallback(isOpen => {
     let splitSizes;
@@ -260,10 +300,30 @@ const ExploreChartPanel = ({
       <div
         className="panel-body"
         css={css`
-          display: flex;
-          flex-direction: column;
-        `}
-      >
+            display: flex;
+            flex-direction: column;
+            `}
+        >
+        {showAlertBanner && (
+          <ExploreAlert
+            title={
+              props.errorMessage
+                ? t('Required control values have been removed')
+                : t('Your chart is not up to date')
+            }
+            bodyText={
+              props.errorMessage
+                ? requiredFieldsMissingWarning
+                : t(
+                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button.',
+                  )
+            }
+            type="warning"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+          />
+        )}
         <ChartPills
           queriesResponse={chart.queriesResponse}
           chartStatus={chart.chartStatus}
@@ -275,7 +335,18 @@ const ExploreChartPanel = ({
         {renderChart()}
       </div>
     ),
-    [chartPanelRef, renderChart],
+    [
+      chartPanelRef,
+      pillsRef,
+      props.chart.chartStatus,
+      props.chart.chartUpdateEndTime,
+      props.chart.chartUpdateStartTime,
+      props.chart.queriesResponse,
+      props.form_data?.row_limit,
+      refreshCachedQuery,
+      renderChart,
+      showAlertBanner,
+    ],
   );
 
   const standaloneChartBody = useMemo(() => renderChart(), [renderChart]);

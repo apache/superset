@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -381,14 +381,33 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
-  const reRenderChart = () => {
-    props.actions.updateQueryFormData(
-      getFormDataFromControls(props.controls),
+  const reRenderChart = useCallback(
+    controlsChanged => {
+      if (!controlsChanged) {
+        props.actions.updateQueryFormData(
+          getFormDataFromControls(props.controls),
+          props.chart.id,
+        );
+      } else {
+        props.actions.updateQueryFormData(
+          {
+            ...props.chart.latestQueryFormData,
+            ...getFormDataFromControls(pick(props.controls, controlsChanged)),
+          },
+          props.chart.id,
+        );
+      }
+      props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+      addHistory();
+    },
+    [
+      addHistory,
+      props.actions,
       props.chart.id,
-    );
-    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-    addHistory();
-  };
+      props.chart.latestQueryFormData,
+      props.controls,
+    ],
+  );
 
   // effect to run when controls change
   useEffect(() => {
@@ -412,11 +431,11 @@ function ExploreViewContainer(props) {
       );
 
       // this should also be handled by the actions that are actually changing the controls
-      const hasDisplayControlChanged = changedControlKeys.some(
+      const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,
       );
-      if (hasDisplayControlChanged) {
-        reRenderChart();
+      if (displayControlsChanged.length > 0) {
+        reRenderChart(displayControlsChanged);
       }
     }
   }, [props.controls, props.ownState]);

@@ -29,6 +29,7 @@ interface ControlPanelAlertProps {
   primaryButtonText?: string;
   secondaryButtonText?: string;
   type: 'info' | 'warning';
+  className?: string;
 }
 
 const AlertContainer = styled.div`
@@ -41,7 +42,7 @@ const AlertContainer = styled.div`
     border-radius: 2px;
 
     color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.s};
+    font-size: ${theme.typography.sizes.m}px;
 
     p {
       margin-bottom: ${theme.gridUnit}px;
@@ -80,10 +81,11 @@ export const ExploreAlert = forwardRef(
       primaryButtonText,
       secondaryButtonText,
       type = 'info',
+      className = '',
     }: ControlPanelAlertProps,
     ref: RefObject<HTMLDivElement>,
   ) => (
-    <AlertContainer className={`alert-type-${type}`} ref={ref}>
+    <AlertContainer className={`alert-type-${type} ${className}`} ref={ref}>
       <Title>{title}</Title>
       <p>{bodyText}</p>
       {primaryButtonText && primaryButtonAction && (

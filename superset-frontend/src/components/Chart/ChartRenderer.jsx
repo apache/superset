@@ -30,6 +30,7 @@ const propTypes = {
   datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
+  latestQueryFormData: PropTypes.object,
   labelColors: PropTypes.object,
   sharedLabelColors: PropTypes.object,
   height: PropTypes.number,
@@ -93,8 +94,7 @@ class ChartRenderer extends React.Component {
     const resultsReady =
       nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
-      !nextProps.queriesResponse?.[0]?.error &&
-      !nextProps.chartIsStale;
+      !nextProps.queriesResponse?.[0]?.error;
 
     if (resultsReady) {
       this.hasQueryResponseChange =
@@ -170,16 +170,10 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, vizType, chartId, chartIsStale } =
-      this.props;
+    const { chartAlert, chartStatus, vizType, chartId } = this.props;
 
     // Skip chart rendering
-    if (
-      chartIsStale ||
-      chartStatus === 'loading' ||
-      !!chartAlert ||
-      chartStatus === null
-    ) {
+    if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
       return null;
     }
 
@@ -193,7 +187,9 @@ class ChartRenderer extends React.Component {
       initialValues,
       ownState,
       filterState,
+      chartIsStale,
       formData,
+      latestQueryFormData,
       queriesResponse,
       postTransformProps,
     } = this.props;
@@ -243,6 +239,8 @@ class ChartRenderer extends React.Component {
       );
     }
 
+    const currentFormData =
+      chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     return (
       <SuperChart
         disableErrorBoundary
@@ -255,7 +253,7 @@ class ChartRenderer extends React.Component {
         annotationData={annotationData}
         datasource={datasource}
         initialValues={initialValues}
-        formData={formData}
+        formData={currentFormData}
         ownState={ownState}
         filterState={filterState}
         hooks={this.hooks}
