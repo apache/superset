@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import (
     Any,
     Callable,
@@ -178,7 +178,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # Your App secret key. Make sure you override it on superset_config.py.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = "CHANGE_ME_SECRET_KEY"
+SECRET_KEY = CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")

@@ -354,6 +354,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": True,
             "name": "ds",
             "type": "TIMESTAMP",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -375,6 +376,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": False,
             "name": "user_id",
             "type": "INTEGER",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -396,6 +398,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": False,
             "name": "revenue",
             "type": "INTEGER",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -417,6 +420,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": False,
             "name": "expenses",
             "type": "INTEGER",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -438,6 +442,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": False,
             "name": "profit",
             "type": "INTEGER",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -459,6 +464,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "is_temporal": False,
             "name": "cnt",
             "type": "Unknown",
+            "advanced_data_type": None,
             "unit": None,
             "warning_text": None,
             "is_managed_externally": False,
@@ -619,6 +625,7 @@ FROM
     assert column_schemas == [
         {
             "type": "TIMESTAMP",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -640,6 +647,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -661,6 +669,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -682,6 +691,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -703,6 +713,7 @@ FROM
         },
         {
             "type": "TIMESTAMP",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -724,6 +735,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -745,6 +757,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -766,6 +779,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -787,6 +801,7 @@ FROM
         },
         {
             "type": "INTEGER",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,
@@ -808,6 +823,7 @@ FROM
         },
         {
             "type": "Unknown",
+            "advanced_data_type": None,
             "is_additive": False,
             "extra_json": "{}",
             "is_partition": False,

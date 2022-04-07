@@ -17,7 +17,7 @@
 import ipaddress
 from typing import Any, List
 
-from sqlalchemy import Column, or_
+from sqlalchemy import Column
 
 from superset.advanced_data_type.advanced_data_type import AdvancedDataType
 from superset.advanced_data_type.advanced_data_type_request import (
