@@ -278,9 +278,8 @@ export const useTableColumns = (
   datasourceId?: string,
   timeFormattedColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
-) => {
-  console.log('data', data);
-  return useMemo(
+) =>
+  useMemo(
     () =>
       colnames && data?.length
         ? colnames
@@ -326,4 +325,3 @@ export const useTableColumns = (
         : [],
     [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
   );
-};
