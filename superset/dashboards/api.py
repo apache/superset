@@ -64,7 +64,6 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
-    DashboardCreatedByMeResponseSchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
     DashboardPostSchema,
@@ -231,7 +230,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     dashboard_dataset_schema = DashboardDatasetSchema()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
-    dashboard_created_by_schema = DashboardCreatedByMeResponseSchema()
 
     base_filters = [
         ["id", DashboardAccessFilter, lambda: []],
@@ -253,7 +251,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
-        DashboardCreatedByMeResponseSchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
         GetFavStarIdsSchema,

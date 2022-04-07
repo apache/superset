@@ -228,23 +228,6 @@ class BaseDashboardSchema(Schema):
         return data
 
 
-class DashboardCreatedByMeResponseSchema(Schema):
-    id = fields.Int()
-    title = fields.Str()
-    url = fields.Str()
-    changed_on = fields.DateTime()
-    dttm = fields.Int()
-
-    # pylint: disable=unused-argument,no-self-use
-    @post_dump(pass_original=True)
-    def post_dump(
-        self, data: Dict[str, Any], obj: Dashboard, many: bool = True
-    ) -> Dict[str, Any]:
-        data["dttm"] = utils.json_int_dttm_ser(obj.changed_on)
-        data["title"] = obj.dashboard_title
-        return data
-
-
 class DashboardPostSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
         description=dashboard_title_description,
