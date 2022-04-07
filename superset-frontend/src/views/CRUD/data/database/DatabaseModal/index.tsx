@@ -833,6 +833,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setFileList([]);
   };
 
+  const handleDisableOnImport = () => {
+    if (importLoading) return true;
+    return false;
+  };
+
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
@@ -881,6 +886,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             key="submit"
             buttonStyle="primary"
             onClick={onSave}
+            disabled={handleDisableOnImport()}
           >
             {t('Connect')}
           </StyledFooterButton>
