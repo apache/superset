@@ -834,7 +834,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleDisableOnImport = () => {
-    if (importLoading) return true;
+    if (importLoading || (alreadyExists && !confirmedOverwrite)) return true;
     return false;
   };
 
