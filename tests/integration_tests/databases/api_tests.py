@@ -1087,22 +1087,21 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test filter for allow file upload checks for schemas.
         Both databases have false allow_file_upload
         """
-        with self.create_app().app_context():
-            self.login(username="admin")
-            arguments = {
-                "columns": ["allow_file_upload"],
-                "filters": [
-                    {
-                        "col": "allow_file_upload",
-                        "opr": "upload_is_enabled",
-                        "value": True,
-                    }
-                ],
-            }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
-            rv = self.client.get(uri)
-            data = json.loads(rv.data.decode("utf-8"))
-            assert data["count"] == 0
+        self.login(username="admin")
+        arguments = {
+            "columns": ["allow_file_upload"],
+            "filters": [
+                {
+                    "col": "allow_file_upload",
+                    "opr": "upload_is_enabled",
+                    "value": True,
+                }
+            ],
+        }
+        uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 0
 
     def test_get_allow_file_upload_filter_no_permission(self):
         """
