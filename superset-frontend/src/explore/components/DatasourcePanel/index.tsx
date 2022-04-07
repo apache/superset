@@ -86,7 +86,7 @@ const DatasourceContainer = styled.div`
       color: ${theme.colors.grayscale.light1};
     }
     .form-control.input-md {
-      width: calc(100% - ${theme.gridUnit * 4}px);
+      width: calc(100% - ${theme.gridUnit * 8}px);
       height: ${theme.gridUnit * 8}px;
       margin: ${theme.gridUnit * 2}px auto;
     }

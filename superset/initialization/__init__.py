@@ -151,7 +151,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertView
+        from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -445,6 +445,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 and self.config["DRUID_METADATA_LINKS_ENABLED"]
             ),
         )
+        appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_link(
             "Refresh Druid Metadata",
             label=__("Refresh Druid Metadata"),

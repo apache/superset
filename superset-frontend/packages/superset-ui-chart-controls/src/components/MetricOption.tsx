@@ -29,6 +29,7 @@ import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';
+import { SQLPopover } from './SQLPopover';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -89,13 +90,8 @@ export function MetricOption({
           {link}
         </span>
       </Tooltip>
-      {showFormula && (
-        <InfoTooltipWithTrigger
-          className="text-muted m-r-5"
-          icon="question-circle-o"
-          tooltip={metric.expression}
-          label={`expr-${metric.metric_name}`}
-        />
+      {showFormula && metric.expression && (
+        <SQLPopover sqlExpression={metric.expression} />
       )}
       {metric.is_certified && (
         <CertifiedIconWithTooltip

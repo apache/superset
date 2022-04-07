@@ -448,7 +448,10 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  error.errors.map(payload => payload.message).join('\n'),
+                  [
+                    ...error.errors.map(payload => payload.message),
+                    t('Please re-export your file and try importing again'),
+                  ].join('\n'),
                 ),
               );
             } else {
@@ -689,6 +692,10 @@ export function useDatabaseValidation() {
                           url: string;
                           idx: number;
                         };
+                        issue_codes?: {
+                          code?: number;
+                          message?: string;
+                        }[];
                       };
                       message: string;
                     },
@@ -744,6 +751,14 @@ export function useDatabaseValidation() {
                         ),
                       };
                     }
+                    if (extra.issue_codes?.length) {
+                      return {
+                        ...obj,
+                        error_type,
+                        description: message || extra.issue_codes[0]?.message,
+                      };
+                    }
+
                     return obj;
                   },
                   {},

@@ -33,7 +33,7 @@ For example, to add a time range to a virtual dataset, you can write the followi
 SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
 
-To add custom functionality to the Jinja context, you need to to to overload the default Jinja
+To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
 (`superset_config.py`). Objects referenced in this dictionary are made available for users to use
 where the Jinja context is made available.

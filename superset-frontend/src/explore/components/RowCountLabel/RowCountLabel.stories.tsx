@@ -16,7 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/core';
-import Component from './SankeyLoop';
+import React from 'react';
+import RowCountLabel from '.';
 
-export default reactify(Component);
+export default {
+  title: 'RowCountLabel',
+  component: RowCountLabel,
+};
+
+const options = {
+  loading: {
+    loading: true,
+  },
+  full: {
+    rowcount: 100,
+    limit: 100,
+  },
+  medium: {
+    rowcount: 50,
+    limit: 100,
+  },
+  suffix: {
+    rowcount: 1,
+    suffix: 'suffix',
+  },
+};
+
+export const RowCountLabelGallery = () => (
+  <>
+    {Object.keys(options).map(name => (
+      <>
+        <h4>{name}</h4>
+        <RowCountLabel
+          loading={options[name].loading}
+          rowcount={options[name].rowcount}
+          limit={options[name].limit}
+          suffix={options[name].suffix}
+        />
+      </>
+    ))}
+  </>
+);
