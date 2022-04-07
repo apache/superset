@@ -283,12 +283,11 @@ export default function getControlItemsMap({
                 clearable={false}
                 freeForm={controlItem.config.freeForm}
                 disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={(value: any) => {
+                onChange={(value: string | number) => {
                   setNativeFilterFieldValues(form, filterId, {
                     [controlItem.name]: value,
                     defaultDataMask: null,
                   });
-                  // controlItem.config.value = value;
                   forceUpdate();
                 }}
                 value={controlItem.config.value || initialValue}
