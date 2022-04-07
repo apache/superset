@@ -250,7 +250,9 @@ export const useFilteredTableData = (
   const rowsAsStrings = useMemo(
     () =>
       data?.map((row: Record<string, any>) =>
-        Object.values(row).map(value => value?.toString().toLowerCase()),
+        Object.values(row).map(value =>
+          value ? value.toString().toLowerCase() : 'N/A',
+        ),
       ) ?? [],
     [data],
   );
@@ -276,8 +278,9 @@ export const useTableColumns = (
   datasourceId?: string,
   timeFormattedColumns: string[] = [],
   moreConfigs?: { [key: string]: Partial<Column> },
-) =>
-  useMemo(
+) => {
+  console.log('data', data);
+  return useMemo(
     () =>
       colnames && data?.length
         ? colnames
@@ -302,6 +305,7 @@ export const useTableColumns = (
                     key
                   ),
                 Cell: ({ value }) => {
+                  console.log('value', value);
                   if (value === true) {
                     return BOOL_TRUE_DISPLAY;
                   }
@@ -322,3 +326,4 @@ export const useTableColumns = (
         : [],
     [colnames, data, coltypes, datasourceId, moreConfigs, timeFormattedColumns],
   );
+};
