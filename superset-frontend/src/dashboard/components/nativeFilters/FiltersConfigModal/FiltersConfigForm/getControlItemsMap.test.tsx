@@ -78,7 +78,10 @@ const createControlItems = () => [
   null,
   false,
   {},
-  { name: 'name_1', config: { renderTrigger: true, resetConfig: true } },
+  {
+    name: 'name_1',
+    config: { type: 'CheckboxControl', renderTrigger: true, resetConfig: true },
+  },
   { name: 'groupby', config: { multiple: true, required: false } },
 ];
 
@@ -146,7 +149,10 @@ test('Should render render ControlItems', () => {
 
   const controlItems = [
     ...createControlItems(),
-    { name: 'name_2', config: { renderTrigger: true } },
+    {
+      name: 'name_2',
+      config: { type: 'CheckboxControl', renderTrigger: true },
+    },
   ];
   (getControlItems as jest.Mock).mockReturnValue(controlItems);
   const controlItemsMap = getControlItemsMap(props);
@@ -169,7 +175,14 @@ test('Clickin on checkbox', () => {
 test('Clickin on checkbox when resetConfig:flase', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([
-    { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },
+    {
+      name: 'name_1',
+      config: {
+        type: 'CheckboxControl',
+        renderTrigger: true,
+        resetConfig: false,
+      },
+    },
   ]);
   const controlItemsMap = getControlItemsMap(props);
   renderControlItems(controlItemsMap);
