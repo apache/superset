@@ -80,6 +80,7 @@ import {
   StyledFooterButton,
   StyledStickyHeader,
   formScrollableStyles,
+  StyledUploadWrapper,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -1477,24 +1478,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {renderPreferredSelector()}
                 {renderAvailableSelector()}
-                <Upload
-                  name="databaseFile"
-                  id="databaseFile"
-                  data-test="database-file-input"
-                  accept=".yaml,.json,.yml,.zip"
-                  customRequest={() => {}}
-                  onChange={onDbImport}
-                  onRemove={removeFile}
-                >
-                  <Button
-                    data-test="import-database-btn"
-                    buttonStyle="link"
-                    type="link"
-                    css={importDbButtonLinkStyles}
+                <StyledUploadWrapper>
+                  <Upload
+                    name="databaseFile"
+                    id="databaseFile"
+                    data-test="database-file-input"
+                    accept=".yaml,.json,.yml,.zip"
+                    customRequest={() => {}}
+                    onChange={onDbImport}
+                    onRemove={removeFile}
                   >
-                    {t('Import database from file')}
-                  </Button>
-                </Upload>
+                    <Button
+                      data-test="import-database-btn"
+                      buttonStyle="link"
+                      type="link"
+                      css={importDbButtonLinkStyles}
+                    >
+                      {t('Import database from file')}
+                    </Button>
+                  </Upload>
+                </StyledUploadWrapper>
               </SelectDatabaseStyles>
             ) : (
               <>

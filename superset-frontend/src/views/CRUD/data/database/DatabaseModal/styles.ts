@@ -613,3 +613,9 @@ export const StyledCatalogTable = styled.div`
     width: 95%;
   }
 `;
+
+export const StyledUploadWrapper = styled.div`
+  .ant-progress-inner {
+    display: none;
+  }
+`;
