@@ -23,7 +23,6 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
-import './crud.less';
 
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
@@ -102,9 +101,28 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
         min
       }
     `}
-  th span {
-    vertical-align: ${({ theme }) => theme.gridUnit * -2}px;
-  }
+  ${({ theme }) => `
+    th span {
+      vertical-align: ${theme.gridUnit * -2}px;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .empty-collection {
+      padding: ${theme.gridUnit * 2 + 2}px;
+    }
+    .tiny-cell {
+      width: ${theme.gridUnit + 1}px;
+    }
+    i.fa-caret-down,
+    i.fa-caret-up {
+      width: ${theme.gridUnit + 1}px;
+    }
+    td.expanded {
+      border-top: 0;
+      padding: 0;
+    }
+  `}
 `;
 
 const CrudButtonWrapper = styled.div`
