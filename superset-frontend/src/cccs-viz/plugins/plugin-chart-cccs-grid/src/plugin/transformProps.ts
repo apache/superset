@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
+import { Column, getMetricLabel, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
 import {
   CccsGridChartProps,
   CccsGridQueryFormData,
@@ -183,7 +183,9 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     }
 
     if (formData.metrics) {
-      const metricsColumnDefs = formData.metrics.map((column: any) => {
+      const metricsColumnDefs = formData.metrics
+        .map(getMetricLabel)
+        .map((column: any) => {
         const columnHeader = columnVerboseNameMap[column]
           ? columnVerboseNameMap[column]
           : column;
