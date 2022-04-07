@@ -23,7 +23,6 @@ from flask import current_app as app
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from func_timeout import func_timeout, FunctionTimedOut
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
@@ -34,6 +33,7 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
 from superset.extensions import event_logger
@@ -55,7 +55,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             uri = self._model.sqlalchemy_uri_decrypted
 
         # context for error messages
-        url = make_url(uri)
+        url = make_url_safe(uri)
         context = {
             "hostname": url.host,
             "password": url.password,
