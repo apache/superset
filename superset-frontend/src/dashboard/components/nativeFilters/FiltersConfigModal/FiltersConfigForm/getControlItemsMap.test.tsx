@@ -51,7 +51,7 @@ const formMock: FormInstance = {
 const filterMock: Filter = {
   cascadeParentIds: [],
   defaultDataMask: {},
-  id: 'mock',
+  id: 'filterMockId',
   name: 'mock',
   scope: {
     rootPath: [],
@@ -69,7 +69,7 @@ const createProps: () => ControlItemsProps = () => ({
   disabled: false,
   forceUpdate: jest.fn(),
   form: formMock,
-  filterId: 'filterId',
+  filterId: 'filterMockId',
   filterToEdit: filterMock,
   filterType: 'filterType',
 });
@@ -83,6 +83,20 @@ const createControlItems = () => [
     config: { type: 'CheckboxControl', renderTrigger: true, resetConfig: true },
   },
   { name: 'groupby', config: { multiple: true, required: false } },
+  {
+    name: 'select_1',
+    config: {
+      type: 'SelectControl',
+      renderTrigger: true,
+      freeForm: true,
+      default: 1,
+      choices: [
+        [0, 'choice_0'],
+        [1, 'choice_1'],
+        [2, 'choice_2'],
+      ],
+    },
+  },
 ];
 
 beforeEach(() => {
@@ -191,4 +205,27 @@ test('Clickin on checkbox when resetConfig:flase', () => {
   userEvent.click(screen.getByRole('checkbox'));
   expect(props.forceUpdate).toBeCalled();
   expect(setNativeFilterFieldValues).not.toBeCalled();
+});
+
+test('Should render SelectControl ControlItems', () => {
+  const props = createProps();
+  const controlItems = [...createControlItems()];
+  (getControlItems as jest.Mock).mockReturnValue(controlItems);
+  const controlItemsMap = getControlItemsMap(props);
+  renderControlItems(controlItemsMap);
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
+});
+
+test('Should change selection for SelectControl', () => {
+  const props = createProps();
+  const controlItems = [...createControlItems()];
+  (getControlItems as jest.Mock).mockReturnValue(controlItems);
+  const controlItemsMap = getControlItemsMap(props);
+  renderControlItems(controlItemsMap);
+  userEvent.click(screen.getByRole('combobox'));
+  userEvent.click(screen.getByTitle('choice_2'));
+  expect(setNativeFilterFieldValues).toBeCalledWith(formMock, filterMock.id, {
+    select_1: 2,
+    defaultDataMask: null,
+  });
 });
