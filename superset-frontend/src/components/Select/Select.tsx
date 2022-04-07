@@ -35,9 +35,9 @@ import AntdSelect, {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
-import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -94,6 +94,10 @@ export interface SelectProps extends PickedSelectProps {
    * Must be plain English and localized.
    */
   ariaLabel: string;
+  /**
+   * Override for empty state.
+   */
+  emptyState?: ReactElement;
   /**
    * It adds a header on top of the Select.
    * Can be any ReactNode.
@@ -613,6 +617,9 @@ const Select = (
     }
     if (isLoading && fullSelectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
+    }
+    if (!isLoading && fullSelectOptions.length === 0) {
+      return props.emptyState;
     }
     return error ? <Error error={error} /> : originNode;
   };

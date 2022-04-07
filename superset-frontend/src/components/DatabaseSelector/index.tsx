@@ -24,6 +24,9 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useDispatch, useSelector } from 'react-redux';
+import { EmptyStateSmall } from '../EmptyState';
+import { setNoDatabaseConnected } from 'src/SqlLab/actions/sqlLab';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -141,6 +144,8 @@ export default function DatabaseSelector({
         }
       : undefined,
   );
+  const dispatch = useDispatch();
+  const dbConnect = useSelector<any, any>(state => state.sqlLab.dbConnect);
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
@@ -240,6 +245,7 @@ export default function DatabaseSelector({
   ) {
     setCurrentDb(database);
     setCurrentSchema(undefined);
+    dispatch(setNoDatabaseConnected(true));
     if (onDbChange) {
       onDbChange(database);
     }
@@ -263,11 +269,23 @@ export default function DatabaseSelector({
       </div>
     );
   }
+  const p = new Promise(() => null);
 
   function renderDatabaseSelect() {
     return renderSelectRow(
       <Select
         ariaLabel={t('Select database or type database name')}
+        emptyState={
+          <EmptyStateSmall
+            image="empty.svg"
+            title="There are no database available"
+            description={
+              <p>
+                Manage your databse <a href="/databaseview/list">here</a>
+              </p>
+            }
+          />
+        }
         optionFilterProps={['database_name', 'value']}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
@@ -283,17 +301,17 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
+    const disabled = dbConnect;
     const refreshIcon = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}
         tooltipContent={t('Force refresh schema list')}
       />
     );
-
     return renderSelectRow(
       <Select
         ariaLabel={t('Select schema or type schema name')}
-        disabled={readOnly}
+        disabled={!disabled || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         lazyLoading={false}

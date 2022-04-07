@@ -25,6 +25,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { t, styled, withTheme } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -75,6 +76,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import { EmptyStateBig } from 'src/components/EmptyState';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -740,6 +742,7 @@ class SqlEditor extends React.PureComponent {
     const leftBarStateClass = this.props.hideLeftBar
       ? 'schemaPane-exit-done'
       : 'schemaPane-enter-done';
+    console.log('this.props', this.props.sqlLab.dbConnect)
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition
@@ -756,7 +759,16 @@ class SqlEditor extends React.PureComponent {
             />
           </div>
         </CSSTransition>
-        {this.queryPane()}
+        {this.props.sqlLab.dbConnect
+          ? 
+          this.queryPane() 
+          : 
+          <EmptyStateBig 
+            image="vector.svg" 
+            title="Select a database to write a query" 
+            description="Choose one of the avaialable database on the left" 
+          />
+        }
         <StyledModal
           visible={this.state.showCreateAsModal}
           title={t(createViewModalTitle)}
