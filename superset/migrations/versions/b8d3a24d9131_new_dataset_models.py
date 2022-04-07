@@ -25,6 +25,7 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
+from datetime import date, datetime, time, timedelta
 from typing import Callable, List, Optional, Set
 from uuid import uuid4
 
@@ -231,12 +232,12 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+TEMPORAL_TYPES = {date, datetime, time, timedelta}
 
 
 def is_column_type_temporal(column_type: TypeEngine) -> bool:
     try:
-        return column_type.python_type.__name__.upper() in TEMPORAL_TYPES
+        return column_type.python_type in TEMPORAL_TYPES
     except NotImplementedError:
         return False
 

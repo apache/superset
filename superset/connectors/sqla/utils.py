@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
+from datetime import date, datetime, time, timedelta
 from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
@@ -41,7 +42,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+TEMPORAL_TYPES = {date, datetime, time, timedelta}
 
 
 def get_physical_table_metadata(
@@ -174,7 +175,7 @@ def validate_adhoc_subquery(
 
 def is_column_type_temporal(column_type: TypeEngine) -> bool:
     try:
-        return column_type.python_type.__name__.upper() in TEMPORAL_TYPES
+        return column_type.python_type in TEMPORAL_TYPES
     except NotImplementedError:
         return False
 
