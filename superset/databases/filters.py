@@ -21,7 +21,6 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
-from sqlalchemy.sql.functions import func
 from sqlalchemy.sql.sqltypes import JSON
 
 from superset import app, security_manager
@@ -95,11 +94,13 @@ class DatabaseUploadEnabledFilter(BaseFilter):
                 return filtered_query
 
         schema_filtered_query = filtered_query.filter(
-            func.json_array_length(
+            or_(
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
+                is not None,
+                cast(Database.extra, JSON)["schemas_allowed_for_file_upload"] != [],
             )
-            > 0
         )
+
         return schema_filtered_query.filter(
             or_(
                 self.model.perm.in_(database_perms),
