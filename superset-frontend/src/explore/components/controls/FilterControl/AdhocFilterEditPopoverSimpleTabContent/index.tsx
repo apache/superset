@@ -466,7 +466,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         // We need to delay rendering the select because we can't pass a primitive value without options
         // We can't pass value = [null] and options=[]
-        comparatorSelectProps.value && suggestions.length === 1 ? null : (
+        comparatorSelectProps.value && suggestions.length === 0 ? null : (
           <Tooltip
             title={
               advancedDataTypesState.errorMessage ||
