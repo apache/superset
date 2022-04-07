@@ -43,7 +43,6 @@ import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
-from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     and_,
     asc,
@@ -86,6 +85,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampEx
 from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetTemplateException,
 )
 from superset.jinja_context import (
     BaseTemplateProcessor,
@@ -300,7 +300,15 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
             tp = self.table.get_template_processor()
-            expression = tp.process_template(self.expression)
+            try:
+                expression = tp.process_template(self.expression)
+            except SupersetTemplateException as ex:
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in template expression in column clause: %(msg)s",
+                        msg=ex.message,
+                    )
+                ) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -352,7 +360,15 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         if self.expression:
             expression = self.expression
             if template_processor:
-                expression = template_processor.process_template(self.expression)
+                try:
+                    expression = template_processor.process_template(self.expression)
+                except SupersetTemplateException as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in template expression in timestamp expression: %(msg)s",
+                            msg=ex.message,
+                        )
+                    ) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -447,10 +463,24 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     update_from_object_fields = list(s for s in export_fields if s != "table_id")
     export_parent = "table"
 
-    def get_sqla_col(self, label: Optional[str] = None) -> Column:
+    def get_sqla_col(
+        self,
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Column:
         label = label or self.metric_name
-        tp = self.table.get_template_processor()
-        sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
+        expression = self.expression
+        if template_processor:
+            try:
+                expression = template_processor.process_template(expression)
+            except SupersetTemplateException as ex:
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in template expression in metric expression: %(msg)s",
+                        msg=ex.message,
+                    )
+                ) from ex
+        sqla_col: ColumnClause = literal_column(expression)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -496,7 +526,15 @@ def _process_sql_expression(
     template_processor: Optional[BaseTemplateProcessor],
 ) -> Optional[str]:
     if template_processor and expression:
-        expression = template_processor.process_template(expression)
+        try:
+            expression = template_processor.process_template(expression)
+        except SupersetTemplateException as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in template expression: %(msg)s",
+                    msg=ex.message,
+                )
+            ) from ex
     if expression:
         expression = validate_adhoc_subquery(
             expression,
@@ -765,10 +803,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         tp = self.get_template_processor()
         try:
             return self.text(tp.process_template(self.fetch_values_predicate))
-        except TemplateError as ex:
+        except SupersetTemplateException as ex:
             raise QueryObjectValidationError(
                 _(
-                    "Error in jinja expression in fetch values predicate: %(msg)s",
+                    "Error in template expression in fetch values predicate: %(msg)s",
                     msg=ex.message,
                 )
             ) from ex
@@ -873,17 +911,17 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         self, template_processor: Optional[BaseTemplateProcessor] = None
     ) -> str:
         """
-        Render sql with template engine (Jinja).
+        Render sql with template engine.
         """
 
         sql = self.sql
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
-            except TemplateError as ex:
+            except SupersetTemplateException as ex:
                 raise QueryObjectValidationError(
                     _(
-                        "Error while rendering virtual dataset query: %(msg)s",
+                        "Error in template expression in virtual dataset query: %(msg)s",
                         msg=ex.message,
                     )
                 ) from ex
@@ -1038,10 +1076,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)
             return all_filters
-        except TemplateError as ex:
+        except SupersetTemplateException as ex:
             raise QueryObjectValidationError(
                 _(
-                    "Error in jinja expression in RLS filters: %(msg)s",
+                    "Error in template expression in RLS filters: %(msg)s",
                     msg=ex.message,
                 )
             ) from ex
@@ -1421,10 +1459,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if where:
                 try:
                     where = template_processor.process_template(f"({where})")
-                except TemplateError as ex:
+                except SupersetTemplateException as ex:
                     raise QueryObjectValidationError(
                         _(
-                            "Error in jinja expression in WHERE clause: %(msg)s",
+                            "Error in template expression in WHERE clause: %(msg)s",
                             msg=ex.message,
                         )
                     ) from ex
@@ -1433,10 +1471,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             if having:
                 try:
                     having = template_processor.process_template(f"({having})")
-                except TemplateError as ex:
+                except SupersetTemplateException as ex:
                     raise QueryObjectValidationError(
                         _(
-                            "Error in jinja expression in HAVING clause: %(msg)s",
+                            "Error in template expression in HAVING clause: %(msg)s",
                             msg=ex.message,
                         )
                     ) from ex

@@ -32,7 +32,7 @@ from typing import (
 
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined
+from jinja2 import StrictUndefined, TemplateError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
@@ -430,7 +430,7 @@ class BaseTemplateProcessor:
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: Dict[str, Any] = {}
-        self._env = SandboxedEnvironment(undefined=DebugUndefined)
+        self._env = SandboxedEnvironment(undefined=StrictUndefined)
         self.set_context(**kwargs)
 
     def set_context(self, **kwargs: Any) -> None:
@@ -448,7 +448,10 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+        try:
+            return template.render(context)
+        except TemplateError as ex:
+            raise SupersetTemplateException(message=ex.message)
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
