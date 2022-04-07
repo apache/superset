@@ -58,6 +58,7 @@ from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
+    DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
@@ -168,6 +169,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by_url",
         "changed_on_utc",
         "changed_on_delta_humanized",
+        "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -181,13 +183,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "is_managed_externally",
     ]
-    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "created_by.first_name",
         "dashboard_title",
         "published",
+        "changed_on",
     ]
 
     add_columns = [
@@ -217,6 +220,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
+        "created_by": [DashboardCreatedByMeFilter],
     }
     base_order = ("changed_on", "desc")
 
@@ -229,7 +233,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     embedded_config_schema = EmbeddedDashboardConfigSchema()
     dashboard_created_by_schema = DashboardCreatedByMeResponseSchema()
 
-    base_filters = [["id", DashboardAccessFilter, lambda: []]]
+    base_filters = [
+        ["id", DashboardAccessFilter, lambda: []],
+    ]
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
@@ -452,43 +458,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
-
-    @expose("/created_by_me/", methods=["GET"])
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
-    )
-    def created_by_me(self) -> Response:
-        """Gets all dashboards created by the current user
-        ---
-        get:
-          description: >-
-            Gets all dashboards created by the current user
-          responses:
-            200:
-              description: Dashboard
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/DashboardCreatedByMeResponseSchema'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-        """
-        dashboards = DashboardDAO.get_dashboards_created_by(g.user.id)
-        result = self.dashboard_created_by_schema.dump(dashboards, many=True)
-        return self.response(200, result=result)
 
     @expose("/", methods=["POST"])
     @protect()
