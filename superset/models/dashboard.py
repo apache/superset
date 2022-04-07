@@ -412,8 +412,11 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
+        datasource_id_list = list(datasource_ids)
+        datasource_id_list.sort()
+
         eager_datasources = []
-        for datasource_id, datasource_type in datasource_ids:
+        for datasource_id, datasource_type in datasource_id_list:
             eager_datasource = ConnectorRegistry.get_eager_datasource(
                 db.session, datasource_type, datasource_id
             )
