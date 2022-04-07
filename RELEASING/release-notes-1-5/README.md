@@ -46,7 +46,14 @@ when available.
 - Native filters can now be made dependent on multiple filters. This makes it possible
   to restrict the available values in a filter based on the selection of other filters.
 
-![Parent filters](media/parent_filters.png)
+![Dependent filters](media/dependent_filters.png)
+
+- In addition to being able to write Custom SQL for adhoc metrics and filters, the
+  column control now also features a Custom SQL tab. This makes it possible to write
+  custom expressions directly in charts without adding them to the dataset as saved
+  expressions.
+
+![Adhoc columns](media/adhoc_columns.png)
 
 - A new `SupersetMetastoreCache` has been added which makes it possible to cache data
   in the Superset Metastore without the need for running a dedicated cache like Redis
@@ -123,7 +130,7 @@ when available.
   the `config.py` file. These should now be defined as a top-level config, with the
   feature flag dictionary being reserved for boolean only values:
   [#15254](https://github.com/apache/superset/pull/15254)
-- all Superset CLI commands (init, load_examples and etc) require setting the
+- All Superset CLI commands (init, load_examples and etc) require setting the
   `FLASK_APP` environment variable (which is set by default when `.flaskenv` is loaded):
   [#17539](https://github.com/apache/superset/pull/17539)
 
