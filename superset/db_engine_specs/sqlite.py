@@ -49,7 +49,7 @@ class SqliteEngineSpec(BaseEngineSpec):
             "DATETIME(STRFTIME('%Y-', {col}) || "  # year
             "SUBSTR('00' || "  # pad with zeros to 2 chars
             "((CAST(STRFTIME('%m', {col}) AS INTEGER)) - "  # month as integer
-            "(((CAST(STRFTIME('%m', {col}) AS INTEGER)) - 1) % 3)), "  # month in quarter
+            "(((CAST(STRFTIME('%m', {col}) AS INTEGER)) - 1) % 3) + 1), "  # month in quarter
             "-2) || "  # close pad
             "'-01T00:00:00')"
         ),

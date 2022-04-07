@@ -91,7 +91,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "P1D": "DATE_TRUNC('DAY', {col})",
         "P1W": "DATE_TRUNC('WEEK', {col})",
         "P1M": "DATE_TRUNC('MONTH', {col})",
-        "P3M": "DATE_TRUNC('QUARTER', {col})",
+        "P3M": "ADD_MONTHS(DATE_TRUNC('QUARTER', {col}), 1)",
         "P1Y": "DATE_TRUNC('YEAR', {col})",
     }
 

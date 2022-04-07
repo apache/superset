@@ -36,7 +36,7 @@ class OracleEngineSpec(BaseEngineSpec):
         "P1D": "TRUNC(CAST({col} as DATE), 'DDD')",
         "P1W": "TRUNC(CAST({col} as DATE), 'WW')",
         "P1M": "TRUNC(CAST({col} as DATE), 'MONTH')",
-        "P3M": "TRUNC(CAST({col} as DATE), 'Q')",
+        "P3M": "ADD_MONTHS(TRUNC(CAST({col} as DATE), 'Q'), 1)",
         "P1Y": "TRUNC(CAST({col} as DATE), 'YEAR')",
     }
 
