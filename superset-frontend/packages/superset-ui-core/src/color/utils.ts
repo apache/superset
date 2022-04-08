@@ -75,7 +75,14 @@ export function getAnalogousColors(colors: string[], results: number) {
 }
 
 export function addAlpha(color: string, opacity: number): string {
-  // coerce values so ti is between 0 and 1.
-  const rounded = Math.round(Math.min(Math.max(opacity || 1, 0), 1) * 255);
-  return color + rounded.toString(16).toUpperCase();
+  // opacity value should be between 0 and 1.
+  if (opacity > 1 || opacity < 0) {
+    throw new Error(`The opacity should between 0 and 1, but got: ${opacity}`);
+  }
+  // the alpha value is between 00 - FF
+  const alpha = `0${Math.round(opacity * 255)
+    .toString(16)
+    .toUpperCase()}`.slice(-2);
+
+  return `${color}${alpha}`;
 }
