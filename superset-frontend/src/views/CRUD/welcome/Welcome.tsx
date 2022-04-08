@@ -114,23 +114,19 @@ const WelcomeContainer = styled.div`
 
 const WelcomeNav = styled.div`
   ${({ theme }) => `
+    display: flex;
+    justify-content: space-between;
     height: 50px;
     background-color: ${theme.colors.grayscale.light5};
-    & > span {
-      display: flex;
-      float: left;
-      height: 50px;
+    .welcome-header {
       font-size: ${theme.typography.sizes.l}px;
       padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 2 + 2}px;
-      line-height: ${theme.gridUnit * 5}px;
-      margin-left: ${theme.gridUnit * 2}px;
-      font-weight: ${theme.typography.weights.bold};
+      margin: 0 ${theme.gridUnit * 2}px;
     }
     .switch {
-      float: right;
-      margin: ${theme.gridUnit * 5}px;
       display: flex;
       flex-direction: row;
+      margin: ${theme.gridUnit * 4}px;
       span {
         display: block;
         margin: ${theme.gridUnit * 1}px;
@@ -283,7 +279,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span>Home</span>
+        <h1 className="welcome-header">Home</h1>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
             <AntdSwitch checked={checked} onChange={handleToggle} />
