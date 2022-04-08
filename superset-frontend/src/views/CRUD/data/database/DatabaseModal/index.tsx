@@ -25,18 +25,21 @@ import {
 import React, {
   FunctionComponent,
   useEffect,
+  useRef,
   useState,
   useReducer,
   Reducer,
 } from 'react';
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
-import { AntdSelect } from 'src/components';
+import { AntdSelect, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -44,6 +47,7 @@ import {
   useDatabaseValidation,
   getDatabaseImages,
   getConnectionAlert,
+  useImportResource,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -59,11 +63,13 @@ import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
   antDErrorAlertStyles,
   antDAlertStyles,
+  antdWarningAlertStyles,
   StyledAlertMargin,
   antDModalNoPaddingStyles,
   antDModalStyles,
   antDTabsStyles,
   buttonLinkStyles,
+  importDbButtonLinkStyles,
   alchemyButtonLinkStyles,
   TabHeader,
   formHelperStyles,
@@ -73,6 +79,8 @@ import {
   infoTooltip,
   StyledFooterButton,
   StyledStickyHeader,
+  formScrollableStyles,
+  StyledUploadWrapper,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -402,10 +410,12 @@ function dbReducer(
       return {
         ...action.payload,
       };
+
     case ActionType.configMethodChange:
       return {
         ...action.payload,
       };
+
     case ActionType.reset:
     default:
       return null;
@@ -436,27 +446,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
-  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation, setValidationErrors] =
-    useDatabaseValidation();
-  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
-  const [dbName, setDbName] = useState('');
-  const [editNewDb, setEditNewDb] = useState<boolean>(false);
-  const [isLoading, setLoading] = useState<boolean>(false);
-  const [testInProgress, setTestInProgress] = useState<boolean>(false);
-  const conf = useCommonConf();
-  const dbImages = getDatabaseImages();
-  const connectionAlert = getConnectionAlert();
-  const isEditMode = !!databaseId;
-  const sslForced = isFeatureEnabled(
-    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
-  );
-  const hasAlert =
-    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
-  const useSqlAlchemyForm =
-    db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
-  const useTabLayout = isEditMode || useSqlAlchemyForm;
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
@@ -469,6 +458,33 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+
+  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [validationErrors, getValidation, setValidationErrors] =
+    useDatabaseValidation();
+  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [dbName, setDbName] = useState('');
+  const [editNewDb, setEditNewDb] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [testInProgress, setTestInProgress] = useState<boolean>(false);
+  const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [importingModal, setImportingModal] = useState<boolean>(false);
+
+  const conf = useCommonConf();
+  const dbImages = getDatabaseImages();
+  const connectionAlert = getConnectionAlert();
+  const isEditMode = !!databaseId;
+  const sslForced = isFeatureEnabled(
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+  );
+  const hasAlert =
+    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
+  const useSqlAlchemyForm =
+    db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
+  const useTabLayout = isEditMode || useSqlAlchemyForm;
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases?.find(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
@@ -513,14 +529,43 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  const removeFile = (removedFile: UploadFile) => {
+    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+    return false;
+  };
+
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
     clearError();
     setEditNewDb(false);
+    setFileList([]);
+    setImportingModal(false);
+    setPasswords({});
+    setConfirmedOverwrite(false);
+    if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
+
+  // Database import logic
+  const {
+    state: {
+      alreadyExists,
+      passwordsNeeded,
+      loading: importLoading,
+      failed: importErrored,
+    },
+    importResource,
+  } = useImportResource('database', t('database'), msg => {
+    addDangerToast(msg);
+    onClose();
+  });
+
+  const onChange = (type: any, payload: any) => {
+    setDB({ type, payload } as DBReducerActionType);
+  };
+
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
@@ -596,9 +641,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
       );
       if (result) {
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
-        }
+        if (onDatabaseAdd) onDatabaseAdd();
         if (!editNewDb) {
           onClose();
           addSuccessToast(t('Database settings updated'));
@@ -613,9 +656,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
       if (dbId) {
         setHasConnectedDb(true);
-        if (onDatabaseAdd) {
-          onDatabaseAdd();
-        }
+        if (onDatabaseAdd) onDatabaseAdd();
         if (useTabLayout) {
           // tab layout only has one step
           // so it should close immediately on save
@@ -624,12 +665,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
+
+    // Import - doesn't use db state
+    if (!db) {
+      setLoading(true);
+      setImportingModal(true);
+
+      if (!(fileList[0].originFileObj instanceof File)) return;
+      const dbId = await importResource(
+        fileList[0].originFileObj,
+        passwords,
+        confirmedOverwrite,
+      );
+
+      if (dbId) {
+        onClose();
+        addSuccessToast(t('Database connected'));
+      }
+    }
+
     setEditNewDb(false);
     setLoading(false);
-  };
-
-  const onChange = (type: any, payload: any) => {
-    setDB({ type, payload } as DBReducerActionType);
   };
 
   // Initialize
@@ -773,10 +829,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
-    if (editNewDb) {
-      setHasConnectedDb(false);
-    }
+    if (editNewDb) setHasConnectedDb(false);
+    if (importingModal) setImportingModal(false);
     setDB({ type: ActionType.reset });
+    setFileList([]);
+  };
+
+  const handleDisableOnImport = () => {
+    if (
+      importLoading ||
+      (alreadyExists.length && !confirmedOverwrite) ||
+      (passwordsNeeded.length && JSON.stringify(passwords) === '{}')
+    )
+      return true;
+    return false;
   };
 
   const renderModalFooter = () => {
@@ -815,6 +881,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </>
       );
     }
+
+    // Import doesn't use db state, so footer will not render in the if statement above
+    if (importingModal) {
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            {t('Back')}
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onSave}
+            disabled={handleDisableOnImport()}
+          >
+            {t('Connect')}
+          </StyledFooterButton>
+        </>
+      );
+    }
+
     return [];
   };
 
@@ -840,6 +926,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </StyledFooterButton>
     </>
   );
+
+  const firstUpdate = useRef(true); // Captures first render
+  // Only runs when importing files don't need user input
+  useEffect(() => {
+    // Will not run on first render
+    if (firstUpdate.current) {
+      firstUpdate.current = false;
+      return;
+    }
+
+    if (
+      !importLoading &&
+      !alreadyExists.length &&
+      !passwordsNeeded.length &&
+      !isLoading && // This prevents a double toast for non-related imports
+      !importErrored // This prevents a success toast on error
+    ) {
+      onClose();
+      addSuccessToast(t('Database connected'));
+    }
+  }, [alreadyExists, passwordsNeeded, importLoading, importErrored]);
+
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -874,9 +982,103 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
-  const tabChange = (key: string) => {
-    setTabKey(key);
+  // This forces the modal to scroll until the importing filename is in view
+  useEffect(() => {
+    if (importingModal) {
+      document
+        .getElementsByClassName('ant-upload-list-item-name')[0]
+        .scrollIntoView();
+    }
+  }, [importingModal]);
+
+  const onDbImport = async (info: UploadChangeParam) => {
+    setImportingModal(true);
+    setFileList([
+      {
+        ...info.file,
+        status: 'done',
+      },
+    ]);
+
+    if (!(info.file.originFileObj instanceof File)) return;
+    await importResource(
+      info.file.originFileObj,
+      passwords,
+      confirmedOverwrite,
+    );
   };
+
+  const passwordNeededField = () => {
+    if (!passwordsNeeded.length) return null;
+
+    return passwordsNeeded.map(database => (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message="Database passwords"
+            description={t(
+              `The passwords for the databases below are needed in order to import them. Please note that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+            )}
+          />
+        </StyledAlertMargin>
+        <ValidatedInput
+          id="password_needed"
+          name="password_needed"
+          required
+          value={passwords[database]}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            setPasswords({ ...passwords, [database]: event.target.value })
+          }
+          validationMethods={{ onBlur: () => {} }}
+          errorMessage={validationErrors?.password_needed}
+          label={t(`${database.slice(10)} PASSWORD`)}
+          css={formScrollableStyles}
+        />
+      </>
+    ));
+  };
+
+  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = (event.currentTarget?.value as string) ?? '';
+    setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
+  };
+
+  const confirmOverwriteField = () => {
+    if (!alreadyExists.length) return null;
+
+    return (
+      <>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
+            type="warning"
+            showIcon
+            message=""
+            description={t(
+              'You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?',
+            )}
+          />
+        </StyledAlertMargin>
+        <ValidatedInput
+          id="confirm_overwrite"
+          name="confirm_overwrite"
+          required
+          validationMethods={{ onBlur: () => {} }}
+          errorMessage={validationErrors?.confirm_overwrite}
+          label={t(`TYPE "OVERWRITE" TO CONFIRM`)}
+          onChange={confirmOverwrite}
+          css={formScrollableStyles}
+        />
+      </>
+    );
+  };
+
+  const tabChange = (key: string) => setTabKey(key);
 
   const renderStepTwoAlert = () => {
     const { hostname } = window.location;
@@ -884,9 +1086,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const regionalIPs = connectionAlert?.REGIONAL_IPS || {};
     Object.entries(regionalIPs).forEach(([ipRegion, ipRange]) => {
       const regex = new RegExp(ipRegion);
-      if (hostname.match(regex)) {
-        ipAlert = ipRange;
-      }
+      if (hostname.match(regex)) ipAlert = ipRange;
     });
     return (
       db?.engine && (
@@ -1026,6 +1226,41 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       />
     );
   };
+
+  if (fileList.length > 0 && (alreadyExists.length || passwordsNeeded.length)) {
+    return (
+      <Modal
+        css={(theme: SupersetTheme) => [
+          antDModalNoPaddingStyles,
+          antDModalStyles(theme),
+          formHelperStyles(theme),
+          formStyles(theme),
+        ]}
+        name="database"
+        onHandledPrimaryAction={onSave}
+        onHide={onClose}
+        primaryButtonName={t('Connect')}
+        width="500px"
+        centered
+        show={show}
+        title={<h4>{t('Connect a database')}</h4>}
+        footer={renderModalFooter()}
+      >
+        <ModalHeader
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+          useSqlAlchemyForm={useSqlAlchemyForm}
+          hasConnectedDb={hasConnectedDb}
+          db={db}
+          dbName={dbName}
+          dbModel={dbModel}
+          fileList={fileList}
+        />
+        {passwordNeededField()}
+        {confirmOverwriteField()}
+      </Modal>
+    );
+  }
 
   return useTabLayout ? (
     <Modal
@@ -1266,6 +1501,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {renderPreferredSelector()}
                 {renderAvailableSelector()}
+                <StyledUploadWrapper>
+                  <Upload
+                    name="databaseFile"
+                    id="databaseFile"
+                    data-test="database-file-input"
+                    accept=".yaml,.json,.yml,.zip"
+                    customRequest={() => {}}
+                    onChange={onDbImport}
+                    onRemove={removeFile}
+                  >
+                    <Button
+                      data-test="import-database-btn"
+                      buttonStyle="link"
+                      type="link"
+                      css={importDbButtonLinkStyles}
+                    >
+                      {t('Import database from file')}
+                    </Button>
+                  </Upload>
+                </StyledUploadWrapper>
               </SelectDatabaseStyles>
             ) : (
               <>
