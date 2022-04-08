@@ -123,3 +123,10 @@ test('Save chart', () => {
   userEvent.click(screen.getByText('Save'));
   expect(props.onSaveChart).toHaveBeenCalled();
 });
+
+test('Save disabled', () => {
+  const props = createProps();
+  render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
+  userEvent.click(screen.getByText('Save'));
+  expect(props.onSaveChart).not.toHaveBeenCalled();
+});

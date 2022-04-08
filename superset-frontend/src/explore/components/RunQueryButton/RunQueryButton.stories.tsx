@@ -33,6 +33,7 @@ InteractiveRunQueryButtonProps.args = {
   loading: false,
   errorMessage: null,
   isNewChart: false,
+  chartIsStale: true,
 };
 
 InteractiveRunQueryButtonProps.argTypes = {

@@ -75,6 +75,7 @@ export type ControlPanelsContainerProps = {
   onQuery: () => void;
   onStop: () => void;
   canStopQuery: boolean;
+  chartIsStale: boolean;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -544,6 +545,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           loading={props.chart.chartStatus === 'loading'}
           isNewChart={!props.chart.queriesResponse}
           canStopQuery={props.canStopQuery}
+          chartIsStale={props.chartIsStale}
         />
       </ActionButtonsContainer>
     </Styles>

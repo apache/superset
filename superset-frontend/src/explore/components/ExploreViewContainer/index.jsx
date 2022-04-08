@@ -478,8 +478,7 @@ function ExploreViewContainer(props) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
   }
 
-  function renderErrorMessage() {
-    // Returns an error message as a node if any errors are in the store
+  const errorMessage = useMemo(() => {
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -513,7 +512,7 @@ function ExploreViewContainer(props) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
     }
     return errorMessage;
-  }
+  }, [props.controls]);
 
   function renderChartContainer() {
     return (
@@ -521,7 +520,7 @@ function ExploreViewContainer(props) {
         width={width}
         height={height}
         {...props}
-        errorMessage={renderErrorMessage()}
+        errorMessage={errorMessage}
         refreshOverlayVisible={chartIsStale}
         onQuery={onQuery}
       />
@@ -560,6 +559,7 @@ function ExploreViewContainer(props) {
           user={props.user}
           reports={props.reports}
           onSaveChart={toggleModal}
+          saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         />
       </ExploreHeaderContainer>
       <ExplorePanelContainer id="explore-container">
@@ -682,7 +682,8 @@ function ExploreViewContainer(props) {
             onQuery={onQuery}
             onStop={onStop}
             canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={renderErrorMessage()}
+            errorMessage={errorMessage}
+            chartIsStale={chartIsStale}
           />
         </Resizable>
         <div

@@ -28,6 +28,7 @@ export type RunQueryButtonProps = {
   errorMessage: ReactNode;
   isNewChart: boolean;
   canStopQuery: boolean;
+  chartIsStale: boolean;
 };
 
 export const RunQueryButton = ({
@@ -37,6 +38,7 @@ export const RunQueryButton = ({
   errorMessage,
   isNewChart,
   canStopQuery,
+  chartIsStale,
 }: RunQueryButtonProps) =>
   loading ? (
     <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
@@ -45,7 +47,7 @@ export const RunQueryButton = ({
   ) : (
     <Button
       onClick={onQuery}
-      buttonStyle="primary"
+      buttonStyle={chartIsStale ? 'primary' : 'secondary'}
       disabled={!!errorMessage}
       data-test="run-query-button"
     >

@@ -41,6 +41,7 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { Tooltip } from 'src/components/Tooltip';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 import { ChartEditableTitle } from './ChartEditableTitle';
 
@@ -57,6 +58,7 @@ const propTypes = {
   ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
+  saveDisabled: PropTypes.bool,
 };
 
 const SaveButton = styled(Button)`
@@ -92,16 +94,6 @@ const StyledHeader = styled.div`
     .right-button-panel {
       display: flex;
       align-items: center;
-
-      > .btn-group {
-        flex: 0 0 auto;
-        margin-left: ${theme.gridUnit}px;
-      }
-    }
-
-    .action-button {
-      color: ${theme.colors.grayscale.base};
-      margin: 0 ${theme.gridUnit * 1.5}px 0 ${theme.gridUnit}px;
     }
   `}
 `;
@@ -120,6 +112,13 @@ const StyledButtons = styled.span`
       }
     }
   `}
+`;
+
+const SaveButtonContainer = styled.div`
+  ${({ theme }) =>
+    css`
+      margin-right: ${theme.gridUnit * 2}px;
+    `}
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -243,8 +242,9 @@ export class ExploreChartHeader extends React.PureComponent {
       sliceUpdated,
       sliceName,
       onSaveChart,
+      saveDisabled,
     } = this.props;
-    const { latestQueryFormData, sliceFormData, chartStatus } = chart;
+    const { latestQueryFormData, sliceFormData } = chart;
     const oldSliceName = slice?.slice_name;
     return (
       <StyledHeader id="slice-header">
@@ -295,15 +295,26 @@ export class ExploreChartHeader extends React.PureComponent {
           )}
         </div>
         <div className="right-button-panel">
-          <SaveButton
-            buttonStyle="secondary"
-            onClick={onSaveChart}
-            disabled={chartStatus === 'loading'}
-            data-test="query-save-button"
+          <Tooltip
+            title={
+              saveDisabled
+                ? t('Add required control values to save chart')
+                : null
+            }
           >
-            <Icons.SaveOutlined iconSize="l" />
-            {t('Save')}
-          </SaveButton>
+            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+            <SaveButtonContainer>
+              <SaveButton
+                buttonStyle="secondary"
+                onClick={onSaveChart}
+                disabled={saveDisabled}
+                data-test="query-save-button"
+              >
+                <Icons.SaveOutlined iconSize="l" />
+                {t('Save')}
+              </SaveButton>
+            </SaveButtonContainer>
+          </Tooltip>
           <ExploreAdditionalActionsMenu
             onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}
