@@ -376,7 +376,7 @@ const Select = (
     const missingValues: OptionsType = ensureIsArray(selectValue)
       .filter(opt => !hasOption(getValue(opt), selectOptions))
       .map(opt =>
-        typeof opt === 'object' ? opt : { value: opt, label: String(opt) },
+        isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
       );
     return missingValues.length > 0
       ? missingValues.concat(selectOptions)
@@ -393,12 +393,11 @@ const Select = (
     } else {
       setSelectValue(previousState => {
         const array = ensureIsArray(previousState);
-        const isAntdLabeledValue = isLabeledValue(selectedItem);
-        const value = isAntdLabeledValue ? selectedItem.value : selectedItem;
+        const value = getValue(selectedItem);
         // Tokenized values can contain duplicated values
         if (!hasOption(value, array)) {
           const result = [...array, selectedItem];
-          return isAntdLabeledValue
+          return isLabeledValue(selectedItem)
             ? (result as AntdLabeledValue[])
             : (result as (string | number)[]);
         }

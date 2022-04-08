@@ -69,17 +69,17 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
-export function getValue(
-  option: string | number | { value: string | number | null } | null,
-) {
-  return isObject(option) ? option.value : option;
-}
-
-export type LabeledValue<V> = { label?: ReactNode; value?: V };
-
 export function isLabeledValue(value: unknown): value is AntdLabeledValue {
   return isObject(value) && 'value' in value && 'label' in value;
 }
+
+export function getValue(
+  option: string | number | AntdLabeledValue | null | undefined,
+) {
+  return isLabeledValue(option) ? option.value : option;
+}
+
+type LabeledValue<V> = { label?: ReactNode; value?: V };
 
 export function hasOption<V>(
   value: V,
