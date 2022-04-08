@@ -39,7 +39,7 @@ We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 tox -e pylint
 ```
 
-In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+In terms of best practices please avoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
 Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)

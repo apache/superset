@@ -123,6 +123,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
+        "is_managed_externally",
     ]
     list_columns = [
         "allow_file_upload",
@@ -880,7 +881,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()
-        return self.response(200, function_names=database.function_names,)
+        return self.response(
+            200,
+            function_names=database.function_names,
+        )
 
     @expose("/available/", methods=["GET"])
     @protect()

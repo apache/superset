@@ -31,7 +31,6 @@ import sortNumericValues from 'src/utils/sortNumericValues';
 
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
-import './TimeTable.less';
 
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
@@ -101,6 +100,7 @@ const defaultProps = {
 
 const TimeTableStyles = styled.div`
   height: ${props => props.height}px;
+  overflow: auto;
 
   th {
     z-index: 1; // to cover sparkline
@@ -325,7 +325,11 @@ const TimeTable = ({
       : [];
 
   return (
-    <TimeTableStyles className={`time-table ${className}`} height={height}>
+    <TimeTableStyles
+      data-test="time-table"
+      className={className}
+      height={height}
+    >
       <TableView
         className="table-no-hover"
         columns={memoizedColumns}

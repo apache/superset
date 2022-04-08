@@ -84,31 +84,46 @@ def test_prophet_missing_temporal_column():
 
     with pytest.raises(InvalidPostProcessingError):
         prophet(
-            df=df, time_grain="P1M", periods=3, confidence_interval=0.9,
+            df=df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=0.9,
         )
 
 
 def test_prophet_incorrect_confidence_interval():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
-            df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.0,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=0.0,
         )
 
     with pytest.raises(InvalidPostProcessingError):
         prophet(
-            df=prophet_df, time_grain="P1M", periods=3, confidence_interval=1.0,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=3,
+            confidence_interval=1.0,
         )
 
 
 def test_prophet_incorrect_periods():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
-            df=prophet_df, time_grain="P1M", periods=-1, confidence_interval=0.8,
+            df=prophet_df,
+            time_grain="P1M",
+            periods=-1,
+            confidence_interval=0.8,
         )
 
 
 def test_prophet_incorrect_time_grain():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
-            df=prophet_df, time_grain="yearly", periods=10, confidence_interval=0.8,
+            df=prophet_df,
+            time_grain="yearly",
+            periods=10,
+            confidence_interval=0.8,
         )

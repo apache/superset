@@ -2617,7 +2617,7 @@
       "Whether to apply filter to dashboards when table cells are clicked": [
         "单击表单元格时是否对看板应用过滤条件"
       ],
-      "Adaptative formating": ["自动匹配格式化"],
+      "Adaptive formatting": ["自动匹配格式化"],
       "Aggregate": ["聚合"],
       "Raw Records": ["原始记录"],
       "Query Mode": ["查询模式"],

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, SupersetClient, t } from '@superset-ui/core';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -95,7 +95,11 @@ const Actions = styled.div`
 `;
 
 function DashboardList(props: DashboardListProps) {
-  const { addDangerToast, addSuccessToast } = props;
+  const {
+    addDangerToast,
+    addSuccessToast,
+    user: { userId },
+  } = props;
 
   const {
     state: {
@@ -143,7 +147,6 @@ function DashboardList(props: DashboardListProps) {
     addSuccessToast(t('Dashboard imported'));
   };
 
-  const { userId } = props.user;
   // TODO: Fix usage of localStorage keying on the user id
   const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
@@ -232,27 +235,25 @@ function DashboardList(props: DashboardListProps) {
 
   const columns = useMemo(
     () => [
-      ...(props.user.userId
-        ? [
-            {
-              Cell: ({
-                row: {
-                  original: { id },
-                },
-              }: any) => (
-                <FaveStar
-                  itemId={id}
-                  saveFaveStar={saveFavoriteStatus}
-                  isStarred={favoriteStatus[id]}
-                />
-              ),
-              Header: '',
-              id: 'id',
-              disableSortBy: true,
-              size: 'xs',
-            },
-          ]
-        : []),
+      {
+        Cell: ({
+          row: {
+            original: { id },
+          },
+        }: any) =>
+          userId && (
+            <FaveStar
+              itemId={id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus[id]}
+            />
+          ),
+        Header: '',
+        id: 'id',
+        disableSortBy: true,
+        size: 'xs',
+        hidden: !userId,
+      },
       {
         Cell: ({
           row: {
@@ -422,10 +423,15 @@ function DashboardList(props: DashboardListProps) {
       },
     ],
     [
+      userId,
       canEdit,
       canDelete,
       canExport,
-      ...(props.user.userId ? [favoriteStatus] : []),
+      saveFavoriteStatus,
+      favoriteStatus,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
     ],
   );
 
@@ -500,7 +506,7 @@ function DashboardList(props: DashboardListProps) {
           { label: t('Draft'), value: false },
         ],
       },
-      ...(props.user.userId ? [favoritesFilter] : []),
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
         id: 'id',
@@ -544,8 +550,8 @@ function DashboardList(props: DashboardListProps) {
     },
   ];
 
-  function renderCard(dashboard: Dashboard) {
-    return (
+  const renderCard = useCallback(
+    (dashboard: Dashboard) => (
       <DashboardCard
         dashboard={dashboard}
         hasPerm={hasPerm}
@@ -556,6 +562,7 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.THUMBNAILS)
         }
+        userId={userId}
         loading={loading}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
@@ -564,8 +571,20 @@ function DashboardList(props: DashboardListProps) {
         favoriteStatus={favoriteStatus[dashboard.id]}
         handleBulkDashboardExport={handleBulkDashboardExport}
       />
-    );
-  }
+    ),
+    [
+      addDangerToast,
+      addSuccessToast,
+      bulkSelectEnabled,
+      favoriteStatus,
+      hasPerm,
+      loading,
+      userId,
+      refreshData,
+      saveFavoriteStatus,
+      userKey,
+    ],
+  );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {

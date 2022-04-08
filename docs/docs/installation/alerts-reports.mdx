@@ -89,12 +89,12 @@ REDIS_HOST = "redis-superset"
 REDIS_PORT = "6379"
 
 class CeleryConfig:
-    BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-    CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERYD_PREFETCH_MULTIPLIER = 10
-    CELERY_ACKS_LATE = True
-    CELERY_ANNOTATIONS = {
+    broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+    result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
+    task_annotations = {
         'sql_lab.get_sql_results': {
             'rate_limit': '100/s',
         },
@@ -105,7 +105,7 @@ class CeleryConfig:
             'ignore_result': True,
         },
     }
-    CELERYBEAT_SCHEDULE = {
+    beat_schedule = {
         'reports.scheduler': {
             'task': 'reports.scheduler',
             'schedule': crontab(minute='*', hour='*'),

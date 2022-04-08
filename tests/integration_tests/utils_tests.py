@@ -24,6 +24,8 @@ import os
 import re
 from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
+
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -736,7 +738,7 @@ class TestUtils(SupersetTestCase):
         db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
-        with self.assertRaises(ArgumentError):
+        with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
     def test_get_iterable(self):
@@ -794,7 +796,11 @@ class TestUtils(SupersetTestCase):
         }
         merge_extra_form_data(form_data)
         self.assertEqual(
-            form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
@@ -826,7 +832,9 @@ class TestUtils(SupersetTestCase):
         form_data = {
             "time_range": "Last 10 days",
             "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {"time_range": "Last year",},
+            "extra_form_data": {
+                "time_range": "Last year",
+            },
         }
         merge_extra_filters(form_data)
         self.assertEqual(
