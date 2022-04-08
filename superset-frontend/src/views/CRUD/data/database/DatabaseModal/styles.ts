@@ -49,14 +49,14 @@ export const StyledFormHeader = styled.header`
   .helper-top {
     padding-bottom: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
   .helper-bottom {
     padding-top: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
@@ -169,14 +169,14 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.s + 1}px;
+    font-size: ${theme.typography.sizes.m}px;
     font-weight: ${theme.typography.weights.bold};
   }
 
   .ant-alert-description {
     color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.s + 1}px;
-    line-height: ${theme.gridUnit * 4}px;
+    font-size: ${theme.typography.sizes.m}px;
+    line-height: ${theme.gridUnit * 5}px;
 
     a {
       text-decoration: underline;
@@ -184,7 +184,7 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
+      font-size: ${theme.typography.sizes.l}px;
       position: relative;
       top: ${theme.gridUnit / 4}px;
     }
@@ -203,15 +203,15 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};
   .ant-alert-message {
-    font-size: ${theme.typography.sizes.s + 1}px;
+    font-size: ${theme.typography.sizes.m}px;
     font-weight: ${theme.typography.weights.bold};
   }
   .ant-alert-description {
-    font-size: ${theme.typography.sizes.s + 1}px;
-    line-height: ${theme.gridUnit * 4}px;
+    font-size: ${theme.typography.sizes.m}px;
+    line-height: ${theme.gridUnit * 5}px;
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
+      font-size: ${theme.typography.sizes.l}px;
       position: relative;
       top: ${theme.gridUnit / 4}px;
     }
@@ -228,7 +228,7 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
     display: block;
     padding: ${theme.gridUnit}px 0;
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     text-align: left;
   }
 `;
@@ -258,23 +258,23 @@ export const formStyles = (theme: SupersetTheme) => css`
   }
   .control-label {
     color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
   }
   .helper {
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     margin-top: ${theme.gridUnit * 1.5}px;
   }
   .ant-tabs-content-holder {
     overflow: auto;
-    max-height: 475px;
+    max-height: 480px;
   }
 `;
 
 export const validatedFormStyles = (theme: SupersetTheme) => css`
   label {
     color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.s - 1}px;
+    font-size: ${theme.typography.sizes.s}px;
     margin-bottom: 0;
   }
 `;
@@ -291,7 +291,7 @@ export const StyledInputContainer = styled.div`
 
     .control-label {
       color: ${theme.colors.grayscale.dark1};
-      font-size: ${theme.typography.sizes.s - 1}px;
+      font-size: ${theme.typography.sizes.s}px;
       margin-bottom: ${theme.gridUnit * 2}px;
     }
 
@@ -414,7 +414,7 @@ export const TabHeader = styled.div`
 
   .helper {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0px;
   }
 `;
@@ -432,7 +432,7 @@ export const CreateHeaderSubtitle = styled.div`
 
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
@@ -511,7 +511,7 @@ export const SelectDatabaseStyles = styled.div`
   .available {
     margin: ${({ theme }) => theme.gridUnit * 4}px;
     .available-label {
-      font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
+      font-size: ${({ theme }) => theme.typography.sizes.l}px;
       font-weight: ${({ theme }) => theme.typography.weights.bold};
       margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
@@ -522,12 +522,12 @@ export const SelectDatabaseStyles = styled.div`
 
   .label-available-select {
     text-transform: uppercase;
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
   .control-label {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
@@ -551,7 +551,7 @@ export const StyledCatalogTable = styled.div`
   }
 
   .gsheet-title {
-    font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
     margin: ${({ theme }) => theme.gridUnit * 10}px 0 16px;
   }
