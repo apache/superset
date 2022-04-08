@@ -357,7 +357,7 @@ export function transformEventAnnotation(
     const eventData: MarkLine1DDataItemOption[] = [
       {
         name: label,
-        xAxis: time as unknown as number,
+        xAxis: time,
       },
     ];
 

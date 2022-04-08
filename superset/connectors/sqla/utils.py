@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
+from datetime import date, datetime, time, timedelta
 from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
@@ -33,14 +34,15 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, ParsedQuery, Table
+from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+TEMPORAL_TYPES = {date, datetime, time, timedelta}
 
 
 def get_physical_table_metadata(
@@ -91,7 +93,7 @@ def get_physical_table_metadata(
     return cols
 
 
-def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
+def get_virtual_table_metadata(dataset: "SqlaTable") -> List[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -136,29 +138,46 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     return cols
 
 
-def validate_adhoc_subquery(raw_sql: str) -> None:
+def validate_adhoc_subquery(
+    sql: str,
+    database_id: int,
+    default_schema: str,
+) -> str:
     """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table
-    :param raw_sql: adhoc sql expression
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
+
+    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
+    predicates to it.
+
+    :param sql: adhoc sql expression
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
     # pylint: disable=import-outside-toplevel
     from superset import is_feature_enabled
 
-    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-        return
-
-    for statement in sqlparse.parse(raw_sql):
+    statements = []
+    for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
-                    level=ErrorLevel.ERROR,
+            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                        message=_("Custom SQL fields cannot contain sub-queries."),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
-            )
-    return
+            statement = insert_rls(statement, database_id, default_schema)
+        statements.append(statement)
+
+    return ";\n".join(str(statement) for statement in statements)
+
+
+def is_column_type_temporal(column_type: TypeEngine) -> bool:
+    try:
+        return column_type.python_type in TEMPORAL_TYPES
+    except NotImplementedError:
+        return False
 
 
 def load_or_create_tables(  # pylint: disable=too-many-arguments
@@ -212,8 +231,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
                     name=column["name"],
                     type=str(column["type"]),
                     expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
+                    is_temporal=is_column_type_temporal(column["type"]),
                     is_aggregation=False,
                     is_physical=True,
                     is_spatial=False,

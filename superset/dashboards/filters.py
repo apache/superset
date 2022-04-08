@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+import uuid
+from typing import Any, Optional, Union
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role
@@ -25,6 +26,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.views.base import BaseFilter, is_user_admin
@@ -47,6 +49,21 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
+class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Created by me")
+    arg_name = "created_by_me"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        return query.filter(
+            or_(
+                Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
+                Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
+            )
+        )
+
+
 class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     BaseFavoriteFilter
 ):
@@ -57,6 +74,14 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     arg_name = "dashboard_is_favorite"
     class_name = "Dashboard"
     model = Dashboard
+
+
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
 
 
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -133,14 +158,24 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
             g.user
         ):
+
             guest_user: GuestUser = g.user
             embedded_dashboard_ids = [
                 r["id"]
                 for r in guest_user.resources
                 if r["type"] == GuestTokenResourceType.DASHBOARD.value
             ]
-            if len(embedded_dashboard_ids) != 0:
-                feature_flagged_filters.append(Dashboard.id.in_(embedded_dashboard_ids))
+
+            # TODO (embedded): only use uuid filter once uuids are rolled out
+            condition = (
+                Dashboard.embedded.any(
+                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
+                )
+                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
+                else Dashboard.id.in_(embedded_dashboard_ids)
+            )
+
+            feature_flagged_filters.append(condition)
 
         query = query.filter(
             or_(

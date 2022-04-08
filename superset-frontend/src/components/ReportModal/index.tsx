@@ -26,8 +26,7 @@ import React, {
 } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { bindActionCreators } from 'redux';
-import { connect, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addReport, editReport } from 'src/reports/actions/reports';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 
@@ -85,6 +84,7 @@ interface ChartObject {
   chartUpdateEndTime: number;
   chartUpdateStartTime: number;
   latestQueryFormData: object;
+  sliceFormData: Record<string, any>;
   queryController: { abort: () => {} };
   queriesResponse: object;
   triggerQuery: boolean;
@@ -92,7 +92,6 @@ interface ChartObject {
 }
 
 interface ReportProps {
-  addReport: (report?: ReportObject) => {};
   onHide: () => {};
   onReportAdd: (report?: ReportObject) => {};
   addDangerToast: (msg: string) => void;
@@ -102,7 +101,6 @@ interface ReportProps {
   dashboardId?: number;
   chart?: ChartObject;
   creationMethod: string;
-  props: any;
 }
 
 interface ReportPayloadType {
@@ -189,8 +187,8 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   show = false,
   ...props
 }) => {
-  const vizType = props.props.chart?.sliceFormData?.viz_type;
-  const isChart = !!props.props.chart;
+  const vizType = props.chart?.sliceFormData?.viz_type;
+  const isChart = !!props.chart;
   const defaultNotificationFormat =
     isChart && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType)
       ? NOTIFICATION_FORMATS.TEXT
@@ -226,19 +224,19 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     // Create new Report
     const newReportValues: Partial<ReportObject> = {
       crontab: currentReport?.crontab,
-      dashboard: props.props.dashboardId,
-      chart: props.props.chart?.id,
+      dashboard: props.dashboardId,
+      chart: props.chart?.id,
       description: currentReport?.description,
       name: currentReport?.name,
-      owners: [props.props.userId],
+      owners: [props.userId],
       recipients: [
         {
-          recipient_config_json: { target: props.props.userEmail },
+          recipient_config_json: { target: props.userEmail },
           type: 'Email',
         },
       ],
       type: 'Report',
-      creation_method: props.props.creationMethod,
+      creation_method: props.creationMethod,
       active: true,
       report_format: currentReport?.report_format || defaultNotificationFormat,
       timezone: currentReport?.timezone,
@@ -416,7 +414,4 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 };
 
-const mapDispatchToProps = (dispatch: any) =>
-  bindActionCreators({ addReport, editReport }, dispatch);
-
-export default connect(null, mapDispatchToProps)(withToasts(ReportModal));
+export default withToasts(ReportModal);
