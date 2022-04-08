@@ -28,7 +28,7 @@ from superset.models.core import Database
 from superset.views.base import BaseFilter
 
 
-def can_access_databases(  # noqa pylint: disable=no-self-use
+def can_access_databases(
     view_menu_name: str,
 ) -> Set[str]:
     return {
@@ -37,7 +37,7 @@ def can_access_databases(  # noqa pylint: disable=no-self-use
     }
 
 
-class DatabaseFilter(BaseFilter):
+class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     # TODO(bogdan): consider caching.
 
     def apply(self, query: Query, value: Any) -> Query:
@@ -58,22 +58,13 @@ class DatabaseFilter(BaseFilter):
         )
 
 
-class DatabaseUploadEnabledFilter(BaseFilter):
+class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all databases based on allow_file_upload
     """
 
     name = _("Upload Enabled")
     arg_name = "upload_is_enabled"
-
-    def can_access_databases(  # noqa pylint: disable=no-self-use
-        self,
-        view_menu_name: str,
-    ) -> Set[str]:
-        return {
-            security_manager.unpack_database_and_schema(vm).database
-            for vm in security_manager.user_view_menu_names(view_menu_name)
-        }
 
     def apply(self, query: Query, value: Any) -> Query:
 
