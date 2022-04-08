@@ -1289,7 +1289,7 @@ ENABLE_BROAD_ACTIVITY_ACCESS = True
 # the advanced data type key should correspond to that set in the column metadata
 ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "internet_address": internet_address,
-    "port": port,
+    "port": internet_port,
 }
 
 

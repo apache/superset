@@ -31,7 +31,7 @@ from superset.advanced_data_type.advanced_data_type_response import (
 from superset.utils.core import FilterOperator, FilterStringOperators
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
-from superset.advanced_data_type.plugins.internet_port import internet_port
+from superset.advanced_data_type.plugins.internet_port import internet_port as port
 
 
 # To run the unit tests below, use the following command in the root Superset folder:
