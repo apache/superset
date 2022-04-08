@@ -18,15 +18,17 @@ import logging
 from typing import Optional
 
 from flask import Response
-from flask_appbuilder.api import expose, protect,  safe
+from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.schemas import EmbeddedDashboardResponseSchema
-from superset.embedded_dashboard.commands.exception import \
-    EmbeddedDashboardAccessDeniedError, EmbeddedDashboardNotFoundError
+from superset.embedded.dao import EmbeddedDAO
+from superset.embedded_dashboard.commands.exceptions import (
+    EmbeddedDashboardNotFoundError,
+)
 from superset.extensions import event_logger
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.reports.logs.schemas import openapi_spec_methods_override
@@ -51,9 +53,6 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     resource_name = "embedded_dashboard"
     allow_browser_login = True
 
-    show_columns = [
-        "uuid",
-    ]
     openapi_spec_tag = "Embedded Dashboard"
     openapi_spec_methods = openapi_spec_methods_override
 
@@ -67,6 +66,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
         log_to_statsd=False,
     )
+    # pylint: disable=arguments-differ, arguments-renamed)
     def get(self, uuid: str) -> Response:
         """Response
         Returns the dashboard's embedded configuration
@@ -78,11 +78,11 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: id_or_slug
-            description: The dashboard id or slug
+            name: uuid
+            description: The embedded configuration uuid
           responses:
             200:
-              description: Result contains the embedded dashboard config
+              description: Result contains the embedded dashboard configuration
               content:
                 application/json:
                   schema:
@@ -96,10 +96,10 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            embedded = EmbeddedDashboard.get_by_uuid(uuid)
+            embedded = EmbeddedDAO.find_by_id(uuid)
+            if not embedded:
+                raise EmbeddedDashboardNotFoundError()
             result = self.embedded_response_schema.dump(embedded)
             return self.response(200, result=result)
-        except EmbeddedDashboardAccessDeniedError:
-            return self.response_403()
         except EmbeddedDashboardNotFoundError:
             return self.response_404()

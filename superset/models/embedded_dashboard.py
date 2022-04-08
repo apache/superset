@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import uuid
 from typing import List
 
@@ -24,7 +22,6 @@ from sqlalchemy import Column, ForeignKey, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
-from superset import db
 from superset.models.helpers import AuditMixinNullable
 
 
@@ -58,11 +55,3 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
         An empty list means any domain can embed.
         """
         return self.allow_domain_list.split(",") if self.allow_domain_list else []
-
-    @classmethod
-    def get_by_uuid(cls, embedded_uuid: str) -> EmbeddedDashboard:
-        session = db.session()
-        qry = session.query(EmbeddedDashboard).filter(
-            EmbeddedDashboard.uuid == embedded_uuid
-        )
-        return qry.one_or_none()
