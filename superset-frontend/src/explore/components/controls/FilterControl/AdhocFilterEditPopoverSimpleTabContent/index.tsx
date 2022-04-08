@@ -464,10 +464,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
         <Tooltip
-        title={
-          advancedDataTypesState.errorMessage ||
-          advancedDataTypesState.parsedAdvancedDataType
-        }
+          title={
+            advancedDataTypesState.errorMessage ||
+            advancedDataTypesState.parsedAdvancedDataType
+          }
         >
           <SelectWithLabel
             labelText={labelText}
