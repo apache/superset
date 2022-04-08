@@ -128,6 +128,8 @@ const errorAlertMapping = {
     ),
   },
 };
+const googleSheetConnectionEngine = 'gsheets';
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -1318,7 +1320,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  {dbModel.name !== 'Google Sheets' && (
+                  {dbModel.engine !== googleSheetConnectionEngine && (
                     <>
                       <Button
                         data-test="sqla-connect-btn"
