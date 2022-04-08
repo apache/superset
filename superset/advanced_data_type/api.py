@@ -69,7 +69,7 @@ class AdvancedDataTypeRestApi(BaseApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/AdvancedData_type_convert_schema'
+                  $ref: '#/components/schemas/advanced_data_type_convert_schema'
           responses:
             200:
               description: >-
