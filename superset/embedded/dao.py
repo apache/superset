@@ -18,6 +18,9 @@ import logging
 from typing import Any, Dict, List
 
 from superset.dao.base import BaseDAO
+from superset.embedded_dashboard.commands.exception import (
+    EmbeddedDashboardNotFoundError
+)
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -51,3 +54,15 @@ class EmbeddedDAO(BaseDAO):
         At least, until we are ok with more than one embedded instance per dashboard.
         """
         raise NotImplementedError("Use EmbeddedDAO.upsert() instead.")
+
+    @staticmethod
+    def get(uuid: str) -> EmbeddedDashboard:
+        """
+        Sets up a dashboard to be embeddable.
+        Upsert is used to preserve the embedded_dashboard uuid across updates.
+        """
+        embedded = EmbeddedDashboard.get_by_uuid(embedded_uuid=uuid)
+        if not embedded:
+            raise EmbeddedDashboardNotFoundError()
+
+        return embedded
