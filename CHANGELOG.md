@@ -17,8 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.5 (Fri Apr 1 13:05:03 2022 +0300)
-**Database Migrations**
+### 1.5 (Thu Apr 7 12:52:20 2022 +0300)
+
+- **Database Migrations**
+- [#19543](https://github.com/apache/superset/pull/19543) fix(migrations): reorder skipped 1.4 migrations (@villebro)
 - [#19416](https://github.com/apache/superset/pull/19416) perf: improve perf in SIP-68 migration (@betodealmeida)
 - [#19225](https://github.com/apache/superset/pull/19225) fix(sql lab): deleting the last saved query or the last executed from history (@diegomedina248)
 - [#19078](https://github.com/apache/superset/pull/19078) feat: add permalink to dashboard and explore (@villebro)
@@ -170,6 +172,12 @@ under the License.
 - [#17001](https://github.com/apache/superset/pull/17001) feat(linting): restrict direct use of supersetTheme in favor of ThemeProvider (@rusackas)
 
 **Fixes**
+- [#19553](https://github.com/apache/superset/pull/19553) fix(dataset): handle missing python_type gracefully (@villebro)
+- [#19612](https://github.com/apache/superset/pull/19612) fix(select): render when empty multiselect (@villebro)
+- [#19565](https://github.com/apache/superset/pull/19565) fix(sqla): apply jinja to metrics (@villebro)
+- [#19582](https://github.com/apache/superset/pull/19582) fix(dataset): avoid crash if database missing (@villebro)
+- [#19542](https://github.com/apache/superset/pull/19542) fix: big number with trendline can't calculate cumsum (@zhaoyongjie)
+- [#19548](https://github.com/apache/superset/pull/19548) fix(sqllab): null database with backend persistence (@villebro)
 - [#19409](https://github.com/apache/superset/pull/19409) fix(dashboard list): do not show favorite star for anonymous users #18210 (@dudasaron)
 - [#19483](https://github.com/apache/superset/pull/19483) fix: flaky test for charts changed on (@zhaoyongjie)
 - [#19366](https://github.com/apache/superset/pull/19366) fix: can't sync temporal flag on virtual table (@zhaoyongjie)
@@ -486,6 +494,8 @@ under the License.
 - [#16838](https://github.com/apache/superset/pull/16838) fix: remove duplicate line in docstring (@exemplary-citizen)
 
 **Others**
+- [#19530](https://github.com/apache/superset/pull/19530) docs: release notes for 1.5 (@villebro)
+- [#19557](https://github.com/apache/superset/pull/19557) chore: remove redundant adodbapi warning (@villebro)
 - [#19481](https://github.com/apache/superset/pull/19481) chore(plugin-chart-echarts): upgrade echarts 5.3.2 (@villebro)
 - [#19392](https://github.com/apache/superset/pull/19392) test(native filter): add new test for dependent filter (@jinghua-qa)
 - [#19417](https://github.com/apache/superset/pull/19417) refactor: Removes the CSS files from the Heatmap plugin (@michael-s-molina)
