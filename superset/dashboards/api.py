@@ -58,6 +58,7 @@ from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
+    DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
@@ -139,6 +140,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "set_embedded",
         "delete_embedded",
         "thumbnail",
+        "created_by_me",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -166,6 +168,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "changed_by_url",
         "changed_on_utc",
         "changed_on_delta_humanized",
+        "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -179,13 +182,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "is_managed_externally",
     ]
-    list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
+    list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "created_by.first_name",
         "dashboard_title",
         "published",
+        "changed_on",
     ]
 
     add_columns = [
@@ -215,6 +219,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
+        "created_by": [DashboardCreatedByMeFilter],
     }
     base_order = ("changed_on", "desc")
 
@@ -226,7 +231,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     embedded_response_schema = EmbeddedDashboardResponseSchema()
     embedded_config_schema = EmbeddedDashboardConfigSchema()
 
-    base_filters = [["id", DashboardAccessFilter, lambda: []]]
+    base_filters = [
+        ["id", DashboardAccessFilter, lambda: []],
+    ]
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
@@ -307,8 +314,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         $ref: '#/components/schemas/DashboardGetResponseSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -364,8 +369,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: array
                         items:
                           $ref: '#/components/schemas/DashboardDatasetSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -427,8 +430,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: array
                         items:
                           $ref: '#/components/schemas/ChartEntityResponseSchema'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
@@ -489,8 +490,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            302:
-              description: Redirects to the current digest
             400:
               $ref: '#/components/responses/400'
             401:
