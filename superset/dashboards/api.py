@@ -1194,5 +1194,4 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         for embedded in dashboard.embedded:
             DashboardDAO.delete(embedded)
-        db.session.commit()
         return self.response(200, message="OK")
