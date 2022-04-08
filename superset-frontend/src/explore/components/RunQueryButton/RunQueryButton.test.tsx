@@ -29,6 +29,7 @@ const createProps = (overrides: Record<string, any> = {}) => ({
   errorMessage: null,
   isNewChart: false,
   canStopQuery: true,
+  chartIsStale: true,
   ...overrides,
 });
 
