@@ -1374,6 +1374,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     and feature_flag_manager.is_feature_enabled(
                         "ENABLE_ADVANCED_DATA_TYPES"
                     )
+                    and col_advanced_data_type in ADVANCED_DATA_TYPES
                 ):
                     values = eq if is_list_target else [eq]  # type: ignore
                     bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
