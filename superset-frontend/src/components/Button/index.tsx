@@ -66,6 +66,14 @@ export interface ButtonProps {
   cta?: boolean;
   loading?: boolean | { delay?: number | undefined } | undefined;
   showMarginRight?: boolean;
+  type?:
+    | 'default'
+    | 'text'
+    | 'link'
+    | 'primary'
+    | 'dashed'
+    | 'ghost'
+    | undefined;
 }
 
 export default function Button(props: ButtonProps) {
