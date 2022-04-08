@@ -25,20 +25,22 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
+from datetime import date, datetime, time, timedelta
 from typing import Callable, List, Optional, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy_utils import UUIDType
 
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
+from superset.databases.utils import make_url_safe
 from superset.extensions import encrypted_field_factory
 from superset.migrations.shared.utils import extract_table_references
 from superset.models.core import Database as OriginalDatabase
@@ -230,7 +232,14 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+TEMPORAL_TYPES = {date, datetime, time, timedelta}
+
+
+def is_column_type_temporal(column_type: TypeEngine) -> bool:
+    try:
+        return column_type.python_type in TEMPORAL_TYPES
+    except NotImplementedError:
+        return False
 
 
 def load_or_create_tables(
@@ -285,8 +294,7 @@ def load_or_create_tables(
                     name=column["name"],
                     type=str(column["type"]),
                     expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
+                    is_temporal=is_column_type_temporal(column["type"]),
                     is_aggregation=False,
                     is_physical=True,
                     is_spatial=False,
@@ -323,7 +331,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     )
     if not database:
         return
-    url = make_url(database.sqlalchemy_uri)
+    url = make_url_safe(database.sqlalchemy_uri)
     dialect_class = url.get_dialect()
     conditional_quote = dialect_class().identifier_preparer.quote
 

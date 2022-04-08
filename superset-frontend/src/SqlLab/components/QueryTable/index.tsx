@@ -283,21 +283,21 @@ const QueryTable = ({
               )}
               placement="top"
             >
-              <Icons.Edit iconSize="s" />
+              <Icons.Edit iconSize="xl" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
             >
-              <Icons.PlusCircleOutlined iconSize="xs" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
                 tooltip={t('Remove query from log')}
                 onClick={() => removeQuery(query)}
               >
-                <Icons.Trash iconSize="xs" />
+                <Icons.Trash iconSize="xl" />
               </StyledTooltip>
             )}
           </div>

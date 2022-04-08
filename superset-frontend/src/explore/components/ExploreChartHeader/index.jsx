@@ -96,8 +96,19 @@ const StyledHeader = styled.div`
 `;
 
 const StyledButtons = styled.span`
-  display: flex;
-  align-items: center;
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    padding-left: ${theme.gridUnit * 2}px;
+
+    & .fave-unfave-icon {
+      padding: 0 ${theme.gridUnit}px;
+
+      &:first-child {
+        padding-left: 0;
+      }
+    }
+  `}
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -236,16 +247,14 @@ export class ExploreChartHeader extends React.PureComponent {
             onSave={actions.updateChartTitle}
             placeholder={t('Add the name of the chart')}
           />
-          {slice?.certified_by && (
-            <>
-              <CertifiedBadge
-                certifiedBy={slice.certified_by}
-                details={slice.certification_details}
-              />{' '}
-            </>
-          )}
           {slice && (
             <StyledButtons>
+              {slice.certified_by && (
+                <CertifiedBadge
+                  certifiedBy={slice.certified_by}
+                  details={slice.certification_details}
+                />
+              )}
               {user.userId && (
                 <FaveStar
                   itemId={slice.slice_id}

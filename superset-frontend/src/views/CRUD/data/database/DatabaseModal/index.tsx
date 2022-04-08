@@ -89,6 +89,9 @@ const engineSpecificAlertMapping = {
 };
 
 const errorAlertMapping = {
+  GENERIC_DB_ENGINE_ERROR: {
+    message: t('Generic database engine error'),
+  },
   CONNECTION_MISSING_PARAMETERS_ERROR: {
     message: t('Missing Required Fields'),
     description: t('Please complete all required fields.'),
@@ -368,11 +371,11 @@ function dbReducer(
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
-        const engineParamsCatalog = Object.keys(
+        const engineParamsCatalog = Object.entries(
           extra_json?.engine_params?.catalog || {},
-        ).map(e => ({
-          name: e,
-          value: extra_json?.engine_params?.catalog[e],
+        ).map(([key, value]) => ({
+          name: key,
+          value,
         }));
         return {
           ...action.payload,
@@ -415,9 +418,7 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
   JSON.stringify({
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse(
-      (extraJson?.engine_params as unknown as string) || '{}',
-    ),
+    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
     schemas_allowed_for_file_upload: (
       extraJson?.schemas_allowed_for_file_upload || []
     ).filter(schema => schema !== ''),
@@ -929,6 +930,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           }
           description={
             errorAlertMapping[validationErrors?.error_type]?.description ||
+            validationErrors?.description ||
             JSON.stringify(validationErrors)
           }
           showIcon
