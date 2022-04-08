@@ -67,5 +67,19 @@ describe('color utils', () => {
     it('adds 50% opacity to white', () => {
       expect(addAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF80');
     });
+    it('should apply transparent alpha', () => {
+      expect(addAlpha('#000000', 0)).toBe('#00000000');
+    });
+    it('should apply fully opaque', () => {
+      expect(addAlpha('#000000', 1)).toBe('#000000FF');
+    });
+    it('opacity should be between 0 and 1', () => {
+      expect(() => {
+        addAlpha('#000000', 2);
+      }).toThrow();
+      expect(() => {
+        addAlpha('#000000', -1);
+      }).toThrow();
+    });
   });
 });
