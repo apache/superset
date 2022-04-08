@@ -245,14 +245,13 @@ const RightMenu = ({
       <DatabaseModal
         onHide={handleOnHideModal}
         show={showModal}
-        onDatabaseAdd={() => {}}
         dbEngine={engine}
       />
       <Menu
         selectable={false}
         mode="horizontal"
         onClick={handleMenuSelection}
-        onOpenChange={(openKeys: string[]) => onMenuOpen(openKeys)}
+        onOpenChange={onMenuOpen}
       >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu

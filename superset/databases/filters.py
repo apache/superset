@@ -28,25 +28,25 @@ from superset.models.core import Database
 from superset.views.base import BaseFilter
 
 
+def can_access_databases(  # noqa pylint: disable=no-self-use
+    view_menu_name: str,
+) -> Set[str]:
+    return {
+        security_manager.unpack_database_and_schema(vm).database
+        for vm in security_manager.user_view_menu_names(view_menu_name)
+    }
+
+
 class DatabaseFilter(BaseFilter):
     # TODO(bogdan): consider caching.
-
-    def can_access_databases(  # noqa pylint: disable=no-self-use
-        self,
-        view_menu_name: str,
-    ) -> Set[str]:
-        return {
-            security_manager.unpack_database_and_schema(vm).database
-            for vm in security_manager.user_view_menu_names(view_menu_name)
-        }
 
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_databases():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
-        schema_access_databases = self.can_access_databases("schema_access")
+        schema_access_databases = can_access_databases("schema_access")
 
-        datasource_access_databases = self.can_access_databases("datasource_access")
+        datasource_access_databases = can_access_databases("datasource_access")
 
         return query.filter(
             or_(
@@ -80,9 +80,9 @@ class DatabaseUploadEnabledFilter(BaseFilter):
         filtered_query = query.filter(Database.allow_file_upload)
 
         database_perms = security_manager.user_view_menu_names("database_access")
-        schema_access_databases = self.can_access_databases("schema_access")
+        schema_access_databases = can_access_databases("schema_access")
 
-        datasource_access_databases = self.can_access_databases("datasource_access")
+        datasource_access_databases = can_access_databases("datasource_access")
 
         if hasattr(g, "user"):
             allowed_schemas = [
@@ -93,7 +93,7 @@ class DatabaseUploadEnabledFilter(BaseFilter):
             if len(allowed_schemas):
                 return filtered_query
 
-        schema_filtered_query = filtered_query.filter(
+        filtered_query = filtered_query.filter(
             or_(
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
                 is not None,
@@ -101,7 +101,7 @@ class DatabaseUploadEnabledFilter(BaseFilter):
             )
         )
 
-        return schema_filtered_query.filter(
+        return filtered_query.filter(
             or_(
                 self.model.perm.in_(database_perms),
                 self.model.database_name.in_(
