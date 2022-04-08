@@ -36,6 +36,7 @@ pytest
 pytest-cov
 statsd
 pytest-mock
+sqloxide
 # DB dependencies
 -e file:.[bigquery]
 -e file:.[trino]
