@@ -153,7 +153,6 @@ const ExplorePanelContainer = styled.div`
       .horizontal-text {
         text-transform: uppercase;
         color: ${theme.colors.grayscale.light1};
-        font-size: ${theme.typography.sizes.s * 4};
       }
     }
     .no-show {
@@ -613,7 +612,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizont al-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Dataset')}</span>
             <span
               role="button"
               tabIndex={0}
