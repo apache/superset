@@ -92,9 +92,7 @@ def cidr_translate_filter_func(
         if operator == FilterOperator.IN.value:
             cond = col.in_(single_values)
             for dictionary in dict_items:
-                cond = cond | (
-                    (col <= dictionary["end"]) & (col >= dictionary["start"])
-                )
+                cond = cond | (col <= dictionary["end"]) & (col >= dictionary["start"])
         elif operator == FilterOperator.NOT_IN.value:
             cond = ~(col.in_(single_values))
             for dictionary in dict_items:
