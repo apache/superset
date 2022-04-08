@@ -64,7 +64,7 @@ const RefreshTooltip = styled.div`
   height: auto;
   margin: ${({ theme }) => theme.gridUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  line-height: ${({ theme }) => theme.typography.sizes.m * 1.5}px;
+  line-height: 21px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
