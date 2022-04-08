@@ -77,7 +77,7 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.embedded.dao import EmbeddedDAO
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -1192,5 +1192,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard.embedded = []
+        for embedded in dashboard.embedded:
+            DashboardDAO.delete(embedded)
+        db.session.commit()
         return self.response(200, message="OK")
