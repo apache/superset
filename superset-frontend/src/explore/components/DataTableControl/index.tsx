@@ -251,7 +251,7 @@ export const useFilteredTableData = (
     () =>
       data?.map((row: Record<string, any>) =>
         Object.values(row).map(value =>
-          value ? value.toString().toLowerCase() : 'N/A',
+          value ? value.toString().toLowerCase() : t('N/A'),
         ),
       ) ?? [],
     [data],
