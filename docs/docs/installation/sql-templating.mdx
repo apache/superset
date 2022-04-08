@@ -206,9 +206,11 @@ Here's a concrete example:
 SELECT action, count(*) as times
 FROM logs
 WHERE
-    action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+    action in {{ filter_values('action_type')|where_in }}
 GROUP BY action
 ```
+
+There `where_in` filter converts the list of values from `filter_values('action_type')` into a string suitable for an `IN` expression.
 
 **Filters for a Specific Column**
 
@@ -243,7 +245,7 @@ Here's a concrete example:
 
     {%- if filter.get('op') == 'IN' -%}
         AND
-        full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+        full_name IN {{ filter.get('val')|where_in }}
     {%- endif -%}
 
     {%- if filter.get('op') == 'LIKE' -%}
