@@ -28,11 +28,10 @@ from typing import List
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.schema import UniqueConstraint
 
 from superset.columns.models import Column
-from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
     ExtraJSONMixin,
@@ -62,14 +61,8 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     id = sa.Column(sa.Integer, primary_key=True)
 
-    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
-    database: Database = relationship(
-        "Database",
-        # TODO (betodealmeida): rename the backref to ``tables`` once we get rid of the
-        # old models.
-        backref=backref("new_tables", cascade="all, delete-orphan"),
-        foreign_keys=[database_id],
-    )
+    # TODO: add foreign key constraint when this is model actually in use
+    database_id = sa.Column(sa.Integer, nullable=False)
 
     # We use ``sa.Text`` for these attributes because (1) in modern databases the
     # performance is the same as ``VARCHAR``[1] and (2) because some table names can be

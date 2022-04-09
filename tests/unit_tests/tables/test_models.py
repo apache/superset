@@ -17,9 +17,11 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
+import pytest
 from sqlalchemy.orm.session import Session
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_table_model(app_context: None, session: Session) -> None:
     """
     Test basic attributes of a ``Table``.

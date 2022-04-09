@@ -37,6 +37,7 @@ from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import (
+    backend,
     AdhocMetricExpressionType,
     FilterOperator,
     GenericDataType,
