@@ -29,9 +29,9 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
-import { newQueryTabName } from '../../utils/newQueryTabName';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { newQueryTabName } from '../../utils/newQueryTabName';
 import SqlEditor from '../SqlEditor';
 import TabStatusIcon from '../TabStatusIcon';
 
