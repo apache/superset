@@ -1425,6 +1425,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
     )
+    @freeze_time("2022-01-01")
     def test_export(self):
         """
         Dashboard API: Test dashboard export
