@@ -21,20 +21,17 @@ from superset.migrations.versions.fb13d49b72f9_better_filters import (
     upgrade_slice,
 )
 
-from .base_tests import SupersetTestCase
 
+def test_upgrade_slice():
+    slc = Slice(
+        slice_name="FOO",
+        viz_type="filter_box",
+        params=json.dumps(dict(metric="foo", groupby=["bar"])),
+    )
+    upgrade_slice(slc)
+    params = json.loads(slc.params)
+    assert "metric" not in params
+    assert "filter_configs" in params
 
-class TestMigration(SupersetTestCase):
-    def test_upgrade_slice(self):
-        slc = Slice(
-            slice_name="FOO",
-            viz_type="filter_box",
-            params=json.dumps(dict(metric="foo", groupby=["bar"])),
-        )
-        upgrade_slice(slc)
-        params = json.loads(slc.params)
-        self.assertNotIn("metric", params)
-        self.assertIn("filter_configs", params)
-
-        cfg = params["filter_configs"][0]
-        self.assertEqual(cfg.get("metric"), "foo")
+    cfg = params["filter_configs"][0]
+    assert cfg.get("metric") == "foo"
