@@ -18,12 +18,13 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals, invalid-name, too-many-lines
 
 import json
-from datetime import datetime, timezone
 
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_dataset_model(app_context: None, session: Session) -> None:
     """
     Test basic attributes of a ``Dataset``.
@@ -82,6 +83,7 @@ FROM my_catalog.my_schema.my_table
     assert [column.name for column in dataset.columns] == ["position"]
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_cascade_delete_table(app_context: None, session: Session) -> None:
     """
     Test that deleting ``Table`` also deletes its columns.
@@ -117,6 +119,7 @@ def test_cascade_delete_table(app_context: None, session: Session) -> None:
     assert len(columns) == 0
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_cascade_delete_dataset(app_context: None, session: Session) -> None:
     """
     Test that deleting ``Dataset`` also deletes its columns.
@@ -265,6 +268,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
     ]
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     """
     Test shadow write when creating a new ``SqlaTable``.
@@ -512,6 +516,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     ]
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_create_virtual_sqlatable(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -861,6 +866,7 @@ FROM
     ]
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_delete_sqlatable(app_context: None, session: Session) -> None:
     """
     Test that deleting a ``SqlaTable`` also deletes the corresponding ``Dataset``.
@@ -897,6 +903,7 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
     assert len(datasets) == 0
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_sqlatable(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -957,6 +964,7 @@ def test_update_sqlatable(
     assert dataset.columns[0].is_temporal is True
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_sqlatable_schema(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -1003,6 +1011,7 @@ def test_update_sqlatable_schema(
     assert new_dataset.tables[0].id == 2
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_sqlatable_metric(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -1052,6 +1061,7 @@ def test_update_sqlatable_metric(
     assert column.expression == "MAX(ds)"
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_virtual_sqlatable_references(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -1121,6 +1131,7 @@ def test_update_virtual_sqlatable_references(
     assert new_dataset.expression == "SELECT a, b FROM table_a JOIN table_b"
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_quote_expressions(app_context: None, session: Session) -> None:
     """
     Test that expressions are quoted appropriately in columns and datasets.
@@ -1154,6 +1165,7 @@ def test_quote_expressions(app_context: None, session: Session) -> None:
     assert dataset.columns[1].expression == "no_need"
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_physical_sqlatable(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
@@ -1262,6 +1274,7 @@ def test_update_physical_sqlatable(
     assert dataset.tables[0].database_id == 1
 
 
+@pytest.mark.skip(reason="SIP-68 not ready yet")
 def test_update_physical_sqlatable_no_dataset(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
