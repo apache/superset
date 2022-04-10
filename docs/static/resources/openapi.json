@@ -1484,7 +1484,7 @@
             "type": "string"
           },
           "time_shift": {
-            "description": "A human-readable date/time string. Please refer to [parsdatetime](https://github.com/bear/parsedatetime) documentation for details on valid values.",
+            "description": "A human-readable date/time string. Please refer to [parsedatetime](https://github.com/bear/parsedatetime) documentation for details on valid values.",
             "nullable": true,
             "type": "string"
           },

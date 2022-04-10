@@ -1071,7 +1071,7 @@ class ChartDataQueryObjectSchema(Schema):
     )
     time_shift = fields.String(
         description="A human-readable date/time string. "
-        "Please refer to [parsdatetime](https://github.com/bear/parsedatetime) "
+        "Please refer to [parsedatetime](https://github.com/bear/parsedatetime) "
         "documentation for details on valid values.",
         allow_none=True,
     )
