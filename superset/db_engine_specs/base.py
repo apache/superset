@@ -336,7 +336,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if TRUE, then it doesn't have to.
     allows_hidden_ordeby_agg = True
 
-    # Whether ORDER BY clause can use sql caculated expression
+    # Whether ORDER BY clause can use sql calculated expression
     # if True, use alias of select column for `order by`
     # the True is safely for most database
     # But for backward compatibility, False by default
