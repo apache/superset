@@ -38,7 +38,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   createErrorHandler,
-  getRecentAcitivtyObjs,
+  getRecentActivityObjs,
   mq,
   CardContainer,
   getUserOwnedObjects,
@@ -228,7 +228,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     }
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
+    getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
         data[TableTab.Other] = res.other;
