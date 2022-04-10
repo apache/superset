@@ -161,11 +161,11 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         log_to_statsd=False,
     )
     def get(self, pk: int, key: str) -> Response:
-        """Retrives a value.
+        """Retrieves a value.
         ---
         get:
           description: >-
-            Retrives a value.
+            Retrieves a value.
           parameters:
           - in: path
             schema:

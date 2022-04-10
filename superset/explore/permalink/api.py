@@ -119,11 +119,11 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for chart.
+        """Retrieves permanent link state for chart.
         ---
         get:
           description: >-
-            Retrives chart state associated with a permanent link.
+            Retrieves chart state associated with a permanent link.
           parameters:
           - in: path
             schema:
