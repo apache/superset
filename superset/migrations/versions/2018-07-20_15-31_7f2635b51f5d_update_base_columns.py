@@ -16,7 +16,7 @@
 # under the License.
 """update base columns
 
-Note that the columns table was previously partially modifed by revision
+Note that the columns table was previously partially modified by revision
 f231d82b9b26.
 
 Revision ID: 7f2635b51f5d

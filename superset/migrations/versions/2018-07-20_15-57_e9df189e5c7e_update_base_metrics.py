@@ -16,7 +16,7 @@
 # under the License.
 """update base metrics
 
-Note that the metrics table was previously partially modifed by revision
+Note that the metrics table was previously partially modified by revision
 f231d82b9b26.
 
 Revision ID: e9df189e5c7e
