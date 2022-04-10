@@ -7878,7 +7878,7 @@
             "type": "string"
           },
           "working_timeout": {
-            "description": "If an alert is staled at a working state, how long until it's state is reseted to error",
+            "description": "If an alert is staled at a working state, how long until its state is reseted to error",
             "example": 3600,
             "format": "int32",
             "minimum": 1,
@@ -8607,7 +8607,7 @@
             "type": "string"
           },
           "working_timeout": {
-            "description": "If an alert is staled at a working state, how long until it's state is reseted to error",
+            "description": "If an alert is staled at a working state, how long until its state is reseted to error",
             "example": 3600,
             "format": "int32",
             "minimum": 1,
