@@ -232,7 +232,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
         )}
         {!!Object.values(annotationError).length && (
           <Tooltip
-            id="annoation-errors-tooltip"
+            id="annotation-errors-tooltip"
             placement="top"
             title={annotationsError}
           >
