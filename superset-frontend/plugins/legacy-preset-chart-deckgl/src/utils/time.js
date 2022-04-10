@@ -62,7 +62,7 @@ export function truncate(timestamp, step) {
 function getStepSeconds(step, start) {
   /* Return number of seconds in a step.
    *
-   * The step might be ambigous, eg, "1 month" has a variable number of
+   * The step might be ambiguous, eg, "1 month" has a variable number of
    * seconds, which is why we need to know the start time.
    */
   const startMillliseconds = parseInt(moment(start).format('x'), 10);
