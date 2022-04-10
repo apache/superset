@@ -360,7 +360,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
-        #  chached results will be invalidated.
+        #  cached results will be invalidated.
         if not self.apply_fetch_values_predicate:
             del cache_dict["apply_fetch_values_predicate"]
         if self.datasource:
