@@ -57,7 +57,7 @@ export interface Aggregates {
   [colname: string]: {
     operator: NumpyFunction;
     /**
-     * the name of the column to generate aggrates from.
+     * the name of the column to generate aggregates from.
      */
     column?: string;
     options?: JsonObject;
