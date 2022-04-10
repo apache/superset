@@ -425,3 +425,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             options = post_process.get("options", {})
             df = getattr(pandas_postprocessing, operation)(df, **options)
         return df
+
+    def get_datasource(self) -> Optional[BaseDatasource]:
+        try:
+            return self.datasource
+        except AttributeError:
+            return None
