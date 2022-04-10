@@ -44,7 +44,7 @@ class BaseDAO:
     """
     base_filter: Optional[BaseFilter] = None
     """
-    Child classes can register base filtering to be aplied to all filter methods
+    Child classes can register base filtering to be applied to all filter methods
     """
     id_column_name = "id"
 
