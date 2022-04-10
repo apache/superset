@@ -30,6 +30,8 @@ from superset.common.query_object import QueryObject
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.druid.models import DruidCluster
+    from superset.models.core import Database
     from superset.models.helpers import QueryResult
 
 
@@ -126,3 +128,9 @@ class QueryContext:
 
     def raise_for_access(self) -> None:
         self._processor.raise_for_access()
+
+    def get_database(self) -> Optional[Union[Database, DruidCluster]]:
+        try:
+            return self.datasource.database
+        except AttributeError:
+            return None
