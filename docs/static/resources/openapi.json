@@ -649,7 +649,7 @@
       "CacheInvalidationRequestSchema": {
         "properties": {
           "datasource_uids": {
-            "description": "The uid of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_uid` ",
+            "description": "The uid of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_uid` ",
             "items": {
               "type": "string"
             },
@@ -2022,7 +2022,7 @@
             "type": "array"
           },
           "datasource_id": {
-            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_id` and `datasource_type`.",
             "format": "int32",
             "type": "integer"
           },
@@ -2132,7 +2132,7 @@
             "type": "array"
           },
           "datasource_id": {
-            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_id` and `datasource_type`.",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -2830,7 +2830,7 @@
             "type": "array"
           },
           "datasource_id": {
-            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_id` and `datasource_type`.",
             "format": "int32",
             "type": "integer"
           },
@@ -2940,7 +2940,7 @@
             "type": "array"
           },
           "datasource_id": {
-            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasouce_id` and `datasource_type`.",
+            "description": "The id of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_id` and `datasource_type`.",
             "format": "int32",
             "nullable": true,
             "type": "integer"
