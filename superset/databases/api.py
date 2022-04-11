@@ -51,7 +51,7 @@ from superset.databases.commands.update import UpdateDatabaseCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
-from superset.databases.filters import DatabaseFilter
+from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
     DatabaseFunctionNamesResponse,
@@ -166,7 +166,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "encrypted_extra",
         "server_cert",
     ]
+
     edit_columns = add_columns
+
+    search_columns = ["allow_file_upload", "expose_in_sqllab"]
+
+    search_filters = {
+        "allow_file_upload": [DatabaseUploadEnabledFilter],
+        "expose_in_sqllab": [DatabaseFilter],
+    }
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [

@@ -18,8 +18,9 @@
  */
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { styled } from '@superset-ui/core';
+import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
+import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
 import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
@@ -141,6 +142,15 @@ const StyledHeader = styled.div`
   .dropdown-menu-links > div.ant-menu-submenu-title,
   .ant-menu-submenu-open.ant-menu-submenu-active > div.ant-menu-submenu-title {
     color: ${({ theme }) => theme.colors.primary.dark1};
+  }
+`;
+
+const styledDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.base};
+  backgroundColor: ${theme.colors.grayscale.light2}};
+  .ant-menu-item:hover {
+    color: ${theme.colors.grayscale.base};
+    cursor: default;
   }
 `;
 
@@ -271,7 +281,18 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
               >
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
-                    return (
+                    return item.disable ? (
+                      <DropdownMenu.Item key={item.label} css={styledDisabled}>
+                        <Tooltip
+                          placement="top"
+                          title={t(
+                            "Enable 'Allow data upload' in any database's settings",
+                          )}
+                        >
+                          {item.label}
+                        </Tooltip>
+                      </DropdownMenu.Item>
+                    ) : (
                       <DropdownMenu.Item key={item.label}>
                         <a href={item.url}>{item.label}</a>
                       </DropdownMenu.Item>
