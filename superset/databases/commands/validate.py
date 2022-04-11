@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
-from sqlalchemy.engine.url import make_url
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
@@ -30,6 +29,7 @@ from superset.databases.commands.exceptions import (
     InvalidParametersError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -121,7 +121,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             with closing(engine.raw_connection()) as conn:
                 alive = engine.dialect.do_ping(conn)
         except Exception as ex:
-            url = make_url(sqlalchemy_uri)
+            url = make_url_safe(sqlalchemy_uri)
             context = {
                 "hostname": url.host,
                 "password": url.password,

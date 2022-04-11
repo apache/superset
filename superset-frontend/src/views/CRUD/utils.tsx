@@ -285,7 +285,7 @@ export function handleDashboardDelete(
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -399,15 +399,17 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
     .flat();
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
-  errors.some(
-    error =>
-      !Object.entries(error.extra)
-        .filter(([key, _]) => key !== 'issue_codes')
-        .every(
-          ([_, payload]) =>
-            isNeedsPassword(payload) || isAlreadyExists(payload),
-        ),
-  );
+  errors.some(error => {
+    const noIssuesCodes = Object.entries(error.extra).filter(
+      ([key]) => key !== 'issue_codes',
+    );
+
+    if (noIssuesCodes.length === 0) return true;
+
+    return !noIssuesCodes.every(
+      ([, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
+    );
+  });
 
 export const checkUploadExtensions = (
   perm: Array<string>,

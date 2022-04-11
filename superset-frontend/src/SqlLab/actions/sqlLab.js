@@ -1393,10 +1393,21 @@ export function queryEditorSetFunctionNames(queryEditor, dbId) {
           functionNames: json.function_names,
         }),
       )
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while fetching function names.')),
-        ),
-      );
+      .catch(err => {
+        if (err.status === 404) {
+          // for databases that have been deleted, just reset the function names
+          dispatch({
+            type: QUERY_EDITOR_SET_FUNCTION_NAMES,
+            queryEditor,
+            functionNames: [],
+          });
+        } else {
+          dispatch(
+            addDangerToast(
+              t('An error occurred while fetching function names.'),
+            ),
+          );
+        }
+      });
   };
 }
