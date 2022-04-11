@@ -27,6 +27,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDispatch, useSelector } from 'react-redux';
 import { setNoDatabaseConnected } from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateSmall } from '../EmptyState';
+import { RootState } from 'src/SqlLab/types';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -146,14 +147,16 @@ export default function DatabaseSelector({
       : undefined,
   );
   const dispatch = useDispatch();
-  const dbConnect = useSelector<any, any>(state => state.sqlLab.dbConnect);
+  const dbConnect = useSelector<RootState, any>(
+    state => state.sqlLab.dbConnect,
+  );
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
   const [refresh, setRefresh] = useState(0);
   const { addSuccessToast } = useToasts();
 
-  const emptyStateComponent = (
+  const EmptyStateComponent = (
     <EmptyStateSmall
       image="empty.svg"
       title={
@@ -297,7 +300,7 @@ export default function DatabaseSelector({
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
-        notFoundContent={emptyStateComponent}
+        notFoundContent={EmptyStateComponent}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}
