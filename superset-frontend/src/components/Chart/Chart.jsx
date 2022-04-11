@@ -284,9 +284,17 @@ class Chart extends React.PureComponent {
       return (
         <EmptyStateBig
           title={t('Your chart is ready to go!')}
-          description={t(
-            'Click on "Create chart" button in the control panel on the left to preview a visualization',
-          )}
+          description={
+            <span>
+              {t(
+                'Click on "Create chart" button in the control panel on the left to preview a visualization or',
+              )}{' '}
+              <span role="button" tabIndex={0} onClick={this.props.onQuery}>
+                {t('click here')}
+              </span>
+              .
+            </span>
+          }
           image="chart.svg"
         />
       );

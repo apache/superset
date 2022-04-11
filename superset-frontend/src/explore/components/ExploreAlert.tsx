@@ -48,12 +48,26 @@ const AlertContainer = styled.div`
       margin-bottom: ${theme.gridUnit}px;
     }
 
+    & a,
+    & span[role='button'] {
+      color: inherit;
+      text-decoration: underline;
+      &:hover {
+        color: ${theme.colors.info.dark1};
+      }
+    }
+
     &.alert-type-warning {
       border-color: ${theme.colors.alert.base};
       background-color: ${theme.colors.alert.light2};
 
       p {
         color: ${theme.colors.alert.dark2};
+      }
+
+      & a:hover,
+      & span[role='button']:hover {
+        color: ${theme.colors.alert.dark1};
       }
     }
   `}

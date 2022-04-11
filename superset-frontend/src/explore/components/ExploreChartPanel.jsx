@@ -312,11 +312,19 @@ const ExploreChartPanel = ({
                 : t('Your chart is not up to date')
             }
             bodyText={
-              props.errorMessage
-                ? requiredFieldsMissingWarning
-                : t(
-                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button.',
-                  )
+              props.errorMessage ? (
+                requiredFieldsMissingWarning
+              ) : (
+                <span>
+                  {t(
+                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
+                  )}{' '}
+                  <span role="button" tabIndex={0} onClick={props.onQuery}>
+                    {t('click here')}
+                  </span>
+                  .
+                </span>
+              )
             }
             type="warning"
             css={theme => css`
