@@ -118,10 +118,10 @@ const requiredFieldsMissingWarning = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 )
   ? t(
-      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Create chart" button.',
     )
   : t(
-      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
+      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Create chart" button.',
     );
 
 class Chart extends React.PureComponent {

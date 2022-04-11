@@ -201,9 +201,9 @@ const ExploreChartPanel = ({
     setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
   }, [splitSizes]);
 
-  const onDragEnd = sizes => {
+  const onDragEnd = useCallback(sizes => {
     setSplitSizes(sizes);
-  };
+  }, []);
 
   const refreshCachedQuery = useCallback(() => {
     actions.postChartFormData(
@@ -365,6 +365,13 @@ const ExploreChartPanel = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chart.latestQueryFormData]);
 
+  const elementStyle = useCallback(
+    (dimension, elementSize, gutterSize) => ({
+      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+    }),
+    [gutterMargin],
+  );
+
   if (standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -374,10 +381,6 @@ const ExploreChartPanel = ({
     }
     return standaloneChartBody;
   }
-
-  const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-  });
 
   return (
     <Styles className="panel panel-default chart-container">
