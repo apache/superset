@@ -22,6 +22,8 @@ import React, {
   ReactNode,
   useMemo,
   useEffect,
+  Dispatch,
+  SetStateAction,
 } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
@@ -80,6 +82,7 @@ const TableLabel = styled.span`
 interface TableSelectorProps {
   clearable?: boolean;
   database?: DatabaseObject;
+  emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
@@ -91,6 +94,7 @@ interface TableSelectorProps {
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
+  setTitleforDbSql?: Dispatch<SetStateAction<boolean>>;
   sqlLabMode?: boolean;
   tableName?: string;
 }
@@ -143,6 +147,7 @@ const TableOption = ({ table }: { table: Table }) => {
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
   database,
+  emptyState,
   formMode = false,
   getDbList,
   handleError,
@@ -153,6 +158,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onTableChange,
   onTablesLoad,
   readOnly = false,
+  setTitleforDbSql,
   schema,
   sqlLabMode = true,
   tableName,
@@ -261,6 +267,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <DatabaseSelector
         key={currentDatabase?.id}
         db={currentDatabase}
+        setTitleforDbSql={setTitleforDbSql}
+        emptyState={emptyState}
         formMode={formMode}
         getDbList={getDbList}
         handleError={handleError}

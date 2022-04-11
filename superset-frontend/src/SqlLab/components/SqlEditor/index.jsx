@@ -67,6 +67,7 @@ import {
   setItem,
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
 import SaveQuery from '../SaveQuery';
@@ -76,7 +77,6 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
-import { EmptyStateBig } from 'src/components/EmptyState';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -758,16 +758,15 @@ class SqlEditor extends React.PureComponent {
             />
           </div>
         </CSSTransition>
-        {this.props.sqlLab.dbConnect
-          ? 
-          this.queryPane() 
-          : 
-          <EmptyStateBig 
-            image="vector.svg" 
-            title="Select a database to write a query" 
-            description="Choose one of the avaialable database on the left" 
+        {this.props.sqlLab.dbConnect ? (
+          this.queryPane()
+        ) : (
+          <EmptyStateBig
+            image="vector.svg"
+            title="Select a database to write a query"
+            description="Choose one of the avaialable database on the left"
           />
-        }
+        )}
         <StyledModal
           visible={this.state.showCreateAsModal}
           title={t(createViewModalTitle)}

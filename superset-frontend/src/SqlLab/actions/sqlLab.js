@@ -129,7 +129,7 @@ export function resetState() {
 }
 
 export function setNoDatabaseConnected(bool) {
-  return {type: NO_DB_CONNECTED, isConnected: bool }
+  return { type: NO_DB_CONNECTED, isConnected: bool };
 }
 
 export function startQueryValidation(query) {

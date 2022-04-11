@@ -81,7 +81,7 @@ describe('SqlEditor', () => {
       },
     );
 
-  const dbConnected = { sqlLab: { dbConnect: true}};
+  const dbConnected = { sqlLab: { dbConnect: true } };
   it('does not render SqlEditor if no db selected', () => {
     const wrapper = buildWrapper();
     expect(wrapper.find(EmptyStateBig)).toExist();

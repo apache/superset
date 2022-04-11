@@ -34,7 +34,7 @@ import {
 export default function sqlLabReducer(state = {}, action) {
   const actionHandlers = {
     [actions.NO_DB_CONNECTED]() {
-      return {...state, dbConnect: action.isConnected}
+      return { ...state, dbConnect: action.isConnected };
     },
     [actions.ADD_QUERY_EDITOR]() {
       const tabHistory = state.tabHistory.slice();

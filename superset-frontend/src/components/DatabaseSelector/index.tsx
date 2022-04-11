@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect } from 'react';
+import React, { ReactNode, useState, useMemo, useEffect, Dispatch, SetStateAction } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { Select } from 'src/components';
@@ -26,7 +26,6 @@ import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDispatch, useSelector } from 'react-redux';
 import { setNoDatabaseConnected } from 'src/SqlLab/actions/sqlLab';
-import { EmptyStateSmall } from '../EmptyState';
 import { RootState } from 'src/SqlLab/types';
 
 const DatabaseSelectorWrapper = styled.div`
@@ -92,6 +91,7 @@ type SchemaValue = { label: string; value: string };
 
 interface DatabaseSelectorProps {
   db?: DatabaseObject;
+  emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
@@ -100,6 +100,7 @@ interface DatabaseSelectorProps {
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
+  setTitleforDbSql?: Dispatch<SetStateAction<boolean>>;
   schema?: string;
   sqlLabMode?: boolean;
 }
@@ -122,6 +123,7 @@ const SelectLabel = ({
 export default function DatabaseSelector({
   db,
   formMode = false,
+  emptyState,
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
@@ -130,10 +132,10 @@ export default function DatabaseSelector({
   onSchemasLoad,
   readOnly = false,
   schema,
+  setTitleforDbSql,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
-  const [noDbFoundTitle, setTitleForNoDBFound] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
     db
@@ -156,21 +158,6 @@ export default function DatabaseSelector({
   const [refresh, setRefresh] = useState(0);
   const { addSuccessToast } = useToasts();
 
-  const EmptyStateComponent = (
-    <EmptyStateSmall
-      image="empty.svg"
-      title={
-        noDbFoundTitle
-          ? 'No databases match your search'
-          : 'There are no databases available'
-      }
-      description={
-        <p>
-          Manage your database <a href="/databaseview/list">here</a>
-        </p>
-      }
-    />
-  );
   const loadDatabases = useMemo(
     () =>
       async (
@@ -206,7 +193,7 @@ export default function DatabaseSelector({
             getDbList(result);
           }
           if (result.length === 0) {
-            setTitleForNoDBFound(true);
+            if (setTitleforDbSql) setTitleforDbSql(true);
             handleError(t("It seems you don't have access to any database"));
           }
           const options = result.map((row: DatabaseObject) => ({
@@ -235,7 +222,7 @@ export default function DatabaseSelector({
   useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);
-      dispatch(setNoDatabaseConnected(true));
+      if (setTitleforDbSql) dispatch(setNoDatabaseConnected(true));
       const queryParams = rison.encode({ force: refresh > 0 });
       const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
@@ -300,7 +287,7 @@ export default function DatabaseSelector({
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
-        notFoundContent={EmptyStateComponent}
+        notFoundContent={emptyState}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}
