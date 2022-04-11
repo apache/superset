@@ -10,7 +10,7 @@ from superset.datasets.filters import (
     DatasetIsNullOrEmptyFilter,
     DatasetIsPhysicalOrVirtual,
 )
-from superset.datasets.models import Dataset
+from superset.datasets.models import Dataset, table_association_table
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.tables.models import Table
@@ -42,8 +42,13 @@ class DatasetSchemaFilter(BaseFilter):
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        filter_clause = Table.schema == str(value)
-        return query.join(Table, filter_clause)
+
+        filter_clause = (
+            (table_association_table.c.dataset_id == Dataset.id)
+            & (table_association_table.c.table_id == Table.id)
+            & (Table.schema == value)
+        )
+        return query.join(table_association_table).join(Table).filter(filter_clause)
 
 
 class DatasetDatabaseFilter(BaseFilter):
@@ -53,8 +58,13 @@ class DatasetDatabaseFilter(BaseFilter):
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        filter_clause = Table.database_id == int(value)
-        return query.join(Table, filter_clause)
+
+        filter_clause = (
+            (table_association_table.c.dataset_id == Dataset.id)
+            & (table_association_table.c.table_id == Table.id)
+            & (Table.database_id == value)
+        )
+        return query.join(table_association_table).join(Table).filter(filter_clause)
 
 
 class SLDatasetRestApi(BaseSupersetModelRestApi):
@@ -89,5 +99,4 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
         "expression": [DatasetIsPhysicalOrVirtual],
         "name": [DatasetAllTextFilter],
         "tables": [DatasetSchemaFilter, DatasetDatabaseFilter],
-        # "owners": [DatasetOwnersFilter],
     }
