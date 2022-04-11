@@ -457,9 +457,19 @@ class Database(
                 _log_query(sql_)
                 self.db_engine_spec.execute(cursor, sql_)
                 cursor.fetchall()
-
-            _log_query(sqls[-1])
-            self.db_engine_spec.execute(cursor, sqls[-1])
+            
+            if mutate_after_split:
+                last_sql = sql_query_mutator(
+                    sqls[-1],
+                    user_name=username,
+                    security_manager=security_manager,
+                    database=None
+                )
+                _log_query(last_sql)
+                self.db_engine_spec.execute(cursor, last_sql)
+            else:
+                _log_query(sqls[-1])
+                self.db_engine_spec.execute(cursor, sqls[-1])
 
             data = self.db_engine_spec.fetch_data(cursor)
             result_set = SupersetResultSet(
