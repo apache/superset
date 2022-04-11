@@ -56,12 +56,12 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { ChartState } from 'src/explore/types';
+import { Tooltip } from 'src/components/Tooltip';
 
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ControlPanelAlert } from './ControlPanelAlert';
 import { RunQueryButton } from './RunQueryButton';
-import { Tooltip } from '../../components/Tooltip';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -93,10 +93,13 @@ const ActionButtonsContainer = styled.div`
     flex-direction: column;
     align-items: center;
     padding: ${theme.gridUnit * 4}px;
-    background: linear-gradient(transparent, white 25%);
+    background: linear-gradient(
+      transparent,
+      ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    );
 
     & > button {
-      min-width: ${theme.gridUnit * 39}px;
+      min-width: 156px;
     }
   `};
 `;

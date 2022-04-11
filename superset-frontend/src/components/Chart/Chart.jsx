@@ -298,7 +298,7 @@ class Chart extends React.PureComponent {
         <EmptyStateBig
           title={t('Your chart is ready to go!')}
           description={t(
-            'Click on "Create chart" button in the control panel on the left to preview a visualisation',
+            'Click on "Create chart" button in the control panel on the left to preview a visualization',
           )}
           image="chart.svg"
         />
