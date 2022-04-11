@@ -316,7 +316,7 @@ export default function transformProps(
           type: 'text',
           ...getTotalValuePadding({ chartPadding, donut, width, height }),
           style: {
-            text: t(`Total: ${numberFormatter(totalValue)}`),
+            text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
           },

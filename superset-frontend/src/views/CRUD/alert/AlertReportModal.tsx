@@ -557,7 +557,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
-          addSuccessToast(t(`${data.type} updated`));
+          addSuccessToast(t('%s updated', data.type));
 
           if (onAdd) {
             onAdd();
@@ -573,7 +573,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           return;
         }
 
-        addSuccessToast(t(`${data.type} updated`));
+        addSuccessToast(t('%s updated', data.type));
 
         if (onAdd) {
           onAdd(response);
