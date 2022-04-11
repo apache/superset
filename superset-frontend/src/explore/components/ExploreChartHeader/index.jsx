@@ -24,7 +24,6 @@ import {
   CategoricalColorNamespace,
   css,
   SupersetClient,
-  styled,
   t,
 } from '@superset-ui/core';
 import {
