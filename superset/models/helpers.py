@@ -420,10 +420,6 @@ class AuditMixinNullable(AuditMixin):
     def changed_on_delta_humanized(self) -> str:
         return self.changed_on_humanized
 
-    @renders("created_on")
-    def created_on_delta_humanized(self) -> str:
-        return self.created_on_humanized
-
     @renders("changed_on")
     def changed_on_utc(self) -> str:
         # Convert naive datetime to UTC
@@ -431,11 +427,9 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.changed_on)
-
-    @property
-    def created_on_humanized(self) -> str:
-        return humanize.naturaltime(datetime.now() - self.created_on)
+        if self.changed_on:
+            return humanize.naturaltime(datetime.now() - self.changed_on)
+        return humanize.naturaltime(self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:
