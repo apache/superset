@@ -25,8 +25,8 @@ import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDispatch, useSelector } from 'react-redux';
-import { EmptyStateSmall } from '../EmptyState';
 import { setNoDatabaseConnected } from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateSmall } from '../EmptyState';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -132,6 +132,7 @@ export default function DatabaseSelector({
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
+  const [noDbFoundTitle, setTitleForNoDBFound] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
     db
@@ -151,6 +152,22 @@ export default function DatabaseSelector({
   );
   const [refresh, setRefresh] = useState(0);
   const { addSuccessToast } = useToasts();
+
+  const emptyStateComponent = (
+    <EmptyStateSmall
+      image="empty.svg"
+      title={
+        noDbFoundTitle
+          ? 'No databases match your search'
+          : 'There are no databases available'
+      }
+      description={
+        <p>
+          Manage your database <a href="/databaseview/list">here</a>
+        </p>
+      }
+    />
+  );
   const loadDatabases = useMemo(
     () =>
       async (
@@ -186,6 +203,7 @@ export default function DatabaseSelector({
             getDbList(result);
           }
           if (result.length === 0) {
+            setTitleForNoDBFound(true);
             handleError(t("It seems you don't have access to any database"));
           }
           const options = result.map((row: DatabaseObject) => ({
@@ -214,6 +232,7 @@ export default function DatabaseSelector({
   useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);
+      dispatch(setNoDatabaseConnected(true));
       const queryParams = rison.encode({ force: refresh > 0 });
       const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
@@ -269,27 +288,16 @@ export default function DatabaseSelector({
       </div>
     );
   }
-  const p = new Promise(() => null);
 
   function renderDatabaseSelect() {
     return renderSelectRow(
       <Select
         ariaLabel={t('Select database or type database name')}
-        emptyState={
-          <EmptyStateSmall
-            image="empty.svg"
-            title="There are no database available"
-            description={
-              <p>
-                Manage your databse <a href="/databaseview/list">here</a>
-              </p>
-            }
-          />
-        }
         optionFilterProps={['database_name', 'value']}
         data-test="select-database"
         header={<FormLabel>{t('Database')}</FormLabel>}
         lazyLoading={false}
+        notFoundContent={emptyStateComponent}
         onChange={changeDataBase}
         value={currentDb}
         placeholder={t('Select database or type database name')}
@@ -301,7 +309,7 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
-    const disabled = dbConnect;
+    const disabled = dbConnect || currentDb;
     const refreshIcon = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}

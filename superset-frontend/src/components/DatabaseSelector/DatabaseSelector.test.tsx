@@ -224,6 +224,18 @@ test('Should database select display options', async () => {
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
+test('should show empty state if there are no options', async () => {
+  const props = createProps();
+  // @ts-ignore
+  props.db = null;
+  render(<DatabaseSelector {...props} />, { useRedux: true });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type database name',
+  });
+  userEvent.click(select);
+  expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
+});
+
 test('Should schema select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true });

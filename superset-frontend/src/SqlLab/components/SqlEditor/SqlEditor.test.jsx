@@ -38,6 +38,7 @@ import {
   queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState, queries, table } from 'src/SqlLab/fixtures';
 
@@ -80,18 +81,23 @@ describe('SqlEditor', () => {
       },
     );
 
+  const dbConnected = { sqlLab: { dbConnect: true}};
+  it('does not render SqlEditor if no db selected', () => {
+    const wrapper = buildWrapper();
+    expect(wrapper.find(EmptyStateBig)).toExist();
+  });
   it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
   it('render an AceEditorWrapper', async () => {
-    const wrapper = buildWrapper();
+    const wrapper = buildWrapper(dbConnected);
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
   it('render a SouthPane', async () => {
-    const wrapper = buildWrapper();
+    const wrapper = buildWrapper(dbConnected);
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
@@ -123,7 +129,7 @@ describe('SqlEditor', () => {
   });
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
-    const updatedProps = { ...mockedProps, defaultQueryLimit };
+    const updatedProps = { ...mockedProps, defaultQueryLimit, ...dbConnected };
     const wrapper = buildWrapper(updatedProps);
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AntdDropdown)).toExist();

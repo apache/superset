@@ -742,7 +742,6 @@ class SqlEditor extends React.PureComponent {
     const leftBarStateClass = this.props.hideLeftBar
       ? 'schemaPane-exit-done'
       : 'schemaPane-enter-done';
-    console.log('this.props', this.props.sqlLab.dbConnect)
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition

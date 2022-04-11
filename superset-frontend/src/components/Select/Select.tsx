@@ -95,10 +95,6 @@ export interface SelectProps extends PickedSelectProps {
    */
   ariaLabel: string;
   /**
-   * Override for empty state.
-   */
-  emptyState?: ReactElement;
-  /**
    * It adds a header on top of the Select.
    * Can be any ReactNode.
    */
@@ -617,9 +613,6 @@ const Select = (
     }
     if (isLoading && fullSelectOptions.length === 0) {
       return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
-    }
-    if (!isLoading && fullSelectOptions.length === 0) {
-      return props.emptyState;
     }
     return error ? <Error error={error} /> : originNode;
   };
