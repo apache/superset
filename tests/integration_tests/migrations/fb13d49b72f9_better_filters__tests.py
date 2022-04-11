@@ -14,32 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Change datatype of type in BaseColumn
+import json
 
-Revision ID: 3ba29ecbaac5
-Revises: abe27eaf93db
-Create Date: 2021-11-02 17:44:51.792138
-
-"""
-
-# revision identifiers, used by Alembic.
-revision = "3ba29ecbaac5"
-down_revision = "abe27eaf93db"
-
-import sqlalchemy as sa
-from alembic import op
+from superset.migrations.versions.fb13d49b72f9_better_filters import (
+    Slice,
+    upgrade_slice,
+)
 
 
-def upgrade():
+def test_upgrade_slice():
+    slc = Slice(
+        slice_name="FOO",
+        viz_type="filter_box",
+        params=json.dumps(dict(metric="foo", groupby=["bar"])),
+    )
+    upgrade_slice(slc)
+    params = json.loads(slc.params)
+    assert "metric" not in params
+    assert "filter_configs" in params
 
-    with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.alter_column(
-            "type", existing_type=sa.VARCHAR(length=32), type_=sa.TEXT()
-        )
-
-
-def downgrade():
-    with op.batch_alter_table("table_columns") as batch_op:
-        batch_op.alter_column(
-            "type", existing_type=sa.TEXT(), type_=sa.VARCHAR(length=32)
-        )
+    cfg = params["filter_configs"][0]
+    assert cfg.get("metric") == "foo"

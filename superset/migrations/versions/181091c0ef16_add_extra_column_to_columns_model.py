@@ -28,9 +28,6 @@ down_revision = "021b81fe4fbb"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
-
-from superset.utils.core import generic_find_constraint_name
 
 
 def upgrade():

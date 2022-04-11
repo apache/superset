@@ -73,6 +73,7 @@ type SelectValue = {
 };
 
 interface AlertReportModalProps {
+  addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   alert?: AlertObject | null;
   isReport?: boolean;
@@ -402,6 +403,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   show,
   alert = null,
   isReport = false,
+  addSuccessToast,
 }) => {
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -555,6 +557,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
+          addSuccessToast(t(`${data.type} updated`));
+
           if (onAdd) {
             onAdd();
           }
@@ -568,6 +572,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         if (!response) {
           return;
         }
+
+        addSuccessToast(t(`${data.type} updated`));
 
         if (onAdd) {
           onAdd(response);
