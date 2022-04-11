@@ -67,12 +67,10 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
     arg_name = "upload_is_enabled"
 
     def apply(self, query: Query, value: Any) -> Query:
-
         filtered_query = query.filter(Database.allow_file_upload)
 
         database_perms = security_manager.user_view_menu_names("database_access")
         schema_access_databases = can_access_databases("schema_access")
-
         datasource_access_databases = can_access_databases("datasource_access")
 
         if hasattr(g, "user"):

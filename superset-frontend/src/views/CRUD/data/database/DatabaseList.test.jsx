@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
-import * as redux from 'react-redux';
+import * as reactRedux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
@@ -38,8 +38,23 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const mockUser = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: {
+    Admin: [
+      ['can_sqllab', 'Superset'],
+      ['can_write', 'Dashboard'],
+      ['can_write', 'Chart'],
+    ],
+  },
+  userId: 1,
+  username: 'admin',
+};
 
 const mockAppState = {
   common: {
@@ -50,7 +65,11 @@ const mockAppState = {
       ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
     },
   },
+  user: mockUser,
 };
+
+const mockStore = configureStore([thunk]);
+const store = mockStore();
 
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
@@ -78,10 +97,6 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-const mockUser = {
-  userId: 1,
-};
-
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_write'],
 });
@@ -106,7 +121,13 @@ fetchMock.get(databaseRelatedEndpoint, {
   },
 });
 
-const useSelectorMock = jest.spyOn(redux, 'useSelector');
+fetchMock.get(
+  'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+  {},
+);
+
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const userSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
 describe('DatabaseList', () => {
   useSelectorMock.mockReturnValue({
@@ -115,10 +136,27 @@ describe('DatabaseList', () => {
     COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
     ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
   });
+  userSelectorMock.mockReturnValue({
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: {
+      Admin: [
+        ['can_sqllab', 'Superset'],
+        ['can_write', 'Dashboard'],
+        ['can_write', 'Chart'],
+      ],
+    },
+    userId: 1,
+    username: 'admin',
+  });
 
   const wrapper = mount(
     <Provider store={store}>
-      <DatabaseList user={mockUser} />
+      <DatabaseList />
     </Provider>,
   );
 
@@ -216,8 +254,7 @@ describe('RTL', () => {
         <QueryParamProvider>
           <DatabaseList user={mockUser} />
         </QueryParamProvider>,
-        { useRedux: true },
-        mockAppState,
+        { useRedux: true, initialState: mockAppState },
       );
     });
 
@@ -229,6 +266,7 @@ describe('RTL', () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(() => true);
+    // useSelectorMock.mockReturnValue({ user: mockUser });
     await renderAndWait();
   });
 
