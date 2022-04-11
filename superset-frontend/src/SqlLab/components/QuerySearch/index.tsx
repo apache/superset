@@ -226,7 +226,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               value: xt,
               label: xt,
             }))}
-            value={from as unknown as undefined}
+            value={{ value: from, label: from }}
             autosize={false}
             onChange={(selected: any) => setFrom(selected?.value)}
           />
@@ -235,7 +235,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
             name="select-to"
             placeholder={t('[To]-')}
             options={TIME_OPTIONS.map(xt => ({ value: xt, label: xt }))}
-            value={to as unknown as undefined}
+            value={{ value: to, label: to }}
             autosize={false}
             onChange={(selected: any) => setTo(selected?.value)}
           />
@@ -247,7 +247,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               value: s,
               label: s,
             }))}
-            value={status as unknown as undefined}
+            value={{ value: status, label: status }}
             isLoading={false}
             autosize={false}
             onChange={(selected: any) => setStatus(selected?.value)}

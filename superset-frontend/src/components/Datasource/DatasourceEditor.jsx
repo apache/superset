@@ -1001,10 +1001,10 @@ class DatasourceEditor extends React.PureComponent {
                         database={{
                           ...datasource.database,
                           database_name:
-                            datasource.database.database_name ||
-                            datasource.database.name,
+                            datasource.database?.database_name ||
+                            datasource.database?.name,
                         }}
-                        dbId={datasource.database.id}
+                        dbId={datasource.database?.id}
                         handleError={this.props.addDangerToast}
                         schema={datasource.schema}
                         sqlLabMode={false}

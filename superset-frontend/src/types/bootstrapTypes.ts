@@ -46,6 +46,16 @@ export type Dashboard = {
   creator_url?: string;
 };
 
+export type DashboardData = {
+  dashboard_title?: string;
+  created_on_delta_humanized?: string;
+  url: string;
+};
+
+export type DashboardResponse = {
+  result: DashboardData[];
+};
+
 export interface CommonBootstrapData {
   flash_messages: string[][];
   conf: JsonObject;

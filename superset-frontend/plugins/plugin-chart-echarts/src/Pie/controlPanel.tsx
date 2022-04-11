@@ -183,6 +183,18 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Total'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display the aggregate count'),
+            },
+          },
+        ],
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Pie shape')}</h1>],
         [

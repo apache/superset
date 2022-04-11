@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
+import { UploadFile } from 'antd/lib/upload/interface';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
@@ -52,6 +53,7 @@ const documentationLink = (engine: string | undefined) => {
   }
   return irregularDocumentationLinks[engine];
 };
+
 const ModalHeader = ({
   isLoading,
   isEditMode,
@@ -61,6 +63,7 @@ const ModalHeader = ({
   dbName,
   dbModel,
   editNewDb,
+  fileList,
 }: {
   isLoading: boolean;
   isEditMode: boolean;
@@ -70,13 +73,19 @@ const ModalHeader = ({
   dbName: string;
   dbModel: DatabaseForm;
   editNewDb?: boolean;
+  fileList?: UploadFile[];
+  passwordFields?: string[];
+  needsOverwriteConfirm?: boolean;
 }) => {
+  const fileCheck = fileList && fileList?.length > 0;
+
   const isEditHeader = (
     <StyledFormHeader>
       <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
       <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
     </StyledFormHeader>
   );
+
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>
       <p className="helper-top"> STEP 2 OF 2 </p>
@@ -94,6 +103,7 @@ const ModalHeader = ({
       </p>
     </StyledFormHeader>
   );
+
   const hasConnectedDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
@@ -115,6 +125,7 @@ const ModalHeader = ({
       </StyledFormHeader>
     </StyledStickyHeader>
   );
+
   const hasDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
@@ -133,6 +144,7 @@ const ModalHeader = ({
       </StyledFormHeader>
     </StyledStickyHeader>
   );
+
   const noDbHeader = (
     <StyledFormHeader>
       <div className="select-db">
@@ -142,19 +154,23 @@ const ModalHeader = ({
     </StyledFormHeader>
   );
 
+  const importDbHeader = (
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <p className="helper-top"> STEP 2 OF 2 </p>
+        <h4>Enter the required {dbModel.name} credentials</h4>
+        <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
+      </StyledFormHeader>
+    </StyledStickyHeader>
+  );
+
+  if (fileCheck) return importDbHeader;
   if (isLoading) return <></>;
-  if (isEditMode) {
-    return isEditHeader;
-  }
-  if (useSqlAlchemyForm) {
-    return useSqlAlchemyFormHeader;
-  }
-  if (hasConnectedDb && !editNewDb) {
-    return hasConnectedDbHeader;
-  }
-  if (db || editNewDb) {
-    return hasDbHeader;
-  }
+  if (isEditMode) return isEditHeader;
+  if (useSqlAlchemyForm) return useSqlAlchemyFormHeader;
+  if (hasConnectedDb && !editNewDb) return hasConnectedDbHeader;
+  if (db || editNewDb) return hasDbHeader;
+
   return noDbHeader;
 };
 
