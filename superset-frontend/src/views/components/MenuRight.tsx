@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
+import rison from 'rison';
 import { MainNav as Menu } from 'src/components/Menu';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  css,
+  SupersetTheme,
+  SupersetClient,
+} from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import Icons from 'src/components/Icons';
-import findPermission from 'src/dashboard/util/findPermission';
+import findPermission, { isUserAdmin } from 'src/dashboard/util/findPermission';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import LanguagePicker from './LanguagePicker';
@@ -43,6 +51,15 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
 `;
 const StyledI = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
+const styledDisabled = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.base};
+  backgroundColor: ${theme.colors.grayscale.light2}};
+  .ant-menu-item:hover {
+    color: ${theme.colors.grayscale.base};
+    cursor: default;
+  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
@@ -69,9 +86,11 @@ const RightMenu = ({
   navbarRight,
   isFrontendRoute,
 }: RightMenuProps) => {
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
+  const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+
+  const { roles } = user;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -96,6 +115,9 @@ const RightMenu = ({
 
   const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const isAdmin = isUserAdmin(user);
+  const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -115,19 +137,19 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: canUploadCSV,
+          perm: CSV_EXTENSIONS && showUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar,
+          perm: COLUMNAR_EXTENSIONS && showUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: canUploadExcel,
+          perm: EXCEL_EXTENSIONS && showUploads,
         },
       ],
     },
@@ -154,6 +176,21 @@ const RightMenu = ({
     },
   ];
 
+  const hasFileUploadEnabled = () => {
+    const payload = {
+      filters: [
+        { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
+      ],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setAllowUploads(json.count >= 1);
+    });
+  };
+
+  useEffect(() => hasFileUploadEnabled(), []);
+
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
       <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
@@ -175,6 +212,34 @@ const RightMenu = ({
     setShowModal(false);
   };
 
+  const isDisabled = isAdmin && !allowUploads;
+
+  const tooltipText = t(
+    "Enable 'Allow data upload' in any database's settings",
+  );
+
+  const buildMenuItem = (item: Record<string, any>) => {
+    const disabledText = isDisabled && item.url;
+    return disabledText ? (
+      <Menu.Item key={item.name} css={styledDisabled}>
+        <Tooltip placement="top" title={tooltipText}>
+          {item.label}
+        </Tooltip>
+      </Menu.Item>
+    ) : (
+      <Menu.Item key={item.name}>
+        {item.url ? <a href={item.url}> {item.label} </a> : item.label}
+      </Menu.Item>
+    );
+  };
+
+  const onMenuOpen = (openKeys: string[]) => {
+    if (openKeys.length) {
+      return hasFileUploadEnabled();
+    }
+    return null;
+  };
+
   return (
     <StyledDiv align={align}>
       <DatabaseModal
@@ -182,7 +247,12 @@ const RightMenu = ({
         show={showModal}
         dbEngine={engine}
       />
-      <Menu selectable={false} mode="horizontal" onClick={handleMenuSelection}>
+      <Menu
+        selectable={false}
+        mode="horizontal"
+        onClick={handleMenuSelection}
+        onOpenChange={onMenuOpen}
+      >
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <SubMenu
             data-test="new-dropdown"
@@ -203,13 +273,7 @@ const RightMenu = ({
                       typeof item !== 'string' && item.name && item.perm ? (
                         <Fragment key={item.name}>
                           {idx === 2 && <Menu.Divider />}
-                          <Menu.Item key={item.name}>
-                            {item.url ? (
-                              <a href={item.url}> {item.label} </a>
-                            ) : (
-                              item.label
-                            )}
-                          </Menu.Item>
+                          {buildMenuItem(item)}
                         </Fragment>
                       ) : null,
                     )}
