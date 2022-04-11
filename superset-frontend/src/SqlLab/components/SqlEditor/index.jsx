@@ -25,7 +25,6 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { t, styled, withTheme } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
