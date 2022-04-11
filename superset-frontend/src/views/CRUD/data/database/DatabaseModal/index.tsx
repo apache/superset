@@ -1035,7 +1035,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           }
           validationMethods={{ onBlur: () => {} }}
           errorMessage={validationErrors?.password_needed}
-          label={t(`${database.slice(10)} PASSWORD`)}
+          label={t('%s PASSWORD', database.slice(10))}
           css={formScrollableStyles}
         />
       </>
