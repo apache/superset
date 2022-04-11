@@ -191,7 +191,7 @@ export function Menu({
 
   const renderSubMenu = ({
     label,
-    childs,
+    children,
     url,
     index,
     isFrontendRoute,
@@ -218,23 +218,29 @@ export function Menu({
         title={label}
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
-        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-' && label !== 'Data') {
-            return <DropdownMenu.Divider key={`$${index1}`} />;
-          }
-          if (typeof child !== 'string') {
-            return (
-              <DropdownMenu.Item key={`${child.label}`}>
-                {child.isFrontendRoute ? (
-                  <Link to={child.url || ''}>{child.label}</Link>
-                ) : (
-                  <a href={child.url}>{child.label}</a>
-                )}
-              </DropdownMenu.Item>
-            );
-          }
-          return null;
-        })}
+        {children?.map(
+          (child: MenuObjectChildProps | string, index1: number) => {
+            if (
+              typeof child === 'string' &&
+              child === '-' &&
+              label !== 'Data'
+            ) {
+              return <DropdownMenu.Divider key={`$${index1}`} />;
+            }
+            if (typeof child !== 'string') {
+              return (
+                <DropdownMenu.Item key={`${child.label}`}>
+                  {child.isFrontendRoute ? (
+                    <Link to={child.url || ''}>{child.label}</Link>
+                  ) : (
+                    <a href={child.url}>{child.label}</a>
+                  )}
+                </DropdownMenu.Item>
+              );
+            }
+            return null;
+          },
+        )}
       </SubMenu>
     );
   };
@@ -274,7 +280,7 @@ export function Menu({
                 index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
+                children: item.children?.map(c => {
                   if (typeof c === 'string') {
                     return c;
                   }
@@ -329,9 +335,9 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
       ...item,
     };
 
-    // Filter childs
-    if (item.childs) {
-      item.childs.forEach((child: MenuObjectChildProps | string) => {
+    // Filter children
+    if (item.children) {
+      item.children.forEach((child: MenuObjectChildProps | string) => {
         if (typeof child === 'string') {
           children.push(child);
         } else if ((child as MenuObjectChildProps).label) {
@@ -339,7 +345,7 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
         }
       });
 
-      newItem.childs = children;
+      newItem.children = children;
     }
 
     if (!settingsMenus.hasOwnProperty(item.name)) {

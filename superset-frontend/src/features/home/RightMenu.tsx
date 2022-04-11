@@ -168,7 +168,7 @@ const RightMenu = ({
     {
       label: t('Data'),
       icon: 'fa-database',
-      childs: [
+      children: [
         {
           label: t('Connect database'),
           name: GlobalMenuDataOptions.DB_CONNECTION,
@@ -379,10 +379,10 @@ const RightMenu = ({
             icon={<Icons.TriangleDown />}
           >
             {dropdownItems?.map?.(menu => {
-              const canShowChild = menu.childs?.some(
+              const canShowChild = menu.children?.some(
                 item => typeof item === 'object' && !!item.perm,
               );
-              if (menu.childs) {
+              if (menu.children) {
                 if (canShowChild) {
                   return (
                     <SubMenu
@@ -390,7 +390,7 @@ const RightMenu = ({
                       className="data-menu"
                       title={menuIconAndLabel(menu)}
                     >
-                      {menu?.childs?.map?.((item, idx) =>
+                      {menu?.children?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
                           <Fragment key={item.name}>
                             {idx === 3 && <Menu.Divider />}
@@ -441,7 +441,7 @@ const RightMenu = ({
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section?.childs?.map?.(child => {
+              {section?.children?.map?.(child => {
                 if (typeof child !== 'string') {
                   const menuItemDisplay = RightMenuItemIconExtension ? (
                     <StyledMenuItemWithIcon>

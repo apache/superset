@@ -29,7 +29,7 @@ const dropdownItems = [
   {
     label: 'Data',
     icon: 'fa-database',
-    childs: [
+    children: [
       {
         label: 'Connect Database',
         name: 'dbconnect',
@@ -117,7 +117,7 @@ const mockedProps = {
         icon: 'fa-table',
         label: 'Sources',
         index: 2,
-        childs: [
+        children: [
           {
             name: 'Datasets',
             icon: 'fa-table',
@@ -153,7 +153,7 @@ const mockedProps = {
         name: 'Data',
         icon: 'fa-database',
         label: 'Data',
-        childs: [
+        children: [
           {
             name: 'Databases',
             icon: 'fa-database',
@@ -215,7 +215,7 @@ const mockedProps = {
         icon: 'fa-cogs',
         label: 'Security',
         index: 1,
-        childs: [
+        children: [
           {
             name: 'List Users',
             icon: 'fa-user',
@@ -329,8 +329,8 @@ test('should render the top navbar child menu items', async () => {
   userEvent.hover(sources);
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
-  const dataset = menu[1].childs![0] as { url: string };
-  const database = menu[1].childs![2] as { url: string };
+  const dataset = menu[1].children![0] as { url: string };
+  const database = menu[1].children![2] as { url: string };
 
   expect(datasets).toHaveAttribute('href', dataset.url);
   expect(databases).toHaveAttribute('href', database.url);
@@ -401,7 +401,7 @@ test('should render the Settings dropdown child menu items', async () => {
   });
   userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
-  expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
+  expect(listUsers).toHaveAttribute('href', settings[0].children[0].url);
 });
 
 test('should render the plus menu (+) when user is not anonymous', async () => {

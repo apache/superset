@@ -125,7 +125,7 @@ export interface MenuObjectChildProps {
 }
 
 export interface MenuObjectProps extends MenuObjectChildProps {
-  childs?: (MenuObjectChildProps | string)[];
+  children?: (MenuObjectChildProps | string)[];
   isHeader?: boolean;
 }
 

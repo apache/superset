@@ -197,7 +197,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const uploadDropdownMenu = [
     {
       label: t('Upload file to database'),
-      childs: [
+      children: [
         {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
@@ -246,8 +246,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
-    cur.childs = cur.childs.filter(item => item.perm);
-    if (!cur.childs.length) return prev;
+    cur.children = cur.children.filter(item => item.perm);
+    if (!cur.children.length) return prev;
     prev.push(cur);
     return prev;
   }, [] as MenuObjectProps[]);

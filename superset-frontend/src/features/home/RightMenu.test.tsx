@@ -35,7 +35,7 @@ const dropdownItems = [
   {
     label: 'Data',
     icon: 'fa-database',
-    childs: [
+    children: [
       {
         label: 'Connect database',
         name: GlobalMenuDataOptions.DB_CONNECTION,

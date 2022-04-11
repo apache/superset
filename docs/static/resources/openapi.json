@@ -17912,7 +17912,7 @@
                       "description": "Menu items in a forest like data structure",
                       "items": {
                         "properties": {
-                          "childs": {
+                          "children": {
                             "items": {
                               "type": "object"
                             },
