@@ -22,7 +22,6 @@ import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
@@ -366,15 +365,15 @@ function AlertList({
     });
   }
 
-  const EmptyStateButton = (
-    <Button buttonStyle="primary" onClick={() => handleAlertEdit(null)}>
-      <i className="fa fa-plus" /> {title}
-    </Button>
-  );
-
   const emptyState = {
-    message: t('No %s yet', titlePlural),
-    slot: canCreate ? EmptyStateButton : null,
+    title: t('No %s yet', titlePlural),
+    image: 'filter-results.svg',
+    buttonAction: () => handleAlertEdit(null),
+    buttonText: canCreate ? (
+      <>
+        <i className="fa fa-plus" /> {title}{' '}
+      </>
+    ) : null,
   };
 
   const filters: Filters = useMemo(

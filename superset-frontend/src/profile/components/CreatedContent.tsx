@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import React from 'react';
 import moment from 'moment';
 import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
-import { User, Dashboard } from '../../types/bootstrapTypes';
+import { User, DashboardResponse } from '../../types/bootstrapTypes';
 
 interface CreatedContentProps {
   user: User;
@@ -49,17 +50,27 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
   }
 
   renderDashboardTable() {
-    const mutator = (data: Dashboard[]) =>
-      data.map(dash => ({
-        dashboard: <a href={dash.url}>{dash.title}</a>,
-        created: moment.utc(dash.dttm).fromNow(),
-        _created: dash.dttm,
+    const search = [{ col: 'created_by', opr: 'created_by_me', value: 'me' }];
+    const query = rison.encode({
+      keys: ['none'],
+      columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],
+      filters: search,
+      order_column: 'changed_on',
+      order_direction: 'desc',
+      page: 0,
+      page_size: 100,
+    });
+    const mutator = (data: DashboardResponse) =>
+      data.result.map(dash => ({
+        dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
+        created: dash.created_on_delta_humanized,
+        _created: dash.created_on_delta_humanized,
       }));
     return (
       <TableLoader
         className="table-condensed"
         mutator={mutator}
-        dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
+        dataEndpoint={`/api/v1/dashboard/?q=${query}`}
         noDataText={t('No dashboards')}
         columns={['dashboard', 'created']}
         sortable

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.engine.url import make_url, URL
 
@@ -104,7 +104,7 @@ def get_table_metadata(
     }
 
 
-def make_url_safe(raw_url: str) -> URL:
+def make_url_safe(raw_url: Union[str, URL]) -> URL:
     """
     Wrapper for SQLAlchemy's make_url(), which tends to raise too detailed of
     errors, which inevitably find their way into server logs. ArgumentErrors
@@ -112,7 +112,13 @@ def make_url_safe(raw_url: str) -> URL:
     :param raw_url:
     :return:
     """
-    try:
-        return make_url(raw_url.strip())  # noqa
-    except Exception:
-        raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+
+    if isinstance(raw_url, str):
+        url = raw_url.strip()
+        try:
+            return make_url(url)  # noqa
+        except Exception:
+            raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+
+    else:
+        return raw_url
