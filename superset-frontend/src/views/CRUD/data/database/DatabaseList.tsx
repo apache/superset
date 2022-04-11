@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { useState, useMemo, useEffect } from 'react';
+import rison from 'rison';
 import { useSelector } from 'react-redux';
 import Loading from 'src/components/Loading';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -28,6 +29,7 @@ import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';
@@ -44,7 +46,6 @@ interface DatabaseDeleteObject extends DatabaseObject {
   dashboard_count: number;
   sqllab_tab_count: number;
 }
-
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -86,16 +87,22 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     t('database'),
     addDangerToast,
   );
+  const user = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
   const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
     useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const isAdmin = isUserAdmin(user);
+  const showUploads = allowUploads || isAdmin;
+
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
-  );
+  const { roles } = user;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -105,7 +112,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${database.id}/related_objects/`,
+      endpoint: `/api/v1/database/${database.id}/related_objects/`,
     })
       .then(({ json = {} }) => {
         setDatabaseCurrentlyDeleting({
@@ -126,7 +133,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
     SupersetClient.delete({
-      endpoint: `${process.env.APP_PREFIX}/api/v1/database/${id}`,
+      endpoint: `/api/v1/database/${id}`,
     }).then(
       () => {
         refreshData();
@@ -164,6 +171,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     ALLOWED_EXTENSIONS,
   );
 
+  const isDisabled = isAdmin && !allowUploads;
+
   const uploadDropdownMenu = [
     {
       label: t('Upload file to database'),
@@ -172,23 +181,41 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
           url: '/csvtodatabaseview/form',
-          perm: canUploadCSV,
+          perm: canUploadCSV && showUploads,
+          disable: isDisabled,
         },
         {
           label: t('Upload columnar file'),
           name: 'Upload columnar file',
           url: '/columnartodatabaseview/form',
-          perm: canUploadColumnar,
+          perm: canUploadColumnar && showUploads,
+          disable: isDisabled,
         },
         {
           label: t('Upload Excel file'),
           name: 'Upload Excel file',
           url: '/exceltodatabaseview/form',
-          perm: canUploadExcel,
+          perm: canUploadExcel && showUploads,
+          disable: isDisabled,
         },
       ],
     },
   ];
+
+  const hasFileUploadEnabled = () => {
+    const payload = {
+      filters: [
+        { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
+      ],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setAllowUploads(json.count >= 1);
+    });
+  };
+
+  useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
 
   const filteredDropDown = uploadDropdownMenu.map(link => {
     // eslint-disable-next-line no-param-reassign
