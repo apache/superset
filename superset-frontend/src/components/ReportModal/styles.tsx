@@ -33,7 +33,7 @@ export const StyledTopSection = styled.div`
   padding: ${({ theme }) =>
     `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
   label {
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 `;
@@ -46,7 +46,7 @@ export const StyledBottomSection = styled.div`
     width: 100%;
   }
   .control-label {
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 `;
@@ -113,15 +113,15 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};
   .ant-alert-message {
-    font-size: ${theme.typography.sizes.s + 1}px;
+    font-size: ${theme.typography.sizes.m}px;
     font-weight: bold;
   }
   .ant-alert-description {
-    font-size: ${theme.typography.sizes.s + 1}px;
+    font-size: ${theme.typography.sizes.m}px;
     line-height: ${theme.gridUnit * 4}px;
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
+      font-size: ${theme.typography.sizes.l}px;
       position: relative;
       top: ${theme.gridUnit / 4}px;
     }
