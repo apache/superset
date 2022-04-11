@@ -441,6 +441,8 @@ class Database(
 
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
+            print("sqls variable: ", sqls)
+            print("going to loop through: ", sqls[:-1])
             for sql_ in sqls[:-1]:
                 print("sql_ query: ", sql_)
                 print("mutate after split inside for loop: ", mutate_after_split)
