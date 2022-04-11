@@ -11,6 +11,7 @@ from superset.datasets.filters import (
     DatasetIsPhysicalOrVirtual,
 )
 from superset.datasets.models import Dataset
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.tables.models import Table
 from superset.views.base import BaseFilter, DatasourceFilter
@@ -33,20 +34,27 @@ class DatasetAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-method
         )
 
 
+# example risom: (filters:!((col:tables,opr:schema,value:public)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)
 class DatasetSchemaFilter(BaseFilter):
     name = _("Schema")
     arg_name = "schema"
 
     def apply(self, query: Query, value: Any) -> Query:
-        import sqlalchemy as sa
+        if not value:
+            return query
+        filter_clause = Table.schema == str(value)
+        return query.join(Table, filter_clause)
 
-        breakpoint()
-        filter_clause = Dataset.schema == value
-        # query.join(Table)
 
-        return query.filter(filter_clause)
+class DatasetDatabaseFilter(BaseFilter):
+    name = _("Database")
+    arg_name = "db"
 
-        # return query.select_from(sa,join(Dataset, Table)).filter(filter_clause)
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        filter_clause = Table.database_id == int(value)
+        return query.join(Table, filter_clause)
 
 
 class SLDatasetRestApi(BaseSupersetModelRestApi):
@@ -73,33 +81,13 @@ class SLDatasetRestApi(BaseSupersetModelRestApi):
         "kind",
         "owners",
         "schema",
-        "sql",  # "sql",
+        "sql",
     ]
     order_columns = ["changed_on_delta_humanized", "schema"]
     search_columns = {"expression", "name", "tables"}
     search_filters = {
         "expression": [DatasetIsPhysicalOrVirtual],
         "name": [DatasetAllTextFilter],
-        "tables": [DatasetSchemaFilter],
+        "tables": [DatasetSchemaFilter, DatasetDatabaseFilter],
         # "owners": [DatasetOwnersFilter],
-        # "database": [DatasetDatabaseFilter]
     }
-
-    # class DatabaseFilter(BaseFilter):
-
-    #     def apply(self, query: Query, value: Any) -> Query:
-    #         if security_manager.can_access_all_databases():
-    #             return query
-    #         database_perms = security_manager.user_view_menu_names("database_access")
-    #         schema_access_databases = self.can_access_databases("schema_access")
-
-    #         datasource_access_databases = self.can_access_databases("datasource_access")
-    #         return query.filter()
-
-    # filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
-    # allowed_rel_fields = {"database", "owners"}
-    # search_columns = ["database"]
-
-
-# get this working end to end with the frontend client
-# then comeback and fix the test around it

@@ -60,20 +60,60 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_ui_export,
 )
 
+tables_cfg = [
+    Table(
+        name="a",
+        schema="schema1",
+        catalog="my_catalog",
+        database=Database(database_name="db1", sqlalchemy_uri="sqlite://"),
+        columns=[
+            Column(name="longitude", expression="longitude", type="test"),
+            Column(name="latitude", expression="latitude", type="test"),
+        ],
+    ),
+    Table(
+        name="b",
+        schema="schema1",
+        catalog="my_catalog",
+        database=Database(database_name="db4", sqlalchemy_uri="sqlite://"),
+        columns=[
+            Column(name="longitude", expression="longitude", type="test"),
+            Column(name="latitude", expression="latitude", type="test"),
+        ],
+    ),
+    Table(
+        name="c",
+        schema="schema2",
+        catalog="my_catalog",
+        database=Database(database_name="db2", sqlalchemy_uri="sqlite://"),
+        columns=[
+            Column(name="longitude", expression="longitude", type="test"),
+            Column(name="latitude", expression="latitude", type="test"),
+        ],
+    ),
+    Table(
+        name="c",
+        schema="schema3",
+        catalog="my_catalog",
+        database=Database(database_name="db3", sqlalchemy_uri="sqlite://"),
+        columns=[
+            Column(name="longitude", expression="longitude", type="test"),
+            Column(name="latitude", expression="latitude", type="test"),
+        ],
+    ),
+]
+
 
 class SLTestDatasetApi(SupersetTestCase):
+    def create_table(self):
+        pass
+
+    def create_datasets(self):
+        pass
+
     def insert_dataset(self):
-        table = Table(
-            name="my_table",
-            schema="my_schema",
-            catalog="my_catalog",
-            database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
-            columns=[
-                Column(name="longitude", expression="longitude", type="test"),
-                Column(name="latitude", expression="latitude", type="test"),
-            ],
-        )
-        db.session.add(table)
+        for tbl in tables_cfg:
+            db.session.add(tbl)
 
         dataset = Dataset(
             name="position",
@@ -81,7 +121,7 @@ class SLTestDatasetApi(SupersetTestCase):
             SELECT array_agg(array[longitude,latitude]) AS position
             FROM my_catalog.my_schema.my_table
             """,
-            tables=[table],
+            tables=[tables_cfg[0]],
             columns=[
                 Column(
                     name="position",
@@ -93,28 +133,24 @@ class SLTestDatasetApi(SupersetTestCase):
         db.session.add(dataset)
         db.session.commit()
 
-        return dataset, table
+        return dataset, tables_cfg
 
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
-            dataset, table = self.insert_dataset()
-            yield
-            db.session.delete(dataset)
-            db.session.delete(table)
+            dataset, tables = self.insert_dataset()
+            yield dataset, tables
+
+            # db.session.delete(dataset)
+            # for table in tables:
+            #     db.session.delete(table)
 
     @pytest.mark.usefixtures("create_dataset")
     def test_get_dataset_list(self):
         """
-        Dataset API: Test get dataset list
+        Dataset API: Test get all datasets
         """
         self.login(username="admin")
-        # arguments = {
-        #     "filters": [
-        #         {"col": "database", "opr": "rel_o_m", "value": f"{example_db.id}"},
-        #         {"col": "table_name", "opr": "eq", "value": "birth_names"},
-        #     ]
-        # }
         uri = f"api/v1/datasets/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
@@ -129,13 +165,54 @@ class SLTestDatasetApi(SupersetTestCase):
             "datasource_type",
             "default_endpoint",
             "description",
-            "explore_url",
             "extra",
             "id",
             "kind",
             "owners",
-            "schema",
             "sql",
-            "table_name",
         ]
         assert sorted(list(response["result"][0].keys())) == expected_columns
+
+    @pytest.mark.usefixtures("create_dataset")
+    def test_get_dataset_list_filter_schema(self):
+        """
+        Dataset API: Test get all datasets with specfic schema
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {"col": "tables", "opr": "schema", "value": "schema2"},
+            ]
+        }
+        uri = f"api/v1/datasets/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_dataset")
+    def test_get_dataset_list_filter_db(self):
+        """
+        Dataset API: Test get all datasets connected to specific db
+        """
+        self.login(username="admin")
+        uri = f"api/v1/datasets/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("create_dataset")
+    def test_get_dataset_list_filter_owners(self):
+        """
+        Dataset API: Test get all datasets with specific owners
+        """
+        self.login(username="admin")
+        uri = f"api/v1/datasets/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
+
+    def test_get_dataset_list_search(self):
+        """
+        Dataset API: Test get all datasets search
+        """
+        self.login(username="admin")
+        uri = f"api/v1/datasets/"
+        rv = self.get_assert_metric(uri, "get_list")
+        assert rv.status_code == 200
