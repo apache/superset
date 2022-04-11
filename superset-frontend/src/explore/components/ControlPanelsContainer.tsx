@@ -85,23 +85,21 @@ export type ExpandedControlPanelSectionConfig = Omit<
   controlSetRows: ExpandedControlItem[][];
 };
 
-const ActionButtonsContainer = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    position: sticky;
-    bottom: 0;
-    flex-direction: column;
-    align-items: center;
-    padding: ${theme.gridUnit * 4}px;
-    background: linear-gradient(
-      transparent,
-      ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
-    );
+const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  position: sticky;
+  bottom: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: ${theme.gridUnit * 4}px;
+  background: linear-gradient(
+    transparent,
+    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+  );
 
-    & > button {
-      min-width: 156px;
-    }
-  `};
+  & > button {
+    min-width: 156px;
+  }
 `;
 
 const Styles = styled.div`
@@ -540,7 +538,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           </Tabs.TabPane>
         )}
       </ControlPanelsTabs>
-      <ActionButtonsContainer>
+      <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}
           onStop={props.onStop}
@@ -550,7 +548,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           canStopQuery={props.canStopQuery}
           chartIsStale={props.chartIsStale}
         />
-      </ActionButtonsContainer>
+      </div>
     </Styles>
   );
 };

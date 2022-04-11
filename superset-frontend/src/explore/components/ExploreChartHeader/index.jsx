@@ -61,64 +61,55 @@ const propTypes = {
   saveDisabled: PropTypes.bool,
 };
 
-const SaveButton = styled(Button)`
-  ${({ theme }) => css`
-    color: ${theme.colors.primary.dark2};
-    & > span[role='img'] {
-      margin-right: 0;
-    }
-  `}
+const saveButtonStyles = theme => css`
+  color: ${theme.colors.primary.dark2};
+  & > span[role='img'] {
+    margin-right: 0;
+  }
 `;
 
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
+const headerStyles = theme => css`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  height: 100%;
+
+  span[role='button'] {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: nowrap;
-    justify-content: space-between;
     height: 100%;
+  }
 
-    span[role='button'] {
-      display: flex;
-      height: 100%;
-    }
-
-    .title-panel {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-      margin-right: ${theme.gridUnit * 12}px;
-    }
-
-    .right-button-panel {
-      display: flex;
-      align-items: center;
-    }
-  `}
-`;
-
-const StyledButtons = styled.span`
-  ${({ theme }) => css`
+  .title-panel {
     display: flex;
     align-items: center;
-    padding-left: ${theme.gridUnit * 2}px;
+    min-width: 0;
+    margin-right: ${theme.gridUnit * 12}px;
+  }
 
-    & .fave-unfave-icon {
-      padding: 0 ${theme.gridUnit}px;
-
-      &:first-child {
-        padding-left: 0;
-      }
-    }
-  `}
+  .right-button-panel {
+    display: flex;
+    align-items: center;
+  }
 `;
 
-const SaveButtonContainer = styled.div`
-  ${({ theme }) =>
-    css`
-      margin-right: ${theme.gridUnit * 2}px;
-    `}
+const buttonsStyles = theme => css`
+  display: flex;
+  align-items: center;
+  padding-left: ${theme.gridUnit * 2}px;
+
+  & .fave-unfave-icon {
+    padding: 0 ${theme.gridUnit}px;
+
+    &:first-child {
+      padding-left: 0;
+    }
+  }
+`;
+
+const saveButtonContainerStyles = theme => css`
+  margin-right: ${theme.gridUnit * 2}px;
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -247,7 +238,7 @@ export class ExploreChartHeader extends React.PureComponent {
     const { latestQueryFormData, sliceFormData } = chart;
     const oldSliceName = slice?.slice_name;
     return (
-      <StyledHeader id="slice-header">
+      <div id="slice-header" css={headerStyles}>
         <div className="title-panel">
           <ChartEditableTitle
             title={sliceName}
@@ -260,7 +251,7 @@ export class ExploreChartHeader extends React.PureComponent {
             placeholder={t('Add the name of the chart')}
           />
           {slice && (
-            <StyledButtons>
+            <span css={buttonsStyles}>
               {slice.certified_by && (
                 <CertifiedBadge
                   certifiedBy={slice.certified_by}
@@ -291,7 +282,7 @@ export class ExploreChartHeader extends React.PureComponent {
                   currentFormData={{ ...formData, chartTitle: sliceName }}
                 />
               )}
-            </StyledButtons>
+            </span>
           )}
         </div>
         <div className="right-button-panel">
@@ -303,17 +294,18 @@ export class ExploreChartHeader extends React.PureComponent {
             }
           >
             {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <SaveButtonContainer>
-              <SaveButton
+            <div css={saveButtonContainerStyles}>
+              <Button
                 buttonStyle="secondary"
                 onClick={onSaveChart}
                 disabled={saveDisabled}
                 data-test="query-save-button"
+                css={saveButtonStyles}
               >
                 <Icons.SaveOutlined iconSize="l" />
                 {t('Save')}
-              </SaveButton>
-            </SaveButtonContainer>
+              </Button>
+            </div>
           </Tooltip>
           <ExploreAdditionalActionsMenu
             onOpenInEditor={actions.redirectSQLLab}
@@ -324,7 +316,7 @@ export class ExploreChartHeader extends React.PureComponent {
             canAddReports={this.canAddReports()}
           />
         </div>
-      </StyledHeader>
+      </div>
     );
   }
 }
