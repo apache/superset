@@ -764,7 +764,7 @@ class SqlEditor extends React.PureComponent {
           <EmptyStateBig
             image="vector.svg"
             title="Select a database to write a query"
-            description="Choose one of the avaialable database on the left"
+            description="Choose one of the available database on the left"
           />
         )}
         <StyledModal
