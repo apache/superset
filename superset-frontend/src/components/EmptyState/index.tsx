@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import React, { ReactNode, SyntheticEvent } from 'react';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
@@ -117,9 +117,7 @@ const ActionButton = styled(Button)`
 `;
 
 const getImage = (image: string | ReactNode) =>
-  typeof image === 'string'
-    ? `${process.env.APP_PREFIX}/static/assets/images/${image}`
-    : image;
+  typeof image === 'string' ? `/static/assets/images/${image}` : image;
 
 const getImageHeight = (size: EmptyStateSize) => {
   switch (size) {
@@ -142,6 +140,11 @@ const ImageContainer = ({ image, size }: ImageContainerProps) => (
   />
 );
 
+const handleMouseDown = (e: SyntheticEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
+
 export const EmptyStateBig = ({
   title,
   image,
@@ -161,7 +164,11 @@ export const EmptyStateBig = ({
       <BigTitle>{title}</BigTitle>
       {description && <BigDescription>{description}</BigDescription>}
       {buttonAction && buttonText && (
-        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+        <ActionButton
+          buttonStyle="primary"
+          onClick={buttonAction}
+          onMouseDown={handleMouseDown}
+        >
           {buttonText}
         </ActionButton>
       )}
@@ -188,7 +195,11 @@ export const EmptyStateMedium = ({
       <Title>{title}</Title>
       {description && <Description>{description}</Description>}
       {buttonText && buttonAction && (
-        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+        <ActionButton
+          buttonStyle="primary"
+          onClick={buttonAction}
+          onMouseDown={handleMouseDown}
+        >
           {buttonText}
         </ActionButton>
       )}
