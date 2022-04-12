@@ -19,7 +19,7 @@ under the License.
 
 # Release Notes for Superset 1.4
 
-Superset 1.4 focuses heavily on continuing to polish the core Superset experience. This release has a very very long list of fixes from across the community.
+Superset 1.4 focuses heavily on continuing to polish the core Superset experience. This release has a very long list of fixes from across the community.
 
 - [**User Experience**](#user-facing-features)
 - [**Database Experience**](#database-experience)
