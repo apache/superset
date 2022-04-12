@@ -13418,7 +13418,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:27
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
-"subdivisions (states, provinces, etc) on a chloropleth map. Each "
+"subdivisions (states, provinces, etc) on a choropleth map. Each "
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
 msgstr ""
