@@ -106,7 +106,7 @@ export const Databases = [
   {
     title: 'SQLite',
     href: 'https://www.sqlite.org/index.html',
-    imgName: 'sqllite.png',
+    imgName: 'sqlite.png',
   },
   {
     title: 'Trino',
