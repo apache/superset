@@ -618,7 +618,7 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
 class DeleteMixin:  # pylint: disable=too-few-public-methods
     def _delete(self: BaseView, primary_key: int) -> None:
         """
-        Delete function logic, override to implement diferent logic
+        Delete function logic, override to implement different logic
         deletes the record with primary_key = primary_key
 
         :param primary_key:
