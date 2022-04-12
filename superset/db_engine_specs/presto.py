@@ -34,12 +34,13 @@ from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -235,7 +236,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Presto connection, enable impersonation, and set optional param

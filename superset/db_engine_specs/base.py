@@ -48,7 +48,7 @@ from sqlalchemy import column, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
@@ -58,6 +58,7 @@ from sqlparse.tokens import CTE
 from typing_extensions import TypedDict
 
 from superset import security_manager, sql_parse
+from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.models.sql_types.base import literal_dttm_type_factory
@@ -1633,7 +1634,7 @@ class BasicParametersMixin:
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> BasicParametersType:
-        url = make_url(uri)
+        url = make_url_safe(uri)
         query = {
             key: value
             for (key, value) in url.query.items()

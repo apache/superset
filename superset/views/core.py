@@ -39,8 +39,7 @@ from flask_appbuilder.security.decorators import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
 
@@ -73,8 +72,10 @@ from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1330,7 +1331,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         uri = request.json.get("uri")
         try:
             if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(make_url(uri))
+                check_sqlalchemy_uri(make_url_safe(uri))
             # if the database already exists in the database, only its safe
             # (password-masked) URI would be shown in the UI and would be passed in the
             # form data so if the database already exists and the form was submitted
@@ -1371,7 +1372,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(ex.message)
         except (NoSuchModuleError, ModuleNotFoundError):
             logger.info("Invalid driver")
-            driver_name = make_url(uri).drivername
+            driver_name = make_url_safe(uri).drivername
             return json_error_response(
                 _(
                     "Could not load database driver: %(driver_name)s",
@@ -1379,7 +1380,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 ),
                 400,
             )
-        except ArgumentError:
+        except DatabaseInvalidError:
             logger.info("Invalid URI")
             return json_error_response(
                 _(
@@ -1586,16 +1587,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
     def created_dashboards(self, user_id: int) -> FlaskResponse:
+        logging.warning(
+            "%s.created_dashboards "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
-        Dash = Dashboard
         qry = (
-            db.session.query(Dash)
+            db.session.query(Dashboard)
             .filter(  # pylint: disable=comparison-with-callable
-                or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id)
+                or_(
+                    Dashboard.created_by_fk == user_id,
+                    Dashboard.changed_by_fk == user_id,
+                )
             )
-            .order_by(Dash.changed_on.desc())
+            .order_by(Dashboard.changed_on.desc())
         )
         payload = [
             {
@@ -1815,7 +1824,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     force=True,
                 )
 
-                g.form_data = form_data  # pylint: disable=assigning-non-slot
+                # pylint: disable=assigning-non-slot
+                g.form_data = form_data
                 payload = obj.get_payload()
                 delattr(g, "form_data")
                 error = payload["errors"] or None

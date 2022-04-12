@@ -59,7 +59,8 @@ const Styles = styled.div`
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 4 * theme.gridUnit}px;
+    padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;

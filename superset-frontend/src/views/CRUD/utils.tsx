@@ -399,15 +399,17 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
     .flat();
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
-  errors.some(
-    error =>
-      !Object.entries(error.extra)
-        .filter(([key, _]) => key !== 'issue_codes')
-        .every(
-          ([_, payload]) =>
-            isNeedsPassword(payload) || isAlreadyExists(payload),
-        ),
-  );
+  errors.some(error => {
+    const noIssuesCodes = Object.entries(error.extra).filter(
+      ([key]) => key !== 'issue_codes',
+    );
+
+    if (noIssuesCodes.length === 0) return true;
+
+    return !noIssuesCodes.every(
+      ([, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
+    );
+  });
 
 export const checkUploadExtensions = (
   perm: Array<string>,
