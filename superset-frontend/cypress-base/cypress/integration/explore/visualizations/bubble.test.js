@@ -57,7 +57,7 @@ describe('Visualization > Bubble', () => {
   });
 
   // Number of circles are pretty unstable when there are a lot of circles
-  // Since main functionality is already covered in fitler test below,
+  // Since main functionality is already covered in filter test below,
   // skip this test untill we find a solution.
   it.skip('should work', () => {
     cy.visitChartByParams(JSON.stringify(BUBBLE_FORM_DATA)).then(() => {
