@@ -73,6 +73,7 @@ type SelectValue = {
 };
 
 interface AlertReportModalProps {
+  addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   alert?: AlertObject | null;
   isReport?: boolean;
@@ -260,7 +261,7 @@ export const StyledInputContainer = styled.div`
   .helper {
     display: block;
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     text-align: left;
   }
@@ -402,6 +403,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   show,
   alert = null,
   isReport = false,
+  addSuccessToast,
 }) => {
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -555,6 +557,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
+          addSuccessToast(t('%s updated', data.type));
+
           if (onAdd) {
             onAdd();
           }
@@ -568,6 +572,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         if (!response) {
           return;
         }
+
+        addSuccessToast(t('%s updated', data.type));
 
         if (onAdd) {
           onAdd(response);

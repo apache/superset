@@ -36,7 +36,7 @@ export default findPermission;
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
 
-const isUserAdmin = (user: UserWithPermissionsAndRoles) =>
+export const isUserAdmin = (user: UserWithPermissionsAndRoles) =>
   Object.keys(user.roles).some(role => role.toLowerCase() === ADMIN_ROLE_NAME);
 
 const isUserDashboardOwner = (

@@ -46,7 +46,7 @@ const Footer: FC<FooterProps> = ({
         onConfirm={onConfirmCancel}
         onDismiss={onDismiss}
       >
-        {t(`Are you sure you want to cancel?`)}
+        {t('Are you sure you want to cancel?')}
       </CancelConfirmationAlert>
     );
   }

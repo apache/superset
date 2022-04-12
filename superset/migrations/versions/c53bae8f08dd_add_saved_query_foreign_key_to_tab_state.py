@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """add_saved_query_foreign_key_to_tab_state
+
 Revision ID: c53bae8f08dd
 Revises: bb38f40aa3ff
 Create Date: 2021-12-15 15:05:21.845777

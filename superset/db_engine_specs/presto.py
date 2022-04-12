@@ -34,12 +34,13 @@ from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -53,6 +54,7 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -85,24 +87,26 @@ CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
 logger = logging.getLogger(__name__)
 
 
-def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
+def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
     """
     Get the children of a complex Presto type (row or array).
 
     For arrays, we return a single list with the base type:
 
-        >>> get_children(dict(name="a", type="ARRAY(BIGINT)"))
-        [{"name": "a", "type": "BIGINT"}]
+        >>> get_children(dict(name="a", type="ARRAY(BIGINT)", is_dttm=False))
+        [{"name": "a", "type": "BIGINT", "is_dttm": False}]
 
     For rows, we return a list of the columns:
 
-        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)"))
-        [{'name': 'a._col0', 'type': 'BIGINT'}, {'name': 'a.foo', 'type': 'VARCHAR'}]
+        >>> get_children(dict(name="a", type="ROW(BIGINT,FOO VARCHAR)",  is_dttm=False))
+        [{'name': 'a._col0', 'type': 'BIGINT', 'is_dttm': False}, {'name': 'a.foo', 'type': 'VARCHAR', 'is_dttm': False}]  # pylint: disable=line-too-long
 
     :param column: dictionary representing a Presto column
     :return: list of dictionaries representing children columns
     """
     pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
+    if not column["type"]:
+        raise ValueError
     match = pattern.match(column["type"])
     if not match:
         raise Exception(f"Unable to parse column type {column['type']}")
@@ -111,7 +115,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     type_ = group["type"].upper()
     children_type = group["children"]
     if type_ == "ARRAY":
-        return [{"name": column["name"], "type": children_type}]
+        return [{"name": column["name"], "type": children_type, "is_dttm": False}]
 
     if type_ == "ROW":
         nameless_columns = 0
@@ -125,7 +129,12 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
                 name = f"_col{nameless_columns}"
                 type_ = parts[0]
                 nameless_columns += 1
-            columns.append({"name": f"{column['name']}.{name.lower()}", "type": type_})
+            _column: ResultSetColumnType = {
+                "name": f"{column['name']}.{name.lower()}",
+                "type": type_,
+                "is_dttm": False,
+            }
+            columns.append(_column)
         return columns
 
     raise Exception(f"Unknown type {type_}!")
@@ -227,7 +236,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Presto connection, enable impersonation, and set optional param
@@ -779,8 +788,10 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def expand_data(  # pylint: disable=too-many-locals
-        cls, columns: List[Dict[Any, Any]], data: List[Dict[Any, Any]]
-    ) -> Tuple[List[Dict[Any, Any]], List[Dict[Any, Any]], List[Dict[Any, Any]]]:
+        cls, columns: List[ResultSetColumnType], data: List[Dict[Any, Any]]
+    ) -> Tuple[
+        List[ResultSetColumnType], List[Dict[Any, Any]], List[ResultSetColumnType]
+    ]:
         """
         We do not immediately display rows and arrays clearly in the data grid. This
         method separates out nested fields and data values to help clearly display
@@ -808,7 +819,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         # process each column, unnesting ARRAY types and
         # expanding ROW types into new columns
         to_process = deque((column, 0) for column in columns)
-        all_columns: List[Dict[str, Any]] = []
+        all_columns: List[ResultSetColumnType] = []
         expanded_columns = []
         current_array_level = None
         while to_process:
@@ -828,7 +839,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             name = column["name"]
             values: Optional[Union[str, List[Any]]]
 
-            if column["type"].startswith("ARRAY("):
+            if column["type"] and column["type"].startswith("ARRAY("):
                 # keep processing array children; we append to the right so that
                 # multiple nested arrays are processed breadth-first
                 to_process.append((get_children(column)[0], level + 1))
@@ -862,7 +873,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
                     i += 1
 
-            if column["type"].startswith("ROW("):
+            if column["type"] and column["type"].startswith("ROW("):
                 # expand columns; we append them to the left so they are added
                 # immediately after the parent
                 expanded = get_children(column)
