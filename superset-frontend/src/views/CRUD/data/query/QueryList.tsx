@@ -181,9 +181,12 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         accessor: QueryObjectColumns.start_time,
         Header: t('Time'),
         size: 'xl',
-        Cell: ({ row: { original } }: any) => {
-          const startTime = parseFloat(original.start_time);
-          const startMoment = moment.utc(startTime).local();
+        Cell: ({
+          row: {
+            original: { start_time, end_time },
+          },
+        }: any) => {
+          const startMoment = moment.utc(start_time).local();
           const formattedStartTimeData = startMoment
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
@@ -195,13 +198,11 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             </>
           );
 
-          return original.end_time ? (
+          return end_time ? (
             <Tooltip
               title={t(
                 'Duration: %s',
-                moment(
-                  moment.utc(parseFloat(original.end_time) - startTime),
-                ).format(TIME_WITH_MS),
+                moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS),
               )}
               placement="bottom"
             >
