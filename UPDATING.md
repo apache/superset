@@ -179,7 +179,7 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 
 - [11575](https://github.com/apache/superset/pull/11575) The Row Level Security (RLS) config flag has been moved to a feature flag. To migrate, add `ROW_LEVEL_SECURITY: True` to the `FEATURE_FLAGS` dict in `superset_config.py`.
 
-- [11259](https://github.com/apache/superset/pull/11259): config flag ENABLE_REACT_CRUD_VIEWS has been set to `True` by default, set to `False` if you prefer to the vintage look and feel. However, we may discontine support on the vintage list view in the future.
+- [11259](https://github.com/apache/superset/pull/11259): config flag ENABLE_REACT_CRUD_VIEWS has been set to `True` by default, set to `False` if you prefer to the vintage look and feel. However, we may discontinue support on the vintage list view in the future.
 
 - [11244](https://github.com/apache/superset/pull/11244): The `REDUCE_DASHBOARD_BOOTSTRAP_PAYLOAD` feature flag has been removed after being set to True for multiple months.
 
