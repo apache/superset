@@ -59,7 +59,7 @@ describe('getDetailedComponentWidth', () => {
       ).toEqual(empty);
     });
 
-    it('should match component meta width for resizeable components', () => {
+    it('should match component meta width for resizable components', () => {
       expect(
         getDetailedComponentWidth({
           component: { id: '', type: types.CHART_TYPE, meta: { width: 1 } },
