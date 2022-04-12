@@ -103,7 +103,7 @@ export default function buildQueryObject<T extends QueryFormData>(
 
   let queryObject: QueryObject = {
     // fallback `null` to `undefined` so they won't be sent to the backend
-    // (JSON.strinify will ignore `undefined`.)
+    // (JSON.stringify will ignore `undefined`.)
     time_range: time_range || undefined,
     since: since || undefined,
     until: until || undefined,
