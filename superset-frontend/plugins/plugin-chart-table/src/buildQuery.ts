@@ -71,7 +71,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (queryMode === QueryMode.aggregate) {
       metrics = metrics || [];
-      // orverride orderby with timeseries metric when in aggregation mode
+      // override orderby with timeseries metric when in aggregation mode
       if (sortByMetric) {
         orderby = [[sortByMetric, !orderDesc]];
       } else if (metrics?.length > 0) {

@@ -29,7 +29,7 @@ export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
     let { metrics, orderby = [] } = baseQueryObject;
     metrics = metrics || [];
-    // orverride orderby with timeseries metric
+    // override orderby with timeseries metric
     if (sortByMetric) {
       orderby = [[sortByMetric, false]];
     } else if (metrics?.length > 0) {
