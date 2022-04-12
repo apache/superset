@@ -1249,7 +1249,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
+            main_metric_expr, label = literal_column("COUNT(*)"), "count"
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
