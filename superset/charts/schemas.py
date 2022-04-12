@@ -435,7 +435,7 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         example=7,
     )
     rolling_type_options = fields.Dict(
-        desctiption="Optional options to pass to rolling method. Needed for "
+        description="Optional options to pass to rolling method. Needed for "
         "e.g. quantile operation.",
         example={},
     )
@@ -551,7 +551,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         required=True,
     )
     periods = fields.Integer(
-        descrption="Time periods (in units of `time_grain`) to predict into the future",
+        description="Time periods (in units of `time_grain`) to predict into the future",
         min=0,
         example=7,
         required=True,
@@ -910,7 +910,7 @@ class AnnotationLayerSchema(Schema):
     )
     overrides = fields.Dict(
         keys=fields.String(
-            desciption="Name of property to be overridden",
+            description="Name of property to be overridden",
             validate=validate.OneOf(
                 choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
             ),
@@ -1298,7 +1298,7 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     stacktrace = fields.String(
-        desciption="Stacktrace if there was an error",
+        description="Stacktrace if there was an error",
         allow_none=True,
     )
     rowcount = fields.Integer(
@@ -1317,10 +1317,10 @@ class ChartDataResponseResult(Schema):
         fields.Dict(), description="A list with rejected filters"
     )
     from_dttm = fields.Integer(
-        desciption="Start timestamp of time range", required=False, allow_none=True
+        description="Start timestamp of time range", required=False, allow_none=True
     )
     to_dttm = fields.Integer(
-        desciption="End timestamp of time range", required=False, allow_none=True
+        description="End timestamp of time range", required=False, allow_none=True
     )
 
 
