@@ -606,7 +606,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:28
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
-msgid "Adaptative formating"
+msgid "Adaptive formatting"
 msgstr ""
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267
@@ -13138,7 +13138,7 @@ msgid ""
 msgstr ""
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
-msgid "Use the edit buttom to change this field"
+msgid "Use the edit button to change this field"
 msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:176

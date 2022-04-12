@@ -22,14 +22,14 @@ import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/common/components';
+import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
 const HelperMessage = styled.div`
   display: block;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const StyledInputContainer = styled.div`
@@ -117,7 +117,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
-  addSuccessToast,
   onModelImport,
   show,
   onHide,
@@ -184,7 +183,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
     ).then(result => {
       if (result) {
-        addSuccessToast(t('The import was successful'));
         clearModal();
         onModelImport();
       }

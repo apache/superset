@@ -183,6 +183,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
+  const showLegacyDatasourceEditor = !isFeatureEnabled(
+    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+  );
+
   return (
     <StyledDatasourceModal
       show={show}
@@ -195,7 +199,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       footer={
         <>
-          {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
+          {showLegacyDatasourceEditor && (
             <Button
               buttonSize="small"
               buttonStyle="default"
@@ -222,7 +226,18 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={isSaving || errors.length > 0}
+            disabled={
+              isSaving ||
+              errors.length > 0 ||
+              currentDatasource.is_managed_externally
+            }
+            tooltip={
+              currentDatasource.is_managed_externally
+                ? t(
+                    "This dataset is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
           >
             {t('Save')}
           </Button>

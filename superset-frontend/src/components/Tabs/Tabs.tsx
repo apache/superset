@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { css, styled } from '@superset-ui/core';
-import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
+import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs';
 import Icons from 'src/components/Icons';
 
-export interface TabsProps extends AntDTabsProps {
+export interface TabsProps extends AntdTabsProps {
   fullWidth?: boolean;
   allowOverflow?: boolean;
 }
@@ -32,7 +32,7 @@ const StyledTabs = ({
   allowOverflow = true,
   ...props
 }: TabsProps) => (
-  <AntDTabs
+  <AntdTabs
     animated={animated}
     {...props}
     css={theme => css`
@@ -89,7 +89,7 @@ const StyledTabs = ({
   />
 );
 
-const StyledTabPane = styled(AntDTabs.TabPane)``;
+const StyledTabPane = styled(AntdTabs.TabPane)``;
 
 const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,

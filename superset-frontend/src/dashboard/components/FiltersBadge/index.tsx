@@ -20,9 +20,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
+import { DataMaskStateWithId, Filters } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { usePrevious } from 'src/common/hooks/usePrevious';
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import { usePrevious } from 'src/hooks/usePrevious';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import {
@@ -38,7 +38,6 @@ import {
   DashboardLayout,
   RootState,
 } from '../../types';
-import { Filters } from '../../reducers/types';
 
 export interface FiltersBadgeProps {
   chartId: number;

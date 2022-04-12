@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,6 +44,7 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  ComparisionType,
 } from '@superset-ui/core';
 
 import {
@@ -94,6 +96,11 @@ type Control = {
   default?: unknown;
 };
 
+type SelectDefaultOption = {
+  label: string;
+  value: string;
+};
+
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
   label: t('Group by'),
@@ -106,8 +113,6 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
       'and series limit to limit the number of fetched and rendered series.',
   ),
-  sortComparator: (a: { label: string }, b: { label: string }) =>
-    a.label.localeCompare(b.label),
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -201,6 +206,9 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
+  mapStateToProps: state => ({
+    dashboardId: state?.form_data?.dashboardId,
+  }),
 };
 
 const secondary_metric: SharedControlConfig<'MetricsControl'> = {
@@ -323,7 +331,6 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   ),
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
-    endpoints: form_data?.time_range_endpoints || null,
   }),
 };
 
@@ -335,6 +342,18 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   description: t('Limits the number of rows that get displayed.'),
+};
+
+const order_desc: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort Descending'),
+  default: true,
+  description: t('Whether to sort descending or ascending'),
+  visibility: ({ controls }) =>
+    Boolean(
+      controls?.timeseries_limit_metric.value &&
+        !isEmpty(controls?.timeseries_limit_metric.value),
+    ),
 };
 
 const limit: SharedControlConfig<'SelectControl'> = {
@@ -424,29 +443,33 @@ const size: SharedControlConfig<'MetricsControl'> = {
   default: null,
 };
 
-const y_axis_format: SharedControlConfig<'SelectControl'> = {
-  type: 'SelectControl',
-  freeForm: true,
-  label: t('Y Axis Format'),
-  renderTrigger: true,
-  default: DEFAULT_NUMBER_FORMAT,
-  choices: D3_FORMAT_OPTIONS,
-  description: D3_FORMAT_DOCS,
-  mapStateToProps: state => {
-    const showWarning = state.controls?.comparison_type?.value === 'percentage';
-    return {
-      warning: showWarning
-        ? t(
-            'When `Calculation type` is set to "Percentage change", the Y ' +
-              'Axis Format is forced to `.1%`',
-          )
-        : null,
-      disabled: showWarning,
-    };
-  },
-};
+const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
+  {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Y Axis Format'),
+    renderTrigger: true,
+    default: DEFAULT_NUMBER_FORMAT,
+    choices: D3_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+    tokenSeparators: ['\n', '\t', ';'],
+    filterOption: ({ data: option }, search) =>
+      option.label.includes(search) || option.value.includes(search),
+    mapStateToProps: state => {
+      const isPercentage =
+        state.controls?.comparison_type?.value === ComparisionType.Percentage;
+      return {
+        choices: isPercentage
+          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+          : D3_FORMAT_OPTIONS,
+      };
+    },
+  };
 
-const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
+const x_axis_time_format: SharedControlConfig<
+  'SelectControl',
+  SelectDefaultOption
+> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Time format'),
@@ -454,12 +477,14 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
+  filterOption: ({ data: option }, search) =>
+    option.label.includes(search) || option.value.includes(search),
 };
 
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   type: 'AdhocFilterControl',
   label: t('Filters'),
-  default: null,
+  default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],
@@ -508,6 +533,7 @@ const sharedControls = {
   limit,
   timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
   orderby: enableExploreDnd ? dnd_sort_by : sort_by,
+  order_desc,
   series: enableExploreDnd ? dndSeries : series,
   entity: enableExploreDnd ? dndEntity : entity,
   x: enableExploreDnd ? dnd_x : x,

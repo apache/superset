@@ -54,7 +54,11 @@ from superset.annotation_layers.annotations.schemas import (
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_json,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +258,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("post")
+    @requires_json
     def post(self, pk: int) -> Response:  # pylint: disable=arguments-differ
         """Creates a new Annotation
         ---
@@ -294,8 +299,6 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
             item["layer"] = pk
@@ -323,6 +326,7 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
+    @requires_json
     def put(  # pylint: disable=arguments-differ
         self, pk: int, annotation_id: int
     ) -> Response:
@@ -370,8 +374,6 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
             item["layer"] = pk

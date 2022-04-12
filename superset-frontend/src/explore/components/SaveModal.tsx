@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
 import { JsonObject, t, styled } from '@superset-ui/core';
@@ -76,10 +76,18 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
+    this.isNewDashboard = this.isNewDashboard.bind(this);
+  }
+
+  isNewDashboard(): boolean {
+    return !!(!this.state.saveToDashboardId && this.state.newDashboardName);
   }
 
   canOverwriteSlice(): boolean {
-    return this.props.slice?.owners?.includes(this.props.userId);
+    return (
+      this.props.slice?.owners?.includes(this.props.userId) &&
+      !this.props.slice?.is_managed_externally
+    );
   }
 
   componentDidMount() {
@@ -138,9 +146,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     sliceParams.slice_name = this.state.newSliceName;
     sliceParams.save_to_dashboard_id = this.state.saveToDashboardId;
     sliceParams.new_dashboard_name = this.state.newDashboardName;
+    const { url_params, ...formData } = this.props.form_data || {};
 
     this.props.actions
-      .saveSlice(this.props.form_data, sliceParams)
+      .saveSlice(formData, sliceParams)
       .then((data: JsonObject) => {
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
@@ -148,7 +157,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        let url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        if (url_params) {
+          const prefix = url.includes('?') ? '&' : '?';
+          url = `${url}${prefix}${new URLSearchParams(url_params).toString()}`;
+        }
         window.location.assign(url);
       });
     this.props.onHide();
@@ -187,7 +200,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               }
               onClick={() => this.saveOrOverwrite(true)}
             >
-              {t('Save & go to dashboard')}
+              {this.isNewDashboard()
+                ? t('Save & go to new dashboard')
+                : t('Save & go to dashboard')}
             </Button>
             <Button
               id="btn_modal_save"
@@ -199,6 +214,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             >
               {!this.canOverwriteSlice() && this.props.slice
                 ? t('Save as new chart')
+                : this.isNewDashboard()
+                ? t('Save to new dashboard')
                 : t('Save')}
             </Button>
           </div>

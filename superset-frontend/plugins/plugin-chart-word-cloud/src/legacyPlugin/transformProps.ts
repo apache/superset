@@ -43,6 +43,7 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     series,
     sizeFrom = 0,
     sizeTo,
+    sliceId,
   } = formData as LegacyWordCloudFormData;
 
   const metricLabel = getMetricLabel(metric);
@@ -77,5 +78,6 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     height,
     rotation,
     width,
+    sliceId,
   };
 }

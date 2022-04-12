@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showBrush,
@@ -41,6 +45,38 @@ import {
 } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
+  controlOverrides: {
+    limit: {
+      rerender: ['timeseries_limit_metric', 'order_desc'],
+    },
+    timeseries_limit_metric: {
+      label: t('Series Limit Sort By'),
+      description: t(
+        'Metric used to order the limit if a series limit is present. ' +
+          'If undefined reverts to the first metric (where appropriate).',
+      ),
+      visibility: ({ controls }) => Boolean(controls?.limit.value),
+      mapStateToProps: (state, controlState) => {
+        const timeserieslimitProps =
+          sharedControls.timeseries_limit_metric.mapStateToProps?.(
+            state,
+            controlState,
+          ) || {};
+        timeserieslimitProps.value = state.controls?.limit?.value
+          ? controlState.value
+          : [];
+        return timeserieslimitProps;
+      },
+    },
+    order_desc: {
+      label: t('Series Limit Sort Descending'),
+      default: false,
+      description: t(
+        'Whether to sort descending or ascending if a series limit is present',
+      ),
+      visibility: ({ controls }) => Boolean(controls?.limit.value),
+    },
+  },
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     timeSeriesSection[0],

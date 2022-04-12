@@ -18,9 +18,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from apispec import APISpec
-from apispec.exceptions import DuplicateComponentNameError
-from flask import Blueprint, g, Response
+from flask import Blueprint, g, request, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -31,6 +29,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -38,7 +37,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
@@ -70,6 +69,34 @@ class DistinctResultResponseSchema(Schema):
 class DistincResponseSchema(Schema):
     count = fields.Integer(description="The total number of distinct values")
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
+
+
+def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require JSON-like formatted request to the REST API
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.is_json:
+            raise InvalidPayloadFormatError(message="Request is not JSON")
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
+
+
+def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require 'multipart/form-data' as request MIME type
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.mimetype == "multipart/form-data":
+            raise InvalidPayloadFormatError(
+                message="Request MIME type is not 'multipart/form-data'"
+            )
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
 
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -197,8 +224,6 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     allowed_distinct_fields: Set[str] = set()
 
-    openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]
@@ -217,33 +242,19 @@ class BaseSupersetModelRestApi(ModelRestApi):
     }
 
     def __init__(self) -> None:
+        super().__init__()
         # Setup statsd
         self.stats_logger = BaseStatsLogger()
         # Add base API spec base query parameter schemas
         if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
         self.apispec_parameter_schemas["get_related_schema"] = get_related_schema
-        if self.openapi_spec_component_schemas is None:
-            self.openapi_spec_component_schemas = ()
-        self.openapi_spec_component_schemas = self.openapi_spec_component_schemas + (
+        self.openapi_spec_component_schemas: Tuple[
+            Type[Schema], ...
+        ] = self.openapi_spec_component_schemas + (
             RelatedResponseSchema,
             DistincResponseSchema,
         )
-        super().__init__()
-
-    def add_apispec_components(self, api_spec: APISpec) -> None:
-        """
-        Adds extra OpenApi schema spec components, these are declared
-        on the `openapi_spec_component_schemas` class property
-        """
-        for schema in self.openapi_spec_component_schemas:
-            try:
-                api_spec.components.schema(
-                    schema.__name__, schema=schema,
-                )
-            except DuplicateComponentNameError:
-                pass
-        super().add_apispec_components(api_spec)
 
     def create_blueprint(
         self, appbuilder: AppBuilder, *args: Any, **kwargs: Any
@@ -252,6 +263,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return super().create_blueprint(appbuilder, *args, **kwargs)
 
     def _init_properties(self) -> None:
+        """
+        Lock down initial not configured REST API columns. We want to just expose
+        model ids, if something is misconfigured. By default FAB exposes all available
+        columns on a Model
+        """
         model_id = self.datamodel.get_pk_name()
         if self.list_columns is None and not self.list_model_schema:
             self.list_columns = [model_id]

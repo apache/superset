@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceKey } from '@superset-ui/core/src/query';
+import { DatasourceKey } from '@superset-ui/core';
 
 describe('DatasourceKey', () => {
   const tableKey = '5__table';

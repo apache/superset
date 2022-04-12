@@ -2,7 +2,7 @@ import { ControlSetItem } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import { isAggMode, isRawMode } from './shared';
 
-export const OrderByControlSetItem: ControlSetItem = {
+export const orderByControlSetItem: ControlSetItem = {
   name: 'order_by_cols',
   config: {
     type: 'SelectControl',
@@ -17,7 +17,7 @@ export const OrderByControlSetItem: ControlSetItem = {
   },
 };
 
-export const OrderDescendingControlSetItem: ControlSetItem = {
+export const orderDescendingControlSetItem: ControlSetItem = {
   name: 'order_desc',
   config: {
     type: 'CheckboxControl',

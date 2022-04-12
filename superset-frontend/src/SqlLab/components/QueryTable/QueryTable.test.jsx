@@ -25,11 +25,14 @@ import TableView from 'src/components/TableView';
 import TableCollection from 'src/components/TableCollection';
 import { Provider } from 'react-redux';
 import { queries, user } from 'src/SqlLab/fixtures';
+import * as actions from 'src/SqlLab/actions/sqlLab';
 
 describe('QueryTable', () => {
   const mockedProps = {
     queries,
     displayLimit: 100,
+    actions,
+    latestQueryId: 'ryhMUZCGb',
   };
   it('is valid', () => {
     expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);

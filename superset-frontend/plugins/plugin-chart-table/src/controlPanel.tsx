@@ -116,8 +116,6 @@ const all_columns: typeof sharedControls.groupby = {
         ? [t('must have a value')]
         : [],
   }),
-  sortComparator: (a: { label: string }, b: { label: string }) =>
-    a.label.localeCompare(b.label),
   visibility: isRawMode,
 };
 
@@ -279,8 +277,6 @@ const config: ControlPanelConfig = {
                 choices: datasource?.order_by_choices || [],
               }),
               visibility: isRawMode,
-              sortComparator: (a: { label: string }, b: { label: string }) =>
-                a.label.localeCompare(b.label),
             },
           },
         ],
@@ -457,7 +453,10 @@ const config: ControlPanelConfig = {
               label: t('Customize columns'),
               description: t('Further customize how to display each column'),
               renderTrigger: true,
-              mapStateToProps(explore, control, chart) {
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as
                     | ChartDataResponseResult
@@ -478,7 +477,10 @@ const config: ControlPanelConfig = {
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
-              mapStateToProps(explore, control, chart) {
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
                 const verboseMap = explore?.datasource?.verbose_map ?? {};
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};

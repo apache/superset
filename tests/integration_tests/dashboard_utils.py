@@ -30,7 +30,9 @@ from superset.utils.core import get_example_default_schema
 
 
 def get_table(
-    table_name: str, database: Database, schema: Optional[str] = None,
+    table_name: str,
+    database: Database,
+    schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
     table_source = ConnectorRegistry.sources["table"]
@@ -80,7 +82,6 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-
     if not dash:
         dash = Dashboard()
     dash.dashboard_title = title

@@ -29,7 +29,7 @@ import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.database import get_example_database, get_main_database
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -210,7 +210,7 @@ class TestQueryApi(SupersetTestCase):
             get_example_database().id, gamma2.id, gamma2_client_id
         )
 
-        # Gamma1 user, only sees his own queries
+        # Gamma1 user, only sees their own queries
         self.login(username="gamma_1", password="password")
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
@@ -219,7 +219,7 @@ class TestQueryApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
-        # Gamma2 user, only sees his own queries
+        # Gamma2 user, only sees their own queries
         self.logout()
         self.login(username="gamma_2", password="password")
         uri = f"api/v1/query/{query_gamma1.id}"

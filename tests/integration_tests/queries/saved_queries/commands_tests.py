@@ -30,7 +30,7 @@ from superset.queries.saved_queries.commands.export import ExportSavedQueriesCom
 from superset.queries.saved_queries.commands.importers.v1 import (
     ImportSavedQueriesCommand,
 )
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -82,6 +82,24 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "version": "1.0.0",
             "database_uuid": str(self.example_database.uuid),
         }
+
+    @patch("superset.queries.saved_queries.filters.g")
+    def test_export_query_command_no_related(self, mock_g):
+        """
+        Test that only the query is exported when export_related=False.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        command = ExportSavedQueriesCommand(
+            [self.example_query.id], export_related=False
+        )
+        contents = dict(command.run())
+
+        expected = [
+            "metadata.yaml",
+            "queries/examples/schema1/The_answer.yaml",
+        ]
+        assert expected == list(contents.keys())
 
     @patch("superset.queries.saved_queries.filters.g")
     def test_export_query_command_no_access(self, mock_g):

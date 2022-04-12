@@ -134,6 +134,10 @@ export default class AlteredSliceTag extends React.Component {
     if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
+    if (controlsMap[key]?.type === 'MetricsControl' && Array.isArray(value)) {
+      const formattedValue = value.map(v => (v.label ? v.label : v));
+      return formattedValue.length ? formattedValue.join(', ') : '[]';
+    }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
@@ -161,6 +165,8 @@ export default class AlteredSliceTag extends React.Component {
         Header: 'After',
       },
     ];
+    // set the wrap text in the specific columns.
+    const columnsForWrapText = ['Control', 'Before', 'After'];
 
     return (
       <TableView
@@ -168,6 +174,7 @@ export default class AlteredSliceTag extends React.Component {
         data={this.state.rows}
         pageSize={50}
         className="table-condensed"
+        columnsForWrapText={columnsForWrapText}
       />
     );
   }
@@ -175,10 +182,7 @@ export default class AlteredSliceTag extends React.Component {
   renderTriggerNode() {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
-        <span
-          className="label label-warning m-l-5"
-          style={{ fontSize: '12px' }}
-        >
+        <span className="label label-warning" style={{ fontSize: '12px' }}>
           {t('Altered')}
         </span>
       </Tooltip>

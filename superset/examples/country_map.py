@@ -20,10 +20,10 @@ import pandas as pd
 from sqlalchemy import BigInteger, Date, inspect, String
 from sqlalchemy.sql import column
 
+import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
-from superset.utils import core as utils
 
 from .helpers import (
     get_example_data,
@@ -37,7 +37,7 @@ from .helpers import (
 def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
-    database = utils.get_example_database()
+    database = database_utils.get_example_database()
     engine = database.get_sqla_engine()
     schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)

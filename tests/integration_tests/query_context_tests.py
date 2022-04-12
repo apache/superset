@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
 import re
 import time
 from typing import Any, Dict
@@ -30,7 +29,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend, TimeRangeEndpoint
+from superset.utils.core import AdhocMetricExpressionType, backend, QueryStatus
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -91,8 +90,10 @@ class TestQueryContext(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
-        table = self.get_table(name=table_name)
-        payload = get_query_context(table_name, table.id)
+        payload = get_query_context(
+            query_name=table_name,
+            add_postprocessing_operations=True,
+        )
         payload["force"] = True
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -100,6 +101,10 @@ class TestQueryContext(SupersetTestCase):
         query_cache_key = query_context.query_cache_key(query_object)
 
         response = query_context.get_payload(cache_query_context=True)
+        # MUST BE a successful query
+        query_dump = response["queries"][0]
+        assert query_dump["status"] == QueryStatus.SUCCESS
+
         cache_key = response["cache_key"]
         assert cache_key is not None
 
@@ -235,23 +240,6 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
-    def test_query_context_time_range_endpoints(self):
-        """
-        Ensure that time_range_endpoints are populated automatically when missing
-        from the payload.
-        """
-        self.login(username="admin")
-        payload = get_query_context("birth_names")
-        del payload["queries"][0]["extras"]["time_range_endpoints"]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_object = query_context.queries[0]
-        extras = query_object.to_dict()["extras"]
-        assert "time_range_endpoints" in extras
-        self.assertEqual(
-            extras["time_range_endpoints"],
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.
@@ -380,7 +368,7 @@ class TestQueryContext(SupersetTestCase):
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
             r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('abc'\)\)""",
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
             sql_text,
         )
 
@@ -456,12 +444,16 @@ class TestQueryContext(SupersetTestCase):
             else:
                 # Should reference the adhoc metric by alias when possible
                 assert re.search(
-                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC', sql_text, re.IGNORECASE,
+                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC',
+                    sql_text,
+                    re.IGNORECASE,
                 )
 
             # ORDER BY only columns should always be expressions
             assert re.search(
-                r'AVG\([`"\[]?num_boys[`"\]]?\) DESC', sql_text, re.IGNORECASE,
+                r'AVG\([`"\[]?num_boys[`"\]]?\) DESC',
+                sql_text,
+                re.IGNORECASE,
             )
             assert re.search(
                 r"MAX\(CASE.*END\) ASC", sql_text, re.IGNORECASE | re.DOTALL
@@ -586,7 +578,10 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = []
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context.processing_time_offsets(df, query_object,)
+        rv = query_context.processing_time_offsets(
+            df,
+            query_object,
+        )
         self.assertIs(rv["df"], df)
         self.assertEqual(rv["queries"], [])
         self.assertEqual(rv["cache_keys"], [])

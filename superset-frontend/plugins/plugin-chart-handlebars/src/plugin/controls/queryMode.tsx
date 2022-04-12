@@ -18,7 +18,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
-export const QueryModeControlSetItem: ControlSetItem = {
+export const queryModeControlSetItem: ControlSetItem = {
   name: 'query_mode',
   config: queryMode,
 };

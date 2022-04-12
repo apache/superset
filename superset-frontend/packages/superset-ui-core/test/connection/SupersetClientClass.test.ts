@@ -328,6 +328,26 @@ describe('SupersetClientClass', () => {
       );
     });
 
+    it('uses a guest token when provided', async () => {
+      expect.assertions(1);
+
+      const client = new SupersetClientClass({
+        protocol,
+        host,
+        guestToken: 'abc123',
+        guestTokenHeaderName: 'guestTokenHeader',
+      });
+
+      await client.init();
+      await client.get({ url: mockGetUrl });
+      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      expect(fetchRequest.headers).toEqual(
+        expect.objectContaining({
+          guestTokenHeader: 'abc123',
+        }),
+      );
+    });
+
     describe('.get()', () => {
       it('makes a request using url or endpoint', async () => {
         expect.assertions(2);
@@ -479,35 +499,92 @@ describe('SupersetClientClass', () => {
     });
   });
 
-  it('should redirect Unauthorized', async () => {
+  describe('when unauthorized', () => {
+    let originalLocation: any;
+    let authSpy: jest.SpyInstance;
     const mockRequestUrl = 'https://host/get/url';
-    const { location } = window;
-    // @ts-ignore
-    delete window.location;
-    // @ts-ignore
-    window.location = { href: mockRequestUrl };
-    const authSpy = jest
-      .spyOn(SupersetClientClass.prototype, 'ensureAuth')
-      .mockImplementation();
-    const rejectValue = { status: 401 };
-    fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue), {
-      overwriteRoutes: true,
+    const mockRequestPath = '/get/url';
+    const mockRequestSearch = '?param=1&param=2';
+    const mockHref = `http://localhost${mockRequestPath + mockRequestSearch}`;
+
+    beforeEach(() => {
+      originalLocation = window.location;
+      // @ts-ignore
+      delete window.location;
+      // @ts-ignore
+      window.location = {
+        pathname: mockRequestPath,
+        search: mockRequestSearch,
+        href: mockHref,
+      };
+      authSpy = jest
+        .spyOn(SupersetClientClass.prototype, 'ensureAuth')
+        .mockImplementation();
+      const rejectValue = { status: 401 };
+      fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue), {
+        overwriteRoutes: true,
+      });
     });
 
-    const client = new SupersetClientClass({});
+    afterEach(() => {
+      authSpy.mockReset();
+      window.location = originalLocation;
+    });
 
-    let error;
-    try {
-      await client.request({ url: mockRequestUrl, method: 'GET' });
-    } catch (err) {
-      error = err;
-    } finally {
-      const redirectURL = window.location.href;
-      expect(redirectURL).toBe(`/login?next=${mockRequestUrl}`);
-      expect(error.status).toBe(401);
-    }
+    it('should redirect', async () => {
+      const client = new SupersetClientClass({});
 
-    authSpy.mockReset();
-    window.location = location;
+      let error;
+      try {
+        await client.request({ url: mockRequestUrl, method: 'GET' });
+      } catch (err) {
+        error = err;
+      } finally {
+        const redirectURL = window.location.href;
+        expect(redirectURL).toBe(
+          `/login?next=${mockRequestPath + mockRequestSearch}`,
+        );
+        expect(error.status).toBe(401);
+      }
+    });
+
+    it('does nothing if instructed to ignoreUnauthorized', async () => {
+      const client = new SupersetClientClass({});
+
+      let error;
+      try {
+        await client.request({
+          url: mockRequestUrl,
+          method: 'GET',
+          ignoreUnauthorized: true,
+        });
+      } catch (err) {
+        error = err;
+      } finally {
+        // unchanged href, no redirect
+        expect(window.location.href).toBe(mockHref);
+        expect(error.status).toBe(401);
+      }
+    });
+
+    it('accepts an unauthorizedHandler to override redirect behavior', async () => {
+      const unauthorizedHandler = jest.fn();
+      const client = new SupersetClientClass({ unauthorizedHandler });
+
+      let error;
+      try {
+        await client.request({
+          url: mockRequestUrl,
+          method: 'GET',
+        });
+      } catch (err) {
+        error = err;
+      } finally {
+        // unchanged href, no redirect
+        expect(window.location.href).toBe(mockHref);
+        expect(error.status).toBe(401);
+        expect(unauthorizedHandler).toHaveBeenCalledTimes(1);
+      }
+    });
   });
 });

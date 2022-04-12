@@ -7,7 +7,7 @@ import {
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { getQueryMode, isAggMode, validateAggControlValues } from './shared';
 
-const percent_metrics: typeof sharedControls.metrics = {
+const percentMetrics: typeof sharedControls.metrics = {
   type: 'MetricsControl',
   label: t('Percentage metrics'),
   description: t(
@@ -32,21 +32,21 @@ const percent_metrics: typeof sharedControls.metrics = {
   validators: [],
 };
 
-const dnd_percent_metrics = {
-  ...percent_metrics,
+const dndPercentMetrics = {
+  ...percentMetrics,
   type: 'DndMetricSelect',
 };
 
-export const PercentMetricsControlSetItem: ControlSetItem = {
+export const percentMetricsControlSetItem: ControlSetItem = {
   name: 'percent_metrics',
   config: {
     ...(isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-      ? dnd_percent_metrics
-      : percent_metrics),
+      ? dndPercentMetrics
+      : percentMetrics),
   },
 };
 
-export const MetricsControlSetItem: ControlSetItem = {
+export const metricsControlSetItem: ControlSetItem = {
   name: 'metrics',
   override: {
     validators: [],
@@ -71,7 +71,7 @@ export const MetricsControlSetItem: ControlSetItem = {
   },
 };
 
-export const ShowTotalsControlSetItem: ControlSetItem = {
+export const showTotalsControlSetItem: ControlSetItem = {
   name: 'show_totals',
   config: {
     type: 'CheckboxControl',

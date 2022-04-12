@@ -6,7 +6,7 @@ import {
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { PAGE_SIZE_OPTIONS } from '../../consts';
 
-export const ServerPaginationControlSetRow: ControlSetRow =
+export const serverPaginationControlSetRow: ControlSetRow =
   isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
   isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
     ? [
@@ -24,7 +24,7 @@ export const ServerPaginationControlSetRow: ControlSetRow =
       ]
     : [];
 
-export const ServerPageLengthControlSetItem: ControlSetItem = {
+export const serverPageLengthControlSetItem: ControlSetItem = {
   name: 'server_page_length',
   config: {
     type: 'SelectControl',

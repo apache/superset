@@ -80,6 +80,8 @@ test('pivot by __timestamp without groupby', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
+      flatten_columns: false,
+      reset_index: false,
     },
   });
 });
@@ -101,44 +103,36 @@ test('pivot by __timestamp with groupby', () => {
         'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
+      flatten_columns: false,
+      reset_index: false,
     },
   });
 });
 
-test('timecompare in formdata', () => {
+test('pivot by x_axis with groupby', () => {
   expect(
     pivotOperator(
       {
         ...formData,
-        comparison_type: 'values',
-        time_compare: ['1 year ago', '1 year later'],
+        x_axis: 'baz',
       },
       {
         ...queryObject,
         columns: ['foo', 'bar'],
-        is_timeseries: true,
       },
     ),
   ).toEqual({
     operation: 'pivot',
     options: {
+      index: ['baz'],
+      columns: ['foo', 'bar'],
       aggregates: {
         'count(*)': { operator: 'mean' },
-        'count(*)__1 year ago': { operator: 'mean' },
-        'count(*)__1 year later': { operator: 'mean' },
-        'sum(val)': {
-          operator: 'mean',
-        },
-        'sum(val)__1 year ago': {
-          operator: 'mean',
-        },
-        'sum(val)__1 year later': {
-          operator: 'mean',
-        },
+        'sum(val)': { operator: 'mean' },
       },
       drop_missing_columns: false,
-      columns: ['foo', 'bar'],
-      index: ['__timestamp'],
+      flatten_columns: false,
+      reset_index: false,
     },
   });
 });

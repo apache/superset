@@ -79,6 +79,7 @@ export default function getInitialState({
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
+        remoteId: activeTab.saved_query?.id,
         autorun: activeTab.autorun,
         templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,

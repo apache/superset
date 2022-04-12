@@ -81,12 +81,116 @@ const JSON_TREE_THEME = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 };
+// This regex handles all possible number formats in javascript, including ints, floats,
+// exponential notation, NaN, and Infinity.
+// See https://stackoverflow.com/a/30987109 for more details
+const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
-  height: 100%;
-  overflow-x: auto;
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-  overflow-y: hidden;
+  ${({ theme }) => `
+    height: 100%;
+    overflow-x: auto;
+    margin-top: ${theme.gridUnit * 2}px;
+    overflow-y: hidden;
+
+    .ReactVirtualized__Grid__innerScrollContainer {
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
+
+    .ReactVirtualized__Table__headerRow {
+      font-weight: ${theme.typography.weights.bold};
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
+
+    .ReactVirtualized__Table__row {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .ReactVirtualized__Table__headerTruncatedText,
+    .grid-header-cell {
+      display: inline-block;
+      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .ReactVirtualized__Table__headerColumn,
+    .ReactVirtualized__Table__rowColumn,
+    .grid-cell {
+      min-width: 0px;
+      border-right: 1px solid ${theme.colors.grayscale.light2};
+      align-self: center;
+      padding: ${theme.gridUnit * 3}px;
+      font-size: ${theme.typography.sizes.s}px;
+    }
+
+    .grid-header-cell {
+      font-weight: ${theme.typography.weights.bold};
+      cursor: pointer;
+    }
+
+    .ReactVirtualized__Table__headerColumn:last-of-type,
+    .ReactVirtualized__Table__rowColumn:last-of-type {
+      border-right: 0px;
+    }
+
+    .ReactVirtualized__Table__headerColumn:focus,
+    .ReactVirtualized__Table__Grid:focus {
+      outline: none;
+    }
+
+    .ReactVirtualized__Table__rowColumn {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderColumn {
+      cursor: pointer;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderIconContainer {
+      display: flex;
+      align-items: center;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderIcon {
+      flex: 0 0 ${theme.gridUnit * 6}px;
+      height: 1em;
+      width: 1em;
+      fill: currentColor;
+    }
+
+    .even-row {
+      background: ${theme.colors.grayscale.light4};
+    }
+
+    .odd-row {
+      background: ${theme.colors.grayscale.light5};
+    }
+
+    .header-style {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-style-disabled {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: ${theme.colors.grayscale.light1};
+    }
+
+    .cell-text-for-measuring {
+      font-family: ${theme.typography.families.sansSerif};
+      font-size: ${theme.typography.sizes.s}px;
+    }
+  `}
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
@@ -110,8 +214,9 @@ interface FilterableTableProps {
 
 interface FilterableTableState {
   sortBy?: string;
-  sortDirection: SortDirectionType;
+  sortDirection?: SortDirectionType;
   fitted: boolean;
+  displayedList: Datum[];
 }
 
 export default class FilterableTable extends PureComponent<
@@ -171,8 +276,8 @@ export default class FilterableTable extends PureComponent<
     this.totalTableHeight = props.height;
 
     this.state = {
-      sortDirection: SortDirection.ASC,
       fitted: false,
+      displayedList: [...this.list],
     };
 
     this.container = React.createRef();
@@ -187,7 +292,7 @@ export default class FilterableTable extends PureComponent<
   }
 
   getWidthsForColumns() {
-    const PADDING = 40; // accounts for cell padding and width of sorting icon
+    const PADDING = 50; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     const cellContent = ([] as string[]).concat(
       ...this.props.orderedColumnKeys.map(key => {
@@ -291,7 +396,31 @@ export default class FilterableTable extends PureComponent<
     sortBy: string;
     sortDirection: SortDirectionType;
   }) {
-    this.setState({ sortBy, sortDirection });
+    let updatedState: FilterableTableState;
+
+    const shouldClearSort =
+      this.state.sortDirection === SortDirection.DESC &&
+      this.state.sortBy === sortBy;
+
+    if (shouldClearSort) {
+      updatedState = {
+        ...this.state,
+        sortBy: undefined,
+        sortDirection: undefined,
+        displayedList: [...this.list],
+      };
+    } else {
+      updatedState = {
+        ...this.state,
+        sortBy,
+        sortDirection,
+        displayedList: [...this.list].sort(
+          this.sortResults(sortBy, sortDirection === SortDirection.DESC),
+        ),
+      };
+    }
+
+    this.setState(updatedState);
   }
 
   fitTableToWidthIfNeeded() {
@@ -322,16 +451,21 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
-  // Parse any floating numbers so they'll sort correctly
-  parseFloatingNums = (value: any) => {
-    const floatValue = parseFloat(value);
-    return Number.isNaN(floatValue) ? value : floatValue;
+  // Parse any numbers from strings so they'll sort correctly
+  parseNumberFromString = (value: string | number | null) => {
+    if (typeof value === 'string') {
+      if (ONLY_NUMBER_REGEX.test(value)) {
+        return parseFloat(value);
+      }
+    }
+
+    return value;
   };
 
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = this.parseFloatingNums(a[sortBy]);
-      const bValue = this.parseFloatingNums(b[sortBy]);
+      const aValue = this.parseNumberFromString(a[sortBy]);
+      const bValue = this.parseNumberFromString(b[sortBy]);
 
       // equal items sort equally
       if (aValue === bValue) {
@@ -352,6 +486,17 @@ export default class FilterableTable extends PureComponent<
       return aValue < bValue ? -1 : 1;
     };
   }
+
+  sortGrid = (label: string) => {
+    this.sort({
+      sortBy: label,
+      sortDirection:
+        this.state.sortDirection === SortDirection.DESC ||
+        this.state.sortBy !== label
+          ? SortDirection.ASC
+          : SortDirection.DESC,
+    });
+  };
 
   renderTableHeader({
     dataKey,
@@ -416,8 +561,14 @@ export default class FilterableTable extends PureComponent<
                 : style.top,
           }}
           className={`${className} grid-cell grid-header-cell`}
+          role="columnheader"
+          tabIndex={columnIndex}
+          onClick={() => this.sortGrid(label)}
         >
-          <div>{label}</div>
+          {label}
+          {this.state.sortBy === label && (
+            <SortIndicator sortDirection={this.state.sortDirection} />
+          )}
         </div>
       </Tooltip>
     );
@@ -435,7 +586,7 @@ export default class FilterableTable extends PureComponent<
     style: React.CSSProperties;
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
-    const cellData = this.list[rowIndex][columnKey];
+    const cellData = this.state.displayedList[rowIndex][columnKey];
     const cellText = this.getCellContent({ cellData, columnKey });
     const content =
       cellData === null ? <i className="text-muted">{cellText}</i> : cellText;
@@ -554,17 +705,11 @@ export default class FilterableTable extends PureComponent<
       rowHeight,
     } = this.props;
 
-    let sortedAndFilteredList = this.list;
+    let sortedAndFilteredList = this.state.displayedList;
     // filter list
     if (filterText) {
-      sortedAndFilteredList = this.list.filter((row: Datum) =>
+      sortedAndFilteredList = sortedAndFilteredList.filter((row: Datum) =>
         this.hasMatch(filterText, row),
-      );
-    }
-    // sort list
-    if (sortBy) {
-      sortedAndFilteredList = sortedAndFilteredList.sort(
-        this.sortResults(sortBy, sortDirection === SortDirection.DESC),
       );
     }
 

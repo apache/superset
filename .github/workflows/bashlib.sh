@@ -38,10 +38,10 @@ default-setup-command() {
 }
 
 apt-get-install() {
-    say "::group::apt-get install dependencies"
-    sudo apt-get update && sudo apt-get install --yes \
-      libsasl2-dev
-    say "::endgroup::"
+  say "::group::apt-get install dependencies"
+  sudo apt-get update && sudo apt-get install --yes \
+    libsasl2-dev
+  say "::endgroup::"
 }
 
 pip-upgrade() {
@@ -161,7 +161,7 @@ cypress-run() {
   if [[ -z $CYPRESS_KEY ]]; then
     $cypress --spec "cypress/integration/$page" --browser "$browser"
   else
-    export CYPRESS_RECORD_KEY=`echo $CYPRESS_KEY | base64 --decode`
+    export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
     # additional flags for Cypress dashboard recording
     $cypress --spec "cypress/integration/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
@@ -190,8 +190,8 @@ cypress-run-all() {
   cat "$flasklog"
   say "::endgroup::"
 
-  # Rerun SQL Lab tests with backend persist enabled
-  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist
+  # Rerun SQL Lab tests with backend persist disabled
+  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config_sqllab_backend_persist_off
 
   # Restart Flask with new configs
   kill $flaskProcessId

@@ -17,11 +17,10 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { FormInstance } from 'antd/lib/form';
-import { t } from '@superset-ui/core';
+import { FormInstance } from 'src/components';
+import { Filter, t } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
-import { Filter } from '../../types';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export
@@ -87,10 +86,12 @@ export const useDefaultValue = (
     let tooltip = '';
     if (defaultToFirstItem) {
       tooltip = t(
-        'Default value set automatically when "Default to first item" is checked',
+        'Default value set automatically when "Select first filter value by default" is checked',
       );
     } else if (isRequired) {
-      tooltip = t('Default value must be set when "Required" is checked');
+      tooltip = t(
+        'Default value must be set when "Filter value is required" is checked',
+      );
     } else if (hasDefaultValue) {
       tooltip = t(
         'Default value must be set when "Filter has default value" is checked',

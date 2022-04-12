@@ -198,7 +198,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
-- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html)):
 
   - `feat` (new feature)
   - `fix` (bug fix)
@@ -359,7 +359,7 @@ In the event a community member discovers a security flaw in Superset, it is imp
 
 Reverting changes that are causing issues in the master branch is a normal and expected part of the development process. In an open source community, the ramifications of a change cannot always be fully understood. With that in mind, here are some considerations to keep in mind when considering a revert:
 
-- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable timeframe, this would counter-indicate reverting.
+- **Availability of the PR author:** If the original PR author or the engineer who merged the code is highly available and can provide a fix in a reasonable time frame, this would counter-indicate reverting.
 - **Severity of the issue:** How severe is the problem on master? Is it keeping the project from moving forward? Is there user impact? What percentage of users will experience a problem?
 - **Size of the change being reverted:** Reverting a single small PR is a much lower-risk proposition than reverting a massive, multi-PR change.
 - **Age of the change being reverted:** Reverting a recently-merged PR will be more acceptable than reverting an older PR. A bug discovered in an older PR is unlikely to be causing widespread serious issues.
@@ -412,7 +412,7 @@ You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
-````bash
+```bash
 # Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
@@ -457,7 +457,7 @@ $ make superset
 
 # Setup pre-commit only
 $ make pre-commit
-````
+```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
@@ -475,6 +475,20 @@ $ source venv/bin/activate
 $ python3 -m pip install -r requirements/integration.txt
 $ pip-compile-multi --no-upgrade
 ```
+
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+
+```bash
+$ pip-compile-multi -P my-package
+```
+
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+
+```bash
+$ pip-compile-multi
+```
+
+This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 
@@ -649,8 +663,8 @@ tox -e pylint
 
 In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-Additionally the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
 
 ### TypeScript
 
@@ -790,7 +804,6 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
 export SUPERSET_TESTENV=true
-export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
@@ -1102,7 +1115,7 @@ Then, [Updating language files](#updating-language-files).
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
+[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
 
 To contribute a plugin to Superset, your plugin must meet the following criteria:
 

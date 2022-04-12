@@ -76,7 +76,7 @@ describe('plugin-chart-table', () => {
       );
       tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
       const cells = tree.find('td');
-      expect(cells).toHaveLength(8);
+      expect(cells).toHaveLength(12);
       expect(cells.eq(0).text()).toEqual('2020-01-01 12:34:56');
       expect(cells.eq(1).text()).toEqual('Michael');
       // number is not in `metrics` list, so it should output raw value
@@ -85,6 +85,7 @@ describe('plugin-chart-table', () => {
       // should not render column with `.` in name as `undefined`
       expect(cells.eq(3).text()).toEqual('foo');
       expect(cells.eq(6).text()).toEqual('2467');
+      expect(cells.eq(8).text()).toEqual('N/A');
     });
 
     it('render advanced data', () => {

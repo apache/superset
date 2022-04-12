@@ -35,7 +35,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
   );
 };
 
-export const StyleControlSetItem: ControlSetItem = {
+export const styleControlSetItem: ControlSetItem = {
   name: 'styleTemplate',
   config: {
     ...sharedControls.entity,

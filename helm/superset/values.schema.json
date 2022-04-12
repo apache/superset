@@ -1,0 +1,608 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+        "replicaCount": {
+            "type": "integer"
+        },
+        "runAsUser": {
+            "type": "integer"
+        },
+        "serviceAccount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "create"
+            ]
+        },
+        "bootstrapScript": {
+            "type": "string"
+        },
+        "configFromSecret": {
+            "type": "string"
+        },
+        "envFromSecret": {
+            "type": "string"
+        },
+        "envFromSecrets": {
+            "type": "array"
+        },
+        "extraEnv": {
+            "type": "object"
+        },
+        "extraEnvRaw": {
+            "type": "array"
+        },
+        "extraSecretEnv": {
+            "type": "object"
+        },
+        "extraConfigs": {
+            "type": "object"
+        },
+        "extraSecrets": {
+            "type": "object"
+        },
+        "extraVolumes": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.PodSpec/properties/volumes"
+        },
+        "extraVolumeMounts": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.PodSpec/properties/volumeMounts"
+        },
+        "configOverrides": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            },
+            "properties": {
+                "extend_timeout": {
+                    "type": "string"
+                },
+                "enable_oauth": {
+                    "type": "string"
+                }
+            }
+        },
+        "configOverridesFiles": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            },
+            "properties": {
+                "extend_timeout": {
+                    "type": "string"
+                },
+                "enable_oauth": {
+                    "type": "string"
+                }
+            }
+        },
+        "configMountPath": {
+            "type": "string"
+        },
+        "extraConfigMountPath": {
+            "type": "string"
+        },
+        "image": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
+                }
+            },
+            "required": [
+                "repository",
+                "tag",
+                "pullPolicy"
+            ]
+        },
+        "imagePullSecrets": {
+            "type": "array"
+        },
+        "initImage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
+                }
+            },
+            "required": [
+                "repository",
+                "tag",
+                "pullPolicy"
+            ]
+        },
+        "service": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.ServiceSpec/properties/type"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "annotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "loadBalancerIP": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.ServiceSpec/properties/loadBalancerIP"
+                }
+            },
+            "required": [
+                "type",
+                "port"
+            ]
+        },
+        "ingress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "annotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "pathType": {
+                    "type": "string"
+                },
+                "ingressClassName": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.networking.v1.IngressSpec/properties/ingressClassName"
+                },
+                "hosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tls": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "secretName": {
+                                "type": "string"
+                            },
+                            "hosts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "required": [
+                "enabled",
+                "annotations",
+                "path",
+                "pathType",
+                "hosts",
+                "tls"
+            ]
+        },
+        "resources": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/resources"
+        },
+        "hostAliases": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/hostAliases"
+        },
+        "supersetNode": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "command": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
+                },
+                "connections": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "redis_host": {
+                            "type": "string"
+                        },
+                        "redis_password": {
+                            "type": "string"
+                        },
+                        "redis_port": {
+                            "type": "string"
+                        },
+                        "db_host": {
+                            "type": "string"
+                        },
+                        "db_port": {
+                            "type": "string"
+                        },
+                        "db_user": {
+                            "type": "string"
+                        },
+                        "db_pass": {
+                            "type": "string"
+                        },
+                        "db_name": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "redis_host",
+                        "redis_port",
+                        "db_host",
+                        "db_port",
+                        "db_user",
+                        "db_pass",
+                        "db_name"
+                    ]
+                },
+                "env": {
+                    "type": "object"
+                },
+                "forceReload": {
+                    "type": "boolean"
+                },
+                "initContainers": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/initContainers"
+                },
+                "deploymentAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                }
+            },
+            "required": [
+                "command",
+                "connections",
+                "env",
+                "forceReload"
+            ]
+        },
+        "supersetWorker": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "command": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
+                },
+                "forceReload": {
+                    "type": "boolean"
+                },
+                "initContainers": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/initContainers"
+                },
+                "deploymentAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                }
+            },
+            "required": [
+                "command",
+                "forceReload"
+            ]
+        },
+        "supersetCeleryBeat": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "command": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
+                },
+                "forceReload": {
+                    "type": "boolean"
+                },
+                "initContainers": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/initContainers"
+                },
+                "deploymentAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                }
+            },
+            "required": [
+                "enabled",
+                "command",
+                "forceReload"
+            ]
+        },
+        "init": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "resources": {
+                    "type": "object"
+                },
+                "command": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "loadExamples": {
+                    "type": "boolean"
+                },
+                "createAdmin": {
+                    "type": "boolean"
+                },
+                "adminUser": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "username": {
+                            "type": "string"
+                        },
+                        "firstname": {
+                            "type": "string"
+                        },
+                        "lastname": {
+                            "type": "string"
+                        },
+                        "email": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "username",
+                        "firstname",
+                        "lastname",
+                        "email",
+                        "password"
+                    ]
+                },
+                "initContainers": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.PodSpec/properties/initContainers"
+                },
+                "initscript": {
+                    "type": "string"
+                },
+                "podAnnotations": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                }
+            },
+            "required": [
+                "resources",
+                "command",
+                "enabled",
+                "loadExamples",
+                "createAdmin",
+                "adminUser",
+                "initscript"
+            ]
+        },
+        "postgresql": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "existingSecret": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecretKey": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "service": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "port": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "port"
+                    ]
+                },
+                "postgresqlUsername": {
+                    "type": "string"
+                },
+                "postgresqlPassword": {
+                    "type": "string"
+                },
+                "postgresqlDatabase": {
+                    "type": "string"
+                },
+                "persistence": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "accessModes": {
+                            "type": "array",
+                            "items": [
+                                {
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "required": [
+                        "enabled",
+                        "accessModes"
+                    ]
+                }
+            },
+            "required": [
+                "enabled",
+                "service",
+                "postgresqlUsername",
+                "postgresqlDatabase",
+                "persistence"
+            ]
+        },
+        "redis": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "architecture": {
+                    "type": "string"
+                },
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "existingSecret": {
+                            "type": "string"
+                        },
+                        "existingSecretKey": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "enabled"
+                    ]
+                },
+                "master": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "persistence": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "accessModes": {
+                                    "type": "array",
+                                    "items": [
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "enabled",
+                                "accessModes"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "persistence"
+                    ]
+                },
+                "cluster": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "enabled"
+                    ]
+                }
+            },
+            "required": [
+                "enabled",
+                "architecture",
+                "master"
+            ]
+        },
+        "nodeSelector": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.PodSpec/properties/nodeSelector"
+        },
+        "tolerations": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.PodSpec/properties/tolerations"
+        },
+        "affinity": {
+            "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json#/definitions/io.k8s.api.core.v1.Affinity"
+        }
+    },
+    "required": [
+        "replicaCount",
+        "runAsUser",
+        "serviceAccount",
+        "bootstrapScript",
+        "configFromSecret",
+        "envFromSecret",
+        "envFromSecrets",
+        "extraEnv",
+        "extraEnvRaw",
+        "extraSecretEnv",
+        "extraConfigs",
+        "extraSecrets",
+        "extraVolumes",
+        "extraVolumeMounts",
+        "configOverrides",
+        "configOverridesFiles",
+        "configMountPath",
+        "extraConfigMountPath",
+        "image",
+        "imagePullSecrets",
+        "service",
+        "ingress",
+        "resources",
+        "hostAliases",
+        "supersetNode",
+        "supersetWorker",
+        "supersetCeleryBeat",
+        "init",
+        "postgresql",
+        "redis",
+        "nodeSelector",
+        "tolerations",
+        "affinity"
+    ]
+}

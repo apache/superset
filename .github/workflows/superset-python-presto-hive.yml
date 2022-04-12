@@ -80,7 +80,7 @@ jobs:
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
@@ -158,7 +158,7 @@ jobs:
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |

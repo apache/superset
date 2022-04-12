@@ -25,14 +25,19 @@ replicaCount: 1
 # Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
 runAsUser: 0
 
+# Create custom service account for Superset. If create: true and name is not provided, superset.fullname will be used.
+# serviceAccountName: superset
+serviceAccount:
+  create: false
+
 # Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
 bootstrapScript: |
   #!/bin/bash
   rm -rf /var/lib/apt/lists/* && \
   pip install \
-    psycopg2==2.8.5 \
-    redis==3.2.1 && \
+    psycopg2-binary==2.9.1 \
+    redis==3.5.3 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -78,7 +83,7 @@ extraSecretEnv: {}
   # GOOGLE_SECRET: ...
 
 extraConfigs: {}
-  # datasources-init.yaml: |
+  # import_datasources.yaml: |
   #     databases:
   #     - allow_file_upload: true
   #       allow_ctas: true
@@ -143,8 +148,11 @@ configOverrides: {}
   #   AUTH_USER_REGISTRATION = True
   #   # The default user self registration role
   #   AUTH_USER_REGISTRATION_ROLE = "Admin"
+  # secret: |
+  #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
+  #   SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 # Same as above but the values are files
-configOverridesFiles:
+configOverridesFiles: {}
   # extend_timeout: extend_timeout.py
   # enable_oauth: enable_oauth.py
 
@@ -160,6 +168,10 @@ image:
 
 imagePullSecrets: []
 
+initImage:
+  repository: busybox
+  tag: latest
+  pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
@@ -215,8 +227,11 @@ supersetNode:
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
+    # Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
+    # redis_password: superset
     redis_port: "6379"
+    # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ template "superset.fullname" . }}-postgresql'
     db_port: "5432"
     db_user: superset
@@ -226,8 +241,8 @@ supersetNode:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -236,7 +251,8 @@ supersetNode:
   deploymentAnnotations: {}
   ## Annotations to be added to supersetNode pods
   podAnnotations: {}
-
+  ## Labels to be added to supersetNode pods
+  podLabels: {}
 ##
 ## Superset worker configuration
 supersetWorker:
@@ -247,8 +263,8 @@ supersetWorker:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -257,7 +273,8 @@ supersetWorker:
   deploymentAnnotations: {}
   ## Annotations to be added to supersetWorker pods
   podAnnotations: {}
-
+  ## Labels to be added to supersetWorker pods
+  podLabels: {}
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
@@ -270,8 +287,8 @@ supersetCeleryBeat:
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -280,13 +297,16 @@ supersetCeleryBeat:
   deploymentAnnotations: {}
   ## Annotations to be added to supersetCeleryBeat pods
   podAnnotations: {}
-
+  ## Labels to be added to supersetCeleryBeat pods
+  podLabels: {}
 ##
 ## Init job configuration
 init:
   # Configure resources
   # Warning: fab command consumes a lot of ram and can
   # cause the process to be killed due to OOM if it exceeds limit
+  # Make sure you are giving a strong password for the admin user creation( else make sure you are changing after setup)
+  # Also change the admin email to your own custom email.
   resources: {}
     # limits:
     #   cpu:
@@ -309,8 +329,8 @@ init:
     password: admin
   initContainers:
     - name: wait-for-postgres
-      image: busybox:latest
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -388,27 +408,34 @@ postgresql:
       - ReadWriteOnce
 
 ## Configuration values for the Redis dependency.
-## ref: https://github.com/kubernetes/charts/blob/master/stable/redis/README.md
+## ref: https://github.com/bitnami/charts/blob/master/bitnami/redis
+## More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis
 redis:
   ##
   ## Use the redis chart dependency.
+  ##
+  ## If you are bringing your own redis, you can set the host in supersetNode.connections.redis_host
+  ##
   ## Set to false if bringing your own redis.
   enabled: true
-  usePassword: false
   ##
-  ## The name of an existing secret that contains the redis password.
-  existingSecret:
-  ## Name of the key containing the secret.
-  existingSecretKey: redis-password
+  ## Set architecture to standalone/replication
+  architecture: standalone
   ##
-  ## If you are bringing your own redis, you can set the host in redisHost.
-  ## redisHost:
+  ## Auth configuration:
   ##
-  ## Redis password
-  ##
-  password: superset
+  auth:
+    ## Enable password authentication
+    enabled: false
+    ## The name of an existing secret that contains the redis password.
+    existingSecret: ""
+    ## Name of the key containing the secret.
+    existingSecretKey: ""
+    ## Redis password
+    password: superset
   ##
   ## Master configuration
+  ##
   master:
     ##
     ## Image configuration
@@ -429,10 +456,6 @@ redis:
       ## Access mode:
       accessModes:
       - ReadWriteOnce
-  ##
-  ## Disable cluster management by default.
-  cluster:
-    enabled: false
 
 nodeSelector: {}
 

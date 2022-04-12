@@ -244,6 +244,7 @@ function createCustomizeSection(
             [1, t('Secondary')],
           ],
           default: yAxisIndex,
+          clearable: false,
           renderTrigger: true,
           description: t('Primary or secondary y-axis'),
         },

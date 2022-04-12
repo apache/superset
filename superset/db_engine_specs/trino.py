@@ -14,22 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib import parse
 
 import simplejson as json
-from sqlalchemy.engine.url import make_url, URL
+from flask import current_app
+from sqlalchemy.engine.url import URL
 
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+logger = logging.getLogger(__name__)
+
 
 class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
+    engine_aliases = {"trinonative"}
     engine_name = "Trino"
 
     _time_grain_expressions = {
@@ -52,13 +58,25 @@ class TrinoEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
-            value = dttm.date().isoformat()
-            return f"from_iso8601_date('{value}')"
-        if tt == utils.TemporalType.TIMESTAMP:
-            value = dttm.isoformat(timespec="microseconds")
-            return f"from_iso8601_timestamp('{value}')"
+            return f"from_iso8601_date('{dttm.date().isoformat()}')"
+        if tt in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 
     @classmethod
@@ -77,7 +95,10 @@ class TrinoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -87,7 +108,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Trino connection, enable impersonation, and set optional param
@@ -202,3 +223,42 @@ class TrinoEngineSpec(BaseEngineSpec):
             connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
 
         return extra
+
+    @staticmethod
+    def update_encrypted_extra_params(
+        database: "Database", params: Dict[str, Any]
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            auth_method = encrypted_extra.pop("auth_method", None)
+            auth_params = encrypted_extra.pop("auth_params", {})
+            if not auth_method:
+                return
+
+            connect_args = params.setdefault("connect_args", {})
+            connect_args["http_scheme"] = "https"
+            # pylint: disable=import-outside-toplevel
+            if auth_method == "basic":
+                from trino.auth import BasicAuthentication as trino_auth  # noqa
+            elif auth_method == "kerberos":
+                from trino.auth import KerberosAuthentication as trino_auth  # noqa
+            elif auth_method == "jwt":
+                from trino.auth import JWTAuthentication as trino_auth  # noqa
+            else:
+                allowed_extra_auths = current_app.config[
+                    "ALLOWED_EXTRA_AUTHENTICATIONS"
+                ].get("trino", {})
+                if auth_method in allowed_extra_auths:
+                    trino_auth = allowed_extra_auths.get(auth_method)
+                else:
+                    raise ValueError(
+                        f"For security reason, custom authentication '{auth_method}' "
+                        f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+                    )
+
+            connect_args["auth"] = trino_auth(**auth_params)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex

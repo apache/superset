@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import copy
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 
@@ -41,13 +43,13 @@ config = app.config
 
 
 def _get_datasource(
-    query_context: "QueryContext", query_obj: "QueryObject"
+    query_context: QueryContext, query_obj: QueryObject
 ) -> BaseDatasource:
     return query_obj.datasource or query_context.datasource
 
 
 def _get_columns(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool
+    query_context: QueryContext, query_obj: QueryObject, _: bool
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
@@ -63,7 +65,7 @@ def _get_columns(
 
 
 def _get_timegrains(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool
+    query_context: QueryContext, query_obj: QueryObject, _: bool
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
@@ -79,7 +81,9 @@ def _get_timegrains(
 
 
 def _get_query(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool,
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
@@ -91,8 +95,8 @@ def _get_query(
 
 
 def _get_full(
-    query_context: "QueryContext",
-    query_obj: "QueryObject",
+    query_context: QueryContext,
+    query_obj: QueryObject,
     force_cached: Optional[bool] = False,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
@@ -129,18 +133,22 @@ def _get_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {"data": payload.get("data")}
+        return {
+            "data": payload.get("data"),
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+        }
     return payload
 
 
 def _get_samples(
-    query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.metrics = []
+    query_obj.metrics = None
     query_obj.post_processing = []
     query_obj.columns = [o.column_name for o in datasource.columns]
     query_obj.from_dttm = None
@@ -149,14 +157,14 @@ def _get_samples(
 
 
 def _get_results(
-    query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
-    return {"data": payload.get("data"), "error": payload.get("error")}
+    return payload
 
 
 _result_type_functions: Dict[
-    ChartDataResultType, Callable[["QueryContext", "QueryObject", bool], Dict[str, Any]]
+    ChartDataResultType, Callable[[QueryContext, QueryObject, bool], Dict[str, Any]]
 ] = {
     ChartDataResultType.COLUMNS: _get_columns,
     ChartDataResultType.TIMEGRAINS: _get_timegrains,
@@ -173,8 +181,8 @@ _result_type_functions: Dict[
 
 def get_query_results(
     result_type: ChartDataResultType,
-    query_context: "QueryContext",
-    query_obj: "QueryObject",
+    query_context: QueryContext,
+    query_obj: QueryObject,
     force_cached: bool,
 ) -> Dict[str, Any]:
     """

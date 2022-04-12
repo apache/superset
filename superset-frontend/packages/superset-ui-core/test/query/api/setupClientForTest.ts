@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { SupersetClient } from '@superset-ui/core/src/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 const LOGIN_GLOB = 'glob:*api/v1/security/csrf_token/*';
 

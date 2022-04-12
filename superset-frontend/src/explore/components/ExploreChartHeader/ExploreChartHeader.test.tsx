@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { Slice } from 'src/types/Chart';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import ExploreHeader from '.';
@@ -30,7 +29,6 @@ const createProps = () => ({
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
-      time_range_endpoints: ['inclusive', 'exclusive'],
       granularity_sqla: 'time_start',
       time_range: 'No filter',
       all_columns_x: ['age'],
@@ -66,7 +64,6 @@ const createProps = () => ({
       row_limit: 10000,
       slice_id: 318,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
       viz_type: 'histogram',
       x_axis_label: 'age',
@@ -82,7 +79,7 @@ const createProps = () => ({
     slice_id: 318,
     slice_name: 'Age distribution of respondents',
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  } as unknown as Slice,
+  },
   slice_name: 'Age distribution of respondents',
   actions: {
     postChartFormData: () => null,
@@ -98,14 +95,11 @@ const createProps = () => ({
 test('Cancelling changes to the properties should reset previous properties', () => {
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
-
-  const openModal = screen.getByRole('button', {
-    name: 'Edit chart properties',
-  });
   const newChartName = 'New chart name';
   const prevChartName = props.slice_name;
 
-  userEvent.click(openModal);
+  userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  userEvent.click(screen.getByText('Edit chart properties'));
 
   const nameInput = screen.getByRole('textbox', { name: 'Name' });
 
@@ -116,7 +110,8 @@ test('Cancelling changes to the properties should reset previous properties', ()
 
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-  userEvent.click(openModal);
+  userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  userEvent.click(screen.getByText('Edit chart properties'));
 
   expect(screen.getByDisplayValue(prevChartName)).toBeInTheDocument();
 });

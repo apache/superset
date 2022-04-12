@@ -23,6 +23,7 @@ export type User = {
   email: string;
   firstName: string;
   isActive: boolean;
+  isAnonymous: boolean;
   lastName: string;
   userId: number;
   username: string;
@@ -43,6 +44,16 @@ export type Dashboard = {
   title: string;
   creator?: string;
   creator_url?: string;
+};
+
+export type DashboardData = {
+  dashboard_title?: string;
+  created_on_delta_humanized?: string;
+  url: string;
+};
+
+export type DashboardResponse = {
+  result: DashboardData[];
 };
 
 export interface CommonBootstrapData {
