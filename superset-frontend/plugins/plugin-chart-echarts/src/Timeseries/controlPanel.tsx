@@ -298,6 +298,9 @@ const config: ControlPanelConfig = {
     row_limit: {
       default: rowLimit,
     },
+    limit: {
+      default: 100,
+    },
   },
 };
 
