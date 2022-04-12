@@ -61,7 +61,7 @@ export type Query = {
     query: { limit: number };
   };
   resultsKey: string | null;
-  schema: string;
+  schema?: string;
   sql: string;
   sqlEditorId: string;
   state: QueryState;
