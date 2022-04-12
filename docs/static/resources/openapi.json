@@ -1968,7 +1968,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2075,7 +2075,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2760,7 +2760,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
@@ -2867,7 +2867,7 @@
             "type": "string"
           },
           "query_context_generation": {
-            "description": "The query context generation represents whether the query_contextis user generated or not so that it does not update user modfiedstate.",
+            "description": "The query context generation represents whether the query_contexts user generated or not so that it does not update user modfiedstate.",
             "nullable": true,
             "type": "boolean"
           },
