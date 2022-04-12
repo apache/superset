@@ -490,7 +490,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
-        # the configuraiton dictionary. See get_configuration_for_impersonation
+        # the configuration dictionary. See get_configuration_for_impersonation
         return url
 
     @classmethod
