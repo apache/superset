@@ -157,7 +157,7 @@ export default function DatabaseSelector({
   );
   const dispatch = useDispatch();
   const dbConnect = useSelector<RootState, any>(
-    state => state.sqlLab.dbConnect,
+    state => state.sqlLab?.dbConnect,
   );
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
