@@ -93,7 +93,7 @@ describe('plugin-chart-table', () => {
         <TableChart {...transformProps(testData.advanced)} sticky={false} />,
       );
       tree = wrap.render();
-      // should successfull rerender with new props
+      // should successful rerender with new props
       const cells = tree.find('td');
       expect(tree.find('th').eq(1).text()).toEqual('Sum of Num');
       expect(cells.eq(2).text()).toEqual('12.346%');
