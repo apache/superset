@@ -17,9 +17,5 @@
  * under the License.
  */
 
-import { getUiOverrideRegistry, t } from '@superset-ui/core';
-
 // For individual deployments to add custom overrides
-export default function setupPluginsExtra() {
-  // getUiOverrideRegistry().set('embedded.documentation.description', () => t('Override of the Superset documentation!'))
-}
+export default function setupPluginsExtra() {}
