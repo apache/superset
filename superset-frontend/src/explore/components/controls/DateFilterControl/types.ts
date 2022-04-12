@@ -30,7 +30,7 @@ export type FrameType =
 
 export type DateTimeGrainType =
   | 'second'
-  | 'minite'
+  | 'minute'
   | 'hour'
   | 'day'
   | 'week'
