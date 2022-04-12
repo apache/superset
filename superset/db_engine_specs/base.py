@@ -334,7 +334,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Whether ORDER BY clause must appear in SELECT
     # if TRUE, then it doesn't have to.
-    allows_hidden_ordeby_agg = True
+    allows_hidden_orderby_agg = True
 
     # Whether ORDER BY clause can use sql calculated expression
     # if True, use alias of select column for `order by`
