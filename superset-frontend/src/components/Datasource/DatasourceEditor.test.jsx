@@ -88,7 +88,7 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputLabel, 'test_label');
     userEvent.type(await inputDescription, 'test');
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
