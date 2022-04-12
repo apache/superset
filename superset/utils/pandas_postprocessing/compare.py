@@ -65,13 +65,12 @@ def compare(  # pylint: disable=too-many-arguments
         c_df = df.loc[:, [c_col]]
         c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
-            diff_df = c_df - s_df
+            diff_df = s_df - c_df
         elif compare_type == PandasPostprocessingCompare.PCT:
-            # https://en.wikipedia.org/wiki/Relative_change_and_difference#Percentage_change
-            diff_df = ((c_df - s_df) / s_df).astype(float).round(precision)
+            diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
         else:
             # compare_type == "ratio"
-            diff_df = (c_df / s_df).astype(float).round(precision)
+            diff_df = (s_df / c_df).astype(float).round(precision)
 
         diff_df.rename(
             columns={
