@@ -22,13 +22,13 @@ from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 import pandas as pd
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.common.query_context_processor import (
-    CachedTimeOffset,
-    QueryContextProcessor,
-)
 from superset.common.query_object import QueryObject
 
 if TYPE_CHECKING:
+    from superset.common.query_context_processor import (
+        CachedTimeOffset,
+        QueryContextProcessor,
+    )
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
     from superset.models.core import Database
@@ -81,13 +81,23 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
-        self._processor = QueryContextProcessor(self)
+
+    def set_processor(self, processor: QueryContextProcessor) -> None:
+        self._processor = processor
+
+    def _get_processor(self) -> QueryContextProcessor:
+        if not hasattr(self, "_processor"):
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_processor import QueryContextProcessor
+
+            self.set_processor(QueryContextProcessor(self))
+        return self._processor
 
     def get_data(
         self,
         df: pd.DataFrame,
     ) -> Union[str, List[Dict[str, Any]]]:
-        return self._processor.get_data(df)
+        return self._get_processor().get_data(df)
 
     def get_payload(
         self,
@@ -95,7 +105,7 @@ class QueryContext:
         force_cached: bool = False,
     ) -> Dict[str, Any]:
         """Returns the query results with both metadata and data"""
-        return self._processor.get_payload(cache_query_context, force_cached)
+        return self._get_processor().get_payload(cache_query_context, force_cached)
 
     def get_cache_timeout(self) -> Optional[int]:
         if self.custom_cache_timeout is not None:
@@ -107,27 +117,27 @@ class QueryContext:
         return None
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
-        return self._processor.query_cache_key(query_obj, **kwargs)
+        return self._get_processor().query_cache_key(query_obj, **kwargs)
 
     def get_df_payload(
         self,
         query_obj: QueryObject,
         force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
-        return self._processor.get_df_payload(query_obj, force_cached)
+        return self._get_processor().get_df_payload(query_obj, force_cached)
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        return self._processor.get_query_result(query_object)
+        return self._get_processor().get_query_result(query_object)
 
     def processing_time_offsets(
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
     ) -> CachedTimeOffset:
-        return self._processor.processing_time_offsets(df, query_object)
+        return self._get_processor().processing_time_offsets(df, query_object)
 
     def raise_for_access(self) -> None:
-        self._processor.raise_for_access()
+        self._get_processor().raise_for_access()
 
     def get_database(self) -> Optional[Union[Database, DruidCluster]]:
         try:
