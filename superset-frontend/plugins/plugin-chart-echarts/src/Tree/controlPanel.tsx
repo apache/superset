@@ -161,7 +161,7 @@ const controlPanel: ControlPanelConfig = {
                 ['right', t('right')],
                 ['bottom', t('bottom')],
               ],
-              description: t('Position of intermidiate node label on tree'),
+              description: t('Position of intermediate node label on tree'),
             },
           },
         ],

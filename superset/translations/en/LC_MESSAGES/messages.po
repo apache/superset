@@ -8597,7 +8597,7 @@ msgid "Position of column level subtotal"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:163
-msgid "Position of intermidiate node label on tree"
+msgid "Position of intermediate node label on tree"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:293
