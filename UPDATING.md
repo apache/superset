@@ -192,7 +192,7 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 
 ### Potential Downtime
 
-- [11920](https://github.com/apache/superset/pull/11920): Undos the DB migration from [11714](https://github.com/apache/superset/pull/11714) to prevent adding new columns to the logs table. Deploying a sha between these two PRs may result in locking your DB.
+- [11920](https://github.com/apache/superset/pull/11920): Undoes the DB migration from [11714](https://github.com/apache/superset/pull/11714) to prevent adding new columns to the logs table. Deploying a sha between these two PRs may result in locking your DB.
 
 - [11714](https://github.com/apache/superset/pull/11714): Logs
   significantly more analytics events (roughly double?), and when
