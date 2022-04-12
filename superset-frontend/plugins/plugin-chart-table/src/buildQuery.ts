@@ -76,7 +76,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         orderby = [[sortByMetric, !orderDesc]];
       } else if (metrics?.length > 0) {
         // default to ordering by first metric in descending order
-        // when no "sort by" metric is set (regargless if "SORT DESC" is set to true)
+        // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
