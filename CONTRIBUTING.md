@@ -116,7 +116,7 @@ Here's a list of repositories that contain Superset-related packages:
   the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
 - [github.com/apache-superset](https://github.com/apache-superset) is the
-  Github organization under which we manage Superset-related
+  GitHub organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
 
 ## Types of Contributions
@@ -209,7 +209,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - `chore` (updating tasks etc; no application logic change)
   - `perf` (performance-related change)
   - `build` (build tooling, Docker configuration change)
-  - `ci` (test runner, Github Actions workflow changes)
+  - `ci` (test runner, GitHub Actions workflow changes)
   - `other` (changes that don't correspond to the above -- should be rare!)
   - Examples:
     - `feat: export charts as ZIP files`

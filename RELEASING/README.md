@@ -315,9 +315,9 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 python send_email.py announce
 ```
 
-### Github Release
+### GitHub Release
 
-Finally, so the Github UI reflects the latest release, you should create a release from the
+Finally, so the GitHub UI reflects the latest release, you should create a release from the
 tag corresponding with the new version. Go to https://github.com/apache/superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
