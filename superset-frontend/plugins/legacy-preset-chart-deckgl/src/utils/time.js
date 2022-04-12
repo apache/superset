@@ -65,10 +65,10 @@ function getStepSeconds(step, start) {
    * The step might be ambiguous, eg, "1 month" has a variable number of
    * seconds, which is why we need to know the start time.
    */
-  const startMillliseconds = parseInt(moment(start).format('x'), 10);
+  const startMilliseconds = parseInt(moment(start).format('x'), 10);
   const endMilliseconds = parseInt(moment(start).add(step).format('x'), 10);
 
-  return endMilliseconds - startMillliseconds;
+  return endMilliseconds - startMilliseconds;
 }
 
 export function getPlaySliderParams(timestamps, timeGrain) {
