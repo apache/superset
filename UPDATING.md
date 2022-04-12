@@ -328,7 +328,7 @@ flag for the legacy datasource editor (DISABLE_LEGACY_DATASOURCE_EDITOR) in conf
 - We're deprecating the concept of "restricted metric", this feature
   was not fully working anyhow.
 - [8117](https://github.com/apache/superset/pull/8117): If you are
-  using `ENABLE_PROXY_FIX = True`, review the newly-introducted variable,
+  using `ENABLE_PROXY_FIX = True`, review the newly-introduced variable,
   `PROXY_FIX_CONFIG`, which changes the proxy behavior in accordance with
   [Werkzeug](https://werkzeug.palletsprojects.com/en/0.15.x/middleware/proxy_fix/)
 
