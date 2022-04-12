@@ -590,7 +590,7 @@ export const exploreView = {
       okButton: '.ant-modal-confirm-btns .ant-btn-primary',
     },
   },
-  vizualizationTypeModal: {
+  visualizationTypeModal: {
     vizTypeButton: dataTestLocator('viztype-selector-container'),
   },
 };
