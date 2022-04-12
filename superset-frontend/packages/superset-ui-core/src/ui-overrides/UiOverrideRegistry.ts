@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { makeSingleton } from '../utils';
-import { TypedRegistry } from '../models';
 import React from 'react';
+import { TypedRegistry } from '../models';
+import { makeSingleton } from '../utils';
 
 /** A function (or component) which returns text (or marked-up text) */
 type UiGeneratorText<T = void> =

@@ -23,11 +23,12 @@
  * Differences from the older Registry class:
  *
  * 1. The keys and values stored in this class are individually typed by TYPEMAP parameter.
- *   In the old Registry, all values are of the same type and keys are not enumerated.
+ *    In the old Registry, all values are of the same type and keys are not enumerated.
+ *    Though you can also use indexed or mapped types in a TYPEMAP.
  *
  * 2. This class does not have a separate async get and set methods or use loaders.
- *   Instead, TYPEMAP should specify async values and loaders explicitly when needed.
- *   The value can be anything! A string, a class, a function, an async function... anything!
+ *    Instead, TYPEMAP should specify async values and loaders explicitly when needed.
+ *    The value can be anything! A string, a class, a function, an async function... anything!
  *
  * 3. This class does not implement Policies, that is a separate concern to be handled elsewhere.
  *
@@ -38,6 +39,7 @@
  */
 class TypedRegistry<TYPEMAP extends {}> {
   name = 'TypedRegistry';
+
   private records: TYPEMAP;
 
   constructor(initialRecords: TYPEMAP) {
