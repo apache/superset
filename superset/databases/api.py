@@ -169,8 +169,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
-    search_columns = ["allow_file_upload", "expose_in_sqllab"]
-
     search_filters = {
         "allow_file_upload": [DatabaseUploadEnabledFilter],
         "expose_in_sqllab": [DatabaseFilter],
