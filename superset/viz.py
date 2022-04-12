@@ -2020,7 +2020,7 @@ class ChordViz(BaseViz):
 
         df.columns = ["source", "target", "value"]
 
-        # Preparing a symetrical matrix like d3.chords calls for
+        # Preparing a symmetrical matrix like d3.chords calls for
         nodes = list(set(df["source"]) | set(df["target"]))
         matrix = {}
         for source, target in product(nodes, nodes):
