@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 """Tests for security api methods"""
-import json
+from unittest import mock
 
 import pytest
 
@@ -34,6 +34,10 @@ class TestEmbeddedDashboardApi(SupersetTestCase):
     resource_name = "embedded_dashboard"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        EMBEDDED_SUPERSET=True,
+    )
     def test_get_embedded_dashboard(self):
         self.login("admin")
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
