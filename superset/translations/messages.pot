@@ -9235,7 +9235,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:226
-msgid "Report Schedule sellenium user not found"
+msgid "Report Schedule selenium user not found"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:230
