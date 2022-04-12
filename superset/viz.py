@@ -454,7 +454,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         "5 days ago" or "now").
 
         The `extra` arguments are currently used by time shift queries, since
-        different time shifts wil differ only in the `from_dttm`, `to_dttm`,
+        different time shifts will differ only in the `from_dttm`, `to_dttm`,
         `inner_from_dttm`, and `inner_to_dttm` values which are stripped.
         """
         cache_dict = copy.copy(query_obj)
