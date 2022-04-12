@@ -50,7 +50,7 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description: t(
-          'Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.',
+          'Show hierarchical relationships of data, with the value represented by area, showing proportion and contribution to the whole.',
         ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Treemap'),

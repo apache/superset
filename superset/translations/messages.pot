@@ -10418,7 +10418,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:52
 msgid ""
-"Show hierarchical relationships of data, with with the value represented "
+"Show hierarchical relationships of data, with the value represented "
 "by area, showing proportion and contribution to the whole."
 msgstr ""
 

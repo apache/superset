@@ -178,7 +178,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
-            "Many to one with with old permission that gets deleted",
+            "Many to one with old permission that gets deleted",
             {
                 "NewDummy": (
                     "can_read",
