@@ -1708,9 +1708,9 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             values=utils.get_metric_name(self.form_data["metric"]),
         )
         chart_data = self.to_series(df)
-        for serie in chart_data:
-            serie["rank"] = rank_lookup[serie["key"]]
-            serie["perc"] = 1 - (serie["rank"] / (max_rank + 1))
+        for series in chart_data:
+            series["rank"] = rank_lookup[series["key"]]
+            series["perc"] = 1 - (series["rank"] / (max_rank + 1))
         return chart_data
 
 
