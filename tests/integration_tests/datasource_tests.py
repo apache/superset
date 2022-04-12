@@ -233,7 +233,7 @@ class TestDatasource(SupersetTestCase):
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
 
-    def test_external_metadata_for_mutistatement_virtual_table(self):
+    def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(username="admin")
         table = SqlaTable(
             table_name="multistatement_sql_table",
