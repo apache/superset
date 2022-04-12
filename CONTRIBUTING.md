@@ -488,7 +488,7 @@ To bring all dependencies up to date as per the restrictions defined in `setup.p
 $ pip-compile-multi
 ```
 
-This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
+This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 
