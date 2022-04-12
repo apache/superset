@@ -12138,7 +12138,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.jsx:127
 msgid ""
-"This color scheme is being overriden by custom label colors.\n"
+"This color scheme is being overridden by custom label colors.\n"
 "              Check the JSON metadata in the Advanced settings"
 msgstr ""
 
