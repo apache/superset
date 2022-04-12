@@ -191,7 +191,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful Canadian Login Attempts :{' '}
+                    Number of Successful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : canadianIpsList.length}{' '}
@@ -215,7 +215,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful non Canadian Login Attempts :{' '}
+                    Number of Successful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : nonCanadianIpsList.length}{' '}
@@ -239,7 +239,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful Canadian Login Attempts :{' '}
+                    Number of Unsuccessful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : unsuccessfulCanadianIpsList.length}{' '}
@@ -263,7 +263,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful non Canadian Login Attempts :{' '}
+                    Number of Unsuccessful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : unsuccessfulNonCanadianIpsList.length}{' '}
