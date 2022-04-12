@@ -3528,7 +3528,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:154
 msgid ""
 "D3 number format for numbers between -1.0 and 1.0, useful when you want "
-"to have different siginificant digits for small and large numbers"
+"to have different significant digits for small and large numbers"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:220
