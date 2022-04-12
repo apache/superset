@@ -121,7 +121,7 @@ export const jsColumns = {
     label: t('Extra data for JS'),
     default: [],
     description: t(
-      'List of extra columns made available in Javascript functions',
+      'List of extra columns made available in JavaScript functions',
     ),
   },
 };
@@ -129,7 +129,7 @@ export const jsColumns = {
 export const jsDataMutator = {
   name: 'js_data_mutator',
   config: jsFunctionControl(
-    t('Javascript data interceptor'),
+    t('JavaScript data interceptor'),
     t(
       'Define a javascript function that receives the data array used in the visualization ' +
         'and is expected to return a modified version of that array. This can be used ' +
@@ -141,7 +141,7 @@ export const jsDataMutator = {
 export const jsTooltip = {
   name: 'js_tooltip',
   config: jsFunctionControl(
-    t('Javascript tooltip generator'),
+    t('JavaScript tooltip generator'),
     t(
       'Define a function that receives the input and outputs the content for a tooltip',
     ),
@@ -151,7 +151,7 @@ export const jsTooltip = {
 export const jsOnclickHref = {
   name: 'js_onclick_href',
   config: jsFunctionControl(
-    t('Javascript onClick href'),
+    t('JavaScript onClick href'),
     t('Define a function that returns a URL to navigate to when user clicks'),
   ),
 };

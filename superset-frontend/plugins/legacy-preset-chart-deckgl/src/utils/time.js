@@ -20,7 +20,7 @@
 import moment from 'moment';
 
 // array with the minimum values of each part of a timestamp -- note that
-// months are zero-indexed in Javascript
+// months are zero-indexed in JavaScript
 const truncatePartTo = [
   1, // year
   0, // month
