@@ -714,7 +714,7 @@ postgresql:
       ## Enable PostgreSQL persistence using Persistent Volume Claims.
       enabled: true
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access modes:
@@ -769,7 +769,7 @@ redis:
       ## Use a PVC to persist data.
       enabled: false
       ##
-      ## Persistant class
+      ## Persistent class
       # storageClass: classname
       ##
       ## Access mode:
