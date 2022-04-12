@@ -119,7 +119,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 250,
               description: t(
-                'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+                'Maximum radius size of the circle, in pixels. As the zoom level changes, this ' +
                   'insures that the circle respects this maximum radius.',
               ),
             },
