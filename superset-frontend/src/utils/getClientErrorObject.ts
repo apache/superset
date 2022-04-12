@@ -56,7 +56,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns the error mssage in the format
+  // Marshmallow field validation returns the error message in the format
   // of { message: { field1: [msg1, msg2], field2: [msg], } }
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
