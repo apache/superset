@@ -108,7 +108,7 @@ const plugins = [
         entrypoints: entryFiles,
       };
     },
-    // Also write maniafest.json to disk when running `npm run dev`.
+    // Also write manifest.json to disk when running `npm run dev`.
     // This is required for Flask to work.
     writeToFileEmit: isDevMode && !isDevServer,
   }),
