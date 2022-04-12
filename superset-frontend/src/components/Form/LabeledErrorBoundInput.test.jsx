@@ -60,7 +60,6 @@ describe('LabeledErrorBoundInput', () => {
     expect(textboxInput).toBeVisible();
     expect(errorText).toBeVisible();
   });
-
   it('renders a LabeledErrorBoundInput with a InfoTooltip', async () => {
     defaultProps.hasTooltip = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
