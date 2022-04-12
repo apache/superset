@@ -124,7 +124,7 @@ def upgrade():
         logging.warning(
             "Constraint drop failed, you may want to do this "
             "manually on your database. For context, this is a known "
-            "issue around undeterministic contraint names on Postgres "
+            "issue around undeterministic constraint names on Postgres "
             "and perhaps more databases through SQLAlchemy."
         )
         logging.exception(ex)
