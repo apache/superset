@@ -22,9 +22,7 @@ import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
 
 /** A function (or component) which returns text (or marked-up text) */
-type UiGeneratorText<T = void> =
-  | React.ComponentType<T>
-  | ((params: T) => string | React.ElementType);
+type UiGeneratorText<P = void> = (props: P) => string | React.ReactElement;
 
 /**
  * This type defines all the UI override options which replace elements of Superset's default UI.
