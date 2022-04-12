@@ -16,6 +16,17 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string;
 };
 
+const getIPList = (ip_list: any) => {
+  const counter = {};
+
+  ip_list.forEach(function (obj: any) {
+    const key = JSON.stringify(obj);
+    counter[key] = (counter[key] || 0) + 1;
+  });
+
+  return counter;
+};
+
 const generateClientIpLinksList = (
   ipList: any,
   ipDashBoardBaseUrl: string,
@@ -40,6 +51,7 @@ const generateClientIpLinksList = (
             >
               {a.client_ip}
             </a>
+            (5)
           </td>
         </tr>
       ))}
@@ -170,6 +182,12 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
     <div style={styles.AtAGlance}>
       <div>
         <table>
+          <tr>
+            <td>
+              **Please note that the results in this chart are only for the
+              first User Email**
+            </td>
+          </tr>
           <tr>
             <td>User Email: {userIDString}</td>
           </tr>
