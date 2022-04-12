@@ -411,7 +411,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
-    # geospatial ones) by inputing javascript in controls. This exposes
+    # geospatial ones) by inputting javascript in controls. This exposes
     # an XSS security vulnerability
     "ENABLE_JAVASCRIPT_CONTROLS": False,
     "KV_STORE": False,
