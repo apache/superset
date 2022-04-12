@@ -200,7 +200,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
      tab, or 'customize' if you want it to show up on that tam. Otherwise sections with ALL
      `renderTrigger: true` components will show up on the `Customize` tab.
  * - visibility: a function that uses control panel props to check whether a control should
- *    be visibile.
+ *    be visible.
  */
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
