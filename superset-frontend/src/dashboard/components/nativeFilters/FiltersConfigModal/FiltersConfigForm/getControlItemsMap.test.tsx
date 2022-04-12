@@ -141,7 +141,7 @@ test('Should render null empty when "controlItems" are falsy', () => {
   expect(container.children).toHaveLength(0);
 });
 
-test('Should render render ControlItems', () => {
+test('Should render ControlItems', () => {
   const props = createProps();
 
   const controlItems = [
