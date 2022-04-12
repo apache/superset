@@ -92,7 +92,7 @@ export interface ControlPanelState {
 }
 
 /**
- * The action dispather will call Redux `dispatch` internally and return what's
+ * The action dispatcher will call Redux `dispatch` internally and return what's
  * returned from `dispatch`, which by default is the original or another action.
  */
 export interface ActionDispatcher<
