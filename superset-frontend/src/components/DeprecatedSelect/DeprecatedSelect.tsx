@@ -90,7 +90,7 @@ export type SupersetStyledSelectProps<
   // callback for paste event
   onPaste?: (e: SyntheticEvent) => void;
   forceOverflow?: boolean;
-  // for simplier theme overrides
+  // for simpler theme overrides
   themeConfig?: PartialThemeConfig;
   stylesConfig?: PartialStylesConfig;
 };
