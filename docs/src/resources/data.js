@@ -19,7 +19,7 @@
 
 export const Databases = [
   {
-    title: 'Amazon Redshfit',
+    title: 'Amazon Redshift',
     href: 'https://aws.amazon.com/redshift/',
     imgName: 'aws-redshift.png',
   },
