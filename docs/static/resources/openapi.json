@@ -17280,7 +17280,7 @@
                       "type": "string"
                     },
                     "url": {
-                      "description": "pemanent link.",
+                      "description": "permanent link.",
                       "type": "string"
                     }
                   },
