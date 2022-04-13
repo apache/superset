@@ -2820,7 +2820,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
-            return json_error_response("No database is allowed for your csv upload")
+            return json_error_response("No database is allowed for your file upload")
 
         db_id = int(request.args["db_id"])
         database = db.session.query(Database).filter_by(id=db_id).one()
