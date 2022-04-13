@@ -18,6 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  isUserWithPermissionsAndRoles,
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
@@ -42,6 +43,7 @@ const ADMIN_ROLE_NAME = 'admin';
 export const isUserAdmin = (
   user: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
+  isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
@@ -49,12 +51,14 @@ export const isUserAdmin = (
 const isUserDashboardOwner = (
   dashboard: Dashboard,
   user: UserWithPermissionsAndRoles | UndefinedUser,
-) => dashboard.owners.some(owner => owner.username === user.username);
+) =>
+  isUserWithPermissionsAndRoles(user) &&
+  dashboard.owners.some(owner => owner.username === user.username);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | UndefinedUser | null,
 ) =>
-  !!user?.roles &&
+  isUserWithPermissionsAndRoles(user) &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
   findPermission('can_write', 'Dashboard', user.roles);

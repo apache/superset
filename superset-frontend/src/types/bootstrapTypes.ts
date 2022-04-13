@@ -1,4 +1,5 @@
 import { JsonObject, Locale } from '@superset-ui/core';
+import { isPlainObject } from 'lodash';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -63,4 +64,14 @@ export interface CommonBootstrapData {
   conf: JsonObject;
   locale: Locale;
   feature_flags: Record<string, boolean>;
+}
+
+export function isUser(user: any): user is User {
+  return isPlainObject(user) && 'username' in user;
+}
+
+export function isUserWithPermissionsAndRoles(
+  user: any,
+): user is UserWithPermissionsAndRoles {
+  return isUser(user) && 'permissions' in user && 'roles' in user;
 }
