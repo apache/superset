@@ -792,7 +792,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
         dispatch({
           type: QUERY_EDITOR_SET_SCHEMA,
           queryEditor: queryEditor || {},
-          schema: schema || {},
+          schema,
         }),
       )
       .catch(() =>
