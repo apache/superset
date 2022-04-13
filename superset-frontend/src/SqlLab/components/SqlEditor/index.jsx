@@ -342,7 +342,7 @@ class SqlEditor extends React.PureComponent {
       },
       {
         name: 'stopQuery',
-        key: 'ctrl+x',
+        key: userOS === 'MacOS' ? 'ctrl+x' : 'ctrl+e',
         descr: t('Stop query'),
         func: this.stopQuery,
       },

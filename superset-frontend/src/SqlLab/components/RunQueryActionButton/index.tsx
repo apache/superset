@@ -26,6 +26,7 @@ import {
   DropdownButton,
   DropdownButtonProps,
 } from 'src/components/DropdownButton';
+import { detectOS } from 'src/utils/common';
 
 interface Props {
   allowAsync: boolean;
@@ -95,6 +96,8 @@ const RunQueryActionButton = ({
 }: Props) => {
   const theme = useTheme();
 
+  const userOS = detectOS();
+
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
@@ -114,7 +117,9 @@ const RunQueryActionButton = ({
         tooltip={
           (!isDisabled &&
             (shouldShowStopBtn
-              ? t('Stop running (Ctrl + x)')
+              ? userOS === 'MacOS'
+                ? t('Stop running (Ctrl + x)')
+                : t('Stop running (Ctrl + e)')
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
