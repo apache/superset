@@ -370,6 +370,7 @@ class SqlEditor extends React.PureComponent {
     return base;
   }
 
+  // @ts-ignore
   setEmptyState(bool) {
     this.setState({ setEmptyState: bool });
   }

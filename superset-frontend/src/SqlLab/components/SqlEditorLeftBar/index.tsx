@@ -194,7 +194,8 @@ export default function SqlEditorLeftBar({
       }
       description={
         <p>
-          Manage your databases <a href="/databaseview/list">here</a>
+          {t('Manage your databases')}{' '}
+          <a href="/databaseview/list">{t('here')}</a>
         </p>
       }
     />
