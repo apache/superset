@@ -256,7 +256,6 @@ export default function DatabaseSelector({
   ) {
     setCurrentDb(database);
     setCurrentSchema(undefined);
-    // dispatch(setNoDatabaseConnected(true));
     if (onDbChange) {
       onDbChange(database);
     }
