@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t } from '@superset-ui/core';
+import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
@@ -283,6 +283,23 @@ class Chart extends React.PureComponent {
         <EmptyStateBig
           title={t('Add required control values to preview chart')}
           description={description}
+          image="chart.svg"
+        />
+      );
+    }
+
+    if (
+      !isLoading &&
+      !chartAlert &&
+      isFaded &&
+      ensureIsArray(queriesResponse).length === 0
+    ) {
+      return (
+        <EmptyStateBig
+          title={t('Your chart is ready to go!')}
+          description={t(
+            'Click on "Create chart" button in the control panel on the left to preview a visualization',
+          )}
           image="chart.svg"
         />
       );

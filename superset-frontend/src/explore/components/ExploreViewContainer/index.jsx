@@ -48,7 +48,6 @@ import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
-import QueryAndSaveBtns from '../QueryAndSaveBtns';
 import DataSourcePanel from '../DatasourcePanel';
 import { mountExploreUrl } from '../../exploreUtils';
 import { areObjectsEqual } from '../../../reduxUtils';
@@ -477,8 +476,7 @@ function ExploreViewContainer(props) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
   }
 
-  function renderErrorMessage() {
-    // Returns an error message as a node if any errors are in the store
+  const errorMessage = useMemo(() => {
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -512,7 +510,7 @@ function ExploreViewContainer(props) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
     }
     return errorMessage;
-  }
+  }, [props.controls]);
 
   function renderChartContainer() {
     return (
@@ -520,7 +518,7 @@ function ExploreViewContainer(props) {
         width={width}
         height={height}
         {...props}
-        errorMessage={renderErrorMessage()}
+        errorMessage={errorMessage}
         refreshOverlayVisible={chartIsStale}
         onQuery={onQuery}
       />
@@ -558,6 +556,8 @@ function ExploreViewContainer(props) {
           chart={props.chart}
           user={props.user}
           reports={props.reports}
+          onSaveChart={toggleModal}
+          saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         />
       </ExploreHeaderContainer>
       <ExplorePanelContainer id="explore-container">
@@ -669,16 +669,6 @@ function ExploreViewContainer(props) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <QueryAndSaveBtns
-            canAdd={!!(props.can_add || props.can_overwrite)}
-            onQuery={onQuery}
-            onSave={toggleModal}
-            onStop={onStop}
-            loading={props.chart.chartStatus === 'loading'}
-            chartIsStale={chartIsStale}
-            errorMessage={renderErrorMessage()}
-            datasourceType={props.datasource_type}
-          />
           <ConnectedControlPanelsContainer
             exploreState={props.exploreState}
             actions={props.actions}
@@ -687,6 +677,11 @@ function ExploreViewContainer(props) {
             chart={props.chart}
             datasource_type={props.datasource_type}
             isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+            onQuery={onQuery}
+            onStop={onStop}
+            canStopQuery={props.can_add || props.can_overwrite}
+            errorMessage={errorMessage}
+            chartIsStale={chartIsStale}
           />
         </Resizable>
         <div
