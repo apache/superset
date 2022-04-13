@@ -61,7 +61,7 @@ const QueryHistory = ({
         'progress',
         'rows',
         'sql',
-        'output',
+        'results',
         'actions',
       ]}
       queries={queries}
