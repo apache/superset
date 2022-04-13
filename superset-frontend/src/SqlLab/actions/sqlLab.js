@@ -76,7 +76,6 @@ export const SET_USER_OFFLINE = 'SET_USER_OFFLINE';
 export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
-export const NO_DB_CONNECTED = 'NO_DB_CONNECTED';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
@@ -128,9 +127,6 @@ export function resetState() {
   return { type: RESET_STATE };
 }
 
-export function setNoDatabaseConnected(bool) {
-  return { type: NO_DB_CONNECTED, isConnected: bool };
-}
 
 export function startQueryValidation(query) {
   Object.assign(query, {

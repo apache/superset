@@ -58,7 +58,19 @@ describe('SqlEditor', () => {
       queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
     },
-    database: {},
+    database: {
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+      allow_file_upload: false,
+      allow_multi_schema_metadata_fetch: false,
+      allow_run_async: false,
+      backend: "postgresql",
+      database_name: "examples",
+      expose_in_sqllab: true,
+      force_ctas_schema: null,
+      id: 1,
+    },
     queryEditorId: initialState.sqlLab.queryEditors[0].id,
     latestQuery: queries[0],
     tables: [table],
@@ -81,9 +93,10 @@ describe('SqlEditor', () => {
       },
     );
 
-  const dbConnected = { sqlLab: { dbConnect: true } };
   it('does not render SqlEditor if no db selected', () => {
-    const wrapper = buildWrapper();
+    const database = {};
+    const updatedProps = {...mockedProps, database};
+    const wrapper = buildWrapper(updatedProps);
     expect(wrapper.find(EmptyStateBig)).toExist();
   });
   it('render a SqlEditorLeftBar', async () => {
@@ -92,12 +105,12 @@ describe('SqlEditor', () => {
     expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
   it('render an AceEditorWrapper', async () => {
-    const wrapper = buildWrapper(dbConnected);
+    const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
   it('render a SouthPane', async () => {
-    const wrapper = buildWrapper(dbConnected);
+    const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
@@ -129,7 +142,7 @@ describe('SqlEditor', () => {
   });
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
-    const updatedProps = { ...mockedProps, defaultQueryLimit, ...dbConnected };
+    const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = buildWrapper(updatedProps);
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AntdDropdown)).toExist();

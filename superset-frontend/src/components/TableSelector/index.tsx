@@ -81,6 +81,7 @@ const TableLabel = styled.span`
 
 interface TableSelectorProps {
   clearable?: boolean;
+  dbSelectClosedState?: React.Dispatch<React.SetStateAction<boolean>>;
   database?: DatabaseObject;
   emptyState?: ReactNode;
   formMode?: boolean;
@@ -94,7 +95,8 @@ interface TableSelectorProps {
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
-  setTitleforDbSql?: Dispatch<SetStateAction<boolean>>;
+  setEmptyState?: Dispatch<SetStateAction<boolean>>;
+  setDbSearch?: Dispatch<SetStateAction<boolean>>;
   sqlLabMode?: boolean;
   tableName?: string;
 }
@@ -147,6 +149,7 @@ const TableOption = ({ table }: { table: Table }) => {
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
   database,
+  dbSelectClosedState,
   emptyState,
   formMode = false,
   getDbList,
@@ -158,8 +161,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onTableChange,
   onTablesLoad,
   readOnly = false,
-  setTitleforDbSql,
+  setDbSearch,
   schema,
+  setEmptyState,
   sqlLabMode = true,
   tableName,
 }) => {
@@ -267,8 +271,10 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       <DatabaseSelector
         key={currentDatabase?.id}
         db={currentDatabase}
-        setTitleforDbSql={setTitleforDbSql}
+        dbSelectClosedState={dbSelectClosedState}
+        setDbSearch={setDbSearch}
         emptyState={emptyState}
+        setEmptyState={setEmptyState}
         formMode={formMode}
         getDbList={getDbList}
         handleError={handleError}

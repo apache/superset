@@ -76,6 +76,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import { isEmpty } from 'lodash';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -180,6 +181,7 @@ class SqlEditor extends React.PureComponent {
       ),
       showCreateAsModal: false,
       createAs: '',
+      showEmptyState: false,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -189,6 +191,7 @@ class SqlEditor extends React.PureComponent {
     this.onResizeEnd = this.onResizeEnd.bind(this);
     this.canValidateQuery = this.canValidateQuery.bind(this);
     this.runQuery = this.runQuery.bind(this);
+    this.setEmptyState = this.setEmptyState.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
     this.saveQuery = this.saveQuery.bind(this);
     this.onSqlChanged = this.onSqlChanged.bind(this);
@@ -228,7 +231,11 @@ class SqlEditor extends React.PureComponent {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     // eslint-disable-next-line react/no-did-mount-set-state
+    const db = this.props.database; 
     this.setState({ height: this.getSqlEditorHeight() });
+    if (!db || isEmpty(db) ) { 
+      this.setState({ showEmptyState: true})
+    } 
 
     window.addEventListener('resize', this.handleWindowResize);
     window.addEventListener('beforeunload', this.onBeforeUnload);
@@ -361,6 +368,10 @@ class SqlEditor extends React.PureComponent {
     }
 
     return base;
+  }
+
+  setEmptyState(bool) {
+    this.setState({ setEmptyState: bool })
   }
 
   setQueryEditorSql(sql) {
@@ -754,17 +765,19 @@ class SqlEditor extends React.PureComponent {
               queryEditor={this.props.queryEditor}
               tables={this.props.tables}
               actions={this.props.actions}
+              setEmptyState={this.setEmptyState}
+              showDisabled={this.state.showEmptyState} 
             />
           </div>
         </CSSTransition>
-        {this.props.sqlLab.dbConnect ? (
-          this.queryPane()
-        ) : (
+        {this.state.showEmptyState ? (
           <EmptyStateBig
             image="vector.svg"
             title="Select a database to write a query"
             description="Choose one of the available database on the left"
           />
+        ) : (
+          this.queryPane()
         )}
         <StyledModal
           visible={this.state.showCreateAsModal}

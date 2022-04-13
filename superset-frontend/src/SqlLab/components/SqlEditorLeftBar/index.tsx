@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -55,6 +62,8 @@ interface SqlEditorLeftBarProps {
   tables?: ExtendedTable[];
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
+  setEmptyState: Dispatch<SetStateAction<boolean>>;
+  showDisabled: boolean;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -89,16 +98,24 @@ export default function SqlEditorLeftBar({
   queryEditor,
   tables = [],
   height = 500,
+  setEmptyState,
 }: SqlEditorLeftBarProps) {
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
-  const [noDbFoundTitle, setTitleForNoDBFound] = useState(false);
+  const [isDbSearch, setDbSearch] = useState(false);
+  const [isSelectIsClosed, setSelectIsClosed] = useState(true);
+
   useEffect(() => {
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
 
+  useEffect(() => {
+    if (isSelectIsClosed) setDbSearch(false);
+  }, [isSelectIsClosed]);
+
   const onDbChange = ({ id: dbId }: { id: number }) => {
+    setEmptyState(false);
     actions.queryEditorSetDb(queryEditor, dbId);
     actions.queryEditorSetFunctionNames(queryEditor, dbId);
   };
@@ -148,7 +165,7 @@ export default function SqlEditorLeftBar({
     <EmptyStateSmall
       image="empty.svg"
       title={
-        noDbFoundTitle
+        isDbSearch
           ? 'No databases match your search'
           : 'There are no databases available'
       }
@@ -181,8 +198,10 @@ export default function SqlEditorLeftBar({
   return (
     <div className="SqlEditorLeftBar">
       <TableSelector
-        setTitleforDbSql={setTitleForNoDBFound}
+        setDbSearch={setDbSearch}
         emptyState={emptyStateComponent}
+        setEmptyState={setEmptyState}
+        dbSelectClosedState={setSelectIsClosed}
         database={database}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}

@@ -31,9 +31,6 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useDispatch, useSelector } from 'react-redux';
-import { setNoDatabaseConnected } from 'src/SqlLab/actions/sqlLab';
-import { RootState } from 'src/SqlLab/types';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -98,6 +95,7 @@ type SchemaValue = { label: string; value: string };
 
 interface DatabaseSelectorProps {
   db?: DatabaseObject;
+  dbSelectClosedState?: Dispatch<SetStateAction<boolean>>;
   emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
@@ -107,7 +105,7 @@ interface DatabaseSelectorProps {
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
-  setTitleforDbSql?: Dispatch<SetStateAction<boolean>>;
+  setDbSearch?: Dispatch<SetStateAction<boolean>>;
   schema?: string;
   sqlLabMode?: boolean;
 }
@@ -129,6 +127,7 @@ const SelectLabel = ({
 
 export default function DatabaseSelector({
   db,
+  dbSelectClosedState,
   formMode = false,
   emptyState,
   getDbList,
@@ -139,7 +138,7 @@ export default function DatabaseSelector({
   onSchemasLoad,
   readOnly = false,
   schema,
-  setTitleforDbSql,
+  setDbSearch,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
@@ -154,10 +153,6 @@ export default function DatabaseSelector({
           ...db,
         }
       : undefined,
-  );
-  const dispatch = useDispatch();
-  const dbConnect = useSelector<RootState, any>(
-    state => state.sqlLab?.dbConnect,
   );
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
@@ -200,7 +195,7 @@ export default function DatabaseSelector({
             getDbList(result);
           }
           if (result.length === 0) {
-            if (setTitleforDbSql) setTitleforDbSql(true);
+            if (setDbSearch && search) setDbSearch(true);
             handleError(t("It seems you don't have access to any database"));
           }
           const options = result.map((row: DatabaseObject) => ({
@@ -217,6 +212,7 @@ export default function DatabaseSelector({
             allow_multi_schema_metadata_fetch:
               row.allow_multi_schema_metadata_fetch,
           }));
+
           return {
             data: options,
             totalCount: options.length,
@@ -229,7 +225,6 @@ export default function DatabaseSelector({
   useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);
-      if (setTitleforDbSql) dispatch(setNoDatabaseConnected(true));
       const queryParams = rison.encode({ force: refresh > 0 });
       const endpoint = `/api/v1/database/${currentDb.value}/schemas/?q=${queryParams}`;
 
@@ -261,7 +256,7 @@ export default function DatabaseSelector({
   ) {
     setCurrentDb(database);
     setCurrentSchema(undefined);
-    dispatch(setNoDatabaseConnected(true));
+    // dispatch(setNoDatabaseConnected(true));
     if (onDbChange) {
       onDbChange(database);
     }
@@ -296,6 +291,7 @@ export default function DatabaseSelector({
         lazyLoading={false}
         notFoundContent={emptyState}
         onChange={changeDataBase}
+        onDropdownVisibleChange={dbSelectClosedState}
         value={currentDb}
         placeholder={t('Select database or type database name')}
         disabled={!isDatabaseSelectEnabled || readOnly}
@@ -306,7 +302,6 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
-    const disabled = dbConnect || currentDb;
     const refreshIcon = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}
@@ -316,7 +311,7 @@ export default function DatabaseSelector({
     return renderSelectRow(
       <Select
         ariaLabel={t('Select schema or type schema name')}
-        disabled={!disabled || readOnly}
+        disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
         lazyLoading={false}
