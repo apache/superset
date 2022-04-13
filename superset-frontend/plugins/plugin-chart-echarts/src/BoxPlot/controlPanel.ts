@@ -125,7 +125,7 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
+      label: t('Dimensions'),
       description: t('Categories to group by on the x-axis.'),
     },
     columns: {
