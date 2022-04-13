@@ -383,20 +383,13 @@ function ExploreViewContainer(props) {
 
   const reRenderChart = useCallback(
     controlsChanged => {
-      if (!controlsChanged) {
-        props.actions.updateQueryFormData(
-          getFormDataFromControls(props.controls),
-          props.chart.id,
-        );
-      } else {
-        props.actions.updateQueryFormData(
-          {
+      const newQueryFormData = controlsChanged
+        ? {
             ...props.chart.latestQueryFormData,
             ...getFormDataFromControls(pick(props.controls, controlsChanged)),
-          },
-          props.chart.id,
-        );
-      }
+          }
+        : getFormDataFromControls(props.controls);
+      props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);
       addHistory();
     },

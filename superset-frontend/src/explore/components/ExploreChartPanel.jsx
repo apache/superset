@@ -30,6 +30,7 @@ import {
   css,
   ensureIsArray,
   FeatureFlag,
+  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
@@ -47,7 +48,6 @@ import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
 import { ExploreAlert } from './ExploreAlert';
-import { isFeatureEnabled } from '../../featureFlags';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
