@@ -370,9 +370,8 @@ class SqlEditor extends React.PureComponent {
     return base;
   }
 
-  // @ts-ignore
   setEmptyState(bool) {
-    this.setState({ setEmptyState: bool });
+    this.setState({ showEmptyState: bool });
   }
 
   setQueryEditorSql(sql) {
@@ -767,7 +766,6 @@ class SqlEditor extends React.PureComponent {
               tables={this.props.tables}
               actions={this.props.actions}
               setEmptyState={this.setEmptyState}
-              showDisabled={this.state.showEmptyState}
             />
           </div>
         </CSSTransition>
