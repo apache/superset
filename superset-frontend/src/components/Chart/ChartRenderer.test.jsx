@@ -25,8 +25,11 @@ import ChartRenderer from 'src/components/Chart/ChartRenderer';
 const requiredProps = {
   chartId: 1,
   datasource: {},
-  formData: {},
-  vizType: 'foo',
+  formData: { testControl: 'foo' },
+  latestQueryFormData: {
+    testControl: 'bar',
+  },
+  vizType: 'table',
 };
 
 describe('ChartRenderer', () => {
@@ -37,8 +40,10 @@ describe('ChartRenderer', () => {
     expect(wrapper.find(SuperChart)).toExist();
   });
 
-  it('should not render SuperChart when chartIsStale is true', () => {
+  it('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
     const wrapper = shallow(<ChartRenderer {...requiredProps} chartIsStale />);
-    expect(wrapper.find(SuperChart)).not.toExist();
+    expect(wrapper.find(SuperChart).prop('formData')).toEqual({
+      testControl: 'bar',
+    });
   });
 });

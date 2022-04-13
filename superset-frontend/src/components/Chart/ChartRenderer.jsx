@@ -170,7 +170,7 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, vizType, chartId } = this.props;
+    const { chartAlert, chartStatus, chartId } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -193,6 +193,10 @@ class ChartRenderer extends React.Component {
       queriesResponse,
       postTransformProps,
     } = this.props;
+
+    const currentFormData =
+      chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+    const vizType = currentFormData.viz_type || this.props.vizType;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
     // container. It may cause css conflicts as in the case of legacy table chart.
@@ -239,8 +243,6 @@ class ChartRenderer extends React.Component {
       );
     }
 
-    const currentFormData =
-      chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     return (
       <SuperChart
         disableErrorBoundary
