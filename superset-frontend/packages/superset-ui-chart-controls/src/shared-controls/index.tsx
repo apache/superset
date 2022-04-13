@@ -103,7 +103,7 @@ type SelectDefaultOption = {
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
-  label: t('Group by'),
+  label: t('Dimensions'),
   multi: true,
   freeForm: true,
   clearable: true,
@@ -403,7 +403,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
 
 const series: typeof groupByControl = {
   ...groupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(
