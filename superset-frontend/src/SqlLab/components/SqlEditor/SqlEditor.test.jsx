@@ -65,8 +65,8 @@ describe('SqlEditor', () => {
       allow_file_upload: false,
       allow_multi_schema_metadata_fetch: false,
       allow_run_async: false,
-      backend: "postgresql",
-      database_name: "examples",
+      backend: 'postgresql',
+      database_name: 'examples',
       expose_in_sqllab: true,
       force_ctas_schema: null,
       id: 1,
@@ -95,7 +95,7 @@ describe('SqlEditor', () => {
 
   it('does not render SqlEditor if no db selected', () => {
     const database = {};
-    const updatedProps = {...mockedProps, database};
+    const updatedProps = { ...mockedProps, database };
     const wrapper = buildWrapper(updatedProps);
     expect(wrapper.find(EmptyStateBig)).toExist();
   });

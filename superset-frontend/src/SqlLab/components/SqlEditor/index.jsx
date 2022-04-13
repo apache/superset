@@ -67,6 +67,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
 import SaveQuery from '../SaveQuery';
@@ -76,7 +77,6 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
-import { isEmpty } from 'lodash';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -231,11 +231,11 @@ class SqlEditor extends React.PureComponent {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     // eslint-disable-next-line react/no-did-mount-set-state
-    const db = this.props.database; 
+    const db = this.props.database;
     this.setState({ height: this.getSqlEditorHeight() });
-    if (!db || isEmpty(db) ) { 
-      this.setState({ showEmptyState: true})
-    } 
+    if (!db || isEmpty(db)) {
+      this.setState({ showEmptyState: true });
+    }
 
     window.addEventListener('resize', this.handleWindowResize);
     window.addEventListener('beforeunload', this.onBeforeUnload);
@@ -371,7 +371,7 @@ class SqlEditor extends React.PureComponent {
   }
 
   setEmptyState(bool) {
-    this.setState({ setEmptyState: bool })
+    this.setState({ setEmptyState: bool });
   }
 
   setQueryEditorSql(sql) {
@@ -766,7 +766,7 @@ class SqlEditor extends React.PureComponent {
               tables={this.props.tables}
               actions={this.props.actions}
               setEmptyState={this.setEmptyState}
-              showDisabled={this.state.showEmptyState} 
+              showDisabled={this.state.showEmptyState}
             />
           </div>
         </CSSTransition>

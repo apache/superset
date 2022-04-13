@@ -127,7 +127,6 @@ export function resetState() {
   return { type: RESET_STATE };
 }
 
-
 export function startQueryValidation(query) {
   Object.assign(query, {
     id: query.id ? query.id : shortid.generate(),
