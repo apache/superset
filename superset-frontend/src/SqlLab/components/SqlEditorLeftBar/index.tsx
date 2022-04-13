@@ -166,8 +166,8 @@ export default function SqlEditorLeftBar({
       image="empty.svg"
       title={
         isDbSearch
-          ? 'No databases match your search'
-          : 'There are no databases available'
+          ? t('No databases match your search')
+          : t('There are no databases available')
       }
       description={
         <p>
