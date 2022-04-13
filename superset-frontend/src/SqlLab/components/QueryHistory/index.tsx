@@ -55,7 +55,7 @@ const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
         'progress',
         'rows',
         'sql',
-        'output',
+        'results',
         'actions',
       ]}
       queries={queries}

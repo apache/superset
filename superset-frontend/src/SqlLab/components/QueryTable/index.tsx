@@ -35,10 +35,12 @@ import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
-interface QueryTableQuery extends Omit<Query, 'state' | 'sql' | 'progress'> {
+interface QueryTableQuery
+  extends Omit<Query, 'state' | 'sql' | 'progress' | 'results'> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
+  results?: Record<string, any>;
 }
 
 interface QueryTableProps {
@@ -225,12 +227,12 @@ const QueryTable = ({
           </Card>
         );
         if (q.resultsKey) {
-          q.output = (
+          q.results = (
             <ModalTrigger
               className="ResultsModal"
               triggerNode={
                 <Label type="info" className="pointer">
-                  {t('View results')}
+                  {t('View')}
                 </Label>
               }
               modalTitle={t('Data preview')}
@@ -250,13 +252,8 @@ const QueryTable = ({
               responsive
             />
           );
-        } else {
-          // if query was run using ctas and force_ctas_schema was set
-          // tempTable will have the schema
-          const schemaUsed =
-            q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
-          q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
+
         q.progress =
           state === 'success' ? (
             <ProgressBar
