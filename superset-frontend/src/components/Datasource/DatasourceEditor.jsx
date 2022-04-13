@@ -1009,7 +1009,7 @@ class DatasourceEditor extends React.PureComponent {
                         handleError={this.props.addDangerToast}
                         schema={datasource.schema}
                         sqlLabMode={false}
-                        tableName={datasource.table_name}
+                        tableValue={datasource.table_name}
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>
@@ -1025,7 +1025,7 @@ class DatasourceEditor extends React.PureComponent {
                                 )
                             : undefined
                         }
-                        onTableChange={
+                        onTableSelectChange={
                           this.state.isEditMode
                             ? table =>
                                 this.onDatasourcePropChange('table_name', table)
