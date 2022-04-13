@@ -37,6 +37,8 @@ export interface UserWithPermissionsAndRoles extends User {
   roles: Record<string, [string, string][]>;
 }
 
+export type UndefinedUser = {};
+
 export type Dashboard = {
   dttm: number;
   id: number;

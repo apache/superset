@@ -17,7 +17,10 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  UndefinedUser,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
 
 type UserRoles = Record<string, [string, string][]>;
@@ -36,17 +39,21 @@ export default findPermission;
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
 
-export const isUserAdmin = (user: UserWithPermissionsAndRoles) =>
-  Object.keys(user.roles).some(role => role.toLowerCase() === ADMIN_ROLE_NAME);
+export const isUserAdmin = (
+  user: UserWithPermissionsAndRoles | UndefinedUser,
+) =>
+  Object.keys(user.roles || {}).some(
+    role => role.toLowerCase() === ADMIN_ROLE_NAME,
+  );
 
 const isUserDashboardOwner = (
   dashboard: Dashboard,
-  user: UserWithPermissionsAndRoles,
+  user: UserWithPermissionsAndRoles | UndefinedUser,
 ) => dashboard.owners.some(owner => owner.username === user.username);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,
-  user?: UserWithPermissionsAndRoles | null,
+  user?: UserWithPermissionsAndRoles | UndefinedUser | null,
 ) =>
   !!user?.roles &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
