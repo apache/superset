@@ -18,15 +18,15 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { logging, styled, t } from '@superset-ui/core';
+import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { LOG_ACTIONS_RENDER_CHART, Logger } from 'src/logger/LogUtils';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -283,6 +283,23 @@ class Chart extends React.PureComponent {
         <EmptyStateBig
           title={t('Add required control values to preview chart')}
           description={description}
+          image="chart.svg"
+        />
+      );
+    }
+
+    if (
+      !isLoading &&
+      !chartAlert &&
+      isFaded &&
+      ensureIsArray(queriesResponse).length === 0
+    ) {
+      return (
+        <EmptyStateBig
+          title={t('Your chart is ready to go!')}
+          description={t(
+            'Click on "Create chart" button in the control panel on the left to preview a visualization',
+          )}
           image="chart.svg"
         />
       );
