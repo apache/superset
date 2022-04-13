@@ -43,3 +43,10 @@ class QueryContextValidatorImpl(
         query: QueryObject
         for query in query_objects:
             query.validate()
+
+
+class QueryContextValidatorWrapper(
+    QueryContextValidator
+):  # pylint: disable=too-few-public-methods
+    def validate(self, query_context: QueryContext) -> None:
+        query_context.raise_for_access()
