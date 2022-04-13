@@ -299,7 +299,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         dbSelectClosedState={dbSelectClosedState}
         setDbSearch={setDbSearch}
         emptyState={emptyState}
-        setEmptyState={setEmptyState}
         formMode={formMode}
         getDbList={getDbList}
         handleError={handleError}
