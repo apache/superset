@@ -120,7 +120,7 @@ const groupByControl = {
   type: 'SelectControl',
   multi: true,
   freeForm: true,
-  label: t('Group by'),
+  label: t('Dimensions'),
   default: [],
   includeTime: false,
   description: t(
@@ -393,7 +393,7 @@ export const controls = {
 
   series: {
     ...groupByControl,
-    label: t('Series'),
+    label: t('Dimensions'),
     multi: false,
     default: null,
     description: t(
