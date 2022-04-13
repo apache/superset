@@ -416,6 +416,8 @@ export default class Chart extends React.Component {
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
           formData={formData}
+          width={width}
+          height={this.getHeaderHeight()}
         />
 
         {/*
