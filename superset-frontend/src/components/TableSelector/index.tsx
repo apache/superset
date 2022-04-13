@@ -23,6 +23,8 @@ import React, {
   useMemo,
   useEffect,
 } from 'react';
+import { SelectValue } from 'antd/lib/select';
+
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -87,12 +89,13 @@ interface TableSelectorProps {
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: () => void;
-  onTableChange?: (tableName?: string, schema?: string) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
-  tableName?: string;
+  tableValue?: string | string[];
+  onTableSelectChange?: (value?: string | string[], schema?: string) => void;
+  tableSelectMode?: 'single' | 'multiple';
 }
 
 interface Table {
@@ -150,12 +153,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
-  onTableChange,
   onTablesLoad,
   readOnly = false,
   schema,
   sqlLabMode = true,
-  tableName,
+  tableSelectMode = 'single',
+  tableValue = undefined,
+  onTableSelectChange,
 }) => {
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
@@ -163,11 +167,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
   );
-  const [currentTable, setCurrentTable] = useState<TableOption | undefined>();
+
+  const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
+  const [tableSelectValue, setTableSelectValue] = useState<
+    SelectValue | undefined
+  >(undefined);
   const [refresh, setRefresh] = useState(0);
   const [previousRefresh, setPreviousRefresh] = useState(0);
   const [loadingTables, setLoadingTables] = useState(false);
-  const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
   const { addSuccessToast } = useToasts();
 
   useEffect(() => {
@@ -175,9 +182,23 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (database === undefined) {
       setCurrentDatabase(undefined);
       setCurrentSchema(undefined);
-      setCurrentTable(undefined);
+      setTableSelectValue(undefined);
     }
-  }, [database]);
+  }, [database, tableSelectMode]);
+
+  useEffect(() => {
+    if (tableSelectMode === 'single') {
+      setTableSelectValue(
+        tableOptions.find(option => option.value === tableValue),
+      );
+    } else {
+      setTableSelectValue(
+        tableOptions?.filter(
+          option => option && tableValue?.includes(option.value),
+        ) || [],
+      );
+    }
+  }, [tableOptions, tableValue, tableSelectMode]);
 
   useEffect(() => {
     if (currentDatabase && currentSchema) {
@@ -195,23 +216,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
       SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const options: TableOption[] = [];
-          let currentTable;
-          json.options.forEach((table: Table) => {
-            const option = {
+          const options: TableOption[] = json.options.map((table: Table) => {
+            const option: TableOption = {
               value: table.value,
               label: <TableOption table={table} />,
               text: table.label,
             };
-            options.push(option);
-            if (table.label === tableName) {
-              currentTable = option;
-            }
+
+            return option;
           });
 
           onTablesLoad?.(json.options);
           setTableOptions(options);
-          setCurrentTable(currentTable);
           setLoadingTables(false);
           if (forceRefresh) addSuccessToast('List updated');
         })
@@ -223,7 +239,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     // We are using the refresh state to re-trigger the query
     // previousRefresh should be out of dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDatabase, currentSchema, onTablesLoad, refresh]);
+  }, [currentDatabase, currentSchema, onTablesLoad, setTableOptions, refresh]);
 
   function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
     return (
@@ -234,10 +250,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
-  const internalTableChange = (table?: TableOption) => {
-    setCurrentTable(table);
-    if (onTableChange && currentSchema) {
-      onTableChange(table?.value, currentSchema);
+  const internalTableChange = (
+    selectedOptions: TableOption | TableOption[] | undefined,
+  ) => {
+    if (currentSchema) {
+      onTableSelectChange?.(
+        Array.isArray(selectedOptions)
+          ? selectedOptions.map(option => option?.value)
+          : selectedOptions?.value,
+        currentSchema,
+      );
+    } else {
+      setTableSelectValue(selectedOptions);
     }
   };
 
@@ -253,6 +277,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (onSchemaChange) {
       onSchemaChange(schema);
     }
+
     internalTableChange(undefined);
   };
 
@@ -305,11 +330,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         lazyLoading={false}
         loading={loadingTables}
         name="select-table"
-        onChange={(table: TableOption) => internalTableChange(table)}
+        onChange={(options: TableOption | TableOption[]) =>
+          internalTableChange(options)
+        }
         options={tableOptions}
         placeholder={t('Select table or type table name')}
         showSearch
-        value={currentTable}
+        mode={tableSelectMode}
+        value={tableSelectValue}
+        allowClear={tableSelectMode === 'multiple'}
       />
     );
 
@@ -331,5 +360,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     </TableSelectorWrapper>
   );
 };
+
+export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> =
+  props => <TableSelector tableSelectMode="multiple" {...props} />;
 
 export default TableSelector;
