@@ -64,7 +64,7 @@ const GUTTER_SIZE_FACTOR = 1.25;
 const CHART_PANEL_PADDING_HORIZ = 30;
 const CHART_PANEL_PADDING_VERTICAL = 15;
 
-const INITIAL_SIZES = [90, 10];
+const INITIAL_SIZES = [100, 0];
 const MIN_SIZES = [300, 50];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
@@ -113,7 +113,11 @@ const ExploreChartPanel = props => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
+  const {
+    width: chartPanelWidth,
+    height: chartPanelHeight,
+    ref: chartPanelRef,
+  } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
@@ -157,30 +161,21 @@ const ExploreChartPanel = props => {
   const calcSectionHeight = useCallback(
     percent => {
       let containerHeight = parseInt(props.height, 10);
-      if (pillsHeight) {
-        containerHeight -= pillsHeight;
-      }
+      // if (pillsHeight) {
+      //   containerHeight -= pillsHeight;
+      // }
       return (
-        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
+        containerHeight -
+        Math.max(
+          (containerHeight * (100 - percent)) / 100,
+          MIN_SIZES[1] - gutterHeight - gutterMargin,
+        ) -
+        (gutterHeight / 2 + gutterMargin) -
+        (pillsHeight || 0)
       );
     },
     [gutterHeight, gutterMargin, pillsHeight, props.height, props.standalone],
   );
-
-  const [tableSectionHeight, setTableSectionHeight] = useState(
-    calcSectionHeight(INITIAL_SIZES[1]),
-  );
-
-  const recalcPanelSizes = useCallback(
-    ([, southPercent]) => {
-      setTableSectionHeight(calcSectionHeight(southPercent));
-    },
-    [calcSectionHeight],
-  );
-
-  useEffect(() => {
-    recalcPanelSizes(splitSizes);
-  }, [recalcPanelSizes, splitSizes]);
 
   useEffect(() => {
     setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
@@ -201,9 +196,9 @@ const ExploreChartPanel = props => {
     );
   };
 
-  const onCollapseChange = openPanelName => {
+  const onCollapseChange = useCallback(isOpen => {
     let splitSizes;
-    if (!openPanelName) {
+    if (!isOpen) {
       splitSizes = INITIAL_SIZES;
     } else {
       splitSizes = [
@@ -212,7 +207,8 @@ const ExploreChartPanel = props => {
       ];
     }
     setSplitSizes(splitSizes);
-  };
+  }, []);
+
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
     const newHeight =
@@ -220,6 +216,7 @@ const ExploreChartPanel = props => {
         ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
         : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
     const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
+    console.log(newHeight, chartPanelHeight);
     return (
       chartWidth > 0 && (
         <ChartContainer
@@ -313,12 +310,12 @@ const ExploreChartPanel = props => {
           gutterSize={gutterHeight}
           onDragEnd={onDragEnd}
           elementStyle={elementStyle}
+          expandToMin
         >
           {panelBody}
           <DataTablesPane
             ownState={props.ownState}
             queryFormData={queryFormData}
-            tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
             errorMessage={props.errorMessage}
