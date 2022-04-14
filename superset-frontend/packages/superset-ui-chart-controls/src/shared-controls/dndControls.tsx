@@ -28,7 +28,7 @@ import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
-  label: t('Group by'),
+  label: t('Dimensions'),
   default: [],
   description: t(
     'One or many columns to group by. High cardinality groupings should include a series limit ' +
@@ -58,7 +58,7 @@ export const dndColumnsControl: typeof dndGroupByControl = {
 
 export const dndSeries: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(

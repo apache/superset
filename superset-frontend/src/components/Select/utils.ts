@@ -24,6 +24,7 @@ import {
   OptionsType,
   GroupedOptionsType,
 } from 'react-select';
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -68,10 +69,14 @@ export function findValue<OptionType extends OptionTypeBase>(
   return (Array.isArray(value) ? value : [value]).map(find);
 }
 
+export function isLabeledValue(value: unknown): value is AntdLabeledValue {
+  return isObject(value) && 'value' in value && 'label' in value;
+}
+
 export function getValue(
-  option: string | number | { value: string | number | null } | null,
+  option: string | number | AntdLabeledValue | null | undefined,
 ) {
-  return isObject(option) ? option.value : option;
+  return isLabeledValue(option) ? option.value : option;
 }
 
 type LabeledValue<V> = { label?: ReactNode; value?: V };

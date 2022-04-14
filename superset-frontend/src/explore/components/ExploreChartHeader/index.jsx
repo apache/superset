@@ -24,7 +24,6 @@ import {
   CategoricalColorNamespace,
   css,
   SupersetClient,
-  styled,
   t,
 } from '@superset-ui/core';
 import {
@@ -36,21 +35,14 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
-import Timer from 'src/components/Timer';
-import CachedLabel from 'src/components/CachedLabel';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import RowCountLabel from '../RowCountLabel';
+import { Tooltip } from 'src/components/Tooltip';
 import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
 import { ChartEditableTitle } from './ChartEditableTitle';
-
-const CHART_STATUS_MAP = {
-  failed: 'danger',
-  loading: 'warning',
-  success: 'success',
-};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -65,49 +57,58 @@ const propTypes = {
   ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
+  saveDisabled: PropTypes.bool,
 };
 
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    height: 100%;
-
-    span[role='button'] {
-      display: flex;
-      height: 100%;
-    }
-
-    .title-panel {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-      margin-right: ${theme.gridUnit * 6}px;
-    }
-
-    .right-button-panel {
-      display: flex;
-      align-items: center;
-
-      > .btn-group {
-        flex: 0 0 auto;
-        margin-left: ${theme.gridUnit}px;
-      }
-    }
-
-    .action-button {
-      color: ${theme.colors.grayscale.base};
-      margin: 0 ${theme.gridUnit * 1.5}px 0 ${theme.gridUnit}px;
-    }
-  `}
+const saveButtonStyles = theme => css`
+  color: ${theme.colors.primary.dark2};
+  & > span[role='img'] {
+    margin-right: 0;
+  }
 `;
 
-const StyledButtons = styled.span`
+const headerStyles = theme => css`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  height: 100%;
+
+  span[role='button'] {
+    display: flex;
+    height: 100%;
+  }
+
+  .title-panel {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin-right: ${theme.gridUnit * 12}px;
+  }
+
+  .right-button-panel {
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const buttonsStyles = theme => css`
   display: flex;
   align-items: center;
+  padding-left: ${theme.gridUnit * 2}px;
+
+  & .fave-unfave-icon {
+    padding: 0 ${theme.gridUnit}px;
+
+    &:first-child {
+      padding-left: 0;
+    }
+  }
+`;
+
+const saveButtonContainerStyles = theme => css`
+  margin-right: ${theme.gridUnit * 2}px;
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -230,23 +231,13 @@ export class ExploreChartHeader extends React.PureComponent {
       isStarred,
       sliceUpdated,
       sliceName,
+      onSaveChart,
+      saveDisabled,
     } = this.props;
-    const {
-      chartStatus,
-      chartUpdateEndTime,
-      chartUpdateStartTime,
-      latestQueryFormData,
-      queriesResponse,
-      sliceFormData,
-    } = chart;
-    // TODO: when will get appropriate design for multi queries use all results and not first only
-    const queryResponse = queriesResponse?.[0];
+    const { latestQueryFormData, sliceFormData } = chart;
     const oldSliceName = slice?.slice_name;
-    const chartFinished = ['failed', 'rendered', 'success'].includes(
-      chartStatus,
-    );
     return (
-      <StyledHeader id="slice-header">
+      <div id="slice-header" css={headerStyles}>
         <div className="title-panel">
           <ChartEditableTitle
             title={sliceName}
@@ -258,16 +249,14 @@ export class ExploreChartHeader extends React.PureComponent {
             onSave={actions.updateChartTitle}
             placeholder={t('Add the name of the chart')}
           />
-          {slice?.certified_by && (
-            <>
-              <CertifiedBadge
-                certifiedBy={slice.certified_by}
-                details={slice.certification_details}
-              />{' '}
-            </>
-          )}
           {slice && (
-            <StyledButtons>
+            <span css={buttonsStyles}>
+              {slice.certified_by && (
+                <CertifiedBadge
+                  certifiedBy={slice.certified_by}
+                  details={slice.certification_details}
+                />
+              )}
               {user.userId && (
                 <FaveStar
                   itemId={slice.slice_id}
@@ -292,28 +281,31 @@ export class ExploreChartHeader extends React.PureComponent {
                   currentFormData={{ ...formData, chartTitle: sliceName }}
                 />
               )}
-            </StyledButtons>
+            </span>
           )}
         </div>
         <div className="right-button-panel">
-          {chartFinished && queryResponse && (
-            <RowCountLabel
-              rowcount={Number(queryResponse.rowcount) || 0}
-              limit={Number(formData.row_limit) || 0}
-            />
-          )}
-          {chartFinished && queryResponse && queryResponse.is_cached && (
-            <CachedLabel
-              onClick={this.postChartFormData.bind(this)}
-              cachedTimestamp={queryResponse.cached_dttm}
-            />
-          )}
-          <Timer
-            startTime={chartUpdateStartTime}
-            endTime={chartUpdateEndTime}
-            isRunning={chartStatus === 'loading'}
-            status={CHART_STATUS_MAP[chartStatus]}
-          />
+          <Tooltip
+            title={
+              saveDisabled
+                ? t('Add required control values to save chart')
+                : null
+            }
+          >
+            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+            <div css={saveButtonContainerStyles}>
+              <Button
+                buttonStyle="secondary"
+                onClick={onSaveChart}
+                disabled={saveDisabled}
+                data-test="query-save-button"
+                css={saveButtonStyles}
+              >
+                <Icons.SaveOutlined iconSize="l" />
+                {t('Save')}
+              </Button>
+            </div>
+          </Tooltip>
           <ExploreAdditionalActionsMenu
             onOpenInEditor={actions.redirectSQLLab}
             onOpenPropertiesModal={this.openPropertiesModal}
@@ -323,7 +315,7 @@ export class ExploreChartHeader extends React.PureComponent {
             canAddReports={this.canAddReports()}
           />
         </div>
-      </StyledHeader>
+      </div>
     );
   }
 }
@@ -337,7 +329,4 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(
-  null,
-  mapDispatchToProps,
-)(withToasts(ExploreChartHeader));
+export default connect(null, mapDispatchToProps)(ExploreChartHeader);
