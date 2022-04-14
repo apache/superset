@@ -78,7 +78,6 @@ def flatten(
     1  2021-01-02        1        1        1        1
     2  2021-01-03        1        1        1        1
     """
-
     if _is_multi_index_on_columns(df):
         df.columns = df.columns.droplevel(drop_levels)
         # every cell should be converted to string
