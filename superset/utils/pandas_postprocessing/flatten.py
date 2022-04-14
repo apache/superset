@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from typing import Sequence, Union
+
 import pandas as pd
+from numpy.distutils.misc_util import is_sequence
 
 from superset.utils.pandas_postprocessing.utils import (
     _is_multi_index_on_columns,
@@ -25,12 +29,15 @@ from superset.utils.pandas_postprocessing.utils import (
 def flatten(
     df: pd.DataFrame,
     reset_index: bool = True,
+    drop_levels: Union[Sequence[int], Sequence[str]] = (),
 ) -> pd.DataFrame:
     """
     Convert N-dimensional DataFrame to a flat DataFrame
 
     :param df: N-dimensional DataFrame.
     :param reset_index: Convert index to column when df.index isn't RangeIndex
+    :param drop_levels: index of level or names of level might be dropped
+                        if df is N-dimensional
     :return: a flat DataFrame
 
     Examples
@@ -73,9 +80,13 @@ def flatten(
     2  2021-01-03        1        1        1        1
     """
     if _is_multi_index_on_columns(df):
+        df.columns = df.columns.droplevel(drop_levels)
         # every cell should be converted to string
         df.columns = [
-            FLAT_COLUMN_SEPARATOR.join([str(cell) for cell in series])
+            FLAT_COLUMN_SEPARATOR.join(
+                # pylint: disable=superfluous-parens
+                [str(cell) for cell in (series if is_sequence(series) else [series])]
+            )
             for series in df.columns.to_flat_index()
         ]
 
