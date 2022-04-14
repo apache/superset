@@ -115,6 +115,11 @@ export default function SqlEditorLeftBar({
     if (isSelectIsClosed) setDbSearch(false);
   }, [isSelectIsClosed]);
 
+  const onDbSearch = (searchText?: string) => {
+    if (searchText) setDbSearch(true);
+    else setDbSearch(false);
+  };
+
   const onDbChange = ({ id: dbId }: { id: number }) => {
     setEmptyState(false);
     actions.queryEditorSetDb(queryEditor, dbId);
@@ -222,7 +227,7 @@ export default function SqlEditorLeftBar({
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
-        setDbSearch={setDbSearch}
+        onEmptyResults={onDbSearch}
         emptyState={emptyStateComponent}
         setEmptyState={setEmptyState}
         dbSelectClosedState={setSelectIsClosed}

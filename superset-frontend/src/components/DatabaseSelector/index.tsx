@@ -95,13 +95,13 @@ type SchemaValue = { label: string; value: string };
 
 interface DatabaseSelectorProps {
   db?: DatabaseObject;
-  dbSelectClosedState?: Dispatch<SetStateAction<boolean>>;
   emptyState?: ReactNode;
   formMode?: boolean;
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
+  onEmptyResults?: (searchText?: string) => null;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
@@ -127,18 +127,17 @@ const SelectLabel = ({
 
 export default function DatabaseSelector({
   db,
-  dbSelectClosedState,
   formMode = false,
   emptyState,
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
   onDbChange,
+  onEmptyResults,
   onSchemaChange,
   onSchemasLoad,
   readOnly = false,
   schema,
-  setDbSearch,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
@@ -195,7 +194,7 @@ export default function DatabaseSelector({
             getDbList(result);
           }
           if (result.length === 0) {
-            if (setDbSearch && search) setDbSearch(true);
+            if (onEmptyResults) onEmptyResults(search);
             handleError(t("It seems you don't have access to any database"));
           }
           const options = result.map((row: DatabaseObject) => ({
@@ -290,7 +289,6 @@ export default function DatabaseSelector({
         lazyLoading={false}
         notFoundContent={emptyState}
         onChange={changeDataBase}
-        onDropdownVisibleChange={dbSelectClosedState}
         value={currentDb}
         placeholder={t('Select database or type database name')}
         disabled={!isDatabaseSelectEnabled || readOnly}
