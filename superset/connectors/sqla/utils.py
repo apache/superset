@@ -168,7 +168,7 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-def load_or_create_tables(  # pylint: disable=too-many-arguments
+def load_or_create_tables(
     session: Session,
     database: Database,
     default_schema: Optional[str],
