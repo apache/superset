@@ -17,6 +17,7 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
+import '@applitools/eyes-cypress/commands';
 
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 const TokenName = Cypress.env('TOKEN_NAME');

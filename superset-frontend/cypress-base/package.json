@@ -18,6 +18,7 @@
     "shortid": "^2.2.15"
   },
   "devDependencies": {
+    "@applitools/eyes-cypress": "^3.25.3",
     "@types/querystringify": "^2.0.0",
     "cypress": "^7.0.0",
     "eslint-plugin-cypress": "^2.12.1"

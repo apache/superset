@@ -26,6 +26,11 @@ describe('chart list view', () => {
   });
 
   it('should load rows', () => {
+    cy.eyesOpen({
+      appName: 'Test',
+      testName: 'Should load the rows',
+      browser: { width: 800, height: 600 },
+    });
     cy.get('[data-test="listview-table"]').should('be.visible');
     // check chart list view header
     cy.get('[data-test="sort-header"]').eq(1).contains('Chart');
@@ -36,6 +41,8 @@ describe('chart list view', () => {
     cy.get('[data-test="sort-header"]').eq(6).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
     cy.get('[data-test="table-row"]').should('have.length', 25);
+    cy.eyesCheckWindow('rows loaded');
+    cy.eyesClose();
   });
 
   xit('should sort correctly', () => {
