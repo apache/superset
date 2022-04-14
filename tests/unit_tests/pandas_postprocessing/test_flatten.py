@@ -134,3 +134,25 @@ def test_flat_should_not_droplevel():
             }
         )
     )
+
+
+def test_flat_integer_column_name():
+    index = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03"])
+    index.name = "__timestamp"
+    columns = pd.MultiIndex.from_arrays(
+        [["a"] * 3, [100, 200, 300]],
+        names=["level1", "level2"],
+    )
+    df = pd.DataFrame(index=index, columns=columns, data=1)
+    assert pp.flatten(df, drop_levels=(0,)).equals(
+        pd.DataFrame(
+            {
+                "__timestamp": pd.to_datetime(
+                    ["2021-01-01", "2021-01-02", "2021-01-03"]
+                ),
+                "100": [1, 1, 1],
+                "200": [1, 1, 1],
+                "300": [1, 1, 1],
+            }
+        )
+    )
