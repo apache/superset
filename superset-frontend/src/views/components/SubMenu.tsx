@@ -241,7 +241,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
               return (
                 <Menu.Item key={tab.label}>
-                  <li
+                  <div
                     role="tab"
                     data-test={tab['data-test']}
                     className={tab.name === props.activeChild ? 'active' : ''}
@@ -249,14 +249,14 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                     <div>
                       <Link to={tab.url || ''}>{tab.label}</Link>
                     </div>
-                  </li>
+                  </div>
                 </Menu.Item>
               );
             }
 
             return (
               <Menu.Item key={tab.label}>
-                <li
+                <div
                   className={cx('no-router', {
                     active: tab.name === props.activeChild,
                   })}
@@ -265,7 +265,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                   <a href={tab.url} onClick={tab.onClick}>
                     {tab.label}
                   </a>
-                </li>
+                </div>
               </Menu.Item>
             );
           })}
