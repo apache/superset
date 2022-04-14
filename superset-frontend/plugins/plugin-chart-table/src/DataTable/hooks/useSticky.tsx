@@ -183,7 +183,9 @@ function StickyWrap({
       .clientHeight;
     const ths = bodyThead.childNodes[0]
       .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
-    const widths = Array.from(ths).map(th => th.clientWidth);
+    const widths = Array.from(ths).map(
+      th => th.getBoundingClientRect()?.width || th.clientWidth,
+    );
     const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
       width: maxWidth,
       height: maxHeight - theadHeight - tfootHeight,

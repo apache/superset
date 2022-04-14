@@ -406,15 +406,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {...operatorSelectProps}
       />
       {MULTI_OPERATORS.has(operatorId) || suggestions.length > 0 ? (
-        // We need to delay rendering the select because we can't pass a primitive value without options
-        // We can't pass value = [null] and options=[]
-        comparatorSelectProps.value && suggestions.length === 0 ? null : (
-          <SelectWithLabel
-            labelText={labelText}
-            options={suggestions}
-            {...comparatorSelectProps}
-          />
-        )
+        <SelectWithLabel
+          labelText={labelText}
+          options={suggestions}
+          {...comparatorSelectProps}
+        />
       ) : (
         <StyledInput
           data-test="adhoc-filter-simple-value"

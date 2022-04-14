@@ -24,7 +24,6 @@ import moment from 'moment';
 import rison from 'rison';
 
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import Button from 'src/components/Button';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
@@ -239,22 +238,17 @@ function AnnotationList({
     hasHistory = false;
   }
 
-  const EmptyStateButton = (
-    <Button
-      buttonStyle="primary"
-      onClick={() => {
-        handleAnnotationEdit(null);
-      }}
-    >
+  const emptyState = {
+    title: t('No annotation yet'),
+    image: 'filter-results.svg',
+    buttonAction: () => {
+      handleAnnotationEdit(null);
+    },
+    buttonText: (
       <>
         <i className="fa fa-plus" /> {t('Annotation')}
       </>
-    </Button>
-  );
-
-  const emptyState = {
-    message: t('No annotation yet'),
-    slot: EmptyStateButton,
+    ),
   };
 
   return (
@@ -262,7 +256,7 @@ function AnnotationList({
       <SubMenu
         name={
           <StyledHeader>
-            <span>{t(`Annotation Layer ${annotationLayerName}`)}</span>
+            <span>{t('Annotation Layer %s', annotationLayerName)}</span>
             <span>
               {hasHistory ? (
                 <Link to="/annotationlayermodelview/list/">Back to all</Link>

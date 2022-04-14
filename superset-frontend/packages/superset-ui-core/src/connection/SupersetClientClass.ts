@@ -34,7 +34,9 @@ import {
 import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
 
 const defaultUnauthorizedHandler = () => {
-  window.location.href = `/login?next=${window.location.href}`;
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = `/login?next=${window.location.href}`;
+  }
 };
 
 export default class SupersetClientClass {
@@ -159,7 +161,7 @@ export default class SupersetClientClass {
     headers,
     timeout,
     fetchRetryOptions,
-    ignoreUnauthorized,
+    ignoreUnauthorized = false,
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
