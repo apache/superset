@@ -464,6 +464,12 @@ function DashboardList(props: DashboardListProps) {
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Search'),
+        id: 'dashboard_title',
+        input: 'search',
+        operator: FilterOperator.titleOrSlug,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -533,13 +539,7 @@ function DashboardList(props: DashboardListProps) {
           { label: t('No'), value: false },
         ],
       },
-      {
-        Header: t('Search'),
         key: 'search',
-        id: 'dashboard_title',
-        input: 'search',
-        operator: FilterOperator.titleOrSlug,
-      },
     ],
     [addDangerToast, favoritesFilter, props.user],
   );
