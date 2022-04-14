@@ -139,6 +139,8 @@ const errorAlertMapping = {
     ),
   },
 };
+const googleSheetConnectionEngine = 'gsheets';
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -1575,32 +1577,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  <Button
-                    data-test="sqla-connect-btn"
-                    buttonStyle="link"
-                    onClick={() =>
-                      setDB({
-                        type: ActionType.configMethodChange,
-                        payload: {
-                          engine: db.engine,
-                          configuration_method:
-                            CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                          database_name: db.database_name,
-                        },
-                      })
-                    }
-                    css={buttonLinkStyles}
-                  >
-                    {t(
-                      'Connect this database with a SQLAlchemy URI string instead',
-                    )}
-                  </Button>
-                  <InfoTooltip
-                    tooltip={t(
-                      'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
-                    )}
-                    viewBox="0 -6 24 24"
-                  />
+                  {dbModel.engine !== googleSheetConnectionEngine && (
+                    <>
+                      <Button
+                        data-test="sqla-connect-btn"
+                        buttonStyle="link"
+                        onClick={() =>
+                          setDB({
+                            type: ActionType.configMethodChange,
+                            payload: {
+                              engine: db.engine,
+                              configuration_method:
+                                CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                              database_name: db.database_name,
+                            },
+                          })
+                        }
+                        css={buttonLinkStyles}
+                      >
+                        {t(
+                          'Connect this database with a SQLAlchemy URI string instead',
+                        )}
+                      </Button>
+                      <InfoTooltip
+                        tooltip={t(
+                          'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
+                        )}
+                        viewBox="0 -6 24 24"
+                      />
+                    </>
+                  )}
                 </div>
                 {/* Step 2 */}
                 {showDBError && errorAlert()}
