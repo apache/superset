@@ -105,15 +105,15 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
 
-  const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
-    roles,
-    CSV_EXTENSIONS,
-    COLUMNAR_EXTENSIONS,
-    EXCEL_EXTENSIONS,
-    ALLOWED_EXTENSIONS,
-  );
+  const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
+    uploadUserPerms(
+      roles,
+      CSV_EXTENSIONS,
+      COLUMNAR_EXTENSIONS,
+      EXCEL_EXTENSIONS,
+      ALLOWED_EXTENSIONS,
+    );
 
-  const canUpload = canUploadCSV || canUploadColumnar || canUploadExcel;
   const showActionDropdown = canSql || canChart || canDashboard;
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
@@ -137,19 +137,19 @@ const RightMenu = ({
           label: t('Upload CSV to database'),
           name: 'Upload a CSV',
           url: '/csvtodatabaseview/form',
-          perm: CSV_EXTENSIONS && showUploads,
+          perm: canUploadCSV && showUploads,
         },
         {
           label: t('Upload columnar file to database'),
           name: 'Upload a Columnar file',
           url: '/columnartodatabaseview/form',
-          perm: COLUMNAR_EXTENSIONS && showUploads,
+          perm: canUploadColumnar && showUploads,
         },
         {
           label: t('Upload Excel file to database'),
           name: 'Upload Excel',
           url: '/exceltodatabaseview/form',
-          perm: EXCEL_EXTENSIONS && showUploads,
+          perm: canUploadExcel && showUploads,
         },
       ],
     },
@@ -176,7 +176,7 @@ const RightMenu = ({
     },
   ];
 
-  const hasFileUploadEnabled = () => {
+  const checkAllowUploads = () => {
     const payload = {
       filters: [
         { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
@@ -189,7 +189,11 @@ const RightMenu = ({
     });
   };
 
-  useEffect(() => hasFileUploadEnabled(), []);
+  useEffect(() => {
+    if (canUploadData) {
+      checkAllowUploads();
+    }
+  }, [canUploadData]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -234,19 +238,21 @@ const RightMenu = ({
   };
 
   const onMenuOpen = (openKeys: string[]) => {
-    if (openKeys.length) {
-      return hasFileUploadEnabled();
+    if (openKeys.length && canUploadData) {
+      return checkAllowUploads();
     }
     return null;
   };
 
   return (
     <StyledDiv align={align}>
-      <DatabaseModal
-        onHide={handleOnHideModal}
-        show={showModal}
-        dbEngine={engine}
-      />
+      {canDatabase && (
+        <DatabaseModal
+          onHide={handleOnHideModal}
+          show={showModal}
+          dbEngine={engine}
+        />
+      )}
       <Menu
         selectable={false}
         mode="horizontal"
@@ -262,23 +268,31 @@ const RightMenu = ({
             icon={<Icons.TriangleDown />}
           >
             {dropdownItems.map(menu => {
+              const canShowChild = menu.childs?.some(
+                item => typeof item === 'object' && !!item.perm,
+              );
               if (menu.childs) {
-                return canDatabase || canUpload ? (
-                  <SubMenu
-                    key={`sub2_${menu.label}`}
-                    className="data-menu"
-                    title={menuIconAndLabel(menu)}
-                  >
-                    {menu.childs.map((item, idx) =>
-                      typeof item !== 'string' && item.name && item.perm ? (
-                        <Fragment key={item.name}>
-                          {idx === 2 && <Menu.Divider />}
-                          {buildMenuItem(item)}
-                        </Fragment>
-                      ) : null,
-                    )}
-                  </SubMenu>
-                ) : null;
+                if (canShowChild) {
+                  return (
+                    <SubMenu
+                      key={`sub2_${menu.label}`}
+                      className="data-menu"
+                      title={menuIconAndLabel(menu)}
+                    >
+                      {menu.childs.map((item, idx) =>
+                        typeof item !== 'string' && item.name && item.perm ? (
+                          <Fragment key={item.name}>
+                            {idx === 2 && <Menu.Divider />}
+                            {buildMenuItem(item)}
+                          </Fragment>
+                        ) : null,
+                      )}
+                    </SubMenu>
+                  );
+                }
+                if (!menu.url) {
+                  return null;
+                }
               }
               return (
                 findPermission(

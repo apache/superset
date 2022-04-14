@@ -505,7 +505,8 @@ describe('SupersetClientClass', () => {
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
-    const mockHref = `http://localhost${mockRequestPath + mockRequestSearch}`;
+    const mockRequestRelativeUrl = mockRequestPath + mockRequestSearch;
+    const mockHref = `http://localhost${mockRequestRelativeUrl}`;
 
     beforeEach(() => {
       originalLocation = window.location;
@@ -541,13 +542,31 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         const redirectURL = window.location.href;
-        expect(redirectURL).toBe(
-          `/login?next=${mockRequestPath + mockRequestSearch}`,
-        );
+        expect(redirectURL).toBe(`/login?next=${mockRequestRelativeUrl}`);
         expect(error.status).toBe(401);
       }
     });
 
+    it('should not redirect again if already on login page', async () => {
+      const client = new SupersetClientClass({});
+
+      // @ts-expect-error
+      window.location = {
+        href: '/login?next=something',
+        pathname: '/login',
+        search: '?next=something',
+      };
+
+      let error;
+      try {
+        await client.request({ url: mockRequestUrl, method: 'GET' });
+      } catch (err) {
+        error = err;
+      } finally {
+        expect(window.location.href).toBe('/login?next=something');
+        expect(error.status).toBe(401);
+      }
+    });
     it('does nothing if instructed to ignoreUnauthorized', async () => {
       const client = new SupersetClientClass({});
 
