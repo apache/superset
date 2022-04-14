@@ -844,7 +844,7 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
-    
+
     # todo(hugh): remedy for data currently still being processed by reports
     # need to write a proper migration to remove all time_range_endpoints
     time_range_endpoints = fields.List(fields.String())
