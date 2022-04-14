@@ -57,6 +57,11 @@ const HostList = {
   overflow: 'auto',
 };
 
+// const StickyHeader = {
+//   position: sticky,
+//   top: 0,
+// };
+
 const RowBullet = {
   display: 'list-item',
   'list-style-type': 'disc',
@@ -70,7 +75,12 @@ const HostnameTitle = {
 
 const AtAGlance = {
   maxHeight: '300px',
+  width: '100%',
   overflow: 'auto',
+};
+
+const Table = {
+  width: '75%',
 };
 
 const AtAGlanceLists = {
@@ -88,9 +98,11 @@ const styles = {
   UrlList,
   UrlListItem,
   HostList,
+  // StickyHeader,
   RowBullet,
   HostnameTitle,
   AtAGlance,
+  Table,
   AtAGlanceLists,
 };
 

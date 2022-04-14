@@ -187,7 +187,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   return (
     <div style={styles.AtAGlance}>
       <div>
-        <table>
+        <table style={styles.Table}>
           <tr>
             <td>
               **Please note that the results in this chart are only for the
@@ -208,7 +208,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
         </table>
       </div>
       <div>
-        <table>
+        <table style={styles.Table}>
           <tr>
             <Collapse bordered expandIconPosition="left" ghost>
               <Collapse.Panel
