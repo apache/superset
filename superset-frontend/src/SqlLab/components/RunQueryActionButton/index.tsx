@@ -27,6 +27,7 @@ import {
   DropdownButtonProps,
 } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
+import { useMemo } from '@storybook/addons';
 
 interface Props {
   allowAsync: boolean;
@@ -107,6 +108,14 @@ const RunQueryActionButton = ({
 
   const isDisabled = !sql.trim();
 
+  const stopButtonTooltipText = useMemo(
+    () =>
+      userOS === 'MacOS'
+        ? t('Stop running (Ctrl + x)')
+        : t('Stop running (Ctrl + e)'),
+    [userOS],
+  );
+
   return (
     <StyledButton>
       <ButtonComponent
@@ -117,9 +126,7 @@ const RunQueryActionButton = ({
         tooltip={
           (!isDisabled &&
             (shouldShowStopBtn
-              ? userOS === 'MacOS'
-                ? t('Stop running (Ctrl + x)')
-                : t('Stop running (Ctrl + e)')
+              ? stopButtonTooltipText
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
