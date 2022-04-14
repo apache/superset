@@ -29,22 +29,6 @@ const DEFAULT_TIMEZONE = {
 
 const MIN_SELECT_WIDTH = '400px';
 
-const offsetsToName = {
-  '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
-  '-360-300': ['Central Standard Time', 'Central Daylight Time'],
-  '-420-360': ['Mountain Standard Time', 'Mountain Daylight Time'],
-  '-420-420': [
-    'Mountain Standard Time - Phoenix',
-    'Mountain Standard Time - Phoenix',
-  ],
-  '-480-420': ['Pacific Standard Time', 'Pacific Daylight Time'],
-  '-540-480': ['Alaska Standard Time', 'Alaska Daylight Time'],
-  '-600-600': ['Hawaii Standard Time', 'Hawaii Daylight Time'],
-  '60120': ['Central European Time', 'Central European Daylight Time'],
-  '00': [DEFAULT_TIMEZONE.name, DEFAULT_TIMEZONE.name],
-  '060': ['GMT Standard Time - London', 'British Summer Time'],
-};
-
 const currentDate = moment();
 const JANUARY = moment([2021, 1]);
 const JULY = moment([2021, 7]);
@@ -52,15 +36,6 @@ const JULY = moment([2021, 7]);
 const getOffsetKey = (name: string) =>
   JANUARY.tz(name).utcOffset().toString() +
   JULY.tz(name).utcOffset().toString();
-
-const getTimezoneName = (name: string) => {
-  const offsets = getOffsetKey(name);
-  return (
-    (currentDate.tz(name).isDST()
-      ? offsetsToName[offsets]?.[1]
-      : offsetsToName[offsets]?.[0]) || name
-  );
-};
 
 const ALL_ZONES = moment.tz
   .countries()
@@ -81,7 +56,7 @@ ALL_ZONES.forEach(zone => {
 const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
   label: `GMT ${moment
     .tz(currentDate, zone.name)
-    .format('Z')} (${getTimezoneName(zone.name)})`,
+    .format('Z')}`,
   value: zone.name,
   offsets: getOffsetKey(zone.name),
   timezoneName: zone.name,
