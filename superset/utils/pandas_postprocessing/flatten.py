@@ -34,7 +34,7 @@ def flatten(
 
     :param df: N-dimensional DataFrame.
     :param reset_index: Convert index to column when df.index isn't RangeIndex
-    :param drop_levels: index or name of level needs to ignore
+    :param drop_levels: index of levels or name of level might be dropped if df is N-dimensional
     :return: a flat DataFrame
 
     Examples
@@ -76,12 +76,17 @@ def flatten(
     1  2021-01-02        1        1        1        1
     2  2021-01-03        1        1        1        1
     """
-    df.columns = df.columns.droplevel(drop_levels)
 
     if _is_multi_index_on_columns(df):
+        df.columns = df.columns.droplevel(drop_levels)
         # every cell should be converted to string
         df.columns = [
-            FLAT_COLUMN_SEPARATOR.join([str(cell) for cell in series])
+            FLAT_COLUMN_SEPARATOR.join(
+                [
+                    str(cell)
+                    for cell in ([series] if isinstance(series, str) else series)
+                ]
+            )
             for series in df.columns.to_flat_index()
         ]
 
