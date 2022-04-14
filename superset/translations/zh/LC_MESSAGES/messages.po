@@ -1008,7 +1008,7 @@ msgid "Alerts & Reports"
 msgstr "警报和报告"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:432
-msgid "Alerts & reports"
+msgid "Alerts & Reports"
 msgstr "警报和报告"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:127

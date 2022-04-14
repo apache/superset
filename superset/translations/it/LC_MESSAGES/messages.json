@@ -1836,7 +1836,7 @@
       "${AlertState.error}": [""],
       "${AlertState.noop}": [""],
       "${AlertState.grace}": [""],
-      "Alerts & reports": ["Importa"],
+      "Alerts & Reports": ["Importa"],
       "Reports": ["Importa"],
       "This action will permanently delete %s.": [""],
       "Delete %s?": ["Cancella"],

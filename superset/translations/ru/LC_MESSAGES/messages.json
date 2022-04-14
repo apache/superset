@@ -2261,7 +2261,7 @@
       "${AlertState.error}": ["${AlertState.error}"],
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
-      "Alerts & reports": ["Оповещения и рассылки"],
+      "Alerts & Reports": ["Оповещения и рассылки"],
       "Reports": ["Рассылки"],
       "This action will permanently delete %s.": [
         "Это действие навсегда удалит %s."

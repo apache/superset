@@ -3145,7 +3145,7 @@
       "${AlertState.error}": ["${AlertState.error}"],
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
-      "Alerts & reports": ["Alertes et rapports"],
+      "Alerts & Reports": ["Alertes et rapports"],
       "Reports": ["Rapports"],
       "Delete %s?": ["Effacer %s ?"],
       "Please confirm": ["Veuillez confirmer"],

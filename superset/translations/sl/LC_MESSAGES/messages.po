@@ -1045,7 +1045,7 @@ msgid "Alerts & Reports"
 msgstr "Opozorila in poročila"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:432
-msgid "Alerts & reports"
+msgid "Alerts & Reports"
 msgstr "Opozorila in poročila"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:127

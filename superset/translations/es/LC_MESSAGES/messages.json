@@ -2342,7 +2342,7 @@
       "${AlertState.error}": [""],
       "${AlertState.noop}": [""],
       "${AlertState.grace}": [""],
-      "Alerts & reports": ["Alertas e informes"],
+      "Alerts & Reports": ["Alertas e informes"],
       "Reports": ["Informes"],
       "This action will permanently delete %s.": [
         "Esta acción eliminará permanentemente %s."

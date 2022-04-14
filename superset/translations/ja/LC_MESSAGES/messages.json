@@ -2169,7 +2169,7 @@
       "${AlertState.error}": [""],
       "${AlertState.noop}": [""],
       "${AlertState.grace}": [""],
-      "Alerts & reports": ["アラートとレポート"],
+      "Alerts & Reports": ["アラートとレポート"],
       "Reports": ["レポート"],
       "This action will permanently delete %s.": [""],
       "Delete %s?": ["%s を削除しますか?"],

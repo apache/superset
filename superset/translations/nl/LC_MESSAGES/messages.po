@@ -14229,7 +14229,7 @@ msgid "Status"
 msgstr "Status"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:432
-msgid "Alerts & reports"
+msgid "Alerts & Reports"
 msgstr "Waarschuwingen & rapporten"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:443

@@ -4244,7 +4244,7 @@
         "Er is een fout opgetreden tijdens het ophalen van gecreeerd door waarden: %s"
       ],
       "Status": ["Status"],
-      "Alerts & reports": ["Waarschuwingen & rapporten"],
+      "Alerts & Reports": ["Waarschuwingen & rapporten"],
       "Reports": ["Rapporten"],
       "Delete %s?": ["%s verwijderen?"],
       "Please confirm": ["Gelieve te bevestigen"],

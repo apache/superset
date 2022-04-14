@@ -2038,7 +2038,7 @@
       "Error": ["错误"],
       "Not triggered": ["没有触发"],
       "On Grace": ["在宽限期内"],
-      "Alerts & reports": ["警报和报告"],
+      "Alerts & Reports": ["警报和报告"],
       "Reports": ["报告"],
       "This action will permanently delete %s.": ["此操作将永久删除 %s 。"],
       "Delete %s?": ["需要删除 %s 吗？"],

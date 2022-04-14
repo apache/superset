@@ -428,7 +428,7 @@ function AlertList({
     <>
       <SubMenu
         activeChild={pathName}
-        name={t('Alerts & reports')}
+        name={t('Alerts & Reports')}
         tabs={[
           {
             name: 'Alerts',

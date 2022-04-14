@@ -3140,7 +3140,7 @@
       "${AlertState.error}": ["${AlertState.error}"],
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
-      "Alerts & reports": ["Opozorila in poročila"],
+      "Alerts & Reports": ["Opozorila in poročila"],
       "Reports": ["Poročila"],
       "Delete %s?": ["Izbrišem %s?"],
       "Please confirm": ["Prosim, potrdite"],
