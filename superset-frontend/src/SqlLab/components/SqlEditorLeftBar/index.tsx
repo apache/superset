@@ -105,15 +105,10 @@ export default function SqlEditorLeftBar({
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [isDbSearch, setDbSearch] = useState(false);
-  const [isSelectIsClosed, setSelectIsClosed] = useState(true);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
-
-  useEffect(() => {
-    if (isSelectIsClosed) setDbSearch(false);
-  }, [isSelectIsClosed]);
 
   const onDbSearch = (searchText?: string) => {
     if (searchText) setDbSearch(true);
@@ -229,8 +224,6 @@ export default function SqlEditorLeftBar({
       <TableSelectorMultiple
         onEmptyResults={onDbSearch}
         emptyState={emptyStateComponent}
-        setEmptyState={setEmptyState}
-        dbSelectClosedState={setSelectIsClosed}
         database={database}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}

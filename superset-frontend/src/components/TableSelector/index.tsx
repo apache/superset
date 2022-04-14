@@ -95,7 +95,6 @@ interface TableSelectorProps {
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
-  setEmptyState?: Dispatch<SetStateAction<boolean>>;
   onEmptyResults?: (searchText?: string) => null;
   sqlLabMode?: boolean;
   tableValue?: string | string[];

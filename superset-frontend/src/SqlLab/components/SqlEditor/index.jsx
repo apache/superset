@@ -234,7 +234,7 @@ class SqlEditor extends React.PureComponent {
     const db = this.props.database;
     this.setState({ height: this.getSqlEditorHeight() });
     if (!db || isEmpty(db)) {
-      this.setState({ showEmptyState: true });
+      this.setEmptyState(true);
     }
 
     window.addEventListener('resize', this.handleWindowResize);
@@ -772,8 +772,8 @@ class SqlEditor extends React.PureComponent {
         {this.state.showEmptyState ? (
           <EmptyStateBig
             image="vector.svg"
-            title="Select a database to write a query"
-            description="Choose one of the available databases from the panel on the left."
+            title={t("Select a database to write a query")}
+            description={t("Choose one of the available databases from the panel on the left.")}
           />
         ) : (
           this.queryPane()
