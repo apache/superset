@@ -844,7 +844,10 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
-
+    
+    # todo(hugh): remedy for data currently still being processed by reports
+    # need to write a proper migration to remove all time_range_endpoints
+    time_range_endpoints = fields.List(str, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
