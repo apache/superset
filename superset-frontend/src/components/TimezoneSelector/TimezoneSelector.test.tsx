@@ -88,10 +88,10 @@ test('render timezones in correct oder for standard time', async () => {
   );
   await openSelectMenu();
   const options = await getSelectOptions();
-  expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
-  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
-  expect(options[2]).toHaveTextContent('GMT -10:00 (Hawaii Standard Time)');
-  expect(options[3]).toHaveTextContent('GMT -10:00 (America/Adak)');
+  expect(options[0]).toHaveTextContent('GMT -05:00');
+  expect(options[1]).toHaveTextContent('GMT -11:00');
+  expect(options[2]).toHaveTextContent('GMT -10:00');
+  expect(options[3]).toHaveTextContent('GMT -10:00');
 });
 
 test('render timezones in correct order for daylight saving time', async () => {
@@ -106,10 +106,10 @@ test('render timezones in correct order for daylight saving time', async () => {
   await openSelectMenu();
   const options = await getSelectOptions();
   // first option is always current timezone
-  expect(options[0]).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
-  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
-  expect(options[2]).toHaveTextContent('GMT -10:00 (Hawaii Standard Time)');
-  expect(options[3]).toHaveTextContent('GMT -09:30 (Pacific/Marquesas)');
+  expect(options[0]).toHaveTextContent('GMT -04:00');
+  expect(options[1]).toHaveTextContent('GMT -11:00');
+  expect(options[2]).toHaveTextContent('GMT -10:00');
+  expect(options[3]).toHaveTextContent('GMT -09:30');
 });
 
 test('can select a timezone values and returns canonical timezone name', async () => {
@@ -127,7 +127,7 @@ test('can select a timezone values and returns canonical timezone name', async (
   const searchInput = screen.getByRole('combobox');
   // search for mountain time
   await userEvent.type(searchInput, 'mou', { delay: 10 });
-  const findTitle = 'GMT -07:00 (Mountain Standard Time)';
+  const findTitle = 'GMT -07:00';
   const selectOption = await screen.findByTitle(findTitle);
   userEvent.click(selectOption);
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
@@ -143,13 +143,13 @@ test('can update props and rerender with different values', async () => {
       timezone="Asia/Dubai"
     />,
   );
-  expect(screen.getByTitle('GMT +04:00 (Asia/Dubai)')).toBeInTheDocument();
+  expect(screen.getByTitle('GMT +04:00')).toBeInTheDocument();
   rerender(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="Australia/Perth"
     />,
   );
-  expect(screen.getByTitle('GMT +08:00 (Australia/Perth)')).toBeInTheDocument();
+  expect(screen.getByTitle('GMT +08:00')).toBeInTheDocument();
   expect(onTimezoneChange).toHaveBeenCalledTimes(0);
 });
