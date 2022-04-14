@@ -54,9 +54,7 @@ ALL_ZONES.forEach(zone => {
 });
 
 const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
-  label: `GMT ${moment
-    .tz(currentDate, zone.name)
-    .format('Z')}`,
+  label: `GMT ${moment.tz(currentDate, zone.name).format('Z')}`,
   value: zone.name,
   offsets: getOffsetKey(zone.name),
   timezoneName: zone.name,
