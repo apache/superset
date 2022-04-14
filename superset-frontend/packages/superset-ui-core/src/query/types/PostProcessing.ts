@@ -205,6 +205,7 @@ interface _PostProcessingFlatten {
   operation: 'flatten';
   options?: {
     reset_index?: boolean;
+    drop_levels?: number[] | string[];
   };
 }
 export type PostProcessingFlatten =

@@ -22,6 +22,7 @@ from flask import g
 
 from superset import db, security_manager
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.embedded.dao import EmbeddedDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.security.guest_token import GuestTokenResourceType
@@ -38,14 +39,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     EMBEDDED_SUPERSET=True,
 )
 class TestGuestUserSecurity(SupersetTestCase):
-    # This test doesn't use a dashboard fixture, the next test does.
-    # That way tests are faster.
-
-    resource_id = 42
-
     def authorized_guest(self):
         return security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dashboard", "id": self.resource_id}]}
+            {"user": {}, "resources": [{"type": "dashboard", "id": "some-uuid"}]}
         )
 
     def test_is_guest_user__regular_user(self):
@@ -83,60 +79,6 @@ class TestGuestUserSecurity(SupersetTestCase):
         guest_user = security_manager.get_current_guest_user_if_guest()
         self.assertEqual(guest_user, g.user)
 
-    def test_has_guest_access__regular_user(self):
-        g.user = security_manager.find_user("admin")
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertFalse(has_guest_access)
-
-    def test_has_guest_access__anonymous_user(self):
-        g.user = security_manager.get_anonymous_user()
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertFalse(has_guest_access)
-
-    def test_has_guest_access__authorized_guest_user(self):
-        g.user = self.authorized_guest()
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertTrue(has_guest_access)
-
-    def test_has_guest_access__authorized_guest_user__non_zero_resource_index(self):
-        guest = self.authorized_guest()
-        guest.resources = [
-            {"type": "dashboard", "id": self.resource_id - 1}
-        ] + guest.resources
-        g.user = guest
-
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertTrue(has_guest_access)
-
-    def test_has_guest_access__unauthorized_guest_user__different_resource_id(self):
-        g.user = security_manager.get_guest_user_from_token(
-            {
-                "user": {},
-                "resources": [{"type": "dashboard", "id": self.resource_id - 1}],
-            }
-        )
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertFalse(has_guest_access)
-
-    def test_has_guest_access__unauthorized_guest_user__different_resource_type(self):
-        g.user = security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dirt", "id": self.resource_id}]}
-        )
-        has_guest_access = security_manager.has_guest_access(
-            GuestTokenResourceType.DASHBOARD, self.resource_id
-        )
-        self.assertFalse(has_guest_access)
-
     def test_get_guest_user_roles_explicit(self):
         guest = self.authorized_guest()
         roles = security_manager.get_user_roles(guest)
@@ -158,12 +100,64 @@ class TestGuestUserSecurity(SupersetTestCase):
 class TestGuestUserDashboardAccess(SupersetTestCase):
     def setUp(self) -> None:
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDAO.upsert(self.dash, [])
         self.authorized_guest = security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dashboard", "id": self.dash.id}]}
+            {
+                "user": {},
+                "resources": [{"type": "dashboard", "id": str(self.embedded.uuid)}],
+            }
         )
         self.unauthorized_guest = security_manager.get_guest_user_from_token(
-            {"user": {}, "resources": [{"type": "dashboard", "id": self.dash.id + 1}]}
+            {
+                "user": {},
+                "resources": [
+                    {"type": "dashboard", "id": "06383667-3e02-4e5e-843f-44e9c5896b6c"}
+                ],
+            }
         )
+
+    def test_has_guest_access__regular_user(self):
+        g.user = security_manager.find_user("admin")
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertFalse(has_guest_access)
+
+    def test_has_guest_access__anonymous_user(self):
+        g.user = security_manager.get_anonymous_user()
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertFalse(has_guest_access)
+
+    def test_has_guest_access__authorized_guest_user(self):
+        g.user = self.authorized_guest
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertTrue(has_guest_access)
+
+    def test_has_guest_access__authorized_guest_user__non_zero_resource_index(self):
+        # set up a user who has authorized access, plus another resource
+        guest = self.authorized_guest
+        guest.resources = [
+            {"type": "dashboard", "id": "not-a-real-id"}
+        ] + guest.resources
+        g.user = guest
+
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertTrue(has_guest_access)
+
+    def test_has_guest_access__unauthorized_guest_user__different_resource_id(self):
+        g.user = security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [{"type": "dashboard", "id": "not-a-real-id"}],
+            }
+        )
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertFalse(has_guest_access)
+
+    def test_has_guest_access__unauthorized_guest_user__different_resource_type(self):
+        g.user = security_manager.get_guest_user_from_token(
+            {"user": {}, "resources": [{"type": "dirt", "id": self.embedded.uuid}]}
+        )
+        has_guest_access = security_manager.has_guest_access(self.dash)
+        self.assertFalse(has_guest_access)
 
     def test_chart_raise_for_access_as_guest(self):
         chart = self.dash.slices[0]

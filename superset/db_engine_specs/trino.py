@@ -21,8 +21,9 @@ from urllib import parse
 
 import simplejson as json
 from flask import current_app
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
@@ -107,7 +108,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Trino connection, enable impersonation, and set optional param

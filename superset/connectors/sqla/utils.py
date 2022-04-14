@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine import Engine
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
@@ -33,21 +32,19 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, ParsedQuery, Table
+from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
 from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
-
-
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
     schema_name: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -84,14 +81,14 @@ def get_physical_table_metadata(
             col.update(
                 {
                     "type": "UNKNOWN",
-                    "generic_type": None,
+                    "type_generic": None,
                     "is_dttm": None,
                 }
             )
     return cols
 
 
-def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
+def get_virtual_table_metadata(dataset: "SqlaTable") -> List[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -136,38 +133,47 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     return cols
 
 
-def validate_adhoc_subquery(raw_sql: str) -> None:
+def validate_adhoc_subquery(
+    sql: str,
+    database_id: int,
+    default_schema: str,
+) -> str:
     """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table
-    :param raw_sql: adhoc sql expression
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
+
+    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
+    predicates to it.
+
+    :param sql: adhoc sql expression
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
     # pylint: disable=import-outside-toplevel
     from superset import is_feature_enabled
 
-    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-        return
-
-    for statement in sqlparse.parse(raw_sql):
+    statements = []
+    for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
-                    level=ErrorLevel.ERROR,
+            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                        message=_("Custom SQL fields cannot contain sub-queries."),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
-            )
-    return
+            statement = insert_rls(statement, database_id, default_schema)
+        statements.append(statement)
+
+    return ";\n".join(str(statement) for statement in statements)
 
 
 def load_or_create_tables(  # pylint: disable=too-many-arguments
     session: Session,
-    database_id: int,
+    database: Database,
     default_schema: Optional[str],
     tables: Set[Table],
     conditional_quote: Callable[[str], str],
-    engine: Engine,
 ) -> List[NewTable]:
     """
     Load or create new table model instances.
@@ -187,7 +193,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     predicate = or_(
         *[
             and_(
-                NewTable.database_id == database_id,
+                NewTable.database_id == database.id,
                 NewTable.schema == table.schema,
                 NewTable.name == table.table,
             )
@@ -201,9 +207,10 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     for table in tables:
         if (table.schema, table.table) not in existing:
             try:
-                inspector = inspect(engine)
-                column_metadata = inspector.get_columns(
-                    table.table, schema=table.schema
+                column_metadata = get_physical_table_metadata(
+                    database=database,
+                    table_name=table.table,
+                    schema_name=table.schema,
                 )
             except Exception:  # pylint: disable=broad-except
                 continue
@@ -212,8 +219,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
                     name=column["name"],
                     type=str(column["type"]),
                     expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
+                    is_temporal=column["is_dttm"],
                     is_aggregation=False,
                     is_physical=True,
                     is_spatial=False,
@@ -227,7 +233,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
                     name=table.table,
                     schema=table.schema,
                     catalog=None,
-                    database_id=database_id,
+                    database_id=database.id,
                     columns=columns,
                 )
             )

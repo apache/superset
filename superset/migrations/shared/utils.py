@@ -21,7 +21,11 @@ from alembic import op
 from sqlalchemy import engine_from_config
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
-from sqloxide import parse_sql
+
+try:
+    from sqloxide import parse_sql
+except ImportError:
+    parse_sql = None
 
 from superset.sql_parse import ParsedQuery, Table
 
@@ -88,6 +92,10 @@ def extract_table_references(sql_text: str, sqla_dialect: str) -> Set[Table]:
     """
     Return all the dependencies from a SQL sql_text.
     """
+    if not parse_sql:
+        parsed = ParsedQuery(sql_text)
+        return parsed.tables
+
     dialect = "generic"
     for dialect, sqla_dialects in sqloxide_dialects.items():
         if sqla_dialect in sqla_dialects:

@@ -22,15 +22,13 @@ from typing import Any, cast
 from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.fieldwidgets import Select2Widget
-from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
-from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -327,15 +325,6 @@ class RowLevelSecurityFiltersModelView(SupersetModelView, DeleteMixin):
     if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
-
-    @staticmethod
-    def is_enabled() -> bool:
-        return is_feature_enabled("ROW_LEVEL_SECURITY")
-
-    @before_request
-    def ensure_enabled(self) -> None:
-        if not self.is_enabled():
-            raise NotFound()
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors

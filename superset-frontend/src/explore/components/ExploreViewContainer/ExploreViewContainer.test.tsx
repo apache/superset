@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -111,13 +112,17 @@ test('generates a different form_data param when one is provided and is mounting
 });
 
 test('reuses the same form_data param when updating', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
   const replaceState = jest.spyOn(window.history, 'replaceState');
   const pushState = jest.spyOn(window.history, 'pushState');
   await waitFor(() => renderWithRouter());
   expect(replaceState.mock.calls.length).toBe(1);
-  userEvent.click(screen.getByText('Run'));
+  userEvent.click(screen.getByText('Update chart'));
   await waitFor(() => expect(pushState.mock.calls.length).toBe(1));
   expect(replaceState.mock.calls[0]).toEqual(pushState.mock.calls[0]);
   replaceState.mockRestore();
   pushState.mockRestore();
+  getChartControlPanelRegistry().remove('table');
 });

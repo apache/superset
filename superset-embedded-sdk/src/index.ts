@@ -131,7 +131,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded${dashboardConfig}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
