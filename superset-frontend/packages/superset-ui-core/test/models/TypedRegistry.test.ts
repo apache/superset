@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,22 +17,17 @@
  * under the License.
  */
 
-export * from './models';
-export * from './utils';
-export * from './types';
-export * from './translation';
-export * from './connection';
-export * from './dashboard';
-export * from './dynamic-plugins';
-export * from './query';
-export * from './number-format';
-export * from './time-format';
-export * from './dimension';
-export * from './color';
-export * from './style';
-export * from './validator';
-export * from './chart';
-export * from './chart-composition';
-export * from './components';
-export * from './math-expression';
-export * from './ui-overrides';
+import { TypedRegistry } from '@superset-ui/core';
+
+describe('TypedRegistry', () => {
+  it('gets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    expect(reg.get('foo')).toBe('bar');
+  });
+
+  it('sets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    reg.set('foo', 'blah');
+    expect(reg.get('foo')).toBe('blah');
+  });
+});
