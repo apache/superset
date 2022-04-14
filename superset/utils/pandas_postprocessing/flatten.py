@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from typing import Sequence, Union
 
 import pandas as pd
@@ -83,6 +84,7 @@ def flatten(
         # every cell should be converted to string
         df.columns = [
             FLAT_COLUMN_SEPARATOR.join(
+                # pylint: disable=superfluous-parens
                 [str(cell) for cell in (series if is_sequence(series) else [series])]
             )
             for series in df.columns.to_flat_index()
