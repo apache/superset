@@ -57,6 +57,10 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     _use_date_trunc_function: Dict[str, bool] = {
         "PT1S": False,
         "PT1M": False,
+        "PT5M": False,
+        "PT10M": False,
+        "PT15M": False,
+        "PT30M": False,
         "PT1H": False,
         "P1D": False,
         "P1W": True,
