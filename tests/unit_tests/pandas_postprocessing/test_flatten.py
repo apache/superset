@@ -73,3 +73,35 @@ def test_flat_should_flat_multiple_index():
             }
         )
     )
+
+
+def test_flat_should_drop_index_level():
+    index = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03"])
+    index.name = "__timestamp"
+    columns = pd.MultiIndex.from_arrays(
+        [["a"] * 3, ["b"] * 3, ["c", "d", "e"], ["f", "i", "g"]],
+        names=["level1", "level2", "level3", "level4"],
+    )
+    df = pd.DataFrame(index=index, columns=columns, data=1)
+
+    assert pp.flatten(df.copy(), drop_levels=(0, 1,)).equals(
+        pd.DataFrame(
+            {
+                "__timestamp": index,
+                FLAT_COLUMN_SEPARATOR.join(["c", "f"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["d", "i"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["e", "g"]): [1, 1, 1],
+            }
+        )
+    )
+
+    assert pp.flatten(df.copy(), drop_levels=("level1", "level2")).equals(
+        pd.DataFrame(
+            {
+                "__timestamp": index,
+                FLAT_COLUMN_SEPARATOR.join(["c", "f"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["d", "i"]): [1, 1, 1],
+                FLAT_COLUMN_SEPARATOR.join(["e", "g"]): [1, 1, 1],
+            }
+        )
+    )

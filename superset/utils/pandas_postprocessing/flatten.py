@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Tuple, Union
+
 import pandas as pd
 
 from superset.utils.pandas_postprocessing.utils import (
@@ -25,12 +27,14 @@ from superset.utils.pandas_postprocessing.utils import (
 def flatten(
     df: pd.DataFrame,
     reset_index: bool = True,
+    drop_levels: Union[Tuple[int, ...], Tuple[str, ...]] = (),
 ) -> pd.DataFrame:
     """
     Convert N-dimensional DataFrame to a flat DataFrame
 
     :param df: N-dimensional DataFrame.
     :param reset_index: Convert index to column when df.index isn't RangeIndex
+    :param drop_levels: index or name of level needs to ignore
     :return: a flat DataFrame
 
     Examples
@@ -72,6 +76,8 @@ def flatten(
     1  2021-01-02        1        1        1        1
     2  2021-01-03        1        1        1        1
     """
+    df.columns = df.columns.droplevel(drop_levels)
+
     if _is_multi_index_on_columns(df):
         # every cell should be converted to string
         df.columns = [
