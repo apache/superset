@@ -18,19 +18,14 @@
  */
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
-import { styled, t, SupersetTheme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
-import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
 import { Upload } from 'src/components';
-import {
-  useImportResource,
-  getDatabaseDocumentationLinks,
-} from 'src/views/CRUD/hooks';
+import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
-
-import { antdWarningAlertStyles } from './styles';
+import ErrorAlert from './ErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
@@ -103,12 +98,6 @@ const StyledInputContainer = styled.div`
   }
 `;
 
-const supersetTextDocs = getDatabaseDocumentationLinks();
-
-export const DOCUMENTATION_LINK = supersetTextDocs
-  ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/databases/installing-database-drivers';
-
 export interface ImportModelsModalProps {
   resourceName: ImportResourceName;
   resourceLabel: string;
@@ -141,7 +130,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
-  const [errMsg, setErrMsg] = useState<string>();
+  const [errorMessage, setErrorMessage] = useState<string>();
 
   const clearModal = () => {
     setFileList([]);
@@ -150,11 +139,11 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
     setImportingModel(false);
+    setErrorMessage('');
   };
 
   const handleErrorMsg = (msg: string) => {
-    clearModal();
-    setErrMsg(msg);
+    setErrorMessage(msg);
   };
 
   const {
@@ -273,34 +262,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     );
   };
 
-  const renderErrMsg = () => (
-    <Alert
-      closable={false}
-      css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
-      type="error"
-      showIcon
-      message=""
-      description={
-        <>
-          {errMsg}.
-          <br />
-          {t(
-            'Database driver for importing maybe not installed. Visit the Superset documentation page for installation instructions:',
-          )}
-          <a
-            href={DOCUMENTATION_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="additional-fields-alert-description"
-          >
-            {t('here')}
-          </a>
-          .
-        </>
-      }
-    />
-  );
-
   // Show/hide
   if (isHidden && show) {
     setIsHidden(false);
@@ -334,11 +295,12 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           onRemove={removeFile}
           // upload is handled by hook
           customRequest={() => {}}
+          disabled={importingModel}
         >
           <Button loading={importingModel}>Select file</Button>
         </Upload>
       </StyledInputContainer>
-      {errMsg && renderErrMsg()}
+      {errorMessage && <ErrorAlert errorMessage={errorMessage} />}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>
