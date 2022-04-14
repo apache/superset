@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Tuple, Union
+from typing import Sequence, Union
 
 import pandas as pd
 
@@ -27,7 +27,7 @@ from superset.utils.pandas_postprocessing.utils import (
 def flatten(
     df: pd.DataFrame,
     reset_index: bool = True,
-    drop_levels: Union[Tuple[int, ...], Tuple[str, ...]] = (),
+    drop_levels: Union[Sequence[int], Sequence[str]] = (),
 ) -> pd.DataFrame:
     """
     Convert N-dimensional DataFrame to a flat DataFrame
