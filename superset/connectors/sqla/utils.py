@@ -15,13 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from datetime import date, datetime, time, timedelta
 from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
@@ -208,11 +206,14 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     existing = {(table.schema, table.name) for table in new_tables}
     for table in tables:
         if (table.schema, table.table) not in existing:
-            column_metadata = get_physical_table_metadata(
-                database=database,
-                table_name=table.table,
-                schema_name=table.schema,
-            )
+            try:
+                column_metadata = get_physical_table_metadata(
+                    database=database,
+                    table_name=table.table,
+                    schema_name=table.schema,
+                )
+            except Exception:  # pylint: disable=broad-except
+                continue
             columns = [
                 NewColumn(
                     name=column["name"],
