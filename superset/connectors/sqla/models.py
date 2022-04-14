@@ -2375,11 +2375,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             referenced_tables = parsed.tables
             tables = load_or_create_tables(
                 session,
-                dataset.database_id,
+                database,
                 dataset.schema,
                 referenced_tables,
                 conditional_quote,
-                engine,
             )
 
         # create the new dataset
