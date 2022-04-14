@@ -17,10 +17,21 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingFlatten } from '@superset-ui/core';
+import { ensureIsArray, PostProcessingFlatten } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
   formData,
   queryObject,
-) => ({ operation: 'flatten' });
+) => {
+  const drop_levels: number[] = [];
+  if (ensureIsArray(queryObject.metrics).length === 1) {
+    drop_levels.push(0);
+  }
+  return {
+    operation: 'flatten',
+    options: {
+      drop_levels,
+    },
+  };
+};
