@@ -22,7 +22,7 @@ import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import NoSuchTableError, UnsupportedCompilationError
+from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
 
@@ -181,13 +181,11 @@ def is_column_type_temporal(column_type: TypeEngine) -> bool:
 
 
 def convert_column_type(column_type: TypeEngine) -> str:
-    try:
-        if column_type.python_type == list:
-            return "ARRAY"
-        else:
-            return str(column_type)
-    except UnsupportedCompilationError:
-        return "STRING"
+    if column_type.python_type == list:
+        return "ARRAY"
+    if column_type.python_type == dict:
+        return "JSON"
+    return str(column_type.python_type.__name__.upper())
 
 
 def load_or_create_tables(  # pylint: disable=too-many-arguments

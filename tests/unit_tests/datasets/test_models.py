@@ -19,9 +19,23 @@
 
 import json
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
+
+
+def test_convert_column_type(app_context: None, session: Session) -> None:
+    from sqlalchemy.sql.sqltypes import ARRAY, JSON, STRINGTYPE
+
+    from superset.connectors.sqla.utils import convert_column_type
+
+    ARRAY.python_type = list
+    JSON.python_type = dict
+
+    assert "ARRAY" == convert_column_type(ARRAY)
+    assert "JSON" == convert_column_type(JSON)
+    assert "STR" == convert_column_type(STRINGTYPE)
 
 
 def test_dataset_model(app_context: None, session: Session) -> None:
