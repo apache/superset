@@ -83,6 +83,8 @@ def _parse_seasonality(  # pylint: disable=invalid-name
             else 0
         )
 
+    return 0
+
 
 def forecast(  # pylint: disable=too-many-arguments, too-many-locals
     df: pd.DataFrame,
