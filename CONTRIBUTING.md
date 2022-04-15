@@ -864,7 +864,7 @@ npm run cypress open
 
 ### Debugging Server App
 
-#### Locally
+#### Local
 
 For debugging locally using VSCode, you can configure a launch configuration file .vscode/launch.json such as
 
@@ -895,7 +895,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 }
 ```
 
-#### Docker container
+#### Docker
 
 Follow these instructions to debug the Flask app running inside a docker container.
 
