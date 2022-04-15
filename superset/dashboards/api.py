@@ -1191,5 +1191,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard.embedded = []
+        for embedded in dashboard.embedded:
+            DashboardDAO.delete(embedded)
         return self.response(200, message="OK")
