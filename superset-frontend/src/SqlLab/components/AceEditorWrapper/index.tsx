@@ -227,11 +227,15 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
             this.props.queryEditor.schema,
           );
         }
+
+        let { caption } = data;
+        if (data.meta === 'table' && caption.includes(' ')) {
+          caption = `"${caption}"`;
+        }
+
         // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
         editor.completer.insertMatch(
-          `${data.caption}${
-            ['function', 'schema'].includes(data.meta) ? '' : ' '
-          }`,
+          `${caption}${['function', 'schema'].includes(data.meta) ? '' : ' '}`,
         );
       },
     };
