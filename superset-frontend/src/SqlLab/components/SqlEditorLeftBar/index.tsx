@@ -188,7 +188,7 @@ export default function SqlEditorLeftBar({
     <EmptyStateSmall
       image="empty.svg"
       title={
-        isDbSearch
+        emptyResultsWithSearch
           ? t('No databases match your search')
           : t('There are no databases available')
       }
