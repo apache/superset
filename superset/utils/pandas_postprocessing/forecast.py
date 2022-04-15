@@ -30,56 +30,58 @@ def _parse_seasonality(  # pylint: disable=invalid-name
     input_value: Optional[Union[bool, int]],
     seasonality_type: str,
     ds: pd.Series,
-) -> Union[bool, Optional[int]]:
-    if input_value is None:
-        if ds.dt.tz:
-            ds = ds.dt.tz_convert(None)
-        first = ds.min()
-        last = ds.max()
-        dt = ds.diff()
-        min_dt = dt.iloc[dt.values.nonzero()[0]].min()
-        if seasonality_type == "yearly":
-            # Turns on yearly seasonality if there is >=2 years of history.
-            return 10 if last - first >= pd.Timedelta(days=730) else 0
-        if seasonality_type == "monthly":
-            # Turns on monthly seasonality if there is >=2 months of history, and the
-            #             # spacing between dates in the history is <1 month.
-            return (
-                1
-                if (
-                    (last - first >= np.timedelta64(2, "M"))
-                    and (min_dt < np.timedelta64(1, "M"))
-                )
-                else 0
-            )
-        if seasonality_type == "weekly":
-            # Turns on weekly seasonality if there is >=2 weeks of history, and the
-            # spacing between dates in the history is <7 days.
-            return (
-                3
-                if (
-                    (last - first >= pd.Timedelta(days=14))
-                    and (min_dt < pd.Timedelta(days=7))
-                )
-                else 0
-            )
-        if seasonality_type == "daily":
-            # Turns on daily seasonality if there is >=2 days of history, and the
-            # spacing between dates in the history is <1 day.
-            return (
-                4
-                if (
-                    (last - first >= pd.Timedelta(days=2))
-                    and (min_dt < pd.Timedelta(days=1))
-                )
-                else 0
-            )
+) -> Union[bool, int]:
     if isinstance(input_value, bool):
         return input_value
-    try:
-        return int(input_value)  # type: ignore
-    except ValueError:
-        return input_value
+
+    if input_value is not None:
+        try:
+            return int(input_value)  # type: ignore
+        except ValueError:
+            pass
+
+    if ds.dt.tz:
+        ds = ds.dt.tz_convert(None)
+    first = ds.min()
+    last = ds.max()
+    dt = ds.diff()
+    min_dt = dt.iloc[dt.values.nonzero()[0]].min()
+    if seasonality_type == "yearly":
+        # Turns on yearly seasonality if there is >=2 years of history.
+        return 10 if last - first >= pd.Timedelta(days=730) else 0
+    if seasonality_type == "monthly":
+        # Turns on monthly seasonality if there is >=2 months of history, and the
+        #             # spacing between dates in the history is <1 month.
+        return (
+            1
+            if (
+                (last - first >= np.timedelta64(2, "M"))
+                and (min_dt < np.timedelta64(1, "M"))
+            )
+            else 0
+        )
+    if seasonality_type == "weekly":
+        # Turns on weekly seasonality if there is >=2 weeks of history, and the
+        # spacing between dates in the history is <7 days.
+        return (
+            3
+            if (
+                (last - first >= pd.Timedelta(days=14))
+                and (min_dt < pd.Timedelta(days=7))
+            )
+            else 0
+        )
+    if seasonality_type == "daily":
+        # Turns on daily seasonality if there is >=2 days of history, and the
+        # spacing between dates in the history is <1 day.
+        return (
+            4
+            if (
+                (last - first >= pd.Timedelta(days=2))
+                and (min_dt < pd.Timedelta(days=1))
+            )
+            else 0
+        )
 
 
 def forecast(  # pylint: disable=too-many-arguments, too-many-locals

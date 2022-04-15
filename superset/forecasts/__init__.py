@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from importlib import import_module
-from typing import Dict, Type, Union, Optional
+from typing import Dict, Type, Union
 
 from superset import app
 
@@ -32,10 +32,10 @@ config = app.config
 def get_model(  # pylint: disable=too-many-arguments
     model_name: str,
     confidence_interval: float,
-    yearly_seasonality: Union[bool, Optional[int]],
-    monthly_seasonality: Union[bool, Optional[int]],
-    weekly_seasonality: Union[bool, Optional[int]],
-    daily_seasonality: Union[bool, Optional[int]],
+    yearly_seasonality: Union[bool, int],
+    monthly_seasonality: Union[bool, int],
+    weekly_seasonality: Union[bool, int],
+    daily_seasonality: Union[bool, int],
 ) -> BaseForecaster:
     model = available_models[model_name]
     return model(
