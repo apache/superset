@@ -18,8 +18,8 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, useCallback, useMemo } from 'react';
-import { css, JsonObject, styled, t } from '@superset-ui/core';
+import React, { FC, useCallback, useEffect, useState, useMemo } from 'react';
+import { JsonObject, styled, css, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -46,8 +46,8 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
-  DASHBOARD_ROOT_DEPTH,
   DASHBOARD_ROOT_ID,
+  DASHBOARD_ROOT_DEPTH,
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
@@ -59,12 +59,10 @@ import {
   CLOSED_FILTER_BAR_WIDTH,
   FILTER_BAR_HEADER_HEIGHT,
   FILTER_BAR_TABS_HEIGHT,
-  HEADER_HEIGHT,
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_WIDTH,
-  TABS_HEIGHT,
 } from 'src/dashboard/constants';
-import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
+import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 
@@ -252,6 +250,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     [dispatch],
   );
 
+  const headerRef = React.useRef<HTMLDivElement>(null);
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
   const rootChildId = dashboardRoot?.children[0];
   const topLevelTabs =
@@ -264,10 +263,26 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
     isReport;
+  const [barTopOffset, setBarTopOffset] = useState(0);
 
-  const barTopOffset =
-    (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
-    (topLevelTabs ? TABS_HEIGHT : 0);
+  useEffect(() => {
+    setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
+
+    let observer: ResizeObserver;
+    if (typeof global.ResizeObserver !== 'undefined' && headerRef.current) {
+      observer = new ResizeObserver(entries => {
+        setBarTopOffset(
+          current => entries?.[0]?.contentRect?.height || current,
+        );
+      });
+
+      observer.observe(headerRef.current);
+    }
+
+    return () => {
+      observer?.disconnect();
+    };
+  }, []);
 
   const {
     showDashboard,
@@ -364,7 +379,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           </StickyPanel>
         </FiltersPanel>
       )}
-      <StyledHeader>
+      <StyledHeader ref={headerRef}>
         {/* @ts-ignore */}
         <DragDroppable
           data-test="top-level-tabs"
