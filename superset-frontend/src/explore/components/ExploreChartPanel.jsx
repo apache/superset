@@ -215,11 +215,17 @@ const ExploreChartPanel = props => {
   };
   const renderChart = useCallback(() => {
     const { chart, vizType } = props;
-    const newHeight =
+    let newHeight =
       vizType === 'filter_box'
         ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
         : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
-    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
+    let chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
+
+    if (props.standalone) {
+      newHeight = calcSectionHeight(100);
+      chartWidth = chartPanelWidth;
+    }
+
     return (
       chartWidth > 0 && (
         <ChartContainer
