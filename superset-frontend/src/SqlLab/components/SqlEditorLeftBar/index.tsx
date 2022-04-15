@@ -110,9 +110,8 @@ export default function SqlEditorLeftBar({
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
 
-  const onDbSearch = (searchText?: string) => {
-    if (searchText) setDbSearch(true);
-    else setDbSearch(false);
+  const onEmptyResults = (searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
   };
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
