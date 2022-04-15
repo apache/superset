@@ -187,7 +187,6 @@ export default function DatabaseSelector({
           }
           if (result.length === 0) {
             if (onEmptyResults) onEmptyResults(search);
-            handleError(t("It seems you don't have access to any database"));
           }
           const options = result.map((row: DatabaseObject) => ({
             label: (
@@ -210,7 +209,7 @@ export default function DatabaseSelector({
           };
         });
       },
-    [formMode, getDbList, handleError, sqlLabMode],
+    [formMode, getDbList, sqlLabMode],
   );
 
   useEffect(() => {

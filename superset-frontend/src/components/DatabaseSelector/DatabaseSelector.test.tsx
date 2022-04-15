@@ -236,7 +236,6 @@ test('should show empty state if there are no options', async () => {
     name: 'Select database or type database name',
   });
   userEvent.click(select);
-  // const emptystate = getByAltText('empty');
   const emptystate = await screen.findByText('empty');
   expect(emptystate).toBeInTheDocument();
   expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
