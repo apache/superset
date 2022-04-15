@@ -30,7 +30,7 @@ def _parse_seasonality(  # pylint: disable=invalid-name
     input_value: Optional[Union[bool, int]],
     seasonality_type: str,
     ds: pd.Series,
-) -> Union[bool, int]:
+) -> Union[bool, Optional[int]]:
     if input_value is None:
         if ds.dt.tz:
             ds = ds.dt.tz_convert(None)
@@ -77,7 +77,7 @@ def _parse_seasonality(  # pylint: disable=invalid-name
     if isinstance(input_value, bool):
         return input_value
     try:
-        return int(input_value)
+        return int(input_value)  # type: ignore
     except ValueError:
         return input_value
 
@@ -91,7 +91,7 @@ def forecast(  # pylint: disable=too-many-arguments, too-many-locals
     monthly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,
-    model_name: Optional[str] = "prophet.Prophet",
+    model_name: str = "prophet.Prophet",
     index: Optional[str] = None,
 ) -> pd.DataFrame:
     """

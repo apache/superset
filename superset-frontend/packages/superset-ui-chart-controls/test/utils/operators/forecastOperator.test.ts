@@ -72,7 +72,7 @@ test('should do forecastOperator with default index', () => {
 
 test('should do prophetOperator over named column', () => {
   expect(
-    prophetOperator(
+    forecastOperator(
       {
         ...formData,
         x_axis: 'ds',

@@ -101,7 +101,7 @@ def test_forecast_valid_zero_periods(app_context: AppContext, model_name: str) -
 def test_prophet_import():
     dynamic_module = find_spec("prophet")
     if dynamic_module is None:
-        with pytest.raises(InvalidPostProcessingError):
+        with pytest.raises(KeyError):
             from superset.utils.pandas_postprocessing import forecast
 
             forecast(

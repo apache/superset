@@ -124,6 +124,7 @@ const FORECAST_RULE: PostProcessingForecast = {
     yearly_seasonality: false,
     weekly_seasonality: false,
     daily_seasonality: false,
+    model_name: 'prophet.Prophet',
   },
 };
 
