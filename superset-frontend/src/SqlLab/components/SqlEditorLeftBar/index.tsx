@@ -220,7 +220,7 @@ export default function SqlEditorLeftBar({
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
-        onEmptyResults={onDbSearch}
+        onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
         database={database}
         getDbList={actions.setDatabases}
