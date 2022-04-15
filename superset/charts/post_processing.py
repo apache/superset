@@ -357,9 +357,6 @@ def apply_post_process(
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            buf = StringIO()
-            processed_df.to_csv(buf)
-            buf.seek(0)
-            query["data"] = buf.getvalue()
+            query["data"] = processed_df.to_csv(index=False)
 
     return result
