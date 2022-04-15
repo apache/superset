@@ -1,5 +1,9 @@
 name: E2E
 
+env:
+  APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
+  APPLITOOLS_BATCH_ID: ${{ github.sha }}
+
 on:
   push:
     branches-ignore:
@@ -29,8 +33,6 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
-      APPLITOOLS_BATCH_ID: ${{ github.sha }}
     services:
       postgres:
         image: postgres:10-alpine
@@ -125,9 +127,6 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
   batch-completion-notification:
-    env:
-      APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
-      APPLITOOLS_BATCH_ID: ${{ github.sha }}
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     needs: cypress-matrix
