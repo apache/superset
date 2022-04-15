@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.5 (Thu Apr 7 12:52:20 2022 +0300)
+### 1.5.0 (Fri Apr 15 07:43:25 2022 -0400)
 
 - **Database Migrations**
 - [#19543](https://github.com/apache/superset/pull/19543) fix(migrations): reorder skipped 1.4 migrations (@villebro)
@@ -172,6 +172,11 @@ under the License.
 - [#17001](https://github.com/apache/superset/pull/17001) feat(linting): restrict direct use of supersetTheme in favor of ThemeProvider (@rusackas)
 
 **Fixes**
+- [#19651](https://github.com/apache/superset/pull/19651) fix(dnd&column): make to fix the blank state issue when only one column select (@prosdev0107)
+- [#19716](https://github.com/apache/superset/pull/19716) fix: drop the first level of MultiIndex (@zhaoyongjie)
+- [#19688](https://github.com/apache/superset/pull/19688) fix(dashboard): Fix BigNumber causing dashboard to crash when overflowing (@kgabryje)
+- [#19664](https://github.com/apache/superset/pull/19664) fix(sql-lab): do not replace undefined schema with empty object (@villebro)
+- [#19659](https://github.com/apache/superset/pull/19659) fix: time comparision (@zhaoyongjie)
 - [#19553](https://github.com/apache/superset/pull/19553) fix(dataset): handle missing python_type gracefully (@villebro)
 - [#19612](https://github.com/apache/superset/pull/19612) fix(select): render when empty multiselect (@villebro)
 - [#19565](https://github.com/apache/superset/pull/19565) fix(sqla): apply jinja to metrics (@villebro)
@@ -494,6 +499,7 @@ under the License.
 - [#16838](https://github.com/apache/superset/pull/16838) fix: remove duplicate line in docstring (@exemplary-citizen)
 
 **Others**
+- [#19636](https://github.com/apache/superset/pull/19636) chore: skip SIP-68 shadow writing for LTS (@ktmud)
 - [#19530](https://github.com/apache/superset/pull/19530) docs: release notes for 1.5 (@villebro)
 - [#19557](https://github.com/apache/superset/pull/19557) chore: remove redundant adodbapi warning (@villebro)
 - [#19481](https://github.com/apache/superset/pull/19481) chore(plugin-chart-echarts): upgrade echarts 5.3.2 (@villebro)
