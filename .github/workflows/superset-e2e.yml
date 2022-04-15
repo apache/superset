@@ -29,6 +29,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
+      APPLITOOLS_BATCH_ID: ${{ github.sha }}
     services:
       postgres:
         image: postgres:10-alpine
@@ -92,7 +94,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version:  '16'
+          node-version: "16"
       - name: Install npm dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -122,3 +124,15 @@ jobs:
         with:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
+  batch-completion-notification:
+    env:
+      APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
+      APPLITOOLS_BATCH_ID: ${{ github.sha }}
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
+    needs: cypress-matrix
+      steps:
+        - name: Update Applitools batch status 
+          uses: wei/curl@v1.1.1
+          with:
+            args: -d "" -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ secrets.APPLITOOLS_API_KEY }}
