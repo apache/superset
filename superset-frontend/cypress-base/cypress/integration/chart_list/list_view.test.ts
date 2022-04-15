@@ -26,9 +26,10 @@ describe('chart list view', () => {
     cy.eyesOpen({
       testName: 'Chart list view',
     });
-    afterEach(() => {
-      cy.eyesClose();
-    });
+  });
+
+  afterEach(() => {
+    cy.eyesClose();
   });
 
   it('should load rows', () => {
