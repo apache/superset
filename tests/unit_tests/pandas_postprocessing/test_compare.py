@@ -47,9 +47,9 @@ def test_compare_diff(app_context: AppContext):
     """
                label    y     z  difference__y__z
     2019-01-01     x  2.0   2.0               0.0
-    2019-01-02     y  2.0   4.0               2.0
-    2019-01-05     z  2.0  10.0               8.0
-    2019-01-07     q  2.0   8.0               6.0
+    2019-01-02     y  2.0   4.0              -2.0
+    2019-01-05     z  2.0  10.0              -8.0
+    2019-01-07     q  2.0   8.0              -6.0
     """
     assert post_df.equals(
         pd.DataFrame(
@@ -58,7 +58,7 @@ def test_compare_diff(app_context: AppContext):
                 "label": ["x", "y", "z", "q"],
                 "y": [2.0, 2.0, 2.0, 2.0],
                 "z": [2.0, 4.0, 10.0, 8.0],
-                "difference__y__z": [0.0, 2.0, 8.0, 6.0],
+                "difference__y__z": [0.0, -2.0, -8.0, -6.0],
             },
         )
     )
@@ -76,7 +76,7 @@ def test_compare_diff(app_context: AppContext):
             index=timeseries_df2.index,
             data={
                 "label": ["x", "y", "z", "q"],
-                "difference__y__z": [0.0, 2.0, 8.0, 6.0],
+                "difference__y__z": [0.0, -2.0, -8.0, -6.0],
             },
         )
     )
@@ -95,9 +95,9 @@ def test_compare_percentage(app_context: AppContext):
     """
                label    y     z  percentage__y__z
     2019-01-01     x  2.0   2.0              0.0
-    2019-01-02     y  2.0   4.0              1.0
-    2019-01-05     z  2.0  10.0              4.0
-    2019-01-07     q  2.0   8.0              3.0
+    2019-01-02     y  2.0   4.0              -0.50
+    2019-01-05     z  2.0  10.0              -0.80
+    2019-01-07     q  2.0   8.0              -0.75
     """
     assert post_df.equals(
         pd.DataFrame(
@@ -106,7 +106,7 @@ def test_compare_percentage(app_context: AppContext):
                 "label": ["x", "y", "z", "q"],
                 "y": [2.0, 2.0, 2.0, 2.0],
                 "z": [2.0, 4.0, 10.0, 8.0],
-                "percentage__y__z": [0.0, 1.0, 4.0, 3.0],
+                "percentage__y__z": [0.0, -0.50, -0.80, -0.75],
             },
         )
     )
@@ -124,10 +124,10 @@ def test_compare_ratio(app_context: AppContext):
     )
     """
                label    y     z  ratio__y__z
-    2019-01-01     x  2.0   2.0         1.0
-    2019-01-02     y  2.0   4.0         2.0
-    2019-01-05     z  2.0  10.0         5.0
-    2019-01-07     q  2.0   8.0         4.0
+    2019-01-01     x  2.0   2.0         1.00
+    2019-01-02     y  2.0   4.0         0.50
+    2019-01-05     z  2.0  10.0         0.20
+    2019-01-07     q  2.0   8.0         0.25
     """
     assert post_df.equals(
         pd.DataFrame(
@@ -136,7 +136,7 @@ def test_compare_ratio(app_context: AppContext):
                 "label": ["x", "y", "z", "q"],
                 "y": [2.0, 2.0, 2.0, 2.0],
                 "z": [2.0, 4.0, 10.0, 8.0],
-                "ratio__y__z": [1.0, 2.0, 5.0, 4.0],
+                "ratio__y__z": [1.00, 0.50, 0.20, 0.25],
             },
         )
     )
@@ -221,14 +221,14 @@ def test_compare_after_pivot(app_context: AppContext):
                difference__count_metric__sum_metric
     country                                      UK US
     dttm
-    2019-01-01                                    4  4
-    2019-01-02                                    4  4
+    2019-01-01                                   -4 -4
+    2019-01-02                                   -4 -4
     """
     flat_df = pp.flatten(compared_df)
     """
             dttm  difference__count_metric__sum_metric, UK  difference__count_metric__sum_metric, US
-    0 2019-01-01                                         4                                         4
-    1 2019-01-02                                         4                                         4
+    0 2019-01-01                                        -4                                        -4
+    1 2019-01-02                                        -4                                        -4
     """
     assert flat_df.equals(
         pd.DataFrame(
@@ -236,10 +236,10 @@ def test_compare_after_pivot(app_context: AppContext):
                 "dttm": pd.to_datetime(["2019-01-01", "2019-01-02"]),
                 FLAT_COLUMN_SEPARATOR.join(
                     ["difference__count_metric__sum_metric", "UK"]
-                ): [4, 4],
+                ): [-4, -4],
                 FLAT_COLUMN_SEPARATOR.join(
                     ["difference__count_metric__sum_metric", "US"]
-                ): [4, 4],
+                ): [-4, -4],
             }
         )
     )

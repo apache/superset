@@ -16,33 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import QueryAndSaveBtns, { QueryAndSaveBtnsProps } from './QueryAndSaveBtns';
 
-export default {
-  title: 'QueryAndSaveBtns',
-  component: QueryAndSaveBtns,
-};
-
-export const InteractiveQueryAndSaveBtnsProps = (
-  args: QueryAndSaveBtnsProps,
-) => <QueryAndSaveBtns {...args} />;
-
-InteractiveQueryAndSaveBtnsProps.args = {
-  canAdd: true,
-  loading: false,
-};
-
-InteractiveQueryAndSaveBtnsProps.argTypes = {
-  onQuery: { action: 'onQuery' },
-  onSave: { action: 'onSave' },
-  onStop: { action: 'onStop' },
-};
-
-InteractiveQueryAndSaveBtnsProps.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
+export * from './UiOverrideRegistry';

@@ -16,42 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { RunQueryButton, RunQueryButtonProps } from '.';
 
-.superset-legacy-chart-sankey-loop .node rect {
-  cursor: move;
-  fill-opacity: 0.9;
-  shape-rendering: crispEdges;
-}
+export default {
+  title: 'RunQueryButton',
+  component: RunQueryButton,
+};
 
-.superset-legacy-chart-sankey-loop .node text {
-  pointer-events: none;
-  text-shadow: 0 1px 0 #fff;
-}
+export const InteractiveRunQueryButtonProps = (args: RunQueryButtonProps) => (
+  <RunQueryButton {...args} />
+);
 
-.superset-legacy-chart-sankey-loop .link {
-  fill: none;
-  stroke: #000;
-  stroke-opacity: 0.2;
-}
+InteractiveRunQueryButtonProps.args = {
+  canStopQuery: true,
+  loading: false,
+  errorMessage: null,
+  isNewChart: false,
+  chartIsStale: true,
+};
 
-.superset-legacy-chart-sankey-loop .link:hover {
-  stroke-opacity: 0.5;
-}
+InteractiveRunQueryButtonProps.argTypes = {
+  onQuery: { action: 'onQuery' },
+  onStop: { action: 'onStop' },
+};
 
-.superset-legacy-chart-sankey-loop .link path {
-  opacity: 0.2;
-  stroke-opacity: 0;
-}
-
-.superset-legacy-chart-sankey-loop .link:hover path {
-  opacity: 0.5;
-}
-
-.superset-legacy-chart-sankey-loop .link text {
-  fill: #666;
-  font-size: 10px;
-}
-
-.superset-legacy-chart-sankey-loop .link:hover text {
-  opacity: 1;
-}
+InteractiveRunQueryButtonProps.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

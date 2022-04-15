@@ -17,7 +17,13 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { makeApi, styled, SupersetApiError, t } from '@superset-ui/core';
+import {
+  makeApi,
+  styled,
+  SupersetApiError,
+  t,
+  getUiOverrideRegistry,
+} from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Modal from 'src/components/Modal';
 import Loading from 'src/components/Loading';
@@ -26,6 +32,8 @@ import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
 import { EmbeddedDashboard } from '../types';
+
+const uiOverrideRegistry = getUiOverrideRegistry();
 
 type Props = {
   dashboardId: string;
@@ -140,6 +148,13 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
     return <Loading />;
   }
 
+  const docsDescription = uiOverrideRegistry.get(
+    'embedded.documentation.description',
+  );
+  const docsUrl =
+    uiOverrideRegistry.get('embedded.documentation.url') ??
+    'https://www.npmjs.com/package/@superset-ui/embedded-sdk';
+
   return (
     <>
       <p>
@@ -159,12 +174,10 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       </p>
       <p>
         {t('For further instructions, consult the')}{' '}
-        <a
-          href="https://www.npmjs.com/package/@superset-ui/embedded-sdk"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t('Superset Embedded SDK documentation.')}
+        <a href={docsUrl} target="_blank" rel="noreferrer">
+          {docsDescription
+            ? docsDescription()
+            : t('Superset Embedded SDK documentation.')}
         </a>
       </p>
       <h3>Settings</h3>

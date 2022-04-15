@@ -1587,16 +1587,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
     def created_dashboards(self, user_id: int) -> FlaskResponse:
+        logging.warning(
+            "%s.created_dashboards "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
-        Dash = Dashboard
         qry = (
-            db.session.query(Dash)
+            db.session.query(Dashboard)
             .filter(  # pylint: disable=comparison-with-callable
-                or_(Dash.created_by_fk == user_id, Dash.changed_by_fk == user_id)
+                or_(
+                    Dashboard.created_by_fk == user_id,
+                    Dashboard.changed_by_fk == user_id,
+                )
             )
-            .order_by(Dash.changed_on.desc())
+            .order_by(Dashboard.changed_on.desc())
         )
         payload = [
             {
@@ -2812,7 +2820,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
-            return json_error_response("No database is allowed for your csv upload")
+            return json_error_response("No database is allowed for your file upload")
 
         db_id = int(request.args["db_id"])
         database = db.session.query(Database).filter_by(id=db_id).one()

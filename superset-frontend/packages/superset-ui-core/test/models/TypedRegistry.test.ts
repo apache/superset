@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,7 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/core';
-import Component from './SankeyLoop';
 
-export default reactify(Component);
+import { TypedRegistry } from '@superset-ui/core';
+
+describe('TypedRegistry', () => {
+  it('gets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    expect(reg.get('foo')).toBe('bar');
+  });
+
+  it('sets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    reg.set('foo', 'blah');
+    expect(reg.get('foo')).toBe('blah');
+  });
+});
