@@ -93,7 +93,7 @@ interface TableSelectorProps {
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
-  onEmptyResults?: (searchText?: string) => null;
+  onEmptyResults?: (searchText?: string) => void;
   sqlLabMode?: boolean;
   tableValue?: string | string[];
   onTableSelectChange?: (value?: string | string[], schema?: string) => void;
