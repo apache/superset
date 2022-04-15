@@ -104,7 +104,7 @@ export default function SqlEditorLeftBar({
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
-  const [isDbSearch, setDbSearch] = useState(false);
+  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
