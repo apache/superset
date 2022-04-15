@@ -864,6 +864,35 @@ npm run cypress open
 
 ### Debugging Server App
 
+For debugging locally using VSCode, you can configure a launch configuration file .vscode/launch.json such as
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "superset",
+                "FLASK_ENV": "development"
+            },
+            "args": [
+                "run",
+                "-p 8088",
+                "--with-threads",
+                "--reload",
+                "--debugger"
+            ],
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}
+```
+
 Follow these instructions to debug the Flask app running inside a docker container.
 
 First add the following to the ./docker-compose.yaml file
@@ -941,7 +970,7 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
 
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
