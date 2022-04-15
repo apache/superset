@@ -53,7 +53,6 @@ sample_query_context = {
         "datasource": "27__table",
         "slice_id": 545,
         "url_params": {},
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "time_grain_sqla": "P1D",
         "time_range": "No filter",
         "query_mode": "raw",
@@ -80,6 +79,39 @@ sample_query_context = {
 }
 
 
+sample_query_context = {
+    "datasource": {"id": 27, "type": "table"},
+    "force": False,
+    "queries": [
+        {
+            "time_range": "No filter",
+            "filters": [],
+            "extras": {
+                "time_grain_sqla": "P1D",
+                "time_range_endpoints": ["inclusive", "exclusive"],
+                "having": "",
+                "having_druid": [],
+                "where": "",
+            },
+            "applied_time_extras": {},
+            "columns": ["a", "b"],
+            "orderby": [],
+            "annotation_layers": [],
+            "row_limit": 1000,
+            "timeseries_limit": 0,
+            "order_desc": True,
+            "url_params": {},
+            "custom_params": {},
+            "custom_form_data": {},
+            "post_processing": [],
+        }
+    ],
+    "form_data": {},
+    "result_format": "json",
+    "result_type": "full",
+}
+
+
 def test_upgrade():
     slc = Slice(slice_name="FOO", query_context=json.dumps(sample_query_context))
 
@@ -90,3 +122,9 @@ def test_upgrade():
     for q in queries:
         extras = q.get("extras", {})
         assert "time_range_endpoints" not in extras
+
+
+def test_upgrade_bad_json():
+    slc = Slice(slice_name="FOO", query_context="abc")
+
+    assert None == upgrade_slice(slc)

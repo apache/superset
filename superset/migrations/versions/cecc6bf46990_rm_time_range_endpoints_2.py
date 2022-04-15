@@ -48,7 +48,7 @@ def upgrade_slice(slc: Slice):
     try:
         query_context = json.loads(slc.query_context)
     except json.decoder.JSONDecodeError:
-        pass
+        return
 
     queries = query_context.get("queries")
 
