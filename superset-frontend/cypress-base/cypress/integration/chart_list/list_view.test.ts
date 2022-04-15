@@ -23,14 +23,15 @@ describe('chart list view', () => {
     cy.login();
     cy.visit(CHART_LIST);
     cy.get('[aria-label="list-view"]').click();
+    cy.eyesOpen({
+      testName: 'Chart list view',
+    });
+    afterEach(() => {
+      cy.eyesClose();
+    });
   });
 
   it('should load rows', () => {
-    cy.eyesOpen({
-      appName: 'Test',
-      testName: 'Should load the rows',
-      browser: { width: 800, height: 600 },
-    });
     cy.get('[data-test="listview-table"]').should('be.visible');
     // check chart list view header
     cy.get('[data-test="sort-header"]').eq(1).contains('Chart');
@@ -41,8 +42,9 @@ describe('chart list view', () => {
     cy.get('[data-test="sort-header"]').eq(6).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
     cy.get('[data-test="table-row"]').should('have.length', 25);
+
+    // Applitools takes a screenshot of the loaded rows
     cy.eyesCheckWindow('rows loaded');
-    cy.eyesClose();
   });
 
   xit('should sort correctly', () => {
@@ -64,5 +66,8 @@ describe('chart list view', () => {
     cy.get('[data-test="delete-modal-input"]').eq(0).type('DELETE');
     cy.get('[data-test="modal-confirm-button"]').eq(0).click();
     cy.get('[aria-label="checkbox-on"]').should('not.exist');
+
+    // Applitools takes a screenshot of the rows after bulk delete
+    cy.eyesCheckWindow('bulk delete');
   });
 });

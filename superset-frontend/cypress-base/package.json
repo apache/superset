@@ -10,6 +10,7 @@
   "author": "Apache",
   "license": "Apache-2.0",
   "dependencies": {
+    "@applitools/eyes-cypress": "^3.25.3",
     "@cypress/code-coverage": "^3.9.11",
     "@superset-ui/core": "^0.18.8",
     "querystringify": "^2.2.0",
@@ -18,7 +19,6 @@
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "@applitools/eyes-cypress": "^3.25.3",
     "@types/querystringify": "^2.0.0",
     "cypress": "^7.0.0",
     "eslint-plugin-cypress": "^2.12.1"
