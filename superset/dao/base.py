@@ -175,7 +175,7 @@ class BaseDAO:
     def delete(cls, model: Model, commit: bool = True) -> Model:
         """
         Generic delete a model
-        :raises: DAOCreateFailedError
+        :raises: DAODeleteFailedError
         """
         try:
             db.session.delete(model)
