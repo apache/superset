@@ -104,15 +104,14 @@ export default function SqlEditorLeftBar({
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
-  const [isDbSearch, setDbSearch] = useState(false);
+  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
 
-  const onDbSearch = (searchText?: string) => {
-    if (searchText) setDbSearch(true);
-    else setDbSearch(false);
+  const onEmptyResults = (searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
   };
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
@@ -188,7 +187,7 @@ export default function SqlEditorLeftBar({
     <EmptyStateSmall
       image="empty.svg"
       title={
-        isDbSearch
+        emptyResultsWithSearch
           ? t('No databases match your search')
           : t('There are no databases available')
       }
@@ -221,7 +220,7 @@ export default function SqlEditorLeftBar({
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
-        onEmptyResults={onDbSearch}
+        onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
         database={database}
         getDbList={actions.setDatabases}
