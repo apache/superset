@@ -18,8 +18,9 @@ from flask import g, Response
 from flask_appbuilder.api import BaseApi, expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
-from .schemas import UserResponseSchema
 from superset.views.utils import get_permissions
+
+from .schemas import UserResponseSchema
 
 user_response_schema = UserResponseSchema()
 
@@ -64,11 +65,11 @@ class CurrentUserRestApi(BaseApi):
     @expose("/roles/", methods=["GET"])
     @safe
     def get_my_roles(self) -> Response:
-        """Get the user object corresponding to the agent making the request
+        """Get the user roles corresponding to the agent making the request
         ---
         get:
           description: >-
-            Returns the user object corresponding to the agent making the request,
+            Returns the user roles corresponding to the agent making the request,
             or returns a 401 error if the user is unauthenticated.
           responses:
             200:
