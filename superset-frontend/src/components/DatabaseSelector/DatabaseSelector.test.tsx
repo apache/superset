@@ -21,12 +21,12 @@ import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
-import DatabaseSelector from '.';
+import DatabaseSelector, { DatabaseSelectorProps } from '.';
 import { EmptyStateSmall } from '../EmptyState';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-const createProps = () => ({
+const createProps = (): DatabaseSelectorProps => ({
   db: {
     id: 1,
     database_name: 'test',
@@ -39,12 +39,10 @@ const createProps = () => ({
   schema: undefined,
   sqlLabMode: true,
   getDbList: jest.fn(),
-  getTableList: jest.fn(),
   handleError: jest.fn(),
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
   onSchemasLoad: jest.fn(),
-  onUpdate: jest.fn(),
 });
 
 beforeEach(() => {
@@ -192,12 +190,10 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(SupersetClientGet).toBeCalledTimes(2);
     expect(props.getDbList).toBeCalledTimes(0);
-    expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
     expect(props.onSchemasLoad).toBeCalledTimes(0);
-    expect(props.onUpdate).toBeCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'refresh' }));
@@ -205,12 +201,10 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(SupersetClientGet).toBeCalledTimes(3);
     expect(props.getDbList).toBeCalledTimes(1);
-    expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
     expect(props.onSchemasLoad).toBeCalledTimes(2);
-    expect(props.onUpdate).toBeCalledTimes(0);
   });
 });
 
@@ -226,17 +220,15 @@ test('Should database select display options', async () => {
 });
 
 test('should show empty state if there are no options', async () => {
+  SupersetClientGet.mockImplementation(
+    async () => ({ json: { result: [] } } as any),
+  );
   const props = createProps();
-  // @ts-ignore
-  props.db = null;
-  // @ts-ignore
-  props.results = [];
-  const { getByAltText } = await render(
+  render(
     <DatabaseSelector
       {...props}
-      emptyState={
-        <EmptyStateSmall title="testing" description="testing" image="" />
-      }
+      db={undefined}
+      emptyState={<EmptyStateSmall title="empty" image="" />}
     />,
     { useRedux: true },
   );
@@ -244,7 +236,8 @@ test('should show empty state if there are no options', async () => {
     name: 'Select database or type database name',
   });
   userEvent.click(select);
-  const emptystate = getByAltText('empty');
+  // const emptystate = getByAltText('empty');
+  const emptystate = await screen.findByText('empty');
   expect(emptystate).toBeInTheDocument();
   expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
 });
