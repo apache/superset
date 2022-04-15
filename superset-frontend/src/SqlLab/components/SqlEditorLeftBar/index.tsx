@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
-import TableSelector from 'src/components/TableSelector';
+import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
@@ -101,10 +101,32 @@ export default function SqlEditorLeftBar({
     actions.queryEditorSetFunctionNames(queryEditor, dbId);
   };
 
-  const onTableChange = (tableName: string, schemaName: string) => {
-    if (tableName && schemaName) {
-      actions.addTable(queryEditor, database, tableName, schemaName);
+  const selectedTableNames = useMemo(
+    () => tables?.map(table => table.name) || [],
+    [tables],
+  );
+
+  const onTablesChange = (tableNames: string[], schemaName: string) => {
+    if (!schemaName) {
+      return;
     }
+
+    const currentTables = [...tables];
+    const tablesToAdd = tableNames.filter(name => {
+      const index = currentTables.findIndex(table => table.name === name);
+      if (index >= 0) {
+        currentTables.splice(index, 1);
+        return false;
+      }
+
+      return true;
+    });
+
+    tablesToAdd.forEach(tableName =>
+      actions.addTable(queryEditor, database, tableName, schemaName),
+    );
+
+    currentTables.forEach(table => actions.removeTable(table));
   };
 
   const onToggleTable = (updatedTables: string[]) => {
@@ -162,16 +184,17 @@ export default function SqlEditorLeftBar({
 
   return (
     <div className="SqlEditorLeftBar">
-      <TableSelector
+      <TableSelectorMultiple
         database={database}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
         onSchemasLoad={actions.queryEditorSetSchemaOptions}
-        onTableChange={onTableChange}
+        onTableSelectChange={onTablesChange}
         onTablesLoad={handleTablesLoad}
         schema={queryEditor.schema}
+        tableValue={selectedTableNames}
         sqlLabMode
       />
       <div className="divider" />

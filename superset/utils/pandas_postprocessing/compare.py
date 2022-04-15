@@ -22,7 +22,7 @@ from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.core import TIME_COMPARISION
+from superset.utils.core import TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
@@ -74,7 +74,7 @@ def compare(  # pylint: disable=too-many-arguments
 
         diff_df.rename(
             columns={
-                "__intermediate": TIME_COMPARISION.join([compare_type, s_col, c_col])
+                "__intermediate": TIME_COMPARISON.join([compare_type, s_col, c_col])
             },
             inplace=True,
         )

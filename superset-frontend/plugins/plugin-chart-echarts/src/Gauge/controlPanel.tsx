@@ -39,7 +39,7 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             config: {
               ...sharedControls.groupby,
-              label: t('Group by'),
+              label: t('Dimensions'),
               description: t('Columns to group by'),
             },
           },

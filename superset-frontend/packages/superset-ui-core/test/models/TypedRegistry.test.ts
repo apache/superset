@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,33 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import QueryAndSaveBtns, { QueryAndSaveBtnsProps } from './QueryAndSaveBtns';
 
-export default {
-  title: 'QueryAndSaveBtns',
-  component: QueryAndSaveBtns,
-};
+import { TypedRegistry } from '@superset-ui/core';
 
-export const InteractiveQueryAndSaveBtnsProps = (
-  args: QueryAndSaveBtnsProps,
-) => <QueryAndSaveBtns {...args} />;
+describe('TypedRegistry', () => {
+  it('gets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    expect(reg.get('foo')).toBe('bar');
+  });
 
-InteractiveQueryAndSaveBtnsProps.args = {
-  canAdd: true,
-  loading: false,
-};
-
-InteractiveQueryAndSaveBtnsProps.argTypes = {
-  onQuery: { action: 'onQuery' },
-  onSave: { action: 'onSave' },
-  onStop: { action: 'onStop' },
-};
-
-InteractiveQueryAndSaveBtnsProps.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
+  it('sets a value', () => {
+    const reg = new TypedRegistry({ foo: 'bar' });
+    reg.set('foo', 'blah');
+    expect(reg.get('foo')).toBe('blah');
+  });
+});
