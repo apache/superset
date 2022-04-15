@@ -66,7 +66,6 @@ interface Props {
 
 interface State {
   sql: string;
-  selectedText: string;
   words: AceCompleterKeyword[];
 }
 
@@ -80,13 +79,20 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     extendedTables: [],
   };
 
+  private currentSelectionCache;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       sql: props.sql,
-      selectedText: '',
       words: [],
     };
+
+    // The editor changeSelection is called multiple times in a row,
+    // faster than React reconciliation process, so the selected text
+    // needs to be stored out of the state to ensure changes to it
+    // get saved immediately
+    this.currentSelectionCache = '';
     this.onChange = this.onChange.bind(this);
   }
 
@@ -146,17 +152,19 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();
+
       // Backspace trigger 1 character selection, ignoring
       if (
-        selectedText !== this.state.selectedText &&
+        selectedText !== this.currentSelectionCache &&
         selectedText.length !== 1
       ) {
-        this.setState({ selectedText });
         this.props.actions.queryEditorSetSelectedText(
           this.props.queryEditor,
           selectedText,
         );
       }
+
+      this.currentSelectionCache = selectedText;
     });
   }
 

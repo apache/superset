@@ -240,6 +240,12 @@ class SqlEditor extends React.PureComponent {
     });
   }
 
+  componentDidUpdate() {
+    if (this.props.queryEditor.sql !== this.state.sql) {
+      this.onSqlChanged(this.props.queryEditor.sql);
+    }
+  }
+
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
