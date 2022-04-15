@@ -22,6 +22,7 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import DatabaseSelector from '.';
+import { EmptyStateSmall } from '../EmptyState';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
@@ -228,11 +229,23 @@ test('should show empty state if there are no options', async () => {
   const props = createProps();
   // @ts-ignore
   props.db = null;
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  // @ts-ignore
+  props.results = [];
+  const { getByAltText } = await render(
+    <DatabaseSelector
+      {...props}
+      emptyState={
+        <EmptyStateSmall title="testing" description="testing" image="" />
+      }
+    />,
+    { useRedux: true },
+  );
   const select = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
   userEvent.click(select);
+  const emptystate = getByAltText('empty');
+  expect(emptystate).toBeInTheDocument();
   expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
 });
 

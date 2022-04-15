@@ -200,7 +200,6 @@ export default function SqlEditorLeftBar({
       }
     />
   );
-
   const handleSchemaChange = useCallback(
     (schema: string) => {
       if (queryEditorRef.current) {
