@@ -224,10 +224,10 @@ const ResultSet = ({
     // refetch regardless.
     if (
       (query.resultsKey &&
-      prevQuery &&
-      prevQuery.resultsKey &&
-      query.resultsKey !== prevQuery.resultsKey) ||
-      (query.id !== prevQuery.id && query.resultsKey)
+        prevQuery &&
+        prevQuery.resultsKey &&
+        query.resultsKey !== prevQuery.resultsKey) ||
+      (prevQuery && query.id !== prevQuery.id && query.resultsKey)
     ) {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchResults(query);
