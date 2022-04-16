@@ -24,24 +24,28 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.form_data.utils import check_access
+from superset.explore.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.exceptions import (
-    KeyValueAccessDeniedError,
-    KeyValueUpdateFailedError,
+from superset.key_value.utils import random_key
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheUpdateFailedError,
 )
-from superset.key_value.utils import cache_key, random_key
+from superset.temporary_cache.utils import cache_key
+from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateFormDataCommand(BaseCommand, ABC):
     def __init__(
-        self, cmd_params: CommandParameters,
+        self,
+        cmd_params: CommandParameters,
     ):
         self._cmd_params = cmd_params
 
     def run(self) -> Optional[str]:
+        self.validate()
         try:
             dataset_id = self._cmd_params.dataset_id
             chart_id = self._cmd_params.chart_id
@@ -55,7 +59,7 @@ class UpdateFormDataCommand(BaseCommand, ABC):
             if state and form_data:
                 user_id = actor.get_user_id()
                 if state["owner"] != user_id:
-                    raise KeyValueAccessDeniedError()
+                    raise TemporaryCacheAccessDeniedError()
 
                 # Generate a new key if tab_id changes or equals 0
                 tab_id = self._cmd_params.tab_id
@@ -77,7 +81,8 @@ class UpdateFormDataCommand(BaseCommand, ABC):
             return key
         except SQLAlchemyError as ex:
             logger.exception("Error running update command")
-            raise KeyValueUpdateFailedError() from ex
+            raise TemporaryCacheUpdateFailedError() from ex
 
     def validate(self) -> None:
-        pass
+        if self._cmd_params.form_data:
+            validate_json(self._cmd_params.form_data)

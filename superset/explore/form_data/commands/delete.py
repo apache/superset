@@ -23,13 +23,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.form_data.utils import check_access
+from superset.explore.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.exceptions import (
-    KeyValueAccessDeniedError,
-    KeyValueDeleteFailedError,
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheDeleteFailedError,
 )
-from superset.key_value.utils import cache_key
+from superset.temporary_cache.utils import cache_key
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class DeleteFormDataCommand(BaseCommand, ABC):
                 chart_id = state["chart_id"]
                 check_access(dataset_id, chart_id, actor)
                 if state["owner"] != actor.get_user_id():
-                    raise KeyValueAccessDeniedError()
+                    raise TemporaryCacheAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
                     session.get("_id"), tab_id, dataset_id, chart_id
@@ -60,7 +60,7 @@ class DeleteFormDataCommand(BaseCommand, ABC):
             return False
         except SQLAlchemyError as ex:
             logger.exception("Error running delete command")
-            raise KeyValueDeleteFailedError() from ex
+            raise TemporaryCacheDeleteFailedError() from ex
 
     def validate(self) -> None:
         pass

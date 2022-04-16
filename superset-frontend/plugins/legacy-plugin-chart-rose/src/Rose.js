@@ -21,13 +21,12 @@
 /* eslint-disable react/sort-prop-types */
 import d3 from 'd3';
 import PropTypes from 'prop-types';
-import nv from 'nvd3';
+import nv from 'nvd3-fork';
 import {
   getTimeFormatter,
   getNumberFormatter,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import './Rose.css';
 
 const propTypes = {
   // Data is an object hashed by numeric value, perhaps timestamp
@@ -76,6 +75,7 @@ function Rose(element, props) {
     numberFormat,
     useRichTooltip,
     useAreaProportions,
+    sliceId,
   } = props;
 
   const div = d3.select(element);
@@ -120,10 +120,10 @@ function Rose(element, props) {
           .map(v => ({
             key: v.name,
             value: v.value,
-            color: colorFn(v.name),
+            color: colorFn(v.name, sliceId),
             highlight: v.id === d.arcId,
           }))
-      : [{ key: d.name, value: d.val, color: colorFn(d.name) }];
+      : [{ key: d.name, value: d.val, color: colorFn(d.name, sliceId) }];
 
     return {
       key: 'Date',
@@ -132,10 +132,11 @@ function Rose(element, props) {
     };
   }
 
-  legend.width(width).color(d => colorFn(d.key));
+  legend.width(width).color(d => colorFn(d.key, sliceId));
   legendWrap.datum(legendData(datum)).call(legend);
 
   tooltip.headerFormatter(timeFormat).valueFormatter(format);
+  tooltip.classes('tooltip');
 
   // Compute max radius, which the largest value will occupy
   const roseHeight = height - legend.height();
@@ -378,7 +379,7 @@ function Rose(element, props) {
   const arcs = ae
     .append('path')
     .attr('class', 'arc')
-    .attr('fill', d => colorFn(d.name))
+    .attr('fill', d => colorFn(d.name, sliceId))
     .attr('d', arc);
 
   function mousemove() {

@@ -19,14 +19,13 @@
 import rison from 'rison';
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -37,21 +36,17 @@ import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import EditableTitle from 'src/components/EditableTitle';
-
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
-
-import CollectionTable from 'src/CRUD/CollectionTable';
-import Fieldset from 'src/CRUD/Fieldset';
-import Field from 'src/CRUD/Field';
-
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CollectionTable from './CollectionTable';
+import Fieldset from './Fieldset';
+import Field from './Field';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -1006,14 +1001,14 @@ class DatasourceEditor extends React.PureComponent {
                         database={{
                           ...datasource.database,
                           database_name:
-                            datasource.database.database_name ||
-                            datasource.database.name,
+                            datasource.database?.database_name ||
+                            datasource.database?.name,
                         }}
-                        dbId={datasource.database.id}
+                        dbId={datasource.database?.id}
                         handleError={this.props.addDangerToast}
                         schema={datasource.schema}
                         sqlLabMode={false}
-                        tableName={datasource.table_name}
+                        tableValue={datasource.table_name}
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>
@@ -1029,7 +1024,7 @@ class DatasourceEditor extends React.PureComponent {
                                 )
                             : undefined
                         }
-                        onTableChange={
+                        onTableSelectChange={
                           this.state.isEditMode
                             ? table =>
                                 this.onDatasourcePropChange('table_name', table)

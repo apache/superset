@@ -20,7 +20,7 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, getSharedLabelColor } from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -52,7 +52,9 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
+import findPermission from 'src/dashboard/util/findPermission';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -356,6 +358,15 @@ class Header extends React.PureComponent {
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
 
+    const currentColorScheme =
+      dashboardInfo?.metadata?.color_scheme || colorScheme;
+    const currentColorNamespace =
+      dashboardInfo?.metadata?.color_namespace || colorNamespace;
+    const currentSharedLabelColors = getSharedLabelColor().getColorMap(
+      currentColorNamespace,
+      currentColorScheme,
+    );
+
     const data = {
       certified_by: dashboardInfo.certified_by,
       certification_details: dashboardInfo.certification_details,
@@ -367,11 +378,11 @@ class Header extends React.PureComponent {
       slug,
       metadata: {
         ...dashboardInfo?.metadata,
-        color_namespace:
-          dashboardInfo?.metadata?.color_namespace || colorNamespace,
-        color_scheme: dashboardInfo?.metadata?.color_scheme || colorScheme,
+        color_namespace: currentColorNamespace,
+        color_scheme: currentColorScheme,
         positions,
         refresh_frequency: refreshFrequency,
+        shared_label_colors: currentSharedLabelColors,
       },
     };
 
@@ -410,6 +421,14 @@ class Header extends React.PureComponent {
   hideReportModal() {
     this.setState({ showingReportModal: false });
   }
+
+  showEmbedModal = () => {
+    this.setState({ showingEmbedModal: true });
+  };
+
+  hideEmbedModal = () => {
+    this.setState({ showingEmbedModal: false });
+  };
 
   renderReportModal() {
     const attachedReportExists = !!Object.keys(this.props.reports).length;
@@ -483,11 +502,15 @@ class Header extends React.PureComponent {
     } = this.props;
     const userCanEdit =
       dashboardInfo.dash_edit_perm &&
-      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+      filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
+      !dashboardInfo.is_managed_externally;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs =
       dashboardInfo.dash_save_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING;
+    const userCanCurate =
+      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      findPermission('can_set_embedded', 'Dashboard', user.roles);
     const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -639,12 +662,18 @@ class Header extends React.PureComponent {
             <ReportModal
               show={this.state.showingReportModal}
               onHide={this.hideReportModal}
-              props={{
-                userId: user.userId,
-                userEmail: user.email,
-                dashboardId: dashboardInfo.id,
-                creationMethod: 'dashboards',
-              }}
+              userId={user.userId}
+              userEmail={user.email}
+              dashboardId={dashboardInfo.id}
+              creationMethod="dashboards"
+            />
+          )}
+
+          {userCanCurate && (
+            <DashboardEmbedModal
+              show={this.state.showingEmbedModal}
+              onHide={this.hideEmbedModal}
+              dashboardId={dashboardInfo.id}
             />
           )}
 
@@ -673,8 +702,10 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanShare={userCanShare}
             userCanSave={userCanSaveAs}
+            userCanCurate={userCanCurate}
             isLoading={isLoading}
             showPropertiesModal={this.showPropertiesModal}
+            manageEmbedded={this.showEmbedModal}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
             lastModifiedTime={lastModifiedTime}

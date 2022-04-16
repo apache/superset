@@ -24,6 +24,7 @@ export default function transformProps(chartProps) {
     numberFormat,
     richTooltip,
     roseAreaProportion,
+    sliceId,
   } = formData;
 
   return {
@@ -35,5 +36,6 @@ export default function transformProps(chartProps) {
     numberFormat,
     useAreaProportions: roseAreaProportion,
     useRichTooltip: richTooltip,
+    sliceId,
   };
 }

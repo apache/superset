@@ -87,10 +87,110 @@ const JSON_TREE_THEME = {
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
-  height: 100%;
-  overflow-x: auto;
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-  overflow-y: hidden;
+  ${({ theme }) => `
+    height: 100%;
+    overflow-x: auto;
+    margin-top: ${theme.gridUnit * 2}px;
+    overflow-y: hidden;
+
+    .ReactVirtualized__Grid__innerScrollContainer {
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
+
+    .ReactVirtualized__Table__headerRow {
+      font-weight: ${theme.typography.weights.bold};
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
+
+    .ReactVirtualized__Table__row {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .ReactVirtualized__Table__headerTruncatedText,
+    .grid-header-cell {
+      display: inline-block;
+      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .ReactVirtualized__Table__headerColumn,
+    .ReactVirtualized__Table__rowColumn,
+    .grid-cell {
+      min-width: 0px;
+      border-right: 1px solid ${theme.colors.grayscale.light2};
+      align-self: center;
+      padding: ${theme.gridUnit * 3}px;
+      font-size: ${theme.typography.sizes.s}px;
+    }
+
+    .grid-header-cell {
+      font-weight: ${theme.typography.weights.bold};
+      cursor: pointer;
+    }
+
+    .ReactVirtualized__Table__headerColumn:last-of-type,
+    .ReactVirtualized__Table__rowColumn:last-of-type {
+      border-right: 0px;
+    }
+
+    .ReactVirtualized__Table__headerColumn:focus,
+    .ReactVirtualized__Table__Grid:focus {
+      outline: none;
+    }
+
+    .ReactVirtualized__Table__rowColumn {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderColumn {
+      cursor: pointer;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderIconContainer {
+      display: flex;
+      align-items: center;
+    }
+
+    .ReactVirtualized__Table__sortableHeaderIcon {
+      flex: 0 0 ${theme.gridUnit * 6}px;
+      height: 1em;
+      width: 1em;
+      fill: currentColor;
+    }
+
+    .even-row {
+      background: ${theme.colors.grayscale.light4};
+    }
+
+    .odd-row {
+      background: ${theme.colors.grayscale.light5};
+    }
+
+    .header-style {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-style-disabled {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: ${theme.colors.grayscale.light1};
+    }
+
+    .cell-text-for-measuring {
+      font-family: ${theme.typography.families.sansSerif};
+      font-size: ${theme.typography.sizes.s}px;
+    }
+  `}
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view

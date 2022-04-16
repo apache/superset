@@ -35,10 +35,8 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
-    themes: [
-        '@saucelabs/theme-github-codeblock'
-    ],
-   plugins: [
+  themes: ['@saucelabs/theme-github-codeblock'],
+  plugins: [
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -117,6 +115,10 @@ const config = {
             to: '/docs/contributing/contributing-page',
             from: '/docs/contributing/contribution-guidelines',
           },
+          {
+            to: '/docs/databases/yugabytedb',
+            from: '/docs/databases/yugabyte/',
+          },
         ],
       },
     ],
@@ -140,6 +142,10 @@ const config = {
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
+        googleAnalytics: {
+          trackingID: 'G-133LHD3B3N',
+          anonymizeIP: true,
+        },
       }),
     ],
   ],
@@ -150,6 +156,11 @@ const config = {
       colorMode: {
         defaultMode: 'light',
         disableSwitch: true,
+      },
+      algolia: {
+        appId: 'WR5FASX5ED',
+        apiKey: '299e4601d2fc5d0031bf9a0223c7f0c5',
+        indexName: 'superset-apache',
       },
       navbar: {
         logo: {
@@ -193,7 +204,7 @@ const config = {
               },
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-uxbh5g36-AISUtHbzOXcu0BIj7kgUaw',
+                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-16jvzmoi8-sI7jKWp~xc2zYRe~NqiY9Q',
               },
               {
                 label: 'Mailing List',
@@ -229,8 +240,6 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
-
-
 };
 
 module.exports = config;

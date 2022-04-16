@@ -49,7 +49,7 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -67,7 +67,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long,useless-suppression
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -136,24 +136,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_sets.api import FilterSetRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
+        from superset.dashboards.permalink.api import DashboardPermalinkRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
+        from superset.embedded.api import EmbeddedDashboardRestApi
+        from superset.embedded.view import EmbeddedView
         from superset.explore.form_data.api import ExploreFormDataRestApi
+        from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import (
-            AlertLogModelView,
-            AlertModelView,
-            AlertObservationModelView,
-            AlertView,
-            ReportView,
-        )
+        from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -182,10 +181,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.schedules import (
-            DashboardEmailScheduleView,
-            SliceEmailScheduleView,
-        )
         from superset.views.sql_lab import (
             SavedQueryView,
             SavedQueryViewApi,
@@ -194,6 +189,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TabStateView,
         )
         from superset.views.tags import TagView
+        from superset.views.users.api import CurrentUserRestApi
 
         #
         # Setup API views
@@ -205,14 +201,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
+        appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
+        appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(FilterSetRestApi)
+        appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
@@ -278,9 +279,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ROW_LEVEL_SECURITY"
-            ),
         )
 
         #
@@ -294,6 +292,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
@@ -367,53 +366,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="fa-table",
         )
         appbuilder.add_separator("Data")
-        appbuilder.add_link(
-            "Upload a CSV",
-            label=__("Upload a CSV"),
-            href="/csvtodatabaseview/form",
-            icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-wrench",
-            cond=lambda: bool(
-                self.config["CSV_EXTENSIONS"].intersection(
-                    self.config["ALLOWED_EXTENSIONS"]
-                )
-            ),
-        )
-        appbuilder.add_link(
-            "Upload a Columnar file",
-            label=__("Upload a Columnar File"),
-            href="/columnartodatabaseview/form",
-            icon="fa-upload",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-wrench",
-            cond=lambda: bool(
-                self.config["COLUMNAR_EXTENSIONS"].intersection(
-                    self.config["ALLOWED_EXTENSIONS"]
-                )
-            ),
-        )
-        try:
-            import xlrd  # pylint: disable=unused-import
-
-            appbuilder.add_link(
-                "Upload Excel",
-                label=__("Upload Excel"),
-                href="/exceltodatabaseview/form",
-                icon="fa-upload",
-                category="Data",
-                category_label=__("Data"),
-                category_icon="fa-wrench",
-                cond=lambda: bool(
-                    self.config["EXCEL_EXTENSIONS"].intersection(
-                        self.config["ALLOWED_EXTENSIONS"]
-                    )
-                ),
-            )
-        except ImportError:
-            pass
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
@@ -432,50 +384,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Conditionally setup email views
         #
-        if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
-            logging.warning(
-                "ENABLE_SCHEDULED_EMAIL_REPORTS "
-                "is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_separator(
-            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
-        )
-        appbuilder.add_view(
-            DashboardEmailScheduleView,
-            "Dashboard Email Schedules",
-            label=__("Dashboard Emails"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-        appbuilder.add_view(
-            SliceEmailScheduleView,
-            "Chart Emails",
-            label=__("Chart Email Schedules"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-search",
-            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
-        )
-
-        if self.config["ENABLE_ALERTS"]:
-            logging.warning(
-                "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
-            )
-
-        appbuilder.add_view(
-            AlertModelView,
-            "Alerts",
-            label=__("Alerts"),
-            category="Manage",
-            category_label=__("Manage"),
-            icon="fa-exclamation-triangle",
-            menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
-        )
-        appbuilder.add_view_no_menu(AlertLogModelView)
-        appbuilder.add_view_no_menu(AlertObservationModelView)
 
         appbuilder.add_view(
             AlertView,
@@ -486,7 +394,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
         )
-        appbuilder.add_view_no_menu(ReportView)
 
         appbuilder.add_view(
             AccessRequestsModelView,
@@ -540,6 +447,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 and self.config["DRUID_METADATA_LINKS_ENABLED"]
             ),
         )
+        appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_link(
             "Refresh Druid Metadata",
             label=__("Refresh Druid Metadata"),

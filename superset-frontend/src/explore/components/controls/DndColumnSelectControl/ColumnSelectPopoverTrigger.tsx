@@ -23,10 +23,10 @@ import {
   isAdhocColumn,
   isColumnMeta,
 } from '@superset-ui/chart-controls';
-import Popover from 'src/components/Popover';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -137,8 +137,7 @@ const ColumnSelectPopoverTrigger = ({
   );
 
   return (
-    <Popover
-      placement="right"
+    <ControlPopover
       trigger="click"
       content={overlayContent}
       defaultVisible={visible}
@@ -148,7 +147,7 @@ const ColumnSelectPopoverTrigger = ({
       destroyTooltipOnHide
     >
       {children}
-    </Popover>
+    </ControlPopover>
   );
 };
 

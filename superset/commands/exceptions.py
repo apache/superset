@@ -23,7 +23,7 @@ from superset.exceptions import SupersetException
 
 
 class CommandException(SupersetException):
-    """ Common base class for Command exceptions. """
+    """Common base class for Command exceptions."""
 
     def __repr__(self) -> str:
         if self._exception:
@@ -52,7 +52,7 @@ class ObjectNotFoundError(CommandException):
 
 
 class CommandInvalidError(CommandException):
-    """ Common base class for Command Invalid errors. """
+    """Common base class for Command Invalid errors."""
 
     status = 422
 
@@ -65,6 +65,9 @@ class CommandInvalidError(CommandException):
 
     def add_list(self, exceptions: List[ValidationError]) -> None:
         self._invalid_exceptions.extend(exceptions)
+
+    def get_list_classnames(self) -> List[str]:
+        return list(sorted({ex.__class__.__name__ for ex in self._invalid_exceptions}))
 
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}

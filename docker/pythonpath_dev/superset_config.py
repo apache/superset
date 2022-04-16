@@ -72,7 +72,7 @@ RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
+    CELERY_IMPORTS = ("superset.sql_lab",)
     CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     CELERYD_LOG_LEVEL = "DEBUG"
     CELERYD_PREFETCH_MULTIPLIER = 1

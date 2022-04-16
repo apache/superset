@@ -52,6 +52,10 @@ from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -224,7 +228,7 @@ class TestRolePermission(SupersetTestCase):
         )
 
         # database change
-        new_db = Database(sqlalchemy_uri="some_uri", database_name="tmp_db")
+        new_db = Database(sqlalchemy_uri="sqlite://", database_name="tmp_db")
         session.add(new_db)
         stored_table.database = (
             session.query(Database).filter_by(database_name="tmp_db").one()
@@ -358,9 +362,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_database(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         session.add(database)
 
         stored_db = (
@@ -411,9 +413,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_hybrid_perm_database(self):
-        database = Database(
-            database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database3", sqlalchemy_uri="sqlite://")
 
         db.session.add(database)
 
@@ -437,9 +437,7 @@ class TestRolePermission(SupersetTestCase):
 
     def test_set_perm_slice(self):
         session = db.session
-        database = Database(
-            database_name="tmp_database", sqlalchemy_uri="sqlite://test"
-        )
+        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         table = SqlaTable(table_name="tmp_perm_table", database=database)
         session.add(database)
         session.add(table)
@@ -555,24 +553,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
 
-    def test_gamma_user_schema_access_to_tables(self):
-        self.login(username="gamma")
-        data = str(self.client.get("tablemodelview/list/").data)
-        self.assertIn("wb_health_population", data)
-        self.assertNotIn("birth_names", data)
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_gamma_user_schema_access_to_charts(self):
-        self.login(username="gamma")
-        data = str(self.client.get("api/v1/chart/").data)
-        self.assertIn(
-            "Life Expectancy VS Rural %", data
-        )  # wb_health_population slice, has access
-        self.assertIn(
-            "Parallel Coordinates", data
-        )  # wb_health_population slice, has access
-        self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
-
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
         """
@@ -614,15 +595,16 @@ class TestRolePermission(SupersetTestCase):
         for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
             assert pvm in public_role_resource_names
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
-
         example_db = session.query(Database).filter_by(database_name="examples").one()
         example_db.expose_in_sqllab = True
         session.commit()
 
         arguments = {
             "keys": ["none"],
+            "columns": ["expose_in_sqllab"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
             "order_columns": "database_name",
             "order_direction": "asc",
@@ -706,7 +688,6 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_menu("Manage", perm_set)
         self.assert_can_menu("Annotation Layers", perm_set)
         self.assert_can_menu("CSS Templates", perm_set)
-        self.assert_can_menu("Upload a CSV", perm_set)
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
@@ -907,7 +888,10 @@ class TestRolePermission(SupersetTestCase):
             ["LocaleView", "index"],
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
+            ["CurrentUserRestApi", "get_me"],
+            # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
+            ["EmbeddedView", "embedded"],
             ["R", "index"],
             ["Superset", "log"],
             ["Superset", "theme"],
@@ -1193,7 +1177,7 @@ class TestGuestTokens(SupersetTestCase):
         self.assertEqual(aud, decoded_token["aud"])
         self.assertEqual("guest", decoded_token["type"])
         self.assertEqual(
-            now + (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"] * 1000),
+            now + (self.app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]),
             decoded_token["exp"],
         )
 
@@ -1299,3 +1283,25 @@ class TestGuestTokens(SupersetTestCase):
 
         self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")
         self.assertIsNone(guest_user)
+
+    @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
+    def test_create_guest_access_token_callable_audience(self, get_time_mock):
+        now = time.time()
+        get_time_mock.return_value = now
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+
+        user = {"username": "test_guest"}
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        token = security_manager.create_guest_access_token(user, resources, rls)
+
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience="cool_code",
+        )
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.assertEqual("cool_code", decoded_token["aud"])
+        self.assertEqual("guest", decoded_token["type"])
+        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None

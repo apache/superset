@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React, {
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -33,6 +34,7 @@ import {
   QueryFormData,
   DatasourceType,
   css,
+  SupersetTheme,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -54,10 +56,12 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
 import { ChartState } from 'src/explore/types';
+import { Tooltip } from 'src/components/Tooltip';
 
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ControlPanelAlert } from './ControlPanelAlert';
+import { RunQueryButton } from './RunQueryButton';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -67,6 +71,11 @@ export type ControlPanelsContainerProps = {
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
+  errorMessage: ReactNode;
+  onQuery: () => void;
+  onStop: () => void;
+  canStopQuery: boolean;
+  chartIsStale: boolean;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -76,13 +85,33 @@ export type ExpandedControlPanelSectionConfig = Omit<
   controlSetRows: ExpandedControlItem[][];
 };
 
+const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  position: sticky;
+  bottom: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: ${theme.gridUnit * 4}px;
+  background: linear-gradient(
+    transparent,
+    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+  );
+
+  & > button {
+    min-width: 156px;
+  }
+`;
+
 const Styles = styled.div`
+  position: relative;
   height: 100%;
   width: 100%;
-  overflow: auto;
-  overflow-x: visible;
+
+  // Resizable add overflow-y: auto as a style to this div
+  // To override it, we need to use !important
+  overflow: visible !important;
   #controlSections {
-    min-height: 100%;
+    height: 100%;
     overflow: visible;
   }
   .nav-tabs {
@@ -105,15 +134,22 @@ const Styles = styled.div`
 `;
 
 const ControlPanelsTabs = styled(Tabs)`
-  .ant-tabs-nav-list {
-    width: ${({ fullWidth }) => (fullWidth ? '100%' : '50%')};
-  }
-  .ant-tabs-content-holder {
-    overflow: visible;
-  }
-  .ant-tabs-tabpane {
+  ${({ theme, fullWidth }) => css`
     height: 100%;
-  }
+    overflow: visible;
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+    .ant-tabs-nav-list {
+      width: ${fullWidth ? '100%' : '50%'};
+    }
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+    .ant-tabs-content-holder {
+      padding-top: ${theme.gridUnit * 4}px;
+    }
+  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -187,6 +223,7 @@ function getState(
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const pluginContext = useContext(PluginContext);
 
+  const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
@@ -221,7 +258,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         props.datasource_type,
       ),
     [
-      props.form_data.datasource,
+      props.exploreState.datasource,
       props.form_data.viz_type,
       props.datasource_type,
     ],
@@ -245,6 +282,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     setShowDatasourceAlert(false);
   }, []);
 
+  const shouldRecalculateControlState = ({
+    name,
+    config,
+  }: CustomControlItem): boolean => {
+    const { controls, chart, exploreState } = props;
+
+    return Boolean(
+      config.shouldMapStateToProps?.(
+        prevState || exploreState,
+        exploreState,
+        controls[name],
+        chart,
+      ),
+    );
+  };
+
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
     const { visibility } = config;
@@ -255,11 +308,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     const controlData = {
       ...config,
       ...controls[name],
-      // if `mapStateToProps` accept three arguments, it means it needs chart
-      // state, too. Since it's may be expensive to run mapStateToProps for every
-      // re-render, we only run this when the chart plugin explicitly ask for this.
-      ...(config.mapStateToProps?.length === 3
-        ? config.mapStateToProps(exploreState, controls[name], chart)
+      ...(shouldRecalculateControlState({ name, config })
+        ? config?.mapStateToProps?.(exploreState, controls[name], chart)
         : // for other controls, `mapStateToProps` is already run in
           // controlUtils/getControlState.ts
           undefined),
@@ -269,16 +319,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       validationErrors?: any[];
     };
 
-    // if visibility check says the config is not visible, don't render it
-    if (visibility && !visibility.call(config, props, controlData)) {
-      return null;
-    }
+    const isVisible = visibility
+      ? visibility.call(config, props, controlData)
+      : undefined;
+
     return (
       <Control
         key={`control-${name}`}
         name={name}
         validationErrors={validationErrors}
         actions={props.actions}
+        isVisible={isVisible}
         {...restProps}
       />
     );
@@ -335,7 +386,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           box-shadow: none;
 
           &:last-child {
-            padding-bottom: ${theme.gridUnit * 10}px;
+            padding-bottom: ${theme.gridUnit * 16}px;
           }
 
           .panel-body {
@@ -417,6 +468,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
+  const dataTabTitle = useMemo(
+    () => (
+      <>
+        <span>{t('Data')}</span>
+        {props.errorMessage && (
+          <span
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.typography.sizes.xs}px;
+              margin-left: ${theme.gridUnit * 2}px;
+            `}
+          >
+            {' '}
+            <Tooltip
+              id="query-error-tooltip"
+              placement="right"
+              title={props.errorMessage}
+            >
+              <i className="fa fa-exclamation-circle text-danger fa-lg" />
+            </Tooltip>
+          </span>
+        )}
+      </>
+    ),
+    [props.errorMessage],
+  );
+
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (
     !controlPanelRegistry.has(props.form_data.viz_type) &&
@@ -433,8 +510,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         id="controlSections"
         data-test="control-tabs"
         fullWidth={showCustomizeTab}
+        allowOverflow={false}
       >
-        <Tabs.TabPane key="query" tab={t('Data')}>
+        <Tabs.TabPane key="query" tab={dataTabTitle}>
           <Collapse
             bordered
             defaultActiveKey={expandedQuerySections}
@@ -460,6 +538,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           </Tabs.TabPane>
         )}
       </ControlPanelsTabs>
+      <div css={actionButtonsContainerStyles}>
+        <RunQueryButton
+          onQuery={props.onQuery}
+          onStop={props.onStop}
+          errorMessage={props.errorMessage}
+          loading={props.chart.chartStatus === 'loading'}
+          isNewChart={!props.chart.queriesResponse}
+          canStopQuery={props.canStopQuery}
+          chartIsStale={props.chartIsStale}
+        />
+      </div>
     </Styles>
   );
 };

@@ -22,12 +22,14 @@ import australia from './countries/australia.geojson';
 import belgium from './countries/belgium.geojson';
 import brazil from './countries/brazil.geojson';
 import bulgaria from './countries/bulgaria.geojson';
+import burundi from './countries/burundi.geojson';
 import canada from './countries/canada.geojson';
 import china from './countries/china.geojson';
 import cyprus from './countries/cyprus.geojson';
 import denmark from './countries/denmark.geojson';
 import egypt from './countries/egypt.geojson';
 import estonia from './countries/estonia.geojson';
+import ethiopia from './countries/ethiopia.geojson';
 import france from './countries/france.geojson';
 import finland from './countries/finland.geojson';
 import germany from './countries/germany.geojson';
@@ -59,6 +61,7 @@ import poland from './countries/poland.geojson';
 import portugal from './countries/portugal.geojson';
 import qatar from './countries/qatar.geojson';
 import russia from './countries/russia.geojson';
+import rwanda from './countries/rwanda.geojson';
 import saudi_arabia from './countries/saudi_arabia.geojson';
 import singapore from './countries/singapore.geojson';
 import slovenia from './countries/slovenia.geojson';
@@ -66,9 +69,11 @@ import sweden from './countries/sweden.geojson';
 import spain from './countries/spain.geojson';
 import switzerland from './countries/switzerland.geojson';
 import syria from './countries/syria.geojson';
+import tanzania from './countries/tanzania.geojson';
 import thailand from './countries/thailand.geojson';
 import timorleste from './countries/timorleste.geojson';
 import united_arab_emirates from './countries/united_arab_emirates.geojson';
+import uganda from './countries/uganda.geojson';
 import uk from './countries/uk.geojson';
 import ukraine from './countries/ukraine.geojson';
 import uruguay from './countries/uruguay.geojson';
@@ -82,12 +87,14 @@ export const countries = {
   belgium,
   brazil,
   bulgaria,
+  burundi,
   canada,
   china,
   cyprus,
   denmark,
   egypt,
   estonia,
+  ethiopia,
   france,
   finland,
   germany,
@@ -119,6 +126,7 @@ export const countries = {
   portugal,
   qatar,
   russia,
+  rwanda,
   saudi_arabia,
   singapore,
   slovenia,
@@ -126,9 +134,11 @@ export const countries = {
   sweden,
   switzerland,
   syria,
+  tanzania,
   thailand,
   timorleste,
   united_arab_emirates,
+  uganda,
   uk,
   ukraine,
   uruguay,
