@@ -37,7 +37,7 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
-from superset.key_value.commands.exceptions import KeyValueAccessDeniedError
+from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
 from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -198,7 +198,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -253,7 +253,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
@@ -309,7 +309,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
-            KeyValueAccessDeniedError,
+            TemporaryCacheAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:

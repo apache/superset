@@ -30,7 +30,6 @@ const createProps = () => ({
     datasource: '34__table',
     slice_id: 456,
     url_params: {},
-    time_range_endpoints: ['unknown', 'inclusive'],
     time_range: 'Last week',
     all_columns_x: 'source',
     all_columns_y: 'target',

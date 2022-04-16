@@ -21,8 +21,9 @@ from urllib import parse
 
 import simplejson as json
 from flask import current_app
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
@@ -57,13 +58,25 @@ class TrinoEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
-            value = dttm.date().isoformat()
-            return f"from_iso8601_date('{value}')"
-        if tt == utils.TemporalType.TIMESTAMP:
-            value = dttm.isoformat(timespec="microseconds")
-            return f"from_iso8601_timestamp('{value}')"
+            return f"from_iso8601_date('{dttm.date().isoformat()}')"
+        if tt in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
         return None
 
     @classmethod
@@ -82,7 +95,10 @@ class TrinoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -92,7 +108,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Trino connection, enable impersonation, and set optional param

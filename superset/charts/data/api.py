@@ -306,16 +306,13 @@ class ChartDataRestApi(ChartRestApi):
         Execute command as an async query.
         """
         # First, look for the chart query results in the cache.
+        result = None
         try:
             result = command.run(force_cached=True)
+            if result is not None:
+                return self._send_chart_response(result)
         except ChartDataCacheLoadError:
-            result = None  # type: ignore
-
-        already_cached_result = result is not None
-
-        # If the chart query has already been cached, return it immediately.
-        if already_cached_result:
-            return self._send_chart_response(result)
+            pass
 
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,

@@ -30,10 +30,10 @@ import json
 
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, Text
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db, db_engine_specs
+from superset.databases.utils import make_url_safe
 from superset.utils.memoized import memoized
 
 Base = declarative_base()
@@ -46,7 +46,7 @@ class Database(Base):
     sqlalchemy_uri = Column(Text)
 
     def grains(self):
-        url = make_url(self.sqlalchemy_uri)
+        url = make_url_safe(self.sqlalchemy_uri)
         backend = url.get_backend_name()
         db_engine_spec = db_engine_specs.engines.get(
             backend, db_engine_specs.BaseEngineSpec

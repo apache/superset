@@ -64,9 +64,6 @@ params:
   sort_x_axis: alpha_asc
   sort_y_axis: alpha_asc
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: heatmap
   xscale_interval: null

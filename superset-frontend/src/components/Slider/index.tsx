@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import AntDSlider, {
+import AntdSlider, {
   SliderSingleProps,
   SliderRangeProps,
 } from 'antd/lib/slider';
@@ -25,5 +25,5 @@ import AntDSlider, {
 export type { SliderSingleProps, SliderRangeProps };
 
 export default function Slider(props: SliderSingleProps | SliderRangeProps) {
-  return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
+  return <AntdSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
 }

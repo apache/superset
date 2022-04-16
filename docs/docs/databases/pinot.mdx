@@ -12,5 +12,5 @@ The recommended connector library for Apache Pinot is [pinotdb](https://pypi.org
 The expected connection string is formatted as follows:
 
 ```
-pinot+http://controller:5436/query?server=http://controller:5983/``
+pinot+http://<pinot-broker-host>:<pinot-broker-port>/query?controller=http://<pinot-controller-host>:<pinot-controller-port>/``
 ```

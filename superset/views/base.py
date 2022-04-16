@@ -62,6 +62,8 @@ from superset import (
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
+from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -71,8 +73,8 @@ from superset.exceptions import (
 )
 from superset.models.helpers import ImportExportMixin
 from superset.models.reports import ReportRecipientType
+from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
-from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
@@ -102,6 +104,10 @@ FRONTEND_CONF_KEYS = (
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "SCHEDULED_QUERIES",
+    "EXCEL_EXTENSIONS",
+    "CSV_EXTENSIONS",
+    "COLUMNAR_EXTENSIONS",
+    "ALLOWED_EXTENSIONS",
 )
 
 logger = logging.getLogger(__name__)
@@ -311,7 +317,6 @@ def menu_data() -> Dict[str, Any]:
             "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
-            "width": appbuilder.app.config["APP_ICON_WIDTH"],
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
@@ -345,16 +350,10 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
-    frontend_config = {k: conf.get(k) for k in FRONTEND_CONF_KEYS}
-    frontend_config["EXCEL_EXTENSIONS"] = bool(
-        bool(conf["EXCEL_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
-    frontend_config["CSV_EXTENSIONS"] = bool(
-        bool(conf["CSV_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
-    frontend_config["COLUMNAR_EXTENSIONS"] = bool(
-        bool(conf["COLUMNAR_EXTENSIONS"].intersection(conf["ALLOWED_EXTENSIONS"])),
-    )
+    frontend_config = {
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
+        for k in FRONTEND_CONF_KEYS
+    }
 
     if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -365,6 +364,10 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
         ]
+
+    # verify client has google sheets installed
+    available_specs = get_available_engine_specs()
+    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
         "flash_messages": messages,
@@ -626,7 +629,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
 
-class CsvResponse(Response):  # pylint: disable=too-many-ancestors
+class CsvResponse(Response):
     """
     Override Response to take into account csv encoding from config.py
     """

@@ -35,10 +35,12 @@ import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
-interface QueryTableQuery extends Omit<Query, 'state' | 'sql' | 'progress'> {
+interface QueryTableQuery
+  extends Omit<Query, 'state' | 'sql' | 'progress' | 'results'> {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
+  results?: Record<string, any>;
 }
 
 interface QueryTableProps {
@@ -54,6 +56,7 @@ interface QueryTableProps {
   onUserClicked?: Function;
   onDbClicked?: Function;
   displayLimit: number;
+  latestQueryId?: string | undefined;
 }
 
 const openQuery = (id: number) => {
@@ -68,6 +71,7 @@ const QueryTable = ({
   onUserClicked = () => undefined,
   onDbClicked = () => undefined,
   displayLimit,
+  latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
 
@@ -225,12 +229,12 @@ const QueryTable = ({
           </Card>
         );
         if (q.resultsKey) {
-          q.output = (
+          q.results = (
             <ModalTrigger
               className="ResultsModal"
               triggerNode={
                 <Label type="info" className="pointer">
-                  {t('View results')}
+                  {t('View')}
                 </Label>
               }
               modalTitle={t('Data preview')}
@@ -250,13 +254,8 @@ const QueryTable = ({
               responsive
             />
           );
-        } else {
-          // if query was run using ctas and force_ctas_schema was set
-          // tempTable will have the schema
-          const schemaUsed =
-            q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
-          q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
+
         q.progress =
           state === 'success' ? (
             <ProgressBar
@@ -281,21 +280,23 @@ const QueryTable = ({
               )}
               placement="top"
             >
-              <Icons.Edit iconSize="s" />
+              <Icons.Edit iconSize="xl" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
             >
-              <Icons.PlusCircleOutlined iconSize="xs" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
             </StyledTooltip>
-            <StyledTooltip
-              tooltip={t('Remove query from log')}
-              onClick={() => removeQuery(query)}
-            >
-              <Icons.Trash iconSize="xs" />
-            </StyledTooltip>
+            {q.id !== latestQueryId && (
+              <StyledTooltip
+                tooltip={t('Remove query from log')}
+                onClick={() => removeQuery(query)}
+              >
+                <Icons.Trash iconSize="xl" />
+              </StyledTooltip>
+            )}
           </div>
         );
         return q;

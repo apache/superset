@@ -52,4 +52,25 @@ export interface PlainObject {
   [key: string]: any;
 }
 
+export enum ChartLabel {
+  DEPRECATED = 'DEPRECATED',
+  FEATURED = 'FEATURED',
+}
+
+export const chartLabelExplanations: Record<ChartLabel, string> = {
+  [ChartLabel.DEPRECATED]:
+    'This chart uses features or modules which are no longer actively maintained. It will eventually be replaced or removed.',
+  [ChartLabel.FEATURED]:
+    'This chart was tested and verified, so the overall experience should be stable.',
+};
+
+export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
+  [ChartLabel.DEPRECATED]: {
+    weight: -0.1,
+  },
+  [ChartLabel.FEATURED]: {
+    weight: 0.1,
+  },
+};
+
 export default {};

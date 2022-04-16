@@ -20,7 +20,7 @@ import React, { useState, useEffect, CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import moment from 'moment';
-import { RadioChangeEvent } from 'antd/lib/radio';
+import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
@@ -217,10 +217,17 @@ const ResultSet = ({
       setCachedData(query.results.data);
       actions.clearQueryResults(query);
     }
+
+    // Only fetch results if the result key change
+    // If we didn't have a result key before, then the results are loaded elsewhere
+    // so we can skip it, unless the query id changed, in that case we should
+    // refetch regardless.
     if (
-      query.resultsKey &&
+      (query.resultsKey &&
       prevQuery &&
-      query.resultsKey !== prevQuery.resultsKey
+      prevQuery.resultsKey &&
+      query.resultsKey !== prevQuery.resultsKey) ||
+      (query.id !== prevQuery.id && query.resultsKey)
     ) {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchResults(query);
@@ -253,7 +260,11 @@ const ResultSet = ({
       dbId,
       datasetToOverwrite.datasetId,
       sql,
-      results.selected_columns.map(d => ({ column_name: d.name })),
+      results.selected_columns.map(d => ({
+        column_name: d.name,
+        type: d.type,
+        is_dttm: d.is_dttm,
+      })),
       datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
       true,
     );
@@ -487,6 +498,7 @@ const ResultSet = ({
                   <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
+              hideTooltip
             />
           </ResultSetButtons>
           {search && (
@@ -519,18 +531,20 @@ const ResultSet = ({
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!user?.roles?.Admin;
+    const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
+
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. ' +
           'Please add additional limits/filters or download to csv to see more rows up to ' +
           'the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
       withoutAdmin: t(
         'The number of results displayed is limited to %(rows)d. ' +
           'Please add additional limits/filters, download to csv, or contact an admin ' +
           'to see more rows up to the %(limit)d limit.',
-        { rows, limit },
+        { rows: rowsCount, limit },
       ),
     };
     const shouldUseDefaultDropdownAlert =
@@ -593,7 +607,7 @@ const ResultSet = ({
             <Alert
               type="warning"
               onClose={onAlertClose}
-              message={t('%(rows)d rows returned', { rows })}
+              message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
                   ? displayMaxRowsReachedMessage.withAdmin

@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {

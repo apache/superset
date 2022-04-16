@@ -21,6 +21,9 @@ from typing import Any, Dict
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+
+from superset.datasets.models import Dataset
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -77,6 +80,8 @@ class DatasetPostSchema(Schema):
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     owners = fields.List(fields.Integer())
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -97,6 +102,8 @@ class DatasetPutSchema(Schema):
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     extra = fields.String(allow_none=True)
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
 
 
 class DatasetRelatedChart(Schema):
@@ -209,3 +216,16 @@ class ImportV1DatasetSchema(Schema):
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()
+    is_managed_externally = fields.Boolean(allow_none=True, default=False)
+    external_url = fields.String(allow_none=True)
+
+
+class DatasetSchema(SQLAlchemyAutoSchema):
+    """
+    Schema for the ``Dataset`` model.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        model = Dataset
+        load_instance = True
+        include_relationships = True

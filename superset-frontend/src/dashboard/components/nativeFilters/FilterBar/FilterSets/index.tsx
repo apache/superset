@@ -48,6 +48,8 @@ const FilterSetsWrapper = styled.div`
   align-items: center;
   justify-content: center;
   grid-template-columns: 1fr;
+  // 108px padding to make room for buttons with position: absolute
+  padding-bottom: ${({ theme }) => theme.gridUnit * 27}px;
 
   & button.superset-button {
     margin-left: 0;

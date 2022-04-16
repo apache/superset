@@ -17,13 +17,18 @@
  * under the License.
  */
 
-import React from 'react';
-import { mount } from 'enzyme';
+import React, { ReactElement } from 'react';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
 
-import { promiseTimeout, SuperChart } from '@superset-ui/core';
+import {
+  promiseTimeout,
+  SuperChart,
+  supersetTheme,
+  ThemeProvider,
+} from '@superset-ui/core';
+import { mount as enzymeMount } from 'enzyme';
 import RealSuperChart, {
   WrapperProps,
 } from '../../../src/chart/components/SuperChart';
@@ -50,6 +55,12 @@ function expectDimension(
     [width, height].join('x'),
   );
 }
+
+const mount = (component: ReactElement) =>
+  enzymeMount(component, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 
 describe('SuperChart', () => {
   const plugins = [
@@ -303,6 +314,7 @@ describe('SuperChart', () => {
           height="125"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
       return promiseTimeout(() => {
@@ -328,6 +340,7 @@ describe('SuperChart', () => {
           height="25%"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
       return promiseTimeout(() => {

@@ -100,6 +100,7 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "bulk_delete": "write",
+    "created_by_me": "read",
     "delete": "write",
     "distinct": "read",
     "get": "read",
@@ -146,7 +147,6 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_range": "time_range",
     "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
-    "time_range_endpoints": "time_range_endpoints",
 }
 
 EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {

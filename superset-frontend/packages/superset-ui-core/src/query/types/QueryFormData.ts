@@ -30,7 +30,7 @@ import {
   QueryObjectExtras,
   QueryObjectFilterClause,
 } from './Query';
-import { TimeRange, TimeRangeEndpoints } from './Time';
+import { TimeRange } from './Time';
 import { TimeGranularity } from '../../time-format';
 import { JsonObject } from '../../connection';
 import { AdhocColumn, PhysicalColumn } from './Column';
@@ -50,7 +50,9 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Order query results by columns.
  * Format: [metric/column, is_ascending].
  */
-export type QueryFormOrderBy = [QueryFormColumn | QueryFormMetric, boolean];
+export type QueryFormOrderBy =
+  | [QueryFormColumn | QueryFormMetric | {}, boolean]
+  | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -120,11 +122,7 @@ export type ExtraFormDataAppend = {
  * filter clauses can't be overridden */
 export type ExtraFormDataOverrideExtras = Pick<
   QueryObjectExtras,
-  | 'druid_time_origin'
-  | 'relative_start'
-  | 'relative_end'
-  | 'time_grain_sqla'
-  | 'time_range_endpoints'
+  'druid_time_origin' | 'relative_start' | 'relative_end' | 'time_grain_sqla'
 >;
 
 /** These parameters override those already present in the form data/query object */
@@ -180,7 +178,6 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   force?: boolean;
   result_format?: string;
   result_type?: string;
-  time_range_endpoints?: TimeRangeEndpoints;
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
   custom_params?: Record<string, string>;
@@ -206,7 +203,7 @@ export interface SqlaFormData extends BaseFormData {
  * Form data for Druid datasources.
  */
 export interface DruidFormData extends BaseFormData {
-  granularity: string;
+  granularity?: string;
   having_druid?: string;
   druid_time_origin?: string;
 }

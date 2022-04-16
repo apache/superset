@@ -86,10 +86,10 @@ describe('ChartHolder', () => {
       screen.getByText('No results were returned for this query'),
     ).toBeVisible();
     expect(
-      screen.getByText(
+      screen.queryByText(
         'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
       ),
-    ).toBeVisible();
+    ).not.toBeInTheDocument(); // description should display only in Explore view
     expect(screen.getByAltText('empty')).toBeVisible();
   });
 });

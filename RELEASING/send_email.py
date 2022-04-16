@@ -106,7 +106,12 @@ def inter_send_email(
 
 class BaseParameters(object):
     def __init__(
-        self, email: str, username: str, password: str, version: str, version_rc: str,
+        self,
+        email: str,
+        username: str,
+        password: str,
+        version: str,
+        version_rc: str,
     ) -> None:
         self.email = email
         self.username = username

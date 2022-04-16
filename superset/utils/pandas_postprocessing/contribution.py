@@ -20,7 +20,7 @@ from typing import List, Optional
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingContributionOrientation
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
@@ -49,12 +49,13 @@ def contribution(
     """
     contribution_df = df.copy()
     numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
+    numeric_df.fillna(0, inplace=True)
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()
         for col in columns:
             if col not in numeric_columns:
-                raise QueryObjectValidationError(
+                raise InvalidPostProcessingError(
                     _(
                         'Column "%(column)s" is not numeric or does not '
                         "exists in the query results.",
@@ -64,7 +65,7 @@ def contribution(
     columns = columns or numeric_df.columns
     rename_columns = rename_columns or columns
     if len(rename_columns) != len(columns):
-        raise QueryObjectValidationError(
+        raise InvalidPostProcessingError(
             _("`rename_columns` must have the same length as `columns`.")
         )
     # limit to selected columns

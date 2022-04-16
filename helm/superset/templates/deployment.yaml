@@ -56,6 +56,9 @@ spec:
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
+      {{- if .Values.supersetNode.podLabels }}
+        {{ toYaml .Values.supersetNode.podLabels | nindent 8 }}
+      {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}

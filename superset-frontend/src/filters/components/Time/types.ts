@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { RefObject } from 'react';
 import {
   Behavior,
   DataRecord,
@@ -37,6 +38,7 @@ export type PluginFilterTimeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
+  inputRef: RefObject<HTMLInputElement>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {

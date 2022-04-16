@@ -23,8 +23,8 @@ import sys
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
+
 with open(PACKAGE_JSON, "r") as package_file:
     version_string = json.load(package_file)["version"]
 
@@ -70,15 +70,15 @@ setup(
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "cachelib>=0.4.1,<0.5",
-        "celery>=4.3.0, <5.0.0, !=4.4.1",
-        "click<8",
+        "celery>=5.2.2, <6.0.0",
+        "click>=8.0.3",
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
-        "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.4.3, <4.0.0",
+        "flask>=2.0.0, <3.0.0",
+        "flask-appbuilder>=4.0.0, <5.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -88,9 +88,9 @@ setup(
         "geopy",
         "graphlib-backport",
         "gunicorn>=20.1.0",
+        "hashids>=1.3.1, <2",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
-        "itsdangerous>=1.0.0, <2.0.0",  # https://github.com/apache/superset/pull/14627
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
@@ -104,7 +104,7 @@ setup(
         "python-geohash",
         "pyarrow>=5.0.0, <6.0",
         "pyyaml>=5.4",
-        "PyJWT>=1.7.1, <2",
+        "PyJWT>=2.0.0, <2.3.0",
         "redis",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
@@ -140,7 +140,7 @@ setup(
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
         "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
-        "gsheets": ["shillelagh[gsheetsapi]>=1.0.3, <2"],
+        "gsheets": ["shillelagh[gsheetsapi]>=1.0.11, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
@@ -163,17 +163,16 @@ setup(
             "snowflake-sqlalchemy==1.2.4"
         ],  # PINNED! 1.2.5 introduced breaking changes requiring sqlalchemy>=1.4.0
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=8.3.2, <10.0.0"],
+        "thumbnails": ["Pillow>=9.0.1, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },
-    python_requires="~=3.7",
+    python_requires="~=3.8",
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
     download_url="https://www.apache.org/dist/superset/" + version_string,
     classifiers=[
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],

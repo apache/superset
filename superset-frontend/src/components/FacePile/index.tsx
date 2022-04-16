@@ -23,7 +23,7 @@ import {
   SupersetTheme,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { Avatar } from 'src/common/components';
+import { Avatar } from 'src/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {

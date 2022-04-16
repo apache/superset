@@ -19,7 +19,8 @@
 import React, { useState, useCallback, useRef, FunctionComponent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { Input, AntdInput } from 'src/common/components';
+import { AntdInput } from 'src/components';
+import { Input } from 'src/components/Input';
 import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
