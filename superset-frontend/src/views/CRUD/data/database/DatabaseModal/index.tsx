@@ -96,6 +96,8 @@ const engineSpecificAlertMapping = {
   },
 };
 
+const googleSheetConnectionEngine = 'gsheets';
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -532,10 +534,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
       const errors = await getValidation(dbToUpdate, true);
-      if (
-        (validationErrors && !isEmpty(validationErrors)) ||
-        !isEmpty(errors)
-      ) {
+      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         return;
       }
       const parameters_schema = isEditMode
@@ -637,7 +636,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         passwords,
         confirmedOverwrite,
       );
-
       if (dbId) {
         onClose();
         addSuccessToast(t('Database connected'));
