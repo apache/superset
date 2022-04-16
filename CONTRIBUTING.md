@@ -581,7 +581,7 @@ npm run dev-server -- --port=9001
 npm run dev-server -- --supersetPort=8081
 
 # Proxy to a remote backend but serve local assets
-npm run dev-server --superset=https://superset-dev.example.com
+npm run dev-server -- --superset=https://superset-dev.example.com
 ```
 
 The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall. It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
