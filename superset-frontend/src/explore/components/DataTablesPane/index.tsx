@@ -80,38 +80,44 @@ const TableControlsWrapper = styled.div`
 `;
 
 const SouthPane = styled.div`
-  position: relative;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  z-index: 5;
-  overflow: hidden;
-`;
+  ${({ theme }) => `
+    position: relative;
+    background-color: ${theme.colors.grayscale.light5};
+    z-index: 5;
+    overflow: hidden;
 
-const TabsWrapper = styled.div`
-  height: 100%;
-  overflow: hidden;
+    .ant-tabs {
+      height: 100%;
+    }
 
-  .ant-tabs {
-    height: 100%;
-  }
+    .ant-tabs-content-holder {
+      height: 100%;
+    }
 
-  .ant-tabs-content-holder {
-    height: 100%;
-  }
+    .ant-tabs-content {
+      height: 100%;
+    }
 
-  .ant-tabs-content {
-    height: 100%;
-  }
+    .ant-tabs-tabpane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
 
-  .table-condensed {
-    height: 100%;
-    overflow: auto;
-  }
+      .table-condensed {
+        height: 100%;
+        overflow: auto;
+        margin-bottom: ${theme.gridUnit * 4}px;
 
-  .ant-tabs-tabpane {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
+        .table {
+          margin-bottom: ${theme.gridUnit * 2}px;
+        }
+      }
+
+      .pagination-container > ul[role='navigation'] {
+        margin-top: 0;
+      }
+    }
+  `}
 `;
 
 const Error = styled.pre`
@@ -425,9 +431,15 @@ export const DataTablesPane = ({
 
   const CollapseButton = useMemo(() => {
     const caretIcon = panelOpen ? (
-      <Icons.CaretUp iconColor={theme.colors.grayscale.base} />
+      <Icons.CaretUp
+        iconColor={theme.colors.grayscale.base}
+        aria-label={t('Collapse data panel')}
+      />
     ) : (
-      <Icons.CaretDown iconColor={theme.colors.grayscale.base} />
+      <Icons.CaretDown
+        iconColor={theme.colors.grayscale.base}
+        aria-label={t('Expand data panel')}
+      />
     );
     return (
       <TableControlsWrapper>
@@ -454,65 +466,63 @@ export const DataTablesPane = ({
 
   return (
     <SouthPane data-test="some-purposeful-instance">
-      <TabsWrapper>
-        <Tabs
-          fullWidth={false}
-          tabBarExtraContent={CollapseButton}
-          activeKey={panelOpen ? activeTabKey : ''}
-          onTabClick={handleTabClick}
-        >
-          <Tabs.TabPane tab={t('Results')} key={RESULT_TYPES.results}>
-            <TableControls
-              data={data[RESULT_TYPES.results]}
-              columnNames={columnNames[RESULT_TYPES.results]}
-              datasourceId={queryFormData?.datasource}
-              onInputChange={input =>
-                setFilterText(prevState => ({
-                  ...prevState,
-                  [RESULT_TYPES.results]: input,
-                }))
-              }
-              isLoading={isLoading[RESULT_TYPES.results]}
-            />
-            <DataTable
-              isLoading={isLoading[RESULT_TYPES.results]}
-              data={data[RESULT_TYPES.results]}
-              datasource={queryFormData?.datasource}
-              columnNames={columnNames[RESULT_TYPES.results]}
-              columnTypes={columnTypes[RESULT_TYPES.results]}
-              filterText={filterText[RESULT_TYPES.results]}
-              error={error[RESULT_TYPES.results]}
-              errorMessage={errorMessage}
-              type={RESULT_TYPES.results}
-            />
-          </Tabs.TabPane>
-          <Tabs.TabPane tab={t('Samples')} key={RESULT_TYPES.samples}>
-            <TableControls
-              data={data[RESULT_TYPES.samples]}
-              columnNames={columnNames[RESULT_TYPES.samples]}
-              datasourceId={queryFormData?.datasource}
-              onInputChange={input =>
-                setFilterText(prevState => ({
-                  ...prevState,
-                  [RESULT_TYPES.samples]: input,
-                }))
-              }
-              isLoading={isLoading[RESULT_TYPES.samples]}
-            />
-            <DataTable
-              isLoading={isLoading[RESULT_TYPES.samples]}
-              data={data[RESULT_TYPES.samples]}
-              datasource={queryFormData?.datasource}
-              columnNames={columnNames[RESULT_TYPES.samples]}
-              columnTypes={columnTypes[RESULT_TYPES.samples]}
-              filterText={filterText[RESULT_TYPES.samples]}
-              error={error[RESULT_TYPES.samples]}
-              errorMessage={errorMessage}
-              type={RESULT_TYPES.samples}
-            />
-          </Tabs.TabPane>
-        </Tabs>
-      </TabsWrapper>
+      <Tabs
+        fullWidth={false}
+        tabBarExtraContent={CollapseButton}
+        activeKey={panelOpen ? activeTabKey : ''}
+        onTabClick={handleTabClick}
+      >
+        <Tabs.TabPane tab={t('Results')} key={RESULT_TYPES.results}>
+          <TableControls
+            data={data[RESULT_TYPES.results]}
+            columnNames={columnNames[RESULT_TYPES.results]}
+            datasourceId={queryFormData?.datasource}
+            onInputChange={input =>
+              setFilterText(prevState => ({
+                ...prevState,
+                [RESULT_TYPES.results]: input,
+              }))
+            }
+            isLoading={isLoading[RESULT_TYPES.results]}
+          />
+          <DataTable
+            isLoading={isLoading[RESULT_TYPES.results]}
+            data={data[RESULT_TYPES.results]}
+            datasource={queryFormData?.datasource}
+            columnNames={columnNames[RESULT_TYPES.results]}
+            columnTypes={columnTypes[RESULT_TYPES.results]}
+            filterText={filterText[RESULT_TYPES.results]}
+            error={error[RESULT_TYPES.results]}
+            errorMessage={errorMessage}
+            type={RESULT_TYPES.results}
+          />
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={t('Samples')} key={RESULT_TYPES.samples}>
+          <TableControls
+            data={data[RESULT_TYPES.samples]}
+            columnNames={columnNames[RESULT_TYPES.samples]}
+            datasourceId={queryFormData?.datasource}
+            onInputChange={input =>
+              setFilterText(prevState => ({
+                ...prevState,
+                [RESULT_TYPES.samples]: input,
+              }))
+            }
+            isLoading={isLoading[RESULT_TYPES.samples]}
+          />
+          <DataTable
+            isLoading={isLoading[RESULT_TYPES.samples]}
+            data={data[RESULT_TYPES.samples]}
+            datasource={queryFormData?.datasource}
+            columnNames={columnNames[RESULT_TYPES.samples]}
+            columnTypes={columnTypes[RESULT_TYPES.samples]}
+            filterText={filterText[RESULT_TYPES.samples]}
+            error={error[RESULT_TYPES.samples]}
+            errorMessage={errorMessage}
+            type={RESULT_TYPES.samples}
+          />
+        </Tabs.TabPane>
+      </Tabs>
     </SouthPane>
   );
 };

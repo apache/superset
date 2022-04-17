@@ -85,6 +85,8 @@ export const CopyToClipboardButton = ({
         <Icons.CopyOutlined
           iconColor={theme.colors.grayscale.base}
           iconSize="l"
+          aria-label={t('Copy')}
+          role="button"
           css={css`
             &.anticon > * {
               line-height: 0;
