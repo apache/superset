@@ -18,10 +18,20 @@
  */
 const zlib = require('zlib');
 
+const yargs = require('yargs');
 // eslint-disable-next-line import/no-extraneous-dependencies
-const parsedArgs = require('yargs').argv;
+const parsedArgs = yargs.argv;
 
-const { supersetPort = 8088, superset: supersetUrl = null } = parsedArgs;
+const parsedEnvArg = () => {
+  console.log(parsedArgs);
+  if (parsedArgs.env) {
+    console.log(yargs(parsedArgs.env).argv);
+    return yargs(parsedArgs.env).argv;
+  }
+  return {};
+};
+
+const { supersetPort = 8088, superset: supersetUrl = null } = parsedEnvArg();
 const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
   '',
