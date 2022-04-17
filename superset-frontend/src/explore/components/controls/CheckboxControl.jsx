@@ -32,7 +32,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-const checkboxStyle = { paddingRight: '5px' };
+const checkboxStyle = { paddingRight: '8px' };
 
 export default class CheckboxControl extends React.Component {
   onChange() {

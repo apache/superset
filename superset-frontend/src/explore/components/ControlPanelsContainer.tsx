@@ -149,6 +149,21 @@ const ControlPanelsTabs = styled(Tabs)`
     .ant-tabs-content-holder {
       padding-top: ${theme.gridUnit * 4}px;
     }
+
+    .ant-collapse-ghost > .ant-collapse-item {
+      &:not(:last-child) {
+        border-bottom: 1px solid ${theme.colors.grayscale.light3};
+      }
+
+      & > .ant-collapse-header {
+        font-size: ${theme.typography.sizes.s}px;
+      }
+
+      & > .ant-collapse-content > .ant-collapse-content-box {
+        padding-bottom: 0;
+        font-size: ${theme.typography.sizes.s}px;
+      }
+    }
   `}
 `;
 
@@ -387,6 +402,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
           &:last-child {
             padding-bottom: ${theme.gridUnit * 16}px;
+            border-bottom: 0;
           }
 
           .panel-body {
@@ -514,7 +530,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       >
         <Tabs.TabPane key="query" tab={dataTabTitle}>
           <Collapse
-            bordered
             defaultActiveKey={expandedQuerySections}
             expandIconPosition="right"
             ghost
@@ -527,7 +542,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {showCustomizeTab && (
           <Tabs.TabPane key="display" tab={t('Customize')}>
             <Collapse
-              bordered
               defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
               ghost
