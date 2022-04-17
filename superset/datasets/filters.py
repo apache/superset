@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from typing import Any
+
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.datasets.models import Dataset
+from superset.datasets.models import Dataset, table_association_table
+from superset.tables.models import Table
 from superset.views.base import BaseFilter
 
 
@@ -47,3 +51,52 @@ class DatasetIsPhysicalOrVirtual(BaseFilter):
             filter_clause = not_(filter_clause)
 
         return query.filter(filter_clause)
+
+
+class DatasetAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("All Text")
+    arg_name = "dataset_all_text"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+        ilike_value = f"%{value}%"
+        return query.filter(
+            or_(
+                Dataset.name.ilike(ilike_value),
+                Dataset.expression.ilike((ilike_value)),
+            )
+        )
+
+
+# example risom: (filters:!((col:tables,opr:schema,value:public)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)
+class DatasetSchemaFilter(BaseFilter):
+    name = _("Schema")
+    arg_name = "schema"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+
+        filter_clause = (
+            (table_association_table.c.dataset_id == Dataset.id)
+            & (table_association_table.c.table_id == Table.id)
+            & (Table.schema == value)
+        )
+        return query.join(table_association_table).join(Table).filter(filter_clause)
+
+
+class DatasetDatabaseFilter(BaseFilter):
+    name = _("Database")
+    arg_name = "db"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if not value:
+            return query
+
+        filter_clause = (
+            (table_association_table.c.dataset_id == Dataset.id)
+            & (table_association_table.c.table_id == Table.id)
+            & (Table.database_id == value)
+        )
+        return query.join(table_association_table).join(Table).filter(filter_clause)

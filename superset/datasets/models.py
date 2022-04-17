@@ -116,10 +116,6 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return "virtual" if self.is_physical else "physical"
 
     @property
-    def schema(self) -> Optional[str]:
-        return "public"
-
-    @property
     def sql(self) -> Optional[str]:
         return self.expression
 
@@ -153,18 +149,3 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             )
             return database.data
         return None
-
-    @property
-    def schema(self) -> Optional[str]:
-        if self.tables:
-            database = (
-                db.session.query(Database)
-                .filter(Database.id == self.tables[0].database_id)
-                .one()
-            )
-            return database.schema
-        return "default"
-
-    @property
-    def owners(self) -> Optional[List[int]]:
-        return []
