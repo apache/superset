@@ -18,6 +18,7 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint no-use-before-define: 0 */
 import React, { useState, useEffect, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
@@ -207,7 +208,16 @@ const SqlEditor = ({
     }
   });
 
+  const mounted = useRef();
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+    } else {
+      if (queryEditor.sql !== sql) {
+        onSqlChanged(queryEditor.sql);
+      }
+      return;
+    }
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     setHeight(getSqlEditorHeight());
@@ -224,17 +234,12 @@ const SqlEditor = ({
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
 
+    // eslint-disable-next-line consistent-return
     return () => {
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, []);
-
-  componentDidUpdate() {
-    if (this.props.queryEditor.sql !== this.state.sql) {
-      this.onSqlChanged(this.props.queryEditor.sql);
-    }
-  }
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -251,7 +256,7 @@ const SqlEditor = ({
     }
   };
 
-  const onBeforeUnload = (event) => {
+  const onBeforeUnload = event => {
     if (
       database?.extra_json?.cancel_query_on_windows_unload &&
       latestQuery?.state === 'running'
@@ -261,7 +266,7 @@ const SqlEditor = ({
     }
   };
 
-  const onSqlChanged = (sql) => {
+  const onSqlChanged = sql => {
     setSQL(sql);
     setQueryEditorSqlWithDebounce(sql);
     // Request server-side validation of the query text
@@ -350,7 +355,10 @@ const SqlEditor = ({
       });
     }
 
-  const setQueryEditorSql = (sql) => {
+    return base;
+  };
+
+  const setQueryEditorSql = sql => {
     dispatch(queryEditorSetSql(queryEditor, sql));
   };
 
@@ -359,7 +367,7 @@ const SqlEditor = ({
     SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
   );
 
-  const setQueryLimit = (queryLimit) => {
+  const setQueryLimit = queryLimit => {
     dispatch(queryEditorSetQueryLimit(queryEditor, queryLimit));
   };
 
@@ -394,11 +402,7 @@ const SqlEditor = ({
     WINDOW_RESIZE_THROTTLE_MS,
   );
 
-  const elementStyle = (
-    dimension,
-    elementSize,
-    gutterSize,
-  ) => ({
+  const elementStyle = (dimension, elementSize, gutterSize) => ({
     [dimension]: `calc(${elementSize}% - ${
       gutterSize + SQL_EDITOR_GUTTER_MARGIN
     }px)`,
@@ -432,7 +436,7 @@ const SqlEditor = ({
     return false;
   };
 
-  const convertToNumWithSpaces = (num) =>
+  const convertToNumWithSpaces = num =>
     num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
 
   const startQuery = (ctasArg = false, ctas_method = CtasEnum.TABLE) => {
@@ -477,7 +481,7 @@ const SqlEditor = ({
     setCtas('');
   };
 
-  const ctasChanged = (event) => {
+  const ctasChanged = event => {
     setCtas(event.target.value);
   };
 
@@ -592,7 +596,7 @@ const SqlEditor = ({
     );
   };
 
-  const onSaveQuery = async (query) => {
+  const onSaveQuery = async query => {
     const savedQuery = await dispatch(saveQuery(query));
     dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
   };
@@ -727,16 +731,16 @@ const SqlEditor = ({
         </div>
       </CSSTransition>
       {showEmptyState ? (
-          <EmptyStateBig
-            image="vector.svg"
-            title={t('Select a database to write a query')}
-            description={t(
-              'Choose one of the available databases from the panel on the left.',
-            )}
-          />
-        ) : (
-          queryPane()
-        )}
+        <EmptyStateBig
+          image="vector.svg"
+          title={t('Select a database to write a query')}
+          description={t(
+            'Choose one of the available databases from the panel on the left.',
+          )}
+        />
+      ) : (
+        queryPane()
+      )}
       <Modal
         visible={showCreateAsModal}
         title={t(createViewModalTitle)}
