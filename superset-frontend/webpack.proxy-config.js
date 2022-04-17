@@ -23,9 +23,7 @@ const yargs = require('yargs');
 const parsedArgs = yargs.argv;
 
 const parsedEnvArg = () => {
-  console.log(parsedArgs);
   if (parsedArgs.env) {
-    console.log(yargs(parsedArgs.env).argv);
     return yargs(parsedArgs.env).argv;
   }
   return {};
