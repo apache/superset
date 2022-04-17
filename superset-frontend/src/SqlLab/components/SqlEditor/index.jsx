@@ -19,7 +19,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint no-use-before-define: 0 */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -362,9 +362,9 @@ const SqlEditor = ({
     dispatch(queryEditorSetSql(queryEditor, sql));
   };
 
-  const setQueryEditorSqlWithDebounce = debounce(
-    setQueryEditorSql,
-    SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
+  const setQueryEditorSqlWithDebounce = useMemo(
+    () => debounce(setQueryEditorSql, SET_QUERY_EDITOR_SQL_DEBOUNCE_MS),
+    [],
   );
 
   const setQueryLimit = queryLimit => {
@@ -397,9 +397,9 @@ const SqlEditor = ({
     setHeight(getSqlEditorHeight());
   };
 
-  const handleWindowResizeWithThrottle = throttle(
-    handleWindowResize,
-    WINDOW_RESIZE_THROTTLE_MS,
+  const handleWindowResizeWithThrottle = useMemo(
+    () => throttle(handleWindowResize, WINDOW_RESIZE_THROTTLE_MS),
+    [],
   );
 
   const elementStyle = (dimension, elementSize, gutterSize) => ({
@@ -422,9 +422,9 @@ const SqlEditor = ({
     }
   };
 
-  const requestValidationWithDebounce = debounce(
-    requestValidation,
-    VALIDATION_DEBOUNCE_MS,
+  const requestValidationWithDebounce = useMemo(
+    () => debounce(requestValidation, VALIDATION_DEBOUNCE_MS),
+    [],
   );
 
   const canValidateQuery = () => {
