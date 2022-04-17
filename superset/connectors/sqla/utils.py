@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import lazy_gettext as _
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.columns.models import Column as NewColumn
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
@@ -29,7 +32,9 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, ParsedQuery
+from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
+from superset.superset_typing import ResultSetColumnType
+from superset.tables.models import Table as NewTable
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -39,7 +44,7 @@ def get_physical_table_metadata(
     database: Database,
     table_name: str,
     schema_name: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -76,14 +81,14 @@ def get_physical_table_metadata(
             col.update(
                 {
                     "type": "UNKNOWN",
-                    "generic_type": None,
+                    "type_generic": None,
                     "is_dttm": None,
                 }
             )
     return cols
 
 
-def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
+def get_virtual_table_metadata(dataset: "SqlaTable") -> List[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -128,26 +133,110 @@ def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
     return cols
 
 
-def validate_adhoc_subquery(raw_sql: str) -> None:
+def validate_adhoc_subquery(
+    sql: str,
+    database_id: int,
+    default_schema: str,
+) -> str:
     """
-    Check if adhoc SQL contains sub-queries or nested sub-queries with table
-    :param raw_sql: adhoc sql expression
+    Check if adhoc SQL contains sub-queries or nested sub-queries with table.
+
+    If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
+    predicates to it.
+
+    :param sql: adhoc sql expression
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
     # pylint: disable=import-outside-toplevel
     from superset import is_feature_enabled
 
-    if is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
-        return
-
-    for statement in sqlparse.parse(raw_sql):
+    statements = []
+    for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
-                    level=ErrorLevel.ERROR,
+            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                        message=_("Custom SQL fields cannot contain sub-queries."),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+            statement = insert_rls(statement, database_id, default_schema)
+        statements.append(statement)
+
+    return ";\n".join(str(statement) for statement in statements)
+
+
+def load_or_create_tables(  # pylint: disable=too-many-arguments
+    session: Session,
+    database: Database,
+    default_schema: Optional[str],
+    tables: Set[Table],
+    conditional_quote: Callable[[str], str],
+) -> List[NewTable]:
+    """
+    Load or create new table model instances.
+    """
+    if not tables:
+        return []
+
+    # set the default schema in tables that don't have it
+    if default_schema:
+        fixed_tables = list(tables)
+        for i, table in enumerate(fixed_tables):
+            if table.schema is None:
+                fixed_tables[i] = Table(table.table, default_schema, table.catalog)
+        tables = set(fixed_tables)
+
+    # load existing tables
+    predicate = or_(
+        *[
+            and_(
+                NewTable.database_id == database.id,
+                NewTable.schema == table.schema,
+                NewTable.name == table.table,
+            )
+            for table in tables
+        ]
+    )
+    new_tables = session.query(NewTable).filter(predicate).all()
+
+    # add missing tables
+    existing = {(table.schema, table.name) for table in new_tables}
+    for table in tables:
+        if (table.schema, table.table) not in existing:
+            try:
+                column_metadata = get_physical_table_metadata(
+                    database=database,
+                    table_name=table.table,
+                    schema_name=table.schema,
+                )
+            except Exception:  # pylint: disable=broad-except
+                continue
+            columns = [
+                NewColumn(
+                    name=column["name"],
+                    type=str(column["type"]),
+                    expression=conditional_quote(column["name"]),
+                    is_temporal=column["is_dttm"],
+                    is_aggregation=False,
+                    is_physical=True,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                )
+                for column in column_metadata
+            ]
+            new_tables.append(
+                NewTable(
+                    name=table.table,
+                    schema=table.schema,
+                    catalog=None,
+                    database_id=database.id,
+                    columns=columns,
                 )
             )
-    return
+            existing.add((table.schema, table.table))
+
+    return new_tables

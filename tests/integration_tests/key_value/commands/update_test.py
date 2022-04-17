@@ -53,6 +53,7 @@ def test_update_id_entry(
         key=ID_KEY,
         value=NEW_VALUE,
     ).run()
+    assert key is not None
     assert key.id == ID_KEY
     entry = db.session.query(KeyValueEntry).filter_by(id=ID_KEY).autoflush(False).one()
     assert pickle.loads(entry.value) == NEW_VALUE
@@ -73,6 +74,7 @@ def test_update_uuid_entry(
         key=UUID_KEY,
         value=NEW_VALUE,
     ).run()
+    assert key is not None
     assert key.uuid == UUID_KEY
     entry = (
         db.session.query(KeyValueEntry).filter_by(uuid=UUID_KEY).autoflush(False).one()

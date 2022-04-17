@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from time import sleep
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
@@ -27,7 +28,6 @@ from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 import pytest
 import prison
 import yaml
-from sqlalchemy.sql import func
 
 from freezegun import freeze_time
 from sqlalchemy import and_
@@ -158,6 +158,27 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 db.session.delete(dashboard)
             for fav_dashboard in fav_dashboards:
                 db.session.delete(fav_dashboard)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_created_by_admin_dashboards(self):
+        with self.create_app().app_context():
+            dashboards = []
+            admin = self.get_user("admin")
+            for cx in range(2):
+                dashboard = self.insert_dashboard(
+                    f"create_title{cx}",
+                    f"create_slug{cx}",
+                    [admin.id],
+                    created_by=admin,
+                )
+                sleep(1)
+                dashboards.append(dashboard)
+
+            yield dashboards
+
+            for dashboard in dashboards:
+                db.session.delete(dashboard)
             db.session.commit()
 
     @pytest.fixture()
@@ -388,7 +409,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_get_embedded",
+            "can_delete_embedded",
+            "can_set_embedded",
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
@@ -667,7 +695,41 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 6)
+        self.assertEqual(data["count"], 5)
+
+    @pytest.mark.usefixtures("create_created_by_admin_dashboards")
+    def test_get_dashboards_created_by_me(self):
+        """
+        Dashboard API: Test get dashboards created by current user
+        """
+        query = {
+            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
+            "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
+            "order_column": "changed_on",
+            "order_direction": "desc",
+            "page": 0,
+            "page_size": 100,
+        }
+        uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(data["result"]) == 2
+        assert list(data["result"][0].keys()) == query["columns"]
+        expected_results = [
+            {
+                "dashboard_title": "create_title1",
+                "url": "/superset/dashboard/create_slug1/",
+            },
+            {
+                "dashboard_title": "create_title0",
+                "url": "/superset/dashboard/create_slug0/",
+            },
+        ]
+        for idx, response_item in enumerate(data["result"]):
+            for key, value in expected_results[idx].items():
+                assert response_item[key] == value
 
     def create_dashboard_import(self):
         buf = BytesIO()
@@ -1363,6 +1425,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
     )
+    @freeze_time("2022-01-01")
     def test_export(self):
         """
         Dashboard API: Test dashboard export
@@ -1710,3 +1773,66 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_embedded_dashboards(self):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/embedded"
+
+        # initial get should return 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)
+
+        # post succeeds and returns value
+        allowed_domains = ["test.example", "embedded.example"]
+        resp = self.post_assert_metric(
+            uri,
+            {"allowed_domains": allowed_domains},
+            "set_embedded",
+        )
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        db.session.expire_all()
+
+        # get returns value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], allowed_domains)
+
+        # save uuid for later
+        original_uuid = result["uuid"]
+
+        # put succeeds and returns value
+        resp = self.post_assert_metric(uri, {"allowed_domains": []}, "set_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(result["uuid"])
+        self.assertNotEqual(result["uuid"], "")
+        self.assertEqual(result["allowed_domains"], [])
+
+        db.session.expire_all()
+
+        # get returns changed value
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 200)
+        result = json.loads(resp.data.decode("utf-8"))["result"]
+        self.assertEqual(result["uuid"], original_uuid)
+        self.assertEqual(result["allowed_domains"], [])
+
+        # delete succeeds
+        resp = self.delete_assert_metric(uri, "delete_embedded")
+        self.assertEqual(resp.status_code, 200)
+
+        db.session.expire_all()
+
+        # get returns 404
+        resp = self.get_assert_metric(uri, "get_embedded")
+        self.assertEqual(resp.status_code, 404)

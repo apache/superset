@@ -21,9 +21,11 @@ import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 
+// same as superset.result_set.ResultSetColumnType
 export type Column = {
   name: string;
-  is_date?: boolean;
+  type: string | null;
+  is_dttm: boolean;
 };
 
 export type QueryState =
@@ -59,7 +61,7 @@ export type Query = {
     query: { limit: number };
   };
   resultsKey: string | null;
-  schema: string;
+  schema?: string;
   sql: string;
   sqlEditorId: string;
   state: QueryState;
@@ -112,6 +114,7 @@ export type RootState = {
     activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
     alerts: any[];
     databases: Record<string, any>;
+    dbConnect: boolean;
     offline: boolean;
     queries: Query[];
     queryEditors: QueryEditor[];

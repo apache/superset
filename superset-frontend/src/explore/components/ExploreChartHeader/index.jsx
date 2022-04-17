@@ -20,44 +20,34 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Icons from 'src/components/Icons';
 import {
   CategoricalColorNamespace,
+  css,
   SupersetClient,
-  styled,
   t,
 } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import ReportModal from 'src/components/ReportModal';
 import {
   fetchUISpecificReport,
   toggleActive,
   deleteActiveReport,
 } from 'src/reports/actions/reports';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import EditableTitle from 'src/components/EditableTitle';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import FaveStar from 'src/components/FaveStar';
-import Timer from 'src/components/Timer';
-import CachedLabel from 'src/components/CachedLabel';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import ExploreActionButtons from '../ExploreActionButtons';
-import RowCountLabel from '../RowCountLabel';
-
-const CHART_STATUS_MAP = {
-  failed: 'danger',
-  loading: 'warning',
-  success: 'success',
-};
+import { Tooltip } from 'src/components/Tooltip';
+import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
+import { ChartEditableTitle } from './ChartEditableTitle';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  can_overwrite: PropTypes.bool.isRequired,
-  can_download: PropTypes.bool.isRequired,
+  canOverwrite: PropTypes.bool.isRequired,
+  canDownload: PropTypes.bool.isRequired,
   dashboardId: PropTypes.number,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
@@ -67,14 +57,23 @@ const propTypes = {
   ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
+  saveDisabled: PropTypes.bool,
 };
 
-const StyledHeader = styled.div`
+const saveButtonStyles = theme => css`
+  color: ${theme.colors.primary.dark2};
+  & > span[role='img'] {
+    margin-right: 0;
+  }
+`;
+
+const headerStyles = theme => css`
   display: flex;
   flex-direction: row;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: space-between;
+  height: 100%;
 
   span[role='button'] {
     display: flex;
@@ -84,28 +83,32 @@ const StyledHeader = styled.div`
   .title-panel {
     display: flex;
     align-items: center;
+    min-width: 0;
+    margin-right: ${theme.gridUnit * 12}px;
   }
 
   .right-button-panel {
     display: flex;
     align-items: center;
-
-    > .btn-group {
-      flex: 0 0 auto;
-      margin-left: ${({ theme }) => theme.gridUnit}px;
-    }
-  }
-
-  .action-button {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
-      ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
-const StyledButtons = styled.span`
+const buttonsStyles = theme => css`
   display: flex;
   align-items: center;
+  padding-left: ${theme.gridUnit * 2}px;
+
+  & .fave-unfave-icon {
+    padding: 0 ${theme.gridUnit}px;
+
+    &:first-child {
+      padding-left: 0;
+    }
+  }
+`;
+
+const saveButtonContainerStyles = theme => css`
+  margin-right: ${theme.gridUnit * 2}px;
 `;
 
 export class ExploreChartHeader extends React.PureComponent {
@@ -113,13 +116,9 @@ export class ExploreChartHeader extends React.PureComponent {
     super(props);
     this.state = {
       isPropertiesModalOpen: false,
-      showingReportModal: false,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
-    this.showReportModal = this.showReportModal.bind(this);
-    this.hideReportModal = this.hideReportModal.bind(this);
-    this.renderReportModal = this.renderReportModal.bind(this);
     this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
   }
 
@@ -180,13 +179,6 @@ export class ExploreChartHeader extends React.PureComponent {
       .catch(() => {});
   }
 
-  getSliceName() {
-    const { sliceName, table_name: tableName } = this.props;
-    const title = sliceName || t('%s - untitled', tableName);
-
-    return title;
-  }
-
   postChartFormData() {
     this.props.actions.postChartFormData(
       this.props.form_data,
@@ -209,38 +201,6 @@ export class ExploreChartHeader extends React.PureComponent {
     });
   }
 
-  showReportModal() {
-    this.setState({ showingReportModal: true });
-  }
-
-  hideReportModal() {
-    this.setState({ showingReportModal: false });
-  }
-
-  renderReportModal() {
-    const attachedReportExists = !!Object.keys(this.props.reports).length;
-    return attachedReportExists ? (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        hideReportModal={this.hideReportModal}
-        toggleActive={this.props.toggleActive}
-        deleteActiveReport={this.props.deleteActiveReport}
-      />
-    ) : (
-      <>
-        <span
-          role="button"
-          title={t('Schedule email report')}
-          tabIndex={0}
-          className="action-button"
-          onClick={this.showReportModal}
-        >
-          <Icons.Calendar />
-        </span>
-      </>
-    );
-  }
-
   canAddReports() {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -260,50 +220,49 @@ export class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
-    const { user, form_data: formData, slice } = this.props;
     const {
-      chartStatus,
-      chartUpdateEndTime,
-      chartUpdateStartTime,
-      latestQueryFormData,
-      queriesResponse,
-    } = this.props.chart;
-    // TODO: when will get appropriate design for multi queries use all results and not first only
-    const queryResponse = queriesResponse?.[0];
-    const chartFinished = ['failed', 'rendered', 'success'].includes(
-      this.props.chart.chartStatus,
-    );
+      actions,
+      chart,
+      user,
+      formData,
+      slice,
+      canOverwrite,
+      canDownload,
+      isStarred,
+      sliceUpdated,
+      sliceName,
+      onSaveChart,
+      saveDisabled,
+    } = this.props;
+    const { latestQueryFormData, sliceFormData } = chart;
+    const oldSliceName = slice?.slice_name;
     return (
-      <StyledHeader id="slice-header" className="panel-title-large">
+      <div id="slice-header" css={headerStyles}>
         <div className="title-panel">
-          {slice?.certified_by && (
-            <>
-              <CertifiedBadge
-                certifiedBy={slice.certified_by}
-                details={slice.certification_details}
-              />{' '}
-            </>
-          )}
-          <EditableTitle
-            title={this.getSliceName()}
+          <ChartEditableTitle
+            title={sliceName}
             canEdit={
-              !this.props.slice ||
-              this.props.can_overwrite ||
-              (this.props.slice?.owners || []).includes(
-                this.props?.user?.userId,
-              )
+              !slice ||
+              canOverwrite ||
+              (slice?.owners || []).includes(user?.userId)
             }
-            onSaveTitle={this.props.actions.updateChartTitle}
+            onSave={actions.updateChartTitle}
+            placeholder={t('Add the name of the chart')}
           />
-
-          {this.props.slice && (
-            <StyledButtons>
+          {slice && (
+            <span css={buttonsStyles}>
+              {slice.certified_by && (
+                <CertifiedBadge
+                  certifiedBy={slice.certified_by}
+                  details={slice.certification_details}
+                />
+              )}
               {user.userId && (
                 <FaveStar
-                  itemId={this.props.slice.slice_id}
-                  fetchFaveStar={this.props.actions.fetchFaveStar}
-                  saveFaveStar={this.props.actions.saveFaveStar}
-                  isStarred={this.props.isStarred}
+                  itemId={slice.slice_id}
+                  fetchFaveStar={actions.fetchFaveStar}
+                  saveFaveStar={actions.saveFaveStar}
+                  isStarred={isStarred}
                   showTooltip
                 />
               )}
@@ -311,77 +270,52 @@ export class ExploreChartHeader extends React.PureComponent {
                 <PropertiesModal
                   show={this.state.isPropertiesModalOpen}
                   onHide={this.closePropertiesModal}
-                  onSave={this.props.sliceUpdated}
-                  slice={this.props.slice}
+                  onSave={sliceUpdated}
+                  slice={slice}
                 />
               )}
-              <Tooltip
-                id="edit-desc-tooltip"
-                title={t('Edit chart properties')}
-              >
-                <span
-                  aria-label={t('Edit chart properties')}
-                  role="button"
-                  tabIndex={0}
-                  className="edit-desc-icon"
-                  onClick={this.openPropertiesModal}
-                >
-                  <i className="fa fa-edit" />
-                </span>
-              </Tooltip>
-              {this.props.chart.sliceFormData && (
+              {sliceFormData && (
                 <AlteredSliceTag
                   className="altered"
-                  origFormData={this.props.chart.sliceFormData}
-                  currentFormData={formData}
+                  origFormData={{ ...sliceFormData, chartTitle: oldSliceName }}
+                  currentFormData={{ ...formData, chartTitle: sliceName }}
                 />
               )}
-            </StyledButtons>
+            </span>
           )}
         </div>
         <div className="right-button-panel">
-          {chartFinished && queryResponse && (
-            <RowCountLabel
-              rowcount={Number(queryResponse.rowcount) || 0}
-              limit={Number(formData.row_limit) || 0}
-            />
-          )}
-          {chartFinished && queryResponse && queryResponse.is_cached && (
-            <CachedLabel
-              onClick={this.postChartFormData.bind(this)}
-              cachedTimestamp={queryResponse.cached_dttm}
-            />
-          )}
-          <Timer
-            startTime={chartUpdateStartTime}
-            endTime={chartUpdateEndTime}
-            isRunning={chartStatus === 'loading'}
-            status={CHART_STATUS_MAP[chartStatus]}
-          />
-          {this.canAddReports() && this.renderReportModal()}
-          <ReportModal
-            show={this.state.showingReportModal}
-            onHide={this.hideReportModal}
-            props={{
-              userId: this.props.user.userId,
-              userEmail: this.props.user.email,
-              chart: this.props.chart,
-              creationMethod: 'charts',
-            }}
-          />
-          <ExploreActionButtons
-            actions={{
-              ...this.props.actions,
-              openPropertiesModal: this.openPropertiesModal,
-            }}
-            slice={this.props.slice}
-            canDownloadCSV={this.props.can_download}
-            chartStatus={chartStatus}
+          <Tooltip
+            title={
+              saveDisabled
+                ? t('Add required control values to save chart')
+                : null
+            }
+          >
+            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+            <div css={saveButtonContainerStyles}>
+              <Button
+                buttonStyle="secondary"
+                onClick={onSaveChart}
+                disabled={saveDisabled}
+                data-test="query-save-button"
+                css={saveButtonStyles}
+              >
+                <Icons.SaveOutlined iconSize="l" />
+                {t('Save')}
+              </Button>
+            </div>
+          </Tooltip>
+          <ExploreAdditionalActionsMenu
+            onOpenInEditor={actions.redirectSQLLab}
+            onOpenPropertiesModal={this.openPropertiesModal}
+            slice={slice}
+            canDownloadCSV={canDownload}
             latestQueryFormData={latestQueryFormData}
-            queryResponse={queryResponse}
+            canAddReports={this.canAddReports()}
           />
         </div>
-      </StyledHeader>
+      </div>
     );
   }
 }

@@ -142,6 +142,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasets.columns.api import DatasetColumnsRestApi
         from superset.datasets.metrics.api import DatasetMetricRestApi
         from superset.datasets.sl.api import SLDatasetRestApi
+        from superset.embedded.api import EmbeddedDashboardRestApi
+        from superset.embedded.view import EmbeddedView
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.importexport.api import ImportExportRestApi
@@ -151,7 +153,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertView
+        from superset.views.alerts import AlertView, ReportView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
@@ -209,6 +211,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SLDatasetRestApi)
         appbuilder.add_api(DatasetColumnsRestApi)
         appbuilder.add_api(DatasetMetricRestApi)
+        appbuilder.add_api(EmbeddedDashboardRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
         appbuilder.add_api(FilterSetRestApi)
@@ -278,9 +281,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ROW_LEVEL_SECURITY"
-            ),
         )
 
         #
@@ -294,6 +294,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
@@ -448,6 +449,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 and self.config["DRUID_METADATA_LINKS_ENABLED"]
             ),
         )
+        appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_link(
             "Refresh Druid Metadata",
             label=__("Refresh Druid Metadata"),

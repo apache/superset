@@ -51,9 +51,40 @@ const queryObject: QueryObject = {
     },
   ],
 };
+const singleMetricQueryObject: QueryObject = {
+  metrics: ['count(*)'],
+  time_range: '2015 : 2016',
+  granularity: 'month',
+  post_processing: [
+    {
+      operation: 'pivot',
+      options: {
+        index: ['__timestamp'],
+        columns: ['nation'],
+        aggregates: {
+          'count(*)': {
+            operator: 'sum',
+          },
+        },
+      },
+    },
+  ],
+};
 
 test('should do flattenOperator', () => {
   expect(flattenOperator(formData, queryObject)).toEqual({
     operation: 'flatten',
+    options: {
+      drop_levels: [],
+    },
+  });
+});
+
+test('should add drop level', () => {
+  expect(flattenOperator(formData, singleMetricQueryObject)).toEqual({
+    operation: 'flatten',
+    options: {
+      drop_levels: [0],
+    },
   });
 });

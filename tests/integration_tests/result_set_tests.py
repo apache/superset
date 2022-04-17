@@ -48,9 +48,9 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_date": False, "type": "STRING", "name": "a"},
-                {"is_date": False, "type": "STRING", "name": "b"},
-                {"is_date": False, "type": "STRING", "name": "c"},
+                {"is_dttm": False, "type": "STRING", "name": "a"},
+                {"is_dttm": False, "type": "STRING", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "name": "c"},
             ],
         )
 
@@ -61,8 +61,8 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_date": False, "type": "STRING", "name": "a"},
-                {"is_date": False, "type": "INT", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "name": "a"},
+                {"is_dttm": False, "type": "INT", "name": "b"},
             ],
         )
 
@@ -76,11 +76,11 @@ class TestSupersetResultSet(SupersetTestCase):
         self.assertEqual(
             results.columns,
             [
-                {"is_date": False, "type": "FLOAT", "name": "a"},
-                {"is_date": False, "type": "INT", "name": "b"},
-                {"is_date": False, "type": "STRING", "name": "c"},
-                {"is_date": True, "type": "DATETIME", "name": "d"},
-                {"is_date": False, "type": "BOOL", "name": "e"},
+                {"is_dttm": False, "type": "FLOAT", "name": "a"},
+                {"is_dttm": False, "type": "INT", "name": "b"},
+                {"is_dttm": False, "type": "STRING", "name": "c"},
+                {"is_dttm": True, "type": "DATETIME", "name": "d"},
+                {"is_dttm": False, "type": "BOOL", "name": "e"},
             ],
         )
 

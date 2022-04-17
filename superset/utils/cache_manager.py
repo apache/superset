@@ -44,7 +44,7 @@ class CacheManager:
             if cache_type is None and not app.debug:
                 logger.warning(
                     "Falling back to the built-in cache, that stores data in the "
-                    "metadata database, for the followinng cache: `%s`. "
+                    "metadata database, for the following cache: `%s`. "
                     "It is recommended to use `RedisCache`, `MemcachedCache` or "
                     "another dedicated caching backend for production deployments",
                     cache_config_key,

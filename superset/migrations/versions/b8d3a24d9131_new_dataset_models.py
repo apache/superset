@@ -25,22 +25,26 @@ Create Date: 2021-11-11 16:41:53.266965
 """
 
 import json
-from typing import List
+from datetime import date, datetime, time, timedelta
+from typing import Callable, List, Optional, Set
 from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy_utils import UUIDType
 
 from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES
+from superset.databases.utils import make_url_safe
 from superset.extensions import encrypted_field_factory
-from superset.sql_parse import ParsedQuery
+from superset.migrations.shared.utils import extract_table_references
+from superset.models.core import Database as OriginalDatabase
+from superset.sql_parse import Table
 
 # revision identifiers, used by Alembic.
 revision = "b8d3a24d9131"
@@ -228,6 +232,91 @@ class NewDataset(Base):
     external_url = sa.Column(sa.Text, nullable=True)
 
 
+TEMPORAL_TYPES = {date, datetime, time, timedelta}
+
+
+def is_column_type_temporal(column_type: TypeEngine) -> bool:
+    try:
+        return column_type.python_type in TEMPORAL_TYPES
+    except NotImplementedError:
+        return False
+
+
+def load_or_create_tables(
+    session: Session,
+    database_id: int,
+    default_schema: Optional[str],
+    tables: Set[Table],
+    conditional_quote: Callable[[str], str],
+) -> List[NewTable]:
+    """
+    Load or create new table model instances.
+    """
+    if not tables:
+        return []
+
+    # set the default schema in tables that don't have it
+    if default_schema:
+        tables = list(tables)
+        for i, table in enumerate(tables):
+            if table.schema is None:
+                tables[i] = Table(table.table, default_schema, table.catalog)
+
+    # load existing tables
+    predicate = or_(
+        *[
+            and_(
+                NewTable.database_id == database_id,
+                NewTable.schema == table.schema,
+                NewTable.name == table.table,
+            )
+            for table in tables
+        ]
+    )
+    new_tables = session.query(NewTable).filter(predicate).all()
+
+    # use original database model to get the engine
+    engine = (
+        session.query(OriginalDatabase)
+        .filter_by(id=database_id)
+        .one()
+        .get_sqla_engine(default_schema)
+    )
+    inspector = inspect(engine)
+
+    # add missing tables
+    existing = {(table.schema, table.name) for table in new_tables}
+    for table in tables:
+        if (table.schema, table.table) not in existing:
+            column_metadata = inspector.get_columns(table.table, schema=table.schema)
+            columns = [
+                NewColumn(
+                    name=column["name"],
+                    type=str(column["type"]),
+                    expression=conditional_quote(column["name"]),
+                    is_temporal=is_column_type_temporal(column["type"]),
+                    is_aggregation=False,
+                    is_physical=True,
+                    is_spatial=False,
+                    is_partition=False,
+                    is_increase_desired=True,
+                )
+                for column in column_metadata
+            ]
+            new_tables.append(
+                NewTable(
+                    name=table.table,
+                    schema=table.schema,
+                    catalog=None,
+                    database_id=database_id,
+                    columns=columns,
+                )
+            )
+            existing.add((table.schema, table.table))
+
+    return new_tables
+
+
 def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     """
     Copy old datasets to the new models.
@@ -242,7 +331,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
     )
     if not database:
         return
-    url = make_url(database.sqlalchemy_uri)
+    url = make_url_safe(database.sqlalchemy_uri)
     dialect_class = url.get_dialect()
     conditional_quote = dialect_class().identifier_preparer.quote
 
@@ -253,7 +342,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         if column.is_active is False:
             continue
 
-        extra_json = json.loads(column.extra or "{}")
+        try:
+            extra_json = json.loads(column.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"groupby", "filterable", "verbose_name", "python_date_format"}:
             value = getattr(column, attr)
             if value:
@@ -279,7 +371,10 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
 
     # create metrics
     for metric in target.metrics:
-        extra_json = json.loads(metric.extra or "{}")
+        try:
+            extra_json = json.loads(metric.extra or "{}")
+        except json.decoder.JSONDecodeError:
+            extra_json = {}
         for attr in {"verbose_name", "metric_type", "d3format"}:
             value = getattr(metric, attr)
             if value:
@@ -309,8 +404,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         )
 
     # physical dataset
-    tables = []
-    if target.sql is None:
+    if not target.sql:
         physical_columns = [column for column in columns if column.is_physical]
 
         # create table
@@ -323,7 +417,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             is_managed_externally=target.is_managed_externally,
             external_url=target.external_url,
         )
-        tables.append(table)
+        tables = [table]
 
     # virtual dataset
     else:
@@ -332,20 +426,14 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
             column.is_physical = False
 
         # find referenced tables
-        parsed = ParsedQuery(target.sql)
-        referenced_tables = parsed.tables
-
-        # predicate for finding the referenced tables
-        predicate = or_(
-            *[
-                and_(
-                    NewTable.schema == (table.schema or target.schema),
-                    NewTable.name == table.table,
-                )
-                for table in referenced_tables
-            ]
+        referenced_tables = extract_table_references(target.sql, dialect_class.name)
+        tables = load_or_create_tables(
+            session,
+            target.database_id,
+            target.schema,
+            referenced_tables,
+            conditional_quote,
         )
-        tables = session.query(NewTable).filter(predicate).all()
 
     # create the new dataset
     dataset = NewDataset(
@@ -354,7 +442,7 @@ def after_insert(target: SqlaTable) -> None:  # pylint: disable=too-many-locals
         expression=target.sql or conditional_quote(target.table_name),
         tables=tables,
         columns=columns,
-        is_physical=target.sql is None,
+        is_physical=not target.sql,
         is_managed_externally=target.is_managed_externally,
         external_url=target.external_url,
     )

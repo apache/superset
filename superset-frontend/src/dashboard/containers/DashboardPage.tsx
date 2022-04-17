@@ -27,7 +27,6 @@ import {
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
-import { useParams } from 'react-router-dom';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import FilterBoxMigrationModal from 'src/dashboard/components/FilterBoxMigrationModal';
@@ -79,14 +78,17 @@ const DashboardContainer = React.lazy(
 
 const originalDocumentTitle = document.title;
 
-const DashboardPage: FC = () => {
+type PageProps = {
+  idOrSlug: string;
+};
+
+export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const { addDangerToast } = useToasts();
-  const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
   const { result: charts, error: chartsApiError } =
@@ -229,7 +231,7 @@ const DashboardPage: FC = () => {
   }, [dashboard_title]);
 
   useEffect(() => {
-    if (css) {
+    if (typeof css === 'string') {
       // returning will clean up custom css
       // when dashboard unmounts or changes
       return injectCustomCss(css);

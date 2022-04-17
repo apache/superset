@@ -277,59 +277,56 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
 }
 
 export default styled(BigNumberVis)`
-  font-family: ${({ theme }) => theme.typography.families.sansSerif};
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  &.no-trendline .subheader-line {
-    padding-bottom: 0.3em;
-  }
-
-  .text-container {
+  ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-start;
-    .alert {
-      font-size: ${({ theme }) => theme.typography.sizes.s};
-      margin: -0.5em 0 0.4em;
-      line-height: 1;
-      padding: 2px 4px 3px;
-      border-radius: 3px;
+
+    &.no-trendline .subheader-line {
+      padding-bottom: 0.3em;
     }
-  }
 
-  .kicker {
-    line-height: 1em;
-    padding-bottom: 2em;
-  }
-
-  .header-line {
-    position: relative;
-    line-height: 1em;
-    span {
-      position: absolute;
-      bottom: 0;
+    .text-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      .alert {
+        font-size: ${theme.typography.sizes.s};
+        margin: -0.5em 0 0.4em;
+        line-height: 1;
+        padding: ${theme.gridUnit}px;
+        border-radius: ${theme.gridUnit}px;
+      }
     }
-  }
 
-  .subheader-line {
-    line-height: 1em;
-    padding-bottom: 0;
-  }
+    .kicker {
+      line-height: 1em;
+      padding-bottom: 2em;
+    }
 
-  &.is-fallback-value {
-    .kicker,
-    .header-line,
+    .header-line {
+      position: relative;
+      line-height: 1em;
+      span {
+        position: absolute;
+        bottom: 0;
+      }
+    }
+
     .subheader-line {
-      opacity: 0.5;
+      line-height: 1em;
+      padding-bottom: 0;
     }
-  }
 
-  .superset-data-ui-tooltip {
-    z-index: 1000;
-    background: #000;
-  }
+    &.is-fallback-value {
+      .kicker,
+      .header-line,
+      .subheader-line {
+        opacity: ${theme.opacity.mediumHeavy};
+      }
+    }
+  `}
 `;

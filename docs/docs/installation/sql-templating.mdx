@@ -33,7 +33,7 @@ For example, to add a time range to a virtual dataset, you can write the followi
 SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
 
-To add custom functionality to the Jinja context, you need to to to overload the default Jinja
+To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
 (`superset_config.py`). Objects referenced in this dictionary are made available for users to use
 where the Jinja context is made available.
@@ -206,9 +206,11 @@ Here's a concrete example:
 SELECT action, count(*) as times
 FROM logs
 WHERE
-    action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+    action in {{ filter_values('action_type')|where_in }}
 GROUP BY action
 ```
+
+There `where_in` filter converts the list of values from `filter_values('action_type')` into a string suitable for an `IN` expression.
 
 **Filters for a Specific Column**
 
@@ -243,7 +245,7 @@ Here's a concrete example:
 
     {%- if filter.get('op') == 'IN' -%}
         AND
-        full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+        full_name IN {{ filter.get('val')|where_in }}
     {%- endif -%}
 
     {%- if filter.get('op') == 'LIKE' -%}

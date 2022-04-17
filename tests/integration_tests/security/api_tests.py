@@ -19,10 +19,18 @@
 import json
 
 import jwt
+import pytest
 
-from tests.integration_tests.base_tests import SupersetTestCase
 from flask_wtf.csrf import generate_csrf
+from superset import db
+from superset.embedded.dao import EmbeddedDAO
+from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 
 
 class TestSecurityCsrfApi(SupersetTestCase):
@@ -78,10 +86,13 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         response = self.client.post(self.uri)
         self.assert403(response)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_authorized(self):
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDAO.upsert(self.dash, [])
         self.login(username="admin")
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
-        resource = {"type": "dashboard", "id": "blah"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
         rls_rule = {"dataset": 1, "clause": "1=1"}
         params = {"user": user, "resources": [resource], "rls": [rls_rule]}
 
@@ -99,3 +110,17 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
         self.assertEqual(user, decoded_token["user"])
         self.assertEqual(resource, decoded_token["resources"][0])
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_bad_resources(self):
+        self.login(username="admin")
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": "bad-id"}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
