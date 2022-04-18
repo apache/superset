@@ -61,7 +61,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       page: 0,
       page_size: 100,
     });
-    const mutator = (data: DashboardResponse[]) =>
+    const mutator = (data: DashboardResponse) =>
       data.result.map(dash => ({
         dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
         created: dash.created_on_delta_humanized,
