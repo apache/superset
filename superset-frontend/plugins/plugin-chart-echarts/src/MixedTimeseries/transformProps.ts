@@ -81,9 +81,8 @@ export default function transformProps(
     filterState,
     datasource,
     theme,
+    annotationData = {},
   } = chartProps;
-  const { annotation_data: annotationData_ } = queriesData[0];
-  const annotationData = annotationData_ || {};
   const { verboseMap = {} } = datasource;
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
