@@ -90,7 +90,7 @@ function AlertList({
   const title = isReportEnabled ? t('report') : t('alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
-  const initalFilters = useMemo(
+  const initialFilters = useMemo(
     () => [
       {
         id: 'type',
@@ -118,7 +118,7 @@ function AlertList({
     addDangerToast,
     true,
     undefined,
-    initalFilters,
+    initialFilters,
   );
 
   const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
@@ -262,9 +262,15 @@ function AlertList({
         size: 'xl',
       },
       {
-        accessor: 'created_by',
+        Cell: ({
+          row: {
+            original: { created_by },
+          },
+        }: any) =>
+          created_by ? `${created_by.first_name} ${created_by.last_name}` : '',
+        Header: t('Created by'),
+        id: 'created_by',
         disableSortBy: true,
-        hidden: true,
         size: 'xl',
       },
       {
@@ -379,6 +385,22 @@ function AlertList({
 
   const filters: Filters = useMemo(
     () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'report',
+          'owners',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching owners values: %s', errMsg),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
       {
         Header: t('Created by'),
         id: 'created_by',
