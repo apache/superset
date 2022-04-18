@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import Slider from 'src/components/Slider';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -24,13 +24,57 @@ type SliderControlProps = {
   onChange: (value: number) => void;
   value: number;
   default?: number;
+  name: string;
+  description: string;
+
+  // ControlHeader props
+  label: string;
+  renderTrigger?: boolean;
+  validationErrors?: string[];
+  rightNode?: ReactNode;
+  leftNode?: ReactNode;
+  hovered?: boolean;
+  warning?: string;
+  danger?: string;
+  onClick?: () => void;
+  tooltipOnClick?: () => void;
 };
 
 export default function SliderControl(props: SliderControlProps) {
-  const { onChange = () => {}, default: defaultValue, ...rest } = props;
+  const {
+    default: defaultValue,
+    name,
+    label,
+    description,
+    renderTrigger,
+    rightNode,
+    leftNode,
+    validationErrors,
+    hovered,
+    warning,
+    danger,
+    onClick,
+    tooltipOnClick,
+    onChange = () => {},
+    ...rest
+  } = props;
+  const headerProps = {
+    name,
+    label,
+    description,
+    renderTrigger,
+    rightNode,
+    leftNode,
+    validationErrors,
+    onClick,
+    hovered,
+    tooltipOnClick,
+    warning,
+    danger,
+  };
   return (
     <>
-      <ControlHeader />
+      <ControlHeader {...headerProps} />
       <Slider {...rest} onChange={onChange} defaultValue={defaultValue} />
     </>
   );
