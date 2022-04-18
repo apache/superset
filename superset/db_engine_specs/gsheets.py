@@ -218,7 +218,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                     SupersetError(
                         message=(
                             "The URL could not be identified. Please check for typos "
-                            "and make sure that ‘Type of Google Sheets allowed’ selection matches the input."
+                            "and make sure that ‘Type of Google Sheets allowed’ "
+                            "selection matches the input."
                         ),
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
