@@ -28,8 +28,10 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
+from flask.ctx import AppContext
 from pytest import fixture
 
+from tests.example_data.data_loading.csv_dataset_loader import CsvDatasetLoader
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
 from tests.example_data.data_loading.pandas.pands_data_loading_conf import (
     PandasLoaderConfigurations,
@@ -37,13 +39,14 @@ from tests.example_data.data_loading.pandas.pands_data_loading_conf import (
 from tests.example_data.data_loading.pandas.table_df_convertor import (
     TableToDfConvertorImpl,
 )
+from tests.integration_tests.test_app import app
 
 SUPPORT_DATETIME_TYPE = "support_datetime_type"
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-    from superset.connectors.sqla.models import Database
+    from superset.connectors.sqla.models import Database, SqlaTable
     from tests.example_data.data_loading.base_data_loader import DataLoader
     from tests.example_data.data_loading.pandas.pandas_data_loader import (
         TableToDfConvertor,
@@ -103,3 +106,22 @@ def data_loader(
     return PandasDataLoader(
         example_db_engine, pandas_loader_configuration, table_to_df_convertor
     )
+
+
+@fixture(scope="session")
+def superset_app_ctx():
+    with app.app_context() as ctx:
+        yield ctx
+
+
+@fixture()
+def load_sales_dataset(superset_app_ctx):
+    loader = CsvDatasetLoader(
+        "https://raw.githubusercontent.com/apache-superset/examples-data/lowercase_columns_examples/datasets/examples/sales.csv",
+        parse_dates=["order_date"],
+    )
+    loader.load_table()
+    dataset = loader.load_dataset()
+    yield dataset
+    loader.remove_dataset()
+    loader.remove_table()
