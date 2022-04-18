@@ -143,7 +143,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     suffix=app.config["EMAIL_REPORTS_ATTACH_SUFFIX"],
                 ): self._content.csv
             }
-            
         return EmailContent(body=body, images=images, data=csv_data)
 
     def _get_subject(self) -> str:
