@@ -1068,8 +1068,8 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
-# A custom suffix to use on all Alerts & Reports email attachments
-EMAIL_REPORTS_ATTACH_SUFFIX = datetime.now().strftime("_%Y-%m-%d_%H")
+# A custom suffix to use on all Alerts & Reports email attachments such as a date string
+# EMAIL_REPORTS_ATTACH_SUFFIX = datetime.now().strftime("_%Y-%m-%d_%H")
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
