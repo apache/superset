@@ -76,7 +76,11 @@ class Dataset(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     expression = sa.Column(sa.Text)
 
     # n:n relationship
-    tables: List[Table] = relationship("Table", secondary=table_association_table)
+    tables: List[Table] = relationship(
+        "Table",
+        backref="datasets",
+        secondary=table_association_table,
+    )
 
     # The relationship between datasets and columns is 1:n, but we use a many-to-many
     # association to differentiate between the relationship between tables and columns.
