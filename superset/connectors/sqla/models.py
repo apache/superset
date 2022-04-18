@@ -2042,9 +2042,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         dataset = (
             session.query(NewDataset).filter_by(sqlatable_id=target.id).one_or_none()
         )
-        for tbl in dataset.tables:
-            if len(tbl.datasets) == 1 and tbl.datasets[0] == dataset:
-                session.delete(tbl)
+        if dataset:
+            for tbl in dataset.tables:
+                if len(tbl.datasets) == 1 and tbl.datasets[0] == dataset:
+                    session.delete(tbl)
 
         if dataset:
             session.delete(dataset)
