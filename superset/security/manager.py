@@ -1088,7 +1088,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.can_access_schema(datasource)
             or self.can_access("datasource_access", datasource.perm or "")
             or (
-                feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                (
+                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                    or self.is_guest_user()
+                )
                 and self.can_access_based_on_dashboard(datasource)
             )
         ):
