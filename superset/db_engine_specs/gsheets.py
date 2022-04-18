@@ -216,7 +216,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             except Exception:  # pylint: disable=broad-except
                 errors.append(
                     SupersetError(
-                        message="The URL could not be identified. Please check for typos and make sure that ‘Type of Google Sheets allowed’ selection matches the input.",
+                        message=(
+                            "The URL could not be identified. Please check for typos "
+                            "and make sure that ‘Type of Google Sheets allowed’ selection matches the input."
+                        ),
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
                         extra={"catalog": {"idx": idx, "url": True}},
