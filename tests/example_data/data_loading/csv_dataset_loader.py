@@ -46,7 +46,7 @@ class CsvDatasetLoader:
         parse_dates: List[str] = [],
     ):
         # todo: remove this method after dataset model stop shallow writing
-        self._clear_event_listeners()
+        # self._clear_event_listeners()
 
         # read from http
         if csv_path.startswith("http") and csv_path.endswith(".csv"):

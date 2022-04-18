@@ -108,13 +108,13 @@ def data_loader(
     )
 
 
-@fixture(scope="session")
+@fixture
 def superset_app_ctx():
     with app.app_context() as ctx:
         yield ctx
 
 
-@fixture()
+@fixture
 def load_sales_dataset():
     with app.app_context():
         loader = CsvDatasetLoader(
@@ -124,5 +124,5 @@ def load_sales_dataset():
         loader.load_table()
         dataset = loader.load_dataset()
         yield dataset
-        loader.remove_dataset()
+        # loader.remove_dataset()
         loader.remove_table()
