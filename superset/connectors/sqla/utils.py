@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine import Engine
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
@@ -41,14 +40,11 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
-
-
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
     schema_name: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -85,7 +81,7 @@ def get_physical_table_metadata(
             col.update(
                 {
                     "type": "UNKNOWN",
-                    "generic_type": None,
+                    "type_generic": None,
                     "is_dttm": None,
                 }
             )
@@ -174,11 +170,10 @@ def validate_adhoc_subquery(
 
 def load_or_create_tables(  # pylint: disable=too-many-arguments
     session: Session,
-    database_id: int,
+    database: Database,
     default_schema: Optional[str],
     tables: Set[Table],
     conditional_quote: Callable[[str], str],
-    engine: Engine,
 ) -> List[NewTable]:
     """
     Load or create new table model instances.
@@ -198,7 +193,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     predicate = or_(
         *[
             and_(
-                NewTable.database_id == database_id,
+                NewTable.database_id == database.id,
                 NewTable.schema == table.schema,
                 NewTable.name == table.table,
             )
@@ -212,9 +207,10 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
     for table in tables:
         if (table.schema, table.table) not in existing:
             try:
-                inspector = inspect(engine)
-                column_metadata = inspector.get_columns(
-                    table.table, schema=table.schema
+                column_metadata = get_physical_table_metadata(
+                    database=database,
+                    table_name=table.table,
+                    schema_name=table.schema,
                 )
             except Exception:  # pylint: disable=broad-except
                 continue
@@ -223,8 +219,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
                     name=column["name"],
                     type=str(column["type"]),
                     expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
+                    is_temporal=column["is_dttm"],
                     is_aggregation=False,
                     is_physical=True,
                     is_spatial=False,
@@ -238,7 +233,7 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
                     name=table.table,
                     schema=table.schema,
                     catalog=None,
-                    database_id=database_id,
+                    database_id=database.id,
                     columns=columns,
                 )
             )

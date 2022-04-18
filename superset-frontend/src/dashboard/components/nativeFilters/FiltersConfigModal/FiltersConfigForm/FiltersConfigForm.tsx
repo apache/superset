@@ -73,7 +73,10 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
-import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
+import {
+  getFormData,
+  mergeExtraFormData,
+} from 'src/dashboard/components/nativeFilters/utils';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -346,10 +349,11 @@ const FiltersConfigForm = (
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
-  const formValues = form.getFieldValue('filters')?.[filterId];
+  const filters = form.getFieldValue('filters');
+  const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
 
-  const dependencies =
+  const dependencies: string[] =
     formFilter?.dependencies || filterToEdit?.cascadeParentIds;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
@@ -439,6 +443,21 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
+  // Calculates the dependencies default values to be used
+  // to extract the available values to the filter
+  let dependenciesDefaultValues = {};
+  if (dependencies && dependencies.length > 0 && filters) {
+    dependencies.forEach(dependency => {
+      const extraFormData = filters[dependency]?.defaultDataMask?.extraFormData;
+      dependenciesDefaultValues = mergeExtraFormData(
+        dependenciesDefaultValues,
+        extraFormData,
+      );
+    });
+  }
+
+  const dependenciesText = JSON.stringify(dependenciesDefaultValues);
+
   const refreshHandler = useCallback(
     (force = false) => {
       if (!hasDataset || !formFilter?.dataset?.value) {
@@ -450,6 +469,9 @@ const FiltersConfigForm = (
         groupby: formFilter?.column,
         ...formFilter,
       });
+
+      formData.extra_form_data = dependenciesDefaultValues;
+
       setNativeFilterFieldValuesWrapper({
         defaultValueQueriesData: null,
         isDataDirty: false,
@@ -499,14 +521,19 @@ const FiltersConfigForm = (
           });
         });
     },
-    [filterId, forceUpdate, form, formFilter, hasDataset],
+    [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
   );
+
+  // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => refreshHandler(), [dependenciesText]);
 
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
+  newFormData.extra_form_data = dependenciesDefaultValues;
 
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
     useDefaultValue(formFilter, filterToEdit);
@@ -1084,6 +1111,11 @@ const FiltersConfigForm = (
                 tooltip={defaultValueTooltip}
                 onChange={value => {
                   setHasDefaultValue(value);
+                  if (!value) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      defaultDataMask: null,
+                    });
+                  }
                   formChanged();
                 }}
               >

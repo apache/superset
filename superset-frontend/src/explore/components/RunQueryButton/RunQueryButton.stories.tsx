@@ -16,7 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { reactify } from '@superset-ui/core';
-import Component from './Partition';
+import React from 'react';
+import { RunQueryButton, RunQueryButtonProps } from '.';
 
-export default reactify(Component);
+export default {
+  title: 'RunQueryButton',
+  component: RunQueryButton,
+};
+
+export const InteractiveRunQueryButtonProps = (args: RunQueryButtonProps) => (
+  <RunQueryButton {...args} />
+);
+
+InteractiveRunQueryButtonProps.args = {
+  canStopQuery: true,
+  loading: false,
+  errorMessage: null,
+  isNewChart: false,
+  chartIsStale: true,
+};
+
+InteractiveRunQueryButtonProps.argTypes = {
+  onQuery: { action: 'onQuery' },
+  onStop: { action: 'onStop' },
+};
+
+InteractiveRunQueryButtonProps.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

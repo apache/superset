@@ -17,22 +17,30 @@
  * under the License.
  */
 
-.superset-legacy-chart-horizon {
-  overflow: auto;
-  position: relative;
-}
+import { newQueryTabName } from './newQueryTabName';
 
-.superset-legacy-chart-horizon .horizon-row {
-  border-bottom: solid 1px #ddd;
-  border-top: 0px;
-  padding: 0px;
-  margin: 0px;
-}
+const emptyEditor = {
+  title: '',
+  schema: '',
+  autorun: false,
+  sql: '',
+  remoteId: null,
+};
 
-.superset-legacy-chart-horizon .horizon-row span.title {
-  position: absolute;
-  color: #333;
-  font-size: 0.8em;
-  margin: 0;
-  text-shadow: 1px 1px rgba(255, 255, 255, 0.75);
-}
+describe('newQueryTabName', () => {
+  it("should return default title if queryEditor's length is 0", () => {
+    const defaultTitle = 'default title';
+    const title = newQueryTabName([], defaultTitle);
+    expect(title).toEqual(defaultTitle);
+  });
+  it('should return next available number if there are unsaved editors', () => {
+    const untitledQueryText = 'Untitled Query';
+    const unsavedEditors = [
+      { ...emptyEditor, title: `${untitledQueryText} 1` },
+      { ...emptyEditor, title: `${untitledQueryText} 2` },
+    ];
+
+    const nextTitle = newQueryTabName(unsavedEditors);
+    expect(nextTitle).toEqual(`${untitledQueryText} 3`);
+  });
+});

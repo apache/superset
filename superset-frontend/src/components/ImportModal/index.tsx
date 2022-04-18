@@ -29,7 +29,7 @@ import { ImportResourceName } from 'src/views/CRUD/types';
 const HelperMessage = styled.div`
   display: block;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const StyledInputContainer = styled.div`

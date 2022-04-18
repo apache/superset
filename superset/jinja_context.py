@@ -401,6 +401,25 @@ def validate_template_context(
     return validate_context_types(context)
 
 
+def where_in(values: List[Any], mark: str = "'") -> str:
+    """
+    Given a list of values, build a parenthesis list suitable for an IN expression.
+
+        >>> where_in([1, "b", 3])
+        (1, 'b', 3)
+
+    """
+
+    def quote(value: Any) -> str:
+        if isinstance(value, str):
+            value = value.replace(mark, mark * 2)
+            return f"{mark}{value}{mark}"
+        return str(value)
+
+    joined_values = ", ".join(quote(value) for value in values)
+    return f"({joined_values})"
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -432,6 +451,9 @@ class BaseTemplateProcessor:
         self._context: Dict[str, Any] = {}
         self._env = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
+
+        # custom filters
+        self._env.filters["where_in"] = where_in
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)

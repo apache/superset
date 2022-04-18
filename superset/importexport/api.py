@@ -40,6 +40,7 @@ class ImportExportRestApi(BaseApi):
 
     resource_name = "assets"
     openapi_spec_tag = "Import/export"
+    allow_browser_login = True
 
     @expose("/export/", methods=["GET"])
     @protect()
