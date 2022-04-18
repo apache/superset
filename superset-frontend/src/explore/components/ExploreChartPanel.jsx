@@ -60,7 +60,7 @@ const propTypes = {
 const GUTTER_SIZE_FACTOR = 1.25;
 
 const INITIAL_SIZES = [100, 0];
-const MIN_SIZES = [300, 50];
+const MIN_SIZES = [300, 65];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div`
