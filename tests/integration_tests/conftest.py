@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Generator, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -114,6 +114,11 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
     # TODO - can not use it until referenced objects will be deleted.
     # _instance.remove()
+
+
+@pytest.fixture
+def example_db(example_db_provider: Callable[[], Database]) -> Database:
+    return example_db_provider()
 
 
 def setup_presto_if_needed():
