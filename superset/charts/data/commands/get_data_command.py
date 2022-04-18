@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
 
 from superset.charts.commands.exceptions import (
     ChartDataCacheLoadError,
@@ -27,12 +29,17 @@ from superset.exceptions import CacheLoadError
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from ..query_context_validators import QueryContextValidator
+
 
 class ChartDataCommand(BaseCommand):
     _query_context: QueryContext
+    _validator: QueryContextValidator
 
-    def __init__(self, query_context: QueryContext):
+    def __init__(self, query_context: QueryContext, validator: QueryContextValidator):
         self._query_context = query_context
+        self._validator = validator
 
     def run(self, **kwargs: Any) -> Dict[str, Any]:
         # caching is handled in query_context.get_df_payload
@@ -61,4 +68,4 @@ class ChartDataCommand(BaseCommand):
         return return_value
 
     def validate(self) -> None:
-        self._query_context.raise_for_access()
+        self._validator.validate(self._query_context)

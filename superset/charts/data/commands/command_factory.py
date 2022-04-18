@@ -49,5 +49,7 @@ class GetChartDataCommandFactory:
         validator = self._validator_factory.make(self._is_use_sql_db(query_context))
         return ChartDataCommand(query_context, validator)
 
-    def _is_use_sql_db(self, query_context: QueryContext) -> bool:  # pylint: disable=no-self-use
+    def _is_use_sql_db(
+        self, query_context: QueryContext
+    ) -> bool:  # pylint: disable=no-self-use
         return query_context.datasource.type == "table"

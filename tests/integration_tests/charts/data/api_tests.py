@@ -37,6 +37,9 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.fixtures.single_column_table import (
+    load_single_column_example_datasource,
+)
 from tests.integration_tests.test_app import app
 
 import pytest
@@ -44,7 +47,7 @@ import pytest
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager, db
+from superset.extensions import async_query_manager, db, security_manager
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
@@ -57,7 +60,10 @@ from superset.utils.database import get_example_database, get_main_database
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 
 from tests.common.query_context_generator import ANNOTATION_LAYERS
-from tests.integration_tests.fixtures.query_context import get_query_context
+from tests.integration_tests.fixtures.query_context import (
+    QueryContextGeneratorInteg,
+    get_query_context,
+)
 
 
 CHART_DATA_URI = "api/v1/chart/data"
@@ -766,8 +772,82 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
 
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_when_actor_does_not_have_permission_to_datasource__403(self):
+        self.test_with_not_permitted_actor__403()
 
-@pytest.mark.chart_data_flow
+    @with_feature_flags(QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_when_actor_has_permission_to_datasource__200(self):
+        self.logout()
+        self.login(username="gamma")
+        table = self.get_table("birth_names")
+        self.grant_role_access_to_table(table, "gamma")
+        # set required permissions to gamma role
+        role = security_manager.find_role("Gamma")
+        pvm1 = security_manager.find_permission_view_menu("can_sql_json", "Superset")
+        pvm2 = security_manager.find_permission_view_menu(
+            "database_access", "[examples].(id:1)"
+        )
+        security_manager.add_permission_role(role, pvm1)
+        security_manager.add_permission_role(role, pvm2)
+        self.test_with_valid_qc__data_is_returned()
+        role = security_manager.find_role("Gamma")
+        table = self.get_table("birth_names")
+        pvm1 = security_manager.find_permission_view_menu("can_sql_json", "Superset")
+        pvm2 = security_manager.find_permission_view_menu(
+            "database_access", "[examples].(id:1)"
+        )
+        security_manager.del_permission_role(role, pvm1)
+        security_manager.del_permission_role(role, pvm2)
+        self.revoke_role_access_to_table("Gamma", table)
+
+    @with_feature_flags(
+        QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True, ALLOW_ADHOC_SUBQUERY=True
+    )
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices",
+        "load_single_column_example_datasource",
+    )
+    def test_when_actor_does_not_have_permission_to_metric_datasource__403(self):
+        self.logout()
+        self.login(username="gamma")
+        table = self.get_table("birth_names")
+        self.grant_role_access_to_table(table, "gamma")
+        metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
+            column_name="name", table_name="single_column_example"
+        )
+        self.query_context_payload["queries"][0]["metrics"].append(metric)
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 403
+        self.revoke_role_access_to_table("Gamma", table)
+
+    @pytest.mark.chart_data_flow
+    @with_feature_flags(
+        QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True, ALLOW_ADHOC_SUBQUERY=True
+    )
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices",
+        "load_single_column_example_datasource",
+    )
+    def test_when_actor_has_permission_to_metric_datasource__200(self):
+        self.logout()
+        self.login(username="gamma")
+        table = self.get_table("birth_names")
+        self.grant_role_access_to_table(table, "gamma")
+        second_temp_datasource = self.get_table("single_column_example")
+        self.grant_role_access_to_table(second_temp_datasource, "gamma")
+        metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
+            column_name="name", table_name="single_column_example"
+        )
+        self.query_context_payload["queries"][0]["metrics"] = [metric]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        self.revoke_role_access_to_table("Gamma", table)
+        self.revoke_role_access_to_table("Gamma", second_temp_datasource)
+
+
 class TestGetChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_data_when_query_context_is_null(self):

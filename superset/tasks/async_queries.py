@@ -24,6 +24,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 from marshmallow import ValidationError
 
+from superset.charts.data.commands.command_factory import GetChartDataCommandFactory
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import SupersetVizException
 from superset.extensions import (
@@ -73,15 +74,12 @@ def load_chart_data_into_cache(
     job_metadata: Dict[str, Any],
     form_data: Dict[str, Any],
 ) -> None:
-    # pylint: disable=import-outside-toplevel
-    from superset.charts.data.commands.get_data_command import ChartDataCommand
-
     try:
         ensure_user_is_set(job_metadata.get("user_id"))
         set_form_data(form_data)
         query_context = _create_query_context_from_form(form_data)
-        command = ChartDataCommand(query_context)
-        result = command.run(cache=True)
+        command = GetChartDataCommandFactory.make(query_context)
+        result = command.run(cache=True)  # type: ignore
         cache_key = result["cache_key"]
         result_url = f"/api/v1/chart/data/{cache_key}"
         async_query_manager.update_job(
