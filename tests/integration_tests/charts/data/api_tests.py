@@ -783,7 +783,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         self.login(username="gamma")
         table = self.get_table("birth_names")
-        self.grant_role_access_to_table(table, "gamma")
+        self.grant_role_access_to_table(table, "Gamma")
         # set required permissions to gamma role
         role = security_manager.find_role("Gamma")
         pvm1 = security_manager.find_permission_view_menu("can_sql_json", "Superset")
@@ -814,7 +814,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         self.login(username="gamma")
         table = self.get_table("birth_names")
-        self.grant_role_access_to_table(table, "gamma")
+        self.grant_role_access_to_table(table, "Gamma")
         metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
             column_name="name", table_name="single_column_example"
         )
@@ -835,9 +835,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         self.login(username="gamma")
         table = self.get_table("birth_names")
-        self.grant_role_access_to_table(table, "gamma")
+        self.grant_role_access_to_table(table, "Gamma")
         second_temp_datasource = self.get_table("single_column_example")
-        self.grant_role_access_to_table(second_temp_datasource, "gamma")
+        self.grant_role_access_to_table(second_temp_datasource, "Gamma")
         metric = QueryContextGeneratorInteg.generate_sql_expression_metric(
             column_name="name", table_name="single_column_example"
         )
