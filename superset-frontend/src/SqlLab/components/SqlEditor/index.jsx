@@ -19,7 +19,13 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint no-use-before-define: 0 */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -66,6 +72,7 @@ import {
   setItem,
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
@@ -208,16 +215,7 @@ const SqlEditor = ({
     }
   });
 
-  const mounted = useRef();
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-    } else {
-      if (queryEditor.sql !== sql) {
-        onSqlChanged(queryEditor.sql);
-      }
-      return;
-    }
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
     setHeight(getSqlEditorHeight());
@@ -240,6 +238,14 @@ const SqlEditor = ({
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, []);
+
+  const updateEditorSQL = useCallback(() => {
+    if (queryEditor.sql !== sql) {
+      onSqlChanged(queryEditor.sql);
+    }
+  }, [queryEditor.sql, sql]);
+
+  useComponentDidUpdate(updateEditorSQL);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
