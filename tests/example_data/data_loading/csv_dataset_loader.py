@@ -16,14 +16,12 @@
 #  under the License.
 from __future__ import annotations
 
-import ctypes
 import os.path
 from pathlib import Path
 from typing import List, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import pandas as pd
-from sqlalchemy import event
 
 from superset import config, db
 from superset.utils.database import get_example_database
@@ -33,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class CsvDatasetLoader:
-    # A simple csvloader, this DataLoader should run in Superset AppContext
+    # A simple csvloader, should run in Superset AppContext
     csv_path: str
     df: pd.DataFrame
     table_name: str
@@ -45,9 +43,6 @@ class CsvDatasetLoader:
         cache: bool = True,
         parse_dates: List[str] = [],
     ):
-        # todo: remove this method after dataset model stop shallow writing
-        # self._clear_event_listeners()
-
         # read from http
         if csv_path.startswith("http") and csv_path.endswith(".csv"):
             filename = urlparse(csv_path).path.split("/")[-1]
@@ -113,13 +108,3 @@ class CsvDatasetLoader:
             db.session.delete(col)
         db.session.delete(self.dataset)
         db.session.commit()
-
-    def _clear_event_listeners(self) -> None:
-        from superset.connectors.sqla.models import SqlaTable
-
-        keys = [k for k in event.registry._key_to_collection if k[0] == id(SqlaTable)]
-        for key in keys:
-            target = SqlaTable
-            identifier = key[1]
-            fn = ctypes.cast(key[2], ctypes.py_object).value
-            event.remove(target, identifier, fn)

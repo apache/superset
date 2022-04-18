@@ -28,7 +28,6 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
-from flask.ctx import AppContext
 from pytest import fixture
 
 from tests.example_data.data_loading.csv_dataset_loader import CsvDatasetLoader
@@ -124,5 +123,5 @@ def load_sales_dataset():
         loader.load_table()
         dataset = loader.load_dataset()
         yield dataset
-        # loader.remove_dataset()
+        loader.remove_dataset()
         loader.remove_table()
