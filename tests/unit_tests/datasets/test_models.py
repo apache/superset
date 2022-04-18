@@ -485,6 +485,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
             "changed_by": None,
             "is_managed_externally": False,
             "external_url": None,
+            "datasets": [1],
         }
     ]
 
@@ -1235,6 +1236,7 @@ def test_update_physical_sqlatable(
             "schema": None,
             "id": 1,
             "is_managed_externally": False,
+            "datasets": [],
         },
         {
             "created_by": None,
@@ -1248,6 +1250,7 @@ def test_update_physical_sqlatable(
             "schema": None,
             "id": 2,
             "is_managed_externally": False,
+            "datasets": [1],
         },
     ]
 
