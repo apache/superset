@@ -1,6 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-import { DatasourceType } from '@superset-ui/core';
-import { Datasource } from 'src/dashboard/types';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,24 +16,31 @@ import { Datasource } from 'src/dashboard/types';
  * specific language governing permissions and limitations
  * under the License.
  */
-export const PLACEHOLDER_DATASOURCE: Datasource = {
-  id: 0,
-  type: DatasourceType.Table,
-  uid: '_placeholder_',
-  datasource_name: '',
-  table_name: '',
-  columns: [],
-  column_types: [],
-  metrics: [],
-  column_format: {},
-  verbose_map: {},
-  main_dttm_col: '',
-  description: '',
+
+import { newQueryTabName } from './newQueryTabName';
+
+const emptyEditor = {
+  title: '',
+  schema: '',
+  autorun: false,
+  sql: '',
+  remoteId: null,
 };
 
-export const MAIN_HEADER_HEIGHT = 53;
-export const CLOSED_FILTER_BAR_WIDTH = 32;
-export const OPEN_FILTER_BAR_WIDTH = 260;
-export const FILTER_BAR_HEADER_HEIGHT = 80;
-export const FILTER_BAR_TABS_HEIGHT = 46;
-export const BUILDER_SIDEPANEL_WIDTH = 374;
+describe('newQueryTabName', () => {
+  it("should return default title if queryEditor's length is 0", () => {
+    const defaultTitle = 'default title';
+    const title = newQueryTabName([], defaultTitle);
+    expect(title).toEqual(defaultTitle);
+  });
+  it('should return next available number if there are unsaved editors', () => {
+    const untitledQueryText = 'Untitled Query';
+    const unsavedEditors = [
+      { ...emptyEditor, title: `${untitledQueryText} 1` },
+      { ...emptyEditor, title: `${untitledQueryText} 2` },
+    ];
+
+    const nextTitle = newQueryTabName(unsavedEditors);
+    expect(nextTitle).toEqual(`${untitledQueryText} 3`);
+  });
+});
