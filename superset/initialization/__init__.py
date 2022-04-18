@@ -473,6 +473,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
+        self.init_factories()
         self.configure_async_queries()
 
         # Hook that provides administrators a handle on the Flask APP
@@ -482,6 +483,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             flask_app_mutator(self.superset_app)
 
         self.init_views()
+
+    def init_factories(self) -> None:
+        self._init_chart_data_command_factory()
 
     def check_secret_key(self) -> None:
         if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
@@ -666,6 +670,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def enable_profiling(self) -> None:
         if self.config["PROFILING"]:
             profiling.init_app(self.superset_app)
+
+    @staticmethod
+    def _init_chart_data_command_factory() -> None:  # pylint: disable=invalid-name
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.charts.data.commands.command_factory import (
+            GetChartDataCommandFactory,
+        )
+        from superset.charts.data.query_context_validators.validaor_factory import (
+            QueryContextValidatorFactory,
+        )
+        from superset.datasets.dao import DatasetDAO
+
+        query_context_validator_factory = QueryContextValidatorFactory(
+            security_manager, DatasetDAO()  # type: ignore
+        )
+        GetChartDataCommandFactory.init(query_context_validator_factory)
 
 
 class SupersetIndexView(IndexView):

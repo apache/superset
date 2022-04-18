@@ -48,6 +48,8 @@ from superset.utils.core import create_zip, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
+from .commands.command_factory import GetChartDataCommandFactory
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
@@ -55,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
+
     include_route_methods = {"get_data", "data", "data_from_cache"}
 
     @expose("/<int:pk>/data/", methods=["GET"])
@@ -133,7 +136,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
-            command = ChartDataCommand(query_context)
+            command = GetChartDataCommandFactory.make(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -150,7 +153,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command)  # type: ignore
 
         try:
             form_data = json.loads(chart.params)
@@ -158,7 +161,9 @@ class ChartDataRestApi(ChartRestApi):
             form_data = {}
 
         return self._get_data_response(
-            command=command, form_data=form_data, datasource=query_context.datasource
+            command=command,  # type: ignore
+            form_data=form_data,
+            datasource=query_context.datasource,
         )
 
     @expose("/data", methods=["POST"])
@@ -221,7 +226,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
-            command = ChartDataCommand(query_context)
+            command = GetChartDataCommandFactory.make(query_context)
             command.validate()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -238,11 +243,13 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
-            return self._run_async(json_body, command)
+            return self._run_async(json_body, command)  # type: ignore
 
         form_data = json_body.get("form_data")
         return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
+            command,  # type: ignore
+            form_data=form_data,
+            datasource=query_context.datasource,
         )
 
     @expose("/data/<cache_key>", methods=["GET"])
@@ -288,7 +295,7 @@ class ChartDataRestApi(ChartRestApi):
         try:
             cached_data = self._load_query_context_form_from_cache(cache_key)
             query_context = self._create_query_context_from_form(cached_data)
-            command = ChartDataCommand(query_context)
+            command = GetChartDataCommandFactory.make(query_context)
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
@@ -297,7 +304,7 @@ class ChartDataRestApi(ChartRestApi):
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
 
-        return self._get_data_response(command, True)
+        return self._get_data_response(command, True)  # type: ignore
 
     def _run_async(
         self, form_data: Dict[str, Any], command: ChartDataCommand
