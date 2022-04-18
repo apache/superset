@@ -30,12 +30,12 @@ import {
   Table,
 } from 'react-virtualized';
 import {
-  getTextDimension,
   getMultipleTextDimensions,
   t,
   styled,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import TooltipParagraph from 'src/components/TooltipParagraph';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
@@ -100,7 +100,6 @@ const StyledFilterableTable = styled.div`
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
 export const MAX_COLUMNS_FOR_TABLE = 50;
-export const MAX_COLUMN_WIDTH = 200;
 
 type CellDataType = string | number | null;
 type Datum = Record<string, CellDataType>;
@@ -226,8 +225,7 @@ export default class FilterableTable extends PureComponent<
             (index + 1) * (this.list.length + 1),
           )
           .reduce((a, b) => Math.max(a, b)) + PADDING;
-      widthsByColumnKey[key] =
-        value > MAX_COLUMN_WIDTH ? MAX_COLUMN_WIDTH : value;
+      widthsByColumnKey[key] = value;
     });
 
     return widthsByColumnKey;
@@ -422,18 +420,10 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
 
-    let trigger: string[] = [];
-    if (
-      this.widthsForColumnsByKey[dataKey] <
-      getTextDimension({ style: { fontSize: '12px' }, text: label }).width
-    ) {
-      trigger = ['hover'];
-    }
     return (
       <Tooltip
         id="header-tooltip"
         title={label}
-        trigger={trigger}
         placement="topLeft"
         css={{ display: 'block' }}
       >
@@ -462,13 +452,6 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip
-        key={key}
-        id="header-tooltip"
-        title={label}
-        placement="topLeft"
-        css={{ display: 'block' }}
-      >
         <div
           style={{
             ...style,
@@ -482,12 +465,41 @@ export default class FilterableTable extends PureComponent<
           tabIndex={columnIndex}
           onClick={() => this.sortGrid(label)}
         >
-          {label}
+          <TooltipParagraph 
+            key={key}
+            id="header-tooltip">
+            {label}
+          </TooltipParagraph>
           {this.state.sortBy === label && (
             <SortIndicator sortDirection={this.state.sortDirection} />
           )}
         </div>
-      </Tooltip>
+      // <Tooltip
+      //   key={key}
+      //   id="header-tooltip"
+      //   title={label}
+      //   placement="topLeft"
+      //   css={{ display: 'block' }}
+      // >
+      //   <div
+      //     style={{
+      //       ...style,
+      //       top:
+      //         typeof style.top === 'number'
+      //           ? style.top - GRID_POSITION_ADJUSTMENT
+      //           : style.top,
+      //     }}
+      //     className={`${className} grid-cell grid-header-cell`}
+      //     role="columnheader"
+      //     tabIndex={columnIndex}
+      //     onClick={() => this.sortGrid(label)}
+      //   >
+      //     {label}
+      //     {this.state.sortBy === label && (
+      //       <SortIndicator sortDirection={this.state.sortDirection} />
+      //     )}
+      //   </div>
+      // </Tooltip>
     );
   }
 
