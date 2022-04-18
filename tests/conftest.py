@@ -115,13 +115,14 @@ def superset_app_ctx():
 
 
 @fixture()
-def load_sales_dataset(superset_app_ctx):
-    loader = CsvDatasetLoader(
-        "https://raw.githubusercontent.com/apache-superset/examples-data/lowercase_columns_examples/datasets/examples/sales.csv",
-        parse_dates=["order_date"],
-    )
-    loader.load_table()
-    dataset = loader.load_dataset()
-    yield dataset
-    loader.remove_dataset()
-    loader.remove_table()
+def load_sales_dataset():
+    with app.app_context():
+        loader = CsvDatasetLoader(
+            "https://raw.githubusercontent.com/apache-superset/examples-data/lowercase_columns_examples/datasets/examples/sales.csv",
+            parse_dates=["order_date"],
+        )
+        loader.load_table()
+        dataset = loader.load_dataset()
+        yield dataset
+        loader.remove_dataset()
+        loader.remove_table()
