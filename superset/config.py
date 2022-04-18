@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import pkg_resources
