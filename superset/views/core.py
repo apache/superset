@@ -1587,7 +1587,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
     def created_dashboards(self, user_id: int) -> FlaskResponse:
-        logging.warning(
+        logger.warning(
             "%s.created_dashboards "
             "This API endpoint is deprecated and will be removed in version 3.0.0",
             self.__class__.__name__,
