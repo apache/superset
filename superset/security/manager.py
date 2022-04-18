@@ -1006,7 +1006,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-locals
+        # pylint: disable=too-many-arguments
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
