@@ -658,7 +658,6 @@ DRUID_DATA_SOURCE_DENYLIST: List[str] = []
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
-        ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
@@ -984,7 +983,11 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+
+
+def TRACKING_URL_TRANSFORMER(x):
+    return x
+
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -1203,7 +1206,11 @@ SSL_CERT_PATH: Optional[str] = None
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
-SQLA_TABLE_MUTATOR = lambda table: table
+
+
+def SQLA_TABLE_MUTATOR(table):
+    return table
+
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
