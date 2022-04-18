@@ -383,34 +383,77 @@ describe('onColorSchemeChange', () => {
     const props = createProps();
     const changeColorSchemeProps = {
       ...props,
-      colorScheme: 'SUPERSET_DEFAULT',
+      colorScheme: 'foo',
     };
     render(<PropertiesModal {...changeColorSchemeProps} />, {
       useRedux: true,
     });
     expect(spyColorSchemeControlWrapper).toBeCalledWith(
       expect.objectContaining({
-        colorScheme: 'SUPERSET_DEFAULT',
+        colorScheme: 'foo',
       }),
       {},
     );
   });
+});
+//  superset-frontend/src/SqlLab/fixtures.ts
+// failed test because object are different, but the colorscheme is right, is this ok?
+describe('with a valid color scheme as an arg', () => {
+  describe('without metadata', () => {
+    // const props = createProps();
+    // const changeColorSchemeProps = {
+    //   ...props,
+    //   colorScheme: 'SUPERSET_DEFAULT',
+    // };
 
-  // describe('with a valid color scheme as an arg', () => {
-  //   describe('without metadata', () => {
-  //     const props = createProps();
-  //     const changeColorSchemeProps = {
-  //       ...props,
-  //       colorScheme: 'SUPERSET_DEFAULT',
-  //     };
-  //     render(<PropertiesModal {...changeColorSchemeProps} />, {
-  //       useRedux: true,
-  //     });
-  //     it('updates the color scheme in the metadata', () => {
-  //       expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
-  //         '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
-  //       );
-  //     });
-  //   });
-  // });
+    it('updates the color scheme in the metadata', () => {
+      render(<PropertiesModal />, {
+        useRedux: true,
+      });
+      screen.logTestingPlaygroundURL();
+      userEvent.selectOptions(
+        screen.getByRole('div', {
+          name: 'COLOR SCHEME',
+        }),
+        ['SUPERSET_DEFAULT'],
+      );
+
+      expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
+        expect.objectContaining({
+          something: 'foo',
+          colorScheme: 'SUPERSET_DEFAULT',
+          label_colors: {},
+        }),
+        {},
+      );
+    });
+  });
+});
+
+describe('with metadata', () => {
+  describe('with color_scheme in the metadata', () => {
+    // it('will update the metadata', async () => {
+    //   const props = createProps();
+    //   const changeColorSchemeProps = {
+    //     ...props,
+    //     colorScheme: 'foo',
+    //   };
+    //   render(<PropertiesModal {...changeColorSchemeProps} />, {
+    //     useRedux: true,
+    //   });
+    //   // screen.logTestingPlaygroundURL();
+    //   userEvent.selectOptions(
+    //     screen.getByRole('combobox', { name: /select color scheme/i }),
+    //     ['SUPERSET_DEFAULT'],
+    //   );
+    //   // expect(screen.getByRole('option', {name: 'SUPERSET_DEFAULT'}).toHaveValue('SUPERSET_DEFAULT');
+    //   expect(await screen.findByTestId('SUPERSET_DEFAULT')).toBeInTheDocument();
+    //   // expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
+    //   //   expect.objectContaining({
+    //   //     colorScheme: 'SUPERSET_DEFAULT',
+    //   //   }),
+    //   //   {},
+    //   // );
+    // });
+  });
 });
