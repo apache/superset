@@ -14,5 +14,21 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
+import pytest
 
-pytest_plugins = ["tests.fixtures.birth_names", "tests.fixtures.single_column_example"]
+from tests.fixtures.single_column_example import SINGLE_COLUMN_EXAMPLE_TABLE_NAME
+from tests.integration_tests.dashboard_utils import create_table_metadata
+from tests.integration_tests.test_app import app
+
+from .utils import cleanup_table
+
+
+@pytest.fixture()
+def load_single_column_example_datasource(
+    load_single_column_example_table_data,
+    example_db,
+):
+    with app.app_context():
+        table = create_table_metadata(SINGLE_COLUMN_EXAMPLE_TABLE_NAME, example_db)
+        yield
+        cleanup_table(table.table_name)
