@@ -29,11 +29,7 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import {
-  getMultipleTextDimensions,
-  t,
-  styled,
-} from '@superset-ui/core';
+import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import TooltipParagraph from 'src/components/TooltipParagraph';
 import Button from '../Button';
@@ -452,28 +448,26 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-        <div
-          style={{
-            ...style,
-            top:
-              typeof style.top === 'number'
-                ? style.top - GRID_POSITION_ADJUSTMENT
-                : style.top,
-          }}
-          className={`${className} grid-cell grid-header-cell`}
-          role="columnheader"
-          tabIndex={columnIndex}
-          onClick={() => this.sortGrid(label)}
-        >
-          <TooltipParagraph 
-            key={key}
-            id="header-tooltip">
-            {label}
-          </TooltipParagraph>
-          {this.state.sortBy === label && (
-            <SortIndicator sortDirection={this.state.sortDirection} />
-          )}
-        </div>
+      <div
+        style={{
+          ...style,
+          top:
+            typeof style.top === 'number'
+              ? style.top - GRID_POSITION_ADJUSTMENT
+              : style.top,
+        }}
+        className={`${className} grid-cell grid-header-cell`}
+        role="columnheader"
+        tabIndex={columnIndex}
+        onClick={() => this.sortGrid(label)}
+      >
+        <TooltipParagraph key={key} id="header-tooltip">
+          {label}
+        </TooltipParagraph>
+        {this.state.sortBy === label && (
+          <SortIndicator sortDirection={this.state.sortDirection} />
+        )}
+      </div>
       // <Tooltip
       //   key={key}
       //   id="header-tooltip"
