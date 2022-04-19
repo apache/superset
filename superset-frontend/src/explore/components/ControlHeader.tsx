@@ -109,7 +109,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           css={(theme: SupersetTheme) =>
             css`
               margin-bottom: ${theme.gridUnit * 0.5}px;
-              position: 'relative';
+              position: relative;
             `
           }
         >
