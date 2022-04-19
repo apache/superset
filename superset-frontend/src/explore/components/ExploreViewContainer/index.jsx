@@ -434,14 +434,7 @@ function ExploreViewContainer(props) {
         reRenderChart(displayControlsChanged);
       }
     }
-  }, [
-    previousControls,
-    props.chart.latestQueryFormData.viz_type,
-    props.controls,
-    props.form_data.datasource,
-    props.ownState,
-    reRenderChart,
-  ]);
+  }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
