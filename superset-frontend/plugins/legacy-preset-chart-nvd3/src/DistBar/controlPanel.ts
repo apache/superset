@@ -40,15 +40,21 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    {
+      label: t('Chart'),
+      expanded: true,
+      controlSetRows: [['metrics'], ['groupby'], ['columns']],
+    },
     sections.legacyRegularTime,
     {
-      label: t('Query'),
+      label: t('Filter'),
+      expanded: true,
+      controlSetRows: [['adhoc_filters']],
+    },
+    {
+      label: t('Advanced query settings'),
       expanded: true,
       controlSetRows: [
-        ['metrics'],
-        ['adhoc_filters'],
-        ['groupby'],
-        ['columns'],
         ['row_limit'],
         ['timeseries_limit_metric'],
         ['order_desc'],
@@ -105,8 +111,11 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
+    metrics: {
+      label: t('Metrics (Y-Axis)'),
+    },
     groupby: {
-      label: t('Dimensions'),
+      label: t('Series (X-Axis)'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =
