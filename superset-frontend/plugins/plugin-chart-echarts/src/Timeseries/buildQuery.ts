@@ -30,6 +30,7 @@ import {
   isValidTimeCompare,
   pivotOperator,
   resampleOperator,
+  renameOperator,
   contributionOperator,
   prophetOperator,
   timeComparePivotOperator,
@@ -92,6 +93,8 @@ export default function buildQuery(formData: QueryFormData) {
           timeCompareOperator(formData, baseQueryObject),
           resampleOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
+          renameOperator(formData, baseQueryObject),
+          // todo: move contribution and prophet before flatten
           contributionOperator(formData, baseQueryObject),
           prophetOperator(formData, baseQueryObject),
         ],

@@ -17,15 +17,15 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-export { rollingWindowOperator } from './rollingWindowOperator';
-export { timeCompareOperator } from './timeCompareOperator';
-export { timeComparePivotOperator } from './timeComparePivotOperator';
-export { sortOperator } from './sortOperator';
-export { pivotOperator } from './pivotOperator';
-export { resampleOperator } from './resampleOperator';
-export { renameOperator } from './renameOperator';
-export { contributionOperator } from './contributionOperator';
-export { prophetOperator } from './prophetOperator';
-export { boxplotOperator } from './boxplotOperator';
-export { flattenOperator } from './flattenOperator';
-export * from './utils';
+import { PostProcessingRename, ensureIsArray } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
+
+export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
+  formData,
+  queryObject,
+) => {
+  if (ensureIsArray(queryObject.metrics).length)
+    return {
+      operation: 'rename',
+    };
+};
