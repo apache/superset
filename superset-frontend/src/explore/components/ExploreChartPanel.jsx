@@ -19,7 +19,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { css, styled, SupersetClient, useTheme } from '@superset-ui/core';
+import {
+  css,
+  ensureIsArray,
+  styled,
+  SupersetClient,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -31,6 +38,8 @@ import {
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
+import { ExploreAlert } from './ExploreAlert';
+import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -51,7 +60,7 @@ const propTypes = {
   standalone: PropTypes.number,
   force: PropTypes.bool,
   timeout: PropTypes.number,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
   triggerRender: PropTypes.bool,
@@ -115,10 +124,11 @@ const ExploreChartPanel = ({
   errorMessage,
   form_data: formData,
   onQuery,
-  refreshOverlayVisible,
   actions,
   timeout,
   standalone,
+  chartIsStale,
+  chartAlert,
 }) => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
@@ -134,6 +144,13 @@ const ExploreChartPanel = ({
   const [splitSizes, setSplitSizes] = useState(
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
+
+  const showAlertBanner =
+    !chartAlert &&
+    chartIsStale &&
+    chart.chartStatus !== 'failed' &&
+    ensureIsArray(chart.queriesResponse).length > 0;
+
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {
@@ -167,11 +184,11 @@ const ExploreChartPanel = ({
     setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
   }, [splitSizes]);
 
-  const onDragEnd = sizes => {
+  const onDragEnd = useCallback(sizes => {
     setSplitSizes(sizes);
-  };
+  }, []);
 
-  const refreshCachedQuery = () => {
+  const refreshCachedQuery = useCallback(() => {
     actions.postChartFormData(
       formData,
       true,
@@ -180,7 +197,7 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
-  };
+  }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback(isOpen => {
     let splitSizes;
@@ -219,9 +236,10 @@ const ExploreChartPanel = ({
             datasource={datasource}
             errorMessage={errorMessage}
             formData={formData}
+            latestQueryFormData={chart.latestQueryFormData}
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
-            refreshOverlayVisible={refreshOverlayVisible}
+            chartIsStale={chartIsStale}
             setControlValue={actions.setControlValue}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
@@ -237,8 +255,10 @@ const ExploreChartPanel = ({
       chart.chartStackTrace,
       chart.chartStatus,
       chart.id,
+      chart.latestQueryFormData,
       chart.queriesResponse,
       chart.triggerQuery,
+      chartIsStale,
       chartPanelHeight,
       chartPanelRef,
       chartPanelWidth,
@@ -248,7 +268,6 @@ const ExploreChartPanel = ({
       formData,
       onQuery,
       ownState,
-      refreshOverlayVisible,
       timeout,
       triggerRender,
       vizType,
@@ -264,6 +283,34 @@ const ExploreChartPanel = ({
           flex-direction: column;
         `}
       >
+        {showAlertBanner && (
+          <ExploreAlert
+            title={
+              errorMessage
+                ? t('Required control values have been removed')
+                : t('Your chart is not up to date')
+            }
+            bodyText={
+              errorMessage ? (
+                getChartRequiredFieldsMissingMessage(false)
+              ) : (
+                <span>
+                  {t(
+                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
+                  )}{' '}
+                  <span role="button" tabIndex={0} onClick={onQuery}>
+                    {t('click here')}
+                  </span>
+                  .
+                </span>
+              )
+            }
+            type="warning"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+          />
+        )}
         <ChartPills
           queriesResponse={chart.queriesResponse}
           chartStatus={chart.chartStatus}
@@ -275,7 +322,18 @@ const ExploreChartPanel = ({
         {renderChart()}
       </div>
     ),
-    [chartPanelRef, renderChart],
+    [
+      showAlertBanner,
+      errorMessage,
+      onQuery,
+      chart.queriesResponse,
+      chart.chartStatus,
+      chart.chartUpdateStartTime,
+      chart.chartUpdateEndTime,
+      refreshCachedQuery,
+      formData?.row_limit,
+      renderChart,
+    ],
   );
 
   const standaloneChartBody = useMemo(() => renderChart(), [renderChart]);
@@ -294,6 +352,13 @@ const ExploreChartPanel = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chart.latestQueryFormData]);
 
+  const elementStyle = useCallback(
+    (dimension, elementSize, gutterSize) => ({
+      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+    }),
+    [gutterMargin],
+  );
+
   if (standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -303,10 +368,6 @@ const ExploreChartPanel = ({
     }
     return standaloneChartBody;
   }
-
-  const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-  });
 
   return (
     <Styles className="panel panel-default chart-container">
