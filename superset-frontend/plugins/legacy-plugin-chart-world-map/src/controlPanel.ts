@@ -25,12 +25,10 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
-      label: t('Query'),
+      label: t('Chart'),
       expanded: true,
       controlSetRows: [
-        ['entity'],
         [
           {
             name: 'country_fieldtype',
@@ -51,8 +49,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['entity'],
         ['metric'],
-        ['adhoc_filters'],
+      ],
+    },
+    sections.legacyRegularTime,
+    {
+      label: t('Filter'),
+      expanded: true,
+      controlSetRows: [['adhoc_filters']],
+    },
+    {
+      label: t('Advanced query settings'),
+      expanded: true,
+      controlSetRows: [
         ['row_limit'],
         [
           {
@@ -69,7 +79,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Options'),
+      label: t('Bubble settings'),
       expanded: true,
       controlSetRows: [
         [
