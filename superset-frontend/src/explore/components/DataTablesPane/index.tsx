@@ -16,15 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  MouseEvent,
+} from 'react';
 import {
+  css,
   ensureIsArray,
   GenericDataType,
   JsonObject,
   styled,
   t,
+  useTheme,
 } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
+import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -58,53 +66,58 @@ const getDefaultDataTablesState = (value: any) => ({
 
 const DATA_TABLE_PAGE_SIZE = 50;
 
-const DATAPANEL_KEY = 'data';
-
 const TableControlsWrapper = styled.div`
-  display: flex;
-  align-items: center;
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: ${theme.gridUnit * 2}px;
 
-  span {
-    flex-shrink: 0;
-  }
+    span {
+      flex-shrink: 0;
+    }
+  `}
 `;
 
 const SouthPane = styled.div`
-  position: relative;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  z-index: 5;
-  overflow: hidden;
-`;
+  ${({ theme }) => `
+    position: relative;
+    background-color: ${theme.colors.grayscale.light5};
+    z-index: 5;
+    overflow: hidden;
 
-const TabsWrapper = styled.div<{ contentHeight: number }>`
-  height: ${({ contentHeight }) => contentHeight}px;
-  overflow: hidden;
+    .ant-tabs {
+      height: 100%;
+    }
 
-  .table-condensed {
-    height: 100%;
-    overflow: auto;
-  }
-`;
+    .ant-tabs-content-holder {
+      height: 100%;
+    }
 
-const CollapseWrapper = styled.div`
-  height: 100%;
+    .ant-tabs-content {
+      height: 100%;
+    }
 
-  .collapse-inner {
-    height: 100%;
-
-    .ant-collapse-item {
+    .ant-tabs-tabpane {
+      display: flex;
+      flex-direction: column;
       height: 100%;
 
-      .ant-collapse-content {
-        height: calc(100% - ${({ theme }) => theme.gridUnit * 8}px);
+      .table-condensed {
+        height: 100%;
+        overflow: auto;
+        margin-bottom: ${theme.gridUnit * 4}px;
 
-        .ant-collapse-content-box {
-          padding-top: 0;
-          height: 100%;
+        .table {
+          margin-bottom: ${theme.gridUnit * 2}px;
         }
       }
+
+      .pagination-container > ul[role='navigation'] {
+        margin-top: 0;
+      }
     }
-  }
+  `}
 `;
 
 const Error = styled.pre`
@@ -117,7 +130,6 @@ interface DataTableProps {
   datasource: string | undefined;
   filterText: string;
   data: object[] | undefined;
-  timeFormattedColumns: string[] | undefined;
   isLoading: boolean;
   error: string | undefined;
   errorMessage: React.ReactElement | undefined;
@@ -130,12 +142,12 @@ const DataTable = ({
   datasource,
   filterText,
   data,
-  timeFormattedColumns,
   isLoading,
   error,
   errorMessage,
   type,
 }: DataTableProps) => {
+  const timeFormattedColumns = useTimeFormattedColumns(datasource);
   // this is to preserve the order of the columns, even if there are integer values,
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
@@ -185,9 +197,42 @@ const DataTable = ({
   return null;
 };
 
+const TableControls = ({
+  data,
+  datasourceId,
+  onInputChange,
+  columnNames,
+  isLoading,
+}: {
+  data: Record<string, any>[];
+  datasourceId?: string;
+  onInputChange: (input: string) => void;
+  columnNames: string[];
+  isLoading: boolean;
+}) => {
+  const timeFormattedColumns = useTimeFormattedColumns(datasourceId);
+  const formattedData = useMemo(
+    () => applyFormattingToTabularData(data, timeFormattedColumns),
+    [data, timeFormattedColumns],
+  );
+  return (
+    <TableControlsWrapper>
+      <FilterInput onChangeHandler={onInputChange} />
+      <div
+        css={css`
+          display: flex;
+          align-items: center;
+        `}
+      >
+        <RowCount data={data} loading={isLoading} />
+        <CopyToClipboardButton data={formattedData} columns={columnNames} />
+      </div>
+    </TableControlsWrapper>
+  );
+};
+
 export const DataTablesPane = ({
   queryFormData,
-  tableSectionHeight,
   onCollapseChange,
   chartStatus,
   ownState,
@@ -195,19 +240,19 @@ export const DataTablesPane = ({
   queriesResponse,
 }: {
   queryFormData: Record<string, any>;
-  tableSectionHeight: number;
   chartStatus: string;
   ownState?: JsonObject;
-  onCollapseChange: (openPanelName: string) => void;
+  onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   queriesResponse: Record<string, any>;
 }) => {
+  const theme = useTheme();
   const [data, setData] = useState(getDefaultDataTablesState(undefined));
   const [isLoading, setIsLoading] = useState(getDefaultDataTablesState(true));
   const [columnNames, setColumnNames] = useState(getDefaultDataTablesState([]));
   const [columnTypes, setColumnTypes] = useState(getDefaultDataTablesState([]));
   const [error, setError] = useState(getDefaultDataTablesState(''));
-  const [filterText, setFilterText] = useState('');
+  const [filterText, setFilterText] = useState(getDefaultDataTablesState(''));
   const [activeTabKey, setActiveTabKey] = useState<string>(
     RESULT_TYPES.results,
   );
@@ -216,24 +261,6 @@ export const DataTablesPane = ({
   );
   const [panelOpen, setPanelOpen] = useState(
     getItem(LocalStorageKeys.is_datapanel_open, false),
-  );
-
-  const timeFormattedColumns = useTimeFormattedColumns(
-    queryFormData?.datasource,
-  );
-
-  const formattedData = useMemo(
-    () => ({
-      [RESULT_TYPES.results]: applyFormattingToTabularData(
-        data[RESULT_TYPES.results],
-        timeFormattedColumns,
-      ),
-      [RESULT_TYPES.samples]: applyFormattingToTabularData(
-        data[RESULT_TYPES.samples],
-        timeFormattedColumns,
-      ),
-    }),
-    [data, timeFormattedColumns],
   );
 
   const getData = useCallback(
@@ -381,81 +408,121 @@ export const DataTablesPane = ({
     errorMessage,
   ]);
 
-  const TableControls = (
-    <TableControlsWrapper>
-      <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
-      <CopyToClipboardButton
-        data={formattedData[activeTabKey]}
-        columns={columnNames[activeTabKey]}
-      />
-      <FilterInput onChangeHandler={setFilterText} />
-    </TableControlsWrapper>
+  const handleCollapseChange = useCallback(
+    (isOpen: boolean) => {
+      onCollapseChange(isOpen);
+      setPanelOpen(isOpen);
+    },
+    [onCollapseChange],
   );
 
-  const handleCollapseChange = (openPanelName: string) => {
-    onCollapseChange(openPanelName);
-    setPanelOpen(!!openPanelName);
-  };
+  const handleTabClick = useCallback(
+    (tabKey: string, e: MouseEvent) => {
+      if (!panelOpen) {
+        handleCollapseChange(true);
+      } else if (tabKey === activeTabKey) {
+        e.preventDefault();
+        handleCollapseChange(false);
+      }
+      setActiveTabKey(tabKey);
+    },
+    [activeTabKey, handleCollapseChange, panelOpen],
+  );
+
+  const CollapseButton = useMemo(() => {
+    const caretIcon = panelOpen ? (
+      <Icons.CaretUp
+        iconColor={theme.colors.grayscale.base}
+        aria-label={t('Collapse data panel')}
+      />
+    ) : (
+      <Icons.CaretDown
+        iconColor={theme.colors.grayscale.base}
+        aria-label={t('Expand data panel')}
+      />
+    );
+    return (
+      <TableControlsWrapper>
+        {panelOpen ? (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => handleCollapseChange(false)}
+          >
+            {caretIcon}
+          </span>
+        ) : (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => handleCollapseChange(true)}
+          >
+            {caretIcon}
+          </span>
+        )}
+      </TableControlsWrapper>
+    );
+  }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
 
   return (
     <SouthPane data-test="some-purposeful-instance">
-      <TabsWrapper contentHeight={tableSectionHeight}>
-        <CollapseWrapper data-test="data-tab">
-          <Collapse
-            accordion
-            bordered={false}
-            defaultActiveKey={panelOpen ? DATAPANEL_KEY : undefined}
-            onChange={handleCollapseChange}
-            bold
-            ghost
-            className="collapse-inner"
-          >
-            <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
-              <Tabs
-                fullWidth={false}
-                tabBarExtraContent={TableControls}
-                activeKey={activeTabKey}
-                onChange={setActiveTabKey}
-              >
-                <Tabs.TabPane
-                  tab={t('View results')}
-                  key={RESULT_TYPES.results}
-                >
-                  <DataTable
-                    isLoading={isLoading[RESULT_TYPES.results]}
-                    data={data[RESULT_TYPES.results]}
-                    datasource={queryFormData?.datasource}
-                    timeFormattedColumns={timeFormattedColumns}
-                    columnNames={columnNames[RESULT_TYPES.results]}
-                    columnTypes={columnTypes[RESULT_TYPES.results]}
-                    filterText={filterText}
-                    error={error[RESULT_TYPES.results]}
-                    errorMessage={errorMessage}
-                    type={RESULT_TYPES.results}
-                  />
-                </Tabs.TabPane>
-                <Tabs.TabPane
-                  tab={t('View samples')}
-                  key={RESULT_TYPES.samples}
-                >
-                  <DataTable
-                    isLoading={isLoading[RESULT_TYPES.samples]}
-                    data={data[RESULT_TYPES.samples]}
-                    datasource={queryFormData?.datasource}
-                    timeFormattedColumns={timeFormattedColumns}
-                    columnNames={columnNames[RESULT_TYPES.samples]}
-                    columnTypes={columnTypes[RESULT_TYPES.samples]}
-                    filterText={filterText}
-                    error={error[RESULT_TYPES.samples]}
-                    errorMessage={errorMessage}
-                    type={RESULT_TYPES.samples}
-                  />
-                </Tabs.TabPane>
-              </Tabs>
-            </Collapse.Panel>
-          </Collapse>
-        </CollapseWrapper>
-      </TabsWrapper>
+      <Tabs
+        fullWidth={false}
+        tabBarExtraContent={CollapseButton}
+        activeKey={panelOpen ? activeTabKey : ''}
+        onTabClick={handleTabClick}
+      >
+        <Tabs.TabPane tab={t('Results')} key={RESULT_TYPES.results}>
+          <TableControls
+            data={data[RESULT_TYPES.results]}
+            columnNames={columnNames[RESULT_TYPES.results]}
+            datasourceId={queryFormData?.datasource}
+            onInputChange={input =>
+              setFilterText(prevState => ({
+                ...prevState,
+                [RESULT_TYPES.results]: input,
+              }))
+            }
+            isLoading={isLoading[RESULT_TYPES.results]}
+          />
+          <DataTable
+            isLoading={isLoading[RESULT_TYPES.results]}
+            data={data[RESULT_TYPES.results]}
+            datasource={queryFormData?.datasource}
+            columnNames={columnNames[RESULT_TYPES.results]}
+            columnTypes={columnTypes[RESULT_TYPES.results]}
+            filterText={filterText[RESULT_TYPES.results]}
+            error={error[RESULT_TYPES.results]}
+            errorMessage={errorMessage}
+            type={RESULT_TYPES.results}
+          />
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={t('Samples')} key={RESULT_TYPES.samples}>
+          <TableControls
+            data={data[RESULT_TYPES.samples]}
+            columnNames={columnNames[RESULT_TYPES.samples]}
+            datasourceId={queryFormData?.datasource}
+            onInputChange={input =>
+              setFilterText(prevState => ({
+                ...prevState,
+                [RESULT_TYPES.samples]: input,
+              }))
+            }
+            isLoading={isLoading[RESULT_TYPES.samples]}
+          />
+          <DataTable
+            isLoading={isLoading[RESULT_TYPES.samples]}
+            data={data[RESULT_TYPES.samples]}
+            datasource={queryFormData?.datasource}
+            columnNames={columnNames[RESULT_TYPES.samples]}
+            columnTypes={columnTypes[RESULT_TYPES.samples]}
+            filterText={filterText[RESULT_TYPES.samples]}
+            error={error[RESULT_TYPES.samples]}
+            errorMessage={errorMessage}
+            type={RESULT_TYPES.samples}
+          />
+        </Tabs.TabPane>
+      </Tabs>
     </SouthPane>
   );
 };
