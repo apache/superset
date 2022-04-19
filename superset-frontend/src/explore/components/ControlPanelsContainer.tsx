@@ -92,6 +92,7 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   flex-direction: column;
   align-items: center;
   padding: ${theme.gridUnit * 4}px;
+  z-index: 999;
   background: linear-gradient(
     transparent,
     ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}

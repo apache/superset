@@ -16,16 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import debounce from 'lodash/debounce';
 import {
   css,
   ensureIsArray,
@@ -146,6 +139,8 @@ const ExploreChartPanel = ({
   actions,
   timeout,
   standalone,
+  chartIsStale,
+  chartAlert,
 }) => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
@@ -163,10 +158,10 @@ const ExploreChartPanel = ({
   );
 
   const showAlertBanner =
-    !props.chartAlert &&
-    props.chartIsStale &&
-    props.chart.chartStatus !== 'failed' &&
-    ensureIsArray(props.chart.queriesResponse).length > 0;
+    !chartAlert &&
+    chartIsStale &&
+    chart.chartStatus !== 'failed' &&
+    ensureIsArray(chart.queriesResponse).length > 0;
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {
@@ -214,13 +209,7 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
-  }, [
-    props.actions,
-    props.chart.id,
-    props.form_data,
-    props.ownState,
-    props.timeout,
-  ]);
+  }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback(isOpen => {
     let splitSizes;
@@ -300,26 +289,26 @@ const ExploreChartPanel = ({
       <div
         className="panel-body"
         css={css`
-            display: flex;
-            flex-direction: column;
-            `}
-        >
+          display: flex;
+          flex-direction: column;
+        `}
+      >
         {showAlertBanner && (
           <ExploreAlert
             title={
-              props.errorMessage
+              errorMessage
                 ? t('Required control values have been removed')
                 : t('Your chart is not up to date')
             }
             bodyText={
-              props.errorMessage ? (
+              errorMessage ? (
                 requiredFieldsMissingWarning
               ) : (
                 <span>
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span role="button" tabIndex={0} onClick={props.onQuery}>
+                  <span role="button" tabIndex={0} onClick={onQuery}>
                     {t('click here')}
                   </span>
                   .
@@ -345,12 +334,11 @@ const ExploreChartPanel = ({
     ),
     [
       chartPanelRef,
-      pillsRef,
-      props.chart.chartStatus,
-      props.chart.chartUpdateEndTime,
-      props.chart.chartUpdateStartTime,
-      props.chart.queriesResponse,
-      props.form_data?.row_limit,
+      chart.chartStatus,
+      chart.chartUpdateEndTime,
+      chart.chartUpdateStartTime,
+      chart.queriesResponse,
+      formData?.row_limit,
       refreshCachedQuery,
       renderChart,
       showAlertBanner,
