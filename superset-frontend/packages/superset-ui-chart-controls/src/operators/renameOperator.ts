@@ -17,15 +17,29 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingRename, ensureIsArray } from '@superset-ui/core';
+import {
+  PostProcessingRename,
+  ensureIsArray,
+  getMetricLabel,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   formData,
   queryObject,
 ) => {
-  if (ensureIsArray(queryObject.metrics).length)
+  const metrics = ensureIsArray(queryObject.metrics);
+  if (metrics.length === 1) {
+    const mainQueryMetricName = getMetricLabel(metrics[0]);
     return {
       operation: 'rename',
+      options: {
+        columns: { [mainQueryMetricName]: null },
+        level: 0,
+        inplace: true,
+      },
     };
+  }
+
+  return undefined;
 };

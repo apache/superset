@@ -204,7 +204,7 @@ export type PostProcessingResample =
 interface _PostProcessingRename {
   operation: 'rename';
   options: {
-    columns: Record<string, string>;
+    columns: Record<string, string | null>;
     inplace?: boolean;
     level?: number | string;
   };

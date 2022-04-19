@@ -20,6 +20,7 @@
 export { rollingWindowOperator } from './rollingWindowOperator';
 export { timeCompareOperator } from './timeCompareOperator';
 export { timeComparePivotOperator } from './timeComparePivotOperator';
+export { timeCompareRenameOperator } from './timeCompareRenameOperator';
 export { sortOperator } from './sortOperator';
 export { pivotOperator } from './pivotOperator';
 export { resampleOperator } from './resampleOperator';
