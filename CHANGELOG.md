@@ -43,6 +43,7 @@ under the License.
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#20974](https://github.com/apache/superset/pull/20974) perf: Implement model specific lookups by id to improve performance (@bkyryliuk)
 - [#20273](https://github.com/apache/superset/pull/20273) chore: adjust the psycopg2 version of k8s installation guide (@ensky)
+- [#19703](https://github.com/apache/superset/pull/19703) chore(build): upgrade less-loader (@ktmud)
 
 ### 1.5.1 (Thu May 26 14:45:20 2022 +0300)
 
