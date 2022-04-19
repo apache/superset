@@ -214,6 +214,8 @@ class SliceHeaderControls extends React.PureComponent<
 
   render() {
     const {
+      componentId,
+      dashboardId,
       slice,
       isFullSize,
       cachedDttm = [],
@@ -222,7 +224,6 @@ class SliceHeaderControls extends React.PureComponent<
       addDangerToast = () => {},
       supersetCanShare = false,
       isCached = [],
-      formData,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
@@ -311,13 +312,14 @@ class SliceHeaderControls extends React.PureComponent<
 
         {supersetCanShare && (
           <ShareMenuItems
+            dashboardId={dashboardId}
+            dashboardComponentId={componentId}
             copyMenuItemTitle={t('Copy permalink to clipboard')}
             emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={t('Superset chart')}
             emailBody={t('Check out this chart: ')}
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
-            formData={formData}
           />
         )}
 
