@@ -387,7 +387,9 @@ const config = {
             loader: 'less-loader',
             options: {
               sourceMap: true,
-              javascriptEnabled: true,
+              lessOptions: {
+                javascriptEnabled: true,
+              },
             },
           },
         ],
