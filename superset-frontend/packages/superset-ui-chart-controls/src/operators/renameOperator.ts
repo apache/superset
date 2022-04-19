@@ -29,7 +29,17 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   queryObject,
 ) => {
   const metrics = ensureIsArray(queryObject.metrics);
-  if (metrics.length === 1) {
+  const columns = ensureIsArray(queryObject.columns);
+  const { x_axis: xAxis } = formData;
+  // remove metric name in the MultiIndex when
+  // 1) only 1 metric
+  // 2) exist dimentsion
+  // 3) exist xAxis
+  if (
+    metrics.length === 1 &&
+    columns.length > 0 &&
+    (xAxis || queryObject.is_timeseries)
+  ) {
     const mainQueryMetricName = getMetricLabel(metrics[0]);
     return {
       operation: 'rename',

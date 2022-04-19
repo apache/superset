@@ -28,8 +28,16 @@ import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
 export const timeCompareRenameOperator: PostProcessingFactory<PostProcessingRename> =
   (formData, queryObject) => {
     const metrics = ensureIsArray(queryObject.metrics);
+    const columns = ensureIsArray(queryObject.columns);
+    const { x_axis: xAxis } = formData;
+    // remove metric name in the MultiIndex when
+    // 1) only 1 metric
+    // 2) exist dimentsion
+    // 3) exist xAxis
     if (
       metrics.length === 1 &&
+      columns.length > 0 &&
+      (xAxis || queryObject.is_timeseries) &&
       // "actual values" will add derived metric.
       isValidTimeCompare(formData, queryObject) &&
       formData.comparison_type === ComparisionType.Values
