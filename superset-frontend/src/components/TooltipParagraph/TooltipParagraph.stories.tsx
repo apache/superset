@@ -16,37 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- import React from 'react';
- import TooltipParagraph from './';
- 
- export default {
-   title: 'DynamicTooltip',
-   component: TooltipParagraph,
- };
+import React from 'react';
+import TooltipParagraph from '.';
 
- type IProps = {
-   title: string;
-   width: number;
- }
- 
- export const InteractiveTooltip = (args: IProps) => (
-   <div style={{ width: `${args.width}px`, margin: '50px 100px'}}>
-    <TooltipParagraph>
-      {args.title}
-    </TooltipParagraph>
-   </div>
- );
- 
- InteractiveTooltip.story = {
-   parameters: {
-     knobs: {
-       disable: true,
-     },
-   },
- };
- 
- InteractiveTooltip.args = {
-   title: 'This is too long and should truncate.',
-   width: 200,
- };
- 
+export default {
+  title: 'DynamicTooltip',
+  component: TooltipParagraph,
+};
+
+type IProps = {
+  title: string;
+  width: number;
+};
+
+export const InteractiveTooltip = (args: IProps) => (
+  <div style={{ width: `${args.width}px`, margin: '50px 100px' }}>
+    <TooltipParagraph>{args.title}</TooltipParagraph>
+  </div>
+);
+
+InteractiveTooltip.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
+InteractiveTooltip.args = {
+  title: 'This is too long and should truncate.',
+  width: 200,
+};

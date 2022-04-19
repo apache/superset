@@ -22,39 +22,36 @@ import userEvent from '@testing-library/user-event';
 import TooltipParagraph from '.';
 
 test('starts hidden with default props', () => {
-  render(
-    <TooltipParagraph>
-      This is tootlip description.
-    </TooltipParagraph>,
-  );
+  render(<TooltipParagraph>This is tootlip description.</TooltipParagraph>);
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
 test('not render on hover when not truncated', async () => {
-  const {container} = render(
-    <div style={{ width: '200px'}}>
+  const { container } = render(
+    <div style={{ width: '200px' }}>
       <TooltipParagraph>
-        <span role="hoverText">This is short.</span>
+        <span data-test="test-text">This is short</span>
       </TooltipParagraph>
-    </div>
+    </div>,
   );
-  userEvent.hover(screen.getByRole('hoverText'));
+  userEvent.hover(screen.getByTestId('test-text'));
   await waitFor(() =>
-    expect(container.firstChild?.firstChild).not.toHaveClass('ant-tooltip-open')
+    expect(container.firstChild?.firstChild).not.toHaveClass(
+      'ant-tooltip-open',
+    ),
   );
 });
 
 test('render on hover when truncated', async () => {
-  const {container} = render(
-    <div style={{ width: '200px'}}>
+  const { container } = render(
+    <div style={{ width: '200px' }}>
       <TooltipParagraph>
-        <span role="hoverText">This is too long and should truncate.</span>
+        <span data-test="test-text">This is too long and should truncate.</span>
       </TooltipParagraph>
-    </div>
+    </div>,
   );
-  userEvent.hover(screen.getByRole('hoverText'));
+  userEvent.hover(screen.getByTestId('test-text'));
   await waitFor(() =>
-    expect(container.firstChild?.firstChild).toHaveClass('ant-tooltip-open')
+    expect(container.firstChild?.firstChild).toHaveClass('ant-tooltip-open'),
   );
 });
- 
