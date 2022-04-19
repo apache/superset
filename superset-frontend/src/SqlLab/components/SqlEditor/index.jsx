@@ -75,6 +75,7 @@ import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
+import { newQueryTabName } from '../../utils/newQueryTabName';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -239,6 +240,12 @@ class SqlEditor extends React.PureComponent {
     });
   }
 
+  componentDidUpdate() {
+    if (this.props.queryEditor.sql !== this.state.sql) {
+      this.onSqlChanged(this.props.queryEditor.sql);
+    }
+  }
+
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
@@ -333,10 +340,10 @@ class SqlEditor extends React.PureComponent {
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
+          const title = newQueryTabName(this.props.queryEditors || []);
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title: t('Untitled query'),
-            sql: '',
+            title,
           });
         },
       },
@@ -804,13 +811,12 @@ class SqlEditor extends React.PureComponent {
 SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 
-function mapStateToProps(state, props) {
-  const { sqlLab } = state;
+function mapStateToProps({ sqlLab }, props) {
   const queryEditor = sqlLab.queryEditors.find(
     editor => editor.id === props.queryEditorId,
   );
 
-  return { sqlLab, ...props, queryEditor };
+  return { sqlLab, ...props, queryEditor, queryEditors: sqlLab.queryEditors };
 }
 
 function mapDispatchToProps(dispatch) {

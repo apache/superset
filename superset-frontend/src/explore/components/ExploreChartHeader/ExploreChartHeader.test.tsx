@@ -90,6 +90,7 @@ const createProps = () => ({
   user: {
     userId: 1,
   },
+  onSaveChart: jest.fn(),
 });
 
 test('Cancelling changes to the properties should reset previous properties', () => {
@@ -114,4 +115,18 @@ test('Cancelling changes to the properties should reset previous properties', ()
   userEvent.click(screen.getByText('Edit chart properties'));
 
   expect(screen.getByDisplayValue(prevChartName)).toBeInTheDocument();
+});
+
+test('Save chart', () => {
+  const props = createProps();
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  userEvent.click(screen.getByText('Save'));
+  expect(props.onSaveChart).toHaveBeenCalled();
+});
+
+test('Save disabled', () => {
+  const props = createProps();
+  render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
+  userEvent.click(screen.getByText('Save'));
+  expect(props.onSaveChart).not.toHaveBeenCalled();
 });
