@@ -22,8 +22,6 @@ import Split from 'react-split';
 import {
   css,
   ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
@@ -41,6 +39,7 @@ import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
 import { ExploreAlert } from './ExploreAlert';
+import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -114,16 +113,6 @@ const Styles = styled.div`
   }
 `;
 
-const requiredFieldsMissingWarning = isFeatureEnabled(
-  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-)
-  ? t(
-      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
-    )
-  : t(
-      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Update chart" button.',
-    );
-
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -135,7 +124,6 @@ const ExploreChartPanel = ({
   errorMessage,
   form_data: formData,
   onQuery,
-  refreshOverlayVisible,
   actions,
   timeout,
   standalone,
@@ -250,7 +238,7 @@ const ExploreChartPanel = ({
             formData={formData}
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
-            refreshOverlayVisible={refreshOverlayVisible}
+            chartIsStale={chartIsStale}
             setControlValue={actions.setControlValue}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
@@ -277,7 +265,6 @@ const ExploreChartPanel = ({
       formData,
       onQuery,
       ownState,
-      refreshOverlayVisible,
       timeout,
       triggerRender,
       vizType,
@@ -302,7 +289,7 @@ const ExploreChartPanel = ({
             }
             bodyText={
               errorMessage ? (
-                requiredFieldsMissingWarning
+                getChartRequiredFieldsMissingMessage(false)
               ) : (
                 <span>
                   {t(
@@ -333,15 +320,16 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
-      chartPanelRef,
-      chart.chartStatus,
-      chart.chartUpdateEndTime,
-      chart.chartUpdateStartTime,
-      chart.queriesResponse,
-      formData?.row_limit,
-      refreshCachedQuery,
-      renderChart,
       showAlertBanner,
+      errorMessage,
+      onQuery,
+      chart.queriesResponse,
+      chart.chartStatus,
+      chart.chartUpdateStartTime,
+      chart.chartUpdateEndTime,
+      refreshCachedQuery,
+      formData?.row_limit,
+      renderChart,
     ],
   );
 

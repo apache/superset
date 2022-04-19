@@ -31,6 +31,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -113,16 +114,6 @@ const MonospaceDiv = styled.div`
   overflow-x: auto;
   white-space: pre-wrap;
 `;
-
-const requiredFieldsMissingWarning = isFeatureEnabled(
-  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-)
-  ? t(
-      'Drag and drop values into highlighted field(s) in the control panel. Then run the query by clicking on the "Create chart" button.',
-    )
-  : t(
-      'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the "Create chart" button.',
-    );
 
 class Chart extends React.PureComponent {
   constructor(props) {
@@ -259,7 +250,6 @@ class Chart extends React.PureComponent {
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-    const isFaded = chartIsStale && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
@@ -269,7 +259,7 @@ class Chart extends React.PureComponent {
       return (
         <EmptyStateBig
           title={t('Add required control values to preview chart')}
-          description={requiredFieldsMissingWarning}
+          description={getChartRequiredFieldsMissingMessage(true)}
           image="chart.svg"
         />
       );
@@ -278,7 +268,8 @@ class Chart extends React.PureComponent {
     if (
       !isLoading &&
       !chartAlert &&
-      isFaded &&
+      !errorMessage &&
+      chartIsStale &&
       ensureIsArray(queriesResponse).length === 0
     ) {
       return (
