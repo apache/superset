@@ -35,7 +35,6 @@ import { legendSection, richTooltipSection, xAxisControl } from '../controls';
 
 const {
   area,
-  annotationLayers,
   logAxis,
   markerEnabled,
   markerSize,
