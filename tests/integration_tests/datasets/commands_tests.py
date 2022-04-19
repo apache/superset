@@ -250,6 +250,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         }
         command = v0.ImportDatasetsCommand(contents)
         command.run()
+        db.session.commit()
 
         new_num_datasets = db.session.query(SqlaTable).count()
         assert new_num_datasets == num_datasets + 1
@@ -290,6 +291,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         }
         command = v0.ImportDatasetsCommand(contents)
         command.run()
+        db.session.commit()
 
         new_num_datasets = db.session.query(SqlaTable).count()
         assert new_num_datasets == num_datasets + 1
