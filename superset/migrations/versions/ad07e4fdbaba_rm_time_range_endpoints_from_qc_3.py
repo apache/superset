@@ -50,10 +50,13 @@ def upgrade_slice(slc: Slice):
     except json.decoder.JSONDecodeError:
         return
 
-    queries = query_context.get("queries")
     query_context.get("form_data", {}).pop("time_range_endpoints", None)
-    for query in queries:
-        query.get("extras", {}).pop("time_range_endpoints", None)
+
+    if query_context.get("queries"):
+        queries = query_context["queries"]
+        for query in queries:
+            if query.get("extras", None).get("time_range_endpoints"):
+                del query["extras"]["time_range_endpoints"]
 
     slc.query_context = json.dumps(query_context)
 
