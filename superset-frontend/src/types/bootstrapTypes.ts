@@ -20,22 +20,14 @@ import { isPlainObject } from 'lodash';
  * under the License.
  */
 export type User = {
-  createdOn: string;
-  email: string;
+  createdOn?: string;
+  email?: string;
   firstName: string;
   isActive: boolean;
   isAnonymous: boolean;
   lastName: string;
-  userId: number;
+  userId?: number; // optional because guest user doesn't have a user id
   username: string;
-};
-
-export type GuestUser = {
-  firstName: string;
-  lastName: string;
-  username: string;
-  isAnonymous: false;
-  isActive: false;
 };
 
 export type UserRoles = Record<string, [string, string][]>;
@@ -47,8 +39,7 @@ export interface PermissionsAndRoles {
   roles: UserRoles;
 }
 
-export type UserWithPermissionsAndRoles = (User | GuestUser) &
-  PermissionsAndRoles;
+export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;
 
 export type UndefinedUser = {};
 

@@ -151,7 +151,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userid = user.userId;
-  const id = userid.toString();
+  const id = userid!.toString(); // confident that user is not a guest user
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
@@ -180,7 +180,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
+    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
         data.Examples = res.examples;
@@ -295,7 +295,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             activityData.Created) &&
           activeChild !== 'Loading' ? (
             <ActivityTable
-              user={user}
+              user={{ userId: user.userId! }} // user is definitely not a guest user on this page
               activeChild={activeChild}
               setActiveChild={setActiveChild}
               activityData={activityData}
