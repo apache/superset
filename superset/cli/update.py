@@ -55,39 +55,6 @@ def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
 
 @click.command()
 @with_appcontext
-@click.option(
-    "--datasource",
-    "-d",
-    help="Specify which datasource name to load, if "
-    "omitted, all datasources will be refreshed",
-)
-@click.option(
-    "--merge",
-    "-m",
-    is_flag=True,
-    default=False,
-    help="Specify using 'merge' property during operation. " "Default value is False.",
-)
-def refresh_druid(datasource: str, merge: bool) -> None:
-    """Refresh druid datasources"""
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import DruidCluster
-
-    session = db.session()
-
-    for cluster in session.query(DruidCluster).all():
-        try:
-            cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
-        except Exception as ex:  # pylint: disable=broad-except
-            print("Error while processing cluster '{}'\n{}".format(cluster, str(ex)))
-            logger.exception(ex)
-        cluster.metadata_last_refreshed = datetime.now()
-        print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
-    session.commit()
-
-
-@click.command()
-@with_appcontext
 def update_datasources_cache() -> None:
     """Refresh sqllab datasources cache"""
     # pylint: disable=import-outside-toplevel

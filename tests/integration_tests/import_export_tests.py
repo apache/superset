@@ -34,12 +34,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 from tests.integration_tests.test_app import app
 from superset.dashboards.commands.importers.v0 import decode_dashboards
 from superset import db, security_manager
-from superset.connectors.druid.models import (
-    DruidColumn,
-    DruidDatasource,
-    DruidMetric,
-    DruidCluster,
-)
+
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
 from superset.datasets.commands.importers.v0 import import_dataset
@@ -72,9 +67,6 @@ class TestImportExport(SupersetTestCase):
             for table in session.query(SqlaTable):
                 if "remote_id" in table.params_dict:
                     session.delete(table)
-            for datasource in session.query(DruidDatasource):
-                if "remote_id" in datasource.params_dict:
-                    session.delete(datasource)
             session.commit()
 
     @classmethod
@@ -141,25 +133,6 @@ class TestImportExport(SupersetTestCase):
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table
 
-    def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
-        cluster_name = "druid_test"
-        cluster = self.get_or_create(
-            DruidCluster, {"cluster_name": cluster_name}, db.session
-        )
-
-        params = {"remote_id": id, "database_name": cluster_name}
-        datasource = DruidDatasource(
-            id=id,
-            datasource_name=name,
-            cluster_id=cluster.id,
-            params=json.dumps(params),
-        )
-        for col_name in cols_names:
-            datasource.columns.append(DruidColumn(column_name=col_name))
-        for metric_name in metric_names:
-            datasource.metrics.append(DruidMetric(metric_name=metric_name, json="{}"))
-        return datasource
-
     def get_slice(self, slc_id):
         return db.session.query(Slice).filter_by(id=slc_id).first()
 
@@ -168,9 +141,6 @@ class TestImportExport(SupersetTestCase):
 
     def get_dash(self, dash_id):
         return db.session.query(Dashboard).filter_by(id=dash_id).first()
-
-    def get_datasource(self, datasource_id):
-        return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
 
     def assert_dash_equals(
         self, expected_dash, actual_dash, check_position=True, check_slugs=True

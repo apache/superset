@@ -49,7 +49,6 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
@@ -485,8 +484,6 @@ if is_feature_enabled("DASHBOARD_CACHE"):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
         elif isinstance(obj, (SqlMetric, TableColumn)):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
-        elif isinstance(obj, (DruidMetric, DruidColumn)):
-            Dashboard.clear_cache_for_datasource(datasource_id=obj.datasource_id)
 
     sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
     sqla.event.listen(
@@ -501,5 +498,3 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     # trigger update events for BaseDatasource.
     sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
-    sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
-    sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
