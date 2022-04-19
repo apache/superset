@@ -86,7 +86,6 @@ const validateAggControlValues = (
 
 const queryMode: ControlConfig<'RadioButtonControl'> = {
   type: 'RadioButtonControl',
-  label: t('Query mode'),
   default: null,
   options: [
     [QueryMode.aggregate, QueryModeLabel[QueryMode.aggregate]],
@@ -177,45 +176,14 @@ const dnd_percent_metrics = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
-      label: t('Query'),
+      label: t('Table'),
       expanded: true,
       controlSetRows: [
         [
           {
             name: 'query_mode',
             config: queryMode,
-          },
-        ],
-        [
-          {
-            name: 'groupby',
-            override: {
-              visibility: isAggMode,
-              resetOnHide: false,
-              mapStateToProps: (
-                state: ControlPanelState,
-                controlState: ControlState,
-              ) => {
-                const { controls } = state;
-                const originalMapStateToProps =
-                  sharedControls?.groupby?.mapStateToProps;
-                const newState =
-                  originalMapStateToProps?.(state, controlState) ?? {};
-                newState.externalValidationErrors = validateAggControlValues(
-                  controls,
-                  [
-                    controls.metrics?.value,
-                    controls.percent_metrics?.value,
-                    controlState.value,
-                  ],
-                );
-
-                return newState;
-              },
-              rerender: ['metrics', 'percent_metrics'],
-            },
           },
         ],
         [
@@ -262,7 +230,72 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
+        [
+          {
+            name: 'groupby',
+            override: {
+              visibility: isAggMode,
+              resetOnHide: false,
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => {
+                const { controls } = state;
+                const originalMapStateToProps =
+                  sharedControls?.groupby?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [
+                    controls.metrics?.value,
+                    controls.percent_metrics?.value,
+                    controlState.value,
+                  ],
+                );
+
+                return newState;
+              },
+              rerender: ['metrics', 'percent_metrics'],
+            },
+          },
+        ],
+      ],
+    },
+    {
+      ...sections.baseTimeSection,
+      controlSetRows: [
+        ['granularity'],
+        ['druid_time_origin'],
+        ['granularity_sqla'],
+        [
+          {
+            name: 'include_time',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Include time column in table'),
+              description: t(
+                'Whether to include the time granularity as defined in the time section',
+              ),
+              default: false,
+              visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
+        ['time_grain_sqla'],
+        ['time_range'],
+      ],
+    },
+    {
+      label: t('Filter'),
+      expanded: true,
+      controlSetRows: [['adhoc_filters'], emitFilterControl],
+    },
+    {
+      label: t('Advanced query settings'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'timeseries_limit_metric',
@@ -283,6 +316,19 @@ const config: ControlPanelConfig = {
                 choices: datasource?.order_by_choices || [],
               }),
               visibility: isRawMode,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Sort descending'),
+              default: true,
+              description: t('Whether to sort descending or ascending'),
+              visibility: isAggMode,
               resetOnHide: false,
             },
           },
@@ -327,32 +373,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'include_time',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Include time'),
-              description: t(
-                'Whether to include the time granularity as defined in the time section',
-              ),
-              default: false,
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-        ],
-        [
-          {
             name: 'show_totals',
             config: {
               type: 'CheckboxControl',
@@ -366,7 +386,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        emitFilterControl,
       ],
     },
     {

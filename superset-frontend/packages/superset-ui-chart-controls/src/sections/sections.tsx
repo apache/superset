@@ -22,7 +22,7 @@ import { ControlPanelSectionConfig } from '../types';
 // A few standard controls sections that are used internally.
 // Not recommended for use in third-party plugins.
 
-const baseTimeSection = {
+export const baseTimeSection = {
   label: t('Time'),
   expanded: true,
   description: t('Time related form attributes'),
