@@ -118,7 +118,7 @@ function guestUnauthorizedHandler() {
 function start() {
   const getMeWithRole = makeApi<void, UserWithPermissionsAndRoles>({
     method: 'GET',
-    endpoint: '/api/v1/me/roles',
+    endpoint: '/api/v1/me/roles/',
   });
   return getMeWithRole().then(
     meWithPerm => {
