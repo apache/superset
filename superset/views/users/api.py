@@ -18,7 +18,7 @@ from flask import g, Response
 from flask_appbuilder.api import BaseApi, expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
-from superset.views.utils import get_permissions
+from superset.views.utils import bootstrap_user_data
 
 from .schemas import UserResponseSchema
 
@@ -89,5 +89,5 @@ class CurrentUserRestApi(BaseApi):
                 return self.response_401()
         except NoAuthorizationError:
             return self.response_401()
-        roles, _ = get_permissions(g.user)
-        return self.response(200, result={"roles": roles})
+        user = bootstrap_user_data(g.user, include_perms=True)
+        return self.response(200, result=user)
