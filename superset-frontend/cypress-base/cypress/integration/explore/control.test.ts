@@ -121,14 +121,12 @@ describe('Test datatable', () => {
     cy.visitChartByName('Daily Totals');
   });
   it('Data Pane opens and loads results', () => {
-    cy.get('[data-test="data-tab"]').click();
+    cy.contains('Results').click();
     cy.get('[data-test="row-count-label"]').contains('26 rows retrieved');
-    cy.contains('View results');
     cy.get('.ant-empty-description').should('not.exist');
   });
   it('Datapane loads view samples', () => {
-    cy.get('[data-test="data-tab"]').click();
-    cy.contains('View samples').click();
+    cy.contains('Samples').click();
     cy.get('[data-test="row-count-label"]').contains('1k rows retrieved');
     cy.get('.ant-empty-description').should('not.exist');
   });
