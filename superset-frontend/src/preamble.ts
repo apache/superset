@@ -26,7 +26,7 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
-import { User } from './types/bootstrapTypes';
+import { User, UserWithPermissionsAndRoles } from './types/bootstrapTypes';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -34,7 +34,7 @@ if (process.env.WEBPACK_MODE === 'development') {
 
 // eslint-disable-next-line import/no-mutable-exports
 export let bootstrapData: {
-  user?: User | undefined;
+  user?: UserWithPermissionsAndRoles | undefined;
   common?: any;
   config?: any;
   embedded?: {

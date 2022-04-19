@@ -17,10 +17,11 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  UserRoles,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import Dashboard from 'src/types/Dashboard';
-
-type UserRoles = Record<string, [string, string][]>;
 
 const findPermission = memoizeOne(
   (perm: string, view: string, roles?: UserRoles | null) =>

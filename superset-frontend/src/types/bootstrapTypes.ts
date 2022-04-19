@@ -29,13 +29,25 @@ export type User = {
   username: string;
 };
 
-export interface UserWithPermissionsAndRoles extends User {
+export type GuestUser = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  isAnonymous: false;
+  isActive: false;
+};
+
+export type UserRoles = Record<string, [string, string][]>;
+export interface PermissionsAndRoles {
   permissions: {
     database_access?: string[];
     datasource_access?: string[];
   };
-  roles: Record<string, [string, string][]>;
+  roles: UserRoles;
 }
+
+export type UserWithPermissionsAndRoles = (User | GuestUser) &
+  PermissionsAndRoles;
 
 export type Dashboard = {
   dttm: number;

@@ -19,7 +19,7 @@
 import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { makeApi, t } from '@superset-ui/core';
 import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
@@ -29,6 +29,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 
@@ -69,8 +70,13 @@ const appMountPoint = document.getElementById('app')!;
 const MESSAGE_TYPE = '__embedded_comms__';
 
 if (!window.parent || window.parent === window) {
-  appMountPoint.innerHTML =
-    'This page is intended to be embedded in an iframe, but it looks like that is not the case.';
+  showFailureMessage(
+    'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
+  );
+}
+
+function showFailureMessage(message: string) {
+  appMountPoint.innerHTML = message;
 }
 
 // if the page is embedded in an origin that hasn't
@@ -106,6 +112,29 @@ function guestUnauthorizedHandler() {
         noDuplicate: true,
       },
     ),
+  );
+}
+
+function start() {
+  const getMeWithRole = makeApi<void, UserWithPermissionsAndRoles>({
+    method: 'GET',
+    endpoint: '/api/v1/me/roles',
+  });
+  return getMeWithRole().then(
+    meWithPerm => {
+      // fill in some missing bootstrap data
+      // (because at pageload, we don't have any auth yet)
+      // this allows the frontend's permissions checks to work.
+      bootstrapData.user = meWithPerm;
+      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+    },
+    err => {
+      // something is most likely wrong with the guest token
+      console.error(err);
+      showFailureMessage(
+        'Something went wrong with embedded authentication. Check the dev console for details.',
+      );
+    },
   );
 }
 
@@ -153,7 +182,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     switchboard.defineMethod('guestToken', ({ guestToken }) => {
       setupGuestClient(guestToken);
       if (!started) {
-        ReactDOM.render(<EmbeddedApp />, appMountPoint);
+        start();
         started = true;
       }
     });
