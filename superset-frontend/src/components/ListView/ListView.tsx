@@ -20,7 +20,7 @@ import { t, styled } from '@superset-ui/core';
 import React, { useEffect } from 'react';
 import { Empty } from 'src/common/components';
 import Alert from 'src/components/Alert';
-import { ReactComponent as EmptyImage } from 'images/empty.svg';
+import EmptyImage from 'src/assets/images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -50,13 +50,11 @@ const ListViewStyles = styled.div`
       display: flex;
       padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
-      .header-left {
+      & .controls {
         display: flex;
-        flex: 5;
-      }
-      .header-right {
-        flex: 1;
-        text-align: right;
+        flex-wrap: wrap;
+        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
+        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
 
@@ -136,6 +134,7 @@ const bulkSelectColumnConfig = {
 
 const ViewModeContainer = styled.div`
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
   display: inline-block;
 
   .toggle-button {
@@ -301,10 +300,10 @@ function ListView<T extends object = any>({
     <ListViewStyles>
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
-          <div className="header-left">
-            {cardViewEnabled && (
-              <ViewModeToggle mode={viewMode} setMode={setViewMode} />
-            )}
+          {cardViewEnabled && (
+            <ViewModeToggle mode={viewMode} setMode={setViewMode} />
+          )}
+          <div className="controls">
             {filterable && (
               <FilterControls
                 filters={filters}
@@ -312,8 +311,6 @@ function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
-          </div>
-          <div className="header-right">
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}

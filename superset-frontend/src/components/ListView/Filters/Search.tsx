@@ -17,14 +17,30 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import SearchInput from 'src/components/SearchInput';
-import { FilterContainer, BaseFilter } from './Base';
+import { t, styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import { AntdInput as Input } from 'src/common/components';
+import { SELECT_WIDTH } from 'src/components/ListView/utils';
+import { FormLabel } from 'src/components/Form';
+import { BaseFilter } from './Base';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
   onSubmit: (val: string) => void;
   name: string;
 }
+
+const Container = styled.div`
+  width: ${SELECT_WIDTH}px;
+`;
+
+const SearchIcon = styled(Icons.Search)`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
+
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
 
 export default function SearchFilter({
   Header,
@@ -35,31 +51,31 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      onSubmit(value.trim());
+      // encode plus signs to prevent them from being converted into a space
+      onSubmit(value.trim().replace(/\+/g, '%2B'));
     }
-  };
-  const onClear = () => {
-    setValue('');
-    onSubmit('');
   };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.currentTarget.value);
     if (e.currentTarget.value === '') {
-      onClear();
+      onSubmit('');
     }
   };
 
   return (
-    <FilterContainer>
-      <SearchInput
+    <Container>
+      <FormLabel>{Header}</FormLabel>
+      <StyledInput
+        allowClear
         data-test="filters-search"
-        placeholder={Header}
+        placeholder={t('Type a value')}
         name={name}
         value={value}
         onChange={handleChange}
-        onSubmit={handleSubmit}
-        onClear={onClear}
+        onPressEnter={handleSubmit}
+        onBlur={handleSubmit}
+        prefix={<SearchIcon iconSize="l" />}
       />
-    </FilterContainer>
+    </Container>
   );
 }

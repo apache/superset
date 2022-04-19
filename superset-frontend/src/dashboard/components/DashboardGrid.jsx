@@ -38,6 +38,16 @@ const propTypes = {
 
 const defaultProps = {};
 
+const renderDraggableContentBottom = dropProps =>
+  dropProps.dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--bottom" />
+  );
+
+const renderDraggableContentTop = dropProps =>
+  dropProps.dropIndicatorProps && (
+    <div className="drop-indicator drop-indicator--top" />
+  );
+
 class DashboardGrid extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -144,15 +154,11 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--bottom" />
-                )
-              }
+              {renderDraggableContentBottom}
             </DragDroppable>
           )}
 
-          {gridComponent.children.map((id, index) => (
+          {gridComponent?.children?.map((id, index) => (
             <DashboardComponent
               key={id}
               id={id}
@@ -170,7 +176,7 @@ class DashboardGrid extends React.PureComponent {
           ))}
 
           {/* make the area below components droppable */}
-          {editMode && gridComponent.children.length > 0 && (
+          {editMode && gridComponent?.children?.length > 0 && (
             <DragDroppable
               component={gridComponent}
               depth={depth}
@@ -181,11 +187,7 @@ class DashboardGrid extends React.PureComponent {
               className="empty-droptarget"
               editMode
             >
-              {({ dropIndicatorProps }) =>
-                dropIndicatorProps && (
-                  <div className="drop-indicator drop-indicator--top" />
-                )
-              }
+              {renderDraggableContentTop}
             </DragDroppable>
           )}
 

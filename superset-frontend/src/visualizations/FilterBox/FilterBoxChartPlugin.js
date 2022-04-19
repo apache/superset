@@ -37,7 +37,7 @@ export default class FilterBoxChartPlugin extends ChartPlugin {
       controlPanel,
       metadata,
       transformProps,
-      loadChart: () => import('./FilterBox.jsx'),
+      loadChart: () => import('./FilterBox'),
     });
   }
 }

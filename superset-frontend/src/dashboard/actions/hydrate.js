@@ -64,7 +64,7 @@ export const hydrateDashboard = (dashboardData, chartData) => (
   dispatch,
   getState,
 ) => {
-  const { user, common } = getState();
+  const { user, common, dashboardState } = getState();
   let { metadata } = dashboardData;
   const regularUrlParams = extractUrlParams('regular');
   const reservedUrlParams = extractUrlParams('reserved');
@@ -88,16 +88,16 @@ export const hydrateDashboard = (dashboardData, chartData) => (
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
   if (metadata?.label_colors) {
-    const scheme = metadata.color_scheme;
     const namespace = metadata.color_namespace;
     const colorMap = isString(metadata.label_colors)
       ? JSON.parse(metadata.label_colors)
       : metadata.label_colors;
+    const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+      namespace,
+    );
+
     Object.keys(colorMap).forEach(label => {
-      CategoricalColorNamespace.getScale(scheme, namespace).setColor(
-        label,
-        colorMap[label],
-      );
+      categoricalNamespace.setColor(label, colorMap[label]);
     });
   }
 
@@ -371,15 +371,15 @@ export const hydrateDashboard = (dashboardData, chartData) => (
         // only persistent refreshFrequency will be saved to backend
         shouldPersistRefreshFrequency: false,
         css: dashboardData.css || '',
-        colorNamespace: metadata?.color_namespace,
-        colorScheme: metadata?.color_scheme,
+        colorNamespace: metadata?.color_namespace || null,
+        colorScheme: metadata?.color_scheme || null,
         editMode: canEdit && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
         isRefreshing: false,
-        activeTabs: [],
+        activeTabs: dashboardState?.activeTabs || [],
       },
       dashboardLayout,
     },

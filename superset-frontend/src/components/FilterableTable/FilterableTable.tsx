@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'immutable';
 import JSONbig from 'json-bigint';
 import React, { PureComponent } from 'react';
 import JSONTree from 'react-json-tree';
@@ -81,6 +80,10 @@ const JSON_TREE_THEME = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 };
+// This regex handles all possible number formats in javascript, including ints, floats,
+// exponential notation, NaN, and Infinity.
+// See https://stackoverflow.com/a/30987109 for more details
+const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 const StyledFilterableTable = styled.div`
   height: 100%;
@@ -128,7 +131,7 @@ export default class FilterableTable extends PureComponent<
     expandedColumns: [],
   };
 
-  list: List<Datum>;
+  list: Datum[];
 
   complexColumns: Record<string, boolean>;
 
@@ -142,7 +145,7 @@ export default class FilterableTable extends PureComponent<
 
   constructor(props: FilterableTableProps) {
     super(props);
-    this.list = List(this.formatTableData(props.data));
+    this.list = this.formatTableData(props.data);
     this.addJsonModal = this.addJsonModal.bind(this);
     this.getCellContent = this.getCellContent.bind(this);
     this.renderGridCell = this.renderGridCell.bind(this);
@@ -182,19 +185,20 @@ export default class FilterableTable extends PureComponent<
     this.fitTableToWidthIfNeeded();
   }
 
-  getDatum(list: List<Datum>, index: number) {
-    return list.get(index % list.size);
+  getDatum(list: Datum[], index: number) {
+    return list[index % list.length];
   }
 
   getWidthsForColumns() {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
-    const cellContent = [].concat(
+    const cellContent = ([] as string[]).concat(
       ...this.props.orderedColumnKeys.map(key => {
         const cellContentList = this.list.map((data: Datum) =>
           this.getCellContent({ cellData: data[key], columnKey: key }),
-        ) as List<string | JSX.Element>;
-        return cellContentList.push(key).toJS();
+        );
+        cellContentList.push(key);
+        return cellContentList;
       }),
     );
 
@@ -210,8 +214,8 @@ export default class FilterableTable extends PureComponent<
       widthsByColumnKey[key] =
         colWidths
           .slice(
-            index * (this.list.size + 1),
-            (index + 1) * (this.list.size + 1),
+            index * (this.list.length + 1),
+            (index + 1) * (this.list.length + 1),
           )
           .reduce((a, b) => Math.max(a, b)) + PADDING;
     });
@@ -225,9 +229,9 @@ export default class FilterableTable extends PureComponent<
   }: {
     cellData: CellDataType;
     columnKey: string;
-  }): string | JSX.Element {
+  }) {
     if (cellData === null) {
-      return <i className="text-muted">NULL</i>;
+      return 'NULL';
     }
     const content = String(cellData);
     const firstCharacter = content.substring(0, 1);
@@ -321,21 +325,35 @@ export default class FilterableTable extends PureComponent<
     );
   }
 
+  // Parse any numbers from strings so they'll sort correctly
+  parseNumberFromString = (value: string | number | null) => {
+    if (typeof value === 'string') {
+      if (ONLY_NUMBER_REGEX.test(value)) {
+        return parseFloat(value);
+      }
+    }
+
+    return value;
+  };
+
   sortResults(sortBy: string, descending: boolean) {
     return (a: Datum, b: Datum) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
+      const aValue = this.parseNumberFromString(a[sortBy]);
+      const bValue = this.parseNumberFromString(b[sortBy]);
+
+      // equal items sort equally
       if (aValue === bValue) {
-        // equal items sort equally
         return 0;
       }
+
+      // nulls sort after anything else
       if (aValue === null) {
-        // nulls sort after anything else
         return 1;
       }
       if (bValue === null) {
         return -1;
       }
+
       if (descending) {
         return aValue < bValue ? 1 : -1;
       }
@@ -359,7 +377,12 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip id="header-tooltip" title={label}>
+      <Tooltip
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div className={className}>
           {label}
           {sortBy === dataKey && (
@@ -385,7 +408,13 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <Tooltip key={key} id="header-tooltip" title={label}>
+      <Tooltip
+        key={key}
+        id="header-tooltip"
+        title={label}
+        placement="topLeft"
+        css={{ display: 'block' }}
+      >
         <div
           style={{
             ...style,
@@ -414,8 +443,15 @@ export default class FilterableTable extends PureComponent<
     style: React.CSSProperties;
   }) {
     const columnKey = this.props.orderedColumnKeys[columnIndex];
-    const cellData = this.list.get(rowIndex)[columnKey];
-    const content = this.getCellContent({ cellData, columnKey });
+    const cellData = this.list[rowIndex][columnKey];
+    const content =
+      cellData === null ? (
+        <i className="text-muted">
+          {this.getCellContent({ cellData, columnKey })}
+        </i>
+      ) : (
+        this.getCellContent({ cellData, columnKey })
+      );
     const cellNode = (
       <div
         key={key}
@@ -428,7 +464,7 @@ export default class FilterableTable extends PureComponent<
         }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        <div>{content}</div>
+        <div css={{ width: 'inherit' }}>{content}</div>
       </div>
     );
 
@@ -493,7 +529,7 @@ export default class FilterableTable extends PureComponent<
                   onScroll={onScroll}
                   overscanColumnCount={overscanColumnCount}
                   overscanRowCount={overscanRowCount}
-                  rowCount={this.list.size}
+                  rowCount={this.list.length}
                   rowHeight={rowHeight}
                   width={this.totalTableWidth}
                 />
@@ -530,18 +566,18 @@ export default class FilterableTable extends PureComponent<
       rowHeight,
     } = this.props;
 
-    let sortedAndFilteredList: List<Datum> = this.list;
+    let sortedAndFilteredList = this.list;
     // filter list
     if (filterText) {
       sortedAndFilteredList = this.list.filter((row: Datum) =>
         this.hasMatch(filterText, row),
-      ) as List<Datum>;
+      );
     }
     // sort list
     if (sortBy) {
       sortedAndFilteredList = sortedAndFilteredList.sort(
         this.sortResults(sortBy, sortDirection === SortDirection.DESC),
-      ) as List<Datum>;
+      );
     }
 
     let { height } = this.props;
@@ -572,7 +608,7 @@ export default class FilterableTable extends PureComponent<
             rowClassName={this.rowClassName}
             rowHeight={rowHeight}
             rowGetter={rowGetter}
-            rowCount={sortedAndFilteredList.size}
+            rowCount={sortedAndFilteredList.length}
             sort={this.sort}
             sortBy={sortBy}
             sortDirection={sortDirection}

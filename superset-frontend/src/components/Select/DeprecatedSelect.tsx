@@ -249,8 +249,15 @@ function styled<
     if (forceOverflow) {
       Object.assign(restProps, {
         closeMenuOnScroll: (e: Event) => {
+          // ensure menu is open
+          const menuIsOpen = (stateManager as BasicSelect<OptionType>)?.state
+            ?.menuIsOpen;
           const target = e.target as HTMLElement;
-          return target && !target.classList?.contains('Select__menu-list');
+          return (
+            menuIsOpen &&
+            target &&
+            !target.classList?.contains('Select__menu-list')
+          );
         },
         menuPosition: 'fixed',
       });

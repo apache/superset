@@ -23,7 +23,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {

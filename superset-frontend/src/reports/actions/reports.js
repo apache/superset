@@ -20,7 +20,10 @@
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { addDangerToast, addSuccessToast } from '../../messageToasts/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {

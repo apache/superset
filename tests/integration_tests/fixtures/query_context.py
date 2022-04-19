@@ -29,7 +29,7 @@ query_birth_names = {
         ),
         "time_grain_sqla": "P1D",
     },
-    "groupby": ["name"],
+    "columns": ["name"],
     "metrics": [{"label": "sum__num"}],
     "orderby": [("sum__num", False)],
     "row_limit": 100,

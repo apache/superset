@@ -147,6 +147,8 @@ function DashboardCard({
       <ListViewCard
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
+        certifiedBy={dashboard.certified_by}
+        certificationDetails={dashboard.certification_details}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }

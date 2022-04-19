@@ -65,9 +65,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if self._model:
             try:
                 dataset = DatasetDAO.update(
-                    model=self._model,
-                    properties=self._properties,
-                    override_columns=self.override_columns,
+                    model=self._model, properties=self._properties,
                 )
                 return dataset
             except DAOUpdateFailedError as ex:

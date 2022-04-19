@@ -30,7 +30,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 

@@ -271,7 +271,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @permission_name("post")
     def post(self) -> Response:

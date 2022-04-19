@@ -26,10 +26,8 @@ if TYPE_CHECKING:
 
 
 def literal_dttm_type_factory(
-    sqla_type: Type[types.TypeEngine],
-    db_engine_spec: Type["BaseEngineSpec"],
-    col_type: str,
-) -> Type[types.TypeEngine]:
+    sqla_type: types.TypeEngine, db_engine_spec: Type["BaseEngineSpec"], col_type: str,
+) -> types.TypeEngine:
     """
     Create a custom SQLAlchemy type that supports datetime literal binds.
 
@@ -39,7 +37,7 @@ def literal_dttm_type_factory(
     :return: SQLAlchemy type that supports using datetima as literal bind
     """
     # pylint: disable=too-few-public-methods
-    class TemporalWrapperType(sqla_type):  # type: ignore
+    class TemporalWrapperType(type(sqla_type)):  # type: ignore
         # pylint: disable=unused-argument
         def literal_processor(self, dialect: Dialect) -> Callable[[Any], Any]:
             def process(value: Any) -> Any:
@@ -58,4 +56,4 @@ def literal_dttm_type_factory(
 
             return process
 
-    return TemporalWrapperType
+    return TemporalWrapperType()

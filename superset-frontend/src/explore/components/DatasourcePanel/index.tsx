@@ -17,7 +17,11 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
+import {
+  ControlConfig,
+  DatasourceMeta,
+  ColumnMeta,
+} from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { css, styled, t } from '@superset-ui/core';
@@ -253,6 +257,9 @@ export default function DataSourcePanel({
     setInputValue('');
   }, [columns, datasource, metrics]);
 
+  const sortCertifiedFirst = (slice: ColumnMeta[]) =>
+    slice.sort((a, b) => b.is_certified - a.is_certified);
+
   const metricSlice = useMemo(
     () =>
       showAllMetrics
@@ -263,8 +270,10 @@ export default function DataSourcePanel({
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? lists.columns
-        : lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+        ? sortCertifiedFirst(lists.columns)
+        : sortCertifiedFirst(
+            lists.columns.slice(0, DEFAULT_MAX_COLUMNS_LENGTH),
+          ),
     [lists.columns, showAllColumns],
   );
 

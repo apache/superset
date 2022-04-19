@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-public-methods, invalid-name
 """Unit tests for Superset"""
 import json
 import unittest
@@ -36,7 +35,12 @@ from superset.dao.exceptions import (
 )
 from superset.extensions import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_database, get_main_database
+from superset.utils.core import (
+    backend,
+    get_example_database,
+    get_example_default_schema,
+    get_main_database,
+)
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
@@ -135,7 +139,11 @@ class TestDatasetApi(SupersetTestCase):
         example_db = get_example_database()
         return (
             db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="energy_usage")
+            .filter_by(
+                database=example_db,
+                table_name="energy_usage",
+                schema=get_example_default_schema(),
+            )
             .one()
         )
 
@@ -222,6 +230,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test get dataset item
         """
         table = self.get_energy_usage_dataset()
+        main_db = get_main_database()
         self.login(username="admin")
         uri = f"api/v1/dataset/{table.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -229,7 +238,11 @@ class TestDatasetApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_result = {
             "cache_timeout": None,
-            "database": {"database_name": "examples", "id": 1},
+            "database": {
+                "backend": main_db.backend,
+                "database_name": "examples",
+                "id": 1,
+            },
             "default_endpoint": None,
             "description": "Energy consumption",
             "extra": None,
@@ -239,14 +252,15 @@ class TestDatasetApi(SupersetTestCase):
             "main_dttm_col": None,
             "offset": 0,
             "owners": [],
-            "schema": None,
+            "schema": get_example_default_schema(),
             "sql": None,
             "table_name": "energy_usage",
             "template_params": None,
         }
-        assert {
-            k: v for k, v in response["result"].items() if k in expected_result
-        } == expected_result
+        if response["result"]["database"]["backend"] not in ("presto", "hive"):
+            assert {
+                k: v for k, v in response["result"].items() if k in expected_result
+            } == expected_result
         assert len(response["result"]["columns"]) == 3
         assert len(response["result"]["metrics"]) == 2
 
@@ -472,12 +486,15 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test create dataset validate table uniqueness
         """
+        schema = get_example_default_schema()
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
+        if schema:
+            table_data["schema"] = schema
         rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
@@ -541,6 +558,49 @@ class TestDatasetApi(SupersetTestCase):
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
+
+    @patch("superset.models.core.Database.get_columns")
+    @patch("superset.models.core.Database.has_table_by_name")
+    @patch("superset.models.core.Database.get_table")
+    def test_create_dataset_validate_view_exists(
+        self, mock_get_table, mock_has_table_by_name, mock_get_columns
+    ):
+        """
+        Dataset API: Test create dataset validate view exists
+        """
+
+        mock_get_columns.return_value = [
+            {"name": "col", "type": "VARCHAR", "type_generic": None, "is_dttm": None,}
+        ]
+
+        mock_has_table_by_name.return_value = False
+        mock_get_table.return_value = None
+
+        example_db = get_example_database()
+        engine = example_db.get_sqla_engine()
+        dialect = engine.dialect
+
+        with patch.object(
+            dialect, "get_view_names", wraps=dialect.get_view_names
+        ) as patch_get_view_names:
+            patch_get_view_names.return_value = ["test_case_view"]
+
+            self.login(username="admin")
+            table_data = {
+                "database": example_db.id,
+                "schema": "",
+                "table_name": "test_case_view",
+            }
+
+            uri = "api/v1/dataset/"
+            rv = self.post_assert_metric(uri, table_data, "post")
+            assert rv.status_code == 201
+
+            # cleanup
+            data = json.loads(rv.data.decode("utf-8"))
+            uri = f'api/v1/dataset/{data.get("id")}'
+            rv = self.client.delete(uri)
+            assert rv.status_code == 200
 
     @patch("superset.datasets.dao.DatasetDAO.create")
     def test_create_dataset_sqlalchemy_error(self, mock_dao_create):
@@ -1398,6 +1458,7 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code == 404
 
+    @unittest.skip("Number of related objects depend on DB")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
         """
@@ -1492,6 +1553,8 @@ class TestDatasetApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1584,6 +1647,8 @@ class TestDatasetApi(SupersetTestCase):
         )
         dataset = database.tables[0]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()

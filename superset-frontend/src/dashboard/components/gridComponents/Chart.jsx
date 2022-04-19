@@ -52,6 +52,7 @@ const propTypes = {
   // from redux
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
+  labelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
@@ -230,7 +231,7 @@ export default class Chart extends React.Component {
     });
   };
 
-  getChartUrl = () => getExploreLongUrl(this.props.formData);
+  getChartUrl = () => getExploreLongUrl(this.props.formData, null, false);
 
   exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
@@ -241,7 +242,7 @@ export default class Chart extends React.Component {
       formData: isFullCSV
         ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
-      resultType: 'results',
+      resultType: 'full',
       resultFormat: 'csv',
     });
   }
@@ -274,6 +275,7 @@ export default class Chart extends React.Component {
       editMode,
       filters,
       formData,
+      labelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -396,6 +398,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            labelColors={labelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}

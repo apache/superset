@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
+from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
@@ -30,12 +31,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger()
 
 
-class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
 
     engine = "druid"
     engine_name = "Apache Druid"
-    allows_joins = False
+    allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
     _time_grain_expressions = {
@@ -47,14 +48,14 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "PT5M": "TIME_FLOOR({col}, 'PT5M')",
         "PT10M": "TIME_FLOOR({col}, 'PT10M')",
         "PT15M": "TIME_FLOOR({col}, 'PT15M')",
-        "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
-        "PT1H": "FLOOR({col} TO HOUR)",
+        "PT30M": "TIME_FLOOR({col}, 'PT30M')",
+        "PT1H": "TIME_FLOOR({col}, 'PT1H')",
         "PT6H": "TIME_FLOOR({col}, 'PT6H')",
-        "P1D": "FLOOR({col} TO DAY)",
-        "P1W": "FLOOR({col} TO WEEK)",
-        "P1M": "FLOOR({col} TO MONTH)",
-        "P0.25Y": "FLOOR({col} TO QUARTER)",
-        "P1Y": "FLOOR({col} TO YEAR)",
+        "P1D": "TIME_FLOOR({col}, 'P1D')",
+        "P1W": "TIME_FLOOR({col}, 'P1W')",
+        "P1M": "TIME_FLOOR({col}, 'P1M')",
+        "P3M": "TIME_FLOOR({col}, 'P3M')",
+        "P1Y": "TIME_FLOOR({col}, 'P1Y')",
         "P1W/1970-01-03T00:00:00Z": (
             "TIMESTAMPADD(DAY, 5, FLOOR(TIMESTAMPADD(DAY, 1, {col}) TO WEEK))"
         ),
@@ -100,3 +101,17 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        """
+        Convert from number of seconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col} * 1000)"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        """
+        Convert from number of milliseconds since the epoch to a timestamp.
+        """
+        return "MILLIS_TO_TIMESTAMP({col})"

@@ -141,7 +141,12 @@ export function initEnhancer(
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development'
       ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__'] || compose
+        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']
+        ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
+          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']({
+            trace: true,
+          })
+        : compose
       : compose;
 
   return persist

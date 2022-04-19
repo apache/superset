@@ -167,6 +167,7 @@ module.exports = {
         'src/**/*.test.tsx',
         'src/**/*.test.js',
         'src/**/*.test.jsx',
+        'src/**/fixtures.*',
       ],
       plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
       env: {

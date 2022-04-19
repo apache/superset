@@ -409,18 +409,18 @@ referenced in the rst, e.g.
     .. image:: _static/images/tutorial/tutorial_01_sources_database.png
 
 aren't actually stored in that directory. Instead, you should add and commit
-images (and any other static assets) to the `superset-frontend/images` directory.
+images (and any other static assets) to the `superset-frontend/src/assets/images` directory.
 When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
-For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
+For example, the image referenced above actually lives in `superset-frontend/src/assets/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
 ### Flask server
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.  
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.7 or 3.8, then proceed with:
@@ -522,7 +522,12 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 ##### nvm and node
 
-First, be sure you are using recent versions of Node.js and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+First, be sure you are using the following versions of Node.js and npm:
+
+- `Node.js`: Version 16
+- `npm`: Version 7
+
+We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
@@ -539,12 +544,6 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
-
-We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
-
-```bash
-npm install -g npm@7
-```
 
 #### Install dependencies
 
@@ -754,13 +753,19 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
-There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all tests for example, run this script from the root directory:
+To run all integration tests for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
 ```
 
 ### Frontend Testing
@@ -807,7 +812,7 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
 
 # run specific file with video capture
 npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true

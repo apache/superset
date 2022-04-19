@@ -35,12 +35,12 @@ import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Input, AntdInput } from 'src/common/components';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
 } from 'src/views/CRUD/data/dataset/constants';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from '../components/FacePile';
 
 const CONFIRM_WARNING_MESSAGE = t(

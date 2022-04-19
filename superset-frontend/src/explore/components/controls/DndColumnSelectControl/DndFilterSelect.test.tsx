@@ -43,6 +43,11 @@ const defaultProps: DndFilterSelectProps = {
   actions: { setControlValue: jest.fn() },
 };
 
+const baseFormData = {
+  viz_type: 'my_viz',
+  datasource: 'table__1',
+};
+
 test('renders with default props', () => {
   render(<DndFilterSelect {...defaultProps} />, { useDnd: true });
   expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
@@ -63,7 +68,11 @@ test('renders options with saved metric', () => {
   render(
     <DndFilterSelect
       {...defaultProps}
-      formData={{ ...DEFAULT_FORM_DATA, metrics: ['saved_metric'] }}
+      formData={{
+        ...baseFormData,
+        ...DEFAULT_FORM_DATA,
+        metrics: ['saved_metric'],
+      }}
     />,
     {
       useDnd: true,
@@ -100,7 +109,11 @@ test('renders options with adhoc metric', () => {
   render(
     <DndFilterSelect
       {...defaultProps}
-      formData={{ ...DEFAULT_FORM_DATA, metrics: [adhocMetric] }}
+      formData={{
+        ...baseFormData,
+        ...DEFAULT_FORM_DATA,
+        metrics: [adhocMetric],
+      }}
     />,
     {
       useDnd: true,

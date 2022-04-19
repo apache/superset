@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
-from superset.databases.schemas import encrypted_field_properties
+from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -45,10 +45,15 @@ ma_plugin = MarshmallowPlugin()
 
 class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
+    service_account_info = EncryptedString(
+        required=False,
+        description="Contents of GSheets JSON credentials.",
+        field_name="service_account_info",
+    )
 
 
 class GSheetsParametersType(TypedDict):
-    credentials_info: Dict[str, Any]
+    service_account_info: str
     catalog: Dict[str, str]
 
 
@@ -113,7 +118,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, encrypted_extra: Optional[Dict[str, str]] = None,
+        cls,
+        uri: str,  # pylint: disable=unused-argument
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> Any:
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
@@ -146,7 +153,13 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         cls, parameters: GSheetsParametersType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
-        credentials_info = parameters.get("credentials_info")
+        encrypted_credentials = parameters.get("service_account_info") or "{}"
+
+        # On create the encrypted credentials are a string,
+        # at all other times they are a dict
+        if isinstance(encrypted_credentials, str):
+            encrypted_credentials = json.loads(encrypted_credentials)
+
         table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
@@ -160,7 +173,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         subject = g.user.email if g.user else None
 
         engine = create_engine(
-            "gsheets://", service_account_info=credentials_info, subject=subject,
+            "gsheets://", service_account_info=encrypted_credentials, subject=subject,
         )
         conn = engine.connect()
         idx = 0

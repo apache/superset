@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
@@ -78,7 +78,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class SupersetSecurityListWidget(ListWidget):
+class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     """
     Redeclaring to avoid circular imports
     """
@@ -86,7 +86,7 @@ class SupersetSecurityListWidget(ListWidget):
     template = "superset/fab_overrides/list.html"
 
 
-class SupersetRoleListWidget(ListWidget):
+class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     """
     Role model view from FAB already uses a custom list widget override
     So we override the override

@@ -206,7 +206,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
                 "P1D",
                 "P1W",
                 "P1M",
-                "P0.25Y",
+                "P3M",
                 "P1Y",
                 "1969-12-29T00:00:00Z/P1W",
             ],
@@ -314,7 +314,7 @@ def test_time_grain_addons():
 
 
 def test_get_time_grain_with_config():
-    """ Should concatenate from configs and then sort in the proper order """
+    """Should concatenate from configs and then sort in the proper order"""
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
@@ -345,7 +345,7 @@ def test_get_time_grain_with_config():
             "P1D",
             "P1W",
             "P1M",
-            "P0.25Y",
+            "P3M",
             "P1Y",
             "1969-12-29T00:00:00Z/P1W",
         }

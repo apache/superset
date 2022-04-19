@@ -32,6 +32,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
+    allows_escaped_colons = False
 
     _time_grain_expressions = {
         None: "{col}",
@@ -41,7 +42,7 @@ class AthenaEngineSpec(BaseEngineSpec):
         "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
         "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
         "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P0.25Y": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
         "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', \
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",

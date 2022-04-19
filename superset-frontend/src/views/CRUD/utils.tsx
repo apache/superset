@@ -37,32 +37,52 @@ const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
   handleError: (error: Response) => void,
-  userId?: string | number,
-) => async (filterValue = '', pageIndex?: number, pageSize?: number) => {
+  user?: { userId: string | number; firstName: string; lastName: string },
+) => async (filterValue = '', page: number, pageSize: number) => {
   const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
-  const options =
-    userId && pageIndex === 0 ? [{ label: 'me', value: userId }] : [];
-  try {
-    const queryParams = rison.encode({
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
-      ...(filterValue ? { filter: filterValue } : {}),
-    });
-    const { json = {} } = await SupersetClient.get({
-      endpoint: `${resourceEndpoint}?q=${queryParams}`,
-    });
-    const data = json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
-        label,
-        value,
-      }),
-    );
+  const queryParams = rison.encode({
+    filter: filterValue,
+    page,
+    page_size: pageSize,
+  });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: `${resourceEndpoint}?q=${queryParams}`,
+  });
 
-    return options.concat(data);
-  } catch (e) {
-    handleError(e);
+  let fetchedLoggedUser = false;
+  const loggedUser = user
+    ? {
+        label: `${user.firstName} ${user.lastName}`,
+        value: user.userId,
+      }
+    : undefined;
+
+  const data: { label: string; value: string | number }[] = [];
+  json?.result?.forEach(
+    ({ text, value }: { text: string; value: string | number }) => {
+      if (
+        loggedUser &&
+        value === loggedUser.value &&
+        text === loggedUser.label
+      ) {
+        fetchedLoggedUser = true;
+      } else {
+        data.push({
+          label: text,
+          value,
+        });
+      }
+    },
+  );
+
+  if (loggedUser && (!filterValue || fetchedLoggedUser)) {
+    data.unshift(loggedUser);
   }
-  return [];
+
+  return {
+    data,
+    totalCount: json?.count,
+  };
 };
 
 export const PAGE_SIZE = 5;

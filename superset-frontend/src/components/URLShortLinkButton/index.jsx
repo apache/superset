@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getShortUrl } from 'src/utils/urlUtils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 const propTypes = {
   url: PropTypes.string,

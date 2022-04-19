@@ -67,13 +67,12 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
       - name: OS dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            apt-get-install
+          run: apt-get-install
       - name: Install python dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -85,32 +84,31 @@ jobs:
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            setup-postgres
+          run: setup-postgres
       - name: Import test data
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            testdata
+          run: testdata
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version:  '16'
       - name: Install npm dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            npm-install
+          run: npm-install
       - name: Build javascript packages
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            build-instrumented-assets
+          run: build-instrumented-assets
       - name: Install cypress
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            cypress-install
+          run: cypress-install
       - name: Run Cypress
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

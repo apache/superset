@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, FC } from 'react';
+import React, { useEffect, useRef, FC } from 'react';
 import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { useToasts } from 'src/messageToasts/enhancers/withToasts';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import {
   useDashboard,
@@ -57,17 +57,16 @@ const DashboardPage: FC = () => {
   const { result: datasets, error: datasetsApiError } = useDashboardDatasets(
     idOrSlug,
   );
+  const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css } = dashboard || {};
 
-  useEffect(() => {
-    if (readyToRender) {
-      dispatch(hydrateDashboard(dashboard, charts));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  if (readyToRender && !isDashboardHydrated.current) {
+    isDashboardHydrated.current = true;
+    dispatch(hydrateDashboard(dashboard, charts));
+  }
 
   useEffect(() => {
     if (dashboard_title) {

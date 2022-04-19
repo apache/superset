@@ -224,7 +224,9 @@ export default function Button(props: ButtonProps) {
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {button}
+        {/* this ternary wraps the button in a span so that the tooltip shows up
+        when the button is disabled.  */}
+        {disabled ? <span>{button}</span> : button}
       </Tooltip>
     );
   }

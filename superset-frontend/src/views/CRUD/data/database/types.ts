@@ -45,11 +45,14 @@ export type DatabaseObject = {
     password?: string;
     encryption?: boolean;
     credentials_info?: string;
+    service_account_info?: string;
     query?: Record<string, string>;
     catalog?: Record<string, string>;
+    properties?: Record<string, any>;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
+  paramProperties?: Record<string, any>;
 
   // Performance
   cache_timeout?: string;
@@ -68,6 +71,7 @@ export type DatabaseObject = {
   server_cert?: string;
   allow_csv_upload?: boolean;
   impersonate_user?: boolean;
+  parameters_schema?: Record<string, any>;
 
   // Extra
   extra_json?: {
@@ -127,6 +131,11 @@ export type DatabaseForm = {
         type: string;
       };
       credentials_info: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      service_account_info: {
         description: string;
         nullable: boolean;
         type: string;

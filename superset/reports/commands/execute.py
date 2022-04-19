@@ -40,7 +40,6 @@ from superset.models.reports import (
 )
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
-    ReportScheduleAlertEndGracePeriodError,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
@@ -403,7 +402,7 @@ class BaseReportState:
 
     def is_in_grace_period(self) -> bool:
         """
-        Checks if an alert is on it's grace period
+        Checks if an alert is in it's grace period
         """
         last_success = ReportScheduleDAO.find_last_success_log(
             self._report_schedule, session=self._session
@@ -418,7 +417,7 @@ class BaseReportState:
 
     def is_in_error_grace_period(self) -> bool:
         """
-        Checks if an alert/report on error is on it's notification grace period
+        Checks if an alert/report on error is in it's notification grace period
         """
         last_success = ReportScheduleDAO.find_last_error_notification(
             self._report_schedule, session=self._session
@@ -435,7 +434,7 @@ class BaseReportState:
 
     def is_on_working_timeout(self) -> bool:
         """
-        Checks if an alert is on a working timeout
+        Checks if an alert is in a working timeout
         """
         last_working = ReportScheduleDAO.find_last_entered_working_log(
             self._report_schedule, session=self._session
@@ -533,7 +532,6 @@ class ReportSuccessState(BaseReportState):
     current_states = [ReportState.SUCCESS, ReportState.GRACE]
 
     def next(self) -> None:
-        self.set_state_and_log(ReportState.WORKING)
         if self._report_schedule.type == ReportScheduleType.ALERT:
             if self.is_in_grace_period():
                 self.set_state_and_log(
@@ -541,11 +539,23 @@ class ReportSuccessState(BaseReportState):
                     error_message=str(ReportScheduleAlertGracePeriodError()),
                 )
                 return
-            self.set_state_and_log(
-                ReportState.NOOP,
-                error_message=str(ReportScheduleAlertEndGracePeriodError()),
-            )
-            return
+            self.set_state_and_log(ReportState.WORKING)
+            try:
+                if not AlertCommand(self._report_schedule).run():
+                    self.set_state_and_log(ReportState.NOOP)
+                    return
+            except CommandException as ex:
+                self.send_error(
+                    f"Error occurred for {self._report_schedule.type}:"
+                    f" {self._report_schedule.name}",
+                    str(ex),
+                )
+                self.set_state_and_log(
+                    ReportState.ERROR,
+                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                )
+                raise ex
+
         try:
             self.send()
             self.set_state_and_log(ReportState.SUCCESS)

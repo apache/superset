@@ -97,6 +97,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
+          endpoints={['inclusive', 'exclusive']}
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}

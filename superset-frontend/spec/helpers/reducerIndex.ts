@@ -25,7 +25,7 @@ import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import datasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
-import messageToasts from 'src/messageToasts/reducers';
+import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';

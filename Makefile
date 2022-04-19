@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-# Python version installed; we need 3.8 or 3.7
-PYTHON=`command -v python3.8 || command -v python3.7`
+# Python version installed; we need 3.7-3.9
+PYTHON=`command -v python3.9 || command -v python3.8 || command -v python3.7`
 
 .PHONY: install superset venv pre-commit
 
@@ -62,11 +62,11 @@ update-js:
 
 venv:
 	# Create a virtual environment and activate it (recommended)
-	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.7 or 3.8 installed"; exit 1; fi
+	if ! [ -x "${PYTHON}" ]; then echo "You need Python 3.7, 3.8 or 3.9 installed"; exit 1; fi
 	test -d venv || ${PYTHON} -m venv venv # setup a python3 virtualenv
 	. venv/bin/activate
 
-make activate:
+activate:
 	source venv/bin/activate
 
 pre-commit:
@@ -90,3 +90,11 @@ flask-app:
 
 node-app:
 	cd superset-frontend; npm run dev-server
+
+build-cypress:
+	cd superset-frontend; npm run build-instrumented
+	cd superset-frontend/cypress-base; npm install
+
+open-cypress:
+	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi
+	cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:$(port) npm run cypress open

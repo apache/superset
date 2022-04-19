@@ -47,6 +47,7 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
+    extract_dataframe_dtypes,
     format_timedelta,
     GenericDataType,
     get_form_data_token,
@@ -60,10 +61,10 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
+    NO_TIME_RANGE,
     normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
-    extract_dataframe_dtypes,
     split,
     TimeRangeEndpoint,
     validate_json,
@@ -116,6 +117,7 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
+        assert isinstance(base_json_conv(time()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
 
     def test_zlib_compression(self):
@@ -848,6 +850,47 @@ class TestUtils(SupersetTestCase):
         merge_extra_form_data(form_data)
         self.assertEqual(
             form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
+        )
+
+    def test_merge_extra_filters_with_unset_legacy_time_range(self):
+        """
+        Make sure native filter is applied if filter box time range is unset.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [
+                {"col": "__time_range", "op": "==", "val": NO_TIME_RANGE},
+            ],
+            "extra_form_data": {"time_range": "Last year"},
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last year",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_conflicting_time_ranges(self):
+        """
+        Make sure filter box takes precedence if both native filter and filter box
+        time ranges are set.
+        """
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
+            "extra_form_data": {"time_range": "Last year",},
+        }
+        merge_extra_filters(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last week",
+                "applied_time_extras": {"__time_range": "Last week"},
+                "adhoc_filters": [],
+            },
         )
 
     def test_merge_extra_filters_with_extras(self):

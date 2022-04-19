@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.7-buster
+FROM python:3.8-buster
 
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 

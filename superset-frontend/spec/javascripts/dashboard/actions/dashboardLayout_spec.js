@@ -40,7 +40,7 @@ import {
 
 import { setUnsavedChanges } from 'src/dashboard/actions/dashboardState';
 import * as dashboardFilters from 'src/dashboard/actions/dashboardFilters';
-import { ADD_TOAST } from 'src/messageToasts/actions';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 
 import {
   DASHBOARD_GRID_TYPE,

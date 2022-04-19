@@ -22,6 +22,7 @@ from tests.integration_tests.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
+from superset.utils.core import get_example_default_schema
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
@@ -93,6 +94,7 @@ def test_invalidate_cache_bad_request(logged_in_admin):
 
 
 def test_invalidate_existing_caches(logged_in_admin):
+    schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()
 
     db.session.add(CacheKey(cache_key="cache_key1", datasource_uid="3__druid"))
@@ -113,25 +115,25 @@ def test_invalidate_existing_caches(logged_in_admin):
                 {
                     "datasource_name": "birth_names",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # table exists, no cache to invalidate
                     "datasource_name": "energy_usage",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # table doesn't exist
                     "datasource_name": "does_not_exist",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
                     "datasource_name": "birth_names",
                     "database_name": "does_not_exist",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist

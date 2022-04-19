@@ -38,7 +38,7 @@ class TestCssTemplateApi(SupersetTestCase):
     ) -> CssTemplate:
         admin = self.get_user(created_by_username)
         css_template = CssTemplate(
-            template_name=template_name, css=css, created_by=admin
+            template_name=template_name, css=css, created_by=admin, changed_by=admin
         )
         db.session.add(css_template)
         db.session.commit()
@@ -75,15 +75,23 @@ class TestCssTemplateApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == len(css_templates)
         expected_columns = [
-            "changed_on_delta_humanized",
             "changed_by",
-            "created_on",
+            "changed_on_delta_humanized",
             "created_by",
-            "template_name",
+            "created_on",
             "css",
+            "id",
+            "template_name",
         ]
-        for expected_column in expected_columns:
-            assert expected_column in data["result"][0]
+        result_columns = list(data["result"][0].keys())
+        result_columns.sort()
+        assert expected_columns == result_columns
+        created_by_columns = list(data["result"][0]["created_by"].keys())
+        created_by_columns.sort()
+        assert ["first_name", "id", "last_name"] == created_by_columns
+        changed_by_columns = list(data["result"][0]["changed_by"].keys())
+        changed_by_columns.sort()
+        assert ["first_name", "id", "last_name"] == changed_by_columns
 
     @pytest.mark.usefixtures("create_css_templates")
     def test_get_list_sort_css_template(self):

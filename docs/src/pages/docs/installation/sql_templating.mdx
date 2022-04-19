@@ -10,10 +10,34 @@ version: 1
 
 ### Jinja Templates
 
-SQL Lab supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries. You'll
-need to to overload the default Jinja context in your environment by defining the
-JINJA_CONTEXT_ADDONS in your superset configuration (`superset_config.py`). Objects referenced in
-this dictionary are made available for users to use in their SQL code.
+SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` feature flag needs to be enabled in
+`superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
+in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
+made available in the Jinja context:
+
+- `columns`: columns which to group by in the query
+- `filter`: filters applied in the query
+- `from_dttm`: start `datetime` value from the selected time range (`None` if undefined)
+- `to_dttm`: end `datetime` value from the selected time range (`None` if undefined)
+- `groupby`: columns which to group by in the query (deprecated)
+- `metrics`: aggregate expressions in the query
+- `row_limit`: row limit of the query
+- `row_offset`: row offset of the query
+- `table_columns`: columns available in the dataset
+- `time_column`: temporal column of the query (`None` if undefined)
+- `time_grain`: selected time grain (`None` if undefined)
+
+For example, to add a time range to a virtual dataset, you can write the following:
+
+```sql
+SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+```
+
+To add custom functionality to the Jinja context, you need to to to overload the default Jinja
+context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
+(`superset_config.py`). Objects referenced in this dictionary are made available for users to use
+where the Jinja context is made available.
 
 ```python
 JINJA_CONTEXT_ADDONS = {
@@ -174,7 +198,7 @@ You can retrieve the value for a specific filter as a list using `{{ filter_valu
 
 This is useful if:
 - you want to use a filter component to filter a query where the name of filter component column doesn't match the one in the select statement
-- you want to have the ability for filter inside the main query for speed purposes
+- you want to have the ability for filter inside the main query for performance purposes
 
 Here's a concrete example:
 
@@ -185,11 +209,6 @@ WHERE
     action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
 GROUP BY action
 ```
-
-You can use thisfeature to reference the start & end datetimes from a time filter using:
-
-- `{{ from_dttm }}`: start datetime value
-- `{{ to_dttm }}`: end datetime value
 
 **Filters for a Specific Column**
 

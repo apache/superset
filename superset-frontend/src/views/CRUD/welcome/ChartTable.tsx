@@ -28,7 +28,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
 import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -218,7 +218,9 @@ function ChartTable({
             onClick: () => {
               const target =
                 chartFilter === 'Favorite'
-                  ? '/chart/list/?filters=(favorite:!t)'
+                  ? `/chart/list/?filters=(favorite:(label:${t(
+                      'Yes',
+                    )},value:!t))`
                   : '/chart/list/';
               history.push(target);
             },

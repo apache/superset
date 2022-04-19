@@ -44,6 +44,7 @@ export interface NavBarProps {
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
+  build_number?: string;
   documentation_url?: string;
   languages: Languages;
   show_language_picker: boolean;

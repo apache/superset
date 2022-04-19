@@ -20,7 +20,7 @@
 import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 
-import { addDangerToast } from 'src/messageToasts/actions';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getDatasourceParameter } from 'src/modules/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 

@@ -50,6 +50,7 @@ const propTypes = {
     removeSliceFromDashboard: PropTypes.func.isRequired,
     triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
+    clearDataMaskState: PropTypes.func.isRequired,
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
@@ -101,6 +102,7 @@ class Dashboard extends React.PureComponent {
     const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '';
     const { dashboardState, layout } = this.props;
     const eventData = {
+      is_soft_navigation: Logger.timeOriginOffset > 0,
       is_edit_mode: dashboardState.editMode,
       mount_duration: Logger.getTimestamp(),
       is_empty: isDashboardEmpty(layout),
@@ -193,6 +195,7 @@ class Dashboard extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.props.actions.clearDataMaskState();
   }
 
   onVisibilityChange() {

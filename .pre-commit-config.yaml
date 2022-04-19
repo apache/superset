@@ -27,7 +27,7 @@ repos:
     rev: v0.910
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
+        additional_dependencies: [types-all, types-redis]
   - repo: https://github.com/peterdemin/pip-compile-multi
     rev: v2.4.1
     hooks:

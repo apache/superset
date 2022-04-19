@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+# pylint: disable=too-many-lines
 import collections
 import decimal
 import errno
@@ -75,7 +76,7 @@ from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
-from sqlalchemy import event, exc, select, Text
+from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
@@ -96,6 +97,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+from superset.sql_parse import sanitize_clause
 from superset.typing import (
     AdhocMetric,
     AdhocMetricColumn,
@@ -559,7 +561,7 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
         return list(obj)
     if isinstance(obj, decimal.Decimal):
         return float(obj)
-    if isinstance(obj, uuid.UUID):
+    if isinstance(obj, (uuid.UUID, time, LazyString)):
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
@@ -568,8 +570,6 @@ def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-sta
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
-    if isinstance(obj, LazyString):
-        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -583,7 +583,7 @@ def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
+    if isinstance(obj, (datetime, date, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
@@ -1174,7 +1174,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             time_extra = date_options.get(filter_column)
             if time_extra:
                 time_extra_value = filtr.get("val")
-                if time_extra_value:
+                if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
                     applied_time_extras[filter_column] = time_extra_value
             elif filtr["val"]:
@@ -1270,6 +1270,15 @@ def get_example_database() -> "Database":
 def get_main_database() -> "Database":
     db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
+
+
+def get_example_default_schema() -> Optional[str]:
+    """
+    Return the default schema of the examples database, if any.
+    """
+    database = get_example_database()
+    engine = database.get_sqla_engine()
+    return inspect(engine).default_schema_name
 
 
 def backend() -> str:
@@ -1384,10 +1393,12 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                         }
                     )
             elif expression_type == "SQL":
+                sql_expression = adhoc_filter.get("sqlExpression")
+                sql_expression = sanitize_clause(sql_expression)
                 if clause == "WHERE":
-                    sql_where_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
-                    sql_having_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_having_filters.append(sql_expression)
         form_data["where"] = " AND ".join(
             ["({})".format(sql) for sql in sql_where_filters]
         )
@@ -1639,7 +1650,7 @@ def get_time_filter_status(
             )
 
     time_range = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_RANGE)
-    if time_range and time_range != NO_TIME_RANGE:
+    if time_range:
         # are there any temporal columns to assign the time grain to?
         if temporal_columns:
             applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
@@ -1761,3 +1772,25 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return bool(strtobool(bool_str.lower()))
     except ValueError:
         return False
+
+
+def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+    """
+    Override row limit if max global limit is defined
+
+    :param limit: requested row limit
+    :param max_limit: Maximum allowed row limit
+    :return: Capped row limit
+
+    >>> apply_max_row_limit(100000, 10)
+    10
+    >>> apply_max_row_limit(10, 100000)
+    10
+    >>> apply_max_row_limit(0, 10000)
+    10000
+    """
+    if max_limit is None:
+        max_limit = current_app.config["SQL_MAX_ROW"]
+    if limit != 0:
+        return min(max_limit, limit)
+    return max_limit

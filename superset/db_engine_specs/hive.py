@@ -35,6 +35,7 @@ from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
+from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-QueryStatus = utils.QueryStatus
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +105,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         "P1D": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-dd 00:00:00')",
         "P1W": "date_format(date_sub({col}, CAST(7-from_unixtime(unix_timestamp({col}),'u') as int)), 'yyyy-MM-dd 00:00:00')",
         "P1M": "from_unixtime(unix_timestamp({col}), 'yyyy-MM-01 00:00:00')",
-        "P0.25Y": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
+        "P3M": "date_format(add_months(trunc({col}, 'MM'), -(month({col})-1)%3), 'yyyy-MM-dd 00:00:00')",
         "P1Y": "from_unixtime(unix_timestamp({col}), 'yyyy-01-01 00:00:00')",
         "P1W/1970-01-03T00:00:00Z": "date_format(date_add({col}, INT(6-from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
         "1969-12-28T00:00:00Z/P1W": "date_format(date_add({col}, -INT(from_unixtime(unix_timestamp({col}), 'u'))), 'yyyy-MM-dd 00:00:00')",
@@ -258,6 +258,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+    @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
     ) -> None:
@@ -359,7 +363,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                             str(query_id),
                             tracking_url,
                         )
-                        tracking_url = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        transformer = current_app.config["TRACKING_URL_TRANSFORMER"]
+                        tracking_url = transformer(tracking_url)
                         logger.info(
                             "Query %s: Transformation applied: %s",
                             str(query_id),

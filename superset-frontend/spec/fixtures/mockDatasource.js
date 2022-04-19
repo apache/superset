@@ -168,6 +168,7 @@ export default {
     id,
     granularity_sqla: [['ds', 'ds']],
     name: 'birth_names',
+    owners: [{ first_name: 'joe', last_name: 'man', id: 1 }],
     database: {
       allow_multi_schema_metadata_fetch: null,
       name: 'main',
