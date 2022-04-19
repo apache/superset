@@ -27,7 +27,6 @@ import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport from '../../utils/fitViewport';
-import { Point } from '../../types';
 
 const propertyMap = {
   fillColor: 'fillColor',
