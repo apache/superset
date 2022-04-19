@@ -59,6 +59,8 @@ const BLANK = {};
 const BIG_NO_RESULT_MIN_WIDTH = 300;
 const BIG_NO_RESULT_MIN_HEIGHT = 220;
 
+const behaviors = [Behavior.INTERACTIVE_CHART];
+
 const defaultProps = {
   addFilter: () => BLANK,
   onFilterMenuOpen: () => BLANK,
@@ -259,7 +261,7 @@ class ChartRenderer extends React.Component {
         ownState={ownState}
         filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.INTERACTIVE_CHART]}
+        behaviors={behaviors}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}

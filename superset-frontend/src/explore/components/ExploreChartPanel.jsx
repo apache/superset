@@ -236,6 +236,7 @@ const ExploreChartPanel = ({
             datasource={datasource}
             errorMessage={errorMessage}
             formData={formData}
+            latestQueryFormData={chart.latestQueryFormData}
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
             chartIsStale={chartIsStale}
@@ -254,8 +255,10 @@ const ExploreChartPanel = ({
       chart.chartStackTrace,
       chart.chartStatus,
       chart.id,
+      chart.latestQueryFormData,
       chart.queriesResponse,
       chart.triggerQuery,
+      chartIsStale,
       chartPanelHeight,
       chartPanelRef,
       chartPanelWidth,
