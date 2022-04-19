@@ -55,8 +55,7 @@ def upgrade_slice(slc: Slice):
     if query_context.get("queries"):
         queries = query_context["queries"]
         for query in queries:
-            if query.get("extras", None).get("time_range_endpoints"):
-                del query["extras"]["time_range_endpoints"]
+            query.get("extras", {}).pop("time_range_endpoints", None)
 
     slc.query_context = json.dumps(query_context)
 
@@ -74,7 +73,6 @@ def upgrade():
     ):
         updated_slice = upgrade_slice(slc)
         if updated_slice:
-            session.merge(slc)
             slices_updated += 1
 
     print(f"slices updated with no time_range_endpoints: {slices_updated}")
