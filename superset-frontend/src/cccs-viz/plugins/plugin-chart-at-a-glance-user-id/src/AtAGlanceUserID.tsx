@@ -16,6 +16,17 @@ type AtAGlanceUserIDProps = QueryFormData & {
   ipDashBoardBaseUrl: string;
 };
 
+const getIPList = (ip_list: any) => {
+  const counter = {};
+
+  ip_list.forEach(function (obj: any) {
+    const key = JSON.stringify(obj.client_ip);
+    counter[key] = (counter[key] || 0) + 1;
+  });
+
+  return counter;
+};
+
 const generateClientIpLinksList = (
   ipList: any,
   ipDashBoardBaseUrl: string,
@@ -27,22 +38,29 @@ const generateClientIpLinksList = (
     style={styles.AtAGlanceLists}
   >
     <tbody>
-      {ipList.map((a: { client_ip: string }) => (
-        <tr>
-          <td>
-            <a
-              href={
-                `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${a.client_ip}'` +
-                `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${a.client_ip}'` +
-                `%29%29%29%29%2CfilterState%3A%28label%3A'${a.client_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${a.client_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
-                `%2CownState%3A%28%29%29%29`
-              }
-            >
-              {a.client_ip}
-            </a>
-          </td>
-        </tr>
-      ))}
+      <tr>
+        <th scope="col">IP Address</th>
+        <th scope="col">Count</th>
+      </tr>
+      {Object.keys(ipList)
+        .map(user_ip => user_ip.replaceAll('"', ''))
+        .map(user_ip => (
+          <tr>
+            <td>
+              <a
+                href={
+                  `${ipDashBoardBaseUrl}/superset/dashboard/${ipDashboardId}/?native_filters=%28NATIVE_FILTER-${ipDashboardFilterId}%3A%28__cache%3A%28label%3A'${user_ip}'` +
+                  `%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2CextraFormData%3A%28filters%3A%21%28%28col%3Aip_string%2Cop%3AIN%2Cval%3A%21%28'${user_ip}'` +
+                  `%29%29%29%29%2CfilterState%3A%28label%3A'${user_ip}'%2CvalidateStatus%3A%21f%2Cvalue%3A%21%28'${user_ip}'%29%29%2Cid%3ANATIVE_FILTER-${ipDashboardFilterId}` +
+                  `%2CownState%3A%28%29%29%29`
+                }
+              >
+                {user_ip}
+              </a>
+            </td>
+            <td>&nbsp;{ipList[`"${user_ip}"`]}</td>
+          </tr>
+        ))}
     </tbody>
   </table>
 );
@@ -169,7 +187,13 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
   return (
     <div style={styles.AtAGlance}>
       <div>
-        <table>
+        <table style={styles.Table}>
+          <tr>
+            <td>
+              **Please note that the results in this chart are only for the
+              first User Email**
+            </td>
+          </tr>
           <tr>
             <td>User Email: {userIDString}</td>
           </tr>
@@ -184,14 +208,14 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
         </table>
       </div>
       <div>
-        <table>
+        <table style={styles.Table}>
           <tr>
             <Collapse bordered expandIconPosition="left" ghost>
               <Collapse.Panel
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful Canadian Login Attempts :{' '}
+                    Number of Successful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : canadianIpsList.length}{' '}
@@ -204,7 +228,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    canadianIpsList,
+                    getIPList(canadianIpsList),
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -215,7 +239,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Successful non Canadian Login Attempts :{' '}
+                    Number of Successful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : nonCanadianIpsList.length}{' '}
@@ -228,7 +252,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    nonCanadianIpsList,
+                    getIPList(nonCanadianIpsList),
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -239,7 +263,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful Canadian Login Attempts :{' '}
+                    Number of Unsuccessful Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : unsuccessfulCanadianIpsList.length}{' '}
@@ -252,7 +276,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    unsuccessfulCanadianIpsList,
+                    getIPList(unsuccessfulCanadianIpsList),
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,
@@ -263,7 +287,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                 header={
                   <span className="header">
                     {' '}
-                    Number of Unsuccessful non Canadian Login Attempts :{' '}
+                    Number of Unsuccessful non Canadian Login Attempts:{' '}
                     {aadDataManager.isLoading
                       ? 'Loading'
                       : unsuccessfulNonCanadianIpsList.length}{' '}
@@ -276,7 +300,7 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   <></>
                 ) : (
                   generateClientIpLinksList(
-                    unsuccessfulNonCanadianIpsList,
+                    getIPList(unsuccessfulNonCanadianIpsList),
                     props.ipDashBoardBaseUrl,
                     props.ipDashboardId,
                     props.ipDashboardFilterId,

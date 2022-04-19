@@ -70,7 +70,12 @@ const HostnameTitle = {
 
 const AtAGlance = {
   maxHeight: '300px',
+  width: '100%',
   overflow: 'auto',
+};
+
+const Table = {
+  width: '75%',
 };
 
 const AtAGlanceLists = {
@@ -91,6 +96,7 @@ const styles = {
   RowBullet,
   HostnameTitle,
   AtAGlance,
+  Table,
   AtAGlanceLists,
 };
 
