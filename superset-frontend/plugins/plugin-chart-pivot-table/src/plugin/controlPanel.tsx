@@ -35,9 +35,8 @@ import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.legacyTimeseriesTime, expanded: false },
     {
-      label: t('Query'),
+      label: t('Table'),
       expanded: true,
       controlSetRows: [
         [
@@ -88,8 +87,18 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        emitFilterControl,
+      ],
+    },
+    { ...sections.legacyTimeseriesTime, expanded: false },
+    {
+      label: t('Filter'),
+      expanded: true,
+      controlSetRows: [['adhoc_filters'], emitFilterControl],
+    },
+    {
+      label: t('Advanced query settings'),
+      expanded: true,
+      controlSetRows: [
         ['series_limit'],
         [
           {
@@ -128,7 +137,7 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Options'),
+      label: t('Display table settings'),
       expanded: true,
       tabOverride: 'data',
       controlSetRows: [
