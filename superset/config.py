@@ -1071,6 +1071,9 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # A custom suffix to use on all Alerts & Reports email attachments such as a date string
 EMAIL_REPORTS_ATTACH_SUFFIX = ""
 
+# The text for call-to-action link in Alerts & Reports emails
+EMAIL_REPORTS_CTA = "Explore in Superset"
+
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
