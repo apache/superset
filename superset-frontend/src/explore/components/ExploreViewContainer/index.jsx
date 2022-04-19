@@ -63,8 +63,6 @@ import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
-  height: PropTypes.string,
-  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -135,6 +133,7 @@ const ExplorePanelContainer = styled.div`
       flex: 1;
       min-width: ${theme.gridUnit * 128}px;
       border-left: 1px solid ${theme.colors.grayscale.light2};
+      padding: 0 ${theme.gridUnit * 4}px;
       .panel {
         margin-bottom: 0;
       }
@@ -171,23 +170,6 @@ const ExplorePanelContainer = styled.div`
     }
   `};
 `;
-
-const getWindowSize = () => ({
-  height: window.innerHeight,
-  width: window.innerWidth,
-});
-
-function useWindowSize({ delayMs = 250 } = {}) {
-  const [size, setSize] = useState(getWindowSize());
-
-  useEffect(() => {
-    const onWindowResize = debounce(() => setSize(getWindowSize()), delayMs);
-    window.addEventListener('resize', onWindowResize);
-    return () => window.removeEventListener('resize', onWindowResize);
-  }, []);
-
-  return size;
-}
 
 const updateHistory = debounce(
   async (formData, datasetId, isReplace, standalone, force, title, tabId) => {
@@ -246,7 +228,6 @@ function ExploreViewContainer(props) {
   const [lastQueriedControls, setLastQueriedControls] = useState(
     props.controls,
   );
-  const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -254,11 +235,6 @@ function ExploreViewContainer(props) {
   const tabId = useTabId();
 
   const theme = useTheme();
-  const width = `${windowSize.width}px`;
-  const navHeight = props.standalone ? 0 : 120;
-  const height = props.forcedHeight
-    ? `${props.forcedHeight}px`
-    : `${windowSize.height - navHeight}px`;
 
   const defaultSidebarsWidth = {
     controls_width: 320,
@@ -515,8 +491,6 @@ function ExploreViewContainer(props) {
   function renderChartContainer() {
     return (
       <ExploreChartPanel
-        width={width}
-        height={height}
         {...props}
         errorMessage={errorMessage}
         refreshOverlayVisible={chartIsStale}
