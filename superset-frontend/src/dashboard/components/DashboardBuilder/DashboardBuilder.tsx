@@ -18,7 +18,14 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, useCallback, useEffect, useState, useMemo } from 'react';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+} from 'react';
 import { JsonObject, styled, css, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -318,6 +325,27 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     }),
     [dashboardFiltersOpen, editMode, nativeFiltersEnabled],
   );
+
+  // If a new tab was added, update the directPathToChild to reflect it
+  const currentTopLevelTabs = useRef(topLevelTabs);
+  useEffect(() => {
+    const currentTabsLength = currentTopLevelTabs.current?.children?.length;
+    const newTabsLength = topLevelTabs?.children?.length;
+
+    if (
+      currentTabsLength !== undefined &&
+      newTabsLength !== undefined &&
+      newTabsLength > currentTabsLength
+    ) {
+      const lastTab = getDirectPathToTabIndex(
+        getRootLevelTabsComponent(dashboardLayout),
+        newTabsLength - 1,
+      );
+      dispatch(setDirectPathToChild(lastTab));
+    }
+
+    currentTopLevelTabs.current = topLevelTabs;
+  }, [topLevelTabs]);
 
   const renderDraggableContent = useCallback(
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
