@@ -66,9 +66,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app = app
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
-
-    # type: ignore
-    @deprecated(details="use self.superset_app instead of self.flask_app")
+  
+    @deprecated(details="use self.superset_app instead of self.flask_app") # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
