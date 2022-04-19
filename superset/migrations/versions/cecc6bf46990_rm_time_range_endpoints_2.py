@@ -26,48 +26,9 @@ Create Date: 2022-04-14 17:21:53.996022
 revision = "cecc6bf46990"
 down_revision = "9d8a8d575284"
 
-import json
-
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
-
-Base = declarative_base()
-
-
-class Slice(Base):
-    __tablename__ = "slices"
-    id = sa.Column(sa.Integer, primary_key=True)
-    query_context = sa.Column(sa.Text)
-    slice_name = sa.Column(sa.String(250))
-
-
-def upgrade_slice(slc: Slice):
-    try:
-        query_context = json.loads(slc.query_context)
-    except json.decoder.JSONDecodeError:
-        return
-
-    queries = query_context.get("queries")
-
-    for query in queries:
-        query.get("extras", {}).pop("time_range_endpoints", None)
-
-    slc.query_context = json.dumps(query_context)
-
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    for slc in session.query(Slice).filter(
-        Slice.query_context.like("%time_range_endpoints%")
-    ):
-        upgrade_slice(slc)
-
-    session.commit()
-    session.close()
+    pass
 
 
 def downgrade():
