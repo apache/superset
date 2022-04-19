@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import Slider from 'src/components/Slider';
-import ControlHeader, {ControlHeaderProps} from 'src/explore/components/ControlHeader';
+import ControlHeader, {
+  ControlHeaderProps,
+} from 'src/explore/components/ControlHeader';
 
 type SliderControlProps = ControlHeaderProps & {
   onChange: (value: number) => void;
@@ -41,8 +43,8 @@ export default function SliderControl({
   onClick,
   tooltipOnClick,
   onChange = () => {},
-  ...rest}: SliderControlProps) {
-
+  ...rest
+}: SliderControlProps) {
   const headerProps = {
     name,
     label,
