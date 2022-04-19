@@ -49,9 +49,8 @@ const {
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
-      label: t('Query'),
+      label: t('Chart'),
       expanded: true,
       controlSetRows: [
         isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
@@ -73,12 +72,22 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        emitFilterControl,
+      ],
+    },
+    sections.legacyTimeseriesTime,
+    {
+      label: t('Filter'),
+      expanded: true,
+      controlSetRows: [['adhoc_filters'], emitFilterControl],
+    },
+    {
+      label: t('Advanced query settings'),
+      expanded: true,
+      controlSetRows: [
         ['limit'],
+        ['row_limit'],
         ['timeseries_limit_metric'],
         ['order_desc'],
-        ['row_limit'],
       ],
     },
     sections.advancedAnalyticsControls,
@@ -236,6 +245,9 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
+    metrics: {
+      label: t('Metrics (Y-Axis)'),
+    },
     row_limit: {
       default: rowLimit,
     },
