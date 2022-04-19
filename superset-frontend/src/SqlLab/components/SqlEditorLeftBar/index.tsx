@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
@@ -25,6 +33,7 @@ import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import { QueryEditor } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
 interface ExtendedTable extends Table {
@@ -54,6 +63,8 @@ interface SqlEditorLeftBarProps {
   tables?: ExtendedTable[];
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
+  setEmptyState: Dispatch<SetStateAction<boolean>>;
+  showDisabled: boolean;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -88,15 +99,23 @@ export default function SqlEditorLeftBar({
   queryEditor,
   tables = [],
   height = 500,
+  setEmptyState,
 }: SqlEditorLeftBarProps) {
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
+  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+
   useEffect(() => {
     queryEditorRef.current = queryEditor;
   }, [queryEditor]);
 
+  const onEmptyResults = (searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
+  };
+
   const onDbChange = ({ id: dbId }: { id: number }) => {
+    setEmptyState(false);
     actions.queryEditorSetDb(queryEditor, dbId);
     actions.queryEditorSetFunctionNames(queryEditor, dbId);
   };
@@ -164,6 +183,22 @@ export default function SqlEditorLeftBar({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
+  const emptyStateComponent = (
+    <EmptyStateSmall
+      image="empty.svg"
+      title={
+        emptyResultsWithSearch
+          ? t('No databases match your search')
+          : t('There are no databases available')
+      }
+      description={
+        <p>
+          {t('Manage your databases')}{' '}
+          <a href="/databaseview/list">{t('here')}</a>
+        </p>
+      }
+    />
+  );
   const handleSchemaChange = useCallback(
     (schema: string) => {
       if (queryEditorRef.current) {
@@ -185,6 +220,8 @@ export default function SqlEditorLeftBar({
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
+        onEmptyResults={onEmptyResults}
+        emptyState={emptyStateComponent}
         database={database}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
