@@ -48,7 +48,6 @@ import { useTabId } from 'src/hooks/useTabId';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
-import QueryAndSaveBtns from '../QueryAndSaveBtns';
 import DataSourcePanel from '../DatasourcePanel';
 import { mountExploreUrl } from '../../exploreUtils';
 import { areObjectsEqual } from '../../../reduxUtils';
@@ -64,8 +63,6 @@ import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
-  height: PropTypes.string,
-  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -136,6 +133,7 @@ const ExplorePanelContainer = styled.div`
       flex: 1;
       min-width: ${theme.gridUnit * 128}px;
       border-left: 1px solid ${theme.colors.grayscale.light2};
+      padding: 0 ${theme.gridUnit * 4}px;
       .panel {
         margin-bottom: 0;
       }
@@ -151,9 +149,7 @@ const ExplorePanelContainer = styled.div`
       padding: 0 ${theme.gridUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        text-transform: uppercase;
-        color: ${theme.colors.grayscale.light1};
-        font-size: ${theme.typography.sizes.s * 4};
+        font-size: ${theme.typography.sizes.s}px;
       }
     }
     .no-show {
@@ -174,23 +170,6 @@ const ExplorePanelContainer = styled.div`
     }
   `};
 `;
-
-const getWindowSize = () => ({
-  height: window.innerHeight,
-  width: window.innerWidth,
-});
-
-function useWindowSize({ delayMs = 250 } = {}) {
-  const [size, setSize] = useState(getWindowSize());
-
-  useEffect(() => {
-    const onWindowResize = debounce(() => setSize(getWindowSize()), delayMs);
-    window.addEventListener('resize', onWindowResize);
-    return () => window.removeEventListener('resize', onWindowResize);
-  }, []);
-
-  return size;
-}
 
 const updateHistory = debounce(
   async (formData, datasetId, isReplace, standalone, force, title, tabId) => {
@@ -249,7 +228,6 @@ function ExploreViewContainer(props) {
   const [lastQueriedControls, setLastQueriedControls] = useState(
     props.controls,
   );
-  const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -257,11 +235,6 @@ function ExploreViewContainer(props) {
   const tabId = useTabId();
 
   const theme = useTheme();
-  const width = `${windowSize.width}px`;
-  const navHeight = props.standalone ? 0 : 120;
-  const height = props.forcedHeight
-    ? `${props.forcedHeight}px`
-    : `${windowSize.height - navHeight}px`;
 
   const defaultSidebarsWidth = {
     controls_width: 320,
@@ -479,8 +452,7 @@ function ExploreViewContainer(props) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
   }
 
-  function renderErrorMessage() {
-    // Returns an error message as a node if any errors are in the store
+  const errorMessage = useMemo(() => {
     const controlsWithErrors = Object.values(props.controls).filter(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -514,15 +486,13 @@ function ExploreViewContainer(props) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
     }
     return errorMessage;
-  }
+  }, [props.controls]);
 
   function renderChartContainer() {
     return (
       <ExploreChartPanel
-        width={width}
-        height={height}
         {...props}
-        errorMessage={renderErrorMessage()}
+        errorMessage={errorMessage}
         refreshOverlayVisible={chartIsStale}
         onQuery={onQuery}
       />
@@ -560,6 +530,8 @@ function ExploreViewContainer(props) {
           chart={props.chart}
           user={props.user}
           reports={props.reports}
+          onSaveChart={toggleModal}
+          saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         />
       </ExploreHeaderContainer>
       <ExplorePanelContainer id="explore-container">
@@ -613,7 +585,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizont al-text">{t('Dataset')}</span>
+            <span className="horizontal-text">{t('Dataset')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -671,16 +643,6 @@ function ExploreViewContainer(props) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <QueryAndSaveBtns
-            canAdd={!!(props.can_add || props.can_overwrite)}
-            onQuery={onQuery}
-            onSave={toggleModal}
-            onStop={onStop}
-            loading={props.chart.chartStatus === 'loading'}
-            chartIsStale={chartIsStale}
-            errorMessage={renderErrorMessage()}
-            datasourceType={props.datasource_type}
-          />
           <ConnectedControlPanelsContainer
             exploreState={props.exploreState}
             actions={props.actions}
@@ -689,6 +651,11 @@ function ExploreViewContainer(props) {
             chart={props.chart}
             datasource_type={props.datasource_type}
             isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+            onQuery={onQuery}
+            onStop={onStop}
+            canStopQuery={props.can_add || props.can_overwrite}
+            errorMessage={errorMessage}
+            chartIsStale={chartIsStale}
           />
         </Resizable>
         <div

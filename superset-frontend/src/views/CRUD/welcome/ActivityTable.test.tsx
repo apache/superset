@@ -100,14 +100,14 @@ describe('ActivityTable', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
   it('renders tabs with three buttons', () => {
-    expect(wrapper.find('li.no-router')).toHaveLength(3);
+    expect(wrapper.find('[role="tab"]')).toHaveLength(3);
   });
   it('renders ActivityCards', async () => {
     expect(wrapper.find('ListViewCard')).toExist();
   });
   it('calls the getEdited batch call when edited tab is clicked', async () => {
     act(() => {
-      const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
+      const handler = wrapper.find('[role="tab"] a').at(1).prop('onClick');
       if (handler) {
         handler({} as any);
       }

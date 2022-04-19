@@ -86,8 +86,8 @@ const MenuItemWithCheckboxContainer = styled.div`
 
 const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.gridUnit * 6}px;
-    height: ${theme.gridUnit * 6}px;
+    width: ${theme.gridUnit * 8}px;
+    height: ${theme.gridUnit * 8}px;
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
@@ -425,7 +425,7 @@ const ExploreAdditionalActionsMenu = ({
         >
           <Icons.MoreHoriz
             iconColor={theme.colors.primary.dark2}
-            iconSize={theme.typography.sizes.m}
+            iconSize="l"
           />
         </MenuTrigger>
       </AntdDropdown>
