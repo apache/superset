@@ -16,28 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { Tooltip, Typography } from 'antd';
-import { ParagraphProps } from 'antd/es/typography/Paragraph';
+ import React from 'react';
+ import TooltipParagraph from './';
+ 
+ export default {
+   title: 'DynamicTooltip',
+   component: TooltipParagraph,
+ };
 
-const TooltipParagraph: React.FC<ParagraphProps> = ({
-  children,
-  ellipsis,
-  ...props
-}) => {
-  const [truncated, setTruncated] = useState(false);
-
-  return (
-    <Tooltip title={truncated ? children : undefined}>
-      <Typography.Paragraph
-        {...props}
-        ellipsis={{ ...(ellipsis as any), onEllipsis: setTruncated }}
-      >
-        {/* NOTE: Fragment is necessary to avoid showing the title */}
-        <>{children}</>
-      </Typography.Paragraph>
-    </Tooltip>
-  );
-};
-
-export default TooltipParagraph;
+ type IProps = {
+   title: string;
+   width: number;
+ }
+ 
+ export const InteractiveTooltip = (args: IProps) => (
+   <div style={{ width: `${args.width}px`, margin: '50px 100px'}}>
+    <TooltipParagraph>
+      {args.title}
+    </TooltipParagraph>
+   </div>
+ );
+ 
+ InteractiveTooltip.story = {
+   parameters: {
+     knobs: {
+       disable: true,
+     },
+   },
+ };
+ 
+ InteractiveTooltip.args = {
+   title: 'This is too long and should truncate.',
+   width: 200,
+ };
+ 
