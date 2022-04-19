@@ -123,9 +123,10 @@ def test_upgrade():
     queries = query_context.get("queries")
     for q in queries:
         extras = q.get("extras", {})
-        form_data = q.get("form_data", {})
         assert "time_range_endpoints" not in extras
-        assert "time_range_endpoints" not in form_data
+
+    form_data = query_context.get("form_data", {})
+    assert "time_range_endpoints" not in form_data
 
 
 def test_upgrade_bad_json():

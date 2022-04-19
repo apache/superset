@@ -51,24 +51,30 @@ def upgrade_slice(slc: Slice):
         return
 
     queries = query_context.get("queries")
-
+    query_context.get("form_data", {}).pop("time_range_endpoints", None)
     for query in queries:
         query.get("extras", {}).pop("time_range_endpoints", None)
-        query.get("form_data", {}).pop("time_range_endpoints", None)
 
     slc.query_context = json.dumps(query_context)
+
+    return slc
 
 
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
+    slices_updated = 0
     for slc in (
         session.query(Slice)
         .filter(Slice.query_context.like("%time_range_endpoints%"))
         .all()
     ):
-        upgrade_slice(slc)
+        updated_slice = upgrade_slice(slc)
+        if updated_slice:
+            session.merge(slc)
+            slices_updated += 1
 
+    print(f"slices updated with no time_range_endpoints: {slices_updated}")
     session.commit()
     session.close()
 
