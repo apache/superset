@@ -33,7 +33,7 @@ interface ShareMenuItemProps {
   addDangerToast: Function;
   addSuccessToast: Function;
   dashboardId: string | number;
-  hash?: string;
+  dashboardComponentId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -45,7 +45,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addDangerToast,
     addSuccessToast,
     dashboardId,
-    hash,
+    dashboardComponentId,
     ...rest
   } = props;
 
@@ -55,7 +55,11 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     if (nativeFiltersKey && dashboardId) {
       filterState = await getFilterValue(dashboardId, nativeFiltersKey);
     }
-    return getDashboardPermalink(String(dashboardId), filterState, hash);
+    return getDashboardPermalink({
+      dashboardId,
+      filterState,
+      hash: dashboardComponentId,
+    });
   }
 
   async function onCopyLink() {

@@ -312,7 +312,7 @@ class SliceHeaderControls extends React.PureComponent<
         {supersetCanShare && (
           <ShareMenuItems
             dashboardId={dashboardId}
-            hash={componentId}
+            dashboardComponentId={componentId}
             copyMenuItemTitle={t('Copy permalink to clipboard')}
             emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={t('Superset chart')}
