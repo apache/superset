@@ -9,6 +9,8 @@ describe('Handlebars tranformProps', () => {
     granularitySqla: 'ds',
     metric: 'sum__num',
     groupby: ['name'],
+    width: '500px',
+    height: '500px'
   };
   const chartProps = new ChartProps<QueryFormData>({
     formData,
