@@ -1111,6 +1111,7 @@ class TestDatabaseApi(SupersetTestCase):
     def mock_empty_csv_function(d, user):
         return []
 
+    @pytest.mark.skip("the excepted count is not well defined")
     @mock.patch(
         "superset.views.core.app.config",
         {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_empty_csv_function},
