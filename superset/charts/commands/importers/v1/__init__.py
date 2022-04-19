@@ -90,8 +90,6 @@ class ImportChartsCommand(ImportModelsCommand):
                     {
                         "datasource_id": dataset.id,
                         "datasource_type": "table",
-                        # if dataset.is_sqllab_view
-                        # else "table",
                         "datasource_name": dataset.table_name,
                     }
                 )
