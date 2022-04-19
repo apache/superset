@@ -27,11 +27,16 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
   controlPanelSections: [
+    {
+      label: t('Chart'),
+      expanded: true,
+      controlSetRows: [['metric']],
+    },
     sections.legacyTimeseriesTime,
     {
-      label: t('Query'),
+      label: t('Filter'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [['adhoc_filters']],
     },
     {
       label: t('Display settings'),

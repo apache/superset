@@ -29,14 +29,19 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    {
+      label: t('Chart'),
+      expanded: true,
+      controlSetRows: [['metric']],
+    },
     sections.legacyTimeseriesTime,
     {
-      label: t('Query'),
+      label: t('Filter'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [['adhoc_filters']],
     },
     {
-      label: t('Options'),
+      label: t('Trendline settings'),
       tabOverride: 'data',
       expanded: true,
       controlSetRows: [
@@ -45,7 +50,7 @@ const config: ControlPanelConfig = {
             name: 'compare_lag',
             config: {
               type: 'TextControl',
-              label: t('Comparison Period Lag'),
+              label: t('Comparison period lag'),
               isInt: true,
               description: t(
                 'Based on granularity, number of time periods to compare against',
@@ -68,7 +73,7 @@ const config: ControlPanelConfig = {
             name: 'show_timestamp',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Timestamp'),
+              label: t('Show timestamp'),
               renderTrigger: true,
               default: false,
               description: t('Whether to display the timestamp'),
@@ -80,7 +85,7 @@ const config: ControlPanelConfig = {
             name: 'show_trend_line',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Trend Line'),
+              label: t('Show trend line'),
               renderTrigger: true,
               default: true,
               description: t('Whether to display the trend line'),
