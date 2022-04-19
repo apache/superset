@@ -43,6 +43,8 @@ export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;
 
 export type UndefinedUser = {};
 
+export type BootstrapUser = UserWithPermissionsAndRoles | undefined;
+
 export type Dashboard = {
   dttm: number;
   id: number;

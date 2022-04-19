@@ -24,7 +24,7 @@ import { Switchboard } from '@superset-ui/switchboard';
 import { bootstrapData } from 'src/preamble';
 import setupClient from 'src/setup/setupClient';
 import { RootContextProviders } from 'src/views/RootContextProviders';
-import { store } from 'src/views/store';
+import { store, USER_LOADED } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -121,11 +121,15 @@ function start() {
     endpoint: '/api/v1/me/roles/',
   });
   return getMeWithRole().then(
-    meWithPerm => {
+    meWithRole => {
       // fill in some missing bootstrap data
       // (because at pageload, we don't have any auth yet)
       // this allows the frontend's permissions checks to work.
-      bootstrapData.user = meWithPerm;
+      bootstrapData.user = meWithRole;
+      store.dispatch({
+        type: USER_LOADED,
+        user: meWithRole,
+      });
       ReactDOM.render(<EmbeddedApp />, appMountPoint);
     },
     err => {
