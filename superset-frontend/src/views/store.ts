@@ -70,7 +70,7 @@ export type UserLoadedAction = {
 };
 
 const userReducer = (
-  user: BootstrapUser = bootstrap.user,
+  user: BootstrapUser = bootstrap.user || {},
   action: UserLoadedAction,
 ): BootstrapUser => {
   if (action.type === USER_LOADED) {
