@@ -116,19 +116,19 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
-  const getMeWithRole = makeApi<void, UserWithPermissionsAndRoles>({
+  const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
   return getMeWithRole().then(
-    meWithRole => {
+    ({ result }) => {
       // fill in some missing bootstrap data
       // (because at pageload, we don't have any auth yet)
       // this allows the frontend's permissions checks to work.
-      bootstrapData.user = meWithRole;
+      bootstrapData.user = result;
       store.dispatch({
         type: USER_LOADED,
-        user: meWithRole,
+        user: result,
       });
       ReactDOM.render(<EmbeddedApp />, appMountPoint);
     },
