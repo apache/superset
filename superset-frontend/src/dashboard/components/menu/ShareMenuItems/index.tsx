@@ -32,7 +32,7 @@ interface ShareMenuItemProps {
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
-  dashboardId?: string;
+  dashboardId: string | number;
   hash?: string;
 }
 
