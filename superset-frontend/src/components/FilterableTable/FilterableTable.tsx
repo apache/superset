@@ -30,8 +30,6 @@ import {
   Table,
 } from 'react-virtualized';
 import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import TooltipParagraph from 'src/components/TooltipParagraph';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
@@ -417,19 +415,10 @@ export default class FilterableTable extends PureComponent<
         : 'header-style';
 
     return (
-      <Tooltip
-        id="header-tooltip"
-        title={label}
-        placement="topLeft"
-        css={{ display: 'block' }}
-      >
-        <div className={className}>
-          {label}
-          {sortBy === dataKey && (
-            <SortIndicator sortDirection={sortDirection} />
-          )}
-        </div>
-      </Tooltip>
+      <div className={className}>
+        {label}
+        {sortBy === dataKey && <SortIndicator sortDirection={sortDirection} />}
+      </div>
     );
   }
 
@@ -449,6 +438,7 @@ export default class FilterableTable extends PureComponent<
         : 'header-style';
     return (
       <div
+        key={key}
         style={{
           ...style,
           top:
@@ -461,39 +451,11 @@ export default class FilterableTable extends PureComponent<
         tabIndex={columnIndex}
         onClick={() => this.sortGrid(label)}
       >
-        <TooltipParagraph key={key} id="header-tooltip">
-          {label}
-        </TooltipParagraph>
+        {label}
         {this.state.sortBy === label && (
           <SortIndicator sortDirection={this.state.sortDirection} />
         )}
       </div>
-      // <Tooltip
-      //   key={key}
-      //   id="header-tooltip"
-      //   title={label}
-      //   placement="topLeft"
-      //   css={{ display: 'block' }}
-      // >
-      //   <div
-      //     style={{
-      //       ...style,
-      //       top:
-      //         typeof style.top === 'number'
-      //           ? style.top - GRID_POSITION_ADJUSTMENT
-      //           : style.top,
-      //     }}
-      //     className={`${className} grid-cell grid-header-cell`}
-      //     role="columnheader"
-      //     tabIndex={columnIndex}
-      //     onClick={() => this.sortGrid(label)}
-      //   >
-      //     {label}
-      //     {this.state.sortBy === label && (
-      //       <SortIndicator sortDirection={this.state.sortDirection} />
-      //     )}
-      //   </div>
-      // </Tooltip>
     );
   }
 
