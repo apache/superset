@@ -67,41 +67,56 @@ export const CopyButton = styled(Button)`
   }
 `;
 
-const CopyNode = (
-  <CopyButton buttonSize="xsmall" aria-label={t('Copy')}>
-    <i className="fa fa-clipboard" />
-  </CopyButton>
-);
-
 export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={CopyNode}
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      }
+      wrapped={false}
+      copyNode={
+        <Icons.CopyOutlined
+          iconColor={theme.colors.grayscale.base}
+          iconSize="l"
+          aria-label={t('Copy')}
+          role="button"
+          css={css`
+            &.anticon > * {
+              line-height: 0;
+            }
+          `}
+        />
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
 }: {
   onChangeHandler(filterText: string): void;
 }) => {
+  const theme = useTheme();
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
+      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);
       }}
+      css={css`
+        width: 200px;
+        margin-right: ${theme.gridUnit * 2}px;
+      `}
     />
   );
 };
