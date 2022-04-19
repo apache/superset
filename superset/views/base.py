@@ -19,7 +19,7 @@ import functools
 import logging
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import simplejson as json
 import yaml

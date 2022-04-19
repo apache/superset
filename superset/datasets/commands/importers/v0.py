@@ -278,7 +278,7 @@ class ImportDatasetsCommand(BaseCommand):
             # CLI export
             if isinstance(config, dict):
                 # TODO (betodealmeida): validate with Marshmallow
-                if DATABASES_KEY not in config not in config:
+                if DATABASES_KEY not in config:
                     raise IncorrectVersionError(f"{file_name} has no valid keys")
 
             # UI export

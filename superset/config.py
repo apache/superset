@@ -636,12 +636,6 @@ TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 VIZ_TYPE_DENYLIST: List[str] = []
 
-# ---------------------------------------------------
-# List of data sources not to be refreshed in druid cluster
-# ---------------------------------------------------
-
-DRUID_DATA_SOURCE_DENYLIST: List[str] = []
-
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
@@ -975,8 +969,7 @@ BLUEPRINTS: List[Blueprint] = []
 # into a proxied one
 
 
-def TRACKING_URL_TRANSFORMER(x):
-    return x
+TRACKING_URL_TRANSFORMER = lambda x: x
 
 
 # Interval between consecutive polls when using Hive Engine
@@ -1197,9 +1190,7 @@ SSL_CERT_PATH: Optional[str] = None
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
 
-
-def SQLA_TABLE_MUTATOR(table):
-    return table
+SQLA_TABLE_MUTATOR = lambda table: table
 
 
 # Global async query config options.

@@ -596,7 +596,6 @@ class TestRolePermission(SupersetTestCase):
 
         self.assertIn(("all_database_access", "all_database_access"), perm_set)
         self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_sync_druid_source", "Superset"), perm_set)
         self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
         self.assertIn(("can_approve", "Superset"), perm_set)
 

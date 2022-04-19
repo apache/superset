@@ -20,9 +20,6 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { sections } from '@superset-ui/chart-controls';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-
 export default {
   controlPanelSections: [
     sections.legacyTimeseriesTime,

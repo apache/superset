@@ -113,8 +113,6 @@ class TestRequestAccess(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         with app.app_context():
-            cls.create_druid_test_objects()
-
             security_manager.add_role("override_me")
             security_manager.add_role(TEST_ROLE_1)
             security_manager.add_role(TEST_ROLE_2)

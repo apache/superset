@@ -72,7 +72,6 @@ class TestImportExport(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         cls.delete_imports()
-        cls.create_druid_test_objects()
 
     @classmethod
     def tearDownClass(cls):
@@ -673,78 +672,6 @@ class TestImportExport(SupersetTestCase):
 
         self.assertEqual(imported_id, imported_id_copy)
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_id))
-
-    def test_import_druid_no_metadata(self):
-        datasource = self.create_druid_datasource("pure_druid", id=10001)
-        imported_id = import_dataset(datasource, import_time=1989)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-
-    def test_import_druid_1_col_1_met(self):
-        datasource = self.create_druid_datasource(
-            "druid_1_col_1_met", id=10002, cols_names=["col1"], metric_names=["metric1"]
-        )
-        imported_id = import_dataset(datasource, import_time=1990)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-        self.assertEqual(
-            {"remote_id": 10002, "import_time": 1990, "database_name": "druid_test"},
-            json.loads(imported.params),
-        )
-
-    def test_import_druid_2_col_2_met(self):
-        datasource = self.create_druid_datasource(
-            "druid_2_col_2_met",
-            id=10003,
-            cols_names=["c1", "c2"],
-            metric_names=["m1", "m2"],
-        )
-        imported_id = import_dataset(datasource, import_time=1991)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-
-    def test_import_druid_override(self):
-        datasource = self.create_druid_datasource(
-            "druid_override", id=10004, cols_names=["col1"], metric_names=["m1"]
-        )
-        imported_id = import_dataset(datasource, import_time=1991)
-        table_over = self.create_druid_datasource(
-            "druid_override",
-            id=10004,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_over_id = import_dataset(table_over, import_time=1992)
-
-        imported_over = self.get_datasource(imported_over_id)
-        self.assertEqual(imported_id, imported_over.id)
-        expected_datasource = self.create_druid_datasource(
-            "druid_override",
-            id=10004,
-            metric_names=["new_metric1", "m1"],
-            cols_names=["col1", "new_col1", "col2", "col3"],
-        )
-        self.assert_datasource_equals(expected_datasource, imported_over)
-
-    def test_import_druid_override_identical(self):
-        datasource = self.create_druid_datasource(
-            "copy_cat",
-            id=10005,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_id = import_dataset(datasource, import_time=1993)
-
-        copy_datasource = self.create_druid_datasource(
-            "copy_cat",
-            id=10005,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_id_copy = import_dataset(copy_datasource, import_time=1994)
-
-        self.assertEqual(imported_id, imported_id_copy)
-        self.assert_datasource_equals(copy_datasource, self.get_datasource(imported_id))
 
 
 if __name__ == "__main__":

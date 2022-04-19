@@ -67,7 +67,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app") # type: ignore
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
@@ -145,7 +145,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
-        from superset.views.alerts import AlertView, ReportView
+        from superset.views.alerts import AlertView
         from superset.views.annotations import (
             AnnotationLayerModelView,
             AnnotationModelView,
