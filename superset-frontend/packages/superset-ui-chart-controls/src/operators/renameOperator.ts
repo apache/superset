@@ -24,7 +24,7 @@ import {
   ComparisionType,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
+import { getMetricOffsetsMap, isTimeComparison } from './utils';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   formData,
@@ -45,7 +45,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
     !(
       // todo: we should provide an approach to handle derived metrics
       (
-        isValidTimeCompare(formData, queryObject) &&
+        isTimeComparison(formData, queryObject) &&
         [
           ComparisionType.Difference,
           ComparisionType.Ratio,
@@ -60,7 +60,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
       // "actual values" will add derived metric.
       // we will rename the "metric" from the metricWithOffset label
       // for example: "count__1 year ago" =>	"1 year ago"
-      isValidTimeCompare(formData, queryObject) &&
+      isTimeComparison(formData, queryObject) &&
       formData.comparison_type === ComparisionType.Values
     ) {
       const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
