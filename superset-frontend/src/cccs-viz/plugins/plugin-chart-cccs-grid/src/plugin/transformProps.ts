@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column, getMetricLabel, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
+import { Column, getMetricLabel, Metric, QueryMode, t, TimeseriesDataRecord } from '@superset-ui/core';
 import {
   CccsGridChartProps,
   CccsGridQueryFormData,
@@ -74,6 +74,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
   const { setDataMask = () => { } } = hooks;
 
   const columns = datasource?.columns as Column[];
+  const metrics = datasource?.metrics as Metric[];
 
   // Map of column types, key is column name, value is column type
   const columnTypeMap = new Map<string, string>();
@@ -94,6 +95,16 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     columnMap[name] = column.verbose_name;
     return columnMap;
   }, columnVerboseNameMap);
+
+  // Map of verbose names, key is metric name, value is verbose name
+  const metricVerboseNameMap = new Map<string, string>();
+  metrics.reduce(function (metricMap, metric: Metric) {
+    // @ts-ignore
+    const name = metric['metric_name'];
+    // @ts-ignore
+    metricMap[name] = metric.verbose_name;
+    return metricMap;
+  }, metricVerboseNameMap);
 
   // Map of sorting columns, key is column name, value is a struct of sort direction (asc/desc) and sort index
   const sortingColumnMap = new Map<string, {}>();
@@ -167,13 +178,13 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     if (formData.metrics) {
       const metricsColumnDefs = formData.metrics
         .map(getMetricLabel)
-        .map((column: any) => {
-        const columnHeader = columnVerboseNameMap[column]
-          ? columnVerboseNameMap[column]
-          : column;
+        .map((metric: any) => {
+        const metricHeader = metricVerboseNameMap[metric]
+          ? metricVerboseNameMap[metric]
+          : metric;
         return {
-          field: column,
-          headerName: columnHeader,
+          field: metric,
+          headerName: metricHeader,
           sortable: true,
         };
       });
