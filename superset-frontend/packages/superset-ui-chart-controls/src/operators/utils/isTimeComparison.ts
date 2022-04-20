@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -13,36 +14,22 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * specific language governing permissions and limitationsxw
  * under the License.
  */
-import React from 'react';
-import QueryAndSaveBtns, { QueryAndSaveBtnsProps } from './QueryAndSaveBtns';
+import { ComparisionType } from '@superset-ui/core';
+import { getMetricOffsetsMap } from './getMetricOffsetsMap';
+import { PostProcessingFactory } from '../types';
 
-export default {
-  title: 'QueryAndSaveBtns',
-  component: QueryAndSaveBtns,
-};
+export const isTimeComparison: PostProcessingFactory<boolean> = (
+  formData,
+  queryObject,
+) => {
+  const comparisonType = formData.comparison_type;
+  const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
 
-export const InteractiveQueryAndSaveBtnsProps = (
-  args: QueryAndSaveBtnsProps,
-) => <QueryAndSaveBtns {...args} />;
-
-InteractiveQueryAndSaveBtnsProps.args = {
-  canAdd: true,
-  loading: false,
-};
-
-InteractiveQueryAndSaveBtnsProps.argTypes = {
-  onQuery: { action: 'onQuery' },
-  onSave: { action: 'onSave' },
-  onStop: { action: 'onStop' },
-};
-
-InteractiveQueryAndSaveBtnsProps.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
+  return (
+    Object.values(ComparisionType).includes(comparisonType) &&
+    metricOffsetMap.size > 0
+  );
 };
