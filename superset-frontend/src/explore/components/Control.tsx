@@ -55,7 +55,7 @@ export type ControlComponentProps<ValueType extends JsonValue = JsonValue> =
   Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
 
 const StyledControl = styled.div`
-  padding-bottom: ${({ theme }) => theme.gridUnit}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export default function Control(props: ControlProps) {
