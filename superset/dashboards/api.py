@@ -140,7 +140,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "set_embedded",
         "delete_embedded",
         "thumbnail",
-        "created_by_me",
     }
     resource_name = "dashboard"
     allow_browser_login = True
