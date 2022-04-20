@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-# pylint: disable=invalid-name, no-self-use, too-many-public-methods, too-many-arguments
 """Unit tests for Superset"""
 import dataclasses
 import json
@@ -44,17 +43,20 @@ from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -64,6 +66,7 @@ from tests.integration_tests.fixtures.importexport import (
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
+    load_unicode_data,
 )
 from tests.integration_tests.test_app import app
 
@@ -77,6 +80,7 @@ class TestDatabaseApi(SupersetTestCase):
         encrypted_extra: str = "",
         server_cert: str = "",
         expose_in_sqllab: bool = False,
+        allow_file_upload: bool = False,
     ) -> Database:
         database = Database(
             database_name=database_name,
@@ -85,6 +89,7 @@ class TestDatabaseApi(SupersetTestCase):
             encrypted_extra=encrypted_extra,
             server_cert=server_cert,
             expose_in_sqllab=expose_in_sqllab,
+            allow_file_upload=allow_file_upload,
         )
         db.session.add(database)
         db.session.commit()
@@ -162,10 +167,10 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         expected_columns = [
-            "allow_csv_upload",
             "allow_ctas",
             "allow_cvas",
             "allow_dml",
+            "allow_file_upload",
             "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
@@ -176,12 +181,14 @@ class TestDatabaseApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "database_name",
+            "disable_data_preview",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
         ]
+
         self.assertGreater(response["count"], 0)
         self.assertEqual(list(response["result"][0].keys()), expected_columns)
 
@@ -233,7 +240,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -266,7 +273,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -297,7 +304,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
 
         self.login(username="admin")
@@ -387,7 +394,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {"wrong_param": "some_value"},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         self.login(username="admin")
         database_data = {
@@ -453,7 +460,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
     @mock.patch(
@@ -618,7 +626,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
         db.session.delete(test_database)
@@ -745,9 +754,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_get_invalid_database_table_metadata(self):
         """
@@ -859,6 +866,362 @@ class TestDatabaseApi(SupersetTestCase):
         # TODO(bkyryliuk): investigate why presto returns 500
         self.assertEqual(rv.status_code, 404 if example_db.backend != "presto" else 500)
 
+    def test_get_allow_file_upload_filter(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_no_schema(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        This test has allow_file_upload but no schemas.
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_allow_file_false(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        This has a schema but does not allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_false(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_false_no_extra(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def mock_csv_function(d, user):
+        return d.get_all_schema_names()
+
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_csv_function},
+    )
+    def test_get_allow_file_upload_true_csv(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+            db.session.delete(database)
+            db.session.commit()
+
+    def mock_empty_csv_function(d, user):
+        return []
+
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_empty_csv_function},
+    )
+    def test_get_allow_file_upload_false_csv(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            self.login(username="admin")
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+
+    def test_get_allow_file_upload_filter_no_permission(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="gamma")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_with_permission(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            main_db = get_main_database()
+            main_db.allow_file_upload = True
+            session = db.session
+            table = SqlaTable(
+                schema="public",
+                table_name="ab_permission",
+                database=get_main_database(),
+            )
+
+            session.add(table)
+            session.commit()
+            tmp_table_perm = security_manager.find_permission_view_menu(
+                "datasource_access", table.get_perm()
+            )
+            gamma_role = security_manager.find_role("Gamma")
+            security_manager.add_permission_role(gamma_role, tmp_table_perm)
+
+            self.login(username="gamma")
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+
+            # rollback changes
+            security_manager.del_permission_role(gamma_role, tmp_table_perm)
+            db.session.delete(table)
+            db.session.delete(main_db)
+            db.session.commit()
+
     def test_database_schemas(self):
         """
         Database API: Test database schemas
@@ -907,7 +1270,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_params": {},
             "engine_params": {},
             "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
+            "schemas_allowed_for_file_upload": [],
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
@@ -1035,7 +1398,9 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
-    @mock.patch("superset.databases.commands.test_connection.event_logger",)
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger",
+    )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
     ):
@@ -1100,7 +1465,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 33)
+        self.assertEqual(response["charts"]["count"], 34)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -1144,9 +1509,7 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        # export only requires can_read now, but gamma need to have explicit access to
-        # view the database
-        assert rv.status_code == 404
+        assert rv.status_code == 403
 
     def test_export_database_non_existing(self):
         """
@@ -1189,6 +1552,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1258,6 +1623,8 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
+        dataset.owners = []
+        database.owners = []
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
@@ -1414,7 +1781,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
+    @mock.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",
+    )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
         if example_db.backend in {"hive", "presto"}:
@@ -1573,7 +1942,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
-                        "properties": {"catalog": {"type": "object"},},
+                        "properties": {
+                            "catalog": {"type": "object"},
+                            "service_account_info": {
+                                "description": "Contents of GSheets JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
+                        },
                         "type": "object",
                     },
                     "preferred": False,
@@ -1979,3 +2355,13 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_get_related_objects(self):
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/related_objects/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert "charts" in rv.json
+        assert "dashboards" in rv.json
+        assert "sqllab_tab_states" in rv.json

@@ -1,3 +1,9 @@
+<!---
+Please write the PR title following the conventions at https://www.conventionalcommits.org/en/v1.0.0/
+Example:
+fix(dashboard): load charts correctly
+-->
+
 ### SUMMARY
 <!--- Describe the change below, including rationale and design decisions -->
 

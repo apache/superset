@@ -21,21 +21,23 @@ import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
+import withToasts, {
+  ToastProps,
+} from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
 import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
   text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   padding: 4px 0 24px 0;
 `;
 
@@ -97,16 +99,12 @@ function QueryPreviewModal({
   addDangerToast,
   addSuccessToast,
 }: QueryPreviewModalProps) {
-  const {
-    handleKeyPress,
-    handleDataChange,
-    disablePrevious,
-    disableNext,
-  } = useQueryPreviewState<QueryObject>({
-    queries,
-    currentQueryId: query.id,
-    fetchData,
-  });
+  const { handleKeyPress, handleDataChange, disablePrevious, disableNext } =
+    useQueryPreviewState<QueryObject>({
+      queries,
+      currentQueryId: query.id,
+      fetchData,
+    });
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 

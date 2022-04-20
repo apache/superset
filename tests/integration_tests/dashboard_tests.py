@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 from datetime import datetime
 import json
+import re
 import unittest
 from random import random
 
@@ -33,16 +34,20 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
+    load_energy_table_data,
 )
 from tests.integration_tests.fixtures.public_role import public_role_like_gamma
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
+    load_unicode_data,
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 from .base_tests import SupersetTestCase
@@ -135,9 +140,20 @@ class TestDashboard(SupersetTestCase):
         self.login(username="admin")
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
         url = "/dashboard/new/"
-        resp = self.get_resp(url)
+        response = self.client.get(url, follow_redirects=False)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
+        group = re.match(
+            r"http:\/\/localhost\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            response.headers["Location"],
+        )
+        assert group is not None
+
+        # Cleanup
+        created_dashboard_id = int(group[1])
+        created_dashboard = db.session.query(Dashboard).get(created_dashboard_id)
+        db.session.delete(created_dashboard)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash(self, username="admin"):

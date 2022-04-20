@@ -134,7 +134,11 @@ class AsyncQueryManager:
                 session["async_user_id"] = user_id
 
                 sub = str(user_id) if user_id else None
-                token = self.generate_jwt({"channel": async_channel_id, "sub": sub})
+                token = jwt.encode(
+                    {"channel": async_channel_id, "sub": sub},
+                    self._jwt_secret,
+                    algorithm="HS256",
+                )
 
                 response.set_cookie(
                     self._jwt_cookie_name,
@@ -146,21 +150,13 @@ class AsyncQueryManager:
 
             return response
 
-    def generate_jwt(self, data: Dict[str, Any]) -> str:
-        encoded_jwt = jwt.encode(data, self._jwt_secret, algorithm="HS256")
-        return encoded_jwt.decode("utf-8")
-
-    def parse_jwt(self, token: str) -> Dict[str, Any]:
-        data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
-        return data
-
     def parse_jwt_from_request(self, req: Request) -> Dict[str, Any]:
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
 
         try:
-            return self.parse_jwt(token)
+            return jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         except Exception as ex:
             logger.warning(ex)
             raise AsyncQueryTokenException("Failed to parse token") from ex
@@ -176,9 +172,7 @@ class AsyncQueryManager:
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = self._redis.xrange(  # type: ignore
-            stream_name, start_id, "+", self.MAX_EVENT_COUNT
-        )
+        results = self._redis.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
         return [] if not results else list(map(parse_event, results))
 
     def update_job(
@@ -199,9 +193,5 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
-        self._redis.xadd(  # type: ignore
-            scoped_stream_name, event_data, "*", self._stream_limit
-        )
-        self._redis.xadd(  # type: ignore
-            full_stream_name, event_data, "*", self._stream_limit_firehose
-        )
+        self._redis.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
+        self._redis.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)

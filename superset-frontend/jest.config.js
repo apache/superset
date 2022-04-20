@@ -16,32 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 module.exports = {
-  testRegex: '(\\/spec|\\/src)\\/.*(_spec|\\.test)\\.(j|t)sx?$',
+  testRegex:
+    '\\/superset-frontend\\/(spec|src|plugins|packages)\\/.*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
+    // mapping plugins of superset-ui to souce code
+    '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
   testEnvironment: 'jsdom',
+  modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!**/*.stories.*'],
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
+    '!**/*.stories.*',
+    '!packages/superset-ui-demo/**/*',
+  ],
   coverageDirectory: '<rootDir>/coverage/',
-  transform: {
-    '^.+\\.jsx?$': 'babel-jest',
-    '^.+\\.tsx?$': 'ts-jest',
-  },
+  coveragePathIgnorePatterns: [
+    'coverage/',
+    'node_modules/',
+    'public/',
+    'tmp/',
+    'dist/',
+  ],
+  coverageReporters: ['lcov', 'json-summary', 'html'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   globals: {
-    'ts-jest': {
-      babelConfig: true,
-      diagnostics: {
-        warnOnly: true,
-      },
-    },
+    __DEV__: true,
+    caches: true,
   },
 };

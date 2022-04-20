@@ -35,7 +35,6 @@ export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
 export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART =
   'export_csv_dashboard_chart';
 export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
-export const LOG_ACTIONS_OMNIBAR_TRIGGERED = 'omnibar_triggered';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -54,13 +53,18 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
-  LOG_ACTIONS_OMNIBAR_TRIGGERED,
   LOG_ACTIONS_MOUNT_EXPLORER,
 ]);
 
 export const Logger = {
-  // note that this returns ms since page load, NOT ms since epoch
+  timeOriginOffset: 0,
+
+  markTimeOrigin() {
+    this.timeOriginOffset = window.performance.now();
+  },
+
+  // note that this returns ms since last navigation, NOT ms since epoch
   getTimestamp() {
-    return Math.round(window.performance.now());
+    return Math.round(window.performance.now() - this.timeOriginOffset);
   },
 };

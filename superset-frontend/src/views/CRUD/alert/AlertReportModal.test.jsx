@@ -215,7 +215,7 @@ describe('AlertReportModal', () => {
     const editWrapper = await mountAndWait(props);
     const input = editWrapper.find(TextAreaControl);
     expect(input).toExist();
-    expect(input.props().value).toEqual('SELECT NaN');
+    expect(input.props().initialValue).toEqual('SELECT NaN');
   });
 
   it('renders five select element when in report mode', () => {
@@ -339,5 +339,23 @@ describe('AlertReportModal', () => {
     });
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('textarea[name="recipients"]')).toHaveLength(1);
+  });
+
+  it('renders bypass cache checkbox', async () => {
+    const bypass = wrapper.find('[data-test="bypass-cache"]');
+    expect(bypass).toExist();
+  });
+
+  it('renders no bypass cache checkbox when alert', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+
+    const alertWrapper = await mountAndWait(props);
+
+    const bypass = alertWrapper.find('[data-test="bypass-cache"]');
+    expect(bypass).not.toExist();
   });
 });

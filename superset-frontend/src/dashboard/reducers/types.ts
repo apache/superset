@@ -18,8 +18,7 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter, Scope } from '../components/nativeFilters/types';
+import { NativeFilterScope, JsonObject } from '@superset-ui/core';
 
 export enum Scoping {
   All = 'All',
@@ -30,7 +29,7 @@ export type ChartConfiguration = {
   [chartId: number]: {
     id: number;
     crossFilters: {
-      scope: Scope;
+      scope: NativeFilterScope;
     };
   };
 };
@@ -81,23 +80,15 @@ export type LayoutItem = {
   };
 };
 
-export type FilterSet = {
-  id: string;
+export type FilterSetFullData = {
+  changed_by_fk: string | null;
+  changed_on: string | null;
+  created_by_fk: string | null;
+  created_on: string | null;
+  dashboard_id: number;
+  description: string | null;
   name: string;
-  nativeFilters: Filters;
-  dataMask: DataMaskStateWithId;
-};
-
-export type FilterSets = {
-  [filtersSetId: string]: FilterSet;
-};
-
-export type Filters = {
-  [filterId: string]: Filter;
-};
-
-export type NativeFiltersState = {
-  filters: Filters;
-  filterSets: FilterSets;
-  focusedFilterId?: string;
+  owner_id: number;
+  owner_type: string;
+  params: JsonObject;
 };

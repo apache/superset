@@ -23,8 +23,8 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from 'src/featureFlags';
 import SliceHeaderControls from '.';
 
-jest.mock('src/common/components', () => {
-  const original = jest.requireActual('src/common/components');
+jest.mock('src/components/Dropdown', () => {
+  const original = jest.requireActual('src/components/Dropdown');
   return {
     ...original,
     NoAnimationDropdown: (props: any) => (
@@ -36,7 +36,7 @@ jest.mock('src/common/components', () => {
   };
 });
 
-const createProps = () => ({
+const createProps = (viz_type = 'sunburst') => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
   exploreChart: jest.fn(),
@@ -45,6 +45,7 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   handleToggleFullSize: jest.fn(),
   toggleExpandSlice: jest.fn(),
+  onExploreChart: jest.fn(),
   slice: {
     slice_id: 371,
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
@@ -65,11 +66,10 @@ const createProps = () => ({
       row_limit: 10000,
       slice_id: 371,
       time_range: 'No filter',
-      time_range_endpoints: ['inclusive', 'exclusive'],
       url_params: {},
-      viz_type: 'sunburst',
+      viz_type,
     },
-    viz_type: 'sunburst',
+    viz_type,
     datasource: '58__table',
     description: 'test-description',
     description_markeddown: '',
@@ -90,7 +90,7 @@ const createProps = () => ({
   chartStatus: 'rendered',
   showControls: true,
   supersetCanShare: true,
-  formData: {},
+  formData: { slice_id: 1, datasource: '58__table' },
 });
 
 test('Should render', () => {
@@ -152,25 +152,30 @@ test('Should "export to CSV"', () => {
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
+test('Should not show "Export to CSV" if slice is filter box', () => {
+  const props = createProps('filter_box');
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export CSV' })).toBe(null);
+});
+
 test('Export full CSV is under featureflag', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
   };
-  const props = createProps();
-  props.slice.viz_type = 'table';
+  const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
     null,
   );
 });
+
 test('Should "export full CSV"', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
-  const props = createProps();
-  props.slice.viz_type = 'table';
+  const props = createProps('table');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).not.toBe(
     null,
@@ -187,6 +192,18 @@ test('Should not show export full CSV if report is not table', () => {
     [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
   };
   const props = createProps();
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
+    null,
+  );
+});
+
+test('Should not show export full CSV if slice is filter box', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
+  const props = createProps('filter_box');
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
     null,
@@ -213,6 +230,7 @@ test('Should "Force refresh"', () => {
   userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
   expect(props.forceRefresh).toBeCalledTimes(1);
   expect(props.forceRefresh).toBeCalledWith(371, 26);
+  expect(props.addSuccessToast).toBeCalledTimes(1);
 });
 
 test('Should "Maximize chart"', () => {

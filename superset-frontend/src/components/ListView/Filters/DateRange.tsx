@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import moment, { Moment } from 'moment';
 import { styled } from '@superset-ui/core';
-import { RangePicker as AntRangePicker } from 'src/components/DatePicker';
-import { FilterContainer, BaseFilter, FilterTitle } from './Base';
+import { RangePicker } from 'src/components/DatePicker';
+import { FormLabel } from 'src/components/Form';
+import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
   onSubmit: (val: number[]) => void;
@@ -29,32 +35,36 @@ interface DateRangeFilterProps extends BaseFilter {
 
 type ValueState = [number, number];
 
-const RangePicker = styled(AntRangePicker)`
-  padding: 0 11px;
-  transform: translateX(-7px);
+const RangeFilterContainer = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 360px;
 `;
 
-const RangeFilterContainer = styled(FilterContainer)`
-  margin-right: 1em;
-`;
-
-export default function DateRangeFilter({
-  Header,
-  initialValue,
-  onSubmit,
-}: DateRangeFilterProps) {
+function DateRangeFilter(
+  { Header, initialValue, onSubmit }: DateRangeFilterProps,
+  ref: React.RefObject<FilterHandler>,
+) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
   const momentValue = useMemo((): [Moment, Moment] | null => {
     if (!value || (Array.isArray(value) && !value.length)) return null;
     return [moment(value[0]), moment(value[1])];
   }, [value]);
 
+  useImperativeHandle(ref, () => ({
+    clearFilter: () => {
+      setValue(null);
+      onSubmit([]);
+    },
+  }));
+
   return (
     <RangeFilterContainer>
-      <FilterTitle>{Header}:</FilterTitle>
+      <FormLabel>{Header}</FormLabel>
       <RangePicker
         showTime
-        bordered={false}
         value={momentValue}
         onChange={momentRange => {
           if (!momentRange) {
@@ -73,3 +83,5 @@ export default function DateRangeFilter({
     </RangeFilterContainer>
   );
 }
+
+export default forwardRef(DateRangeFilter);

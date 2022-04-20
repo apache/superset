@@ -19,7 +19,7 @@ import logging
 from celery.exceptions import SoftTimeLimitExceeded
 from dateutil import parser
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
@@ -37,6 +37,8 @@ def scheduler() -> None:
     """
     Celery beat main scheduler for reports
     """
+    if not is_feature_enabled("ALERT_REPORTS"):
+        return
     with session_scope(nullpool=True) as session:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:
@@ -59,7 +61,13 @@ def scheduler() -> None:
                         active_schedule.working_timeout
                         + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
                     )
-                execute.apply_async((active_schedule.id, schedule,), **async_options)
+                execute.apply_async(
+                    (
+                        active_schedule.id,
+                        schedule,
+                    ),
+                    **async_options
+                )
 
 
 @celery_app.task(name="reports.execute")
@@ -68,7 +76,9 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
         task_id = execute.request.id
         scheduled_dttm_ = parser.parse(scheduled_dttm)
         AsyncExecuteReportScheduleCommand(
-            task_id, report_schedule_id, scheduled_dttm_,
+            task_id,
+            report_schedule_id,
+            scheduled_dttm_,
         ).run()
     except ReportScheduleUnexpectedError as ex:
         logger.error(

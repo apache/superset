@@ -18,8 +18,9 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import CertifiedBadge from '../CertifiedBadge';
 
 export interface EditableTitleProps {
   canEdit?: boolean;
@@ -34,7 +35,13 @@ export interface EditableTitleProps {
   title?: string;
   defaultTitle?: string;
   placeholder?: string;
+  certifiedBy?: string;
+  certificationDetails?: string;
 }
+
+const StyledCertifiedBadge = styled(CertifiedBadge)`
+  vertical-align: middle;
+`;
 
 export default function EditableTitle({
   canEdit = false,
@@ -48,14 +55,16 @@ export default function EditableTitle({
   title = '',
   defaultTitle = '',
   placeholder = '',
+  certifiedBy,
+  certificationDetails,
+  // rest is related to title tooltip
+  ...rest
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
-  const [
-    contentBoundingRect,
-    setContentBoundingRect,
-  ] = useState<DOMRect | null>(null);
+  const [contentBoundingRect, setContentBoundingRect] =
+    useState<DOMRect | null>(null);
   // Used so we can access the DOM element if a user clicks on this component.
 
   const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
@@ -207,11 +216,7 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = (
-      <span data-test="editable-title-input" title={value}>
-        {value}
-      </span>
-    );
+    titleComponent = <span data-test="editable-title-input">{value}</span>;
   }
   return (
     <span
@@ -223,7 +228,17 @@ export default function EditableTitle({
         isEditing && 'editable-title--editing',
       )}
       style={style}
+      {...rest}
     >
+      {certifiedBy && (
+        <>
+          <StyledCertifiedBadge
+            certifiedBy={certifiedBy}
+            details={certificationDetails}
+            size="xl"
+          />{' '}
+        </>
+      )}
       {titleComponent}
     </span>
   );

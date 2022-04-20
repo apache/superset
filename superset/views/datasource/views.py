@@ -38,7 +38,7 @@ from superset.datasets.commands.exceptions import (
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -51,6 +51,7 @@ from superset.views.datasource.schemas import (
     ExternalMetadataSchema,
     get_external_metadata_schema,
 )
+from superset.views.utils import sanitize_datasource_data
 
 
 class Datasource(BaseSupersetView):
@@ -80,7 +81,7 @@ class Datasource(BaseSupersetView):
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
-            if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+            if app.config.get("OLD_API_CHECK_DATASET_OWNERSHIP"):
                 # mimic the behavior of the new dataset command that
                 # checks ownership and ensures that non-admins aren't locked out
                 # of the object
@@ -123,7 +124,7 @@ class Datasource(BaseSupersetView):
         data = orm_datasource.data
         db.session.commit()
 
-        return self.json_response(data)
+        return self.json_response(sanitize_datasource_data(data))
 
     @expose("/get/<datasource_type>/<datasource_id>/")
     @has_access_api
@@ -133,7 +134,7 @@ class Datasource(BaseSupersetView):
         datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
-        return self.json_response(datasource.data)
+        return self.json_response(sanitize_datasource_data(datasource.data))
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
     @has_access_api
@@ -160,8 +161,8 @@ class Datasource(BaseSupersetView):
     def external_metadata_by_name(self, **kwargs: Any) -> FlaskResponse:
         """Gets table metadata from the source system and SQLAlchemy inspector"""
         try:
-            params: ExternalMetadataParams = (
-                ExternalMetadataSchema().load(kwargs.get("rison"))
+            params: ExternalMetadataParams = ExternalMetadataSchema().load(
+                kwargs.get("rison")
             )
         except ValidationError as err:
             return json_error_response(str(err), status=400)

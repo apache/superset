@@ -18,25 +18,23 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
+import * as reactRedux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { QueryParamProvider } from 'use-query-params';
-import * as featureFlags from 'src/featureFlags';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import DeleteModal from 'src/components/DeleteModal';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
+
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -54,7 +52,7 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   backend: 'postgresql',
   allow_run_async: true,
   allow_dml: false,
-  allow_csv_upload: true,
+  allow_file_upload: true,
   expose_in_sqllab: false,
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
@@ -65,10 +63,6 @@ jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
   useSelector: jest.fn(),
 }));
-
-const mockUser = {
-  userId: 1,
-};
 
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_write'],
@@ -88,14 +82,51 @@ fetchMock.get(databaseRelatedEndpoint, {
     count: 0,
     result: [],
   },
+  sqllab_tab_states: {
+    count: 0,
+    result: [],
+  },
 });
 
+fetchMock.get(
+  'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+  {},
+);
+
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const userSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+
 describe('DatabaseList', () => {
+  useSelectorMock.mockReturnValue({
+    CSV_EXTENSIONS: ['csv'],
+    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+  });
+  userSelectorMock.mockReturnValue({
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: {
+      Admin: [
+        ['can_sqllab', 'Superset'],
+        ['can_write', 'Dashboard'],
+        ['can_write', 'Chart'],
+      ],
+    },
+    userId: 1,
+    username: 'admin',
+  });
+
   const wrapper = mount(
     <Provider store={store}>
-      <DatabaseList user={mockUser} />
+      <DatabaseList />
     </Provider>,
   );
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
@@ -118,7 +149,7 @@ describe('DatabaseList', () => {
 
   it('fetches Databases', () => {
     const callsD = fetchMock.calls(/database\/\?q/);
-    expect(callsD).toHaveLength(1);
+    expect(callsD).toHaveLength(2);
     expect(callsD[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
@@ -131,7 +162,7 @@ describe('DatabaseList', () => {
     await waitForComponentToPaint(wrapper);
 
     expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
-      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."`,
     );
 
     act(() => {
@@ -161,13 +192,13 @@ describe('DatabaseList', () => {
         .find('[name="expose_in_sqllab"]')
         .first()
         .props()
-        .onSelect(true);
+        .onSelect({ label: 'Yes', value: true });
 
       filtersWrapper
         .find('[name="allow_run_async"]')
         .first()
         .props()
-        .onSelect(false);
+        .onSelect({ label: 'Yes', value: false });
 
       filtersWrapper
         .find('[name="database_name"]')
@@ -180,45 +211,5 @@ describe('DatabaseList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
-  });
-});
-
-describe('RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      render(
-        <QueryParamProvider>
-          <DatabaseList user={mockUser} />
-        </QueryParamProvider>,
-        { useRedux: true },
-      );
-    });
-
-    return mounted;
-  }
-
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(() => true);
-    await renderAndWait();
-  });
-
-  afterEach(() => {
-    cleanup();
-    isFeatureEnabledMock.mockRestore();
-  });
-
-  it('renders an "Import Database" tooltip under import button', async () => {
-    const importButton = screen.getByTestId('import-button');
-    userEvent.hover(importButton);
-
-    await screen.findByRole('tooltip');
-    const importTooltip = screen.getByRole('tooltip', {
-      name: 'Import databases',
-    });
-
-    expect(importTooltip).toBeInTheDocument();
   });
 });

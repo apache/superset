@@ -21,7 +21,8 @@ import PropTypes from 'prop-types';
 
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
-import { Menu, NoAnimationDropdown } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
+import { NoAnimationDropdown } from 'src/components/Dropdown';
 import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -35,6 +36,7 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -57,14 +59,17 @@ const propTypes = {
   userCanEdit: PropTypes.bool.isRequired,
   userCanShare: PropTypes.bool.isRequired,
   userCanSave: PropTypes.bool.isRequired,
+  userCanCurate: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
   showPropertiesModal: PropTypes.func.isRequired,
+  manageEmbedded: PropTypes.func.isRequired,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 };
 
 const defaultProps = {
@@ -72,6 +77,7 @@ const defaultProps = {
   colorScheme: undefined,
   refreshLimit: 0,
   refreshWarning: null,
+  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
 };
 
 const MENU_KEYS = {
@@ -84,6 +90,7 @@ const MENU_KEYS = {
   EDIT_CSS: 'edit-css',
   DOWNLOAD_AS_IMAGE: 'download-as-image',
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
+  MANAGE_EMBEDDED: 'manage-embedded',
 };
 
 const DropdownButton = styled.div`
@@ -113,8 +120,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   UNSAFE_componentWillMount() {
-    injectCustomCss(this.state.css);
-
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
       .then(({ json }) => {
         const cssTemplates = json.result.map(row => ({
@@ -148,6 +153,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
+        this.props.addSuccessToast(t('Data refreshed'));
         break;
       case MENU_KEYS.EDIT_PROPERTIES:
         this.props.showPropertiesModal();
@@ -171,13 +177,16 @@ class HeaderActionsDropdown extends React.PureComponent {
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const url = getDashboardUrl({
-          dataMask: this.props.dataMask,
           pathname: window.location.pathname,
           filters: getActiveFilters(),
           hash: window.location.hash,
           standalone: !getUrlParam(URL_PARAMS.standalone),
         });
         window.location.replace(url);
+        break;
+      }
+      case MENU_KEYS.MANAGE_EMBEDDED: {
+        this.props.manageEmbedded();
         break;
       }
       default:
@@ -190,7 +199,6 @@ class HeaderActionsDropdown extends React.PureComponent {
       dashboardTitle,
       dashboardId,
       dashboardInfo,
-      dataMask,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       editMode,
@@ -203,12 +211,14 @@ class HeaderActionsDropdown extends React.PureComponent {
       userCanEdit,
       userCanShare,
       userCanSave,
+      userCanCurate,
       isLoading,
       refreshLimit,
       refreshWarning,
       lastModifiedTime,
       addSuccessToast,
       addDangerToast,
+      filterboxMigrationState,
     } = this.props;
 
     const emailTitle = t('Superset dashboard');
@@ -216,7 +226,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailBody = t('Check out this dashboard: ');
 
     const url = getDashboardUrl({
-      dataMask,
       pathname: window.location.pathname,
       filters: getActiveFilters(),
       hash: window.location.hash,
@@ -256,12 +265,13 @@ class HeaderActionsDropdown extends React.PureComponent {
         {userCanShare && (
           <ShareMenuItems
             url={url}
-            copyMenuItemTitle={t('Copy dashboard URL')}
-            emailMenuItemTitle={t('Share dashboard by email')}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
             emailSubject={emailSubject}
             emailBody={emailBody}
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
+            dashboardId={dashboardId}
           />
         )}
         <Menu.Item
@@ -274,6 +284,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         <Menu.Divider />
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal
+            addSuccessToast={this.props.addSuccessToast}
             refreshFrequency={refreshFrequency}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
@@ -283,14 +294,15 @@ class HeaderActionsDropdown extends React.PureComponent {
           />
         </Menu.Item>
 
-        {editMode && (
-          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
-            <FilterScopeModal
-              className="m-r-5"
-              triggerNode={t('Set filter mapping')}
-            />
-          </Menu.Item>
-        )}
+        {editMode &&
+          filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.CONVERTED && (
+            <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
+              <FilterScopeModal
+                className="m-r-5"
+                triggerNode={t('Set filter mapping')}
+              />
+            </Menu.Item>
+          )}
 
         {editMode && (
           <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
@@ -306,6 +318,12 @@ class HeaderActionsDropdown extends React.PureComponent {
               templates={this.state.cssTemplates}
               onChange={this.changeCss}
             />
+          </Menu.Item>
+        )}
+
+        {!editMode && userCanCurate && (
+          <Menu.Item key={MENU_KEYS.MANAGE_EMBEDDED}>
+            {t('Embed dashboard')}
           </Menu.Item>
         )}
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { flatMapDeep } from 'lodash';
-import { FormInstance } from 'antd/lib/form';
+import { FormInstance } from 'src/components';
 import React from 'react';
 import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';

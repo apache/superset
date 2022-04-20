@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
-import { Select } from 'src/components';
+import Select, { propertyComparator } from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -49,6 +49,7 @@ const RefreshWarningContainer = styled.div`
 `;
 
 type RefreshIntervalModalProps = {
+  addSuccessToast: (msg: string) => void;
   triggerNode: JSX.Element;
   refreshFrequency: number;
   onChange: (refreshLimit: number, editMode: boolean) => void;
@@ -86,6 +87,7 @@ class RefreshIntervalModal extends React.PureComponent<
   onSave() {
     this.props.onChange(this.state.refreshFrequency, this.props.editMode);
     this.modalRef.current?.close();
+    this.props.addSuccessToast(t('Refresh interval saved'));
   }
 
   onCancel() {
@@ -120,6 +122,7 @@ class RefreshIntervalModal extends React.PureComponent<
               options={options}
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
+              sortComparator={propertyComparator('value')}
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>

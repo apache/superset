@@ -94,6 +94,14 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
     return engine_specs_map
 
 
+# there's a mismatch between the dialect name reported by the driver in these
+# libraries and the dialect name used in the URI
+backend_replacements = {
+    "drilldbapi": "drill",
+    "exasol": "exa",
+}
+
+
 def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
     """
     Return available engine specs and installed drivers for them.
@@ -108,6 +116,9 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                 hasattr(attribute, "dialect")
                 and inspect.isclass(attribute.dialect)
                 and issubclass(attribute.dialect, DefaultDialect)
+                # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
+                # `dbapi` method, hence needs to be ignored to avoid logging a warning
+                and attribute.dialect.driver != "adodbapi"
             ):
                 try:
                     attribute.dialect.dbapi()
@@ -124,12 +135,14 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
     for ep in iter_entry_points("sqlalchemy.dialects"):
         try:
             dialect = ep.load()
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", dialect, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):
                 backend = backend.decode()
+            backend = backend_replacements.get(backend, backend)
+
             driver = getattr(dialect, "driver", dialect.name)
             if isinstance(driver, bytes):
                 driver = driver.decode()
@@ -137,6 +150,15 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
 
     available_engines = {}
     for engine_spec in load_engine_specs():
-        available_engines[engine_spec] = drivers[engine_spec.engine]
+        driver = drivers[engine_spec.engine]
+
+        # lookup driver by engine aliases.
+        if not driver and engine_spec.engine_aliases:
+            for alias in engine_spec.engine_aliases:
+                driver = drivers[alias]
+                if driver:
+                    break
+
+        available_engines[engine_spec] = driver
 
     return available_engines

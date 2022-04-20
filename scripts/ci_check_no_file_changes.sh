@@ -37,7 +37,7 @@ do
     REGEX="(^\.github\/workflows\/.*python|^tests\/|^superset\/|^setup\.py|^requirements\/.+\.txt|^\.pylintrc)"
     echo "Searching for changes in python files"
   elif [[ ${CHECK} == "frontend" ]]; then
-    REGEX="(^\.github\/workflows\/.*(frontend|e2e)|^superset-frontend\/)"
+    REGEX="(^\.github\/workflows\/.*(bashlib|frontend|e2e)|^superset-frontend\/)"
     echo "Searching for changes in frontend files"
   else
     echo "Invalid check: \"${CHECK}\". Falling back to exiting with FAILURE code"

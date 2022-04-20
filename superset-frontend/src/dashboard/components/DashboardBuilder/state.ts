@@ -18,31 +18,35 @@
  */
 import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useContext } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import { MigrationContext } from 'src/dashboard/containers/DashboardPage';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
+  const filterboxMigrationState = useContext(MigrationContext);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    getUrlParam(URL_PARAMS.showFilters) ?? true,
-  );
   const showNativeFilters = useSelector<RootState, boolean>(
-    state => state.dashboardInfo.metadata?.show_native_filters,
+    state =>
+      (getUrlParam(URL_PARAMS.showFilters) ?? true) &&
+      state.dashboardInfo.metadata?.show_native_filters,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
+  const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
+  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
+    expandFilters ?? !!filterValues.length,
+  );
 
   const nativeFiltersEnabled =
     showNativeFilters &&
@@ -64,19 +68,25 @@ export const useNativeFilters = () => {
       )
     );
 
-  const toggleDashboardFiltersOpen = (visible?: boolean) => {
-    setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
-  };
+  const toggleDashboardFiltersOpen = useCallback(
+    (visible?: boolean) => {
+      setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
+    },
+    [dashboardFiltersOpen],
+  );
 
   useEffect(() => {
     if (
-      filterValues.length === 0 &&
-      dashboardFiltersOpen &&
-      nativeFiltersEnabled
+      expandFilters === false ||
+      (filterValues.length === 0 &&
+        nativeFiltersEnabled &&
+        ['CONVERTED', 'REVIEWING', 'NOOP'].includes(filterboxMigrationState))
     ) {
       toggleDashboardFiltersOpen(false);
+    } else {
+      toggleDashboardFiltersOpen(true);
     }
-  }, [filterValues.length]);
+  }, [filterValues.length, filterboxMigrationState]);
 
   useEffect(() => {
     if (showDashboard) {

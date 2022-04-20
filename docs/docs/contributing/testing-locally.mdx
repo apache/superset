@@ -1,0 +1,274 @@
+---
+title: Testing
+hide_title: true
+sidebar_position: 8
+version: 1
+---
+
+## Testing
+
+### Python Testing
+
+All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
+a standardized testing framework.
+All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+
+```bash
+tox -e <environment>
+```
+
+For example,
+
+```bash
+tox -e py38
+```
+
+Alternatively, you can run all tests in a single file via,
+
+```bash
+tox -e <environment> -- tests/test_file.py
+```
+
+or for a specific test via,
+
+```bash
+tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
+```
+
+Note that the test environment uses a temporary directory for defining the
+SQLite databases which will be cleared each time before the group of test
+commands are invoked.
+
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all integration tests for example, run this script from the root directory:
+
+```bash
+scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
+```
+
+### Frontend Testing
+
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
+
+```bash
+cd superset-frontend
+npm run test
+```
+
+To run a single test file:
+
+```bash
+npm run test -- path/to/file.js
+```
+
+### Integration Testing
+
+We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+
+```bash
+export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
+export SUPERSET_TESTENV=true
+export CYPRESS_BASE_URL="http://localhost:8081"
+superset db upgrade
+superset load_test_users
+superset load-examples --load-test-data
+superset init
+superset run --port 8081
+```
+
+Run Cypress tests:
+
+```bash
+cd superset-frontend
+npm run build-instrumented
+
+cd cypress-base
+npm install
+
+# run tests via headless Chrome browser (requires Chrome 64+)
+npm run cypress-run-chrome
+
+# run tests from a specific file
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+
+# run specific file with video capture
+npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+
+# to open the cypress ui
+npm run cypress-debug
+
+# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
+# e.g., CYPRESS_BASE_URL="http://localhost:9000"
+CYPRESS_BASE_URL=<your url> npm run cypress open
+```
+
+See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
+
+As an alternative you can use docker-compose environment for testing:
+
+Make sure you have added below line to your /etc/hosts file:
+`127.0.0.1 db`
+
+If you already have launched Docker environment please use the following command to assure a fresh database instance:
+`docker-compose down -v`
+
+Launch environment:
+
+`CYPRESS_CONFIG=true docker-compose up`
+
+It will serve backend and frontend on port 8088.
+
+Run Cypress tests:
+
+```bash
+cd cypress-base
+npm install
+npm run cypress open
+```
+
+### Debugging Server App
+
+Follow these instructions to debug the Flask app running inside a docker container.
+
+First add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+
+```bash
+docker-compose up
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6.
+
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Superset App in Docker Container",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ]
+        },
+    ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+
+```
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+
+Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+
+### Storybook
+
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
+
+```bash
+cd superset-frontend
+npm run storybook
+```
+
+When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.

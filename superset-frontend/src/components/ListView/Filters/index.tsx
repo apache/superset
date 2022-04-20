@@ -16,17 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styled, withTheme } from '@superset-ui/core';
+import React, {
+  createRef,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
+import { withTheme } from '@superset-ui/core';
 
 import {
   FilterValue,
   Filters,
   InternalFilter,
+  SelectOption,
 } from 'src/components/ListView/types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
+import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -34,42 +41,42 @@ interface UIFiltersProps {
   updateFilterValue: (id: number, value: FilterValue['value']) => void;
 }
 
-const FilterWrapper = styled.div`
-  display: inline-block;
-`;
+function UIFilters(
+  { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
+  ref: React.RefObject<{ clearFilters: () => void }>,
+) {
+  const filterRefs = useMemo(
+    () =>
+      Array.from({ length: filters.length }, () => createRef<FilterHandler>()),
+    [filters.length],
+  );
 
-function UIFilters({
-  filters,
-  internalFilters = [],
-  updateFilterValue,
-}: UIFiltersProps) {
+  useImperativeHandle(ref, () => ({
+    clearFilters: () => {
+      filterRefs.forEach((filter: any) => {
+        filter.current?.clearFilter?.();
+      });
+    },
+  }));
+
   return (
-    <FilterWrapper>
+    <>
       {filters.map(
-        (
-          {
-            Header,
-            fetchSelects,
-            id,
-            input,
-            paginate,
-            selects,
-            unfilteredLabel,
-          },
-          index,
-        ) => {
+        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
           const initialValue =
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
             return (
               <SelectFilter
+                ref={filterRefs[index]}
                 Header={Header}
-                emptyLabel={unfilteredLabel}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSelect={(value: any) => updateFilterValue(index, value)}
+                onSelect={(option: SelectOption | undefined) =>
+                  updateFilterValue(index, option)
+                }
                 paginate={paginate}
                 selects={selects}
               />
@@ -78,6 +85,7 @@ function UIFilters({
           if (input === 'search' && typeof Header === 'string') {
             return (
               <SearchFilter
+                ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
                 key={id}
@@ -89,6 +97,7 @@ function UIFilters({
           if (input === 'datetime_range') {
             return (
               <DateRangeFilter
+                ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
                 key={id}
@@ -100,8 +109,8 @@ function UIFilters({
           return null;
         },
       )}
-    </FilterWrapper>
+    </>
   );
 }
 
-export default withTheme(UIFilters);
+export default withTheme(forwardRef(UIFilters));

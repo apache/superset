@@ -17,15 +17,14 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useEffect } from 'react';
-import { Empty } from 'src/common/components';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Alert from 'src/components/Alert';
-import { ReactComponent as EmptyImage } from 'images/empty.svg';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+import Pagination from 'src/components/Pagination';
+import TableCollection from 'src/components/TableCollection';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -37,6 +36,7 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
+import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -50,13 +50,11 @@ const ListViewStyles = styled.div`
       display: flex;
       padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
-      .header-left {
+      & .controls {
         display: flex;
-        flex: 5;
-      }
-      .header-right {
-        flex: 1;
-        text-align: right;
+        flex-wrap: wrap;
+        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
+        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
       }
     }
 
@@ -136,6 +134,8 @@ const bulkSelectColumnConfig = {
 
 const ViewModeContainer = styled.div`
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  white-space: nowrap;
   display: inline-block;
 
   .toggle-button {
@@ -222,10 +222,7 @@ export interface ListViewProps<T extends object = any> {
   defaultViewMode?: ViewModeType;
   highlightRowId?: number;
   showThumbnails?: boolean;
-  emptyState?: {
-    message?: string;
-    slot?: React.ReactNode;
-  };
+  emptyState?: EmptyStateProps;
 }
 
 function ListView<T extends object = any>({
@@ -247,7 +244,7 @@ function ListView<T extends object = any>({
   cardSortSelectOptions,
   defaultViewMode = 'card',
   highlightRowId,
-  emptyState = {},
+  emptyState,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -262,6 +259,7 @@ function ListView<T extends object = any>({
     toggleAllRowsSelected,
     setViewMode,
     state: { pageIndex, pageSize, internalFilters, viewMode },
+    query,
   } = useListViewState({
     bulkSelectColumnConfig,
     bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
@@ -290,6 +288,14 @@ function ListView<T extends object = any>({
     });
   }
 
+  const filterControlsRef = useRef<{ clearFilters: () => void }>(null);
+
+  const handleClearFilterControls = useCallback(() => {
+    if (query.filters) {
+      filterControlsRef.current?.clearFilters();
+    }
+  }, [query.filters]);
+
   const cardViewEnabled = Boolean(renderCard);
 
   useEffect(() => {
@@ -301,19 +307,18 @@ function ListView<T extends object = any>({
     <ListViewStyles>
       <div data-test={className} className={`superset-list-view ${className}`}>
         <div className="header">
-          <div className="header-left">
-            {cardViewEnabled && (
-              <ViewModeToggle mode={viewMode} setMode={setViewMode} />
-            )}
+          {cardViewEnabled && (
+            <ViewModeToggle mode={viewMode} setMode={setViewMode} />
+          )}
+          <div className="controls">
             {filterable && (
               <FilterControls
+                ref={filterControlsRef}
                 filters={filters}
                 internalFilters={internalFilters}
                 updateFilterValue={applyFilterValue}
               />
             )}
-          </div>
-          <div className="header-right">
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}
@@ -395,12 +400,21 @@ function ListView<T extends object = any>({
           )}
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode}>
-              <Empty
-                image={<EmptyImage />}
-                description={emptyState.message || t('No Data')}
-              >
-                {emptyState.slot || null}
-              </Empty>
+              {query.filters ? (
+                <EmptyStateBig
+                  title={t('No results match your filter criteria')}
+                  description={t('Try different criteria to display results.')}
+                  image="filter-results.svg"
+                  buttonAction={() => handleClearFilterControls()}
+                  buttonText={t('clear all filters')}
+                />
+              ) : (
+                <EmptyStateBig
+                  {...emptyState}
+                  title={emptyState?.title || t('No Data')}
+                  image={emptyState?.image || 'filter-results.svg'}
+                />
+              )}
             </EmptyWrapper>
           )}
         </div>

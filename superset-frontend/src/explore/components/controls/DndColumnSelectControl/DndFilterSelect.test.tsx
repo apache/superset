@@ -28,7 +28,7 @@ import {
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { DEFAULT_FORM_DATA } from '@superset-ui/plugin-chart-echarts/lib/Timeseries/types';
+import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 const defaultProps: DndFilterSelectProps = {
   type: 'DndFilterSelect',
@@ -41,6 +41,11 @@ const defaultProps: DndFilterSelectProps = {
   selectedMetrics: [],
   onChange: jest.fn(),
   actions: { setControlValue: jest.fn() },
+};
+
+const baseFormData = {
+  viz_type: 'my_viz',
+  datasource: 'table__1',
 };
 
 test('renders with default props', () => {
@@ -63,7 +68,11 @@ test('renders options with saved metric', () => {
   render(
     <DndFilterSelect
       {...defaultProps}
-      formData={{ ...DEFAULT_FORM_DATA, metrics: ['saved_metric'] }}
+      formData={{
+        ...baseFormData,
+        ...TimeseriesDefaultFormData,
+        metrics: ['saved_metric'],
+      }}
     />,
     {
       useDnd: true,
@@ -100,7 +109,11 @@ test('renders options with adhoc metric', () => {
   render(
     <DndFilterSelect
       {...defaultProps}
-      formData={{ ...DEFAULT_FORM_DATA, metrics: [adhocMetric] }}
+      formData={{
+        ...baseFormData,
+        ...TimeseriesDefaultFormData,
+        metrics: [adhocMetric],
+      }}
     />,
     {
       useDnd: true,

@@ -29,32 +29,30 @@ describe('Visualization > Line', () => {
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
-  });
-
-  it('should preload mathjs', () => {
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add annotation layer').scrollIntoView().click();
-    // should not load additional mathjs
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer configuration');
+    cy.get('.panel-body').contains(
+      `Add required control values to preview chart`,
+    );
   });
 
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
+    cy.get('.panel-body').contains(
+      `Add required control values to preview chart`,
+    );
     cy.get('.text-danger').contains('Metrics');
 
     cy.get('[data-test=metrics]')
-      .find('[data-test="add-metric-button"]')
+      .contains('Drop columns/metrics here or click')
       .click();
 
     // Title edit for saved metrics is disabled - switch to Simple
     cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
 
-    cy.get('[name="select-column"]').click().type('num{enter}');
-    cy.get('[name="select-aggregate"]').click().type('sum{enter}');
+    cy.get('input[aria-label="Select column"]').click().type('num{enter}');
+    cy.get('input[aria-label="Select aggregate options"]')
+      .click()
+      .type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
     cy.get('.text-danger').should('not.exist');
@@ -77,7 +75,7 @@ describe('Visualization > Line', () => {
       .focus()
       .type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item > ul[data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
     ).should('exist');
   });
 
@@ -85,7 +83,6 @@ describe('Visualization > Line', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
-    cy.get('script[src*="mathjs"]').should('have.length', 1);
   });
 
   it('should work with groupby', () => {
@@ -234,6 +231,7 @@ describe('Visualization > Line', () => {
           value: 'y=140000',
           overrides: { time_range: null },
           show: false,
+          showLabel: false,
           titleColumn: '',
           descriptionColumns: [],
           timeColumn: '',
@@ -270,6 +268,7 @@ describe('Visualization > Line', () => {
               value,
               overrides: { time_range: null },
               show: true,
+              showLabel: false,
               titleColumn: 'ds',
               descriptionColumns: ['ds'],
               timeColumn: 'ds',

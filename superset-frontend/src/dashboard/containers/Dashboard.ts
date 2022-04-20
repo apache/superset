@@ -26,13 +26,14 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 
-import { triggerQuery } from 'src/chart/chartAction';
+import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getAllActiveFilters,
   getRelevantDataMask,
 } from 'src/dashboard/util/activeAllDashboardFilters';
+import { clearDataMaskState } from '../../dataMask/actions';
 
 function mapStateToProps(state: RootState) {
   const {
@@ -48,8 +49,8 @@ function mapStateToProps(state: RootState) {
   } = state;
 
   return {
-    initMessages: dashboardInfo.common.flash_messages,
-    timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    initMessages: dashboardInfo.common?.flash_messages,
+    timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
     dashboardInfo,
     dashboardState,
@@ -83,6 +84,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
     actions: bindActionCreators(
       {
         setDatasources,
+        clearDataMaskState,
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,

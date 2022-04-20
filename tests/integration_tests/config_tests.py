@@ -24,7 +24,7 @@ from tests.integration_tests.test_app import app
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
-from superset.utils.core import get_or_create_db
+from superset.utils.database import get_or_create_db
 
 FULL_DTTM_DEFAULTS_EXAMPLE = {
     "main_dttm_col": "id",

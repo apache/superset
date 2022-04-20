@@ -33,6 +33,7 @@ const createProps = () => ({
   default: null,
   description: null,
   value: '25__table',
+  form_data: {},
   datasource: {
     id: 25,
     database: {
@@ -41,6 +42,7 @@ const createProps = () => ({
     name: 'channels',
     type: 'table',
     columns: [],
+    owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   },
   validationErrors: [],
   name: 'datasource',

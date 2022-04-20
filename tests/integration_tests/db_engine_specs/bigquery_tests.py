@@ -17,14 +17,20 @@
 import sys
 import unittest.mock as mock
 
+import pytest
 from pandas import DataFrame
 from sqlalchemy import column
 
+from superset.connectors.sqla.models import TableColumn
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 
 
 class TestBigQueryDbEngineSpec(TestDbEngineSpec):
@@ -133,8 +139,14 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(result, {})
 
         index_metadata = [
-            {"name": "clustering", "column_names": ["c_col1", "c_col2", "c_col3"],},
-            {"name": "partition", "column_names": ["p_col1", "p_col2", "p_col3"],},
+            {
+                "name": "clustering",
+                "column_names": ["c_col1", "c_col2", "c_col3"],
+            },
+            {
+                "name": "partition",
+                "column_names": ["p_col1", "p_col2", "p_col3"],
+            },
         ]
         expected_result = {
             "partitions": {"cols": [["p_col1", "p_col2", "p_col3"]]},
@@ -176,15 +188,13 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         sys.modules["pandas_gbq"] = mock.MagicMock()
         df = DataFrame()
         database = mock.MagicMock()
-        self.assertRaisesRegexp(
-            Exception,
-            "Could not import libraries",
-            BigQueryEngineSpec.df_to_sql,
-            database=database,
-            table=Table(table="name", schema="schema"),
-            df=df,
-            to_sql_kwargs={},
-        )
+        with self.assertRaises(Exception):
+            BigQueryEngineSpec.df_to_sql(
+                database=database,
+                table=Table(table="name", schema="schema"),
+                df=df,
+                to_sql_kwargs={},
+            )
 
         invalid_kwargs = [
             {"name": "some_name"},
@@ -197,7 +207,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         # Test check for missing schema.
         sys.modules["google.oauth2"] = mock.MagicMock()
         for invalid_kwarg in invalid_kwargs:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 Exception,
                 "The table schema must be defined",
                 BigQueryEngineSpec.df_to_sql,
@@ -243,7 +253,12 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "Google BigQuery",
-                    "issue_codes": [{"code": 1017, "message": "",}],
+                    "issue_codes": [
+                        {
+                            "code": 1017,
+                            "message": "",
+                        }
+                    ],
                 },
             )
         ]
@@ -335,3 +350,30 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+    @mock.patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
+    @mock.patch("pybigquery._helpers.create_bigquery_client", mock.Mock)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_calculated_column_in_order_by(self):
+        table = self.get_table(name="birth_names")
+        TableColumn(
+            column_name="gender_cc",
+            type="VARCHAR(255)",
+            table=table,
+            expression="""
+            case
+              when gender=true then "male"
+              else "female"
+            end
+            """,
+        )
+
+        table.database.sqlalchemy_uri = "bigquery://"
+        query_obj = {
+            "groupby": ["gender_cc"],
+            "is_timeseries": False,
+            "filter": [],
+            "orderby": [["gender_cc", True]],
+        }
+        sql = table.get_query_str(query_obj)
+        assert "ORDER BY gender_cc ASC" in sql

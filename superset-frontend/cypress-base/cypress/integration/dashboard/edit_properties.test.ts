@@ -24,10 +24,10 @@ import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 function selectColorScheme(color: string) {
   // open color scheme dropdown
-  cy.get('.modal-body')
-    .contains('Color Scheme')
+  cy.get('.ant-modal-body')
+    .contains('Color scheme')
     .parents('.ControlHeader')
-    .next('.Select')
+    .next('.ant-select')
     .click()
     .then($colorSelect => {
       // select a new color scheme
@@ -37,7 +37,7 @@ function selectColorScheme(color: string) {
 
 function assertMetadata(text: string) {
   const regex = new RegExp(text);
-  cy.get('.modal-body')
+  cy.get('.ant-modal-body')
     .find('#json_metadata')
     .should('be.visible')
     .then(() => {
@@ -50,12 +50,15 @@ function assertMetadata(text: string) {
 }
 
 function typeMetadata(text: string) {
-  cy.get('.modal-body').find('#json_metadata').should('be.visible').type(text);
+  cy.get('.ant-modal-body')
+    .find('#json_metadata')
+    .should('be.visible')
+    .type(text);
 }
 
 function openAdvancedProperties() {
   return cy
-    .get('.modal-body')
+    .get('.ant-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click();
@@ -96,11 +99,11 @@ describe('Dashboard edit action', () => {
 
     // save edit changes
     cy.get('.ant-modal-footer')
-      .contains('Save')
+      .contains('Apply')
       .click()
       .then(() => {
         // assert that modal edit window has closed
-        cy.get('.ant-modal-body').should('not.exist');
+        cy.get('.ant-modal-body').should('not.be.visible');
 
         // assert title has been updated
         cy.get('.editable-title input').should('have.value', dashboardTitle);
@@ -146,7 +149,7 @@ describe('Dashboard edit action', () => {
         .click()
         .then(() => {
           // assert that modal edit window has closed
-          cy.get('.modal-body').should('not.exist');
+          cy.get('.ant-modal-body').should('not.exist');
 
           // assert color has been updated
           openDashboardEditProperties();
@@ -177,7 +180,7 @@ describe('Dashboard edit action', () => {
         .click()
         .then(() => {
           // assert that modal edit window has closed
-          cy.get('.modal-body')
+          cy.get('.ant-modal-body')
             .contains('A valid color scheme is required')
             .should('be.visible');
         });

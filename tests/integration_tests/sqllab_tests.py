@@ -24,9 +24,9 @@ from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from random import random
 from unittest import mock
-from superset.extensions import db
 import prison
 
+from freezegun import freeze_time
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
@@ -34,28 +34,26 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
-from superset.models.core import Database
-from superset.models.sql_lab import LimitingFactor, Query, SavedQuery
+from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
+from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql_lab import (
     cancel_query,
     execute_sql_statements,
-    execute_sql_statement,
-    get_sql_results,
-    SqlLabException,
+    apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     backend,
     datetime_to_epoch,
-    get_example_database,
-    get_main_database,
 )
+from superset.utils.database import get_example_database, get_main_database
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
@@ -63,6 +61,7 @@ QUERY_2 = "SELECT * FROM NO_TABLE"
 QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 
 
+@pytest.mark.sql_json_flow
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
@@ -154,8 +153,6 @@ class TestSqlLab(SupersetTestCase):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
         """
-        from freezegun import freeze_time
-
         self.login("admin")
 
         sql_statement = "SELECT * FROM birth_names LIMIT 10"
@@ -164,7 +161,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.add(saved_query)
         db.session.commit()
 
-        with freeze_time("2020-01-01T00:00:00Z"):
+        with freeze_time(datetime.now().isoformat(timespec="seconds")):
             self.run_sql(sql_statement, "1")
             saved_query_ = (
                 db.session.query(SavedQuery)
@@ -175,9 +172,9 @@ class TestSqlLab(SupersetTestCase):
             )
             assert saved_query_.rows is not None
             assert saved_query_.last_run == datetime.now()
-            # Rollback changes
-            db.session.delete(saved_query_)
-            db.session.commit()
+        # Rollback changes
+        db.session.delete(saved_query_)
+        db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -188,7 +185,7 @@ class TestSqlLab(SupersetTestCase):
             return
 
         with mock.patch(
-            "superset.views.core.get_cta_schema_name",
+            "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
             lambda d, u, s, sql: f"{u.username}_database",
         ):
             old_allow_ctas = examples_db.allow_ctas
@@ -263,8 +260,10 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
-        sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
-            "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+        sqllab_test_db_schema_permission_view = (
+            security_manager.add_permission_view_menu(
+                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+            )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
         security_manager.add_permission_role(
@@ -478,8 +477,8 @@ class TestSqlLab(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -508,8 +507,8 @@ class TestSqlLab(SupersetTestCase):
             "chartType": "dist_bar",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -590,13 +589,17 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_6",
+            query_limit=10000,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_7",
+            query_limit=1200,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
@@ -988,6 +991,29 @@ class TestSqlLab(SupersetTestCase):
                 }
             ]
         }
+
+    def test_apply_limit_if_exists_when_incremented_limit_is_none(self):
+        sql = """
+                   SET @value = 42;
+                   SELECT @value AS foo;
+               """
+        database = get_example_database()
+        mock_query = mock.MagicMock()
+        mock_query.limit = 300
+        final_sql = apply_limit_if_exists(database, None, mock_query, sql)
+
+        assert final_sql == sql
+
+    def test_apply_limit_if_exists_when_increased_limit(self):
+        sql = """
+                   SET @value = 42;
+                   SELECT @value AS foo;
+               """
+        database = get_example_database()
+        mock_query = mock.MagicMock()
+        mock_query.limit = 300
+        final_sql = apply_limit_if_exists(database, 1000, mock_query, sql)
+        assert "LIMIT 1000" in final_sql
 
 
 @pytest.mark.parametrize("spec", [HiveEngineSpec, PrestoEngineSpec])

@@ -43,16 +43,40 @@ InteractiveTableView.args = {
       accessor: 'name',
       Header: 'Name',
     },
+    {
+      accessor: 'summary',
+      Header: 'Summary',
+    },
   ],
   data: [
-    { id: 123, age: 27, name: 'Emily' },
-    { id: 321, age: 10, name: 'Kate' },
+    {
+      id: 123,
+      age: 27,
+      name: 'Emily',
+      summary:
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue.',
+    },
+    {
+      id: 321,
+      age: 10,
+      name: 'Kate',
+      summary:
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue.',
+    },
+    {
+      id: 321,
+      age: 10,
+      name: 'John Smith',
+      summary:
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue.',
+    },
   ],
   initialSortBy: [{ id: 'name', desc: true }],
   noDataText: 'No data here',
   pageSize: 1,
   showRowCount: true,
   withPagination: true,
+  columnsForWrapText: ['Summary'],
 };
 
 InteractiveTableView.argTypes = {

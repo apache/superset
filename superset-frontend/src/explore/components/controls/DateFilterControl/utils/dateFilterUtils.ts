@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TimeRangeEndpoints } from '@superset-ui/core';
-
 export const SEPARATOR = ' : ';
 
 export const buildTimeRangeString = (since: string, until: string): string =>
@@ -26,17 +24,11 @@ export const buildTimeRangeString = (since: string, until: string): string =>
 const formatDateEndpoint = (dttm: string, isStart?: boolean): string =>
   dttm.replace('T00:00:00', '') || (isStart ? '-∞' : '∞');
 
-export const formatTimeRange = (
-  timeRange: string,
-  endpoints?: TimeRangeEndpoints,
-) => {
+export const formatTimeRange = (timeRange: string) => {
   const splitDateRange = timeRange.split(SEPARATOR);
   if (splitDateRange.length === 1) return timeRange;
-  const formattedEndpoints = (
-    endpoints || ['unknown', 'unknown']
-  ).map((endpoint: string) => (endpoint === 'inclusive' ? '≤' : '<'));
-
-  return `${formatDateEndpoint(splitDateRange[0], true)} ${
-    formattedEndpoints[0]
-  } col ${formattedEndpoints[1]} ${formatDateEndpoint(splitDateRange[1])}`;
+  return `${formatDateEndpoint(
+    splitDateRange[0],
+    true,
+  )} ≤ col < ${formatDateEndpoint(splitDateRange[1])}`;
 };

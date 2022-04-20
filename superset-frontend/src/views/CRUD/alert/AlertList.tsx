@@ -22,7 +22,6 @@ import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
@@ -30,10 +29,10 @@ import ListView, {
   Filters,
   ListViewProps,
 } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -50,12 +49,22 @@ import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
 
+const AlertStateLabel: Record<AlertState, string> = {
+  [AlertState.Success]: t('Success'),
+  [AlertState.Working]: t('Working'),
+  [AlertState.Error]: t('Error'),
+  [AlertState.Noop]: t('Not triggered'),
+  [AlertState.Grace]: t('On Grace'),
+};
+
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   isReportEnabled: boolean;
   user: {
     userId: string | number;
+    firstName: string;
+    lastName: string;
   };
 }
 const deleteAlerts = makeApi<number[], { message: string }>({
@@ -80,7 +89,7 @@ function AlertList({
   const title = isReportEnabled ? t('report') : t('alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
-  const initalFilters = useMemo(
+  const initialFilters = useMemo(
     () => [
       {
         id: 'type',
@@ -108,7 +117,7 @@ function AlertList({
     addDangerToast,
     true,
     undefined,
-    initalFilters,
+    initialFilters,
   );
 
   const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
@@ -121,16 +130,16 @@ function AlertList({
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
-  const [
-    currentAlertDeleting,
-    setCurrentAlertDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentAlertDeleting, setCurrentAlertDeleting] =
+    useState<AlertObject | null>(null);
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
     setCurrentAlert(alert);
     setAlertModalOpen(true);
   }
+
+  const generateKey = () => `${new Date().getTime()}`;
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -252,9 +261,15 @@ function AlertList({
         size: 'xl',
       },
       {
-        accessor: 'created_by',
+        Cell: ({
+          row: {
+            original: { created_by },
+          },
+        }: any) =>
+          created_by ? `${created_by.first_name} ${created_by.last_name}` : '',
+        Header: t('Created by'),
+        id: 'created_by',
         disableSortBy: true,
-        hidden: true,
         size: 'xl',
       },
       {
@@ -356,19 +371,35 @@ function AlertList({
     });
   }
 
-  const EmptyStateButton = (
-    <Button buttonStyle="primary" onClick={() => handleAlertEdit(null)}>
-      <i className="fa fa-plus" /> {title}
-    </Button>
-  );
-
   const emptyState = {
-    message: t('No %s yet', titlePlural),
-    slot: canCreate ? EmptyStateButton : null,
+    title: t('No %s yet', titlePlural),
+    image: 'filter-results.svg',
+    buttonAction: () => handleAlertEdit(null),
+    buttonText: canCreate ? (
+      <>
+        <i className="fa fa-plus" /> {title}{' '}
+      </>
+    ) : null,
   };
 
   const filters: Filters = useMemo(
     () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'report',
+          'owners',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching owners values: %s', errMsg),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
       {
         Header: t('Created by'),
         id: 'created_by',
@@ -381,7 +412,7 @@ function AlertList({
           createErrorHandler(errMsg =>
             t('An error occurred while fetching created by values: %s', errMsg),
           ),
-          user.userId,
+          user,
         ),
         paginate: true,
       },
@@ -392,11 +423,17 @@ function AlertList({
         operator: FilterOperator.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t(`${AlertState.success}`), value: AlertState.success },
-          { label: t(`${AlertState.working}`), value: AlertState.working },
-          { label: t(`${AlertState.error}`), value: AlertState.error },
-          { label: t(`${AlertState.noop}`), value: AlertState.noop },
-          { label: t(`${AlertState.grace}`), value: AlertState.grace },
+          {
+            label: AlertStateLabel[AlertState.Success],
+            value: AlertState.Success,
+          },
+          {
+            label: AlertStateLabel[AlertState.Working],
+            value: AlertState.Working,
+          },
+          { label: AlertStateLabel[AlertState.Error], value: AlertState.Error },
+          { label: AlertStateLabel[AlertState.Noop], value: AlertState.Noop },
+          { label: AlertStateLabel[AlertState.Grace], value: AlertState.Grace },
         ],
       },
       {
@@ -447,6 +484,7 @@ function AlertList({
         }}
         show={alertModalOpen}
         isReport={isReportEnabled}
+        key={currentAlert?.id || generateKey()}
       />
       {currentAlertDeleting && (
         <DeleteModal

@@ -114,6 +114,24 @@ class ReportScheduleDAO(BaseDAO):
             raise DAODeleteFailedError(str(ex)) from ex
 
     @staticmethod
+    def validate_unique_creation_method(
+        user_id: int, dashboard_id: Optional[int] = None, chart_id: Optional[int] = None
+    ) -> bool:
+        """
+        Validate if the user already has a chart or dashboard
+        with a report attached form the self subscribe reports
+        """
+
+        query = db.session.query(ReportSchedule).filter_by(created_by_fk=user_id)
+        if dashboard_id is not None:
+            query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
+
+        if chart_id is not None:
+            query = query.filter(ReportSchedule.chart_id == chart_id)
+
+        return not db.session.query(query.exists()).scalar()
+
+    @staticmethod
     def validate_update_uniqueness(
         name: str, report_type: str, report_schedule_id: Optional[int] = None
     ) -> bool:
@@ -209,7 +227,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_success_log(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last success execution log for a given report
@@ -227,7 +246,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_entered_working_log(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last success execution log for a given report
@@ -246,7 +266,8 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def find_last_error_notification(
-        report_schedule: ReportSchedule, session: Optional[Session] = None,
+        report_schedule: ReportSchedule,
+        session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
         Finds last error email sent

@@ -21,6 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import HeaderActionsDropdown from '.';
 
 const createProps = () => ({
@@ -134,8 +135,8 @@ test('should show the share actions', async () => {
   };
   render(setup(canShareProps));
   await openDropdown();
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getByText('Copy permalink to clipboard')).toBeInTheDocument();
+  expect(screen.getByText('Share permalink by email')).toBeInTheDocument();
 });
 
 test('should render the "Save Modal" when user can save', async () => {
@@ -180,7 +181,9 @@ test('should NOT render the "Refresh dashboard" menu item as disabled', async ()
 
 test('should render with custom css', () => {
   const mockedProps = createProps();
+  const { customCss } = mockedProps;
   render(setup(mockedProps));
+  injectCustomCss(customCss);
   expect(screen.getByRole('button')).toHaveStyle('margin-left: 100px');
 });
 
@@ -190,6 +193,7 @@ test('should refresh the charts', async () => {
   await openDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.forceRefreshAllCharts).toHaveBeenCalledTimes(1);
+  expect(mockedProps.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
 test('should show the properties modal', async () => {

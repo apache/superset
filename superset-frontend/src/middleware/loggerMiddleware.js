@@ -68,12 +68,8 @@ const loggerMiddleware = store => next => action => {
     return next(action);
   }
 
-  const {
-    dashboardInfo,
-    explore,
-    impressionId,
-    dashboardLayout,
-  } = store.getState();
+  const { dashboardInfo, explore, impressionId, dashboardLayout } =
+    store.getState();
   let logMetadata = {
     impression_id: impressionId,
     version: 'v2',
