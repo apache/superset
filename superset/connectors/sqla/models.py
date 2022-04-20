@@ -2150,6 +2150,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
         )
         if dataset:
+            for tbl in dataset.tables:
+                if len(tbl.datasets) == 1 and tbl.datasets[0] == dataset:
+                    session.delete(tbl)
             session.delete(dataset)
 
     @staticmethod
