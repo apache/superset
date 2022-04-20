@@ -16,7 +16,7 @@
 # under the License.
 """adding_advanced_data_type.py
 Revision ID: 6f139c533bea
-Revises: 9d8a8d575284
+Revises: a9422eeaae74
 Create Date: 2021-05-27 16:10:59.567684
 """
 
@@ -25,7 +25,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "6f139c533bea"
-down_revision = "9d8a8d575284"
+down_revision = "a9422eeaae74"
 
 
 def upgrade():
