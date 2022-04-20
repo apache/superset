@@ -430,7 +430,7 @@ def copy_columns(session: Session) -> None:
                 ),
                 sa.literal(False).label("is_aggregation"),
                 is_physical_column.label("is_physical"),
-                TableColumn.is_dttm.label("is_temporal"),
+                func.coalesce(TableColumn.is_dttm, False).label("is_temporal"),
                 func.coalesce(TableColumn.type, UNKNOWN_TYPE).label("type"),
                 TableColumn.extra.label("extra_json"),
             ]
