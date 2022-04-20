@@ -145,10 +145,10 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             column.is_partition = False  # TODO: update with accurate is_partition
             return column
 
-        self.columns = list(map(update_or_create_column, column_metadata))
+        self.columns = [update_or_create_column(col) for col in column_metadata]
 
     @staticmethod
-    def load_or_create(
+    def bulk_load_or_create(
         database: Database,
         table_names: Iterable[TableName],
         default_schema: Optional[str] = None,
@@ -156,13 +156,13 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         default_props: Optional[Dict[str, Any]] = None,
     ) -> List["Table"]:
         """
-        Load or create new table model instances.
+        Load or create multiple Table instances.
         """
         if not table_names:
             return []
 
         if not database.id:
-            raise Exception("Database must be already committed")
+            raise Exception("Database must be already saved to metastore")
 
         default_props = default_props or {}
         session: Session = inspect(database).session

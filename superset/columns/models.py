@@ -32,6 +32,8 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
+UNKOWN_TYPE = "UNKNOWN"
+
 
 class Column(
     Model,
@@ -90,7 +92,7 @@ class Column(
     # [1] https://www.postgresql.org/docs/9.1/datatype-character.html
     name = sa.Column(sa.Text)
     # Raw type as returned and used by db engine.
-    type = sa.Column(sa.Text, default="UNKNOWN")
+    type = sa.Column(sa.Text, default=UNKOWN_TYPE)
 
     # Columns are defined by expressions. For tables, these are the actual columns names,
     # and should match the ``name`` attribute. For datasets, these can be any valid SQL

@@ -74,7 +74,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.columns.models import Column as NewColumn
+from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
@@ -449,7 +449,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         column.created_by = self.created_by
         column.changed_by = self.changed_by
         column.name = self.column_name
-        column.type = self.type or "Unknown"
+        column.type = self.type or UNKOWN_TYPE
         column.expression = self.expression or self.table.quote_identifier(
             self.column_name
         )
@@ -475,9 +475,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         target: "TableColumn",
     ) -> None:
         session = inspect(target).session
-        dataset = session.query(NewColumn).filter_by(uuid=target.uuid).one_or_none()
-        if dataset:
-            session.delete(dataset)
+        column = session.query(NewColumn).filter_by(uuid=target.uuid).one_or_none()
+        if column:
+            session.delete(column)
 
 
 class SqlMetric(Model, BaseMetric, CertificationMixin):
@@ -565,7 +565,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         column.changed_on = self.changed_on
         column.created_by = self.created_by
         column.changed_by = self.changed_by
-        column.type = "Unknown"
+        column.type = UNKOWN_TYPE
         column.expression = self.expression
         column.warning_text = self.warning_text
         column.description = self.description
@@ -589,9 +589,9 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         target: "SqlMetric",
     ) -> None:
         session = inspect(target).session
-        dataset = session.query(NewColumn).filter_by(uuid=target.uuid).one_or_none()
-        if dataset:
-            session.delete(dataset)
+        column = session.query(NewColumn).filter_by(uuid=target.uuid).one_or_none()
+        if column:
+            session.delete(column)
 
 
 sqlatable_user = Table(
@@ -1879,7 +1879,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 new_column = TableColumn(
                     column_name=col["name"],
                     type=col["type"],
-                    table_id=self.id,
                     table=self,
                 )
                 new_column.is_dttm = new_column.is_temporal
@@ -2055,7 +2054,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if uuids:
             # load those not found from db
             existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids)).all()
+                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
             )
 
         known_columns = {column.uuid: column for column in existing_columns}
@@ -2111,7 +2110,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def after_insert(
         mapper: Mapper,
         connection: Connection,
-        table: "SqlaTable",
+        sqla_table: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -2125,14 +2124,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        security_manager.set_perm(mapper, connection, table)
-        table.write_shadow_dataset()
+        security_manager.set_perm(mapper, connection, sqla_table)
+        sqla_table.write_shadow_dataset()
 
     @staticmethod
     def after_delete(  # pylint: disable=unused-argument
         mapper: Mapper,
         connection: Connection,
-        target: "SqlaTable",
+        sqla_table: "SqlaTable",
     ) -> None:
         """
         Shadow write the dataset to new models.
@@ -2146,8 +2145,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        session = inspect(target).session
-        dataset = session.query(NewDataset).filter_by(uuid=target.uuid).one_or_none()
+        session = inspect(sqla_table).session
+        dataset = (
+            session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
+        )
         if dataset:
             session.delete(dataset)
 
@@ -2216,7 +2217,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 or inspector.attrs.schema.history.has_changes()
                 or inspector.attrs.database.history.has_changes()
             ):
-                tables = NewTable.load_or_create(
+                tables = NewTable.bulk_load_or_create(
                     sqla_table.database,
                     [TableName(schema=sqla_table.schema, table=sqla_table.table_name)],
                     sync_columns=False,
@@ -2231,7 +2232,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     # dataset columns will only be assigned to newly created tables
                     # existing tables should manage column syncing in another process
                     physical_columns = [
-                        clone_model(column, ignore=["uuid"], additional=["changed_by"])
+                        clone_model(
+                            column, ignore=["uuid"], keep_relations=["changed_by"]
+                        )
                         for column in dataset.columns
                         if column.is_physical
                     ]
@@ -2249,7 +2252,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 referenced_tables = extract_table_references(
                     sqla_table.sql, sqla_table.database.get_dialect().name
                 )
-                dataset.tables = NewTable.load_or_create(
+                dataset.tables = NewTable.bulk_load_or_create(
                     sqla_table.database,
                     referenced_tables,
                     default_schema=sqla_table.schema,
@@ -2287,6 +2290,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         session = inspect(self).session
+        # make sure database points to the right instance, in case only
+        # `table.database_id` is updated and the changes haven't been
+        # consolidated by SQLA
         if self.database_id and (
             not self.database or self.database.id != self.database_id
         ):
@@ -2307,8 +2313,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         # physical dataset
         if not self.sql:
-            # always create separate column entities for Dataset and Table
-            # so updating a dataset would not update the columns in the table
+            # always create separate column entries for Dataset and Table
+            # so updating a dataset would not update columns in the related table
             physical_columns = [
                 clone_model(
                     column,
@@ -2317,12 +2323,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     # be created via some sort of automated system.
                     # But keep `changed_by` in case someone manually changes
                     # column attributes such as `is_dttm`.
-                    additional=["changed_by"],
+                    keep_relations=["changed_by"],
                 )
                 for column in columns
                 if column.is_physical
             ]
-            tables = NewTable.load_or_create(
+            tables = NewTable.bulk_load_or_create(
                 self.database,
                 [TableName(schema=self.schema, table=self.table_name)],
                 sync_columns=False,
@@ -2345,7 +2351,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             referenced_tables = extract_table_references(
                 self.sql, self.database.get_dialect().name
             )
-            tables = NewTable.load_or_create(
+            tables = NewTable.bulk_load_or_create(
                 self.database,
                 referenced_tables,
                 default_schema=self.schema,

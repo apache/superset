@@ -77,7 +77,7 @@ def assign_uuids(
             op.execute(
                 f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"
             )
-            print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
+            print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
 
     # Othwewise Use Python uuid function
@@ -92,4 +92,4 @@ def assign_uuids(
             print(f"  uuid assigned to {end} out of {count}\r", end="")
         start += batch_size
 
-    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.")
+    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")

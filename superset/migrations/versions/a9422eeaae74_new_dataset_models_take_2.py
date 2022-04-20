@@ -17,14 +17,14 @@
 """new_dataset_models_take_2
 
 Revision ID: a9422eeaae74
-Revises: cecc6bf46990
+Revises: ad07e4fdbaba
 Create Date: 2022-04-01 14:38:09.499483
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "a9422eeaae74"
-down_revision = "cecc6bf46990"
+down_revision = "ad07e4fdbaba"
 
 import json
 import os
@@ -54,8 +54,7 @@ Base = declarative_base()
 custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 DB_CONNECTION_MUTATOR = app.config["DB_CONNECTION_MUTATOR"]
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
-
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
+UNKNOWN_TYPE = "UNKNOWN"
 
 
 user_table = sa.Table(
@@ -221,6 +220,10 @@ class NewColumn(AuxiliaryColumnsMixin, Base):
     __tablename__ = "sl_columns"
 
     id = sa.Column(sa.Integer, primary_key=True)
+    # A temporary column to link physical columns with tables so we don't
+    # have to insert a record in the relationship table while creating new columns.
+    table_id = sa.Column(sa.Integer, nullable=True)
+
     is_aggregation = sa.Column(sa.Boolean, nullable=False, default=False)
     is_additive = sa.Column(sa.Boolean, nullable=False, default=False)
     is_dimensional = sa.Column(sa.Boolean, nullable=False, default=False)
@@ -261,9 +264,6 @@ class NewTable(AuxiliaryColumnsMixin, Base):
         backref=backref("new_tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
-    columns: List[NewColumn] = relationship(
-        "NewColumn", secondary=table_column_association_table, cascade="all, delete"
-    )
 
 
 class NewDataset(Base, AuxiliaryColumnsMixin):
@@ -278,12 +278,6 @@ class NewDataset(Base, AuxiliaryColumnsMixin):
     expression = sa.Column(MediumText())
     external_url = sa.Column(sa.Text, nullable=True)
     extra_json = sa.Column(MediumText(), default="{}")
-    tables: List[NewTable] = relationship(
-        "NewTable", secondary=dataset_table_association_table
-    )
-    columns: List[NewColumn] = relationship(
-        "NewColumn", secondary=dataset_column_association_table, cascade="all, delete"
-    )
 
 
 def find_tables(
@@ -313,6 +307,7 @@ def find_tables(
 
 # helper SQLA elements for easier querying
 is_physical_table = or_(SqlaTable.sql.is_(None), SqlaTable.sql == "")
+is_physical_column = or_(TableColumn.expression.is_(None), TableColumn.expression == "")
 
 # filtering out table columns with valid associated SqlTable
 active_table_columns = sa.join(
@@ -333,10 +328,10 @@ def copy_tables(session: Session) -> None:
         NewTable,
         select(
             [
-                # Tables need different uuid for datasets, since they are different
+                # Tables need different uuid than datasets, since they are different
                 # entities. When INSERT FROM SELECT, we must provide a value for `uuid`,
                 # otherwise it'd use the default generated on Python side, which
-                # will cause duplicate values.
+                # will cause duplicate values. They will be replaced by `assign_uuids` later.
                 SqlaTable.uuid,
                 SqlaTable.id.label("sqlatable_id"),
                 SqlaTable.created_on,
@@ -355,9 +350,6 @@ def copy_tables(session: Session) -> None:
             sa.join(SqlaTable, Database, SqlaTable.database_id == Database.id)
         ).where(is_physical_table),
     )
-
-    # Assign new uuids to tables, so they are different than datasets'
-    assign_uuids(NewTable, session)
 
 
 def copy_datasets(session: Session) -> None:
@@ -399,8 +391,6 @@ def copy_datasets(session: Session) -> None:
     )
 
     print("   Link physical datasets with tables...")
-    # Physical datasets (tables) have the same dataset.id and table.id
-    # as both are from SqlaTable.id
     insert_from_select(
         dataset_table_association_table,
         select(
@@ -421,7 +411,7 @@ def copy_columns(session: Session) -> None:
     count = session.query(TableColumn).select_from(active_table_columns).count()
     if not count:
         return
-    print(f">> Copy {count:,} active table columns to sl_columns...")
+    print(f">> Copy {count:,} table columns to sl_columns...")
     insert_from_select(
         NewColumn,
         select(
@@ -439,34 +429,17 @@ def copy_columns(session: Session) -> None:
                     "expression"
                 ),
                 sa.literal(False).label("is_aggregation"),
-                or_(
-                    TableColumn.expression.is_(None), (TableColumn.expression == "")
-                ).label("is_physical"),
+                is_physical_column.label("is_physical"),
                 TableColumn.is_dttm.label("is_temporal"),
-                func.coalesce(TableColumn.type, "UNKNOWN").label("type"),
+                func.coalesce(TableColumn.type, UNKNOWN_TYPE).label("type"),
                 TableColumn.extra.label("extra_json"),
             ]
         ).select_from(active_table_columns),
     )
 
-    print("   Link physical table columns to sl_tables...")
     joined_columns_table = active_table_columns.join(
         NewColumn, TableColumn.uuid == NewColumn.uuid
     )
-    insert_from_select(
-        table_column_association_table,
-        select(
-            [
-                NewTable.id.label("table_id"),
-                NewColumn.id.label("column_id"),
-            ]
-        ).select_from(
-            joined_columns_table.join(
-                NewTable, TableColumn.table_id == NewTable.sqlatable_id
-            )
-        ),
-    )
-
     print("   Link all columns to sl_datasets...")
     insert_from_select(
         dataset_column_association_table,
@@ -500,7 +473,7 @@ def copy_metrics(session: Session) -> None:
                 SqlMetric.metric_name.label("name"),
                 SqlMetric.expression,
                 SqlMetric.description,
-                sa.literal("UNKNOWN").label("type"),
+                sa.literal(UNKNOWN_TYPE).label("type"),
                 (
                     func.coalesce(
                         sa.func.lower(SqlMetric.metric_type).in_(
@@ -609,7 +582,8 @@ def postprocess_datasets(session: Session) -> None:
                 if quoted_expression != expression:
                     updates["expression"] = quoted_expression
 
-            # add schema name to `extra_json`
+            # add schema name to `dataset.extra_json` so we don't have to join
+            # tables in order to use datasets
             if schema:
                 try:
                     extra_json = json.loads(extra) if extra else {}
@@ -671,6 +645,24 @@ def postprocess_columns(session: Session) -> None:
                 .offset(offset)
                 .limit(limit)
                 .subquery("sl_columns"),
+                dataset_column_association_table,
+                dataset_column_association_table.c.column_id == NewColumn.id,
+            )
+            .join(
+                NewDataset,
+                NewDataset.id == dataset_column_association_table.c.dataset_id,
+            )
+            .join(
+                dataset_table_association_table,
+                # Join tables with physical datasets
+                and_(
+                    NewDataset.is_physical,
+                    dataset_table_association_table.c.dataset_id == NewDataset.id,
+                ),
+                isouter=True,
+            )
+            .join(Database, Database.id == NewDataset.database_id)
+            .join(
                 TableColumn,
                 TableColumn.uuid == NewColumn.uuid,
                 isouter=True,
@@ -680,12 +672,6 @@ def postprocess_columns(session: Session) -> None:
                 SqlMetric.uuid == NewColumn.uuid,
                 isouter=True,
             )
-            .join(
-                SqlaTable,
-                SqlaTable.id == func.coalesce(TableColumn.table_id, SqlMetric.table_id),
-                isouter=True,
-            )
-            .join(Database, Database.id == SqlaTable.database_id, isouter=True)
         )
 
     offset = 0
@@ -709,17 +695,25 @@ def postprocess_columns(session: Session) -> None:
                 [
                     NewColumn.id.label("column_id"),
                     TableColumn.column_name,
+                    NewColumn.changed_by_fk,
+                    NewColumn.changed_on,
+                    NewColumn.created_on,
+                    NewColumn.description,
                     SqlMetric.d3format,
-                    SqlaTable.external_url,
+                    NewDataset.external_url,
                     NewColumn.extra_json,
-                    SqlaTable.is_managed_externally,
+                    NewColumn.is_dimensional,
+                    NewColumn.is_filterable,
+                    NewDataset.is_managed_externally,
                     NewColumn.is_physical,
                     SqlMetric.metric_type,
                     TableColumn.python_date_format,
                     Database.sqlalchemy_uri,
+                    dataset_table_association_table.c.table_id,
                     func.coalesce(
                         TableColumn.verbose_name, SqlMetric.verbose_name
                     ).label("verbose_name"),
+                    NewColumn.warning_text,
                 ]
             )
             .select_from(get_joined_tables(offset, limit))
@@ -741,33 +735,36 @@ def postprocess_columns(session: Session) -> None:
         count = session.query(func.count()).select_from(query).scalar()
         print(f"   [Column {start:,} to {end:,}] {count:,} may be updated")
 
+        physical_columns = []
+
         for (
+            # sorted alphabetically
             column_id,
             column_name,
+            changed_by_fk,
+            changed_on,
+            created_on,
+            description,
             d3format,
             external_url,
-            extra,
+            extra_json,
+            is_dimensional,
+            is_filterable,
             is_managed_externally,
             is_physical,
             metric_type,
             python_date_format,
             sqlalchemy_uri,
+            table_id,
             verbose_name,
+            warning_text,
         ) in session.execute(query):
             try:
-                extra_json = json.loads(extra) if extra else {}
+                extra = json.loads(extra_json) if extra_json else {}
             except json.decoder.JSONDecodeError:
-                extra_json = {}
-            updated_extra_json = {**extra_json}
+                extra = {}
+            updated_extra = {**extra}
             updates = {}
-
-            # update expression for physical table columns
-            if is_physical and column_name and sqlalchemy_uri:
-                drivername = sqlalchemy_uri.split("://")[0]
-                if is_physical and drivername:
-                    quoted_expression = get_identifier_quoter(drivername)(column_name)
-                    if quoted_expression != column_name:
-                        updates["expression"] = quoted_expression
 
             if is_managed_externally:
                 updates["is_managed_externally"] = True
@@ -785,10 +782,41 @@ def postprocess_columns(session: Session) -> None:
             ).items():
                 # save the original val, including if it's `false`
                 if val is not None:
-                    updated_extra_json[key] = val
+                    updated_extra[key] = val
 
-            if updated_extra_json != extra_json:
-                updates["extra_json"] = json.dumps(updated_extra_json)
+            if updated_extra != extra:
+                updates["extra_json"] = json.dumps(updated_extra)
+
+            # update expression for physical table columns
+            if is_physical:
+                if column_name and sqlalchemy_uri:
+                    drivername = sqlalchemy_uri.split("://")[0]
+                    if is_physical and drivername:
+                        quoted_expression = get_identifier_quoter(drivername)(
+                            column_name
+                        )
+                        if quoted_expression != column_name:
+                            updates["expression"] = quoted_expression
+                # duplicate physical columns for tables
+                physical_columns.append(
+                    dict(
+                        created_on=created_on,
+                        changed_on=changed_on,
+                        changed_by_fk=changed_by_fk,
+                        description=description,
+                        expression=updates.get("expression", column_name),
+                        external_url=external_url,
+                        extra_json=updates.get("extra_json", extra_json),
+                        is_aggregation=False,
+                        is_dimensional=is_dimensional,
+                        is_filterable=is_filterable,
+                        is_managed_externally=is_managed_externally,
+                        is_physical=True,
+                        name=column_name,
+                        table_id=table_id,
+                        warning_text=warning_text,
+                    )
+                )
 
             if updates:
                 session.execute(
@@ -798,11 +826,23 @@ def postprocess_columns(session: Session) -> None:
                 )
                 update_count += 1
                 print_update_count()
+
+        if physical_columns:
+            op.bulk_insert(NewColumn.__table__, physical_columns)
+
         session.flush()
         offset += limit
+
     if SHOW_PROGRESS:
         print("")
-    print(">> Done.")
+
+    print("   Assign table column relations...")
+    insert_from_select(
+        table_column_association_table,
+        select([NewColumn.table_id, NewColumn.id.label("column_id")])
+        .select_from(NewColumn)
+        .where(and_(NewColumn.is_physical, NewColumn.table_id.isnot(None))),
+    )
 
 
 new_tables: sa.Table = [
@@ -841,17 +881,24 @@ def upgrade() -> None:
     copy_metrics(session)
     session.commit()
 
-    postprocess_datasets(session)
-    session.commit()
-
     postprocess_columns(session)
     session.commit()
 
-    # `sqlatable_id` should only be used during migration,
-    # All future NewDataset<>SqlaTable mapping should be based on `uuid`,
-    # and NewTable will be independent of SqlaTable once created.
-    with op.batch_alter_table("sl_tables") as batch_op:
+    postprocess_datasets(session)
+    session.commit()
+
+    # Table were created with the same uuids are datasets. They should
+    # have different uuids as they are different entities.
+    print(">> Assign new UUIDs to tables...")
+    assign_uuids(NewTable, session)
+
+    print(">> Drop intermediate columns...")
+    # These columns are are used during migration, as datasets are independent of tables once created,
+    # dataset columns also the same to table columns.
+    with op.batch_alter_table(NewTable.__tablename__) as batch_op:
         batch_op.drop_column("sqlatable_id")
+    with op.batch_alter_table(NewColumn.__tablename__) as batch_op:
+        batch_op.drop_column("table_id")
 
 
 def downgrade():

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, TYPE_CHECKING
 
 import pytest
 
@@ -97,7 +97,7 @@ def sample_metrics() -> Dict["SqlMetric", Dict[str, Any]]:
             "name": "cnt",
             "expression": "COUNT(*)",
             "extra_json": '{"metric_type": "COUNT"}',
-            "type": "Unknown",
+            "type": "UNKNOWN",
             "is_additive": True,
             "is_aggregation": True,
             "is_filterable": False,
@@ -109,7 +109,7 @@ def sample_metrics() -> Dict["SqlMetric", Dict[str, Any]]:
             "name": "avg revenue",
             "expression": "AVG(revenue)",
             "extra_json": '{"metric_type": "AVG"}',
-            "type": "Unknown",
+            "type": "UNKNOWN",
             "is_additive": False,
             "is_aggregation": True,
             "is_filterable": False,
