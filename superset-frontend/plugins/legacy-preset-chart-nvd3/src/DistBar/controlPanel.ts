@@ -43,7 +43,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart'),
       expanded: true,
-      controlSetRows: [['metrics'], ['groupby'], ['columns']],
+      controlSetRows: [['groupby'], ['metrics'], ['columns']],
     },
     sections.legacyRegularTime,
     {
@@ -115,7 +115,7 @@ const config: ControlPanelConfig = {
       label: t('Metrics (Y-Axis)'),
     },
     groupby: {
-      label: t('Series (X-Axis)'),
+      label: t('X-axis'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =
@@ -129,7 +129,7 @@ const config: ControlPanelConfig = {
       rerender: ['columns'],
     },
     columns: {
-      label: t('Breakdowns'),
+      label: t('Dimensions'),
       description: t('Defines how each series is broken down'),
       mapStateToProps: (state, controlState) => {
         const columnsProps =
