@@ -39,7 +39,7 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             config: {
               ...sharedControls.groupby,
-              label: t('Group by'),
+              label: t('Dimensions'),
               description: t('Columns to group by'),
             },
           },
@@ -75,7 +75,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        [<h1 className="section-header">{t('General')}</h1>],
+        [<div className="section-header">{t('General')}</div>],
         [
           {
             name: 'min_val',
@@ -197,7 +197,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Axis')}</h1>],
+        [<div className="section-header">{t('Axis')}</div>],
         [
           {
             name: 'show_axis_tick',
@@ -236,7 +236,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Progress')}</h1>],
+        [<div className="section-header">{t('Progress')}</div>],
         [
           {
             name: 'show_progress',
@@ -277,7 +277,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Intervals')}</h1>],
+        [<div className="section-header">{t('Intervals')}</div>],
         [
           {
             name: 'intervals',

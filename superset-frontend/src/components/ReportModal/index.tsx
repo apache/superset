@@ -155,6 +155,7 @@ const reportReducer = (
 ): Partial<ReportObject> | null => {
   const initialState = {
     name: 'Weekly Report',
+    crontab: '0 12 * * 1',
   };
 
   switch (action.type) {

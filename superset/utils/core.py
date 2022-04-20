@@ -128,7 +128,7 @@ DTTM_ALIAS = "__timestamp"
 
 NO_TIME_RANGE = "No filter"
 
-TIME_COMPARISION = "__"
+TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
