@@ -577,7 +577,7 @@ def postprocess_datasets(session: Session) -> None:
             drivername = (sqlalchemy_uri or "").split("://")[0]
             updates = {}
             updated = False
-            if is_physical and drivername:
+            if is_physical and drivername and expression:
                 quoted_expression = get_identifier_quoter(drivername)(expression)
                 if quoted_expression != expression:
                     updates["expression"] = quoted_expression
