@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -24,6 +23,8 @@ import os
 import re
 from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
+
+from superset.databases.commands.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -736,7 +737,7 @@ class TestUtils(SupersetTestCase):
         db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
-        with self.assertRaises(ArgumentError):
+        with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
     def test_get_iterable(self):

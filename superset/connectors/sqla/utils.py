@@ -15,17 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import closing
-from typing import Callable, Dict, List, Optional, Set, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    TypeVar,
+)
+from uuid import UUID
 
 import sqlparse
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, inspect, or_
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
 
-from superset.columns.models import Column as NewColumn
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
@@ -33,21 +44,19 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
-from superset.tables.models import Table as NewTable
+from superset.sql_parse import has_table_query, insert_rls, ParsedQuery
+from superset.superset_typing import ResultSetColumnType
+from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
-
-
-TEMPORAL_TYPES = {"DATETIME", "DATE", "TIME", "TIMEDELTA"}
 
 
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
     schema_name: Optional[str] = None,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
@@ -84,14 +93,14 @@ def get_physical_table_metadata(
             col.update(
                 {
                     "type": "UNKNOWN",
-                    "generic_type": None,
+                    "type_generic": None,
                     "is_dttm": None,
                 }
             )
     return cols
 
 
-def get_virtual_table_metadata(dataset: "SqlaTable") -> List[Dict[str, str]]:
+def get_virtual_table_metadata(dataset: "SqlaTable") -> List[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
         raise SupersetGenericDBErrorException(
@@ -171,76 +180,38 @@ def validate_adhoc_subquery(
     return ";\n".join(str(statement) for statement in statements)
 
 
-def load_or_create_tables(  # pylint: disable=too-many-arguments
+@memoized
+def get_dialect_name(drivername: str) -> str:
+    return SqlaURL(drivername).get_dialect().name
+
+
+@memoized
+def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
+    return SqlaURL(drivername).get_dialect()().identifier_preparer.quote
+
+
+DeclarativeModel = TypeVar("DeclarativeModel", bound=DeclarativeMeta)
+
+
+def find_cached_objects_in_session(
     session: Session,
-    database_id: int,
-    default_schema: Optional[str],
-    tables: Set[Table],
-    conditional_quote: Callable[[str], str],
-    engine: Engine,
-) -> List[NewTable]:
-    """
-    Load or create new table model instances.
-    """
-    if not tables:
-        return []
+    cls: Type[DeclarativeModel],
+    ids: Optional[Iterable[int]] = None,
+    uuids: Optional[Iterable[UUID]] = None,
+) -> Iterator[DeclarativeModel]:
+    """Find known ORM instances in cached SQLA session states.
 
-    # set the default schema in tables that don't have it
-    if default_schema:
-        fixed_tables = list(tables)
-        for i, table in enumerate(fixed_tables):
-            if table.schema is None:
-                fixed_tables[i] = Table(table.table, default_schema, table.catalog)
-        tables = set(fixed_tables)
-
-    # load existing tables
-    predicate = or_(
-        *[
-            and_(
-                NewTable.database_id == database_id,
-                NewTable.schema == table.schema,
-                NewTable.name == table.table,
-            )
-            for table in tables
-        ]
+    :param session: a SQLA session
+    :param cls: a SQLA DeclarativeModel
+    :param ids: ids of the desired model instances (optional)
+    :param uuids: uuids of the desired instances, will be ignored if `ids` are provides
+    """
+    if not ids and not uuids:
+        return iter([])
+    uuids = uuids or []
+    return (
+        item
+        # `session` is an iterator of all known items
+        for item in set(session)
+        if isinstance(item, cls) and (item.id in ids if ids else item.uuid in uuids)
     )
-    new_tables = session.query(NewTable).filter(predicate).all()
-
-    # add missing tables
-    existing = {(table.schema, table.name) for table in new_tables}
-    for table in tables:
-        if (table.schema, table.table) not in existing:
-            try:
-                inspector = inspect(engine)
-                column_metadata = inspector.get_columns(
-                    table.table, schema=table.schema
-                )
-            except Exception:  # pylint: disable=broad-except
-                continue
-            columns = [
-                NewColumn(
-                    name=column["name"],
-                    type=str(column["type"]),
-                    expression=conditional_quote(column["name"]),
-                    is_temporal=column["type"].python_type.__name__.upper()
-                    in TEMPORAL_TYPES,
-                    is_aggregation=False,
-                    is_physical=True,
-                    is_spatial=False,
-                    is_partition=False,
-                    is_increase_desired=True,
-                )
-                for column in column_metadata
-            ]
-            new_tables.append(
-                NewTable(
-                    name=table.table,
-                    schema=table.schema,
-                    catalog=None,
-                    database_id=database_id,
-                    columns=columns,
-                )
-            )
-            existing.add((table.schema, table.table))
-
-    return new_tables

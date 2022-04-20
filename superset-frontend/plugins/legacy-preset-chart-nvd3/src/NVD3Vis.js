@@ -434,7 +434,11 @@ function nvd3Vis(element, props) {
         chart.stacked(isBarStacked);
         if (orderBars) {
           data.forEach(d => {
-            d.values.sort((a, b) => (tryNumify(a.x) < tryNumify(b.x) ? -1 : 1));
+            const newValues = [...d.values]; // need to copy values to avoid redux store changed.
+            // eslint-disable-next-line no-param-reassign
+            d.values = newValues.sort((a, b) =>
+              tryNumify(a.x) < tryNumify(b.x) ? -1 : 1,
+            );
           });
         }
         if (!reduceXTicks) {

@@ -374,6 +374,7 @@ class TestRequestAccess(SupersetTestCase):
             .filter_by(table_name="wb_health_population")
             .first()
         )
+        original_schema = ds.schema
 
         ds.schema = "temp_schema"
         security_manager.add_permission_view_menu("schema_access", ds.schema_perm)
@@ -394,13 +395,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user = security_manager.find_user(username="gamma")
         gamma_user.roles.remove(security_manager.find_role(SCHEMA_ACCESS_ROLE))
 
-        ds = (
-            session.query(SqlaTable)
-            .filter_by(table_name="wb_health_population")
-            .first()
-        )
-        ds.schema = None
-
+        ds.schema = original_schema
         session.commit()
 
     @mock.patch("superset.utils.core.send_mime_email")

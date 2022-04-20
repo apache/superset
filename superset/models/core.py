@@ -43,9 +43,9 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.engine import Connection, Dialect, Engine, url
+from sqlalchemy.engine import Connection, Dialect, Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -54,6 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -242,16 +243,16 @@ class Database(
 
     @property
     def url_object(self) -> URL:
-        return make_url(self.sqlalchemy_uri_decrypted)
+        return make_url_safe(self.sqlalchemy_uri_decrypted)
 
     @property
     def backend(self) -> str:
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
+        return sqlalchemy_url.get_backend_name()
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        uri = make_url(self.sqlalchemy_uri_decrypted)
+        uri = make_url_safe(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
             # pylint: disable=useless-suppression
@@ -303,7 +304,7 @@ class Database(
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str
     ) -> URL:
-        sqlalchemy_url = make_url(uri)
+        sqlalchemy_url = make_url_safe(uri)
         return cls.get_password_masked_url(sqlalchemy_url)
 
     @classmethod
@@ -314,7 +315,7 @@ class Database(
         return url_copy
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
-        conn = sqla.engine.url.make_url(uri.strip())
+        conn = make_url_safe(uri.strip())
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
@@ -361,7 +362,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
     ) -> Engine:
         extra = self.get_extra()
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url, user_name)
         # If using MySQL or Presto for example, will set url.username
@@ -407,11 +408,13 @@ class Database(
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
+    @property
+    def quote_identifier(self) -> Callable[[str], str]:
+        """Add quotes to potential identifiter expressions if needed"""
+        return self.get_dialect().identifier_preparer.quote
+
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
-
-    def get_quoter(self) -> Callable[[str, Any], str]:
-        return self.get_dialect().identifier_preparer.quote
 
     def get_df(  # pylint: disable=too-many-locals
         self,
@@ -723,7 +726,7 @@ class Database(
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
         try:
-            conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+            conn = make_url_safe(self.sqlalchemy_uri)
         except (ArgumentError, ValueError):
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
@@ -783,7 +786,7 @@ class Database(
 
     @memoized
     def get_dialect(self) -> Dialect:
-        sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
+        sqla_url = make_url_safe(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()
 
 

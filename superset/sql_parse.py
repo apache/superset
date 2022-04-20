@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast, List, Optional, Set, Tuple
+from typing import Any, cast, Iterator, List, Optional, Set, Tuple
 from urllib import parse
 
 import sqlparse
@@ -47,10 +47,16 @@ from sqlparse.utils import imt
 
 from superset.exceptions import QueryClauseValidationException
 
+try:
+    from sqloxide import parse_sql as sqloxide_parse
+except:  # pylint: disable=bare-except
+    sqloxide_parse = None
+
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
 PRECEDES_TABLE_NAME = {"FROM", "JOIN", "DESCRIBE", "WITH", "LEFT JOIN", "RIGHT JOIN"}
 CTE_PREFIX = "CTE__"
+
 logger = logging.getLogger(__name__)
 
 
@@ -175,6 +181,9 @@ class Table:
             for part in [self.catalog, self.schema, self.table]
             if part
         )
+
+    def __eq__(self, __o: object) -> bool:
+        return str(self) == str(__o)
 
 
 class ParsedQuery:
@@ -574,7 +583,6 @@ def get_rls_for_table(
         return None
 
     template_processor = dataset.get_template_processor()
-    # pylint: disable=protected-access
     predicate = " AND ".join(
         str(filter_)
         for filter_ in dataset.get_sqla_row_level_filters(template_processor)
@@ -699,3 +707,75 @@ def insert_rls(
         )
 
     return token_list
+
+
+# mapping between sqloxide and SQLAlchemy dialects
+SQLOXITE_DIALECTS = {
+    "ansi": {"trino", "trinonative", "presto"},
+    "hive": {"hive", "databricks"},
+    "ms": {"mssql"},
+    "mysql": {"mysql"},
+    "postgres": {
+        "cockroachdb",
+        "hana",
+        "netezza",
+        "postgres",
+        "postgresql",
+        "redshift",
+        "vertica",
+    },
+    "snowflake": {"snowflake"},
+    "sqlite": {"sqlite", "gsheets", "shillelagh"},
+    "clickhouse": {"clickhouse"},
+}
+
+RE_JINJA_VAR = re.compile(r"\{\{[^\{\}]+\}\}")
+RE_JINJA_BLOCK = re.compile(r"\{[%#][^\{\}%#]+[%#]\}")
+
+
+def extract_table_references(
+    sql_text: str, sqla_dialect: str, show_warning: bool = True
+) -> Set["Table"]:
+    """
+    Return all the dependencies from a SQL sql_text.
+    """
+    dialect = "generic"
+    tree = None
+
+    if sqloxide_parse:
+        for dialect, sqla_dialects in SQLOXITE_DIALECTS.items():
+            if sqla_dialect in sqla_dialects:
+                break
+        sql_text = RE_JINJA_BLOCK.sub(" ", sql_text)
+        sql_text = RE_JINJA_VAR.sub("abc", sql_text)
+        try:
+            tree = sqloxide_parse(sql_text, dialect=dialect)
+        except Exception as ex:  # pylint: disable=broad-except
+            if show_warning:
+                logger.warning(
+                    "\nUnable to parse query with sqloxide:\n%s\n%s", sql_text, ex
+                )
+
+    # fallback to sqlparse
+    if not tree:
+        parsed = ParsedQuery(sql_text)
+        return parsed.tables
+
+    def find_nodes_by_key(element: Any, target: str) -> Iterator[Any]:
+        """
+        Find all nodes in a SQL tree matching a given key.
+        """
+        if isinstance(element, list):
+            for child in element:
+                yield from find_nodes_by_key(child, target)
+        elif isinstance(element, dict):
+            for key, value in element.items():
+                if key == target:
+                    yield value
+                else:
+                    yield from find_nodes_by_key(value, target)
+
+    return {
+        Table(*[part["value"] for part in table["name"][::-1]])
+        for table in find_nodes_by_key(tree, "Table")
+    }
