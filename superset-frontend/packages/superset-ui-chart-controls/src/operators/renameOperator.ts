@@ -21,8 +21,10 @@ import {
   PostProcessingRename,
   ensureIsArray,
   getMetricLabel,
+  ComparisionType,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
+import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   formData,
@@ -40,11 +42,29 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
     columns.length > 0 &&
     (xAxis || queryObject.is_timeseries)
   ) {
-    const mainQueryMetricName = getMetricLabel(metrics[0]);
+    const renamePairs: [string, string | null][] = [];
+
+    if (
+      // "actual values" will add derived metric.
+      isValidTimeCompare(formData, queryObject) &&
+      formData.comparison_type === ComparisionType.Values
+    ) {
+      const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
+      const timeOffsets = ensureIsArray(formData.time_compare);
+      [...metricOffsetMap.keys()].forEach(metricWithOffset => {
+        const offsetLabel = timeOffsets.find(offset =>
+          metricWithOffset.includes(offset),
+        );
+        renamePairs.push([metricWithOffset, offsetLabel]);
+      });
+    }
+
+    renamePairs.push([getMetricLabel(metrics[0]), null]);
+
     return {
       operation: 'rename',
       options: {
-        columns: { [mainQueryMetricName]: null },
+        columns: Object.fromEntries(renamePairs),
         level: 0,
         inplace: true,
       },
