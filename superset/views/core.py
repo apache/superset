@@ -1926,6 +1926,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
 
+        standalone_mode = ReservedUrlParameters.is_standalone_mode()
+
         add_extra_log_payload(
             dashboard_id=dashboard.id,
             dashboard_version="v2",
@@ -1944,6 +1946,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
+            standalone_mode=standalone_mode,
         )
 
     @has_access
