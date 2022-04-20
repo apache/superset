@@ -46,6 +46,7 @@ export type ControlProps = {
   renderTrigger?: boolean;
   default?: JsonValue;
   isVisible?: boolean;
+  resetOnHide?: boolean;
 };
 
 /**
@@ -65,6 +66,7 @@ export default function Control(props: ControlProps) {
     type,
     hidden,
     isVisible,
+    resetOnHide = true,
   } = props;
 
   const [hovered, setHovered] = useState(false);
@@ -79,7 +81,8 @@ export default function Control(props: ControlProps) {
       wasVisible === true &&
       isVisible === false &&
       props.default !== undefined &&
-      !isEqual(props.value, props.default)
+      !isEqual(props.value, props.default) &&
+      resetOnHide
     ) {
       // reset control value if setting to invisible
       setControlValue?.(name, props.default);
