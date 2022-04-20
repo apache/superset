@@ -81,14 +81,16 @@ def flatten(
     """
     if _is_multi_index_on_columns(df):
         df.columns = df.columns.droplevel(drop_levels)
-        # every cell should be converted to string
-        df.columns = [
-            FLAT_COLUMN_SEPARATOR.join(
-                # pylint: disable=superfluous-parens
-                [str(cell) for cell in (series if is_sequence(series) else [series])]
-            )
-            for series in df.columns.to_flat_index()
-        ]
+        _columns = []
+        for series in df.columns.to_flat_index():
+            _cells = []
+            for cell in series if is_sequence(series) else [series]:
+                if pd.notnull(cell):
+                    # every cell should be converted to string
+                    _cells.append(str(cell))
+            _columns.append(FLAT_COLUMN_SEPARATOR.join(_cells))
+
+        df.columns = _columns
 
     if reset_index and not isinstance(df.index, pd.RangeIndex):
         df = df.reset_index(level=0)
