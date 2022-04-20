@@ -46,7 +46,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from pkg_resources import resource_filename
-from sqlalchemy import or_
+from sqlalchemy import exc, or_
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
@@ -232,6 +232,9 @@ def handle_api_exception(
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=cast(int, ex.code)
             )
+        except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
+            logger.exception(ex)
+            return json_error_response(utils.error_msg_from_exception(ex), status=422)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
