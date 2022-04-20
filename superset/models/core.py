@@ -441,11 +441,7 @@ class Database(
 
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
-            print("sqls variable: ", sqls)
-            print("going to loop through: ", sqls[:-1])
             for sql_ in sqls[:-1]:
-                print("sql_ query: ", sql_)
-                print("mutate after split inside for loop: ", mutate_after_split)
                 if mutate_after_split:
                     sql_ = sql_query_mutator(
                         sql_,
@@ -453,7 +449,6 @@ class Database(
                         security_manager=security_manager,
                         database=None
                     )
-                    print("New SQL to execute: ", sql_)
                 _log_query(sql_)
                 self.db_engine_spec.execute(cursor, sql_)
                 cursor.fetchall()

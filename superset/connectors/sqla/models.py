@@ -775,7 +775,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
-        print("Mutate query function in models.py")
         if sql_query_mutator and not mutate_after_split:
             username = utils.get_username()
             sql = sql_query_mutator(

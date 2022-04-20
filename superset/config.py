@@ -1050,9 +1050,6 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
 ) -> str:
     return sql
 
-MUTATE_AFTER_SPLIT = True
-
-
 # ---------------------------------------------------
 # Alerts & Reports
 # ---------------------------------------------------
