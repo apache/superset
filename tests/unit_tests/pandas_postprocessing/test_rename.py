@@ -166,3 +166,10 @@ def test_should_raise_exception_invalid_level():
             },
             level="xxxxx",
         )
+
+
+def test_should_return_df_empty_columns():
+    assert pp.rename(
+        df=categories_df,
+        columns={},
+    ).equals(categories_df)

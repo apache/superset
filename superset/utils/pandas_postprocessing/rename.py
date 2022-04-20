@@ -41,6 +41,9 @@ def rename(
     :return: DataFrame after rename
     :raises InvalidPostProcessingError: If the request is unexpected
     """
+    if not columns:
+        return df
+
     try:
         _rename_level = df.columns.get_level_values(level=level)
     except (IndexError, KeyError) as err:

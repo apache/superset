@@ -33,19 +33,33 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   const metrics = ensureIsArray(queryObject.metrics);
   const columns = ensureIsArray(queryObject.columns);
   const { x_axis: xAxis } = formData;
-  // remove metric name in the MultiIndex when
+  // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) only 1 metric
   // 2) exist dimentsion
   // 3) exist xAxis
+  // 4) exist time comparison, and comparison type is "actual values"
   if (
     metrics.length === 1 &&
     columns.length > 0 &&
-    (xAxis || queryObject.is_timeseries)
+    (xAxis || queryObject.is_timeseries) &&
+    !(
+      // todo: we should provide an approach to handle derived metrics
+      (
+        isValidTimeCompare(formData, queryObject) &&
+        [
+          ComparisionType.Difference,
+          ComparisionType.Ratio,
+          ComparisionType.Percentage,
+        ].includes(formData.comparison_type)
+      )
+    )
   ) {
     const renamePairs: [string, string | null][] = [];
 
     if (
       // "actual values" will add derived metric.
+      // we will rename the "metric" from the metricWithOffset label
+      // for example: "count__1 year ago" =>	"1 year ago"
       isValidTimeCompare(formData, queryObject) &&
       formData.comparison_type === ComparisionType.Values
     ) {
