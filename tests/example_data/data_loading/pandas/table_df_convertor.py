@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 
 from pandas import DataFrame
+from sqlalchemy import DateTime
 
 from tests.common.logger_utils import log
 from tests.example_data.data_loading.pandas.pandas_data_loader import TableToDfConvertor
@@ -41,8 +42,14 @@ class TableToDfConvertorImpl(TableToDfConvertor):
     def convert(self, table: Table) -> DataFrame:
         df_rv = DataFrame(table.data)
         if self._should_convert_datetime_to_str():
-            df_rv.ds = df_rv.ds.dt.strftime(self._time_format)
+            self._convert_datetime_to_str(df_rv, table)
         return df_rv
+
+    def _convert_datetime_to_str(self, df_rv, table):
+        for col_name, dtype in table.table_metadata.types.items():
+            if isinstance(dtype, DateTime):
+                df_col = getattr(df_rv, col_name)
+                setattr(df_rv, col_name, df_col.dt.strftime(self._time_format))
 
     def _should_convert_datetime_to_str(self) -> bool:
         return self.convert_datetime_to_str and self._time_format is not None

@@ -32,13 +32,13 @@ from tests.example_data.data_loading.data_definitions.types import (
 )
 
 BIRTH_NAMES_COLUMNS = {
-    DS: DateTime,
+    DS: DateTime(),
     GENDER: String(16),
     NAME: String(255),
-    NUM: Integer,
+    NUM: Integer(),
     STATE: String(10),
-    NUM_BOYS: Integer,
-    NUM_GIRLS: Integer,
+    NUM_BOYS: Integer(),
+    NUM_GIRLS: Integer(),
 }
 
 BIRTH_NAMES_COLUMNS_WITHOUT_DATETIME = {
