@@ -186,7 +186,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
-    database = query.database
+    database: Database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()

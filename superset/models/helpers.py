@@ -477,7 +477,7 @@ class ExtraJSONMixin:
     @property
     def extra(self) -> Dict[str, Any]:
         try:
-            return json.loads(self.extra_json)
+            return json.loads(self.extra_json) if self.extra_json else {}
         except (TypeError, JSONDecodeError) as exc:
             logger.error(
                 "Unable to load an extra json: %r. Leaving empty.", exc, exc_info=True
@@ -522,18 +522,23 @@ class CertificationMixin:
 
 
 def clone_model(
-    target: Model, ignore: Optional[List[str]] = None, **kwargs: Any
+    target: Model,
+    ignore: Optional[List[str]] = None,
+    keep_relations: Optional[List[str]] = None,
+    **kwargs: Any,
 ) -> Model:
     """
-    Clone a SQLAlchemy model.
+    Clone a SQLAlchemy model. By default will only clone naive column attributes.
+    To include relationship attributes, use `keep_relations`.
     """
     ignore = ignore or []
 
     table = target.__table__
+    primary_keys = table.primary_key.columns.keys()
     data = {
         attr: getattr(target, attr)
-        for attr in table.columns.keys()
-        if attr not in table.primary_key.columns.keys() and attr not in ignore
+        for attr in list(table.columns.keys()) + (keep_relations or [])
+        if attr not in primary_keys and attr not in ignore
     }
     data.update(kwargs)
 

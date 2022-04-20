@@ -408,11 +408,13 @@ class Database(
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
+    @property
+    def quote_identifier(self) -> Callable[[str], str]:
+        """Add quotes to potential identifiter expressions if needed"""
+        return self.get_dialect().identifier_preparer.quote
+
     def get_reserved_words(self) -> Set[str]:
         return self.get_dialect().preparer.reserved_words
-
-    def get_quoter(self) -> Callable[[str, Any], str]:
-        return self.get_dialect().identifier_preparer.quote
 
     def get_df(  # pylint: disable=too-many-locals
         self,
