@@ -92,7 +92,10 @@ export default function buildQuery(formData: QueryFormData) {
           rollingWindowOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),
           resampleOperator(formData, baseQueryObject),
-          renameOperator(formData, baseQueryObject),
+          renameOperator(formData, {
+            ...baseQueryObject,
+            ...{ is_timeseries },
+          }),
           flattenOperator(formData, baseQueryObject),
           // todo: move contribution and prophet before flatten
           contributionOperator(formData, baseQueryObject),

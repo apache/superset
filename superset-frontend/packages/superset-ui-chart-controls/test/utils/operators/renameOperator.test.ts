@@ -104,6 +104,21 @@ test('should add renameOperator', () => {
   });
 });
 
+test('should add renameOperator if does not exist x_axis', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        ...{ x_axis: null },
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+  });
+});
+
 test('should add renameOperator if exist "actual value" time comparison', () => {
   expect(
     renameOperator(
