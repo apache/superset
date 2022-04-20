@@ -111,11 +111,10 @@ def _commit_slices(slices: List[Slice]):
 
 
 def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashboard:
+    from superset.examples.helpers import update_slice_ids
     from superset.examples.world_bank import dashboard_positions
 
     pos = dashboard_positions
-    from superset.examples.helpers import update_slice_ids
-
     update_slice_ids(pos, slices)
 
     table.fetch_metadata()

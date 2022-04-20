@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=import-outside-toplevel, unused-argument, unused-import, too-many-locals, invalid-name, too-many-lines
-
 import json
-from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, TYPE_CHECKING
 
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
+
+from tests.unit_tests.utils.db import get_test_user
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
 
 
 def test_dataset_model(app_context: None, session: Session) -> None:
@@ -50,6 +53,7 @@ def test_dataset_model(app_context: None, session: Session) -> None:
     session.flush()
 
     dataset = Dataset(
+        database=table.database,
         name="positions",
         expression="""
 SELECT array_agg(array[longitude,latitude]) AS position
@@ -148,6 +152,7 @@ def test_cascade_delete_dataset(app_context: None, session: Session) -> None:
 SELECT array_agg(array[longitude,latitude]) AS position
 FROM my_catalog.my_schema.my_table
 """,
+        database=table.database,
         tables=[table],
         columns=[
             Column(
@@ -185,7 +190,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
 
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
-        TableColumn(column_name="user_id", type="INTEGER"),
+        TableColumn(column_name="num_boys", type="INTEGER"),
         TableColumn(column_name="revenue", type="INTEGER"),
         TableColumn(column_name="expenses", type="INTEGER"),
         TableColumn(
@@ -254,6 +259,7 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
         "main_dttm_col",
         "metrics",
         "offset",
+        "owners",
         "params",
         "perm",
         "schema",
@@ -265,7 +271,13 @@ def test_dataset_attributes(app_context: None, session: Session) -> None:
     ]
 
 
-def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
+def test_create_physical_sqlatable(
+    app_context: None,
+    session: Session,
+    sample_columns: Dict["TableColumn", Dict[str, Any]],
+    sample_metrics: Dict["SqlMetric", Dict[str, Any]],
+    columns_default: Dict[str, Any],
+) -> None:
     """
     Test shadow write when creating a new ``SqlaTable``.
 
@@ -274,7 +286,7 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     """
     from superset.columns.models import Column
     from superset.columns.schemas import ColumnSchema
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.models import Dataset
     from superset.datasets.schemas import DatasetSchema
     from superset.models.core import Database
@@ -283,19 +295,11 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
-
-    columns = [
-        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
-        TableColumn(column_name="user_id", type="INTEGER"),
-        TableColumn(column_name="revenue", type="INTEGER"),
-        TableColumn(column_name="expenses", type="INTEGER"),
-        TableColumn(
-            column_name="profit", type="INTEGER", expression="revenue-expenses"
-        ),
-    ]
-    metrics = [
-        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
-    ]
+    user1 = get_test_user(1, "abc")
+    columns = list(sample_columns.keys())
+    metrics = list(sample_metrics.keys())
+    expected_table_columns = list(sample_columns.values())
+    expected_metric_columns = list(sample_metrics.values())
 
     sqla_table = SqlaTable(
         table_name="old_dataset",
@@ -317,6 +321,9 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
                 "import_time": 1606677834,
             }
         ),
+        created_by=user1,
+        changed_by=user1,
+        owners=[user1],
         perm=None,
         filter_select_enabled=1,
         fetch_values_predicate="foo IN (1, 2)",
@@ -329,164 +336,85 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
     session.flush()
 
     # ignore these keys when comparing results
-    ignored_keys = {"created_on", "changed_on", "uuid"}
+    ignored_keys = {"created_on", "changed_on"}
 
     # check that columns were created
     column_schema = ColumnSchema()
-    column_schemas = [
+    actual_columns = [
         {k: v for k, v in column_schema.dump(column).items() if k not in ignored_keys}
         for column in session.query(Column).all()
     ]
-    assert column_schemas == [
-        {
-            "changed_by": None,
-            "created_by": None,
-            "description": None,
-            "expression": "ds",
-            "extra_json": "{}",
-            "id": 1,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": False,
-            "is_partition": False,
+    num_physical_columns = len(
+        [col for col in expected_table_columns if col.get("is_physical") == True]
+    )
+    num_dataset_table_columns = len(columns)
+    num_dataset_metric_columns = len(metrics)
+    assert (
+        len(actual_columns)
+        == num_physical_columns + num_dataset_table_columns + num_dataset_metric_columns
+    )
+
+    # table columns are created before dataset columns are created
+    offset = 0
+    for i in range(num_physical_columns):
+        assert actual_columns[i + offset] == {
+            **columns_default,
+            **expected_table_columns[i],
+            "id": i + offset + 1,
+            # physical columns for table have its own uuid
+            "uuid": actual_columns[i + offset]["uuid"],
             "is_physical": True,
-            "is_spatial": False,
-            "is_temporal": True,
-            "name": "ds",
-            "type": "TIMESTAMP",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-        {
-            "changed_by": None,
+            # table columns do not have creators
             "created_by": None,
-            "description": None,
-            "expression": "user_id",
-            "extra_json": "{}",
-            "id": 2,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": False,
-            "is_partition": False,
-            "is_physical": True,
-            "is_spatial": False,
-            "is_temporal": False,
-            "name": "user_id",
-            "type": "INTEGER",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-        {
-            "changed_by": None,
-            "created_by": None,
-            "description": None,
-            "expression": "revenue",
-            "extra_json": "{}",
-            "id": 3,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": False,
-            "is_partition": False,
-            "is_physical": True,
-            "is_spatial": False,
-            "is_temporal": False,
-            "name": "revenue",
-            "type": "INTEGER",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-        {
-            "changed_by": None,
-            "created_by": None,
-            "description": None,
-            "expression": "expenses",
-            "extra_json": "{}",
-            "id": 4,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": False,
-            "is_partition": False,
-            "is_physical": True,
-            "is_spatial": False,
-            "is_temporal": False,
-            "name": "expenses",
-            "type": "INTEGER",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-        {
-            "changed_by": None,
-            "created_by": None,
-            "description": None,
-            "expression": "revenue-expenses",
-            "extra_json": "{}",
-            "id": 5,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": False,
-            "is_partition": False,
-            "is_physical": False,
-            "is_spatial": False,
-            "is_temporal": False,
-            "name": "profit",
-            "type": "INTEGER",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-        {
-            "changed_by": None,
-            "created_by": None,
-            "description": None,
-            "expression": "COUNT(*)",
-            "extra_json": "{}",
-            "id": 6,
-            "is_increase_desired": True,
-            "is_additive": False,
-            "is_aggregation": True,
-            "is_partition": False,
-            "is_physical": False,
-            "is_spatial": False,
-            "is_temporal": False,
-            "name": "cnt",
-            "type": "Unknown",
-            "unit": None,
-            "warning_text": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        },
-    ]
+            "tables": [1],
+        }
+
+    offset += num_physical_columns
+    for i, column in enumerate(sqla_table.columns):
+        assert actual_columns[i + offset] == {
+            **columns_default,
+            **expected_table_columns[i],
+            "id": i + offset + 1,
+            # columns for dataset reuses the same uuid of TableColumn
+            "uuid": str(column.uuid),
+            "datasets": [1],
+        }
+
+    offset += num_dataset_table_columns
+    for i, metric in enumerate(sqla_table.metrics):
+        assert actual_columns[i + offset] == {
+            **columns_default,
+            **expected_metric_columns[i],
+            "id": i + offset + 1,
+            "uuid": str(metric.uuid),
+            "datasets": [1],
+        }
 
     # check that table was created
     table_schema = TableSchema()
     tables = [
-        {k: v for k, v in table_schema.dump(table).items() if k not in ignored_keys}
+        {
+            k: v
+            for k, v in table_schema.dump(table).items()
+            if k not in (ignored_keys | {"uuid"})
+        }
         for table in session.query(Table).all()
     ]
-    assert tables == [
-        {
-            "extra_json": "{}",
-            "catalog": None,
-            "schema": "my_schema",
-            "name": "old_dataset",
-            "id": 1,
-            "database": 1,
-            "columns": [1, 2, 3, 4],
-            "created_by": None,
-            "changed_by": None,
-            "is_managed_externally": False,
-            "external_url": None,
-        }
-    ]
+    assert len(tables) == 1
+    assert tables[0] == {
+        "id": 1,
+        "database": 1,
+        "created_by": 1,
+        "changed_by": 1,
+        "datasets": [1],
+        "columns": [1, 2, 3],
+        "extra_json": "{}",
+        "catalog": None,
+        "schema": "my_schema",
+        "name": "old_dataset",
+        "is_managed_externally": False,
+        "external_url": None,
+    }
 
     # check that dataset was created
     dataset_schema = DatasetSchema()
@@ -494,26 +422,32 @@ def test_create_physical_sqlatable(app_context: None, session: Session) -> None:
         {k: v for k, v in dataset_schema.dump(dataset).items() if k not in ignored_keys}
         for dataset in session.query(Dataset).all()
     ]
-    assert datasets == [
-        {
-            "id": 1,
-            "sqlatable_id": 1,
-            "name": "old_dataset",
-            "changed_by": None,
-            "created_by": None,
-            "columns": [1, 2, 3, 4, 5, 6],
-            "is_physical": True,
-            "tables": [1],
-            "extra_json": "{}",
-            "expression": "old_dataset",
-            "is_managed_externally": False,
-            "external_url": None,
-        }
-    ]
+    assert len(datasets) == 1
+    assert datasets[0] == {
+        "id": 1,
+        "uuid": str(sqla_table.uuid),
+        "created_by": 1,
+        "changed_by": 1,
+        "owners": [1],
+        "name": "old_dataset",
+        "columns": [4, 5, 6, 7, 8, 9],
+        "is_physical": True,
+        "database": 1,
+        "tables": [1],
+        "extra_json": "{}",
+        "expression": "old_dataset",
+        "is_managed_externally": False,
+        "external_url": None,
+    }
 
 
 def test_create_virtual_sqlatable(
-    mocker: MockFixture, app_context: None, session: Session
+    app_context: None,
+    mocker: MockFixture,
+    session: Session,
+    sample_columns: Dict["TableColumn", Dict[str, Any]],
+    sample_metrics: Dict["SqlMetric", Dict[str, Any]],
+    columns_default: Dict[str, Any],
 ) -> None:
     """
     Test shadow write when creating a new ``SqlaTable``.
@@ -528,7 +462,7 @@ def test_create_virtual_sqlatable(
 
     from superset.columns.models import Column
     from superset.columns.schemas import ColumnSchema
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.models import Dataset
     from superset.datasets.schemas import DatasetSchema
     from superset.models.core import Database
@@ -536,8 +470,20 @@ def test_create_virtual_sqlatable(
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
-
-    # create the ``Table`` that the virtual dataset points to
+    user1 = get_test_user(1, "abc")
+    physical_table_columns: List[Dict[str, Any]] = [
+        dict(
+            name="ds",
+            is_temporal=True,
+            type="TIMESTAMP",
+            expression="ds",
+            is_physical=True,
+        ),
+        dict(name="num_boys", type="INTEGER", expression="num_boys", is_physical=True),
+        dict(name="revenue", type="INTEGER", expression="revenue", is_physical=True),
+        dict(name="expenses", type="INTEGER", expression="expenses", is_physical=True),
+    ]
+    # create a physical ``Table`` that the virtual dataset points to
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     table = Table(
         name="some_table",
@@ -545,30 +491,26 @@ def test_create_virtual_sqlatable(
         catalog=None,
         database=database,
         columns=[
-            Column(name="ds", is_temporal=True, type="TIMESTAMP"),
-            Column(name="user_id", type="INTEGER"),
-            Column(name="revenue", type="INTEGER"),
-            Column(name="expenses", type="INTEGER"),
+            Column(**props, created_by=user1, changed_by=user1)
+            for props in physical_table_columns
         ],
     )
     session.add(table)
     session.commit()
 
+    assert session.query(Table).count() == 1
+    assert session.query(Dataset).count() == 0
+
     # create virtual dataset
-    columns = [
-        TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
-        TableColumn(column_name="user_id", type="INTEGER"),
-        TableColumn(column_name="revenue", type="INTEGER"),
-        TableColumn(column_name="expenses", type="INTEGER"),
-        TableColumn(
-            column_name="profit", type="INTEGER", expression="revenue-expenses"
-        ),
-    ]
-    metrics = [
-        SqlMetric(metric_name="cnt", expression="COUNT(*)"),
-    ]
+    columns = list(sample_columns.keys())
+    metrics = list(sample_metrics.keys())
+    expected_table_columns = list(sample_columns.values())
+    expected_metric_columns = list(sample_metrics.values())
 
     sqla_table = SqlaTable(
+        created_by=user1,
+        changed_by=user1,
+        owners=[user1],
         table_name="old_dataset",
         columns=columns,
         metrics=metrics,
@@ -583,7 +525,7 @@ def test_create_virtual_sqlatable(
         sql="""
 SELECT
   ds,
-  user_id,
+  num_boys,
   revenue,
   expenses,
   revenue - expenses AS profit
@@ -607,227 +549,54 @@ FROM
     session.add(sqla_table)
     session.flush()
 
-    # ignore these keys when comparing results
-    ignored_keys = {"created_on", "changed_on", "uuid"}
+    # should not add a new table
+    assert session.query(Table).count() == 1
+    assert session.query(Dataset).count() == 1
 
-    # check that columns were created
+    # ignore these keys when comparing results
+    ignored_keys = {"created_on", "changed_on"}
     column_schema = ColumnSchema()
-    column_schemas = [
+    actual_columns = [
         {k: v for k, v in column_schema.dump(column).items() if k not in ignored_keys}
         for column in session.query(Column).all()
     ]
-    assert column_schemas == [
-        {
-            "type": "TIMESTAMP",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": None,
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "ds",
-            "is_physical": True,
-            "changed_by": None,
-            "is_temporal": True,
-            "id": 1,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": None,
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "user_id",
-            "is_physical": True,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 2,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": None,
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "revenue",
-            "is_physical": True,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 3,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": None,
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "expenses",
-            "is_physical": True,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 4,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "TIMESTAMP",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "ds",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "ds",
+    num_physical_columns = len(physical_table_columns)
+    num_dataset_table_columns = len(columns)
+    num_dataset_metric_columns = len(metrics)
+    assert (
+        len(actual_columns)
+        == num_physical_columns + num_dataset_table_columns + num_dataset_metric_columns
+    )
+
+    for i, column in enumerate(table.columns):
+        assert actual_columns[i] == {
+            **columns_default,
+            **physical_table_columns[i],
+            "id": i + 1,
+            "uuid": str(column.uuid),
+            "tables": [1],
+        }
+
+    offset = num_physical_columns
+    for i, column in enumerate(sqla_table.columns):
+        assert actual_columns[i + offset] == {
+            **columns_default,
+            **expected_table_columns[i],
+            "id": i + offset + 1,
+            "uuid": str(column.uuid),
             "is_physical": False,
-            "changed_by": None,
-            "is_temporal": True,
-            "id": 5,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "user_id",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "user_id",
-            "is_physical": False,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 6,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "revenue",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "revenue",
-            "is_physical": False,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 7,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "expenses",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "expenses",
-            "is_physical": False,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 8,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "INTEGER",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "revenue-expenses",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "profit",
-            "is_physical": False,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 9,
-            "is_aggregation": False,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-        {
-            "type": "Unknown",
-            "is_additive": False,
-            "extra_json": "{}",
-            "is_partition": False,
-            "expression": "COUNT(*)",
-            "unit": None,
-            "warning_text": None,
-            "created_by": None,
-            "is_increase_desired": True,
-            "description": None,
-            "is_spatial": False,
-            "name": "cnt",
-            "is_physical": False,
-            "changed_by": None,
-            "is_temporal": False,
-            "id": 10,
-            "is_aggregation": True,
-            "external_url": None,
-            "is_managed_externally": False,
-        },
-    ]
+            "datasets": [1],
+        }
+
+    offset = num_physical_columns + num_dataset_table_columns
+    for i, metric in enumerate(sqla_table.metrics):
+        assert actual_columns[i + offset] == {
+            **columns_default,
+            **expected_metric_columns[i],
+            "id": i + offset + 1,
+            "uuid": str(metric.uuid),
+            "datasets": [1],
+        }
 
     # check that dataset was created, and has a reference to the table
     dataset_schema = DatasetSchema()
@@ -835,30 +604,31 @@ FROM
         {k: v for k, v in dataset_schema.dump(dataset).items() if k not in ignored_keys}
         for dataset in session.query(Dataset).all()
     ]
-    assert datasets == [
-        {
-            "id": 1,
-            "sqlatable_id": 1,
-            "name": "old_dataset",
-            "changed_by": None,
-            "created_by": None,
-            "columns": [5, 6, 7, 8, 9, 10],
-            "is_physical": False,
-            "tables": [1],
-            "extra_json": "{}",
-            "external_url": None,
-            "is_managed_externally": False,
-            "expression": """
+    assert len(datasets) == 1
+    assert datasets[0] == {
+        "id": 1,
+        "database": 1,
+        "uuid": str(sqla_table.uuid),
+        "name": "old_dataset",
+        "changed_by": 1,
+        "created_by": 1,
+        "owners": [1],
+        "columns": [5, 6, 7, 8, 9, 10],
+        "is_physical": False,
+        "tables": [1],
+        "extra_json": "{}",
+        "external_url": None,
+        "is_managed_externally": False,
+        "expression": """
 SELECT
   ds,
-  user_id,
+  num_boys,
   revenue,
   expenses,
   revenue - expenses AS profit
 FROM
   some_table""",
-        }
-    ]
+    }
 
 
 def test_delete_sqlatable(app_context: None, session: Session) -> None:
@@ -886,18 +656,21 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
     session.add(sqla_table)
     session.flush()
 
-    datasets = session.query(Dataset).all()
-    assert len(datasets) == 1
+    assert session.query(Dataset).count() == 1
+    assert session.query(Table).count() == 1
+    assert session.query(Column).count() == 2
 
     session.delete(sqla_table)
     session.flush()
 
-    # test that dataset was also deleted
-    datasets = session.query(Dataset).all()
-    assert len(datasets) == 0
+    # test that dataset and dataset columns are also deleted
+    # but the physical table and table columns are kept
+    assert session.query(Dataset).count() == 0
+    assert session.query(Table).count() == 1
+    assert session.query(Column).count() == 1
 
 
-def test_update_sqlatable(
+def test_update_physical_sqlatable_columns(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
     """
@@ -929,20 +702,32 @@ def test_update_sqlatable(
     session.add(sqla_table)
     session.flush()
 
+    assert session.query(Table).count() == 1
+    assert session.query(Dataset).count() == 1
+    assert session.query(Column).count() == 2  # 1 for table, 1 for dataset
+
     dataset = session.query(Dataset).one()
     assert len(dataset.columns) == 1
 
     # add a column to the original ``SqlaTable`` instance
-    sqla_table.columns.append(TableColumn(column_name="user_id", type="INTEGER"))
+    sqla_table.columns.append(TableColumn(column_name="num_boys", type="INTEGER"))
     session.flush()
 
-    # check that the column was added to the dataset
+    assert session.query(Column).count() == 3
     dataset = session.query(Dataset).one()
     assert len(dataset.columns) == 2
+    for table_column, dataset_column in zip(sqla_table.columns, dataset.columns):
+        assert table_column.uuid == dataset_column.uuid
 
     # delete the column in the original instance
     sqla_table.columns = sqla_table.columns[1:]
     session.flush()
+
+    # check that the column was added to the dataset and the added columns have
+    # the correct uuid.
+    assert session.query(TableColumn).count() == 1
+    # the extra Dataset.column is deleted, but Table.column is kept
+    assert session.query(Column).count() == 2
 
     # check that the column was also removed from the dataset
     dataset = session.query(Dataset).one()
@@ -957,7 +742,7 @@ def test_update_sqlatable(
     assert dataset.columns[0].is_temporal is True
 
 
-def test_update_sqlatable_schema(
+def test_update_physical_sqlatable_schema(
     mocker: MockFixture, app_context: None, session: Session
 ) -> None:
     """
@@ -1003,8 +788,11 @@ def test_update_sqlatable_schema(
     assert new_dataset.tables[0].id == 2
 
 
-def test_update_sqlatable_metric(
-    mocker: MockFixture, app_context: None, session: Session
+def test_update_physical_sqlatable_metrics(
+    mocker: MockFixture,
+    app_context: None,
+    session: Session,
+    get_session: Callable[[], Session],
 ) -> None:
     """
     Test that updating a ``SqlaTable`` also updates the corresponding ``Dataset``.
@@ -1042,6 +830,9 @@ def test_update_sqlatable_metric(
     session.flush()
 
     # check that the metric was created
+    # 1 physical column for table + (1 column + 1 metric for datasets)
+    assert session.query(Column).count() == 3
+
     column = session.query(Column).filter_by(is_physical=False).one()
     assert column.expression == "COUNT(*)"
 
@@ -1050,6 +841,186 @@ def test_update_sqlatable_metric(
     session.flush()
 
     assert column.expression == "MAX(ds)"
+
+    # in a new session, update new columns and metrics at the same time
+    # reload the sqla_table so we can test the case that accessing an not already
+    # loaded attribute (`sqla_table.metrics`) while there are updates on the instance
+    # may trigger `after_update` before the attribute is loaded
+    session = get_session()
+    sqla_table = session.query(SqlaTable).filter(SqlaTable.id == sqla_table.id).one()
+    sqla_table.columns.append(
+        TableColumn(
+            column_name="another_column",
+            is_dttm=0,
+            type="TIMESTAMP",
+            expression="concat('a', 'b')",
+        )
+    )
+    # Here `SqlaTable.after_update` is triggered
+    # before `sqla_table.metrics` is loaded
+    sqla_table.metrics.append(
+        SqlMetric(metric_name="another_metric", expression="COUNT(*)")
+    )
+    # `SqlaTable.after_update` will trigger again at flushing
+    session.flush()
+    assert session.query(Column).count() == 5
+
+
+def test_update_physical_sqlatable_database(
+    mocker: MockFixture,
+    app_context: None,
+    session: Session,
+    get_session: Callable[[], Session],
+) -> None:
+    """
+    Test updating the table on a physical dataset.
+
+    When updating the table on a physical dataset by pointing it somewhere else (change
+    in database ID, schema, or table name) we should point the ``Dataset`` to an
+    existing ``Table`` if possible, and create a new one otherwise.
+    """
+    # patch session
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.get_session", return_value=session
+    )
+    mocker.patch("superset.datasets.dao.db.session", session)
+
+    from superset.columns.models import Column
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.datasets.models import Dataset, dataset_column_association_table
+    from superset.models.core import Database
+    from superset.tables.models import Table, table_column_association_table
+    from superset.tables.schemas import TableSchema
+
+    engine = session.get_bind()
+    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
+
+    columns = [
+        TableColumn(column_name="a", type="INTEGER"),
+    ]
+
+    original_database = Database(
+        database_name="my_database", sqlalchemy_uri="sqlite://"
+    )
+    sqla_table = SqlaTable(
+        table_name="original_table",
+        columns=columns,
+        metrics=[],
+        database=original_database,
+    )
+    session.add(sqla_table)
+    session.flush()
+
+    assert session.query(Table).count() == 1
+    assert session.query(Dataset).count() == 1
+    assert session.query(Column).count() == 2  # 1 for table, 1 for dataset
+
+    # check that the table was created, and that the created dataset points to it
+    table = session.query(Table).one()
+    assert table.id == 1
+    assert table.name == "original_table"
+    assert table.schema is None
+    assert table.database_id == 1
+
+    dataset = session.query(Dataset).one()
+    assert dataset.tables == [table]
+
+    # point ``SqlaTable`` to a different database
+    new_database = Database(
+        database_name="my_other_database", sqlalchemy_uri="sqlite://"
+    )
+    session.add(new_database)
+    session.flush()
+    sqla_table.database = new_database
+    sqla_table.table_name = "new_table"
+    session.flush()
+
+    assert session.query(Dataset).count() == 1
+    assert session.query(Table).count() == 2
+    # <Column:id=1> is kept for the old table
+    # <Column:id=2> is kept for the updated dataset
+    # <Column:id=3> is created for the new table
+    assert session.query(Column).count() == 3
+
+    # ignore these keys when comparing results
+    ignored_keys = {"created_on", "changed_on", "uuid"}
+
+    # check that the old table still exists, and that the dataset points to the newly
+    # created table, column and dataset
+    table_schema = TableSchema()
+    tables = [
+        {k: v for k, v in table_schema.dump(table).items() if k not in ignored_keys}
+        for table in session.query(Table).all()
+    ]
+    assert tables[0] == {
+        "id": 1,
+        "database": 1,
+        "columns": [1],
+        "datasets": [],
+        "created_by": None,
+        "changed_by": None,
+        "extra_json": "{}",
+        "catalog": None,
+        "schema": None,
+        "name": "original_table",
+        "external_url": None,
+        "is_managed_externally": False,
+    }
+    assert tables[1] == {
+        "id": 2,
+        "database": 2,
+        "datasets": [1],
+        "columns": [3],
+        "created_by": None,
+        "changed_by": None,
+        "catalog": None,
+        "schema": None,
+        "name": "new_table",
+        "is_managed_externally": False,
+        "extra_json": "{}",
+        "external_url": None,
+    }
+
+    # check that dataset now points to the new table
+    assert dataset.tables[0].database_id == 2
+    # and a new column is created
+    assert len(dataset.columns) == 1
+    assert dataset.columns[0].id == 2
+
+    # point ``SqlaTable`` back
+    sqla_table.database = original_database
+    sqla_table.table_name = "original_table"
+    session.flush()
+
+    # should not create more table and datasets
+    assert session.query(Dataset).count() == 1
+    assert session.query(Table).count() == 2
+    # <Column:id=1> is deleted for the old table
+    # <Column:id=2> is kept for the updated dataset
+    # <Column:id=3> is kept for the new table
+    assert session.query(Column.id).order_by(Column.id).all() == [
+        (1,),
+        (2,),
+        (3,),
+    ]
+    assert session.query(dataset_column_association_table).all() == [(1, 2)]
+    assert session.query(table_column_association_table).all() == [(1, 1), (2, 3)]
+    assert session.query(Dataset).filter_by(id=1).one().columns[0].id == 2
+    assert session.query(Table).filter_by(id=2).one().columns[0].id == 3
+    assert session.query(Table).filter_by(id=1).one().columns[0].id == 1
+
+    # the dataset points back to the original table
+    assert dataset.tables[0].database_id == 1
+    assert dataset.tables[0].name == "original_table"
+
+    # kept the original column
+    assert dataset.columns[0].id == 2
+    session.commit()
+    session.close()
+
+    # querying in a new session should still return the same result
+    session = get_session()
+    assert session.query(table_column_association_table).all() == [(1, 1), (2, 3)]
 
 
 def test_update_virtual_sqlatable_references(
@@ -1108,7 +1079,7 @@ def test_update_virtual_sqlatable_references(
     session.flush()
 
     # check that new dataset has table1
-    dataset = session.query(Dataset).one()
+    dataset: Dataset = session.query(Dataset).one()
     assert dataset.tables == [table1]
 
     # change SQL
@@ -1116,20 +1087,26 @@ def test_update_virtual_sqlatable_references(
     session.flush()
 
     # check that new dataset has both tables
-    new_dataset = session.query(Dataset).one()
+    new_dataset: Dataset = session.query(Dataset).one()
     assert new_dataset.tables == [table1, table2]
     assert new_dataset.expression == "SELECT a, b FROM table_a JOIN table_b"
+
+    # automatically add new referenced table
+    sqla_table.sql = "SELECT a, b, c FROM table_a JOIN table_b JOIN table_c"
+    session.flush()
+
+    new_dataset = session.query(Dataset).one()
+    assert len(new_dataset.tables) == 3
+    assert new_dataset.tables[2].name == "table_c"
 
 
 def test_quote_expressions(app_context: None, session: Session) -> None:
     """
     Test that expressions are quoted appropriately in columns and datasets.
     """
-    from superset.columns.models import Column
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.datasets.models import Dataset
     from superset.models.core import Database
-    from superset.tables.models import Table
 
     engine = session.get_bind()
     Dataset.metadata.create_all(engine)  # pylint: disable=no-member
@@ -1152,180 +1129,3 @@ def test_quote_expressions(app_context: None, session: Session) -> None:
     assert dataset.expression == '"old dataset"'
     assert dataset.columns[0].expression == '"has space"'
     assert dataset.columns[1].expression == "no_need"
-
-
-def test_update_physical_sqlatable(
-    mocker: MockFixture, app_context: None, session: Session
-) -> None:
-    """
-    Test updating the table on a physical dataset.
-
-    When updating the table on a physical dataset by pointing it somewhere else (change
-    in database ID, schema, or table name) we should point the ``Dataset`` to an
-    existing ``Table`` if possible, and create a new one otherwise.
-    """
-    # patch session
-    mocker.patch(
-        "superset.security.SupersetSecurityManager.get_session", return_value=session
-    )
-    mocker.patch("superset.datasets.dao.db.session", session)
-
-    from superset.columns.models import Column
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.datasets.models import Dataset
-    from superset.models.core import Database
-    from superset.tables.models import Table
-    from superset.tables.schemas import TableSchema
-
-    engine = session.get_bind()
-    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
-
-    columns = [
-        TableColumn(column_name="a", type="INTEGER"),
-    ]
-
-    sqla_table = SqlaTable(
-        table_name="old_dataset",
-        columns=columns,
-        metrics=[],
-        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
-    )
-    session.add(sqla_table)
-    session.flush()
-
-    # check that the table was created, and that the created dataset points to it
-    table = session.query(Table).one()
-    assert table.id == 1
-    assert table.name == "old_dataset"
-    assert table.schema is None
-    assert table.database_id == 1
-
-    dataset = session.query(Dataset).one()
-    assert dataset.tables == [table]
-
-    # point ``SqlaTable`` to a different database
-    new_database = Database(
-        database_name="my_other_database", sqlalchemy_uri="sqlite://"
-    )
-    session.add(new_database)
-    session.flush()
-    sqla_table.database = new_database
-    session.flush()
-
-    # ignore these keys when comparing results
-    ignored_keys = {"created_on", "changed_on", "uuid"}
-
-    # check that the old table still exists, and that the dataset points to the newly
-    # created table (id=2) and column (id=2), on the new database (also id=2)
-    table_schema = TableSchema()
-    tables = [
-        {k: v for k, v in table_schema.dump(table).items() if k not in ignored_keys}
-        for table in session.query(Table).all()
-    ]
-    assert tables == [
-        {
-            "created_by": None,
-            "extra_json": "{}",
-            "name": "old_dataset",
-            "changed_by": None,
-            "catalog": None,
-            "columns": [1],
-            "database": 1,
-            "external_url": None,
-            "schema": None,
-            "id": 1,
-            "is_managed_externally": False,
-        },
-        {
-            "created_by": None,
-            "extra_json": "{}",
-            "name": "old_dataset",
-            "changed_by": None,
-            "catalog": None,
-            "columns": [2],
-            "database": 2,
-            "external_url": None,
-            "schema": None,
-            "id": 2,
-            "is_managed_externally": False,
-        },
-    ]
-
-    # check that dataset now points to the new table
-    assert dataset.tables[0].database_id == 2
-
-    # point ``SqlaTable`` back
-    sqla_table.database_id = 1
-    session.flush()
-
-    # check that dataset points to the original table
-    assert dataset.tables[0].database_id == 1
-
-
-def test_update_physical_sqlatable_no_dataset(
-    mocker: MockFixture, app_context: None, session: Session
-) -> None:
-    """
-    Test updating the table on a physical dataset that it creates
-    a new dataset if one didn't already exist.
-
-    When updating the table on a physical dataset by pointing it somewhere else (change
-    in database ID, schema, or table name) we should point the ``Dataset`` to an
-    existing ``Table`` if possible, and create a new one otherwise.
-    """
-    # patch session
-    mocker.patch(
-        "superset.security.SupersetSecurityManager.get_session", return_value=session
-    )
-    mocker.patch("superset.datasets.dao.db.session", session)
-
-    from superset.columns.models import Column
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.datasets.models import Dataset
-    from superset.models.core import Database
-    from superset.tables.models import Table
-    from superset.tables.schemas import TableSchema
-
-    engine = session.get_bind()
-    Dataset.metadata.create_all(engine)  # pylint: disable=no-member
-
-    columns = [
-        TableColumn(column_name="a", type="INTEGER"),
-    ]
-
-    sqla_table = SqlaTable(
-        table_name="old_dataset",
-        columns=columns,
-        metrics=[],
-        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
-    )
-    session.add(sqla_table)
-    session.flush()
-
-    # check that the table was created
-    table = session.query(Table).one()
-    assert table.id == 1
-
-    dataset = session.query(Dataset).one()
-    assert dataset.tables == [table]
-
-    # point ``SqlaTable`` to a different database
-    new_database = Database(
-        database_name="my_other_database", sqlalchemy_uri="sqlite://"
-    )
-    session.add(new_database)
-    session.flush()
-    sqla_table.database = new_database
-    session.flush()
-
-    new_dataset = session.query(Dataset).one()
-
-    # check that dataset now points to the new table
-    assert new_dataset.tables[0].database_id == 2
-
-    # point ``SqlaTable`` back
-    sqla_table.database_id = 1
-    session.flush()
-
-    # check that dataset points to the original table
-    assert new_dataset.tables[0].database_id == 1
