@@ -49,7 +49,7 @@ def rename(
     except (IndexError, KeyError) as err:
         raise InvalidPostProcessingError from err
 
-    if all([new_name in _rename_level for new_name in columns.values()]):
+    if all(new_name in _rename_level for new_name in columns.values()):
         raise InvalidPostProcessingError(_("Label already exists"))
 
     if inplace:
