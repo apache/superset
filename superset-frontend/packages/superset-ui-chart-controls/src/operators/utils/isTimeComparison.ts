@@ -21,7 +21,7 @@ import { ComparisionType } from '@superset-ui/core';
 import { getMetricOffsetsMap } from './getMetricOffsetsMap';
 import { PostProcessingFactory } from '../types';
 
-export const isValidTimeCompare: PostProcessingFactory<boolean> = (
+export const isTimeComparison: PostProcessingFactory<boolean> = (
   formData,
   queryObject,
 ) => {

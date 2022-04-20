@@ -24,14 +24,14 @@ import {
   NumpyFunction,
   PostProcessingPivot,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
+import { getMetricOffsetsMap, isTimeComparison } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
   (formData, queryObject) => {
     const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
 
-    if (isValidTimeCompare(formData, queryObject)) {
+    if (isTimeComparison(formData, queryObject)) {
       const aggregates = Object.fromEntries(
         [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
           metric,
