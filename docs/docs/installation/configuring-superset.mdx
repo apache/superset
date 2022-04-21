@@ -85,14 +85,14 @@ Superset supports the following database engines/versions:
 
 Use the following database drivers and connection strings:
 
-| Database                               | PyPI package                      | Connection String                                                        |
-| -------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| [PostgreSQL](/docs/databases/postgres) | `pip install psycopg2`            | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`   |
-| [MySQL](/docs/databases/mysql)         | `pip install mysqlclient`         | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`        |
-| SQLite                                 | No additional library needed      | `sqlite://`                                                              |
+| Database                                  | PyPI package                      | Connection String                                                        |
+| ----------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| [PostgreSQL](https://www.postgresql.org/) | `pip install psycopg2`            | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`   |
+| [MySQL](https://www.mysql.com/)           | `pip install mysqlclient`         | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`        |
+| SQLite                                    | No additional library needed      | `sqlite://`                                                              |
 
-To configure Superset metadata database set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
-to the appropriate connection string:
+To configure Superset metastore set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
+to the appropriate connection string.
 
 
 ### Running on a WSGI HTTP Server
