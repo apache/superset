@@ -490,9 +490,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                     ex, query, session, payload, prefix_message
                 )
                 return payload
-
         # Commit the connection so CTA queries will create the table.
-        conn.commit()
+        if apply_ctas:
+            conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size
