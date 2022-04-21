@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from superset.models.sql_lab import Query
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -51,6 +52,7 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.integration_tests.fixtures.query import get_query_datasource
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_slice,
     load_unicode_data,
@@ -141,6 +143,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             # rollback changes
             db.session.delete(report_schedule)
             db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_charts_from_query(self):
+        with self.create_app().app_context():
+            charts = []
+            admin = self.get_user("admin")
+            query = db.session.query(Query).first()
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(
+                    self.insert_chart(
+                        f"name{cx}", [admin.id], query.id, datasource_type=query.type
+                    )
+                )
+            fav_charts = []
+            for cx in range(round(CHARTS_FIXTURE_COUNT / 2)):
+                fav_star = FavStar(
+                    user_id=admin.id, class_name="slice", obj_id=charts[cx].id
+                )
+                db.session.add(fav_star)
+                db.session.commit()
+                fav_charts.append(fav_star)
+            yield charts
+
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            for fav_chart in fav_charts:
+                db.session.delete(fav_chart)
             db.session.commit()
 
     @pytest.fixture()
@@ -533,6 +564,36 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(
             response, {"message": {"datasource_id": ["Dataset does not exist"]}}
         )
+
+    @pytest.mark.usefixtures("get_query_datasource", "create_charts_from_query")
+    def test_create_chart_from_query(self):
+        """
+        Chart API: Test create chart from Query
+        """
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        admin_id = self.get_user("admin").id
+        query_id = db.session.query(Query).first().id
+        chart_data = {
+            "slice_name": "name1",
+            "description": "description1",
+            "owners": [admin_id],
+            "viz_type": "viz_type1",
+            "params": "1234",
+            "cache_timeout": 1000,
+            "datasource_id": query_id,
+            "datasource_type": "query",
+            "dashboards": dashboards_ids,
+            "certified_by": "John Doe",
+            "certification_details": "Sample certification",
+        }
+        self.login(username="admin")
+        uri = f"api/v1/chart/"
+        rv = self.post_assert_metric(uri, chart_data, "post")
+        self.assertEqual(rv.status_code, 201)
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(Slice).get(data.get("id"))
+        db.session.delete(model)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_update_chart(self):

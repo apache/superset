@@ -42,6 +42,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import security_manager
 from superset.models.helpers import (
     AuditMixinNullable,
+    ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
 )
@@ -51,7 +52,7 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import QueryStatus, user_label
 
 
-class Query(Model, ExtraJSONMixin):
+class Query(Model, ExtraJSONMixin, ExploreMixin):
     """ORM model for SQL query
 
     Now that SQL Lab support multi-statement execution, an entry in this

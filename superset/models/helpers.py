@@ -39,6 +39,7 @@ from sqlalchemy.orm import Mapper, Session
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy_utils import UUIDType
 
+from superset import security_manager
 from superset.common.db_query_status import QueryStatus
 
 logger = logging.getLogger(__name__)
@@ -543,3 +544,38 @@ def clone_model(
     data.update(kwargs)
 
     return target.__class__(**data)
+
+
+class ExploreMixin:
+    """
+    Sets up data to allow an object to be used to power a chart
+    """
+
+    @property
+    def database(self):
+        raise NotImplementedError
+
+    @property
+    def schema(self):
+        raise NotImplementedError
+
+    # @property
+    # def type(self) -> str:
+    #     return f"{self.__class__.__name__.lower()}"
+
+    type = "query"
+
+    @staticmethod
+    def default_query(qry):
+        return qry
+
+    @property
+    def perm(self) -> Optional[str]:
+        return f"[{self.database.database_name}].(id:{self.database.id})"
+
+    def get_perm(self) -> Optional[str]:
+        return self.perm
+
+    def get_schema_perm(self) -> Optional[str]:
+        """Returns schema permission if present, database one otherwise."""
+        return security_manager.get_schema_perm(self.database, self.schema)
