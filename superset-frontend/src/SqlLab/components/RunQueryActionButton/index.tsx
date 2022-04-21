@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
@@ -27,7 +27,6 @@ import {
   DropdownButtonProps,
 } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
-import { useMemo } from '@storybook/addons';
 
 interface Props {
   allowAsync: boolean;
