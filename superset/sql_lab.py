@@ -186,7 +186,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-locals
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
-    database = query.database
+    database: Database = query.database
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
@@ -528,6 +528,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
+
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )

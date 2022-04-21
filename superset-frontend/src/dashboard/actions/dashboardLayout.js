@@ -210,7 +210,7 @@ export function handleComponentDrop(dropResult) {
       destination.id !== rootChildId
     ) {
       return dispatch(
-        addWarningToast(t(`Can not move top level tab into nested tabs`)),
+        addWarningToast(t('Can not move top level tab into nested tabs')),
       );
     } else if (
       destination &&
