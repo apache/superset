@@ -18,7 +18,7 @@
  * under the License.
  */
 import { ComparisionType, PostProcessingCompare } from '@superset-ui/core';
-import { getMetricOffsetsMap, isValidTimeCompare } from './utils';
+import { getMetricOffsetsMap, isTimeComparison } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeCompareOperator: PostProcessingFactory<PostProcessingCompare> =
@@ -27,7 +27,7 @@ export const timeCompareOperator: PostProcessingFactory<PostProcessingCompare> =
     const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
 
     if (
-      isValidTimeCompare(formData, queryObject) &&
+      isTimeComparison(formData, queryObject) &&
       comparisonType !== ComparisionType.Values
     ) {
       return {

@@ -14,32 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 
-# pylint: disable=too-few-public-methods
-"""New dataset models
-
-Revision ID: b8d3a24d9131
-Revises: 5afbb1a5849b
-Create Date: 2021-11-11 16:41:53.266965
-
-"""
-# revision identifiers, used by Alembic.
-revision = "b8d3a24d9131"
-down_revision = "5afbb1a5849b"
+from superset import security_manager
 
 
-# ===================== Notice ========================
-#
-# Migrations made in this revision has been moved to `new_dataset_models_take_2`
-# to fix performance issues as well as a couple of shortcomings in the original
-# design.
-#
-# ======================================================
-
-
-def upgrade() -> None:
-    pass
-
-
-def downgrade():
-    pass
+def get_test_user(id_: int, username: str) -> Any:
+    """Create a sample test user"""
+    return security_manager.user_model(
+        id=id_,
+        username=username,
+        first_name=username,
+        last_name=username,
+        email=f"{username}@example.com",
+    )

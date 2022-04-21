@@ -254,6 +254,8 @@ const QueryTable = ({
               responsive
             />
           );
+        } else {
+          q.results = <></>;
         }
 
         q.progress =

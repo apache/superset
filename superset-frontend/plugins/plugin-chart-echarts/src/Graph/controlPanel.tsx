@@ -98,7 +98,7 @@ const controlPanel: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<h1 className="section-header">{t('Layout')}</h1>],
+        [<div className="section-header">{t('Layout')}</div>],
         [
           {
             name: 'layout',
