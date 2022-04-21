@@ -96,7 +96,9 @@ def get_chart_dataframe(
 
     result = simplejson.loads(content.decode("utf-8"))
     # need to convert float value to string to show full long number
-    pd.set_option("display.float_format", lambda x: str(x))
+    pd.set_option(
+        "display.float_format", lambda x: str(x)
+    )  # pylint: disable=unnecessary-lambda
     df = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     # rebuild hierarchical columns and index
