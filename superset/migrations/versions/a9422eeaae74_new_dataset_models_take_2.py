@@ -42,7 +42,6 @@ from sqlalchemy.sql import functions as func
 from sqlalchemy.sql.expression import and_, or_
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db
 from superset.connectors.sqla.models import ADDITIVE_METRIC_TYPES_LOWER
 from superset.connectors.sqla.utils import get_dialect_name, get_identifier_quoter
 from superset.extensions import encrypted_field_factory
@@ -51,8 +50,6 @@ from superset.sql_parse import extract_table_references, Table
 from superset.utils.core import MediumText
 
 Base = declarative_base()
-custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
-DB_CONNECTION_MUTATOR = app.config["DB_CONNECTION_MUTATOR"]
 SHOW_PROGRESS = os.environ.get("SHOW_PROGRESS") == "1"
 UNKNOWN_TYPE = "UNKNOWN"
 
@@ -577,7 +574,7 @@ def postprocess_datasets(session: Session) -> None:
             drivername = (sqlalchemy_uri or "").split("://")[0]
             updates = {}
             updated = False
-            if is_physical and drivername:
+            if is_physical and drivername and expression:
                 quoted_expression = get_identifier_quoter(drivername)(expression)
                 if quoted_expression != expression:
                     updates["expression"] = quoted_expression
@@ -871,7 +868,7 @@ def reset_postgres_id_sequence(table: str) -> None:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session: Session = db.Session(bind=bind)
+    session: Session = Session(bind=bind)
     Base.metadata.drop_all(bind=bind, tables=new_tables)
     Base.metadata.create_all(bind=bind, tables=new_tables)
 
