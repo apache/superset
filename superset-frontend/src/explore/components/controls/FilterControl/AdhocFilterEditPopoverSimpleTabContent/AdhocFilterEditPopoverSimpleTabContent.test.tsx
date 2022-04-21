@@ -549,6 +549,6 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
       userEvent.type(operatorValueField, '{enter}');
     });
 
-    expect(screen.getByText('equals')).toBeTruthy();
+    expect(screen.getByText('EQUALS')).toBeTruthy();
   });
 });
