@@ -85,7 +85,7 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
             "An unexpected occurred while executing the report: %s", ex, exc_info=True
         )
     except CommandException as ex:
-        logger.info("Report state: %s", ex)
+        logger.error("Report state: %s", ex)
 
 
 @celery_app.task(name="reports.prune_log")
