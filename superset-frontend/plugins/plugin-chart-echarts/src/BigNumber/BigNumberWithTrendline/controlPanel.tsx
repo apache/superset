@@ -43,7 +43,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Trendline settings'),
       tabOverride: 'data',
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {

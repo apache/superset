@@ -89,7 +89,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced query settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         ['limit'],
         ['timeseries_limit_metric'],

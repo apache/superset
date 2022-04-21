@@ -40,7 +40,7 @@ export default {
     },
     {
       label: t('Display settings'),
-      expanded: true,
+      expanded: false,
       tabOverride: 'data',
       controlSetRows: [
         [

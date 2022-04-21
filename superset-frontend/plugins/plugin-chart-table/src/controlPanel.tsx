@@ -294,7 +294,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Advanced query settings'),
-      expanded: true,
+      expanded: false,
       controlSetRows: [
         [
           {
