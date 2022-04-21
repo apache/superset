@@ -779,6 +779,7 @@ export function useDatabaseValidation() {
                   {},
                 );
               setValidationErrors(parsedErrors);
+              return parsedErrors;
             });
           }
           // eslint-disable-next-line no-console

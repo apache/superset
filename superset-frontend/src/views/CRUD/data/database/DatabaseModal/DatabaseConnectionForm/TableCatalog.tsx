@@ -34,7 +34,6 @@ export const TableCatalog = ({
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
-
   return (
     <StyledCatalogTable>
       <h4 className="gsheet-title">
