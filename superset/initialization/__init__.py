@@ -471,7 +471,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.configure_fab()
         self.configure_url_map_converters()
-        self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
 
@@ -521,6 +520,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
 
         with self.superset_app.app_context():
+            print("hello are you working")
             self.init_app_in_ctx()
 
         self.post_init()
@@ -535,8 +535,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_data_sources(self) -> None:
         # Registering sources
+
+        print("!!!!!-------****** HELLO I HIT IN CONFIGURE -------*****!!!!")
+        print("!!!!!-------****** HELLO I HIT IN CONFIGURE -------*****!!!!")
+        print("!!!!!-------****** HELLO I HIT IN CONFIGURE -------*****!!!!")
         module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
         module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
+        print("module map", module_datasource_map)
         ConnectorRegistry.register_sources(module_datasource_map)
 
     def configure_cache(self) -> None:

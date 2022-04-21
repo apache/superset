@@ -61,7 +61,9 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
-from superset.connectors.connector_registry import ConnectorRegistry
+
+# from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasource.dao import DatasourceDAO
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -472,7 +474,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
-        for datasource_class in ConnectorRegistry.sources.values():
+        for datasource_class in DatasourceDAO.sources.values():
             user_datasources.update(
                 self.get_session.query(datasource_class)
                 .filter(
@@ -485,7 +487,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         # group all datasources by database
-        all_datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        all_datasources = DatasourceDAO.get_all_datasources(self.get_session)
         datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
             set
         )
@@ -611,7 +613,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
-        user_datasources = ConnectorRegistry.query_datasources_by_permissions(
+        user_datasources = DatasourceDAO.query_datasources_by_permissions(
             self.get_session, database, user_perms, schema_perms
         )
         if schema:
@@ -675,7 +677,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        datasources = DatasourceDAO.get_all_datasources(self.get_session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())

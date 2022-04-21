@@ -21,6 +21,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db
+from superset.dao.base import BaseDAO
 from sqlalchemy.orm import Session, subqueryload
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, Table, Query
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-class DatasourceDAO:
+class DatasourceDAO(BaseDAO):
     sources = {
         "SqlaTable": SqlaTable,
         "dataset": Dataset,
@@ -54,7 +55,7 @@ class DatasourceDAO:
             raise DatasetNotFoundError()
 
         datasource = (
-            db.session.query(cls.sources[datasource_type])
+           db.session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one_or_none()
         )
