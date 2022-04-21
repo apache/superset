@@ -80,6 +80,7 @@ class TestDatabaseApi(SupersetTestCase):
         encrypted_extra: str = "",
         server_cert: str = "",
         expose_in_sqllab: bool = False,
+        allow_file_upload: bool = False,
     ) -> Database:
         database = Database(
             database_name=database_name,
@@ -88,6 +89,7 @@ class TestDatabaseApi(SupersetTestCase):
             encrypted_extra=encrypted_extra,
             server_cert=server_cert,
             expose_in_sqllab=expose_in_sqllab,
+            allow_file_upload=allow_file_upload,
         )
         db.session.add(database)
         db.session.commit()
@@ -863,6 +865,362 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         # TODO(bkyryliuk): investigate why presto returns 500
         self.assertEqual(rv.status_code, 404 if example_db.backend != "presto" else 500)
+
+    def test_get_allow_file_upload_filter(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_no_schema(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        This test has allow_file_upload but no schemas.
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_allow_file_false(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        This has a schema but does not allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_false(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_false_no_extra(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                allow_file_upload=False,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def mock_csv_function(d, user):
+        return d.get_all_schema_names()
+
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_csv_function},
+    )
+    def test_get_allow_file_upload_true_csv(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(username="admin")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+            db.session.delete(database)
+            db.session.commit()
+
+    def mock_empty_csv_function(d, user):
+        return []
+
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_empty_csv_function},
+    )
+    def test_get_allow_file_upload_false_csv(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas.
+        Both databases have false allow_file_upload
+        """
+        with self.create_app().app_context():
+            self.login(username="admin")
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+
+    def test_get_allow_file_upload_filter_no_permission(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["public"],
+            }
+            self.login(username="gamma")
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 0
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_allow_file_upload_filter_with_permission(self):
+        """
+        Database API: Test filter for allow file upload checks for schemas
+        """
+        with self.create_app().app_context():
+            main_db = get_main_database()
+            main_db.allow_file_upload = True
+            session = db.session
+            table = SqlaTable(
+                schema="public",
+                table_name="ab_permission",
+                database=get_main_database(),
+            )
+
+            session.add(table)
+            session.commit()
+            tmp_table_perm = security_manager.find_permission_view_menu(
+                "datasource_access", table.get_perm()
+            )
+            gamma_role = security_manager.find_role("Gamma")
+            security_manager.add_permission_role(gamma_role, tmp_table_perm)
+
+            self.login(username="gamma")
+
+            arguments = {
+                "columns": ["allow_file_upload"],
+                "filters": [
+                    {
+                        "col": "allow_file_upload",
+                        "opr": "upload_is_enabled",
+                        "value": True,
+                    }
+                ],
+            }
+            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] == 1
+
+            # rollback changes
+            security_manager.del_permission_role(gamma_role, tmp_table_perm)
+            db.session.delete(table)
+            db.session.delete(main_db)
+            db.session.commit()
 
     def test_database_schemas(self):
         """

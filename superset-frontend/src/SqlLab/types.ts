@@ -61,7 +61,7 @@ export type Query = {
     query: { limit: number };
   };
   resultsKey: string | null;
-  schema: string;
+  schema?: string;
   sql: string;
   sqlEditorId: string;
   state: QueryState;
@@ -114,6 +114,7 @@ export type RootState = {
     activeSouthPaneTab: string | number; // default is string; action.newQuery.id is number
     alerts: any[];
     databases: Record<string, any>;
+    dbConnect: boolean;
     offline: boolean;
     queries: Query[];
     queryEditors: QueryEditor[];
