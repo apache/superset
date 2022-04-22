@@ -19,7 +19,7 @@
 
 const dataTestLocator = (value: string) => `[data-test='${value}']`;
 
-export function dataTestChartName(chartName : string) : string {
+export function dataTestChartName(chartName: string): string {
   return `[data-test-chart-name='${chartName}']`;
 }
 
@@ -366,7 +366,7 @@ export const nativeFilters = {
     infoTooltip: '[aria-label="Show info tooltip"]',
     parentFilterInput: dataTestLocator('parent-filter-input'),
     filterPlaceholder: '.ant-select-selection-placeholder',
-    collapsedSectionContainer: '[class="ant-collapse-content-box"]'
+    collapsedSectionContainer: '[class="ant-collapse-content-box"]',
   },
   filtersList: {
     list: '.ant-tabs-nav-list',
@@ -384,7 +384,7 @@ export const nativeFilters = {
     slider: '[class="ant-slider"]',
     startHandle: '[class="ant-slider-handle ant-slider-handle-1"]',
     endHandle: '[class="ant-slider-handle ant-slider-handle-2"]',
-    sliderText: '[class="ant-slider-mark-text ant-slider-mark-text-active"]'
+    sliderText: '[class="ant-slider-mark-text ant-slider-mark-text-active"]',
   },
 };
 export const dashboardListView = {
@@ -614,7 +614,7 @@ export const dashboardView = {
   dashboardContainer: dataTestLocator('grid-container'),
   dashboardAlert: {
     modal: dataTestLocator('toast-container'),
-    closeButton: dataTestLocator('close-button')
+    closeButton: dataTestLocator('close-button'),
   },
   saveModal: {
     modal: '.ant-modal-content',

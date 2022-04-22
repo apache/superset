@@ -53,13 +53,12 @@ export const testItems = {
     filterColumnYear: 'year',
     filterColumnRegion: 'region',
     filterColumnCountryCode: 'country_code',
-   },
+  },
   filterDefaultValue: 'United States',
   filterOtherCountry: 'China',
   filterTimeGrain: 'Month',
   filterTimeColumn: 'created',
-  filterNumericalColumn: 'SP_RUR_TOTL_ZS'
-  
+  filterNumericalColumn: 'SP_RUR_TOTL_ZS',
 };
 
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
@@ -80,16 +79,16 @@ export const WORLD_HEALTH_CHARTS = [
 
 export const nativeFilterTooltips = {
   searchAllFilterOptions:
-   'By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).',
+    'By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).',
   defaultToFirstItem: 'When using this option, default value can’t be set',
   inverseSelection: 'Exclude selected values',
   required: 'User must select a value before applying the filter',
   multipleSelect: 'Allow selecting multiple values',
   defaultValue:
-   'Default value must be set when "Filter value is required" is checked',
- };
- 
- export const nativeFilterOptions = [
+    'Default value must be set when "Filter value is required" is checked',
+};
+
+export const nativeFilterOptions = [
   'Filter has default value',
   'Multiple select',
   'Filter value is required',
@@ -99,8 +98,8 @@ export const nativeFilterTooltips = {
   'Search all filter options',
   'Pre-filter available values',
   'Sort filter values',
- ];
- export const valueNativeFilterOptions = [
+];
+export const valueNativeFilterOptions = [
   'Pre-filter available values',
   'Sort filter values',
   'Filter has default value',
@@ -109,7 +108,7 @@ export const nativeFilterTooltips = {
   'Dynamically search all filter values',
   'Inverse selection',
   'Filter value is required',
- ];
+];
 
 /** Used to specify charts expected by the test suite */
 export interface ChartSpec {
@@ -214,81 +213,76 @@ export function cleanUp() {
   cy.deleteChartByName(testItems.newChart);
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Copy dashboard for testing purpose
  * @returns {None}
  * @summary helper for copy dashboard for testing purpose
- **************************************************************************/
- export function copyTestDashboard(dashboard: string){
+ ************************************************************************* */
+export function copyTestDashboard(dashboard: string) {
   cy.intercept('POST', '**/copy_dash/**').as('copy');
   cy.intercept('**/api/v1/dashboard/**').as('dashboard');
   cy.intercept('GET', '**/api/v1/dataset/**').as('datasetLoad');
   cy.intercept('**/api/v1/dashboard/?q=**').as('dashboardsList');
   cy.visit('dashboard/list/');
   cy.contains('Actions');
-  cy.wait('@dashboardsList').then((xhr) => {
-   const dashboards = xhr.response?.body.result;
-   /* eslint-disable no-unused-expressions */
-   expect(dashboards).not.to.be.undefined;
-   const testDashboard = dashboards.find(
-    (d: { dashboard_title: string }) =>
-      d.dashboard_title === `${dashboard}`,
-  );
-  cy.visit(testDashboard.url);
+  cy.wait('@dashboardsList').then(xhr => {
+    const dashboards = xhr.response?.body.result;
+    /* eslint-disable no-unused-expressions */
+    expect(dashboards).not.to.be.undefined;
+    const testDashboard = dashboards.find(
+      (d: { dashboard_title: string }) => d.dashboard_title === `${dashboard}`,
+    );
+    cy.visit(testDashboard.url);
   });
   cy.get(dashboardView.threeDotsMenuIcon).should('be.visible').click();
   cy.get(dashboardView.saveAsMenuOption).click();
-  cy
-   .get(dashboardView.saveModal.dashboardNameInput)
-   .should('be.visible')
-   .clear()
-   .type(testItems.dashboard);
+  cy.get(dashboardView.saveModal.dashboardNameInput)
+    .should('be.visible')
+    .clear()
+    .type(testItems.dashboard);
   cy.get(dashboardView.saveModal.saveButton).click();
-  cy
-   .wait('@copy', { timeout: 45000 })
-   .its('response.statusCode')
-   .should('eq', 200);
+  cy.wait('@copy', { timeout: 45000 })
+    .its('response.statusCode')
+    .should('eq', 200);
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Expend Native filter from the left panel on dashboard
  * @returns {None}
  * @summary helper for expend native filter
- **************************************************************************/
- export function expandFilterOnLeftPanel() {
+ ************************************************************************* */
+export function expandFilterOnLeftPanel() {
   return cy
-   .get(nativeFilters.filterFromDashboardView.expand)
-   .click({force: true});
- }
- 
- /**************************************************************************
-  * Collapes Native Filter from the left panel on dashboard
-  * @returns {None}
-  * @summary helper for collape native filter
-  **************************************************************************/
- export function collapseFilterOnLeftPanel() {
-  cy
-   .get(nativeFilters.filterFromDashboardView.collapse)
-   .should('be.visible')
-   .click();
-  cy
-   .get(nativeFilters.filterFromDashboardView.collapse)
-   .should('not.be.visible');
- }
- 
- /**************************************************************************
-  * Enter Native Filter edit modal from the left panel on dashboard
-  * @returns {None}
-  * @summary helper for enter native filter edit modal
-  **************************************************************************/
- export function enterNativeFilterEditModal() {
-   cy
-    .get(nativeFilters.filterFromDashboardView.createFilterButton)
+    .get(nativeFilters.filterFromDashboardView.expand)
+    .click({ force: true });
+}
+
+/** ************************************************************************
+ * Collapes Native Filter from the left panel on dashboard
+ * @returns {None}
+ * @summary helper for collape native filter
+ ************************************************************************* */
+export function collapseFilterOnLeftPanel() {
+  cy.get(nativeFilters.filterFromDashboardView.collapse)
     .should('be.visible')
     .click();
-   cy.get(nativeFilters.modal.container).should('be.visible');
- }
- 
+  cy.get(nativeFilters.filterFromDashboardView.collapse).should(
+    'not.be.visible',
+  );
+}
+
+/** ************************************************************************
+ * Enter Native Filter edit modal from the left panel on dashboard
+ * @returns {None}
+ * @summary helper for enter native filter edit modal
+ ************************************************************************* */
+export function enterNativeFilterEditModal() {
+  cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
+    .should('be.visible')
+    .click();
+  cy.get(nativeFilters.modal.container).should('be.visible');
+}
+
 /** ************************************************************************
  * Clicks on new filter button
  * @returns {None}
@@ -306,7 +300,7 @@ export function clickOnAddFilterInModal() {
     });
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Fills value native filter form with basic information
  * @param {string} type type for filter: Value, Numerical range,Time column,Time grain,Time range
  * @param {string} name name for filter
@@ -314,85 +308,47 @@ export function clickOnAddFilterInModal() {
  * @param {string} filterColumn which column should be used
  * @returns {None}
  * @summary helper for filling value native filter form
- **************************************************************************/
- export function fillNativeFilterForm(
+ ************************************************************************* */
+export function fillNativeFilterForm(
   type: string,
   name: string,
   dataset?: string,
-  filterColumn?: string
- ) {
-  cy
-   .get(nativeFilters.filtersPanel.filterTypeInput)
-   .find(nativeFilters.filtersPanel.filterTypeItem)
-   .click({multiple: true ,force: true});
+  filterColumn?: string,
+) {
+  cy.get(nativeFilters.filtersPanel.filterTypeInput)
+    .find(nativeFilters.filtersPanel.filterTypeItem)
+    .click({ multiple: true, force: true });
   cy.get(`[label="${type}"]`).click({ multiple: true, force: true });
-  cy
-   .get(nativeFilters.modal.container)
-   .find(nativeFilters.filtersPanel.filterName)
-   .last()
-   .click({ scrollBehavior: false })
-   .type(name, { scrollBehavior: false });
-  if (dataset) {
-   cy
-    .get(nativeFilters.modal.container)
-    .find(nativeFilters.filtersPanel.datasetName)
+  cy.get(nativeFilters.modal.container)
+    .find(nativeFilters.filtersPanel.filterName)
     .last()
-    .click({ force: true, scrollBehavior: false })
-    .type(`${dataset}`, { scrollBehavior: false });
-   cy.get(nativeFilters.silentLoading).should('not.exist');
-   cy.get(`[label="${dataset}"]`).click( {multiple: true, force: true});
+    .click({ scrollBehavior: false })
+    .type(name, { scrollBehavior: false });
+  if (dataset) {
+    cy.get(nativeFilters.modal.container)
+      .find(nativeFilters.filtersPanel.datasetName)
+      .last()
+      .click({ force: true, scrollBehavior: false })
+      .type(`${dataset}`, { scrollBehavior: false });
+    cy.get(nativeFilters.silentLoading).should('not.exist');
+    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
   }
   cy.get(nativeFilters.silentLoading).should('not.exist');
   if (filterColumn) {
-   cy
-    .get(nativeFilters.filtersPanel.filterInfoInput)
-    .last()
-    .should('be.visible')
-    .click({ force: true });
-   cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type(filterColumn);
-   cy
-    .get(nativeFilters.filtersPanel.inputDropdown)
-    .should('be.visible', { timeout: 20000 })
-    .last()
-    .click();
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .should('be.visible')
+      .click({ force: true });
+    cy.get(nativeFilters.filtersPanel.filterInfoInput)
+      .last()
+      .type(filterColumn);
+    cy.get(nativeFilters.filtersPanel.inputDropdown)
+      .should('be.visible', { timeout: 20000 })
+      .last()
+      .click();
   }
   cy.get(nativeFilters.silentLoading).should('not.exist');
- }
-
-// /** ************************************************************************
-//  * Fills value native filter form with basic information
-//  * @param {string} name name for filter
-//  * @param {string} dataset which dataset should be used
-//  * @param {string} filterColumn which column should be used
-//  * @returns {None}
-//  * @summary helper for filling value native filter form
-//  ************************************************************************* */
-// export function fillValueNativeFilterForm(
-//   name: string,
-//   dataset: string,
-//   filterColumn: string,
-// ) {
-//   cy.get(nativeFilters.modal.container)
-//     .find(nativeFilters.filtersPanel.filterName)
-//     .last()
-//     .click({ scrollBehavior: false })
-//     .type(name, { scrollBehavior: false });
-//   cy.get(nativeFilters.modal.container)
-//     .find(nativeFilters.filtersPanel.datasetName)
-//     .last()
-//     .click({ scrollBehavior: false })
-//     .type(`${dataset}{enter}`, { scrollBehavior: false });
-//   cy.get(nativeFilters.silentLoading).should('not.exist');
-//   cy.get(nativeFilters.filtersPanel.filterInfoInput)
-//     .last()
-//     .should('be.visible')
-//     .click({ force: true });
-//   cy.get(nativeFilters.filtersPanel.filterInfoInput).last().type(filterColumn);
-//   cy.get(nativeFilters.filtersPanel.inputDropdown)
-//     .should('be.visible', { timeout: 20000 })
-//     .last()
-//     .click();
-// }
+}
 
 /** ************************************************************************
  * Get native filter placeholder e.g 9 options
@@ -439,13 +395,12 @@ export function addParentFilterWithValue(index: number, value: string) {
     });
 }
 
-
-/**************************************************************************
+/** ************************************************************************
  * Create test chart for time column filter test
  * @returns {null}
  * @summary helper Create test chart for time column filter test
- **************************************************************************/
- export function createTimeColumnTestChart(){
+ ************************************************************************* */
+export function createTimeColumnTestChart() {
   const VIZ_DEFAULTS = {
     ...FORM_DATA_DEFAULTS,
     viz_type: 'echarts_timeseries',
@@ -472,190 +427,187 @@ export function addParentFilterWithValue(index: number, value: string) {
     rich_tooltip: true,
     tooltipTimeFormat: 'smart_date',
     y_axis_format: 'SMART_NUMBER',
-   };
-   cy.visitChartByParams({
+  };
+  cy.visitChartByParams({
     ...VIZ_DEFAULTS,
-   });
-   cy
-    .get(exploreView.controlPanel.runButton)
-    .should('exist', { timeout: 10000 });
-   cy.get(exploreView.controlPanel.saveQuery).click();
-   cy.get(exploreView.saveModal.modal).within(() => {
-    cy
-     .get(exploreView.saveModal.chartNameInput)
-     .type(`${testItems.chart}{enter}`);
-    cy
-     .get(exploreView.saveModal.dashboardNameInput)
-     .type(`${testItems.dashboard}{enter}`, { delay: 100 });
+  });
+  cy.get(exploreView.controlPanel.runButton).should('exist', {
+    timeout: 10000,
+  });
+  cy.get(exploreView.controlPanel.saveQuery).click();
+  cy.get(exploreView.saveModal.modal).within(() => {
+    cy.get(exploreView.saveModal.chartNameInput).type(
+      `${testItems.chart}{enter}`,
+    );
+    cy.get(exploreView.saveModal.dashboardNameInput).type(
+      `${testItems.dashboard}{enter}`,
+      { delay: 100 },
+    );
     cy.get(exploreView.saveModal.saveAndGoToDashboard).click();
-   });
+  });
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Save Native Filter Settings
  * @returns {None}
  * @summary helper for save native filters settings
- **************************************************************************/
+ ************************************************************************* */
 export function saveNativeFilterSettings() {
- cy
-  .get(nativeFilters.modal.footer)
-  .contains('Save')
-  .should('be.visible')
-  .click();
- cy.get(nativeFilters.modal.container).should('not.exist');
+  cy.get(nativeFilters.modal.footer)
+    .contains('Save')
+    .should('be.visible')
+    .click();
+  cy.get(nativeFilters.modal.container).should('not.exist');
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Cancel Native fitler settings
  * @returns {None}
  * @summary helper for cancel native filters settings
- **************************************************************************/
-export function cancelNativeFilterSettings(){
-  cy
-  .get(nativeFilters.modal.footer)
-  .find(nativeFilters.modal.cancelButton)
-  .should('be.visible')
-  .click();
- cy
-  .get(nativeFilters.modal.alertXUnsavedFilters)
-  .should('have.text', 'There are unsaved changes.')
-  .should('be.visible');
- cy
-  .get(nativeFilters.modal.footer)
-  .find(nativeFilters.modal.yesCancelButton)
-  .contains('cancel')
-  .should('be.visible')
-  .click();
- cy.get(nativeFilters.modal.container).should('not.exist');
+ ************************************************************************* */
+export function cancelNativeFilterSettings() {
+  cy.get(nativeFilters.modal.footer)
+    .find(nativeFilters.modal.cancelButton)
+    .should('be.visible')
+    .click();
+  cy.get(nativeFilters.modal.alertXUnsavedFilters)
+    .should('have.text', 'There are unsaved changes.')
+    .should('be.visible');
+  cy.get(nativeFilters.modal.footer)
+    .find(nativeFilters.modal.yesCancelButton)
+    .contains('cancel')
+    .should('be.visible')
+    .click();
+  cy.get(nativeFilters.modal.container).should('not.exist');
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Close dashboard toast message
  * @returns {None}
  * @summary helper for close dashboard toast message in order to make test stable
- **************************************************************************/
-export function closeDashboardToastMessage(){
-  cy.get('body').then(($body) => {
+ ************************************************************************* */
+export function closeDashboardToastMessage() {
+  cy.get('body').then($body => {
     if ($body.find(dashboardView.dashboardAlert.modal).length > 0) {
-     //evaluates as true if button exists at all
-     cy.get(dashboardView.dashboardAlert.modal).then(($header) => {
-      if ($header.is(':visible')) {
-       cy.get(dashboardView.dashboardAlert.closeButton).click({ force: true });
-       cy
-        .get(dashboardView.dashboardAlert.closeButton)
-        .should('not.exist', { timeout: 10000 });
-      }
-     });
+      // evaluates as true if button exists at all
+      cy.get(dashboardView.dashboardAlert.modal).then($header => {
+        if ($header.is(':visible')) {
+          cy.get(dashboardView.dashboardAlert.closeButton).click({
+            force: true,
+          });
+          cy.get(dashboardView.dashboardAlert.closeButton).should('not.exist', {
+            timeout: 10000,
+          });
+        }
+      });
     }
   });
 }
 
-/**************************************************************************
- * Validate filter name on dashboard 
+/** ************************************************************************
+ * Validate filter name on dashboard
  * @param name: filter name to validate
  * @return {null}
  * @summary helper for validate filter name on dashboard
- **************************************************************************/
+ ************************************************************************* */
 export function validateFilterNameOnDashboard(name: string) {
- cy
-  .get(nativeFilters.filterFromDashboardView.filterName)
-  .should('be.visible', { timeout: 40000 })
-  .contains(`${name}`)
+  cy.get(nativeFilters.filterFromDashboardView.filterName)
+    .should('be.visible', { timeout: 40000 })
+    .contains(`${name}`);
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Validate filter content on dashboard
  * @param filterContent: filter content to validate
  * @return {null}
  * @summary helper for validate filter content on dashboard
- **************************************************************************/
-export function validateFilterContentOnDashboard(filterContent: string){
-  cy
-  .get(nativeFilters.filterFromDashboardView.filterContent)
-  .contains(`${filterContent}`)
-  .should('be.visible');
+ ************************************************************************* */
+export function validateFilterContentOnDashboard(filterContent: string) {
+  cy.get(nativeFilters.filterFromDashboardView.filterContent)
+    .contains(`${filterContent}`)
+    .should('be.visible');
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Delete Native filter
  * @return {null}
- * @summary helper for delete native filter 
- **************************************************************************/
+ * @summary helper for delete native filter
+ ************************************************************************* */
 export function deleteNativeFilter() {
   cy.get(nativeFilters.filtersList.removeIcon).first().click();
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Undo delete Native filter
  * @return {null}
- * @summary helper for undo delete native filter 
- **************************************************************************/
+ * @summary helper for undo delete native filter
+ ************************************************************************* */
 export function undoDeleteNativeFilter() {
- deleteNativeFilter();
- cy.contains('Undo?').click();
+  deleteNativeFilter();
+  cy.contains('Undo?').click();
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Check Native Filter tooltip content
  * @param index: tooltip indext to check
  * @param value: tooltip value to check
  * @return {null}
  * @summary helper for checking native filter tooltip content by index
- **************************************************************************/
-export function checkNativeFilterTooltip(index: number,value: string) {
- cy
-  .get(nativeFilters.filterConfigurationSections.infoTooltip)
-  .eq(index)
-  .trigger('mouseover');
- cy.contains(`${value}`);
+ ************************************************************************* */
+export function checkNativeFilterTooltip(index: number, value: string) {
+  cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+    .eq(index)
+    .trigger('mouseover');
+  cy.contains(`${value}`);
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Apply advanced time range filter on dashboard
  * @param startRange: starting time range
  * @param endRange: ending time range
  * @return {null}
  * @summary helper for applying advanced time range filter on dashboard with customize time range
- **************************************************************************/
-export function applyAdvancedTimeRangeFilterOnDashboard(startRange?: string,endRange?: string){
+ ************************************************************************* */
+export function applyAdvancedTimeRangeFilterOnDashboard(
+  startRange?: string,
+  endRange?: string,
+) {
   cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
-  cy
-   .get('.ant-popover-content .ant-select-selector')
-   .should('be.visible')
-   .click();
+  cy.get('.ant-popover-content .ant-select-selector')
+    .should('be.visible')
+    .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
   cy.get('.section-title').contains('Advanced Time Range').should('be.visible');
-  if(startRange){
-  cy.get('.ant-popover-inner-content')
-    .find('[class^=ant-input]')
-    .first().type(`${startRange}`);
-  }
-  if(endRange){
+  if (startRange) {
     cy.get('.ant-popover-inner-content')
       .find('[class^=ant-input]')
-      .last().type(`${endRange}`);
+      .first()
+      .type(`${startRange}`);
+  }
+  if (endRange) {
+    cy.get('.ant-popover-inner-content')
+      .find('[class^=ant-input]')
+      .last()
+      .type(`${endRange}`);
   }
   cy.get(dashboardView.timeRangeModal.applyButton).click();
   cy.get(nativeFilters.applyFilter).click();
 }
 
-/**************************************************************************
+/** ************************************************************************
  * Input default valule in Native filter in filter settings
  * @param defaultValue: default value for native filter
  * @return {null}
  * @summary helper for input default valule in Native filter in filter settings
- **************************************************************************/
-export function inputNativeFilterDefaultValue(defaultValue: string){
+ ************************************************************************* */
+export function inputNativeFilterDefaultValue(defaultValue: string) {
   cy.contains('Filter has default value').click();
   cy.contains('Default value is required').should('be.visible');
-  cy
-   .get(nativeFilters.filterConfigurationSections.filterPlaceholder)
-   .contains('options')
-   .should('be.visible');
-  cy
-   .get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
-   .first()
-   .get(nativeFilters.filtersPanel.columnEmptyInput)
-   .type(`${defaultValue}{enter}`);
+  cy.get(nativeFilters.filterConfigurationSections.filterPlaceholder)
+    .contains('options')
+    .should('be.visible');
+  cy.get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
+    .first()
+    .get(nativeFilters.filtersPanel.columnEmptyInput)
+    .type(`${defaultValue}{enter}`);
 }
-
