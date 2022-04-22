@@ -7,8 +7,8 @@ describe('Handlebars buildQuery', () => {
     granularitySqla: 'ds',
     groupby: ['foo'],
     viz_type: 'my_chart',
-    width: '500px',
-    height: '500px'
+    width: '500',
+    height: '500',
   };
 
   it('should build groupby with series in form data', () => {
