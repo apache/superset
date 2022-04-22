@@ -21,11 +21,12 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.visit(CHART_LIST);
-    cy.get('[aria-label="list-view"]').click();
   });
 
   it('should load rows', () => {
+    cy.visit(CHART_LIST);
+    cy.get('[aria-label="list-view"]').click();
+
     cy.get('[data-test="listview-table"]').should('be.visible');
     // check chart list view header
     cy.get('[data-test="sort-header"]').eq(1).contains('Chart');
@@ -49,6 +50,17 @@ describe('chart list view', () => {
   });
 
   it('should bulk delete correctly', () => {
+    // Load the chart list order by name asc.
+    // This will ensure the tests stay consistent, and the
+    // same charts get deleted every time
+    cy.visit(CHART_LIST, {
+      qs: {
+        sortColumn: 'slice_name',
+        sortOrder: 'asc',
+      },
+    });
+    cy.get('[aria-label="list-view"]').click();
+
     cy.get('[data-test="listview-table"]').should('be.visible');
     cy.get('[data-test="bulk-select"]').eq(0).click();
     cy.get('[aria-label="checkbox-off"]').eq(1).siblings('input').click();
