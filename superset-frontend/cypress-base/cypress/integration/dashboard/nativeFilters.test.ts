@@ -211,7 +211,9 @@ describe('Nativefilters Sanity test', () => {
       expect(ur.search).to.include('native_filters');
     });
     validateFilterNameOnDashboard(testItems.filterType.timeRange);
-    validateFilterContentOnDashboard('2005-12-17');
+    cy.get(nativeFilters.filterFromDashboardView.timeRangeFilterContent)
+      .contains('2005-12-17')
+      .should('be.visible');
   });
 
   it("User can check 'Filter has default value'", () => {
@@ -251,7 +253,6 @@ describe('Nativefilters Sanity test', () => {
   });
 
   it('User can create a time column filter', () => {
-    createTimeColumnTestChart();
     expandFilterOnLeftPanel();
     enterNativeFilterEditModal();
     fillNativeFilterForm(
@@ -264,7 +265,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('not.exist');
     // assert that native filter is created
     validateFilterNameOnDashboard(testItems.filterType.timeColumn);
-
     applyNativeFilterValueWithIndex(
       0,
       testItems.topTenGamesChart.filterColumnYear,
@@ -274,31 +274,6 @@ describe('Nativefilters Sanity test', () => {
     validateFilterContentOnDashboard(
       testItems.topTenGamesChart.filterColumnYear,
     );
-  });
-
-  it('User can create a time range filter', () => {
-    expandFilterOnLeftPanel();
-    enterNativeFilterEditModal();
-    fillNativeFilterForm(
-      testItems.filterType.timeRange,
-      testItems.filterType.timeRange,
-    );
-    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
-    saveNativeFilterSettings();
-    cy.wait('@chart');
-    cy.get(dashboardView.salesDashboardSpecific.vehicleSalesFilterTimeRange)
-      .should('be.visible')
-      .click();
-    applyAdvancedTimeRangeFilterOnDashboard('2005-12-17');
-    cy.wait('@chart');
-    cy.url().then(u => {
-      const ur = new URL(u);
-      expect(ur.search).to.include('native_filters');
-    });
-    validateFilterNameOnDashboard(testItems.filterType.timeRange);
-    cy.get(nativeFilters.filterFromDashboardView.timeRangeFilterContent)
-      .contains('2005-12-17')
-      .should('be.visible');
   });
 
   it('User can create a value filter', () => {
@@ -419,30 +394,6 @@ describe('Nativefilters Sanity test', () => {
       // assert slider text matches what we should have
       cy.get(nativeFilters.slider.sliderText).should('have.text', '49');
     });
-  });
-
-  it('User can create a time column filter', () => {
-    expandFilterOnLeftPanel();
-    enterNativeFilterEditModal();
-    fillNativeFilterForm(
-      testItems.filterType.timeColumn,
-      testItems.filterType.timeColumn,
-      testItems.datasetForNativeFilter,
-    );
-    saveNativeFilterSettings();
-    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
-    cy.get(nativeFilters.modal.container).should('not.exist');
-    // assert that native filter is created
-    validateFilterNameOnDashboard(testItems.filterType.timeColumn);
-    applyNativeFilterValueWithIndex(
-      0,
-      testItems.topTenGamesChart.filterColumnYear,
-    );
-    cy.get(nativeFilters.applyFilter).click({ force: true });
-    cy.wait('@chart');
-    validateFilterContentOnDashboard(
-      testItems.topTenGamesChart.filterColumnYear,
-    );
   });
 
   it('Verify that default value is respected after revisit', () => {
