@@ -1310,6 +1310,7 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          loaded: true,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
