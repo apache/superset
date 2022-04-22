@@ -392,11 +392,9 @@ const ExploreChartPanel = ({
             errorMessage={errorMessage}
             queriesResponse={chart.queriesResponse}
             chartUpdateCacheInvalidationStatus={
-              props.actions.chartUpdateCacheInvalidationStatus
+              actions.chartUpdateCacheInvalidationStatus
             }
-            latestQueryCacheInvalidated={
-              props.chart.latestQueryCacheInvalidated
-            }
+            latestQueryCacheInvalidated={chart.latestQueryCacheInvalidated}
           />
         </Split>
       )}
