@@ -30,7 +30,6 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy_utils import UUIDType
 
 
@@ -39,9 +38,7 @@ def upgrade():
         "key_value",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("resource", sa.String(32), nullable=False),
-        sa.Column(
-            "value", sa.LargeBinary().with_variant(LONGBLOB, "mysql"), nullable=False
-        ),
+        sa.Column("value", sa.LargeBinary(length=2**31), nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid4),
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
