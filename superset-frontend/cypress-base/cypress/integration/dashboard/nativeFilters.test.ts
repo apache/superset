@@ -34,7 +34,6 @@ import {
   clickOnAddFilterInModal,
   closeDashboardToastMessage,
   collapseFilterOnLeftPanel,
-  createTimeColumnTestChart,
   deleteNativeFilter,
   enterNativeFilterEditModal,
   expandFilterOnLeftPanel,
@@ -421,7 +420,7 @@ describe('Nativefilters Sanity test', () => {
       const dashboards = xhr.body.result;
       console.log(dashboards);
       for (const element of dashboards) {
-        if (element.dashboard_title == testItems.dashboard) {
+        if (element.dashboard_title === testItems.dashboard) {
           cy.visit(element.url);
         }
       }

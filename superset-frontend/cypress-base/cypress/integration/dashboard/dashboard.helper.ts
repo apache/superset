@@ -396,58 +396,6 @@ export function addParentFilterWithValue(index: number, value: string) {
 }
 
 /** ************************************************************************
- * Create test chart for time column filter test
- * @returns {null}
- * @summary helper Create test chart for time column filter test
- ************************************************************************* */
-export function createTimeColumnTestChart() {
-  const VIZ_DEFAULTS = {
-    ...FORM_DATA_DEFAULTS,
-    viz_type: 'echarts_timeseries',
-    datasource: '13__table',
-    granularity_sqla: 'purpose__last_set',
-    time_range_endpoints: ['inclusive', 'exclusive'],
-    time_grain_sqla: 'P1D',
-    time_range: 'No filter',
-    metrics: ['count'],
-    comparison_type: 'values',
-    forecastPeriods: 10,
-    forecastInterval: 0.8,
-    x_axis_title_margin: 15,
-    y_axis_title_margin: 15,
-    y_axis_title_position: 'Left',
-    color_scheme: 'supersetColors',
-    seriesType: 'line',
-    only_total: true,
-    opacity: 0.2,
-    markerSize: 6,
-    legendType: 'scroll',
-    legendOrientation: 'top',
-    x_axis_time_format: 'smart_date',
-    rich_tooltip: true,
-    tooltipTimeFormat: 'smart_date',
-    y_axis_format: 'SMART_NUMBER',
-  };
-  cy.visitChartByParams({
-    ...VIZ_DEFAULTS,
-  });
-  cy.get(exploreView.controlPanel.runButton).should('exist', {
-    timeout: 10000,
-  });
-  cy.get(exploreView.controlPanel.saveQuery).click();
-  cy.get(exploreView.saveModal.modal).within(() => {
-    cy.get(exploreView.saveModal.chartNameInput).type(
-      `${testItems.chart}{enter}`,
-    );
-    cy.get(exploreView.saveModal.dashboardNameInput).type(
-      `${testItems.dashboard}{enter}`,
-      { delay: 100 },
-    );
-    cy.get(exploreView.saveModal.saveAndGoToDashboard).click();
-  });
-}
-
-/** ************************************************************************
  * Save Native Filter Settings
  * @returns {None}
  * @summary helper for save native filters settings
