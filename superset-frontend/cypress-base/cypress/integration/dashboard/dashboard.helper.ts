@@ -5,7 +5,6 @@ import {
   exploreView,
   nativeFilters,
 } from 'cypress/support/directories';
-import { FORM_DATA_DEFAULTS } from '../explore/visualizations/shared.helper';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -47,7 +46,7 @@ export const testItems = {
     timeGrain: 'Time grain',
     timeRange: 'Time range',
   },
-  topTenGamesChart: {
+  topTenChart: {
     name: 'Most Populated Countries',
     filterColumn: 'country_name',
     filterColumnYear: 'year',
