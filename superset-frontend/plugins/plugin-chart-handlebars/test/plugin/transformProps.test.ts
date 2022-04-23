@@ -11,12 +11,12 @@ describe('Handlebars tranformProps', () => {
     groupby: ['name'],
     width: 500,
     height: 500,
+    viz_type: 'handlebars',
   };
   const chartProps = new ChartProps<QueryFormData>({
     formData,
     width: 800,
     height: 600,
-    viz_type: 'handlebars',
     queriesData: [
       {
         data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
