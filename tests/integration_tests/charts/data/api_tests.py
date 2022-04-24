@@ -807,6 +807,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True, ALLOW_ADHOC_SUBQUERY=True
     )
     @pytest.mark.usefixtures(
+        "skip_if_presto_or_hive",
         "load_birth_names_dashboard_with_slices",
         "load_single_column_example_datasource",
     )
@@ -828,6 +829,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         QUERY_CONTEXT_VALIDATION_SQL_EXPRESSION=True, ALLOW_ADHOC_SUBQUERY=True
     )
     @pytest.mark.usefixtures(
+        "skip_if_presto_or_hive",
         "load_birth_names_dashboard_with_slices",
         "load_single_column_example_datasource",
     )

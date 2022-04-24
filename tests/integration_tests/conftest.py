@@ -43,12 +43,12 @@ def app_context():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def setup_sample_data() -> Any:
+def setup_sample_data(backend_db_type) -> Any:
     # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
     # relying on `tests.integration_tests.test_app.app` leveraging an  `app` fixture which is purposely
     # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
-        setup_presto_if_needed()
+        setup_presto_if_needed(backend_db_type)
 
         from superset.cli.test import load_test_users_run
 
@@ -121,12 +121,22 @@ def example_db(example_db_provider: Callable[[], Database]) -> Database:
     return example_db_provider()
 
 
-def setup_presto_if_needed():
-    backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+@pytest.fixture
+def skip_if_presto_or_hive(backend_db_type):
+    if backend_db_type in {"presto", "hive"}:
+        pytest.skip("test should not run with presto or hive")
+
+
+@pytest.fixture(scope="session")
+def backend_db_type():
+    return app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+
+
+def setup_presto_if_needed(backend_db_type):
     database = get_example_database()
     extra = database.get_extra()
 
-    if backend == "presto":
+    if backend_db_type == "presto":
         # decrease poll interval for tests
         extra = {
             **extra,
@@ -140,7 +150,7 @@ def setup_presto_if_needed():
     database.extra = json_dumps_w_dates(extra)
     db.session.commit()
 
-    if backend in {"presto", "hive"}:
+    if backend_db_type in {"presto", "hive"}:
         database = get_example_database()
         engine = database.get_sqla_engine()
         drop_from_schema(engine, CTAS_SCHEMA_NAME)
