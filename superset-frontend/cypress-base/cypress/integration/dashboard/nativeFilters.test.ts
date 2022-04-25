@@ -412,12 +412,10 @@ describe('Nativefilters Sanity test', () => {
     cy.request(
       'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
     ).then(xhr => {
-      const dashboards = xhr.response?.body.result;
-      /* eslint-disable no-unused-expressions */
-      expect(dashboards).not.to.be.undefined;
+      const dashboards = xhr.body.result;
       const testDashboard = dashboards.find(
         (d: { dashboard_title: string }) =>
-          d.dashboard_title === `${dashboard}`,
+          d.dashboard_title === testItems.dashboard,
       );
       cy.visit(testDashboard.url);
     });
