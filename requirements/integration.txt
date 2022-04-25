@@ -5,7 +5,7 @@
 #
 #    pip-compile-multi
 #
-backports.entry-points-selectable==1.1.0
+backports-entry-points-selectable==1.1.0
     # via virtualenv
 cfgv==3.3.0
     # via pre-commit

@@ -11,8 +11,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/testing.in
-appnope==0.1.2
-    # via ipython
 astroid==2.6.6
     # via pylint
 backcall==0.2.0
@@ -52,6 +50,7 @@ google-auth-oauthlib==0.4.6
 google-cloud-bigquery[bqstorage,pandas]==2.29.0
     # via
     #   -r requirements/testing.in
+    #   apache-superset
     #   pandas-gbq
     #   pybigquery
 google-cloud-bigquery-storage==2.9.1
@@ -104,7 +103,9 @@ openapi-schema-validator==0.1.5
 openapi-spec-validator==0.3.1
     # via -r requirements/testing.in
 pandas-gbq==0.15.0
-    # via -r requirements/testing.in
+    # via
+    #   -r requirements/testing.in
+    #   apache-superset
 parameterized==0.8.1
     # via -r requirements/testing.in
 parso==0.8.2
@@ -133,7 +134,9 @@ pyasn1==0.4.8
 pyasn1-modules==0.2.8
     # via google-auth
 pybigquery==0.10.2
-    # via -r requirements/testing.in
+    # via
+    #   -r requirements/testing.in
+    #   apache-superset
 pydata-google-auth==1.2.0
     # via pandas-gbq
 pyfakefs==4.5.0
