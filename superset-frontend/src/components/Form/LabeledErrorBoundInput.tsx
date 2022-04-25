@@ -134,6 +134,7 @@ const LabeledErrorBoundInput = ({
               </Tooltip>
             )
           }
+          role="textbox"
         />
       ) : (
         <StyledInput {...props} {...validationMethods} />
