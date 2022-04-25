@@ -17,9 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 ## Change Log
-### 1.5.0 (Fri Apr 15 07:43:25 2022 -0400)
+### 1.5.0 (Fri Apr 22 17:23:30 2022 -0400)
 
 - **Database Migrations**
+- [#19805](https://github.com/apache/superset/pull/19805) fix(key_value): use longblob on mysql (@villebro)
 - [#19543](https://github.com/apache/superset/pull/19543) fix(migrations): reorder skipped 1.4 migrations (@villebro)
 - [#19416](https://github.com/apache/superset/pull/19416) perf: improve perf in SIP-68 migration (@betodealmeida)
 - [#19225](https://github.com/apache/superset/pull/19225) fix(sql lab): deleting the last saved query or the last executed from history (@diegomedina248)
@@ -44,6 +45,7 @@ under the License.
 - [#16756](https://github.com/apache/superset/pull/16756) refactor: Repeated boilerplate code between upload to database forms (@exemplary-citizen)
 
 **Features**
+- [#19776](https://github.com/apache/superset/pull/19776) feat: add renameOperator (@zhaoyongjie)
 - [#19328](https://github.com/apache/superset/pull/19328) feat(sql lab): enable ACE editor search in SQL editors (@diegomedina248)
 - [#19454](https://github.com/apache/superset/pull/19454) feat: improve adhoc SQL validation (@betodealmeida)
 - [#19364](https://github.com/apache/superset/pull/19364) feat: Embedded dashboard configuration (@suddjian)
@@ -172,6 +174,17 @@ under the License.
 - [#17001](https://github.com/apache/superset/pull/17001) feat(linting): restrict direct use of supersetTheme in favor of ThemeProvider (@rusackas)
 
 **Fixes**
+- [#19448](https://github.com/apache/superset/pull/19448) fix(sql lab): when editing a saved query, the status is lost when switching tabs (@diegomedina248)
+- [#19806](https://github.com/apache/superset/pull/19806) fix(plugin-chart-table): Fix display of column config in table chart (@kgabryje)
+- [#19802](https://github.com/apache/superset/pull/19802) fix: lost renameOperator in mixed timeseries chart (@zhaoyongjie)
+- [#19765](https://github.com/apache/superset/pull/19765) fix(chart & explore): Show labels for `SliderControl` (@prosdev0107)
+- [#16619](https://github.com/apache/superset/pull/16619) fix: dashboard standalone class not added when parameter set (@trepmag)
+- [#19783](https://github.com/apache/superset/pull/19783) fix: SQL Lab UI Error: Objects are not valid as a React child (@diegomedina248)
+- [#19370](https://github.com/apache/superset/pull/19370) fix(sql lab): replace the output column in the query history table (@diegomedina248)
+- [#19772](https://github.com/apache/superset/pull/19772) fix(dashboard): copy permalink to dashboard chart (@villebro)
+- [#19603](https://github.com/apache/superset/pull/19603) fix(explore): make to show the null value as N/A in view result (@prosdev0107)
+- [#19749](https://github.com/apache/superset/pull/19749) fix(permalink): remove memoize on get salt func (@villebro)
+- [#19698](https://github.com/apache/superset/pull/19698) fix: Filter dependencies are not being applied in default values (@michael-s-molina)
 - [#19651](https://github.com/apache/superset/pull/19651) fix(dnd&column): make to fix the blank state issue when only one column select (@prosdev0107)
 - [#19716](https://github.com/apache/superset/pull/19716) fix: drop the first level of MultiIndex (@zhaoyongjie)
 - [#19688](https://github.com/apache/superset/pull/19688) fix(dashboard): Fix BigNumber causing dashboard to crash when overflowing (@kgabryje)
@@ -499,6 +512,7 @@ under the License.
 - [#16838](https://github.com/apache/superset/pull/16838) fix: remove duplicate line in docstring (@exemplary-citizen)
 
 **Others**
+- [#19732](https://github.com/apache/superset/pull/19732) chore: Clean redundant dependency from useMemo dep array (@kgabryje)
 - [#19636](https://github.com/apache/superset/pull/19636) chore: skip SIP-68 shadow writing for LTS (@ktmud)
 - [#19530](https://github.com/apache/superset/pull/19530) docs: release notes for 1.5 (@villebro)
 - [#19557](https://github.com/apache/superset/pull/19557) chore: remove redundant adodbapi warning (@villebro)
