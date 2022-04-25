@@ -7,31 +7,21 @@
 #
 -e file:.
     # via -r requirements/base.in
-aiohttp==3.8.1
+aiohttp==3.7.4.post0
     # via slackclient
-aiosignal==1.2.0
-    # via aiohttp
-alembic==1.7.7
+alembic==1.6.5
     # via flask-migrate
-amqp==5.1.1
+amqp==5.1.0
     # via kombu
 apispec[yaml]==3.3.2
     # via flask-appbuilder
-async-generator==1.10
-    # via
-    #   trio
-    #   trio-websocket
-async-timeout==4.0.2
-    # via
-    #   aiohttp
-    #   redis
-attrs==21.4.0
+async-timeout==3.0.1
+    # via aiohttp
+attrs==21.2.0
     # via
     #   aiohttp
     #   jsonschema
-    #   outcome
-    #   trio
-babel==2.10.1
+babel==2.9.1
     # via flask-babel
 backoff==1.11.1
     # via apache-superset
@@ -43,15 +33,13 @@ brotli==1.0.9
     # via flask-compress
 cachelib==0.4.1
     # via apache-superset
-celery==5.2.6
+celery==5.2.2
     # via apache-superset
-certifi==2021.10.8
-    # via urllib3
-cffi==1.15.0
+cffi==1.14.6
     # via cryptography
-charset-normalizer==2.0.12
+chardet==4.0.0
     # via aiohttp
-click==8.1.2
+click==8.0.4
     # via
     #   apache-superset
     #   celery
@@ -70,26 +58,21 @@ colorama==0.4.4
     # via
     #   apache-superset
     #   flask-appbuilder
-convertdate==2.4.0
+convertdate==2.3.2
     # via holidays
 cron-descriptor==1.2.24
     # via apache-superset
-croniter==1.3.4
+croniter==1.0.15
     # via apache-superset
-cryptography==36.0.2
-    # via
-    #   apache-superset
-    #   pyopenssl
-    #   urllib3
-deprecated==1.2.13
-    # via redis
+cryptography==3.4.7
+    # via apache-superset
 deprecation==2.1.0
     # via apache-superset
-dnspython==2.2.1
+dnspython==2.1.0
     # via email-validator
-email-validator==1.2.0
+email-validator==1.1.3
     # via flask-appbuilder
-flask==2.1.1
+flask==2.0.3
     # via
     #   apache-superset
     #   flask-appbuilder
@@ -103,11 +86,11 @@ flask==2.1.1
     #   flask-wtf
 flask-appbuilder==4.0.0
     # via apache-superset
-flask-babel==2.0.0
+flask-babel==1.0.0
     # via flask-appbuilder
 flask-caching==1.10.1
     # via apache-superset
-flask-compress==1.11
+flask-compress==1.10.1
     # via apache-superset
 flask-jwt-extended==4.3.1
     # via flask-appbuilder
@@ -119,16 +102,12 @@ flask-sqlalchemy==2.5.1
     # via
     #   flask-appbuilder
     #   flask-migrate
-flask-talisman==1.0.0
+flask-talisman==0.8.1
     # via apache-superset
 flask-wtf==0.14.3
     # via
     #   apache-superset
     #   flask-appbuilder
-frozenlist==1.3.0
-    # via
-    #   aiohttp
-    #   aiosignal
 func-timeout==4.3.5
     # via apache-superset
 geographiclib==1.52
@@ -139,82 +118,65 @@ graphlib-backport==1.0.3
     # via apache-superset
 gunicorn==20.1.0
     # via apache-superset
-h11==0.13.0
-    # via wsproto
 hashids==1.3.1
     # via apache-superset
 holidays==0.10.3
     # via apache-superset
-humanize==4.0.0
+humanize==3.11.0
     # via apache-superset
-idna==3.3
+idna==3.2
     # via
     #   email-validator
-    #   trio
-    #   urllib3
     #   yarl
-importlib-metadata==4.11.3
-    # via
-    #   alembic
-    #   flask
-    #   markdown
-importlib-resources==5.7.1
-    # via
-    #   alembic
-    #   jsonschema
-isodate==0.6.1
+isodate==0.6.0
     # via apache-superset
-itsdangerous==2.1.2
+itsdangerous==2.1.1
     # via
     #   flask
     #   flask-wtf
-jinja2==3.1.1
+jinja2==3.0.3
     # via
     #   flask
     #   flask-babel
-jsonschema==4.4.0
+jsonschema==3.2.0
     # via flask-appbuilder
 kombu==5.2.4
     # via celery
 korean-lunar-calendar==0.2.1
     # via holidays
-mako==1.2.0
+mako==1.1.4
     # via alembic
-markdown==3.3.6
+markdown==3.3.4
     # via apache-superset
-markupsafe==2.1.1
+markupsafe==2.0.1
     # via
     #   jinja2
     #   mako
     #   wtforms
-marshmallow==3.15.0
+marshmallow==3.13.0
     # via
     #   flask-appbuilder
     #   marshmallow-enum
     #   marshmallow-sqlalchemy
 marshmallow-enum==1.5.1
     # via flask-appbuilder
-marshmallow-sqlalchemy==0.26.1
+marshmallow-sqlalchemy==0.23.1
     # via flask-appbuilder
-msgpack==1.0.3
+msgpack==1.0.2
     # via apache-superset
-multidict==6.0.2
+multidict==5.1.0
     # via
     #   aiohttp
     #   yarl
-numpy==1.22.3
+numpy==1.21.1
     # via
     #   pandas
     #   pyarrow
-outcome==1.1.0
-    # via trio
 packaging==21.3
     # via
     #   bleach
     #   deprecation
-    #   marshmallow
-    #   redis
-pandas==1.3.5
+pandas==1.3.4
     # via apache-superset
 parsedatetime==2.6
     # via apache-superset
@@ -224,11 +186,11 @@ polyline==1.4.0
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.29
+prompt-toolkit==3.0.28
     # via click-repl
 pyarrow==5.0.0
     # via apache-superset
-pycparser==2.21
+pycparser==2.20
     # via cffi
 pyjwt==2.2.0
     # via
@@ -237,9 +199,7 @@ pyjwt==2.2.0
     #   flask-jwt-extended
 pymeeus==0.5.11
     # via convertdate
-pyopenssl==22.0.0
-    # via urllib3
-pyparsing==3.0.8
+pyparsing==3.0.6
     # via
     #   apache-superset
     #   packaging
@@ -247,43 +207,47 @@ pyrsistent==0.16.1
     # via
     #   -r requirements/base.in
     #   jsonschema
-pysocks==1.7.1
-    # via urllib3
 python-dateutil==2.8.2
     # via
+    #   alembic
     #   apache-superset
     #   croniter
     #   flask-appbuilder
     #   holidays
     #   pandas
-python-dotenv==0.20.0
+python-dotenv==0.19.0
     # via apache-superset
+python-editor==1.0.4
+    # via alembic
 python-geohash==0.8.5
     # via apache-superset
-pytz==2022.1
+pytz==2021.3
     # via
     #   babel
     #   celery
+    #   convertdate
     #   flask-babel
     #   pandas
-pyyaml==6.0
+pyyaml==5.4.1
     # via
     #   apache-superset
     #   apispec
-redis==4.2.2
+redis==3.5.3
     # via apache-superset
 sasl==0.3.1
     # via -r requirements/base.in
-selenium==4.1.3
+selenium==3.141.0
     # via apache-superset
-simplejson==3.17.6
+simplejson==3.17.3
     # via apache-superset
 six==1.16.0
     # via
     #   bleach
     #   click-repl
+    #   flask-talisman
     #   holidays
     #   isodate
+    #   jsonschema
     #   polyline
     #   prison
     #   pyrsistent
@@ -293,10 +257,6 @@ six==1.16.0
     #   wtforms-json
 slackclient==2.5.0
     # via apache-superset
-sniffio==1.2.0
-    # via trio
-sortedcontainers==2.4.0
-    # via trio
 sqlalchemy==1.3.24
     # via
     #   alembic
@@ -305,23 +265,19 @@ sqlalchemy==1.3.24
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
     #   sqlalchemy-utils
-sqlalchemy-utils==0.37.9
+sqlalchemy-utils==0.37.8
     # via
     #   apache-superset
     #   flask-appbuilder
-sqlparse==0.4.2
+sqlparse==0.3.0
     # via apache-superset
 tabulate==0.8.9
     # via apache-superset
-trio==0.20.0
+typing-extensions==3.10.0.0
     # via
-    #   selenium
-    #   trio-websocket
-trio-websocket==0.9.2
-    # via selenium
-typing-extensions==3.10.0.2
-    # via apache-superset
-urllib3[secure,socks]==1.26.9
+    #   aiohttp
+    #   apache-superset
+urllib3==1.26.6
     # via selenium
 vine==5.0.0
     # via
@@ -332,30 +288,23 @@ wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1
     # via bleach
-werkzeug==2.1.1
+werkzeug==2.0.3
     # via
     #   flask
     #   flask-jwt-extended
 wrapt==1.12.1
-    # via
-    #   -r requirements/base.in
-    #   deprecated
-wsproto==1.1.0
-    # via trio-websocket
+    # via -r requirements/base.in
 wtforms==2.3.3
     # via
     #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json
-wtforms-json==0.3.5
+wtforms-json==0.3.3
     # via apache-superset
-yarl==1.7.2
+yarl==1.6.3
     # via aiohttp
 zipp==3.4.1
-    # via
-    #   -r requirements/base.in
-    #   importlib-metadata
-    #   importlib-resources
+    # via -r requirements/base.in
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

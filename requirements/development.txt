@@ -8,16 +8,18 @@
 -r base.txt
 -e file:.
     # via -r requirements/base.in
-boto3==1.21.46
+boto3==1.18.19
     # via tabulator
-botocore==1.24.46
+botocore==1.21.19
     # via
     #   boto3
     #   s3transfer
 cached-property==1.5.2
     # via tableschema
-chardet==4.0.0
-    # via tabulator
+certifi==2021.5.30
+    # via requests
+charset-normalizer==2.0.4
+    # via requests
 et-xmlfile==1.1.0
     # via openpyxl
 flask-cors==3.0.10
@@ -26,17 +28,17 @@ future==0.18.2
     # via pyhive
 ijson==3.1.4
     # via tabulator
-jmespath==1.0.0
+jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonlines==3.0.0
+jsonlines==2.0.0
     # via tabulator
 linear-tsv==1.1.0
     # via tabulator
 mysqlclient==2.1.0
     # via -r requirements/development.in
-openpyxl==3.0.9
+openpyxl==3.0.7
     # via tabulator
 pillow==9.1.0
     # via -r requirements/development.in
@@ -48,24 +50,24 @@ pure-sasl==0.6.2
     # via thrift-sasl
 pydruid==0.6.2
     # via -r requirements/development.in
-pyhive[hive]==0.6.5
+pyhive[hive]==0.6.4
     # via -r requirements/development.in
-pyinstrument==4.1.1
+pyinstrument==4.0.2
     # via -r requirements/development.in
-requests==2.27.1
+requests==2.26.0
     # via
     #   pydruid
     #   tableschema
     #   tabulator
-rfc3986==2.0.0
+rfc3986==1.5.0
     # via tableschema
-s3transfer==0.5.2
+s3transfer==0.5.0
     # via boto3
 tableschema==1.20.2
     # via -r requirements/development.in
 tabulator==1.53.5
     # via tableschema
-thrift==0.16.0
+thrift==0.13.0
     # via
     #   -r requirements/development.in
     #   pyhive

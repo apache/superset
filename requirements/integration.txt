@@ -5,44 +5,46 @@
 #
 #    pip-compile-multi
 #
-cfgv==3.3.1
+backports.entry-points-selectable==1.1.0
+    # via virtualenv
+cfgv==3.3.0
     # via pre-commit
-click==8.1.2
+click==8.0.4
     # via
     #   -r requirements/integration.in
     #   pip-compile-multi
     #   pip-tools
-distlib==0.3.4
+distlib==0.3.2
     # via virtualenv
-filelock==3.6.0
+filelock==3.0.12
     # via
     #   tox
     #   virtualenv
-identify==2.4.12
+identify==2.2.13
     # via pre-commit
 nodeenv==1.6.0
     # via pre-commit
 packaging==21.3
     # via tox
-pep517==0.12.0
+pep517==0.11.0
     # via pip-tools
-pip-compile-multi==2.4.5
+pip-compile-multi==2.4.1
     # via -r requirements/integration.in
-pip-tools==6.6.0
+pip-tools==6.2.0
     # via pip-compile-multi
-platformdirs==2.5.2
+platformdirs==2.2.0
     # via virtualenv
-pluggy==1.0.0
+pluggy==0.13.1
     # via tox
-pre-commit==2.18.1
+pre-commit==2.14.0
     # via -r requirements/integration.in
-py==1.11.0
+py==1.10.0
     # via
     #   -r requirements/integration.in
     #   tox
-pyparsing==3.0.8
+pyparsing==3.0.6
     # via packaging
-pyyaml==6.0
+pyyaml==5.4.1
     # via pre-commit
 six==1.16.0
     # via
@@ -52,17 +54,17 @@ toml==0.10.2
     # via
     #   pre-commit
     #   tox
-tomli==2.0.1
+tomli==1.2.1
     # via pep517
-toposort==1.7
+toposort==1.6
     # via pip-compile-multi
-tox==3.25.0
+tox==3.24.1
     # via -r requirements/integration.in
-virtualenv==20.14.1
+virtualenv==20.7.2
     # via
     #   pre-commit
     #   tox
-wheel==0.37.1
+wheel==0.37.0
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
