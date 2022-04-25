@@ -110,7 +110,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.customCss,
       cssTemplates: [],
     };
 
@@ -137,9 +136,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   }
 
   changeCss(css) {
-    this.setState({ css }, () => {
-      injectCustomCss(css);
-    });
+    injectCustomCss(css);
     this.props.onChange();
     this.props.updateCss(css);
   }
@@ -314,7 +311,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           <Menu.Item key={MENU_KEYS.EDIT_CSS}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
-              initialCss={this.state.css}
+              initialCss={customCss}
               templates={this.state.cssTemplates}
               onChange={this.changeCss}
             />
