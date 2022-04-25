@@ -30,7 +30,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'of query results',
   ),
   controlSetRows: [
-    [<h1 className="section-header">{t('Rolling window')}</h1>],
+    [<div className="section-header">{t('Rolling window')}</div>],
     [
       {
         name: 'rolling_type',
@@ -85,7 +85,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<h1 className="section-header">{t('Time comparison')}</h1>],
+    [<div className="section-header">{t('Time comparison')}</div>],
     [
       {
         name: 'time_compare',
@@ -136,7 +136,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<h1 className="section-header">{t('Resample')}</h1>],
+    [<div className="section-header">{t('Resample')}</div>],
     [
       {
         name: 'resample_rule',

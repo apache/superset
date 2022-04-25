@@ -140,7 +140,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "set_embedded",
         "delete_embedded",
         "thumbnail",
-        "created_by_me",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -1191,5 +1190,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard.embedded = []
+        for embedded in dashboard.embedded:
+            DashboardDAO.delete(embedded)
         return self.response(200, message="OK")

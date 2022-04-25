@@ -35,8 +35,6 @@ export const PLACEHOLDER_DATASOURCE: Datasource = {
 };
 
 export const MAIN_HEADER_HEIGHT = 53;
-export const TABS_HEIGHT = 50;
-export const HEADER_HEIGHT = 72;
 export const CLOSED_FILTER_BAR_WIDTH = 32;
 export const OPEN_FILTER_BAR_WIDTH = 260;
 export const FILTER_BAR_HEADER_HEIGHT = 80;
