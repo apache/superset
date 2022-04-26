@@ -1,6 +1,8 @@
 name: Applitools Storybook
 
-on: gollum
+on:
+  schedule:
+    - cron: "0 0 * * *"
 
 env:
   APPLITOOLS_APP_NAME: Superset Storybook
