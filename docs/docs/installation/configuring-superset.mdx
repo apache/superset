@@ -125,7 +125,7 @@ If you're not using Gunicorn, you may want to disable the use of `flask-compress
 If you are running superset behind a load balancer or reverse proxy (e.g. NGINX or ELB on AWS), you
 may need to utilize a healthcheck endpoint so that your load balancer knows if your superset
 instance is running. This is provided at `/health` which will return a 200 response containing “OK”
-if the the webserver is running.
+if the webserver is running.
 
 If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set
 `ENABLE_PROXY_FIX = True` in the superset config file (`superset_config.py`) to extract and use the
@@ -140,7 +140,7 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ### Custom OAuth2 Configuration
 
-Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
+Beyond FAB supported providers (GitHub, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
 Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
 
 Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
