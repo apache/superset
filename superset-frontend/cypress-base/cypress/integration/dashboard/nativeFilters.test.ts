@@ -262,10 +262,7 @@ describe('Nativefilters Sanity test', () => {
   });
 
   it('User can create parent filters using "Values are dependent on other filters"', () => {
-    cy.get(nativeFilters.filterFromDashboardView.expand)
-      .should('be.visible')
-      .click({ force: true });
-    cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click();
+    enterNativeFilterEditModal();
     // Create parent filter 'region'.
     addRegionFilter();
     // Create filter 'country_name' depend on region filter.
