@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
 import { t } from '@superset-ui/core';
+import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
@@ -82,8 +83,8 @@ export default class AlteredSliceTag extends React.Component {
   getDiffs(props) {
     // Returns all properties that differ in the
     // current form data and the saved form data
-    const ofd = props.origFormData;
-    const cfd = props.currentFormData;
+    const ofd = sanitizeFormData(props.origFormData);
+    const cfd = sanitizeFormData(props.currentFormData);
 
     const fdKeys = Object.keys(cfd);
     const diffs = {};
