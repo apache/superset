@@ -1,0 +1,29 @@
+name: Applitools Storybook Cron Job
+
+on:
+  schedule:
+    - cron: "*/1 * * * *"
+
+env:
+  APPLITOOLS_APP_NAME: Superset Storybook
+  APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
+  APPLITOOLS_BATCH_ID: ${{ github.sha }}
+
+jobs:
+  cron:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Install npm dependencies
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: npm-install
+      - name: Run Applitools Eyes-Storybook
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: applitools-storybook-run
