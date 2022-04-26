@@ -182,3 +182,29 @@ test('should render a warning', async () => {
     await screen.findByRole('img', { name: 'alert-solid' }),
   ).toBeInTheDocument();
 });
+
+test('should render a create dataset infobox', () => {
+  render(setup(props));
+
+  const createButton = screen.getByRole('button', {
+    name: /create a dataset/i,
+  });
+  const infoboxText = screen.getByText(/to edit or add columns and metrics./i);
+
+  expect(createButton).toBeVisible();
+  expect(infoboxText).toBeVisible();
+});
+
+test('should render a save dataset modal when "Create a dataset" is clicked', () => {
+  render(setup(props));
+
+  const createButton = screen.getByRole('button', {
+    name: /create a dataset/i,
+  });
+
+  userEvent.click(createButton);
+
+  const saveDatasetModalTitle = screen.getByText(/save or overwrite dataset/i);
+
+  expect(saveDatasetModalTitle).toBeVisible();
+});
