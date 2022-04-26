@@ -39,16 +39,26 @@ class DatabaseSchema(Schema):
     database_name = fields.String()
 
 
-class QuerySchema(SQLAlchemyAutoSchema):
+class QuerySchema(Schema):
     """
     Schema for the ``Query`` model.
     """
 
-    start_time = fields.Float(attribute="start_time")
-    end_time = fields.Float(attribute="end_time")
-    user = fields.Nested(UserSchema)
+    changed_on = fields.DateTime()
     database = fields.Nested(DatabaseSchema)
+    end_time = fields.Float(attribute="end_time")
+    executed_sql = fields.String()
+    id = fields.Int()
+    rows = fields.Int()
+    schema = fields.String()
+    sql = fields.String()
     sql_tables = fields.Method("get_sql_tables")
+    start_time = fields.Float(attribute="start_time")
+    status = fields.String()
+    tab_name = fields.String()
+    tmp_table_name = fields.String()
+    tracking_url = fields.String()
+    user = fields.Nested(UserSchema)
 
     class Meta:  # pylint: disable=too-few-public-methods
         model = Query
