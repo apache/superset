@@ -22,6 +22,10 @@ import { Metric } from './Metric';
 export enum DatasourceType {
   Table = 'table',
   Druid = 'druid',
+  Query = 'query',
+  Dataset = 'sl_dataset',
+  SlTable = 'sl_table',
+  SavedQuery = 'saved_query',
 }
 
 /**
