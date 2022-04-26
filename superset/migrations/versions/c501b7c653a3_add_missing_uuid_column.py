@@ -77,7 +77,7 @@ def upgrade():
 
         # add uniqueness constraint
         with op.batch_alter_table(table_name) as batch_op:
-            # batch mode is required for sqllite
+            # batch mode is required for sqlite
             batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json; this function is idempotent
