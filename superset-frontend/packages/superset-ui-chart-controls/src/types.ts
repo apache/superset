@@ -65,10 +65,10 @@ export interface DatasourceMeta {
   granularity_sqla?: string;
   datasource_name: string | null;
   description: string | null;
-  sl_dataset: {
-    sl_table: any;
-    query: any;
-    saved_query: any;
+  sl_dataset?: {
+    sl_table?: any;
+    query?: any;
+    saved_query?: any;
   };
 }
 
