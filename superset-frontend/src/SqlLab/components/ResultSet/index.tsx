@@ -528,6 +528,11 @@ export default class ResultSet extends React.PureComponent<
             handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
           />
           <ResultSetButtons>
             {this.props.visualize &&
