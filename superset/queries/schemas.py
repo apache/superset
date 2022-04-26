@@ -17,7 +17,6 @@
 from typing import List
 
 from marshmallow import fields, Schema
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 from superset.dashboards.schemas import UserSchema
 from superset.models.sql_lab import Query
@@ -65,5 +64,6 @@ class QuerySchema(Schema):
         load_instance = True
         include_relationships = True
 
-    def get_sql_tables(_, obj: Query) -> List[Table]:
+    # pylint: disable=no-self-use
+    def get_sql_tables(self, obj: Query) -> List[Table]:
         return obj.sql_tables
