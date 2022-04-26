@@ -138,14 +138,13 @@ class HeaderActionsDropdown extends React.PureComponent {
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.customCss !== nextProps.customCss) {
-      this.setState({ css: nextProps.customCss });
+      this.setState({ css: nextProps.customCss }, () => {
+        injectCustomCss(nextProps.customCss);
+      });
     }
   }
 
   changeCss(css) {
-    this.setState({ css }, () => {
-      injectCustomCss(css);
-    });
     this.props.onChange();
     this.props.updateCss(css);
   }
