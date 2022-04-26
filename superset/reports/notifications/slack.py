@@ -149,8 +149,8 @@ Error: %(text)s
         return self._message_template(table)
 
     def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
-        if self._content.csv:
-            return [self._content.csv]
+        if self._content.data:
+            return [self._content.data]
         if self._content.screenshots:
             return self._content.screenshots
         return []
@@ -162,7 +162,6 @@ Error: %(text)s
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-        file_type = "csv" if self._content.csv else "png"
         try:
             token = app.config["SLACK_API_TOKEN"]
             if callable(token):
@@ -176,7 +175,7 @@ Error: %(text)s
                         file=file,
                         initial_comment=body,
                         title=title,
-                        filetype=file_type,
+                        filetype=self._content.data_format,
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)

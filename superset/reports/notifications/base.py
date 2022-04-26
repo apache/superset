@@ -27,8 +27,9 @@ from superset.utils.core import HeaderDataType
 class NotificationContent:
     name: str
     header_data: HeaderDataType  # this is optional to account for error states
-    csv: Optional[bytes] = None  # bytes for csv file
+    data: Optional[bytes] = None  # bytes for data attachment
     screenshots: Optional[list[bytes]] = None  # bytes for a list of screenshots
+    data_format: Optional[str] = None  # data attachment format (csv, xlsx, etc)
     text: Optional[str] = None
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot

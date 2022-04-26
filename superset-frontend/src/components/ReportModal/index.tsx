@@ -81,6 +81,7 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
 ];
 
 const INITIAL_STATE = {
+  XLSX: 'XLSX',
   crontab: '0 12 * * 1',
 };
 
@@ -252,6 +253,9 @@ function ReportModal({
           </StyledRadio>
           <StyledRadio value={NOTIFICATION_FORMATS.CSV}>
             {t('Formatted CSV attached in email')}
+          </StyledRadio>
+          <StyledRadio value={NOTIFICATION_FORMATS.XLSX}>
+            {t('Formatted XLSX attached in email')}
           </StyledRadio>
         </StyledRadioGroup>
       </div>

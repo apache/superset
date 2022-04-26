@@ -97,7 +97,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
-        csv_data = None
+        attachment = None
         domain = self._get_smtp_domain()
         images = {}
 
@@ -166,8 +166,14 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             """
         )
 
-        if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+        if self._content.data and self._content.data_format:
+            attachment = {
+                __(
+                    "%(name)s.%(format)s",
+                    name=self._content.name,
+                    format=self._content.data_format.lower(),
+                ): self._content.data
+            }
         return EmailContent(
             body=body,
             images=images,

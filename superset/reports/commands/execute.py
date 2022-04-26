@@ -18,6 +18,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
+from io import BytesIO
 from uuid import UUID
 
 import pandas as pd
@@ -336,7 +337,7 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        csv_data = None
+        data = None
         embedded_data = None
         error_text = None
         screenshot_data = []
@@ -352,11 +353,25 @@ class BaseReportState:
                     error_text = "Unexpected missing screenshot"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.DATA
+                and self._report_schedule.report_format == ReportDataFormat.CSV
+            ):
+                data = self._get_csv_data()
+                if not data:
+                    error_text = "Unexpected missing csv file"
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.XLSX
             ):
                 csv_data = self._get_csv_data()
                 if not csv_data:
-                    error_text = "Unexpected missing csv file"
+                    error_text = "Unexpected missing csv data for xlsx"
+                else:
+                    df = pd.read_csv(BytesIO(csv_data))
+                    bio = BytesIO()
+                    # pylint: disable=abstract-class-instantiated
+                    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+                        df.to_excel(writer, index=False)
+                    data = bio.getvalue()
             if error_text:
                 return NotificationContent(
                     name=self._report_schedule.name,
@@ -386,7 +401,8 @@ class BaseReportState:
             url=url,
             screenshots=screenshot_data,
             description=self._report_schedule.description,
-            csv=csv_data,
+            data=data,
+            data_format=self._report_schedule.report_format,
             embedded_data=embedded_data,
             header_data=header_data,
         )
@@ -723,9 +739,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             except Exception as ex:
                 raise ReportScheduleUnexpectedError(str(ex)) from ex
 
-    def validate(  # pylint: disable=arguments-differ
-        self, session: Session = None
-    ) -> None:
+    # pylint: disable=arguments-differ
+    def validate(self, session: Session = None) -> None:
         # Validate/populate model exists
         logger.info(
             "session is validated: id %s, executionid: %s",
