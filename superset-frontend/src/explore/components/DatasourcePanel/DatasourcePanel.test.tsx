@@ -78,6 +78,9 @@ const props: DatasourcePanelProps = {
   actions: {
     setControlValue: jest.fn(),
   },
+  user: {
+    userId: 1,
+  },
 };
 
 const setup = (props: DatasourcePanelProps) => (
