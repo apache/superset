@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, makeApi, DatasourceType } from '@superset-ui/core';
 import {
   ControlConfig,
   DatasourceMeta,
@@ -26,6 +26,19 @@ import {
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
+import Alert from 'src/components/Alert';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { exploreChart } from 'src/explore/exploreUtils';
+import moment from 'moment';
+import rison from 'rison';
+import {
+  DatasetRadioState,
+  EXPLORE_CHART_DEFAULT,
+  DatasetOwner,
+  DatasetOptionAutocomplete,
+  updateDataset,
+} from 'src/SqlLab/components/ResultSet';
+import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -49,6 +62,9 @@ export interface Props {
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   // we use this props control force update when this panel resize
   shouldForceUpdate?: number;
+  user: {
+    userId: number;
+  };
 }
 
 const enableExploreDnd = isFeatureEnabled(
@@ -174,6 +190,7 @@ export default function DataSourcePanel({
   controls: { datasource: datasourceControl },
   actions,
   shouldForceUpdate,
+  user,
 }: Props) {
   const { columns: _columns, metrics } = datasource;
 
@@ -192,6 +209,35 @@ export default function DataSourcePanel({
     [_columns],
   );
 
+  const placeholderSlDataset = {
+    sl_table: [],
+    query: [],
+    saved_query: [],
+  };
+
+  // eslint-disable-next-line no-param-reassign
+  datasource.sl_dataset = placeholderSlDataset;
+
+  const getDefaultDatasetName = () =>
+    `${datasource.sl_dataset.query.tab} ${moment().format(
+      'MM/DD/YYYY HH:mm:ss',
+    )}`;
+
+  const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  const [newSaveDatasetName, setNewSaveDatasetName] = useState(
+    getDefaultDatasetName(),
+  );
+  const [saveDatasetRadioBtnState, setSaveDatasetRadioBtnState] = useState(
+    DatasetRadioState.SAVE_NEW,
+  );
+  const [shouldOverwriteDataSet, setShouldOverwriteDataSet] = useState(false);
+  const [userDatasetOptions, setUserDatasetOptions] = useState<
+    DatasetOptionAutocomplete[]
+  >([]);
+  const [datasetToOverwrite, setDatasetToOverwrite] = useState<
+    Record<string, any>
+  >({});
+  const [saveModalAutocompleteValue] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,
@@ -279,6 +325,7 @@ export default function DataSourcePanel({
         : lists.metrics.slice(0, DEFAULT_MAX_METRICS_LENGTH),
     [lists.metrics, showAllMetrics],
   );
+
   const columnSlice = useMemo(
     () =>
       showAllColumns
@@ -288,6 +335,175 @@ export default function DataSourcePanel({
           ),
     [lists.columns, showAllColumns],
   );
+
+  const handleOverwriteDataset = async () => {
+    const { sql, results, dbId } = datasource.sl_dataset.query;
+
+    await updateDataset(
+      dbId,
+      datasetToOverwrite.datasetId,
+      sql,
+      // TODO: lyndsiWilliams - Define d
+      results.selected_columns.map((d: any) => ({
+        column_name: d.name,
+        type: d.type,
+        is_dttm: d.is_dttm,
+      })),
+      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
+      true,
+    );
+
+    setShowSaveDatasetModal(false);
+    setShouldOverwriteDataSet(false);
+    setDatasetToOverwrite({});
+    setNewSaveDatasetName(getDefaultDatasetName());
+
+    exploreChart({
+      ...EXPLORE_CHART_DEFAULT,
+      datasource: `${datasetToOverwrite.datasetId}__table`,
+      // TODO: lyndsiWilliams -  Define d
+      all_columns: results.selected_columns.map((d: any) => d.name),
+    });
+  };
+
+  const getUserDatasets = async (searchText = '') => {
+    // Making sure that autocomplete input has a value before rendering the dropdown
+    // Transforming the userDatasetsOwned data for SaveModalComponent)
+    const { userId } = user;
+    if (userId) {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: searchText,
+          },
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
+
+      const response = await makeApi({
+        method: 'GET',
+        endpoint: '/api/v1/dataset',
+      })(`q=${queryParams}`);
+
+      return response.result.map(
+        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+          value: r.table_name,
+          datasetId: r.id,
+          owners: r.owners,
+        }),
+      );
+    }
+
+    return null;
+  };
+
+  const handleSaveDatasetModalSearch = async (searchText: string) => {
+    const userDatasetsOwned = await getUserDatasets(searchText);
+    setUserDatasetOptions(userDatasetsOwned);
+  };
+
+  const handleSaveInDataset = () => {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET) {
+      setShouldOverwriteDataSet(true);
+      return;
+    }
+
+    // TODO: lyndsiWilliams - set up when the back end logic is implemented
+    // const { schema, sql, dbId } = datasource.sl_dataset.query;
+    let { templateParams } = datasource.sl_dataset.query;
+    // const selectedColumns =
+    //   datasource.sl_dataset.query?.results?.selected_columns || [];
+
+    // The filters param is only used to test jinja templates.
+    // Remove the special filters entry from the templateParams
+    // before saving the dataset.
+    if (templateParams) {
+      const p = JSON.parse(templateParams);
+      /* eslint-disable-next-line no-underscore-dangle */
+      if (p._filters) {
+        /* eslint-disable-next-line no-underscore-dangle */
+        delete p._filters;
+        templateParams = JSON.stringify(p);
+      }
+    }
+
+    // TODO: lyndsiWilliams - set up when the back end logic is implemented
+    // createDatasource({
+    //   schema,
+    //   sql,
+    //   dbId,
+    //   templateParams,
+    //   datasourceName: newSaveDatasetName,
+    //   columns: selectedColumns,
+    // });
+    // .then((data: { table_id: number }) => {
+    //   exploreChart({
+    //     datasource: `${data.table_id}__table`,
+    //     metrics: [],
+    //     groupby: [],
+    //     time_range: 'No filter',
+    //     viz_type: 'table',
+    //     all_columns: selectedColumns.map((c) => c.name),
+    //     row_limit: 1000,
+    //   });
+    // })
+    // .catch(() => {
+    //   actions.addDangerToast(t('An error occurred saving dataset'));
+    // });
+
+    setShowSaveDatasetModal(false);
+    setNewSaveDatasetName(getDefaultDatasetName());
+  };
+
+  const handleOverwriteDatasetOption = (
+    _data: string,
+    option: Record<string, any>,
+  ) => setDatasetToOverwrite(option);
+
+  const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+    // @ts-expect-error
+    setNewSaveDatasetName(e.target.value);
+  };
+
+  const handleHideSaveModal = () => {
+    setShowSaveDatasetModal(false);
+    setShouldOverwriteDataSet(false);
+  };
+
+  const handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
+    setSaveDatasetRadioBtnState(Number(e.target.value));
+  };
+
+  const handleOverwriteCancel = () => {
+    setShouldOverwriteDataSet(false);
+    setDatasetToOverwrite({});
+  };
+
+  const disableSaveAndExploreBtn =
+    (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
+      newSaveDatasetName.length === 0) ||
+    (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
+      Object.keys(datasetToOverwrite).length === 0 &&
+      saveModalAutocompleteValue.length === 0);
+
+  const handleFilterAutocompleteOption = (
+    inputValue: string,
+    option: { value: string; datasetId: number },
+  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
+
+  const showInfoboxCheck = () => {
+    if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    return true;
+  };
 
   const mainBody = useMemo(
     () => (
@@ -303,6 +519,28 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
+          {datasource.type === DatasourceType.Table && showInfoboxCheck() && (
+            <Alert
+              closable
+              onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+              type="info"
+              message=""
+              description={
+                <>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setShowSaveDatasetModal(true)}
+                    className="add-dataset-alert-description"
+                    css={{ textDecoration: 'underline' }}
+                  >
+                    {t('Create a dataset')}
+                  </span>
+                  {t(' to edit or add columns and metrics.')}
+                </>
+              }
+            />
+          )}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"
@@ -399,6 +637,24 @@ export default function DataSourcePanel({
 
   return (
     <DatasourceContainer>
+      <SaveDatasetModal
+        visible={showSaveDatasetModal}
+        onOk={handleSaveInDataset}
+        saveDatasetRadioBtnState={saveDatasetRadioBtnState}
+        shouldOverwriteDataset={shouldOverwriteDataSet}
+        defaultCreateDatasetValue={newSaveDatasetName}
+        userDatasetOptions={userDatasetOptions}
+        disableSaveAndExploreBtn={disableSaveAndExploreBtn}
+        onHide={handleHideSaveModal}
+        handleDatasetNameChange={handleDatasetNameChange}
+        handleSaveDatasetRadioBtnState={handleSaveDatasetRadioBtnState}
+        handleOverwriteCancel={handleOverwriteCancel}
+        handleOverwriteDataset={handleOverwriteDataset}
+        handleOverwriteDatasetOption={handleOverwriteDatasetOption}
+        handleSaveDatasetModalSearch={handleSaveDatasetModalSearch}
+        filterAutocompleteOption={handleFilterAutocompleteOption}
+        onChangeAutoComplete={() => setDatasetToOverwrite({})}
+      />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>
