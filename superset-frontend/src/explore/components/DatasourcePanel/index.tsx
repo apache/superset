@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, makeApi, DatasourceType } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  makeApi,
+  DatasourceType,
+  SupersetTheme,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   DatasourceMeta,
@@ -167,6 +174,16 @@ const LabelWrapper = styled.div`
 const SectionHeader = styled.span`
   ${({ theme }) => css`
     font-size: ${theme.typography.sizes.s}px;
+  `}
+`;
+
+const StyledInfoboxWrapper = styled.div`
+  ${({ theme }) => css`
+    margin: 0 ${theme.gridUnit * 2.5};
+
+    span {
+      text-decoration: underline;
+    }
   `}
 `;
 
@@ -520,26 +537,27 @@ export default function DataSourcePanel({
         />
         <div className="field-selections">
           {datasource.type === DatasourceType.Table && showInfoboxCheck() && (
-            <Alert
-              closable
-              onClose={() => sessionStorage.setItem('showInfobox', 'false')}
-              type="info"
-              message=""
-              description={
-                <>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setShowSaveDatasetModal(true)}
-                    className="add-dataset-alert-description"
-                    css={{ textDecoration: 'underline' }}
-                  >
-                    {t('Create a dataset')}
-                  </span>
-                  {t(' to edit or add columns and metrics.')}
-                </>
-              }
-            />
+            <StyledInfoboxWrapper>
+              <Alert
+                closable
+                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                type="info"
+                message=""
+                description={
+                  <>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setShowSaveDatasetModal(true)}
+                      className="add-dataset-alert-description"
+                    >
+                      {t('Create a dataset')}
+                    </span>
+                    {t(' to edit or add columns and metrics.')}
+                  </>
+                }
+              />
+            </StyledInfoboxWrapper>
           )}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
@@ -654,6 +672,8 @@ export default function DataSourcePanel({
         handleSaveDatasetModalSearch={handleSaveDatasetModalSearch}
         filterAutocompleteOption={handleFilterAutocompleteOption}
         onChangeAutoComplete={() => setDatasetToOverwrite({})}
+        buttonTextOnSave={t('Save')}
+        buttonTextOnOverwrite={t('Overwrite')}
       />
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
