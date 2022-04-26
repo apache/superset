@@ -87,7 +87,7 @@ Expanding the API has been an ongoing effort, and 1.2 introduces several new API
 - [14461](https://github.com/apache/superset/pull/14461) feat(native-filters): Auto apply changes in FiltersConfigModal (#14461) (@simcha90)
 - [13507](https://github.com/apache/superset/pull/13507) feat(native-filters): Filter set tabs (#13507) (@simcha90)
 - [14313](https://github.com/apache/superset/pull/14313) feat(native-filters): Implement adhoc filters and time picker in Range and Select native filters (#14313) (@Kamil Gabryjelski)
-- [14261](https://github.com/apache/superset/pull/14261) feat(native-filters): Show/Hide filter bar by metdata ff (#14261) (@simcha90)
+- [14261](https://github.com/apache/superset/pull/14261) feat(native-filters): Show/Hide filter bar by metadata ff (#14261) (@simcha90)
 - [13506](https://github.com/apache/superset/pull/13506) feat(native-filters): Update filter bar buttons (#13506) (@simcha90)
 - [14374](https://github.com/apache/superset/pull/14374) feat(native-filters): Use datasets in dashboard as default options for native filters (#14374) (@Kamil Gabryjelski)
 - [14314](https://github.com/apache/superset/pull/14314) feat(native-filters): add option to create value in select filter (#14314) (@Ville Brofeldt)
