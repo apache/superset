@@ -1055,6 +1055,10 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+
+# Custom timestamp function for labeling notifications
+ALERT_REPORTS_TIMESTAMP = lambda: ""
+
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
