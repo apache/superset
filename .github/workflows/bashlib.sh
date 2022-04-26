@@ -212,12 +212,3 @@ cypress-run-all() {
   # make sure the program exits
   kill $flaskProcessId
 }
-
-# Run Eyes-Storybook on Netlify
-applitools-storybook-run() {
-  cd "$GITHUB_WORKSPACE/superset-frontend"
-
-  npx eyes-storybook -u https://joyful-mermaid-169f2c.netlify.app
-
-  say "::endgroup::"
-}
