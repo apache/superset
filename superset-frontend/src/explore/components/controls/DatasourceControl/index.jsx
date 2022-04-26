@@ -35,6 +35,7 @@ import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -196,11 +197,23 @@ class DatasourceControl extends React.PureComponent {
     }
 
     const isSqlSupported = datasource.type === 'table';
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    const user = bootstrapData.user;
+    const allowEdit =
+      datasource.owners.map(o => o.id).includes(user.userId) ||
+      isUserAdmin(user);
 
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
-          <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
+          <Menu.Item
+            key={EDIT_DATASET}
+            data-test="edit-dataset"
+            disabled={!allowEdit}
+          >
             {t('Edit dataset')}
           </Menu.Item>
         )}

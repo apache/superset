@@ -62,8 +62,9 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import AddDatasetModal from './AddDatasetModal';
 import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import AddDatasetModal from './AddDatasetModal';
+
 import {
   PAGE_SIZE,
   SORT_BY,
@@ -84,10 +85,21 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 
   .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
     color: ${({ theme }) => theme.colors.grayscale.light1};
     .ant-menu-item:hover {
-      color: ${({ theme }) => theme.colors.grayscale.base};
+      color: ${({ theme }) => theme.colors.grayscale.light1};
       cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
     }
   }
 `;
@@ -178,7 +190,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
-          console.log(json);
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
@@ -360,15 +371,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          console.log(
-            'original.owners',
-            original.owners.map((o: any) => o.id),
-          );
-          console.log(
-            'allow edit',
-            original.owners.map((o: any) => o.id).includes(user.userId),
-          );
-
           // Verify owner or isAdmin
           const allowEdit =
             original.owners.map((o: any) => o.id).includes(user.userId) ||
@@ -424,7 +426,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
                         )
                   }
-                  placement="bottom"
+                  placement="bottomRight"
                 >
                   <span
                     role="button"
