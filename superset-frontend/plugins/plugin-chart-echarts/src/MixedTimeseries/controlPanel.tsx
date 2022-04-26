@@ -261,6 +261,9 @@ function createAdvancedAnalyticsSection(
 ): ControlPanelSectionConfig {
   const aaWithSuffix = cloneDeep(sections.advancedAnalyticsControls);
   aaWithSuffix.label = label;
+  if (!controlSuffix) {
+    return aaWithSuffix;
+  }
   aaWithSuffix.controlSetRows.forEach(row =>
     row.forEach((control: CustomControlItem) => {
       if (control?.name && controlSuffix) {
