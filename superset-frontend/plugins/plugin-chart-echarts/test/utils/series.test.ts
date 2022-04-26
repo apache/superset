@@ -230,7 +230,7 @@ describe('formatSeriesName', () => {
     expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  it('should use default formatting for for date values without formatter', () => {
+  it('should use default formatting for date values without formatter', () => {
     expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
       '2020-09-11T00:00:00.000Z',
     );

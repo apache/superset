@@ -25,7 +25,7 @@ import {
   EchartsFunnelLabelTypeType,
 } from '../../src/Funnel/types';
 
-describe('Funnel tranformProps', () => {
+describe('Funnel transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -47,7 +47,7 @@ describe('Funnel tranformProps', () => {
     ],
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
