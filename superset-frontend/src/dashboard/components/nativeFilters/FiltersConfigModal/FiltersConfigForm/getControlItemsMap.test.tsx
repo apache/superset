@@ -143,7 +143,7 @@ test('Should render null empty when "controlItems" are falsy', () => {
   expect(container.children).toHaveLength(0);
 });
 
-test('Should render render ControlItems', () => {
+test('Should render ControlItems', () => {
   const props = createProps();
 
   const controlItems = [
@@ -156,7 +156,7 @@ test('Should render render ControlItems', () => {
   expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 });
 
-test('Clickin on checkbox', () => {
+test('Clicking on checkbox', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue(createControlItems());
   const controlItemsMap = getControlItemsMap(props);
@@ -168,7 +168,7 @@ test('Clickin on checkbox', () => {
   expect(props.forceUpdate).toBeCalled();
 });
 
-test('Clickin on checkbox when resetConfig:flase', () => {
+test('Clicking on checkbox when resetConfig:flase', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([
     { name: 'name_1', config: { renderTrigger: true, resetConfig: false } },

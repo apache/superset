@@ -148,7 +148,7 @@ describe('DatasetList', () => {
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"0 Selected"`);
 
-    // Vitual Selected
+    // Virtual Selected
     act(() => {
       wrapper.find(IndeterminateCheckbox).at(1).props().onChange(checkedEvent);
     });
