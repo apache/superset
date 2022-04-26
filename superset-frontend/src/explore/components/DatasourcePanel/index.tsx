@@ -219,7 +219,7 @@ export default function DataSourcePanel({
   datasource.sl_dataset = placeholderSlDataset;
 
   const getDefaultDatasetName = () =>
-    `${datasource.sl_dataset.query.tab} ${moment().format(
+    `${datasource?.sl_dataset?.query.tab} ${moment().format(
       'MM/DD/YYYY HH:mm:ss',
     )}`;
 
@@ -337,7 +337,7 @@ export default function DataSourcePanel({
   );
 
   const handleOverwriteDataset = async () => {
-    const { sql, results, dbId } = datasource.sl_dataset.query;
+    const { sql, results, dbId } = datasource?.sl_dataset?.query;
 
     await updateDataset(
       dbId,
@@ -419,7 +419,7 @@ export default function DataSourcePanel({
 
     // TODO: lyndsiWilliams - set up when the back end logic is implemented
     // const { schema, sql, dbId } = datasource.sl_dataset.query;
-    let { templateParams } = datasource.sl_dataset.query;
+    let { templateParams } = datasource?.sl_dataset?.query;
     // const selectedColumns =
     //   datasource.sl_dataset.query?.results?.selected_columns || [];
 
