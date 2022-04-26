@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields
+from typing import List
+
+from marshmallow import fields, Schema
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
+from superset.dashboards.schemas import UserSchema
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get query detail information."}},
@@ -31,6 +35,10 @@ openapi_spec_methods_override = {
 }
 
 
+class DatabaseSchema(Schema):
+    database_name = fields.String()
+
+
 class QuerySchema(SQLAlchemyAutoSchema):
     """
     Schema for the ``Query`` model.
@@ -38,8 +46,14 @@ class QuerySchema(SQLAlchemyAutoSchema):
 
     start_time = fields.Float(attribute="start_time")
     end_time = fields.Float(attribute="end_time")
+    user = fields.Nested(UserSchema)
+    database = fields.Nested(DatabaseSchema)
+    sql_tables = fields.Method("get_sql_tables")
 
     class Meta:  # pylint: disable=too-few-public-methods
         model = Query
         load_instance = True
         include_relationships = True
+
+    def get_sql_tables(_, obj: Query) -> List[Table]:
+        return obj.sql_tables
