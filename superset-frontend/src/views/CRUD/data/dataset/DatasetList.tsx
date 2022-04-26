@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  t,
+  styled,
+  SupersetTheme,
+  css,
+} from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useState,
@@ -57,6 +63,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
+import { isUserAdmin } from 'src/dashboard/util/findPermission';
 import {
   PAGE_SIZE,
   SORT_BY,
@@ -75,6 +82,14 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .ant-menu-item:hover {
+      color: ${({ theme }) => theme.colors.grayscale.base};
+      cursor: default;
+    }
+  }
 `;
 
 type Dataset = {
@@ -163,6 +178,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
+          console.log(json);
           const addCertificationFields = json.result.columns.map(
             (column: ColumnObject) => {
               const {
@@ -344,6 +360,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Cell: ({ row: { original } }: any) => {
+          console.log(
+            'original.owners',
+            original.owners.map((o: any) => o.id),
+          );
+          console.log(
+            'allow edit',
+            original.owners.map((o: any) => o.id).includes(user.userId),
+          );
+
+          // Verify owner or isAdmin
+          const allowEdit =
+            original.owners.map((o: any) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
@@ -387,14 +417,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
+                    className={allowEdit ? 'action-button' : 'disabled'}
+                    onClick={allowEdit ? handleEdit : undefined}
                   >
                     <Icons.EditAlt />
                   </span>
