@@ -23,7 +23,5 @@ jobs:
         with:
           run: npm-install
       - name: Run Applitools Eyes-Storybook
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: applitools-storybook-run
