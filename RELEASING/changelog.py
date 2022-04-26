@@ -26,7 +26,7 @@ from click.core import Context
 try:
     from github import BadCredentialsException, Github, PullRequest, Repository
 except ModuleNotFoundError:
-    print("PyGithub is a required package for this script")
+    print("PyGitHub is a required package for this script")
     exit(1)
 
 SUPERSET_REPO = "apache/superset"
