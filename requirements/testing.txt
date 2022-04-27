@@ -11,8 +11,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/testing.in
-appnope==0.1.2
-    # via ipython
 astroid==2.6.6
     # via pylint
 backcall==0.2.0
@@ -159,8 +157,6 @@ requests-oauthlib==1.3.0
     # via google-auth-oauthlib
 rsa==4.7.2
     # via google-auth
-sqlalchemy-trino==0.4.1
-    # via apache-superset
 sqloxide==0.1.15
     # via -r requirements/testing.in
 statsd==3.3.0
@@ -169,8 +165,6 @@ traitlets==5.0.5
     # via
     #   ipython
     #   matplotlib-inline
-trino==0.306
-    # via sqlalchemy-trino
 typing-inspect==0.7.1
     # via libcst
 websocket-client==1.2.0
