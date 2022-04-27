@@ -34,20 +34,26 @@ export default function RowCountLabel(props: RowCountLabelProps) {
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
-  const tooltip = (limitReached || loading) && (
-    <span>
-      {limitReached && <div>{t('Limit reached')}</div>}
-      {loading ? 'Loading' : rowcount}
-    </span>
+  const label = (
+    <Label type={type} data-test="row-count-label">
+      {loading
+        ? 'Loading...'
+        : tn('%s row', '%s rows', rowcount, formattedRowCount)}
+    </Label>
   );
-  return (
-    <Tooltip id="tt-rowcount-tooltip" title={tooltip}>
-      <Label type={type} data-test="row-count-label">
-        {loading
-          ? 'Loading...'
-          : tn('%s row', '%s rows', rowcount, formattedRowCount)}
-      </Label>
+  return limitReached ? (
+    <Tooltip
+      id="tt-rowcount-tooltip"
+      title={
+        <span>
+          <div>{t('Limit reached')}</div>
+        </span>
+      }
+    >
+      {label}
     </Tooltip>
+  ) : (
+    label
   );
 }
 
