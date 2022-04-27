@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -208,7 +208,7 @@ test('should show the properties modal', async () => {
 describe('UNSAFE_componentWillReceiveProps', () => {
   let wrapper: any;
   const mockedProps = createProps();
-  const props = {...mockedProps, customCss: ''};
+  const props = { ...mockedProps, customCss: '' };
 
   beforeEach(() => {
     wrapper = shallow(<HeaderActionsDropdown {...props} />);
@@ -226,9 +226,7 @@ describe('UNSAFE_componentWillReceiveProps', () => {
       customCss: mockedProps.customCss,
     });
     expect(wrapper.instance().setState.calledOnce).toBe(true);
-    const stateKeys = Object.keys(
-      wrapper.instance().setState.lastCall.args[0],
-    );
+    const stateKeys = Object.keys(wrapper.instance().setState.lastCall.args[0]);
     expect(stateKeys).toContain('css');
-  })
+  });
 });
