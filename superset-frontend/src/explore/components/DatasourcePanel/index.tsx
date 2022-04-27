@@ -529,29 +529,34 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasource.type === DatasourceType.Table && showInfoboxCheck() && (
-            <StyledInfoboxWrapper>
-              <Alert
-                closable
-                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
-                type="info"
-                message=""
-                description={
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setShowSaveDatasetModal(true)}
-                      className="add-dataset-alert-description"
-                    >
-                      {t('Create a dataset')}
-                    </span>
-                    {t(' to edit or add columns and metrics.')}
-                  </>
-                }
-              />
-            </StyledInfoboxWrapper>
-          )}
+          {datasource.type === DatasourceType.Dataset ||
+            datasource.type === DatasourceType.SlTable ||
+            (datasource.type === DatasourceType.SavedQuery &&
+              showInfoboxCheck() && (
+                <StyledInfoboxWrapper>
+                  <Alert
+                    closable
+                    onClose={() =>
+                      sessionStorage.setItem('showInfobox', 'false')
+                    }
+                    type="info"
+                    message=""
+                    description={
+                      <>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setShowSaveDatasetModal(true)}
+                          className="add-dataset-alert-description"
+                        >
+                          {t('Create a dataset')}
+                        </span>
+                        {t(' to edit or add columns and metrics.')}
+                      </>
+                    }
+                  />
+                </StyledInfoboxWrapper>
+              ))}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"

@@ -184,7 +184,15 @@ test('should render a warning', async () => {
 });
 
 test('should render a create dataset infobox', () => {
-  render(setup(props));
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.SavedQuery,
+      },
+    }),
+  );
 
   const createButton = screen.getByRole('button', {
     name: /create a dataset/i,
@@ -196,7 +204,15 @@ test('should render a create dataset infobox', () => {
 });
 
 test('should render a save dataset modal when "Create a dataset" is clicked', () => {
-  render(setup(props));
+  render(
+    setup({
+      ...props,
+      datasource: {
+        ...datasource,
+        type: DatasourceType.SavedQuery,
+      },
+    }),
+  );
 
   const createButton = screen.getByRole('button', {
     name: /create a dataset/i,
