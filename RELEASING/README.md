@@ -300,7 +300,7 @@ with the changes on `CHANGELOG.md` and `UPDATING.md`.
 ### Publishing a Convenience Release to PyPI
 
 Using the final release tarball, unpack it and run `./pypi_push.sh`.
-This script will build the Javascript bundle and echo the twine command
+This script will build the JavaScript bundle and echo the twine command
 allowing you to publish to PyPI. You may need to ask a fellow committer to grant
 you access to it if you don't have access already. Make sure to create
 an account first if you don't have one, and reference your username
@@ -315,9 +315,9 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 python send_email.py announce
 ```
 
-### Github Release
+### GitHub Release
 
-Finally, so the Github UI reflects the latest release, you should create a release from the
+Finally, so the GitHub UI reflects the latest release, you should create a release from the
 tag corresponding with the new version. Go to https://github.com/apache/superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.

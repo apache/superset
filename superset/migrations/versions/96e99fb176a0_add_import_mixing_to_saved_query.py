@@ -78,7 +78,7 @@ def upgrade():
     try:
         # Add uniqueness constraint
         with op.batch_alter_table("saved_query") as batch_op:
-            # Batch mode is required for sqllite
+            # Batch mode is required for sqlite
             batch_op.create_unique_constraint("uq_saved_query_uuid", ["uuid"])
     except OperationalError:
         pass

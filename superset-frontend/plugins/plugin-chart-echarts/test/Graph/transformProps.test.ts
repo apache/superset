@@ -20,8 +20,8 @@ import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 
-describe('EchartsGraph tranformProps', () => {
-  it('should tranform chart props for viz without category', () => {
+describe('EchartsGraph transformProps', () => {
+  it('should transform chart props for viz without category', () => {
     const formData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -149,7 +149,7 @@ describe('EchartsGraph tranformProps', () => {
     );
   });
 
-  it('should tranform chart props for viz with category and falsey normalization', () => {
+  it('should transform chart props for viz with category and falsey normalization', () => {
     const formData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
