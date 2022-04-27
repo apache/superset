@@ -39,10 +39,11 @@ const defaultProps = {
   addReport: NOOP,
   onHide: NOOP,
   onReportAdd: NOOP,
-  showModal: true,
+  show: true,
   userId: 1,
   userEmail: 'test@test.com',
   dashboardId: 1,
+  creationMethod: 'dashboards',
   chart: {
     sliceFormData: {
       viz_type: 'table',

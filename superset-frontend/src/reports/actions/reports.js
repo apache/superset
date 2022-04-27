@@ -25,13 +25,8 @@ import {
 } from 'src/components/MessageToasts/actions';
 
 export const SET_REPORT = 'SET_REPORT';
-export function setReport(report, resourceId, creationMethod) {
-  return { type: SET_REPORT, report, resourceId, creationMethod };
-}
-
-export const DELETE_REPORT = 'DELETE_REPORT';
-export function deleteReport(reportId) {
-  return { type: DELETE_REPORT, reportId };
+export function setReport(report, resourceId, creationMethod, filterField) {
+  return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
 }
 
 export function fetchUISpecificReport({
@@ -64,7 +59,7 @@ export function fetchUISpecificReport({
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        dispatch(setReport(json, resourceId, creationMethod));
+        dispatch(setReport(json, resourceId, creationMethod, filterField));
       })
       .catch(() =>
         dispatch(
@@ -164,7 +159,7 @@ export function deleteActiveReport(report) {
         dispatch(addDangerToast(t('Your report could not be deleted')));
       })
       .finally(() => {
-        dispatch(deleteReport(report.id));
+        dispatch(structureFetchAction);
         dispatch(addSuccessToast(t('Deleted: %s', report.name)));
       });
   };

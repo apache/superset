@@ -23,17 +23,29 @@ import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
-      const { report, resourceId, creationMethod } = action;
+      const { report, resourceId, creationMethod, filterField } = action;
+      // For now report count should only be one, but we are checking in case
+      // functionality changes.
+      const reportObject = report.result?.find(
+        report => report[filterField] === resourceId,
+      );
 
-      const reportObject = report.result?.find(report => !!report[resourceId]);
-
-      return {
-        ...state,
-        [creationMethod]: {
-          ...state[creationMethod],
-          [resourceId]: reportObject,
-        },
-      };
+      if (reportObject) {
+        return {
+          ...state,
+          [creationMethod]: {
+            ...state[creationMethod],
+            [resourceId]: reportObject,
+          },
+        };
+      }
+      if (state?.[creationMethod]?.[resourceId]) {
+        // remove the empty report from state
+        const newState = { ...state };
+        delete newState[creationMethod][resourceId];
+        return newState;
+      }
+      return { ...state };
     },
 
     [ADD_REPORT]() {

@@ -38,7 +38,6 @@ import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdow
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -150,7 +149,6 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
-      showingReportModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -382,6 +380,14 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+  showEmbedModal = () => {
+    this.setState({ showingEmbedModal: true });
+  };
+
+  hideEmbedModal = () => {
+    this.setState({ showingEmbedModal: false });
+  };
+
   render() {
     const {
       dashboardTitle,
@@ -411,6 +417,7 @@ class Header extends React.PureComponent {
       lastModifiedTime,
       filterboxMigrationState,
     } = this.props;
+
     const userCanEdit =
       dashboardInfo.dash_edit_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
@@ -555,8 +562,6 @@ class Header extends React.PureComponent {
               )}
               <HeaderReportDropdown
                 key={dashboardInfo.id}
-                toggleActive={this.props.toggleActive}
-                deleteActiveReport={this.props.deleteActiveReport}
                 dashboardId={dashboardInfo.id}
               />
             </>
@@ -572,17 +577,6 @@ class Header extends React.PureComponent {
               colorScheme={this.props.colorScheme}
               onSubmit={handleOnPropertiesChange}
               onlyApply
-            />
-          )}
-
-          {this.state.showingReportModal && (
-            <ReportModal
-              show={this.state.showingReportModal}
-              onHide={this.hideReportModal}
-              userId={user.userId}
-              userEmail={user.email}
-              dashboardId={dashboardInfo.id}
-              creationMethod="dashboards"
             />
           )}
 

@@ -279,7 +279,6 @@ export class ExploreChartHeader extends React.PureComponent {
             slice={slice}
             canDownloadCSV={canDownload}
             latestQueryFormData={latestQueryFormData}
-            canAddReports={this.canAddReports()}
           />
         </div>
       </div>

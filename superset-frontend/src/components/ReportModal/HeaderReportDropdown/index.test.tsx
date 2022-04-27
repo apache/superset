@@ -19,16 +19,17 @@
 import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, act } from 'spec/helpers/testing-library';
-import * as featureFlags from 'src/featureFlags';
-import { FeatureFlag } from '@superset-ui/core';
+import * as featureFlags from '@superset-ui/core';
 import HeaderReportDropdown, { HeaderReportProps } from '.';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
 const createProps = () => ({
-  toggleActive: jest.fn(),
-  deleteActiveReport: jest.fn(),
   dashboardId: 1,
+  useTextMenu: false,
+  isDropdownVisible: false,
+  setIsDropdownVisible: jest.fn,
+  setShowReportSubMenu: jest.fn,
 });
 
 const stateWithOnlyUser = {
@@ -102,7 +103,8 @@ describe('Header Report Dropdown', () => {
     isFeatureEnabledMock = jest
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ALERT_REPORTS,
+        (featureFlag: featureFlags.FeatureFlag) =>
+          featureFlag === featureFlags.FeatureFlag.ALERT_REPORTS,
       );
   });
 
@@ -163,5 +165,33 @@ describe('Header Report Dropdown', () => {
     const emailReportModalButton = screen.getByRole('button');
     userEvent.click(emailReportModalButton);
     expect(screen.getByText('New Email Report')).toBeInTheDocument();
+  });
+
+  it('renders Manage Email Reports Menu if textMenu is set to true and there is a report', () => {
+    let mockedProps = createProps();
+    mockedProps = {
+      ...mockedProps,
+      useTextMenu: true,
+      isDropdownVisible: true,
+    };
+    act(() => {
+      setup(mockedProps, stateWithUserAndReport);
+    });
+    expect(screen.getByText('Email reports active')).toBeInTheDocument();
+    expect(screen.getByText('Edit email report')).toBeInTheDocument();
+    expect(screen.getByText('Delete email report')).toBeInTheDocument();
+  });
+
+  it('renders Schedule Email Reports if textMenu is set to true and there is a report', () => {
+    let mockedProps = createProps();
+    mockedProps = {
+      ...mockedProps,
+      useTextMenu: true,
+      isDropdownVisible: true,
+    };
+    act(() => {
+      setup(mockedProps, stateWithOnlyUser);
+    });
+    expect(screen.getByText('Set up an email report')).toBeInTheDocument();
   });
 });
