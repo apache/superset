@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, css, useTheme, logging } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { usePluginContext } from 'src/components/DynamicPlugins';
@@ -381,18 +381,33 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
-  const reRenderChart = () => {
-    props.actions.updateQueryFormData(
-      getFormDataFromControls(props.controls),
+  const reRenderChart = useCallback(
+    controlsChanged => {
+      const newQueryFormData = controlsChanged
+        ? {
+            ...props.chart.latestQueryFormData,
+            ...getFormDataFromControls(pick(props.controls, controlsChanged)),
+          }
+        : getFormDataFromControls(props.controls);
+      props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
+      props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+      addHistory();
+    },
+    [
+      addHistory,
+      props.actions,
       props.chart.id,
-    );
-    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-    addHistory();
-  };
+      props.chart.latestQueryFormData,
+      props.controls,
+    ],
+  );
 
   // effect to run when controls change
   useEffect(() => {
-    if (previousControls) {
+    if (
+      previousControls &&
+      props.chart.latestQueryFormData.viz_type === props.controls.viz_type.value
+    ) {
       if (
         props.controls.datasource &&
         (previousControls.datasource == null ||
@@ -412,11 +427,11 @@ function ExploreViewContainer(props) {
       );
 
       // this should also be handled by the actions that are actually changing the controls
-      const hasDisplayControlChanged = changedControlKeys.some(
+      const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,
       );
-      if (hasDisplayControlChanged) {
-        reRenderChart();
+      if (displayControlsChanged.length > 0) {
+        reRenderChart(displayControlsChanged);
       }
     }
   }, [props.controls, props.ownState]);
@@ -493,7 +508,7 @@ function ExploreViewContainer(props) {
       <ExploreChartPanel
         {...props}
         errorMessage={errorMessage}
-        refreshOverlayVisible={chartIsStale}
+        chartIsStale={chartIsStale}
         onQuery={onQuery}
       />
     );

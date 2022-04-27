@@ -27,7 +27,7 @@ interface QueryString {
   native_filters_key: string;
 }
 
-xdescribe('nativefiler url param key', () => {
+xdescribe('nativefilter url param key', () => {
   // const urlParams = { param1: '123', param2: 'abc' };
   before(() => {
     cy.login();
@@ -36,7 +36,7 @@ xdescribe('nativefiler url param key', () => {
   let initialFilterKey: string;
   it('should have cachekey in nativefilter param', () => {
     // things in `before` will not retry and the `waitForChartLoad` check is
-    // especically flaky and may need more retries
+    // especially flaky and may need more retries
     cy.visit(WORLD_HEALTH_DASHBOARD);
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     cy.wait(1000); // wait for key to be published (debounced)

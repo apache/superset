@@ -85,7 +85,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'show_labels',
@@ -158,7 +158,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Radar')}</h1>],
+        [<div className="section-header">{t('Radar')}</div>],
         [
           {
             name: 'column_config',

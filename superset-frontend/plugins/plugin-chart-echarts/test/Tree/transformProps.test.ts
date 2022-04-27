@@ -19,7 +19,7 @@
 import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/Tree/transformProps';
 
-describe('EchartsTree tranformProps', () => {
+describe('EchartsTree transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -35,7 +35,7 @@ describe('EchartsTree tranformProps', () => {
     width: 800,
     height: 600,
   };
-  it('should tranform when parent present before child', () => {
+  it('should transform when parent present before child', () => {
     const queriesData = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
@@ -102,7 +102,7 @@ describe('EchartsTree tranformProps', () => {
       }),
     );
   });
-  it('should tranform when child is present before parent', () => {
+  it('should transform when child is present before parent', () => {
     const queriesData = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],

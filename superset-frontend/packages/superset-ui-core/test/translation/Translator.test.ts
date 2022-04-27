@@ -156,7 +156,7 @@ describe('Translator', () => {
     it('throw warning on duplicates', () => {
       expect(() => {
         addTranslations({
-          haha: ['this is duplciate'],
+          haha: ['this is duplicate'],
         });
       }).toThrow('Duplicate translation key "haha"');
       expect(t('haha')).toEqual('Hahaha');
