@@ -280,7 +280,8 @@ function AnnotationList({
       {annotationCurrentlyDeleting && (
         <DeleteModal
           description={t(
-            `Are you sure you want to delete ${annotationCurrentlyDeleting?.short_descr}?`,
+            'Are you sure you want to delete %s?',
+            annotationCurrentlyDeleting?.short_descr,
           )}
           onConfirm={() => {
             if (annotationCurrentlyDeleting) {
