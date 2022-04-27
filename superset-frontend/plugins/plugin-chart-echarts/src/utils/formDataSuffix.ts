@@ -23,7 +23,7 @@ export const retainFormDataSuffix = (
   controlSuffix: string,
 ): QueryFormData => {
   /*
-   * remove specific suffix controls and return a new formData
+   * retain controls by suffix and return a new formData
    * eg:
    * > const fd = { metrics: ['foo', 'bar'], metrics_b: ['zee'], limit: 100, ... }
    * > removeFormDataSuffix(fd, '_b')
