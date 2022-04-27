@@ -43,7 +43,7 @@ export const removeFormDataSuffix = (
         newFormData[key.slice(0, -controlSuffix.length)] = value;
       }
 
-      if (!(key in newFormData)) {
+      if (!key.endsWith(controlSuffix) && !(key in newFormData)) {
         // ignore duplication
         newFormData[key] = value;
       }
