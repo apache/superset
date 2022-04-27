@@ -49,6 +49,21 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
+class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Created by me")
+    arg_name = "created_by_me"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        return query.filter(
+            or_(
+                Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
+                Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
+                == g.user.get_user_id(),
+            )
+        )
+
+
 class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     BaseFavoriteFilter
 ):
@@ -209,12 +224,14 @@ class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-me
             return query.filter(
                 and_(
                     Dashboard.certified_by.isnot(None),
+                    Dashboard.certified_by != "",
                 )
             )
         if value is False:
             return query.filter(
-                and_(
+                or_(
                     Dashboard.certified_by.is_(None),
+                    Dashboard.certified_by == "",
                 )
             )
         return query

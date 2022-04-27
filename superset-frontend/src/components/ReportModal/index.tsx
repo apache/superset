@@ -129,7 +129,7 @@ type ReportActionType =
     }
   | {
       type: ActionType.error;
-      payload: { name: string[] };
+      payload: { name?: string[] };
     };
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -155,6 +155,7 @@ const reportReducer = (
 ): Partial<ReportObject> | null => {
   const initialState = {
     name: 'Weekly Report',
+    crontab: '0 12 * * 1',
   };
 
   switch (action.type) {
@@ -174,7 +175,7 @@ const reportReducer = (
     case ActionType.error:
       return {
         ...state,
-        error: action.payload?.name[0] || defaultErrorMsg,
+        error: action.payload?.name?.[0] || defaultErrorMsg,
       };
     default:
       return state;

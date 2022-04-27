@@ -427,14 +427,20 @@ export const uploadUserPerms = (
   colExt: Array<string>,
   excelExt: Array<string>,
   allowedExt: Array<string>,
-) => ({
-  canUploadCSV:
+) => {
+  const canUploadCSV =
     findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
-    checkUploadExtensions(csvExt, allowedExt),
-  canUploadColumnar:
+    checkUploadExtensions(csvExt, allowedExt);
+  const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles),
-  canUploadExcel:
+    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles);
+  const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles),
-});
+    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles);
+  return {
+    canUploadCSV,
+    canUploadColumnar,
+    canUploadExcel,
+    canUploadData: canUploadCSV || canUploadColumnar || canUploadExcel,
+  };
+};

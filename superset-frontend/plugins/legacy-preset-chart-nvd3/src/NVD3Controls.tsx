@@ -370,7 +370,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Rolling Window')}</h1>],
+      [<div className="section-header">{t('Rolling Window')}</div>],
       [
         {
           name: 'rolling_type',
@@ -423,7 +423,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Time Comparison')}</h1>],
+      [<div className="section-header">{t('Time Comparison')}</div>],
       [
         {
           name: 'time_compare',
@@ -474,8 +474,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Python Functions')}</h1>],
-      [<h2 className="section-header">pandas.resample</h2>],
+      [<div className="section-header">{t('Resample')}</div>],
       [
         {
           name: 'resample_rule',

@@ -86,8 +86,8 @@ const MenuItemWithCheckboxContainer = styled.div`
 
 const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.gridUnit * 6}px;
-    height: ${theme.gridUnit * 6}px;
+    width: ${theme.gridUnit * 8}px;
+    height: ${theme.gridUnit * 8}px;
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
@@ -370,31 +370,35 @@ const ExploreAdditionalActionsMenu = ({
               </Menu.Item>
             </Menu.SubMenu>
             <Menu.Divider />
-            {canAddReports &&
-              (report ? (
-                <Menu.SubMenu
-                  title={t('Manage email report')}
-                  key={MENU_KEYS.REPORT_SUBMENU}
-                >
-                  <Menu.Item key={MENU_KEYS.SET_REPORT_ACTIVE}>
-                    <MenuItemWithCheckboxContainer>
-                      <Checkbox checked={isReportActive} onChange={noOp} />
-                      {t('Email reports active')}
-                    </MenuItemWithCheckboxContainer>
+            {canAddReports && (
+              <>
+                {report ? (
+                  <Menu.SubMenu
+                    title={t('Manage email report')}
+                    key={MENU_KEYS.REPORT_SUBMENU}
+                  >
+                    <Menu.Item key={MENU_KEYS.SET_REPORT_ACTIVE}>
+                      <MenuItemWithCheckboxContainer>
+                        <Checkbox checked={isReportActive} onChange={noOp} />
+                        {t('Email reports active')}
+                      </MenuItemWithCheckboxContainer>
+                    </Menu.Item>
+                    <Menu.Item key={MENU_KEYS.EDIT_REPORT}>
+                      {t('Edit email report')}
+                    </Menu.Item>
+                    <Menu.Item key={MENU_KEYS.DELETE_REPORT}>
+                      {t('Delete email report')}
+                    </Menu.Item>
+                  </Menu.SubMenu>
+                ) : (
+                  <Menu.Item key={MENU_KEYS.SET_UP_REPORT}>
+                    {t('Set up an email report')}
                   </Menu.Item>
-                  <Menu.Item key={MENU_KEYS.EDIT_REPORT}>
-                    {t('Edit email report')}
-                  </Menu.Item>
-                  <Menu.Item key={MENU_KEYS.DELETE_REPORT}>
-                    {t('Delete email report')}
-                  </Menu.Item>
-                </Menu.SubMenu>
-              ) : (
-                <Menu.Item key={MENU_KEYS.SET_UP_REPORT}>
-                  {t('Set up an email report')}
-                </Menu.Item>
-              ))}
-            <Menu.Divider />
+                )}
+                <Menu.Divider />
+              </>
+            )}
+
             <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
               <ModalTrigger
                 triggerNode={
@@ -425,7 +429,7 @@ const ExploreAdditionalActionsMenu = ({
         >
           <Icons.MoreHoriz
             iconColor={theme.colors.primary.dark2}
-            iconSize={theme.typography.sizes.m}
+            iconSize="l"
           />
         </MenuTrigger>
       </AntdDropdown>

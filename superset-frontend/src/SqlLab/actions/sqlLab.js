@@ -791,7 +791,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
         dispatch({
           type: QUERY_EDITOR_SET_SCHEMA,
           queryEditor: queryEditor || {},
-          schema: schema || {},
+          schema,
         }),
       )
       .catch(() =>
@@ -1279,6 +1279,7 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          loaded: true,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));

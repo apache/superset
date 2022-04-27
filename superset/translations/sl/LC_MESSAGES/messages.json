@@ -1858,6 +1858,7 @@
       "Run selection": ["Zaženi izbrano"],
       "Run": ["Zaženi"],
       "Stop running (Ctrl + x)": ["Ustavi (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Ustavi (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Zaženi poizvedbo (Ctrl + Return)"],
       "Save & Explore": ["Shrani & Razišči"],
       "Overwrite & Explore": ["Prepiši & Razišči"],
