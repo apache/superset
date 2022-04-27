@@ -34,9 +34,9 @@ import {
   resampleOperator,
 } from '@superset-ui/chart-controls';
 import {
+  formDataSuffix,
   removeFormDataSuffix,
-  removeUnusedFormData,
-} from '../utils/removeFormDataSuffix';
+} from '../utils/retainFormDataSuffix';
 
 export default function buildQuery(formData: QueryFormData) {
   const baseFormData = {
@@ -45,8 +45,8 @@ export default function buildQuery(formData: QueryFormData) {
     columns: formData.groupby,
     columns_b: formData.groupby_b,
   };
-  const formData1 = removeUnusedFormData(baseFormData, '_b');
-  const formData2 = removeFormDataSuffix(baseFormData, '_b');
+  const formData1 = removeFormDataSuffix(baseFormData, '_b');
+  const formData2 = formDataSuffix(baseFormData, '_b');
 
   const queryContexts = [formData1, formData2].map(fd =>
     buildQueryContext(fd, baseQueryObject => {

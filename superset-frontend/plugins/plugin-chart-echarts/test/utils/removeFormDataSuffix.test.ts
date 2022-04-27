@@ -18,9 +18,9 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 import {
+  retainFormDataSuffix,
   removeFormDataSuffix,
-  removeUnusedFormData,
-} from '../../src/utils/removeFormDataSuffix';
+} from '../../src/utils/formDataSuffix';
 
 const formData = {
   datasource: 'dummy',
@@ -34,7 +34,7 @@ const formData = {
 } as QueryFormData;
 
 test('should keep controls with suffix', () => {
-  expect(removeFormDataSuffix(formData, '_b')).toEqual({
+  expect(retainFormDataSuffix(formData, '_b')).toEqual({
     datasource: 'dummy',
     viz_type: 'table',
     metrics: ['c', 'd'],
@@ -42,11 +42,11 @@ test('should keep controls with suffix', () => {
     limit: 200,
   });
   // no side effect
-  expect(removeFormDataSuffix(formData, '_b')).not.toEqual(formData);
+  expect(retainFormDataSuffix(formData, '_b')).not.toEqual(formData);
 });
 
 test('should remove controls with suffix', () => {
-  expect(removeUnusedFormData(formData, '_b')).toEqual({
+  expect(removeFormDataSuffix(formData, '_b')).toEqual({
     datasource: 'dummy',
     viz_type: 'table',
     metrics: ['a', 'b'],
@@ -54,5 +54,5 @@ test('should remove controls with suffix', () => {
     limit: 100,
   });
   // no side effect
-  expect(removeUnusedFormData(formData, '_b')).not.toEqual(formData);
+  expect(removeFormDataSuffix(formData, '_b')).not.toEqual(formData);
 });

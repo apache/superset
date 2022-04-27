@@ -18,7 +18,7 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 
-export const removeFormDataSuffix = (
+export const retainFormDataSuffix = (
   formData: QueryFormData,
   controlSuffix: string,
 ): QueryFormData => {
@@ -52,7 +52,7 @@ export const removeFormDataSuffix = (
   return newFormData as QueryFormData;
 };
 
-export const removeUnusedFormData = (
+export const removeFormDataSuffix = (
   formData: QueryFormData,
   controlSuffix: string,
 ): QueryFormData => {
