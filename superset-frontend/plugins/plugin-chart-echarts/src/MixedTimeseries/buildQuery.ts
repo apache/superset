@@ -48,68 +48,38 @@ export default function buildQuery(formData: QueryFormData) {
   const formData1 = removeUnusedFormData(baseFormData, '_b');
   const formData2 = removeFormDataSuffix(baseFormData, '_b');
 
-  const queryContextA = buildQueryContext(formData1, baseQueryObject => {
-    const queryObject = {
-      ...baseQueryObject,
-      is_timeseries: true,
-    };
+  const queryContexts = [formData1, formData2].map(fd =>
+    buildQueryContext(fd, baseQueryObject => {
+      const queryObject = {
+        ...baseQueryObject,
+        is_timeseries: true,
+      };
 
-    const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
-      formData1,
-      queryObject,
-    )
-      ? timeComparePivotOperator(formData1, queryObject)
-      : pivotOperator(formData1, queryObject);
+      const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
+        fd,
+        queryObject,
+      )
+        ? timeComparePivotOperator(fd, queryObject)
+        : pivotOperator(fd, queryObject);
 
-    const queryObjectA = {
-      ...queryObject,
-      time_offsets: isTimeComparison(formData1, queryObject)
-        ? formData1.time_compare
-        : [],
-      post_processing: [
-        pivotOperatorInRuntime,
-        rollingWindowOperator(formData1, queryObject),
-        timeCompareOperator(formData1, queryObject),
-        resampleOperator(formData1, queryObject),
-        renameOperator(formData1, queryObject),
-        flattenOperator(formData1, queryObject),
-      ],
-    } as QueryObject;
-    return [normalizeOrderBy(queryObjectA)];
-  });
-
-  const queryContextB = buildQueryContext(formData2, baseQueryObject => {
-    const queryObject = {
-      ...baseQueryObject,
-      is_timeseries: true,
-    };
-
-    const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
-      formData2,
-      queryObject,
-    )
-      ? timeComparePivotOperator(formData2, queryObject)
-      : pivotOperator(formData2, queryObject);
-
-    const queryObjectB = {
-      ...queryObject,
-      time_offsets: isTimeComparison(formData2, queryObject)
-        ? formData2.time_compare
-        : [],
-      post_processing: [
-        pivotOperatorInRuntime,
-        rollingWindowOperator(formData2, queryObject),
-        timeCompareOperator(formData2, queryObject),
-        resampleOperator(formData2, queryObject),
-        renameOperator(formData2, queryObject),
-        flattenOperator(formData2, queryObject),
-      ],
-    } as QueryObject;
-    return [normalizeOrderBy(queryObjectB)];
-  });
+      const tmpQueryObject = {
+        ...queryObject,
+        time_offsets: isTimeComparison(fd, queryObject) ? fd.time_compare : [],
+        post_processing: [
+          pivotOperatorInRuntime,
+          rollingWindowOperator(fd, queryObject),
+          timeCompareOperator(fd, queryObject),
+          resampleOperator(fd, queryObject),
+          renameOperator(fd, queryObject),
+          flattenOperator(fd, queryObject),
+        ],
+      } as QueryObject;
+      return [normalizeOrderBy(tmpQueryObject)];
+    }),
+  );
 
   return {
-    ...queryContextA,
-    queries: [...queryContextA.queries, ...queryContextB.queries],
+    ...queryContexts[0],
+    queries: [...queryContexts[0].queries, ...queryContexts[1].queries],
   };
 }
