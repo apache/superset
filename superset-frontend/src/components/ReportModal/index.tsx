@@ -38,6 +38,7 @@ import { ChartState } from 'src/explore/types';
 import { ReportCreationMethod, ReportType } from 'src/reports/types';
 import { ReportObject, NOTIFICATION_FORMATS } from 'src/views/CRUD/alert/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
   StyledModal,
@@ -58,7 +59,6 @@ import {
 
 interface ReportProps {
   onHide: () => {};
-  onReportAdd: (report?: ReportObject) => {};
   addDangerToast: (msg: string) => void;
   show: boolean;
   userId: number;
@@ -91,7 +91,6 @@ type ReportObjectState = Partial<ReportObject> & {
 };
 
 function ReportModal({
-  onReportAdd,
   onHide,
   show = false,
   dashboardId,
@@ -143,8 +142,8 @@ function ReportModal({
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const resourceType = dashboardId
-      ? ReportType.DASHBOARDS
-      : ReportType.CHARTS;
+      ? CreationMethod.DASHBOARDS
+      : CreationMethod.CHARTS;
     return reportSelector(state, resourceType, dashboardId || chart?.id);
   });
   const isEditMode = report && Object.keys(report).length;
@@ -195,8 +194,6 @@ function ReportModal({
       setCurrentReport({ error });
     }
     setCurrentReport({ isSubmitting: false });
-
-    if (onReportAdd) onReportAdd();
   };
 
   const wrappedTitle = (

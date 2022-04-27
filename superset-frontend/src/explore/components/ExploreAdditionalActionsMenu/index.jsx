@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import { FileOutlined, FileImageOutlined } from '@ant-design/icons';
 import { css, styled, t, useTheme } from '@superset-ui/core';
@@ -27,15 +27,12 @@ import Icons from 'src/components/Icons';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Checkbox from 'src/components/Checkbox';
 import { exportChart } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { noOp } from 'src/utils/common';
 import { getChartPermalink } from 'src/utils/urlUtils';
-import { toggleActive } from 'src/reports/actions/reports';
+import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
-import { ExploreReport } from './ExploreReport';
 import copyTextToClipboard from '../../../utils/copy';
 
 const propTypes = {
@@ -69,7 +66,7 @@ const MENU_KEYS = {
 
 const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
 
-const MenuItemWithCheckboxContainer = styled.div`
+export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     align-items: center;
@@ -86,7 +83,7 @@ const MenuItemWithCheckboxContainer = styled.div`
   `}
 `;
 
-const MenuTrigger = styled(Button)`
+export const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
     width: ${theme.gridUnit * 8}px;
     height: ${theme.gridUnit * 8}px;
@@ -112,25 +109,22 @@ const ExploreAdditionalActionsMenu = ({
   slice,
   onOpenInEditor,
   onOpenPropertiesModal,
-  canAddReports,
 }) => {
   const theme = useTheme();
+  const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState([]);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
-  const dispatch = useDispatch();
-  const report = useSelector(state => {
-    if (!state.reports) {
+  const chart = useSelector(state => {
+    if (!state.charts) {
       return undefined;
     }
-    const reports = Object.values(state?.reports);
-    if (reports.length > 0) {
-      return reports[0];
+    const charts = Object.values(state.charts);
+    if (charts.length > 0) {
+      return charts[0];
     }
     return undefined;
   });
-  const isReportActive = report?.active;
+
   const { datasource } = latestQueryFormData;
   const sqlSupported = datasource && datasource.split('__')[1] === 'table';
 
@@ -240,23 +234,6 @@ const ExploreAdditionalActionsMenu = ({
           setIsDropdownVisible(false);
           setOpenSubmenus([]);
           break;
-        case MENU_KEYS.SET_UP_REPORT:
-          setShowReportModal(true);
-          setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.SET_REPORT_ACTIVE:
-          dispatch(toggleActive(report, !isReportActive));
-          break;
-        case MENU_KEYS.EDIT_REPORT:
-          setShowReportModal(true);
-          setIsDropdownVisible(false);
-          setOpenSubmenus([]);
-          break;
-        case MENU_KEYS.DELETE_REPORT:
-          setShowDeleteReportModal(true);
-          setIsDropdownVisible(false);
-          setOpenSubmenus([]);
-          break;
         case MENU_KEYS.VIEW_QUERY:
           setIsDropdownVisible(false);
           break;
@@ -270,15 +247,12 @@ const ExploreAdditionalActionsMenu = ({
     },
     [
       copyLink,
-      dispatch,
       exportCSV,
       exportCSVPivoted,
       exportJson,
-      isReportActive,
       latestQueryFormData,
       onOpenInEditor,
       onOpenPropertiesModal,
-      report,
       shareByEmail,
       slice?.slice_name,
     ],
@@ -372,35 +346,31 @@ const ExploreAdditionalActionsMenu = ({
               </Menu.Item>
             </Menu.SubMenu>
             <Menu.Divider />
-            {canAddReports && (
+            {showReportSubMenu ? (
               <>
-                {report ? (
-                  <Menu.SubMenu
-                    title={t('Manage email report')}
-                    key={MENU_KEYS.REPORT_SUBMENU}
-                  >
-                    <Menu.Item key={MENU_KEYS.SET_REPORT_ACTIVE}>
-                      <MenuItemWithCheckboxContainer>
-                        <Checkbox checked={isReportActive} onChange={noOp} />
-                        {t('Email reports active')}
-                      </MenuItemWithCheckboxContainer>
-                    </Menu.Item>
-                    <Menu.Item key={MENU_KEYS.EDIT_REPORT}>
-                      {t('Edit email report')}
-                    </Menu.Item>
-                    <Menu.Item key={MENU_KEYS.DELETE_REPORT}>
-                      {t('Delete email report')}
-                    </Menu.Item>
-                  </Menu.SubMenu>
-                ) : (
-                  <Menu.Item key={MENU_KEYS.SET_UP_REPORT}>
-                    {t('Set up an email report')}
-                  </Menu.Item>
-                )}
+                <Menu.SubMenu title={t('Manage email report')}>
+                  <HeaderReportDropDown
+                    chart={chart}
+                    setShowReportSubMenu={setShowReportSubMenu}
+                    showReportSubMenu={showReportSubMenu}
+                    setIsDropdownVisible={setIsDropdownVisible}
+                    isDropdownVisible={isDropdownVisible}
+                    useTextMenu
+                  />
+                </Menu.SubMenu>
                 <Menu.Divider />
               </>
+            ) : (
+              <Menu>
+                <HeaderReportDropDown
+                  chart={chart}
+                  setShowReportSubMenu={setShowReportSubMenu}
+                  setIsDropdownVisible={setIsDropdownVisible}
+                  isDropdownVisible={isDropdownVisible}
+                  useTextMenu
+                />
+              </Menu>
             )}
-
             <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
               <ModalTrigger
                 triggerNode={
@@ -435,13 +405,6 @@ const ExploreAdditionalActionsMenu = ({
           />
         </MenuTrigger>
       </AntdDropdown>
-      <ExploreReport
-        report={report}
-        isVisible={showReportModal}
-        onHide={() => setShowReportModal(false)}
-        isDeleting={showDeleteReportModal}
-        setIsDeleting={setShowDeleteReportModal}
-      />
     </>
   );
 };
