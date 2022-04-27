@@ -23,6 +23,7 @@ import { useTheme } from '@superset-ui/core';
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
 
 export type Type =
+  | 'alert'
   | 'success'
   | 'warning'
   | 'danger'
@@ -45,8 +46,16 @@ export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
   const { type, onClick, children, ...rest } = props;
-  const { primary, secondary, grayscale, success, warning, error, info } =
-    colors;
+  const {
+    alert,
+    primary,
+    secondary,
+    grayscale,
+    success,
+    warning,
+    error,
+    info,
+  } = colors;
 
   let backgroundColor = grayscale.light3;
   let backgroundColorHover = onClick ? primary.light2 : grayscale.light3;
@@ -58,7 +67,9 @@ export default function Label(props: LabelProps) {
     color = grayscale.light4;
 
     let baseColor;
-    if (type === 'success') {
+    if (type === 'alert') {
+      baseColor = alert;
+    } else if (type === 'success') {
       baseColor = success;
     } else if (type === 'warning') {
       baseColor = warning;

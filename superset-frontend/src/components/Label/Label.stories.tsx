@@ -26,7 +26,8 @@ export default {
   excludeStories: 'options',
 };
 
-export const options = [
+export const options: Type[] = [
+  'alert',
   'default',
   'info',
   'success',
