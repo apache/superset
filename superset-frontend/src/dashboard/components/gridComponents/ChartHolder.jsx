@@ -344,6 +344,7 @@ class ChartHolder extends React.Component {
               className={cx(
                 'dashboard-component',
                 'dashboard-component-chart-holder',
+                `dashboard-chart-id-${chartId}`,
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
                 isFullSize && 'full-size',
               )}
