@@ -131,6 +131,7 @@ export function fillNativeFilterForm(
     .find(nativeFilters.filtersPanel.filterName)
     .last()
     .click({ scrollBehavior: false })
+    .clear()
     .type(name, { scrollBehavior: false });
   if (dataset) {
     cy.get(nativeFilters.modal.container)

@@ -181,9 +181,9 @@ export function cleanUp() {
  ************************************************************************* */
 export function copyTestDashboard(dashboard: string) {
   cy.intercept('POST', '**/copy_dash/**').as('copy');
-  cy.intercept('**/api/v1/dashboard/**').as('dashboard');
   cy.intercept('GET', '**/api/v1/dataset/**').as('datasetLoad');
   cy.intercept('**/api/v1/dashboard/?q=**').as('dashboardsList');
+  cy.intercept('**/api/v1/dashboard/**').as('dashboard');
   cy.visit('dashboard/list/');
   cy.contains('Actions');
   cy.wait('@dashboardsList').then(xhr => {

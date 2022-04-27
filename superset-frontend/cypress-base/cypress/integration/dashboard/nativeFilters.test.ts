@@ -28,6 +28,7 @@ import {
   copyTestDashboard,
   testItems,
   waitForChartLoad,
+  WORLD_HEALTH_DASHBOARD,
   WORLD_HEALTH_CHARTS,
 } from './dashboard.helper';
 import {
@@ -69,16 +70,10 @@ const getTestTitle = (
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
 
-describe('Nativefilters Sanity test', () => {
+describe('Nativefilters read only tests', ()=> {
   beforeEach(() => {
     cy.login();
-    cleanUp();
-    copyTestDashboard("World Bank's Data");
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    closeDashboardToastMessage();
-  });
-  afterEach(() => {
-    cleanUp();
+    cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
   it('User can expand / retract native filter sidebar on a dashboard', () => {
@@ -95,6 +90,51 @@ describe('Nativefilters Sanity test', () => {
 
   it('User can enter filter edit pop-up by clicking on native filter edit icon', () => {
     enterNativeFilterEditModal();
+  });
+
+  it('User can delete a native filter', () => {
+    enterNativeFilterEditModal();
+    cy.get(nativeFilters.filtersList.removeIcon).first().click();
+    cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
+    saveNativeFilterSettings();
+  });
+
+  it('User can cancel creating a new filter', () => {
+    enterNativeFilterEditModal();
+    cancelNativeFilterSettings();
+  });
+
+  it('Verify setting options and tooltips for value filter', () => {
+    enterNativeFilterEditModal();
+    cy.contains('Filter value is required').should('be.visible').click();
+    checkNativeFilterTooltip(0, nativeFilterTooltips.defaultValue);
+    cy.get(nativeFilters.modal.container).should('be.visible');
+    valueNativeFilterOptions.forEach(el => {
+      cy.contains(el);
+    });
+    cy.contains('Values are dependent on other filters').should('not.exist');
+    cy.get(nativeFilters.filterConfigurationSections.checkedCheckbox).contains(
+      'Can select multiple values',
+    );
+    checkNativeFilterTooltip(1, nativeFilterTooltips.required);
+    checkNativeFilterTooltip(2, nativeFilterTooltips.defaultToFirstItem);
+    checkNativeFilterTooltip(3, nativeFilterTooltips.searchAllFilterOptions);
+    checkNativeFilterTooltip(4, nativeFilterTooltips.inverseSelection);
+    clickOnAddFilterInModal();
+    cy.contains('Values are dependent on other filters').should('exist');
+  });
+});
+
+describe('Nativefilters tests initial state required', () => {
+  beforeEach(() => {
+    cy.login();
+    cleanUp();
+    copyTestDashboard("World Bank's Data");
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    closeDashboardToastMessage();
+  });
+  afterEach(() => {
+    cleanUp();
   });
 
   it('User can add a new native filter', () => {
@@ -121,11 +161,14 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.modal.container).should('not.exist');
   });
 
-  it('User can delete a native filter', () => {
+  it('User can undo deleting a native filter', () => {
     enterNativeFilterEditModal();
-    cy.get(nativeFilters.filtersList.removeIcon).first().click();
-    cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
+    addCountryNameFilter();
     saveNativeFilterSettings();
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
+    enterNativeFilterEditModal();
+    undoDeleteNativeFilter();
   });
 
   it('User can cancel changes in native filter', () => {
@@ -141,41 +184,6 @@ describe('Nativefilters Sanity test', () => {
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.contains('You have removed this filter.').should('be.visible');
     saveNativeFilterSettings();
-  });
-
-  it('User can cancel creating a new filter', () => {
-    enterNativeFilterEditModal();
-    cancelNativeFilterSettings();
-  });
-
-  it('User can undo deleting a native filter', () => {
-    enterNativeFilterEditModal();
-    addCountryNameFilter();
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
-    enterNativeFilterEditModal();
-    undoDeleteNativeFilter();
-  });
-
-  it('Verify setting options and tooltips for value filter', () => {
-    enterNativeFilterEditModal();
-    cy.contains('Filter value is required').should('be.visible').click();
-    checkNativeFilterTooltip(0, nativeFilterTooltips.defaultValue);
-    cy.get(nativeFilters.modal.container).should('be.visible');
-    valueNativeFilterOptions.forEach(el => {
-      cy.contains(el);
-    });
-    cy.contains('Values are dependent on other filters').should('not.exist');
-    cy.get(nativeFilters.filterConfigurationSections.checkedCheckbox).contains(
-      'Can select multiple values',
-    );
-    checkNativeFilterTooltip(1, nativeFilterTooltips.required);
-    checkNativeFilterTooltip(2, nativeFilterTooltips.defaultToFirstItem);
-    checkNativeFilterTooltip(3, nativeFilterTooltips.searchAllFilterOptions);
-    checkNativeFilterTooltip(4, nativeFilterTooltips.inverseSelection);
-    clickOnAddFilterInModal();
-    cy.contains('Values are dependent on other filters').should('exist');
   });
 
   it('User can create a time range filter', () => {
@@ -536,6 +544,7 @@ describe('Nativefilters Sanity test', () => {
     });
   });
 });
+
 
 xdescribe('Nativefilters', () => {
   before(() => {
