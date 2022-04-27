@@ -16,33 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import QueryAndSaveBtns, { QueryAndSaveBtnsProps } from './QueryAndSaveBtns';
+import { HandlebarsQueryFormData } from '../../src/types';
+import buildQuery from '../../src/plugin/buildQuery';
 
-export default {
-  title: 'QueryAndSaveBtns',
-  component: QueryAndSaveBtns,
-};
+describe('Handlebars buildQuery', () => {
+  const formData: HandlebarsQueryFormData = {
+    datasource: '5__table',
+    granularitySqla: 'ds',
+    groupby: ['foo'],
+    viz_type: 'my_chart',
+    width: 500,
+    height: 500,
+  };
 
-export const InteractiveQueryAndSaveBtnsProps = (
-  args: QueryAndSaveBtnsProps,
-) => <QueryAndSaveBtns {...args} />;
-
-InteractiveQueryAndSaveBtnsProps.args = {
-  canAdd: true,
-  loading: false,
-};
-
-InteractiveQueryAndSaveBtnsProps.argTypes = {
-  onQuery: { action: 'onQuery' },
-  onSave: { action: 'onSave' },
-  onStop: { action: 'onStop' },
-};
-
-InteractiveQueryAndSaveBtnsProps.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
+  it('should build groupby with series in form data', () => {
+    const queryContext = buildQuery(formData);
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['foo']);
+  });
+});

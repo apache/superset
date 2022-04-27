@@ -39,7 +39,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
-const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
+const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
 const chartsCreatedByEndpoint = 'glob:*/api/v1/chart/related/created_by*';
 const chartsEndpoint = 'glob:*/api/v1/chart/*';
 const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
@@ -66,7 +66,7 @@ fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_read', 'can_write'],
 });
 
-fetchMock.get(chartssOwnersEndpoint, {
+fetchMock.get(chartsOwnersEndpoint, {
   result: [],
 });
 fetchMock.get(chartsCreatedByEndpoint, {

@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -14,22 +13,21 @@
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitationsxw
+ * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisionType } from '@superset-ui/core';
-import { getMetricOffsetsMap } from './getMetricOffsetsMap';
-import { PostProcessingFactory } from '../types';
+import React, { ReactNode } from 'react';
 
-export const isValidTimeCompare: PostProcessingFactory<boolean> = (
-  formData,
-  queryObject,
-) => {
-  const comparisonType = formData.comparison_type;
-  const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
+interface ControlHeaderProps {
+  children: ReactNode;
+}
 
-  return (
-    Object.values(ComparisionType).includes(comparisonType) &&
-    metricOffsetMap.size > 0
-  );
-};
+export const ControlHeader = ({
+  children,
+}: ControlHeaderProps): JSX.Element => (
+  <div className="ControlHeader">
+    <div className="pull-left">
+      <span role="button">{children}</span>
+    </div>
+  </div>
+);

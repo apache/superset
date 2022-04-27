@@ -14,27 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+from typing import Any
 
-from superset.migrations.versions.fb13d49b72f9_better_filters import (
-    Slice,
-    upgrade_slice,
-)
-
-from .base_tests import SupersetTestCase
+from superset import security_manager
 
 
-class TestMigration(SupersetTestCase):
-    def test_upgrade_slice(self):
-        slc = Slice(
-            slice_name="FOO",
-            viz_type="filter_box",
-            params=json.dumps(dict(metric="foo", groupby=["bar"])),
-        )
-        upgrade_slice(slc)
-        params = json.loads(slc.params)
-        self.assertNotIn("metric", params)
-        self.assertIn("filter_configs", params)
-
-        cfg = params["filter_configs"][0]
-        self.assertEqual(cfg.get("metric"), "foo")
+def get_test_user(id_: int, username: str) -> Any:
+    """Create a sample test user"""
+    return security_manager.user_model(
+        id=id_,
+        username=username,
+        first_name=username,
+        last_name=username,
+        email=f"{username}@example.com",
+    )
