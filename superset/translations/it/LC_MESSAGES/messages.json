@@ -1066,6 +1066,7 @@
       "Run selection": ["Seleziona una colonna"],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
+      "Stop running (Ctrl + e)": [""],
       "Run query (Ctrl + Return)": [""],
       "Save & Explore": ["Salva una slice"],
       "Overwrite & Explore": ["Sovrascrivi la slice %s"],
