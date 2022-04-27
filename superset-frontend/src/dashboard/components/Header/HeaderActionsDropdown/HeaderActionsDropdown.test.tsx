@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { shallow } from 'enzyme';
+import sinon from 'sinon';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -201,4 +203,30 @@ test('should show the properties modal', async () => {
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
   expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
+});
+
+describe('UNSAFE_componentWillReceiveProps', () => {
+  let wrapper: any;
+  const mockedProps = createProps();
+  const props = { ...mockedProps, customCss: '' };
+
+  beforeEach(() => {
+    wrapper = shallow(<HeaderActionsDropdown {...props} />);
+    wrapper.setState({ css: props.customCss });
+    sinon.spy(wrapper.instance(), 'setState');
+  });
+
+  afterEach(() => {
+    wrapper.instance().setState.restore();
+  });
+
+  it('css should update state and inject custom css', () => {
+    wrapper.instance().UNSAFE_componentWillReceiveProps({
+      ...props,
+      customCss: mockedProps.customCss,
+    });
+    expect(wrapper.instance().setState.calledOnce).toBe(true);
+    const stateKeys = Object.keys(wrapper.instance().setState.lastCall.args[0]);
+    expect(stateKeys).toContain('css');
+  });
 });
