@@ -50,12 +50,12 @@ import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
 
-export enum DatasetRadioState {
+enum DatasetRadioState {
   SAVE_NEW = 1,
   OVERWRITE_DATASET = 2,
 }
 
-export const EXPLORE_CHART_DEFAULT = {
+const EXPLORE_CHART_DEFAULT = {
   metrics: [],
   groupby: [],
   time_range: 'No filter',
@@ -71,14 +71,14 @@ enum LIMITING_FACTOR {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-export interface DatasetOwner {
+interface DatasetOwner {
   first_name: string;
   id: number;
   last_name: string;
   username: string;
 }
 
-export interface DatasetOptionAutocomplete {
+interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
   owners: [DatasetOwner];
@@ -148,7 +148,7 @@ const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
 `;
 
-export const updateDataset = async (
+const updateDataset = async (
   dbId: number,
   datasetId: number,
   sql: string,
