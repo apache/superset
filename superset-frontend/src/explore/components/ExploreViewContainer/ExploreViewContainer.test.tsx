@@ -27,7 +27,10 @@ import ExploreViewContainer from '.';
 const reduxState = {
   explore: {
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
-    controls: { datasource: { value: '1__table' } },
+    controls: {
+      datasource: { value: '1__table' },
+      viz_type: { value: 'table' },
+    },
     datasource: {
       id: 1,
       type: 'table',

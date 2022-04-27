@@ -505,8 +505,7 @@ describe('SupersetClientClass', () => {
     const mockRequestUrl = 'https://host/get/url';
     const mockRequestPath = '/get/url';
     const mockRequestSearch = '?param=1&param=2';
-    const mockRequestRelativeUrl = mockRequestPath + mockRequestSearch;
-    const mockHref = `http://localhost${mockRequestRelativeUrl}`;
+    const mockHref = mockRequestUrl + mockRequestSearch;
 
     beforeEach(() => {
       originalLocation = window.location;
@@ -542,7 +541,7 @@ describe('SupersetClientClass', () => {
         error = err;
       } finally {
         const redirectURL = window.location.href;
-        expect(redirectURL).toBe(`/login?next=${mockRequestRelativeUrl}`);
+        expect(redirectURL).toBe(`/login?next=${mockHref}`);
         expect(error.status).toBe(401);
       }
     });

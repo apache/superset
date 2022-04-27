@@ -38,7 +38,7 @@ of that VM. We recommend assigning at least 8GB of RAM to the virtual machine as
 provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and
 all of the required dependencies. Docker Desktop [recently added support for Windows Subsystem for Linux (WSL) 2](https://docs.docker.com/docker-for-windows/wsl/), which may be another option.
 
-### 2. Clone Superset's Github repository
+### 2. Clone Superset's GitHub repository
 
 [Clone Superset's repo](https://github.com/apache/superset) in your terminal with the
 following command:
@@ -109,7 +109,7 @@ username: admin
 password: admin
 ```
 
-### 5. Connecting your local database instance to superset
+### 5. Connecting Superset to your local database instance
 
 When running Superset using `docker` or `docker-compose` it runs in its own docker container, as if the Superset was running in a separate machine entirely. Therefore attempts to connect to your local database with hostname `localhost` won't work as `localhost` refers to the docker container Superset is running in, and not your actual host machine. Fortunately, docker provides an easy way to access network resources in the host machine from inside a container, and we will leverage this capability to connect to our local database instance.
 

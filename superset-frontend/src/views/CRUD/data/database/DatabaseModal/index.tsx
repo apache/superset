@@ -96,49 +96,6 @@ const engineSpecificAlertMapping = {
   },
 };
 
-const errorAlertMapping = {
-  GENERIC_DB_ENGINE_ERROR: {
-    message: t('Generic database engine error'),
-  },
-  CONNECTION_MISSING_PARAMETERS_ERROR: {
-    message: t('Missing Required Fields'),
-    description: t('Please complete all required fields.'),
-  },
-  CONNECTION_INVALID_HOSTNAME_ERROR: {
-    message: t('Could not verify the host'),
-    description: t(
-      'The host is invalid. Please verify that this field is entered correctly.',
-    ),
-  },
-  CONNECTION_PORT_CLOSED_ERROR: {
-    message: t('Port is closed'),
-    description: t('Please verify that port is open to connect.'),
-  },
-  CONNECTION_INVALID_PORT_ERROR: {
-    message: t('Invalid Port Number'),
-    description: t(
-      'The port must be a whole number less than or equal to 65535.',
-    ),
-  },
-  CONNECTION_ACCESS_DENIED_ERROR: {
-    message: t('Invalid account information'),
-    description: t('Either the username or password is incorrect.'),
-  },
-  CONNECTION_INVALID_PASSWORD_ERROR: {
-    message: t('Invalid account information'),
-    description: t('Either the username or password is incorrect.'),
-  },
-  INVALID_PAYLOAD_SCHEMA_ERROR: {
-    message: t('Incorrect Fields'),
-    description: t('Please make sure all fields are filled out correctly'),
-  },
-  TABLE_DOES_NOT_EXIST_ERROR: {
-    message: t('URL could not be identified'),
-    description: t(
-      'The URL could not be identified. Please check for typos and make sure that "Type of google sheet allowed" selection matches the input',
-    ),
-  },
-};
 const googleSheetConnectionEngine = 'gsheets';
 
 interface DatabaseModalProps {
@@ -227,7 +184,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = { allows_virtual_table_explore: true };
+  let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -576,8 +533,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
-      await getValidation(dbToUpdate, true);
-      if (validationErrors && !isEmpty(validationErrors)) {
+      const errors = await getValidation(dbToUpdate, true);
+      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         return;
       }
       const parameters_schema = isEditMode
@@ -679,7 +636,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         passwords,
         confirmedOverwrite,
       );
-
       if (dbId) {
         onClose();
         addSuccessToast(t('Database connected'));
@@ -1112,44 +1068,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  // eslint-disable-next-line consistent-return
   const errorAlert = () => {
-    if (
-      isEmpty(dbErrors) ||
-      (isEmpty(validationErrors) &&
-        !(validationErrors?.error_type in errorAlertMapping))
-    ) {
-      return <></>;
-    }
-
-    if (validationErrors) {
+    if (isEmpty(dbErrors) === false) {
+      const message: Array<string> =
+        typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
       return (
         <Alert
           type="error"
           css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={
-            errorAlertMapping[validationErrors?.error_type]?.message ||
-            validationErrors?.error_type
-          }
-          description={
-            errorAlertMapping[validationErrors?.error_type]?.description ||
-            validationErrors?.description ||
-            JSON.stringify(validationErrors)
-          }
-          showIcon
-          closable={false}
+          message={t('Database Creation Error')}
+          description={message?.[0] || dbErrors}
         />
       );
     }
-    const message: Array<string> =
-      typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
-    return (
-      <Alert
-        type="error"
-        css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-        message={t('Database Creation Error')}
-        description={message?.[0] || dbErrors}
-      />
-    );
+    return <></>;
   };
 
   const renderFinishState = () => {

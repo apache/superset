@@ -18,7 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import React, { FC, useEffect, useMemo, useState } from 'react';
+import React, { FC, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   FeatureFlag,
@@ -36,7 +36,6 @@ import {
   LayoutItem,
   RootState,
 } from 'src/dashboard/types';
-import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -68,29 +67,27 @@ const useNativeFilterScopes = () => {
 };
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
+  const nativeFilterScopes = useNativeFilterScopes();
+  const dispatch = useDispatch();
+
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilterScopes = useNativeFilterScopes();
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
   const charts = useSelector<RootState, ChartsState>(state => state.charts);
-  const [tabIndex, setTabIndex] = useState(
-    getRootLevelTabIndex(dashboardLayout, directPathToChild),
-  );
 
-  const dispatch = useDispatch();
-
-  useEffect(() => {
+  const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
       directPathToChild,
     });
-    if (nextTabIndex > -1) {
-      setTabIndex(nextTabIndex);
-    }
-  }, [getLeafComponentIdFromPath(directPathToChild)]);
+
+    return nextTabIndex > -1
+      ? nextTabIndex
+      : getRootLevelTabIndex(dashboardLayout, directPathToChild);
+  }, [dashboardLayout, directPathToChild]);
 
   useEffect(() => {
     if (

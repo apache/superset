@@ -69,8 +69,6 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
     def apply(self, query: Query, value: Any) -> Query:
         filtered_query = query.filter(Database.allow_file_upload)
 
-        database_perms = security_manager.user_view_menu_names("database_access")
-        schema_access_databases = can_access_databases("schema_access")
         datasource_access_databases = can_access_databases("datasource_access")
 
         if hasattr(g, "user"):
@@ -82,19 +80,10 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
             if len(allowed_schemas):
                 return filtered_query
 
-        filtered_query = filtered_query.filter(
+        return filtered_query.filter(
             or_(
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"]
                 is not None,
                 cast(Database.extra, JSON)["schemas_allowed_for_file_upload"] != [],
-            )
-        )
-
-        return filtered_query.filter(
-            or_(
-                self.model.perm.in_(database_perms),
-                self.model.database_name.in_(
-                    [*schema_access_databases, *datasource_access_databases]
-                ),
             )
         )
