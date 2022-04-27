@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FreeFormAdhocFilter, TimeGranularity } from '@superset-ui/core';
+import {
+  ComparisionType,
+  FreeFormAdhocFilter,
+  RollingType,
+  TimeGranularity,
+} from '@superset-ui/core';
 import buildQuery from '../../src/MixedTimeseries/buildQuery';
 
 const formDataMixedChart = {
@@ -60,6 +65,22 @@ const formDataMixedChart = {
   // chart configs
   show_value: false,
   show_valueB: undefined,
+};
+const formDataMixedChartWithAA = {
+  ...formDataMixedChart,
+  rolling_type: RollingType.Cumsum,
+  time_compare: ['1 years ago'],
+  comparison_type: ComparisionType.Values,
+  resample_rule: '1AS',
+  resample_method: 'zerofill',
+
+  rolling_type_b: RollingType.Sum,
+  rolling_periods_b: 1,
+  min_periods_b: 1,
+  comparison_type_b: ComparisionType.Difference,
+  time_compare_b: ['3 years ago'],
+  resample_rule_b: '1A',
+  resample_method_b: 'asfreq',
 };
 
 test('should compile query object A', () => {
@@ -182,5 +203,75 @@ test('should compile query object B', () => {
       },
     ],
     orderby: [['count', true]],
+  });
+});
+
+test('should compile AA in query A', () => {
+  const query_a = buildQuery(formDataMixedChartWithAA).queries[0];
+  // time comparison
+  expect(query_a?.time_offsets).toEqual(['1 years ago']);
+
+  // cumsum
+  expect(
+    // prettier-ignore
+    query_a
+      .post_processing
+      ?.find(operator => operator?.operation === 'cum')
+      ?.operation,
+  ).toEqual('cum');
+
+  // resample
+  expect(
+    // prettier-ignore
+    query_a
+      .post_processing
+      ?.find(operator => operator?.operation === 'resample'),
+  ).toEqual({
+    operation: 'resample',
+    options: {
+      method: 'asfreq',
+      rule: '1AS',
+      fill_value: 0,
+    },
+  });
+});
+
+test('should compile AA in query B', () => {
+  const query_b = buildQuery(formDataMixedChartWithAA).queries[1];
+  // time comparison
+  expect(query_b?.time_offsets).toEqual(['3 years ago']);
+
+  // rolling total
+  expect(
+    // prettier-ignore
+    query_b
+      .post_processing
+      ?.find(operator => operator?.operation === 'rolling'),
+  ).toEqual({
+    operation: 'rolling',
+    options: {
+      rolling_type: 'sum',
+      window: 1,
+      min_periods: 1,
+      columns: {
+        count: 'count',
+        'count__3 years ago': 'count__3 years ago',
+      },
+    },
+  });
+
+  // resample
+  expect(
+    // prettier-ignore
+    query_b
+      .post_processing
+      ?.find(operator => operator?.operation === 'resample'),
+  ).toEqual({
+    operation: 'resample',
+    options: {
+      method: 'asfreq',
+      rule: '1A',
+      fill_value: null,
+    },
   });
 });
