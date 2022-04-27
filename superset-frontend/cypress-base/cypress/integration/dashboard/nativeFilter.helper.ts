@@ -359,13 +359,15 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
 export function inputNativeFilterDefaultValue(defaultValue: string) {
   cy.contains('Filter has default value').click();
   cy.contains('Default value is required').should('be.visible');
-  cy.get(nativeFilters.filterConfigurationSections.filterPlaceholder)
-    .contains('options')
-    .should('be.visible');
-  cy.get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
-    .first()
-    .get(nativeFilters.filtersPanel.columnEmptyInput)
-    .type(`${defaultValue}{enter}`);
+  cy.get(nativeFilters.modal.container).within(() => {
+    cy.get(nativeFilters.filterConfigurationSections.filterPlaceholder)
+      .contains('options')
+      .should('be.visible');
+    cy.get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
+      .first()
+      .get(nativeFilters.filtersPanel.columnEmptyInput)
+      .type(`${defaultValue}{enter}`);
+  });
 }
 
 /** ************************************************************************
