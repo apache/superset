@@ -247,7 +247,7 @@ module.exports = {
           {
             name: 'antd',
             message:
-              'Please import Ant components from the index of common/components',
+              'Please import Ant components from the index of src/components',
           },
           {
             name: '@superset-ui/core',
