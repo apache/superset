@@ -17,5 +17,8 @@
  * under the License.
  */
 module.exports = {
-    puppeteerOptions: { args: ['--no-sandbox'] },
+  puppeteerOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  },
 };
