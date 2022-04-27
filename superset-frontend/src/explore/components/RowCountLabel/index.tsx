@@ -37,7 +37,7 @@ export default function RowCountLabel(props: RowCountLabelProps) {
   const label = (
     <Label type={type} data-test="row-count-label">
       {loading
-        ? 'Loading...'
+        ? t('Loading...')
         : tn('%s row', '%s rows', rowcount, formattedRowCount)}
     </Label>
   );

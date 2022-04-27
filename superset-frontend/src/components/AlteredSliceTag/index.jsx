@@ -39,7 +39,8 @@ const StyledLabel = styled.span`
 
     &: hover {
       background-color: ${theme.colors.alert.dark1};
-    };`}
+    }
+  `}
 `;
 
 function alterForComparison(value) {
