@@ -61,6 +61,7 @@ export const valueNativeFilterOptions = [
 export function expandFilterOnLeftPanel() {
   return cy
     .get(nativeFilters.filterFromDashboardView.expand)
+    .should('be.visible')
     .click({ force: true });
 }
 
@@ -84,10 +85,9 @@ export function collapseFilterOnLeftPanel() {
  * @summary helper for enter native filter edit modal
  ************************************************************************* */
 export function enterNativeFilterEditModal() {
-  expandFilterOnLeftPanel();
-  cy.get(nativeFilters.filterFromDashboardView.createFilterButton)
-    .should('be.visible')
-    .click();
+  cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
+    force: true,
+  });
   cy.get(nativeFilters.modal.container).should('be.visible');
 }
 
@@ -146,7 +146,6 @@ export function fillNativeFilterForm(
   if (filterColumn) {
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
-      .should('be.visible')
       .click({ force: true });
     cy.get(nativeFilters.filtersPanel.filterInfoInput)
       .last()
