@@ -82,6 +82,38 @@ describe('Nativefilters tests initial state required', () => {
     cleanUp();
   });
 
+  it('Verify that default value is respected after revisit', () => {
+    expandFilterOnLeftPanel();
+    enterNativeFilterEditModal();
+    addCountryNameFilter();
+    inputNativeFilterDefaultValue(testItems.filterDefaultValue);
+    saveNativeFilterSettings();
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    cy.get(nativeFilters.filterItem)
+      .contains(testItems.filterDefaultValue)
+      .should('be.visible');
+    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+      cy.contains(testItems.filterDefaultValue).should('be.visible');
+      cy.contains(testItems.filterOtherCountry).should('not.exist');
+    });
+    cy.request(
+      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
+    ).then(xhr => {
+      const dashboards = xhr.body.result;
+      const testDashboard = dashboards.find(
+        (d: { dashboard_title: string }) =>
+          d.dashboard_title === testItems.dashboard,
+      );
+      cy.visit(testDashboard.url);
+    });
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
+      cy.contains(testItems.filterDefaultValue).should('be.visible');
+      cy.contains(testItems.filterOtherCountry).should('not.exist');
+    });
+    validateFilterContentOnDashboard(testItems.filterDefaultValue);
+  });
+
   it('User can create parent filters using "Values are dependent on other filters"', () => {
     enterNativeFilterEditModal();
     // Create parent filter 'region'.
@@ -240,45 +272,6 @@ describe('Nativefilters tests initial state required', () => {
       cy.contains(testItems.filterOtherCountry).should('be.visible');
     });
   });
-
-  it("User can check 'Filter has default value'", () => {
-    enterNativeFilterEditModal();
-    addCountryNameFilter();
-    inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-    saveNativeFilterSettings();
-    validateFilterContentOnDashboard(testItems.filterDefaultValue);
-  });
-
-  it('Verify that default value is respected after revisit', () => {
-    enterNativeFilterEditModal();
-    addCountryNameFilter();
-    inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-    saveNativeFilterSettings();
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    cy.get(nativeFilters.filterItem)
-      .contains(testItems.filterDefaultValue)
-      .should('be.visible');
-    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-      cy.contains(testItems.filterDefaultValue).should('be.visible');
-      cy.contains(testItems.filterOtherCountry).should('not.exist');
-    });
-    cy.request(
-      'api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:100)',
-    ).then(xhr => {
-      const dashboards = xhr.body.result;
-      const testDashboard = dashboards.find(
-        (d: { dashboard_title: string }) =>
-          d.dashboard_title === testItems.dashboard,
-      );
-      cy.visit(testDashboard.url);
-    });
-    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-      cy.contains(testItems.filterDefaultValue).should('be.visible');
-      cy.contains(testItems.filterOtherCountry).should('not.exist');
-    });
-    validateFilterContentOnDashboard(testItems.filterDefaultValue);
-  });
 });
 
 describe('Nativefilters initial state not required', () => {
@@ -340,6 +333,12 @@ describe('Nativefilters initial state not required', () => {
     cy.contains('Values are dependent on other filters').should('exist');
   });
 
+  it("User can check 'Filter has default value'", () => {
+    enterNativeFilterEditModal();
+    addCountryNameFilter();
+    inputNativeFilterDefaultValue(testItems.filterDefaultValue);
+  });
+
   it('User can add a new native filter', () => {
     let filterKey: string;
     const removeFirstChar = (search: string) =>
@@ -368,7 +367,9 @@ describe('Nativefilters initial state not required', () => {
     addCountryCodeFilter();
     saveNativeFilterSettings();
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
+    validateFilterNameOnDashboard(
+      testItems.topTenChart.filterColumnCountryCode,
+    );
     enterNativeFilterEditModal();
     cy.get(nativeFilters.filtersList.removeIcon).first().click();
     cy.get('[data-test="restore-filter-button"]').should('be.visible').click();
