@@ -128,3 +128,28 @@ export type RootState = {
   messageToasts: toastState[];
   common: {};
 };
+
+export enum DatasetRadioState {
+  SAVE_NEW = 1,
+  OVERWRITE_DATASET = 2,
+}
+
+export const EXPLORE_CHART_DEFAULT = {
+  metrics: [],
+  groupby: [],
+  time_range: 'No filter',
+  viz_type: 'table',
+};
+
+export interface DatasetOwner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+}
+
+export interface DatasetOptionAutocomplete {
+  value: string;
+  datasetId: number;
+  owners: [DatasetOwner];
+}

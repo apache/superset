@@ -17,7 +17,15 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { css, styled, t, makeApi, DatasourceType } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  makeApi,
+  SupersetClient,
+  JsonResponse,
+  DatasourceType,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   DatasourceMeta,
@@ -31,13 +39,6 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { exploreChart } from 'src/explore/exploreUtils';
 import moment from 'moment';
 import rison from 'rison';
-import {
-  DatasetRadioState,
-  EXPLORE_CHART_DEFAULT,
-  DatasetOwner,
-  DatasetOptionAutocomplete,
-  updateDataset,
-} from 'src/SqlLab/components/ResultSet';
 import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
@@ -45,6 +46,12 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  DatasetRadioState,
+  EXPLORE_CHART_DEFAULT,
+  DatasetOwner,
+  DatasetOptionAutocomplete,
+} from 'src/SqlLab/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
@@ -179,6 +186,31 @@ const StyledInfoboxWrapper = styled.div`
     }
   `}
 `;
+
+const updateDataset = async (
+  dbId: number,
+  datasetId: number,
+  sql: string,
+  columns: Array<Record<string, any>>,
+  owners: [number],
+  overrideColumns: boolean,
+) => {
+  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const headers = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify({
+    sql,
+    columns,
+    owners,
+    database_id: dbId,
+  });
+
+  const data: JsonResponse = await SupersetClient.put({
+    endpoint,
+    headers,
+    body,
+  });
+  return data.json.result;
+};
 
 const LabelContainer = (props: {
   children: React.ReactElement;
@@ -520,29 +552,34 @@ export default function DataSourcePanel({
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">
-          {datasource.type === DatasourceType.Table && showInfoboxCheck() && (
-            <StyledInfoboxWrapper>
-              <Alert
-                closable
-                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
-                type="info"
-                message=""
-                description={
-                  <>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setShowSaveDatasetModal(true)}
-                      className="add-dataset-alert-description"
-                    >
-                      {t('Create a dataset')}
-                    </span>
-                    {t(' to edit or add columns and metrics.')}
-                  </>
-                }
-              />
-            </StyledInfoboxWrapper>
-          )}
+          {datasource.type === DatasourceType.Dataset ||
+            datasource.type === DatasourceType.SlTable ||
+            (datasource.type === DatasourceType.SavedQuery &&
+              showInfoboxCheck() && (
+                <StyledInfoboxWrapper>
+                  <Alert
+                    closable
+                    onClose={() =>
+                      sessionStorage.setItem('showInfobox', 'false')
+                    }
+                    type="info"
+                    message=""
+                    description={
+                      <>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setShowSaveDatasetModal(true)}
+                          className="add-dataset-alert-description"
+                        >
+                          {t('Create a dataset')}
+                        </span>
+                        {t(' to edit or add columns and metrics.')}
+                      </>
+                    }
+                  />
+                </StyledInfoboxWrapper>
+              ))}
           <Collapse
             defaultActiveKey={['metrics', 'column']}
             expandIconPosition="right"
