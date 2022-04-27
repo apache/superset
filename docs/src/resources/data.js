@@ -19,7 +19,7 @@
 
 export const Databases = [
   {
-    title: 'Amazon Redshfit',
+    title: 'Amazon Redshift',
     href: 'https://aws.amazon.com/redshift/',
     imgName: 'aws-redshift.png',
   },
@@ -106,7 +106,7 @@ export const Databases = [
   {
     title: 'SQLite',
     href: 'https://www.sqlite.org/index.html',
-    imgName: 'sqllite.png',
+    imgName: 'sqlite.png',
   },
   {
     title: 'Trino',

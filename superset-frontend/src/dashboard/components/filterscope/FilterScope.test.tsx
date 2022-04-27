@@ -139,7 +139,7 @@ const createProps = () => ({
 type CheckboxState = 'checked' | 'unchecked' | 'indeterminate';
 
 /**
- * Unfortunatelly react-checkbox-tree doesn't provide an easy way to
+ * Unfortunately react-checkbox-tree doesn't provide an easy way to
  * access the checkbox icon. We need this function to find the element.
  */
 function getCheckboxIcon(element: HTMLElement): Element {
@@ -151,7 +151,7 @@ function getCheckboxIcon(element: HTMLElement): Element {
 }
 
 /**
- * Unfortunatelly when using react-checkbox-tree, the only perceived change of a
+ * Unfortunately when using react-checkbox-tree, the only perceived change of a
  * checkbox state change is the fill color of the SVG icon.
  */
 function getCheckboxState(name: string): CheckboxState {
