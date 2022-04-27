@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
 import {
   retainFormDataSuffix,
   removeFormDataSuffix,
@@ -31,7 +30,7 @@ const formData = {
   metrics_b: ['c', 'd'],
   columns_b: ['hello', 'world'],
   limit_b: 200,
-} as QueryFormData;
+};
 
 test('should keep controls with suffix', () => {
   expect(retainFormDataSuffix(formData, '_b')).toEqual({
