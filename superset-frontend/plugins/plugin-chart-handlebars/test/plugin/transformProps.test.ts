@@ -31,15 +31,12 @@ describe('Handlebars tranformProps', () => {
     height: 500,
     viz_type: 'handlebars',
   };
+  const data = [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }];
   const chartProps = new ChartProps<QueryFormData>({
     formData,
     width: 800,
     height: 600,
-    queriesData: [
-      {
-        data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-      },
-    ],
+    queriesData: [{ data }],
   });
 
   it('should tranform chart props for viz', () => {
@@ -47,9 +44,7 @@ describe('Handlebars tranformProps', () => {
       expect.objectContaining({
         width: 800,
         height: 600,
-        data: [
-          { name: 'Hulk', sum__num: 1, __timestamp: new Date(599616000000) },
-        ],
+        data,
       }),
     );
   });
