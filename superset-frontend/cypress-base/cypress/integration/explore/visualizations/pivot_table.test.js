@@ -61,9 +61,7 @@ describe('Visualization > Pivot Table', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-    cy.eyesOpen({
-      testName: 'Pivot Table viz',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {

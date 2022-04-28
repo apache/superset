@@ -25,9 +25,7 @@ import {
 describe('Dashboard load', () => {
   beforeEach(() => {
     cy.login();
-    cy.eyesOpen({
-      testName: 'Dashboard view',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {

@@ -24,9 +24,7 @@ describe('Visualization > Distribution bar chart', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-    cy.eyesOpen({
-      testName: 'Bar viz',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {

@@ -52,9 +52,7 @@ describe('Visualization > Big Number with Trendline', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('chartData');
-    cy.eyesOpen({
-      testName: 'Big Number viz',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {

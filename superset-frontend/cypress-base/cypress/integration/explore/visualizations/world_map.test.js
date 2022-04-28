@@ -42,9 +42,7 @@ describe('Visualization > World Map', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-    cy.eyesOpen({
-      testName: 'World Map viz',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {

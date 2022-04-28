@@ -44,9 +44,7 @@ describe('Visualization > Pie', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-    cy.eyesOpen({
-      testName: 'Pie viz',
-    });
+    cy.eyesOpen();
   });
 
   afterEach(() => {
