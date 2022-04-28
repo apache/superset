@@ -122,12 +122,12 @@ describe('Test datatable', () => {
   });
   it('Data Pane opens and loads results', () => {
     cy.contains('Results').click();
-    cy.get('[data-test="row-count-label"]').contains('26 rows retrieved');
+    cy.get('[data-test="row-count-label"]').contains('26 rows');
     cy.get('.ant-empty-description').should('not.exist');
   });
   it('Datapane loads view samples', () => {
     cy.contains('Samples').click();
-    cy.get('[data-test="row-count-label"]').contains('1k rows retrieved');
+    cy.get('[data-test="row-count-label"]').contains('1k rows');
     cy.get('.ant-empty-description').should('not.exist');
   });
 });
