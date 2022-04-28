@@ -71,6 +71,7 @@ const AtAGlance = {
 
 const Table = {
   width: '75%',
+  height: '200px',
 };
 
 const AtAGlanceLists = {
