@@ -34,5 +34,6 @@ export const timeSeriesLimitMetricControlSetItem: ControlSetItem = {
   name: 'timeseries_limit_metric',
   override: {
     visibility: isAggMode,
+    resetOnHide: false,
   },
 };
