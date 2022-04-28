@@ -24,6 +24,24 @@ describe('Visualization > Distribution bar chart', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.eyesOpen({
+      testName: 'Bar viz',
+    });
+  });
+
+  afterEach(() => {
+    cy.eyesClose();
+  });
+
+  it('should work', () => {
+    const formData = {
+      ...VIZ_DEFAULTS,
+      metrics: NUM_METRIC,
+      groupby: ['state'],
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.eyesCheckWindow('Bar viz loaded');
   });
 
   it('should work with adhoc metric', () => {

@@ -42,6 +42,18 @@ describe('Visualization > World Map', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.eyesOpen({
+      testName: 'World Map viz',
+    });
+  });
+
+  afterEach(() => {
+    cy.eyesClose();
+  });
+
+  it('should work', () => {
+    verify(WORLD_MAP_FORM_DATA);
+    cy.eyesCheckWindow('World Map viz loaded');
   });
 
   it('should work with ad-hoc metric', () => {

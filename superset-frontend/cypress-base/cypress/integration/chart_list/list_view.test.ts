@@ -21,6 +21,13 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
+    cy.eyesOpen({
+      testName: 'Chart list view',
+    });
+  });
+
+  afterEach(() => {
+    cy.eyesClose();
   });
 
   it('should load rows', () => {
@@ -37,6 +44,8 @@ describe('chart list view', () => {
     cy.get('[data-test="sort-header"]').eq(6).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
     cy.get('[data-test="table-row"]').should('have.length', 25);
+
+    cy.eyesCheckWindow('Chart list loaded');
   });
 
   xit('should sort correctly', () => {

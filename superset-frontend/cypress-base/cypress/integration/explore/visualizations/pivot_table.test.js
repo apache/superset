@@ -61,6 +61,18 @@ describe('Visualization > Pivot Table', () => {
   beforeEach(() => {
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.eyesOpen({
+      testName: 'Pivot Table viz',
+    });
+  });
+
+  afterEach(() => {
+    cy.eyesClose();
+  });
+
+  it('should work', () => {
+    verify(PIVOT_TABLE_FORM_DATA);
+    cy.eyesCheckWindow('Pivot Table viz loaded');
   });
 
   it('should work with single groupby', () => {

@@ -2,7 +2,7 @@ name: E2E
 
 env:
   APPLITOOLS_APP_NAME: Superset Cypress
-  APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
+  APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
   APPLITOOLS_BATCH_ID: ${{ github.sha }}
 
 on:
@@ -135,4 +135,4 @@ jobs:
       - name: Update Applitools batch status
         uses: wei/curl@v1.1.1
         with:
-          args: -d "" -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ secrets.APPLITOOLS_API_KEY }}
+          args: -d "" -X POST https://eyesapi.applitools.com/api/externals/github/servers/github.com/commit/${{ env.APPLITOOLS_BATCH_ID }}/complete?apiKey=${{ env.APPLITOOLS_API_KEY }}
