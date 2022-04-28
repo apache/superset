@@ -33,6 +33,7 @@ const percentMetrics: typeof sharedControls.metrics = {
   ),
   multi: true,
   visibility: isAggMode,
+  resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
     savedMetrics: datasource?.metrics || [],

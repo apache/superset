@@ -20,6 +20,7 @@ import { SafeMarkdown, styled } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
+import { isObject } from 'lodash';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -63,4 +64,11 @@ export const HandlebarsViewer = ({
 Handlebars.registerHelper('dateFormat', function (context, block) {
   const f = block.hash.format || 'YYYY-MM-DD';
   return moment(context).format(f);
+});
+
+// usage: {{  }}
+Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
+  // calling without an argument
+  if (obj2 === undefined) return '';
+  return isObject(obj) ? JSON.stringify(obj) : String(obj);
 });

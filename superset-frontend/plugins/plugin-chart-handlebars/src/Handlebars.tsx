@@ -33,7 +33,7 @@ const Styles = styled.div<HandlebarsStylesProps>`
   border-radius: ${({ theme }) => theme.gridUnit * 2}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
-  overflow-y: scroll;
+  overflow: auto;
 `;
 
 /**
