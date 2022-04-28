@@ -319,25 +319,6 @@ class TestDatasource(SupersetTestCase):
 
         self.delete_fake_db()
 
-    def test_edit_alpha_not_owner(self):
-        self.login(username="alpha")
-        alpha_user = self.get_user("alpha")
-
-        tbl = self.get_table(name="birth_names")
-        tbl_id = tbl.id
-        datasource_post = get_datasource_post()
-        datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [alpha_user.id]
-
-        new_db = self.create_fake_db()
-        datasource_post["database"]["id"] = new_db.id
-
-        data = dict(data=json.dumps(datasource_post))
-        resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
-        self.assertIn("Changing this dataset is forbidden", resp["error"])
-
-        self.delete_fake_db()
-
     def test_save_duplicate_key(self):
         self.login(username="admin")
         tbl_id = self.get_table(name="birth_names").id
