@@ -41,6 +41,7 @@ const defaultProps = {
     id: 1,
     columns: [],
     metrics: [],
+    owners: [{ username: 'admin', userId: 1 }],
     database: {
       backend: 'mysql',
       name: 'main',
