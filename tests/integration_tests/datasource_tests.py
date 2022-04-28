@@ -319,7 +319,6 @@ class TestDatasource(SupersetTestCase):
 
         self.delete_fake_db()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_edit_alpha_not_owner(self):
         self.login(username="alpha")
         alpha_user = self.get_user("alpha")
