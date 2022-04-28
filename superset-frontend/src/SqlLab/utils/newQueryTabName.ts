@@ -40,7 +40,7 @@ export const newQueryTabName = (
       // When there are query tabs open, and at least one is called "Untitled Query #"
       // Where # is a valid number
       const largestNumber: number = Math.max(...untitledQueryNumbers);
-      return t(`${untitledQuery}%s`, largestNumber + 1);
+      return t('%s%s', untitledQuery, largestNumber + 1);
     }
     return resultTitle;
   }

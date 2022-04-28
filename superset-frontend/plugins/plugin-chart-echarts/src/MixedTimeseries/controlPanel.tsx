@@ -18,10 +18,12 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  CustomControlItem,
   emitFilterControl,
   sections,
   sharedControls,
@@ -126,7 +128,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<h1 className="section-header">{label}</h1>],
+    [<div className="section-header">{label}</div>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -253,11 +255,33 @@ function createCustomizeSection(
   ];
 }
 
+function createAdvancedAnalyticsSection(
+  label: string,
+  controlSuffix: string,
+): ControlPanelSectionConfig {
+  const aaWithSuffix = cloneDeep(sections.advancedAnalyticsControls);
+  aaWithSuffix.label = label;
+  if (!controlSuffix) {
+    return aaWithSuffix;
+  }
+  aaWithSuffix.controlSetRows.forEach(row =>
+    row.forEach((control: CustomControlItem) => {
+      if (control?.name) {
+        // eslint-disable-next-line no-param-reassign
+        control.name = `${control.name}${controlSuffix}`;
+      }
+    }),
+  );
+  return aaWithSuffix;
+}
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     createQuerySection(t('Query A'), ''),
+    createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
+    createAdvancedAnalyticsSection(t('Advanced analytics Query B'), '_b'),
     {
       label: t('Annotations and Layers'),
       expanded: false,
@@ -296,7 +320,7 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         ['x_axis_time_format'],
         [
           {
@@ -320,7 +344,7 @@ const config: ControlPanelConfig = {
         ],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         [
           {
             name: 'minorSplitLine',

@@ -38,7 +38,7 @@ from sqlalchemy_utils import UUIDType
 
 from superset import db
 from superset.migrations.versions.b56500de1855_add_uuid_column_to_import_mixin import (
-    add_uuids,
+    assign_uuids,
     models,
     update_dashboards,
 )
@@ -73,11 +73,11 @@ def upgrade():
                     default=uuid4,
                 ),
             )
-        add_uuids(model, table_name, session)
+        assign_uuids(model, session)
 
         # add uniqueness constraint
         with op.batch_alter_table(table_name) as batch_op:
-            # batch mode is required for sqllite
+            # batch mode is required for sqlite
             batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json; this function is idempotent

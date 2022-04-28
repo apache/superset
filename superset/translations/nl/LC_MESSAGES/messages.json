@@ -3065,6 +3065,7 @@
       "Run selection": ["Selectie uitvoeren"],
       "Run": ["Uitvoeren"],
       "Stop running (Ctrl + x)": ["Stop de uitvoering (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Stop de uitvoering (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Query uitvoeren (Ctrl + Return)"],
       "Save & Explore": ["Opslaan en verkennen"],
       "Overwrite & Explore": ["Overschrijven en verkennen"],

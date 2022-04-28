@@ -35,9 +35,9 @@ import AntdSelect, {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
-import { Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SLOW_DEBOUNCE } from 'src/constants';
