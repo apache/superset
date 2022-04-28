@@ -23,6 +23,6 @@ module.exports = {
   browser: [{ width: 1000, height: 660, name: 'chrome' }],
   failCypressOnDiff: false,
   isDisabled: false,
-  showLogs: true,
+  showLogs: false,
   testConcurrency: 10,
 };
