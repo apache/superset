@@ -25,6 +25,7 @@ import { t } from '@superset-ui/core';
 import React from 'react';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
+import { debounceFunc } from '../../consts';
 
 interface StyleCustomControlProps {
   value: string;
@@ -35,9 +36,6 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
 
-  const updateConfig = (source: string) => {
-    props.onChange(source);
-  };
   return (
     <div>
       <ControlHeader>{props.label}</ControlHeader>
@@ -46,7 +44,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
         mode="css"
         value={val}
         onChange={source => {
-          updateConfig(source || '');
+          debounceFunc(props.onChange, source || '');
         }}
       />
     </div>
@@ -60,7 +58,11 @@ export const styleControlSetItem: ControlSetItem = {
     type: StyleControl,
     label: t('CSS Styles'),
     description: t('CSS applied to the chart'),
-    default: '',
+    default: `/*
+.data-list {
+  background-color: yellow;
+}
+*/`,
     isInt: false,
     renderTrigger: true,
 
