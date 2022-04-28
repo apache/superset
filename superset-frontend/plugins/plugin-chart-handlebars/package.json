@@ -26,19 +26,20 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.18.25",
-    "@superset-ui/core": "0.18.25",
-    "ace-builds": "^1.4.13",
-    "emotion": "^11.0.0",
-    "handlebars": "^4.7.7",
-    "react-ace": "^9.4.4"
+    "handlebars": "^4.7.7"
   },
   "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "ace-builds": "^1.4.14",
+    "lodash": "^4.17.11",
     "moment": "^2.26.0",
     "react": "^16.13.1",
+    "react-ace": "^9.4.4",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.149",
     "@types/jest": "^26.0.0",
     "jest": "^26.0.1"
   }
