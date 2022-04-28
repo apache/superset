@@ -205,6 +205,8 @@ class DatasourceControl extends React.PureComponent {
       datasource.owners.map(o => o.id).includes(user.userId) ||
       isUserAdmin(user);
 
+    const editText = t('Edit dataset');
+
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
@@ -213,7 +215,17 @@ class DatasourceControl extends React.PureComponent {
             data-test="edit-dataset"
             disabled={!allowEdit}
           >
-            {t('Edit dataset')}
+            {!allowEdit ? (
+              <Tooltip
+                title={t(
+                  'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+                )}
+              >
+                {editText}
+              </Tooltip>
+            ) : (
+              editText
+            )}
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
