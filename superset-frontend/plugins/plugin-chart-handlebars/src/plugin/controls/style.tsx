@@ -58,7 +58,11 @@ export const styleControlSetItem: ControlSetItem = {
     type: StyleControl,
     label: t('CSS Styles'),
     description: t('CSS applied to the chart'),
-    default: '',
+    default: `/*
+.data-list {
+  background-color: yellow;
+}
+*/`,
     isInt: false,
     renderTrigger: true,
 

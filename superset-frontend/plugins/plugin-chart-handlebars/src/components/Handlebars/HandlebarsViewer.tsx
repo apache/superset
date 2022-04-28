@@ -69,6 +69,7 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
-  if (obj2 === undefined) return '';
+  if (obj2 === undefined)
+    throw Error('Please call with an object. Example: `stringify myObj`');
   return isObject(obj) ? JSON.stringify(obj) : String(obj);
 });

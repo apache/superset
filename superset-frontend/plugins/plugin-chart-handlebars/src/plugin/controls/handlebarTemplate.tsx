@@ -59,11 +59,11 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
     type: HandlebarsTemplateControl,
     label: t('Handlebars Template'),
     description: t('A handlebars template that is applied to the data'),
-    default: `<ul class="data_list">
-      {{#each data}}
-        <li>{{stringify this}}</li>
-      {{/each}}
-    </ul>`,
+    default: `<ul class="data-list">
+  {{#each data}}
+    <li>{{stringify this}}</li>
+  {{/each}}
+</ul>`,
     isInt: false,
     renderTrigger: true,
 

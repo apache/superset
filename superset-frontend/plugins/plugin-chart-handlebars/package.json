@@ -39,6 +39,7 @@
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.149",
     "@types/jest": "^26.0.0",
     "jest": "^26.0.1"
   }

@@ -25,13 +25,7 @@ export default function transformProps(chartProps: ChartProps) {
   return {
     width,
     height,
-
-    data: data.map(item => ({
-      ...item,
-      // convert epoch to native Date
-      // eslint-disable-next-line no-underscore-dangle
-      __timestamp: new Date(item.__timestamp as number),
-    })),
+    data,
     formData,
   };
 }
