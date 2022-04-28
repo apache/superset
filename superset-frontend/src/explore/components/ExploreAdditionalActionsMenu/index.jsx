@@ -43,6 +43,8 @@ const propTypes = {
   onOpenInEditor: PropTypes.func,
   latestQueryFormData: PropTypes.object.isRequired,
   slice: PropTypes.object,
+  canDownloadCSV: PropTypes.bool,
+  canAddReports: PropTypes.bool,
 };
 
 const MENU_KEYS = {
@@ -215,7 +217,7 @@ const ExploreAdditionalActionsMenu = ({
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
-            '.panel-body > .chart-container',
+            '.panel-body .chart-container',
             // eslint-disable-next-line camelcase
             slice?.slice_name ?? t('New chart'),
             {},
