@@ -5,9 +5,10 @@ on:
     - cron: "0 0 * * *"
 
 env:
-  APPLITOOLS_APP_NAME: Superset Storybook
+  APPLITOOLS_APP_NAME: Superset
   APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
   APPLITOOLS_BATCH_ID: ${{ github.sha }}
+  APPLITOOLS_BATCH_NAME: Superset Storybook
 
 jobs:
   cron:
