@@ -259,6 +259,8 @@ export default function transformProps(
             markerSize,
             data,
             annotationData,
+            colorScale,
+            sliceId,
           ),
         );
       }
