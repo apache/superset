@@ -17,6 +17,8 @@
  * under the License.
  */
 module.exports = {
+  apiKey: process.env.APPLITOOLS_API_KEY,
+  batchId: process.env.APPLITOOLS_BATCH_ID,
   puppeteerOptions: {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
