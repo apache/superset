@@ -31,8 +31,8 @@ import { HandlebarsProps, HandlebarsStylesProps } from './types';
 const Styles = styled.div<HandlebarsStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   border-radius: ${({ theme }) => theme.gridUnit * 2}px;
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
   overflow-y: scroll;
 `;
 
