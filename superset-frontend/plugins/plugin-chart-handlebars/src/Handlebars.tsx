@@ -17,36 +17,19 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { createRef, useEffect } from 'react';
+import React, { createRef } from 'react';
 import { HandlebarsViewer } from './components/Handlebars/HandlebarsViewer';
 import { HandlebarsProps, HandlebarsStylesProps } from './types';
-
-// The following Styles component is a <div> element, which has been styled using Emotion
-// For docs, visit https://emotion.sh/docs/styled
-
-// Theming variables are provided for your use via a ThemeProvider
-// imported from @superset-ui/core. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
 
 const Styles = styled.div<HandlebarsStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   border-radius: ${({ theme }) => theme.gridUnit * 2}px;
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-  overflow-y: scroll;
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
+  overflow: auto;
 `;
 
-/**
- * ******************* WHAT YOU CAN BUILD HERE *******************
- *  In essence, a chart is given a few key ingredients to work with:
- *  * Data: provided via `props.data`
- *  * A DOM element
- *  * FormData (your controls!) provided as props by transformProps.ts
- */
-
 export default function Handlebars(props: HandlebarsProps) {
-  // height and width are the height and width of the DOM element as it exists in the dashboard.
-  // There is also a `data` prop, which is, of course, your DATA 🎉
   const { data, height, width, formData } = props;
   const styleTemplateSource = formData.styleTemplate
     ? `<style>${formData.styleTemplate}</style>`
@@ -57,13 +40,6 @@ export default function Handlebars(props: HandlebarsProps) {
   const templateSource = `${handlebarTemplateSource}\n${styleTemplateSource} `;
 
   const rootElem = createRef<HTMLDivElement>();
-
-  // Often, you just want to get a hold of the DOM and go nuts.
-  // Here, you can do that with createRef, and the useEffect hook.
-  useEffect(() => {
-    // const root = rootElem.current as HTMLElement;
-    // console.log('Plugin element', root);
-  });
 
   return (
     <Styles ref={rootElem} height={height} width={width}>

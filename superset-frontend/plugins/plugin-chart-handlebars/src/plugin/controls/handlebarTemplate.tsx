@@ -25,6 +25,7 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import React from 'react';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
+import { debounceFunc } from '../../consts';
 
 interface HandlebarsCustomControlProps {
   value: string;
@@ -37,9 +38,6 @@ const HandlebarsTemplateControl = (
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
 
-  const updateConfig = (source: string) => {
-    props.onChange(source);
-  };
   return (
     <div>
       <ControlHeader>{props.label}</ControlHeader>
@@ -47,7 +45,7 @@ const HandlebarsTemplateControl = (
         theme="dark"
         value={val}
         onChange={source => {
-          updateConfig(source || '');
+          debounceFunc(props.onChange, source || '');
         }}
       />
     </div>
@@ -61,11 +59,11 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
     type: HandlebarsTemplateControl,
     label: t('Handlebars Template'),
     description: t('A handlebars template that is applied to the data'),
-    default: `<ul class="data_list">
-      {{#each data}}
-        <li>{{this}}</li>
-      {{/each}}
-    </ul>`,
+    default: `<ul class="data-list">
+  {{#each data}}
+    <li>{{stringify this}}</li>
+  {{/each}}
+</ul>`,
     isInt: false,
     renderTrigger: true,
 
