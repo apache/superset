@@ -158,7 +158,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     switch (key) {
       case MENU_KEYS.REFRESH_DASHBOARD:
         this.props.forceRefreshAllCharts();
-        this.props.addSuccessToast(t('Started refreshing Charts'));
+        this.props.addSuccessToast(t('Refreshing Charts'));
         break;
       case MENU_KEYS.EDIT_PROPERTIES:
         this.props.showPropertiesModal();
