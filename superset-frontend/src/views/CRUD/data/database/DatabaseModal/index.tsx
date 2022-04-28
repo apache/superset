@@ -184,7 +184,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = {};
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -312,6 +312,7 @@ function dbReducer(
       };
     case ActionType.fetched:
       // convert all the keys in this payload into strings
+      console.log('action.payload--->>>', action.payload);
       if (action.payload.extra) {
         extra_json = {
           ...JSON.parse(action.payload.extra || ''),
