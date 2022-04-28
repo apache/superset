@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
@@ -27,6 +32,7 @@ const defaultProps = {
     {
       metric_name: 'metric_a',
       expression: 'expression_a',
+      verbose_name: 'metric_a',
     },
     {
       metric_name: 'metric_b',
@@ -281,4 +287,33 @@ test('update adhoc metric name when column label in dataset changes', () => {
   expect(screen.getByText('Metric B')).toBeVisible();
   expect(screen.getByText('SUM(new col A name)')).toBeVisible();
   expect(screen.getByText('SUM(new col B name)')).toBeVisible();
+});
+
+test('can drag metrics', async () => {
+  const metricValues = ['metric_a', 'metric_b', adhocMetricB];
+  render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
+    useDnd: true,
+  });
+
+  expect(screen.getByText('metric_a')).toBeVisible();
+  expect(screen.getByText('Metric B')).toBeVisible();
+
+  const container = screen.getByTestId('dnd-labels-container');
+  expect(container.childElementCount).toBe(4);
+
+  const firstMetric = container.children[0] as HTMLElement;
+  const lastMetric = container.children[2] as HTMLElement;
+  expect(within(firstMetric).getByText('metric_a')).toBeVisible();
+  expect(within(lastMetric).getByText('SUM(Column B)')).toBeVisible();
+
+  fireEvent.mouseOver(within(firstMetric).getByText('metric_a'));
+  expect(await screen.findByText('Metric name')).toBeInTheDocument();
+
+  fireEvent.dragStart(firstMetric);
+  fireEvent.dragEnter(lastMetric);
+  fireEvent.dragOver(lastMetric);
+  fireEvent.drop(lastMetric);
+
+  expect(within(firstMetric).getByText('SUM(Column B)')).toBeVisible();
+  expect(within(lastMetric).getByText('metric_a')).toBeVisible();
 });
