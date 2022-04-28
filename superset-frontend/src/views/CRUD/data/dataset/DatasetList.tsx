@@ -367,7 +367,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           // Verify owner or isAdmin
           const allowEdit =
-            original.owners.map((o: any) => o.id).includes(user.userId) ||
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
