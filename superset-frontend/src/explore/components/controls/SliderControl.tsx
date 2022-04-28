@@ -18,19 +18,50 @@
  */
 import React from 'react';
 import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import ControlHeader, {
+  ControlHeaderProps,
+} from 'src/explore/components/ControlHeader';
 
-type SliderControlProps = {
+type SliderControlProps = ControlHeaderProps & {
   onChange: (value: number) => void;
   value: number;
   default?: number;
 };
 
-export default function SliderControl(props: SliderControlProps) {
-  const { onChange = () => {}, default: defaultValue, ...rest } = props;
+export default function SliderControl({
+  default: defaultValue,
+  name,
+  label,
+  description,
+  renderTrigger,
+  rightNode,
+  leftNode,
+  validationErrors,
+  hovered,
+  warning,
+  danger,
+  onClick,
+  tooltipOnClick,
+  onChange = () => {},
+  ...rest
+}: SliderControlProps) {
+  const headerProps = {
+    name,
+    label,
+    description,
+    renderTrigger,
+    rightNode,
+    leftNode,
+    validationErrors,
+    onClick,
+    hovered,
+    tooltipOnClick,
+    warning,
+    danger,
+  };
   return (
     <>
-      <ControlHeader />
+      <ControlHeader {...headerProps} />
       <Slider {...rest} onChange={onChange} defaultValue={defaultValue} />
     </>
   );

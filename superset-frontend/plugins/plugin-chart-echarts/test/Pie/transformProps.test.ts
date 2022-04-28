@@ -24,7 +24,7 @@ import {
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, EchartsPieLabelType } from '../../src/Pie/types';
 
-describe('Pie tranformProps', () => {
+describe('Pie transformProps', () => {
   const formData: SqlaFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -47,7 +47,7 @@ describe('Pie tranformProps', () => {
     ],
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsPieChartProps)).toEqual(
       expect.objectContaining({
         width: 800,

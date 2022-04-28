@@ -20,7 +20,7 @@
 import { ChartProps } from '@superset-ui/core';
 import transformProps from '../../src/legacyPlugin/transformProps';
 
-describe('WordCloud tranformProps', () => {
+describe('WordCloud transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -42,7 +42,7 @@ describe('WordCloud tranformProps', () => {
     ],
   });
 
-  it('should tranform chart props for word cloud viz', () => {
+  it('should transform chart props for word cloud viz', () => {
     expect(transformProps(chartProps)).toEqual({
       width: 800,
       height: 600,

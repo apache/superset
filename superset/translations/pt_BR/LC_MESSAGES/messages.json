@@ -1445,6 +1445,7 @@
       "Run selection": ["Executar seleção"],
       "Run": ["Executar"],
       "Stop running (Ctrl + x)": ["Parar execução (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Parar execução (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Executar query (Ctrl + Return)"],
       "Save & Explore": ["Salvar e explorar"],
       "Overwrite & Explore": ["Sobrescrever & explorar"],

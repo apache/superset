@@ -17,13 +17,9 @@
  * under the License.
  */
 module.exports = {
-  appName: 'Apache Superset',
-  apiKey: process.env.APPLITOOLS_API_KEY,
-  batchId: process.env.APPLITOOLS_BATCH_ID,
-  batchName: 'Cypress-GitActions',
-  browser: [{ width: 800, height: 600, name: 'chrome' }],
-  failCypressOnDiff: true,
+  browser: [{ width: 1000, height: 660, name: 'chrome' }],
+  failCypressOnDiff: false,
   isDisabled: false,
   showLogs: true,
-  testConcurrency: 5,
+  testConcurrency: 10,
 };

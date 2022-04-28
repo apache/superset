@@ -57,11 +57,11 @@ class URLShortLinkButton extends React.Component {
     if (this.props.dashboardId) {
       getFilterValue(this.props.dashboardId, nativeFiltersKey)
         .then(filterState =>
-          getDashboardPermalink(
-            String(this.props.dashboardId),
+          getDashboardPermalink({
+            dashboardId: this.props.dashboardId,
             filterState,
-            this.props.anchorLinkId,
-          )
+            hash: this.props.anchorLinkId,
+          })
             .then(this.onShortUrlSuccess)
             .catch(this.props.addDangerToast),
         )

@@ -67,7 +67,13 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react', 'file-progress', 'theme-colors'],
+  plugins: [
+    'prettier',
+    'react',
+    'file-progress',
+    'theme-colors',
+    'translation-vars',
+  ],
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -198,12 +204,14 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
+        'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
       },
     },
   ],
   rules: {
     'theme-colors/no-literal-colors': 1,
+    'translation-vars/no-template-vars': ['error', true],
     camelcase: [
       'error',
       {
@@ -247,7 +255,7 @@ module.exports = {
           {
             name: 'antd',
             message:
-              'Please import Ant components from the index of common/components',
+              'Please import Ant components from the index of src/components',
           },
           {
             name: '@superset-ui/core',
