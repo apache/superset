@@ -87,7 +87,11 @@ export default function DndSelectLabel({
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
-      <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
+      <DndLabelsContainer
+        data-test="dnd-labels-container"
+        canDrop={canDrop}
+        isOver={isOver}
+      >
         {props.valuesRenderer()}
         {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
