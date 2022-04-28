@@ -222,7 +222,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   </span>
                 }
                 key="1"
-                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
@@ -246,7 +245,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   </span>
                 }
                 key="2"
-                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
@@ -270,7 +268,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   </span>
                 }
                 key="3"
-                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
@@ -294,7 +291,6 @@ function AtAGlanceUserIDCore(props: AtAGlanceUserIDProps) {
                   </span>
                 }
                 key="4"
-                style={styles.HostList}
               >
                 {aadDataManager.isLoading && !aadDataManager.isInit ? (
                   <></>
