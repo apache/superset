@@ -21,7 +21,9 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.eyesOpen();
+    cy.eyesOpen({
+      testName: 'Chart list view',
+    });
   });
 
   afterEach(() => {

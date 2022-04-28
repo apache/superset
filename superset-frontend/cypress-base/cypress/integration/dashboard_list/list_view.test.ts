@@ -23,7 +23,9 @@ describe('dashboard list view', () => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
     cy.get('[aria-label="list-view"]').click();
-    cy.eyesOpen();
+    cy.eyesOpen({
+      testName: 'Dashboard list view',
+    });
   });
 
   afterEach(() => {

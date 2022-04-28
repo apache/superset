@@ -19,6 +19,7 @@
 module.exports = {
   apiKey: process.env.APPLITOOLS_API_KEY,
   batchId: process.env.APPLITOOLS_BATCH_ID,
+  batchName: process.env.APPLITOOLS_BATCH_NAME,
   browser: [{ width: 1000, height: 660, name: 'chrome' }],
   failCypressOnDiff: false,
   isDisabled: false,

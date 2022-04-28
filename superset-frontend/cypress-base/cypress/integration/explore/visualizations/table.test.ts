@@ -46,7 +46,9 @@ describe('Visualization > Table', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: false }).as('chartData');
-    cy.eyesOpen();
+    cy.eyesOpen({
+      testName: 'Table viz',
+    });
   });
 
   afterEach(() => {

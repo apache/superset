@@ -20,7 +20,9 @@ describe('SqlLab', () => {
   beforeEach(() => {
     cy.login();
     cy.visit('/superset/sqllab');
-    cy.eyesOpen();
+    cy.eyesOpen({
+      testName: 'SqlLab view',
+    });
   });
 
   afterEach(() => {

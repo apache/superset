@@ -1,9 +1,10 @@
 name: E2E
 
 env:
-  APPLITOOLS_APP_NAME: Superset Cypress
+  APPLITOOLS_APP_NAME: Superset
   APPLITOOLS_API_KEY: Xeg1tKzvPfPB8hgWwopDIqGsZvATmu97nMPzEE00oQP8110
   APPLITOOLS_BATCH_ID: ${{ github.sha }}
+  APPLITOOLS_BATCH_NAME: Superset Cypress
 
 on:
   push:
