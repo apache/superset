@@ -78,13 +78,12 @@ function WorldMap(element, props) {
   let colorScale;
   if (colorBy === ColorBy.country) {
     colorScale = CategoricalColorNamespace.getScale(colorScheme);
-    processedData = filteredData.map(d => {
-      return {
-        ...d,
-        radius: radiusScale(Math.sqrt(d.m2)),
-        fillColor: colorScale(d.name, sliceId),
-      };
-    });
+
+    processedData = filteredData.map(d => ({
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: colorScale(d.name, sliceId),
+    }));
   } else {
     colorScale = getSequentialSchemeRegistry()
       .get(linearColorScheme)
