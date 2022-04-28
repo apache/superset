@@ -27,8 +27,8 @@ export default {
 };
 
 export const options: Type[] = [
-  'alert',
   'default',
+  'alert',
   'info',
   'success',
   'warning',

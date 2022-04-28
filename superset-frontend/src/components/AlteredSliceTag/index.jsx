@@ -35,6 +35,7 @@ const propTypes = {
 const StyledLabel = styled.span`
   ${({ theme }) => `
     font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.dark1};
     background-color: ${theme.colors.alert.base};
 
     &: hover {

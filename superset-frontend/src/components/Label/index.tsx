@@ -45,7 +45,7 @@ export interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
 export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
-  const { type, onClick, children, ...rest } = props;
+  const { type = 'default', onClick, children, ...rest } = props;
   const {
     alert,
     primary,
@@ -63,11 +63,12 @@ export default function Label(props: LabelProps) {
   let borderColorHover = onClick ? primary.light1 : 'transparent';
   let color = grayscale.dark1;
 
-  if (type && type !== 'default') {
+  if (type !== 'default') {
     color = grayscale.light4;
 
     let baseColor;
     if (type === 'alert') {
+      color = grayscale.dark1;
       baseColor = alert;
     } else if (type === 'success') {
       baseColor = success;
