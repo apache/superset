@@ -20,7 +20,7 @@ import { SafeMarkdown, styled } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
-import { isObject } from 'lodash';
+import { isPlainObject } from 'lodash';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -71,5 +71,5 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
   if (obj2 === undefined)
     throw Error('Please call with an object. Example: `stringify myObj`');
-  return isObject(obj) ? JSON.stringify(obj) : String(obj);
+  return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
