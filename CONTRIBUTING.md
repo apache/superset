@@ -573,13 +573,20 @@ There are three types of assets you can build:
 
 The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
 
-Concretely, it means that you will want to:
+So a typical development workflow is the following:
 
-1. [run Superset locally](#flask-server) using Flask, on port `8088`,
-2. in parallel, run the Webpack dev server locally on port `9000`,
-3. access `http://localhost:9000` in your browser. (This will load the hot-reloading front-end assets from web-pack while redirecting back-end queries to Flask/Superset.)
+1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
+   ```bash
+   # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
+   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   ```
+2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+   ```bash
+   npm run dev-server
+   ```
+3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
-It's possible to change these settings:
+It's possible to change the Webpack server settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
