@@ -176,7 +176,7 @@ export default function exploreReducer(state = {}, action) {
         ...state,
         controls: {
           ...state.controls,
-          [action.controlName]: control,
+          [controlName]: control,
           ...(controlName === 'metrics' && { column_config }),
         },
       };
