@@ -70,7 +70,7 @@ const getTestTitle = (
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
 
-xdescribe('Nativefilters tests initial state required', () => {
+describe('Nativefilters tests initial state required', () => {
   beforeEach(() => {
     cy.login();
     cleanUp();
