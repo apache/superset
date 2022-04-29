@@ -60,7 +60,7 @@ jobs:
         run: npm run test -- plugins packages
       - name: Build packages
         working-directory: ./superset-frontend
-        run: npm run plugins:build
+        run: npm run superset-ui:build
 
       - name: Configure npm and git
         run: |
