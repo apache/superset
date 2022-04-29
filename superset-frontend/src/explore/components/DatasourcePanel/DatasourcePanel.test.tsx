@@ -49,6 +49,20 @@ const datasource = {
   description: 'desc',
   owners: [{ username: 'admin', userId: 1 }],
 };
+
+const mockUser = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+  isAnonymous: false,
+};
+
 const props: DatasourcePanelProps = {
   datasource,
   controls: {
@@ -58,6 +72,7 @@ const props: DatasourcePanelProps = {
       type: DatasourceControl,
       label: 'hello',
       datasource,
+      user: mockUser,
     },
   },
   actions: {
@@ -155,6 +170,7 @@ test('should render a warning', async () => {
         datasource: {
           ...props.controls.datasource,
           datasource: deprecatedDatasource,
+          user: mockUser,
         },
       },
     }),
