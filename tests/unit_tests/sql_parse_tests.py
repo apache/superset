@@ -29,6 +29,7 @@ from sqlparse.tokens import Name
 from superset.exceptions import QueryClauseValidationException
 from superset.sql_parse import (
     add_table_name,
+    extract_table_references,
     get_rls_for_table,
     has_table_query,
     insert_rls,
@@ -1468,3 +1469,51 @@ def test_get_rls_for_table(mocker: MockerFixture, app_context: None) -> None:
 
     dataset.get_sqla_row_level_filters.return_value = []
     assert get_rls_for_table(candidate, 1, "public") is None
+
+
+def test_extract_table_references(mocker: MockerFixture) -> None:
+    """
+    Test the ``extract_table_references`` helper function.
+    """
+    assert extract_table_references("SELECT 1", "trino") == set()
+    assert extract_table_references("SELECT 1 FROM some_table", "trino") == {
+        Table(table="some_table", schema=None, catalog=None)
+    }
+    assert extract_table_references("SELECT {{ jinja }} FROM some_table", "trino") == {
+        Table(table="some_table", schema=None, catalog=None)
+    }
+    assert extract_table_references(
+        "SELECT 1 FROM some_catalog.some_schema.some_table", "trino"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+
+    # with identifier quotes
+    assert extract_table_references(
+        "SELECT 1 FROM `some_catalog`.`some_schema`.`some_table`", "mysql"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+    assert extract_table_references(
+        'SELECT 1 FROM "some_catalog".some_schema."some_table"', "trino"
+    ) == {Table(table="some_table", schema="some_schema", catalog="some_catalog")}
+
+    assert extract_table_references(
+        "SELECT * FROM some_table JOIN other_table ON some_table.id = other_table.id",
+        "trino",
+    ) == {
+        Table(table="some_table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
+    }
+
+    # test falling back to sqlparse
+    logger = mocker.patch("superset.sql_parse.logger")
+    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
+    assert extract_table_references(
+        sql,
+        "trino",
+    ) == {Table(table="other_table", schema=None, catalog=None)}
+    logger.warning.assert_called_once()
+
+    logger = mocker.patch("superset.migrations.shared.utils.logger")
+    sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
+    assert extract_table_references(sql, "trino", show_warning=False) == {
+        Table(table="other_table", schema=None, catalog=None)
+    }
+    logger.warning.assert_not_called()

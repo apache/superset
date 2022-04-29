@@ -116,7 +116,7 @@ Here's a list of repositories that contain Superset-related packages:
   the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
 - [github.com/apache-superset](https://github.com/apache-superset) is the
-  Github organization under which we manage Superset-related
+  GitHub organization under which we manage Superset-related
   small tools, forks and Superset-related experimental ideas.
 
 ## Types of Contributions
@@ -209,7 +209,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - `chore` (updating tasks etc; no application logic change)
   - `perf` (performance-related change)
   - `build` (build tooling, Docker configuration change)
-  - `ci` (test runner, Github Actions workflow changes)
+  - `ci` (test runner, GitHub Actions workflow changes)
   - `other` (changes that don't correspond to the above -- should be rare!)
   - Examples:
     - `feat: export charts as ZIP files`
@@ -488,7 +488,7 @@ To bring all dependencies up to date as per the restrictions defined in `setup.p
 $ pip-compile-multi
 ```
 
-This should be done periodically, but it is rcommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
+This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 
@@ -661,7 +661,7 @@ We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 tox -e pylint
 ```
 
-In terms of best practices please advoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+In terms of best practices please avoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
 Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)

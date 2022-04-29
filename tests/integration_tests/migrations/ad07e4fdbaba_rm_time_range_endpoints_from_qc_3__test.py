@@ -16,7 +16,7 @@
 # under the License.
 import json
 
-from superset.migrations.versions.cecc6bf46990_rm_time_range_endpoints_2 import (
+from superset.migrations.versions.ad07e4fdbaba_rm_time_range_endpoints_from_qc_3 import (
     Slice,
     upgrade_slice,
 )
@@ -106,7 +106,9 @@ sample_query_context = {
             "post_processing": [],
         }
     ],
-    "form_data": {},
+    "form_data": {
+        "time_range_endpoints": ["inclusive", "exclusive"],
+    },
     "result_format": "json",
     "result_type": "full",
 }
@@ -122,6 +124,9 @@ def test_upgrade():
     for q in queries:
         extras = q.get("extras", {})
         assert "time_range_endpoints" not in extras
+
+    form_data = query_context.get("form_data", {})
+    assert "time_range_endpoints" not in form_data
 
 
 def test_upgrade_bad_json():

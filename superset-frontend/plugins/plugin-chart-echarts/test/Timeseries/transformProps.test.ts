@@ -54,7 +54,7 @@ describe('EchartsTimeseries transformProps', () => {
     queriesData,
   };
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({

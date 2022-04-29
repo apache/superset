@@ -3653,6 +3653,7 @@
       "Stop": ["Stopp"],
       "Stop query": ["Abfrage anhalten"],
       "Stop running (Ctrl + x)": ["Ausführung abbrechen (Strg + x)"],
+      "Stop running (Ctrl + e)": ["Ausführung abbrechen (Strg + e)"],
       "Stopped an unsafe database connection": [
         "Eine unsichere Datenbankverbindung wurde beendet"
       ],

@@ -1204,6 +1204,7 @@
       "Run selection": ["运行选定的查询"],
       "Run": ["执行"],
       "Stop running (Ctrl + x)": ["停止运行 (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["停止运行 (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["执行运行 (Ctrl + Return)"],
       "Save & Explore": ["保存和浏览"],
       "Overwrite & Explore": ["覆写和浏览"],
