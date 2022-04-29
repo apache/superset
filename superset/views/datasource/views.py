@@ -29,7 +29,6 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, db, event_logger
 from superset.commands.utils import populate_owners
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.dao.datasource import DatasourceDAO
 from superset.datasets.commands.exceptions import (
