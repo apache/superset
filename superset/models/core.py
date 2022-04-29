@@ -255,8 +255,7 @@ class Database(
         uri = make_url_safe(self.sqlalchemy_uri_decrypted)
         encrypted_extra = self.get_encrypted_extra()
         try:
-            # pylint: disable=useless-suppression
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
+            parameters = self.db_engine_spec.get_parameters_from_url(
                 uri, encrypted_extra=encrypted_extra
             )
         except Exception:  # pylint: disable=broad-except
@@ -544,7 +543,7 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # pylint: disable=line-too-long,useless-suppression
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(  # pylint: disable=unused-argument
@@ -577,7 +576,7 @@ class Database(
             return []
 
     @cache_util.memoized_func(
-        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # pylint: disable=line-too-long,useless-suppression
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",
         cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(  # pylint: disable=unused-argument

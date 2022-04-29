@@ -76,7 +76,7 @@ class TrinoEngineSpec(BaseEngineSpec):
             utils.TemporalType.TIMESTAMP,
             utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
         ):
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long,useless-suppression
+            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""
         return None
 
     @classmethod

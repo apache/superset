@@ -272,7 +272,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(
             id_or_slug
         ),
         max_age=0,
@@ -326,7 +326,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return self.response(200, result=result)
 
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
             id_or_slug
         ),
         max_age=0,
@@ -389,7 +389,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(
             id_or_slug
         ),
         max_age=0,
