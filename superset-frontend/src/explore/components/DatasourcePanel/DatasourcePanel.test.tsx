@@ -47,6 +47,7 @@ const datasource = {
   main_dttm_col: 'None',
   datasource_name: 'table1',
   description: 'desc',
+  owners: [{ username: 'admin', userId: 1 }],
 };
 const props: DatasourcePanelProps = {
   datasource,
