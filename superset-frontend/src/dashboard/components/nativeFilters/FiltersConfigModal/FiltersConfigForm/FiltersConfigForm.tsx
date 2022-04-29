@@ -37,7 +37,6 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { FormInstance } from 'antd/lib/form';
 import { isEqual } from 'lodash';
 import React, {
   forwardRef,
@@ -49,9 +48,9 @@ import React, {
 } from 'react';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/chart/chartAction';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input, TextArea } from 'src/components/Input';
-import { Select } from 'src/components';
+import { Select, FormInstance } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FormItem } from 'src/components/Form';
@@ -74,9 +73,12 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
-import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
-  CASCADING_FILTERS,
+  getFormData,
+  mergeExtraFormData,
+} from 'src/dashboard/components/nativeFilters/utils';
+import {
+  ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
 import { FilterRemoval, NativeFiltersForm } from '../types';
@@ -95,6 +97,7 @@ import {
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
+import DependencyList from './DependencyList';
 
 const TabPane = styled(Tabs.TabPane)`
   padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
@@ -283,15 +286,13 @@ export interface FiltersConfigFormProps {
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
-  parentFilters: { id: string; title: string }[];
-  onFilterHierarchyChange: (
-    filterId: string,
-    parentFilter: { label: string; value: string },
-  ) => void;
+  getAvailableFilters: (filterId: string) => { label: string; value: string }[];
   handleActiveFilterPanelChange: (activeFilterPanel: string | string[]) => void;
   activeFilterPanelKeys: string | string[];
   isActive: boolean;
   setErroredFilters: (f: (filters: string[]) => string[]) => void;
+  validateDependencies: () => void;
+  getDependencySuggestion: (filterId: string) => string;
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
@@ -324,12 +325,13 @@ const FiltersConfigForm = (
     filterToEdit,
     removedFilters,
     form,
-    parentFilters,
+    getAvailableFilters,
     activeFilterPanelKeys,
     restoreFilter,
-    onFilterHierarchyChange,
     handleActiveFilterPanelChange,
     setErroredFilters,
+    validateDependencies,
+    getDependencySuggestion,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -347,26 +349,12 @@ const FiltersConfigForm = (
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
-  const formValues = form.getFieldValue('filters')?.[filterId];
+  const filters = form.getFieldValue('filters');
+  const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
 
-  const parentFilterOptions = useMemo(
-    () =>
-      parentFilters.map(filter => ({
-        value: filter.id,
-        label: filter.title,
-      })),
-    [parentFilters],
-  );
-
-  const parentId =
-    formFilter?.parentFilter?.value || filterToEdit?.cascadeParentIds?.[0];
-
-  const parentFilter = parentFilterOptions.find(
-    ({ value }) => value === parentId,
-  );
-
-  const hasParentFilter = !!parentFilter;
+  const dependencies: string[] =
+    formFilter?.dependencies || filterToEdit?.cascadeParentIds;
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -435,7 +423,9 @@ const FiltersConfigForm = (
     formFilter?.filterType,
   );
 
-  const isCascadingFilter = CASCADING_FILTERS.includes(formFilter?.filterType);
+  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
+    formFilter?.filterType,
+  );
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -453,6 +443,21 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
+  // Calculates the dependencies default values to be used
+  // to extract the available values to the filter
+  let dependenciesDefaultValues = {};
+  if (dependencies && dependencies.length > 0 && filters) {
+    dependencies.forEach(dependency => {
+      const extraFormData = filters[dependency]?.defaultDataMask?.extraFormData;
+      dependenciesDefaultValues = mergeExtraFormData(
+        dependenciesDefaultValues,
+        extraFormData,
+      );
+    });
+  }
+
+  const dependenciesText = JSON.stringify(dependenciesDefaultValues);
+
   const refreshHandler = useCallback(
     (force = false) => {
       if (!hasDataset || !formFilter?.dataset?.value) {
@@ -464,6 +469,9 @@ const FiltersConfigForm = (
         groupby: formFilter?.column,
         ...formFilter,
       });
+
+      formData.extra_form_data = dependenciesDefaultValues;
+
       setNativeFilterFieldValuesWrapper({
         defaultValueQueriesData: null,
         isDataDirty: false,
@@ -513,14 +521,19 @@ const FiltersConfigForm = (
           });
         });
     },
-    [filterId, forceUpdate, form, formFilter, hasDataset],
+    [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
   );
+
+  // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => refreshHandler(), [dependenciesText]);
 
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
+  newFormData.extra_form_data = dependenciesDefaultValues;
 
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
     useDefaultValue(formFilter, filterToEdit);
@@ -625,32 +638,8 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  const ParentSelect = ({
-    value,
-    ...rest
-  }: {
-    value?: { value: string | number };
-  }) => {
-    const parentId = value?.value;
-    const isParentRemoved = parentId && removedFilters[parentId];
-    let options = parentFilterOptions;
-    if (isParentRemoved) {
-      options = [
-        { label: t('(deleted)'), value: parentId as string },
-        ...parentFilterOptions,
-      ];
-    }
-    return (
-      <Select
-        ariaLabel={t('Parent filter')}
-        placeholder={t('None')}
-        options={options}
-        allowClear
-        value={parentId}
-        {...rest}
-      />
-    );
-  };
+  const availableFilters = getAvailableFilters(filterId);
+  const hasAvailableFilters = availableFilters.length > 0;
 
   useEffect(() => {
     if (datasetId) {
@@ -857,270 +846,251 @@ const FiltersConfigForm = (
           expandIconPosition="right"
           key={`native-filter-config-${filterId}`}
         >
-          <Collapse.Panel
-            forceRender
-            header={FilterPanels.configuration.name}
-            key={`${filterId}-${FilterPanels.configuration.key}`}
-          >
-            {isCascadingFilter && (
-              <CleanFormItem name={['filters', filterId, 'hierarchicalFilter']}>
-                <CollapsibleControl
-                  title={t('Filter is hierarchical')}
-                  initialValue={hasParentFilter}
-                  onChange={checked => {
-                    formChanged();
-                    // execute after render
-                    setTimeout(() => {
-                      if (checked) {
-                        form.validateFields([
-                          ['filters', filterId, 'parentFilter'],
-                        ]);
-                      } else {
-                        setNativeFilterFieldValues(form, filterId, {
-                          parentFilter: undefined,
-                        });
-                      }
-                      onFilterHierarchyChange(
-                        filterId,
-                        checked
-                          ? form.getFieldValue('filters')[filterId].parentFilter
-                          : undefined,
-                      );
-                    }, 0);
-                  }}
+          {formFilter?.filterType !== 'filter_time' && (
+            <Collapse.Panel
+              forceRender
+              header={FilterPanels.configuration.name}
+              key={`${filterId}-${FilterPanels.configuration.key}`}
+            >
+              {canDependOnOtherFilters && hasAvailableFilters && (
+                <StyledRowFormItem
+                  name={['filters', filterId, 'dependencies']}
+                  initialValue={dependencies}
                 >
-                  <StyledRowSubFormItem
-                    name={['filters', filterId, 'parentFilter']}
-                    label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-                    initialValue={parentFilter}
-                    normalize={value => (value ? { value } : undefined)}
-                    data-test="parent-filter-input"
-                    required
-                    rules={[
-                      {
-                        required: true,
-                        message: t('Parent filter is required'),
-                      },
-                    ]}
-                  >
-                    <ParentSelect />
-                  </StyledRowSubFormItem>
-                </CollapsibleControl>
-              </CleanFormItem>
-            )}
-            {hasDataset && hasAdditionalFilters && (
-              <CleanFormItem name={['filters', filterId, 'preFilter']}>
-                <CollapsibleControl
-                  initialValue={hasPreFilter}
-                  title={t('Pre-filter available values')}
-                  onChange={checked => {
-                    formChanged();
-                    if (checked) {
-                      validatePreFilter();
+                  <DependencyList
+                    availableFilters={availableFilters}
+                    dependencies={dependencies}
+                    onDependenciesChange={dependencies => {
+                      setNativeFilterFieldValues(form, filterId, {
+                        dependencies,
+                      });
+                      forceUpdate();
+                      validateDependencies();
+                      formChanged();
+                    }}
+                    getDependencySuggestion={() =>
+                      getDependencySuggestion(filterId)
                     }
-                  }}
-                >
-                  <StyledRowSubFormItem
-                    name={['filters', filterId, 'adhoc_filters']}
-                    initialValue={filterToEdit?.adhoc_filters}
-                    required
-                    rules={[
-                      {
-                        validator: preFilterValidator,
-                      },
-                    ]}
-                  >
-                    <AdhocFilterControl
-                      columns={
-                        datasetDetails?.columns?.filter(
-                          (c: ColumnMeta) => c.filterable,
-                        ) || []
-                      }
-                      savedMetrics={datasetDetails?.metrics || []}
-                      datasource={datasetDetails}
-                      onChange={(filters: AdhocFilter[]) => {
-                        setNativeFilterFieldValues(form, filterId, {
-                          adhoc_filters: filters,
-                        });
-                        forceUpdate();
+                  />
+                </StyledRowFormItem>
+              )}
+              {hasDataset && hasAdditionalFilters && (
+                <CleanFormItem name={['filters', filterId, 'preFilter']}>
+                  <CollapsibleControl
+                    initialValue={hasPreFilter}
+                    title={t('Pre-filter available values')}
+                    onChange={checked => {
+                      formChanged();
+                      if (checked) {
                         validatePreFilter();
-                      }}
-                      label={
-                        <span>
-                          <StyledLabel>{t('Pre-filter')}</StyledLabel>
-                          {!hasTimeRange && <StyledAsterisk />}
-                        </span>
                       }
-                    />
-                  </StyledRowSubFormItem>
-                  {showTimeRangePicker && (
-                    <StyledRowFormItem
-                      name={['filters', filterId, 'time_range']}
-                      label={<StyledLabel>{t('Time range')}</StyledLabel>}
-                      initialValue={filterToEdit?.time_range || 'No filter'}
-                      required={!hasAdhoc}
+                    }}
+                  >
+                    <StyledRowSubFormItem
+                      name={['filters', filterId, 'adhoc_filters']}
+                      initialValue={filterToEdit?.adhoc_filters}
+                      required
                       rules={[
                         {
                           validator: preFilterValidator,
                         },
                       ]}
                     >
-                      <DateFilterControl
-                        name="time_range"
-                        endpoints={['inclusive', 'exclusive']}
-                        onChange={timeRange => {
+                      <AdhocFilterControl
+                        columns={
+                          datasetDetails?.columns?.filter(
+                            (c: ColumnMeta) => c.filterable,
+                          ) || []
+                        }
+                        savedMetrics={datasetDetails?.metrics || []}
+                        datasource={datasetDetails}
+                        onChange={(filters: AdhocFilter[]) => {
                           setNativeFilterFieldValues(form, filterId, {
-                            time_range: timeRange,
+                            adhoc_filters: filters,
                           });
                           forceUpdate();
                           validatePreFilter();
                         }}
-                      />
-                    </StyledRowFormItem>
-                  )}
-                  {hasTimeRange && (
-                    <StyledRowFormItem
-                      name={['filters', filterId, 'granularity_sqla']}
-                      label={
-                        <>
-                          <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
-                          <InfoTooltipWithTrigger
-                            placement="top"
-                            tooltip={t(
-                              'Optional time column if time range should apply to another column than the default time column',
-                            )}
-                          />
-                        </>
-                      }
-                      initialValue={filterToEdit?.granularity_sqla}
-                    >
-                      <ColumnSelect
-                        allowClear
-                        form={form}
-                        formField="granularity_sqla"
-                        filterId={filterId}
-                        filterValues={(column: Column) => !!column.is_dttm}
-                        datasetId={datasetId}
-                        onChange={column => {
-                          // We need reset default value when when column changed
-                          setNativeFilterFieldValues(form, filterId, {
-                            granularity_sqla: column,
-                          });
-                          forceUpdate();
-                        }}
-                      />
-                    </StyledRowFormItem>
-                  )}
-                </CollapsibleControl>
-              </CleanFormItem>
-            )}
-            {formFilter?.filterType !== 'filter_range' ? (
-              <CleanFormItem name={['filters', filterId, 'sortFilter']}>
-                <CollapsibleControl
-                  initialValue={hasSorting}
-                  title={t('Sort filter values')}
-                  onChange={checked => {
-                    onSortChanged(checked || undefined);
-                    formChanged();
-                  }}
-                >
-                  <StyledRowFormItem
-                    name={[
-                      'filters',
-                      filterId,
-                      'controlValues',
-                      'sortAscending',
-                    ]}
-                    initialValue={sort}
-                    label={<StyledLabel>{t('Sort type')}</StyledLabel>}
-                  >
-                    <Radio.Group
-                      onChange={value => {
-                        onSortChanged(value.target.value);
-                      }}
-                    >
-                      <Radio value>{t('Sort ascending')}</Radio>
-                      <Radio value={false}>{t('Sort descending')}</Radio>
-                    </Radio.Group>
-                  </StyledRowFormItem>
-                  {hasMetrics && (
-                    <StyledRowSubFormItem
-                      name={['filters', filterId, 'sortMetric']}
-                      initialValue={filterToEdit?.sortMetric}
-                      label={
-                        <>
-                          <StyledLabel>{t('Sort Metric')}</StyledLabel>&nbsp;
-                          <InfoTooltipWithTrigger
-                            placement="top"
-                            tooltip={t(
-                              'If a metric is specified, sorting will be done based on the metric value',
-                            )}
-                          />
-                        </>
-                      }
-                      data-test="field-input"
-                    >
-                      <Select
-                        allowClear
-                        ariaLabel={t('Sort metric')}
-                        name="sortMetric"
-                        options={metrics.map((metric: Metric) => ({
-                          value: metric.metric_name,
-                          label: metric.verbose_name ?? metric.metric_name,
-                        }))}
-                        onChange={value => {
-                          if (value !== undefined) {
-                            setNativeFilterFieldValues(form, filterId, {
-                              sortMetric: value,
-                            });
-                            forceUpdate();
-                          }
-                        }}
+                        label={
+                          <span>
+                            <StyledLabel>{t('Pre-filter')}</StyledLabel>
+                            {!hasTimeRange && <StyledAsterisk />}
+                          </span>
+                        }
                       />
                     </StyledRowSubFormItem>
-                  )}
-                </CollapsibleControl>
-              </CleanFormItem>
-            ) : (
-              <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
-                <CollapsibleControl
-                  initialValue={hasEnableSingleValue}
-                  title={t('Single Value')}
-                  onChange={checked => {
-                    onEnableSingleValueChanged(
-                      checked ? SingleValueType.Exact : undefined,
-                    );
-                    formChanged();
-                  }}
-                >
-                  <StyledRowFormItem
-                    name={[
-                      'filters',
-                      filterId,
-                      'controlValues',
-                      'enableSingleValue',
-                    ]}
-                    initialValue={enableSingleValue}
-                    label={<StyledLabel>{t('Single value type')}</StyledLabel>}
+                    {showTimeRangePicker && (
+                      <StyledRowFormItem
+                        name={['filters', filterId, 'time_range']}
+                        label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                        initialValue={filterToEdit?.time_range || 'No filter'}
+                        required={!hasAdhoc}
+                        rules={[
+                          {
+                            validator: preFilterValidator,
+                          },
+                        ]}
+                      >
+                        <DateFilterControl
+                          name="time_range"
+                          onChange={timeRange => {
+                            setNativeFilterFieldValues(form, filterId, {
+                              time_range: timeRange,
+                            });
+                            forceUpdate();
+                            validatePreFilter();
+                          }}
+                        />
+                      </StyledRowFormItem>
+                    )}
+                    {hasTimeRange && (
+                      <StyledRowFormItem
+                        name={['filters', filterId, 'granularity_sqla']}
+                        label={
+                          <>
+                            <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
+                            <InfoTooltipWithTrigger
+                              placement="top"
+                              tooltip={t(
+                                'Optional time column if time range should apply to another column than the default time column',
+                              )}
+                            />
+                          </>
+                        }
+                        initialValue={filterToEdit?.granularity_sqla}
+                      >
+                        <ColumnSelect
+                          allowClear
+                          form={form}
+                          formField="granularity_sqla"
+                          filterId={filterId}
+                          filterValues={(column: Column) => !!column.is_dttm}
+                          datasetId={datasetId}
+                          onChange={column => {
+                            // We need reset default value when when column changed
+                            setNativeFilterFieldValues(form, filterId, {
+                              granularity_sqla: column,
+                            });
+                            forceUpdate();
+                          }}
+                        />
+                      </StyledRowFormItem>
+                    )}
+                  </CollapsibleControl>
+                </CleanFormItem>
+              )}
+              {formFilter?.filterType !== 'filter_range' ? (
+                <CleanFormItem name={['filters', filterId, 'sortFilter']}>
+                  <CollapsibleControl
+                    initialValue={hasSorting}
+                    title={t('Sort filter values')}
+                    onChange={checked => {
+                      onSortChanged(checked || undefined);
+                      formChanged();
+                    }}
                   >
-                    <Radio.Group
-                      onChange={value =>
-                        onEnableSingleValueChanged(value.target.value)
+                    <StyledRowFormItem
+                      name={[
+                        'filters',
+                        filterId,
+                        'controlValues',
+                        'sortAscending',
+                      ]}
+                      initialValue={sort}
+                      label={<StyledLabel>{t('Sort type')}</StyledLabel>}
+                    >
+                      <Radio.Group
+                        onChange={value => {
+                          onSortChanged(value.target.value);
+                        }}
+                      >
+                        <Radio value>{t('Sort ascending')}</Radio>
+                        <Radio value={false}>{t('Sort descending')}</Radio>
+                      </Radio.Group>
+                    </StyledRowFormItem>
+                    {hasMetrics && (
+                      <StyledRowSubFormItem
+                        name={['filters', filterId, 'sortMetric']}
+                        initialValue={filterToEdit?.sortMetric}
+                        label={
+                          <>
+                            <StyledLabel>{t('Sort Metric')}</StyledLabel>&nbsp;
+                            <InfoTooltipWithTrigger
+                              placement="top"
+                              tooltip={t(
+                                'If a metric is specified, sorting will be done based on the metric value',
+                              )}
+                            />
+                          </>
+                        }
+                        data-test="field-input"
+                      >
+                        <Select
+                          allowClear
+                          ariaLabel={t('Sort metric')}
+                          name="sortMetric"
+                          options={metrics.map((metric: Metric) => ({
+                            value: metric.metric_name,
+                            label: metric.verbose_name ?? metric.metric_name,
+                          }))}
+                          onChange={value => {
+                            if (value !== undefined) {
+                              setNativeFilterFieldValues(form, filterId, {
+                                sortMetric: value,
+                              });
+                              forceUpdate();
+                            }
+                          }}
+                        />
+                      </StyledRowSubFormItem>
+                    )}
+                  </CollapsibleControl>
+                </CleanFormItem>
+              ) : (
+                <CleanFormItem name={['filters', filterId, 'rangeFilter']}>
+                  <CollapsibleControl
+                    initialValue={hasEnableSingleValue}
+                    title={t('Single Value')}
+                    onChange={checked => {
+                      onEnableSingleValueChanged(
+                        checked ? SingleValueType.Exact : undefined,
+                      );
+                      formChanged();
+                    }}
+                  >
+                    <StyledRowFormItem
+                      name={[
+                        'filters',
+                        filterId,
+                        'controlValues',
+                        'enableSingleValue',
+                      ]}
+                      initialValue={enableSingleValue}
+                      label={
+                        <StyledLabel>{t('Single value type')}</StyledLabel>
                       }
                     >
-                      <Radio value={SingleValueType.Minimum}>
-                        {t('Minimum')}
-                      </Radio>
-                      <Radio value={SingleValueType.Exact}>{t('Exact')}</Radio>
-                      <Radio value={SingleValueType.Maximum}>
-                        {t('Maximum')}
-                      </Radio>
-                    </Radio.Group>
-                  </StyledRowFormItem>
-                </CollapsibleControl>
-              </CleanFormItem>
-            )}
-          </Collapse.Panel>
+                      <Radio.Group
+                        onChange={value =>
+                          onEnableSingleValueChanged(value.target.value)
+                        }
+                      >
+                        <Radio value={SingleValueType.Minimum}>
+                          {t('Minimum')}
+                        </Radio>
+                        <Radio value={SingleValueType.Exact}>
+                          {t('Exact')}
+                        </Radio>
+                        <Radio value={SingleValueType.Maximum}>
+                          {t('Maximum')}
+                        </Radio>
+                      </Radio.Group>
+                    </StyledRowFormItem>
+                  </CollapsibleControl>
+                </CleanFormItem>
+              )}
+            </Collapse.Panel>
+          )}
           <Collapse.Panel
             forceRender
             header={FilterPanels.settings.name}
@@ -1147,6 +1117,11 @@ const FiltersConfigForm = (
                 tooltip={defaultValueTooltip}
                 onChange={value => {
                   setHasDefaultValue(value);
+                  if (!value) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      defaultDataMask: null,
+                    });
+                  }
                   formChanged();
                 }}
               >

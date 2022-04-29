@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import { AntdCard, Skeleton } from 'src/common/components';
+import { Skeleton, AntdCard } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
@@ -26,7 +26,7 @@ import CertifiedBadge from '../CertifiedBadge';
 const ActionsWrapper = styled.div`
   width: 64px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 `;
 
 const StyledCard = styled(AntdCard)`

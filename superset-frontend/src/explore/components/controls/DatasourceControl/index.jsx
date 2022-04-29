@@ -19,10 +19,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { t, styled, withTheme } from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -59,7 +59,8 @@ const Styles = styled.div`
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 4 * theme.gridUnit}px;
+    padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;
@@ -183,7 +184,7 @@ class DatasourceControl extends React.PureComponent {
 
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
-    const { datasource, onChange } = this.props;
+    const { datasource, onChange, theme } = this.props;
     const isMissingDatasource = datasource.id == null;
     let isMissingParams = false;
     if (isMissingDatasource) {
@@ -235,13 +236,13 @@ class DatasourceControl extends React.PureComponent {
           )}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
+              <Icons.AlertSolid iconColor={theme.colors.warning.base} />
             </Tooltip>
           )}
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <Dropdown
+          <AntdDropdown
             overlay={datasourceMenu}
             trigger={['click']}
             data-test="datasource-menu"
@@ -252,7 +253,7 @@ class DatasourceControl extends React.PureComponent {
                 data-test="datasource-menu-trigger"
               />
             </Tooltip>
-          </Dropdown>
+          </AntdDropdown>
         </div>
         {/* missing dataset */}
         {isMissingDatasource && isMissingParams && (
@@ -325,4 +326,4 @@ class DatasourceControl extends React.PureComponent {
 DatasourceControl.propTypes = propTypes;
 DatasourceControl.defaultProps = defaultProps;
 
-export default DatasourceControl;
+export default withTheme(DatasourceControl);

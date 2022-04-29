@@ -32,12 +32,13 @@ import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import {
   queryEditorSetFunctionNames,
   queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState, queries, table } from 'src/SqlLab/fixtures';
 
@@ -57,7 +58,19 @@ describe('SqlEditor', () => {
       queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
     },
-    database: {},
+    database: {
+      allow_ctas: false,
+      allow_cvas: false,
+      allow_dml: false,
+      allow_file_upload: false,
+      allow_multi_schema_metadata_fetch: false,
+      allow_run_async: false,
+      backend: 'postgresql',
+      database_name: 'examples',
+      expose_in_sqllab: true,
+      force_ctas_schema: null,
+      id: 1,
+    },
     queryEditorId: initialState.sqlLab.queryEditors[0].id,
     latestQuery: queries[0],
     tables: [table],
@@ -80,6 +93,12 @@ describe('SqlEditor', () => {
       },
     );
 
+  it('does not render SqlEditor if no db selected', () => {
+    const database = {};
+    const updatedProps = { ...mockedProps, database };
+    const wrapper = buildWrapper(updatedProps);
+    expect(wrapper.find(EmptyStateBig)).toExist();
+  });
   it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
@@ -126,6 +145,6 @@ describe('SqlEditor', () => {
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = buildWrapper(updatedProps);
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(Dropdown)).toExist();
+    expect(wrapper.find(AntdDropdown)).toExist();
   });
 });

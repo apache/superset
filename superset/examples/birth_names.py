@@ -135,23 +135,26 @@ def _set_table_metadata(datasource: SqlaTable, database: "Database") -> None:
 
 
 def _add_table_metrics(datasource: SqlaTable) -> None:
-    if not any(col.column_name == "num_california" for col in datasource.columns):
+    # By accessing the attribute first, we make sure `datasource.columns` and
+    # `datasource.metrics` are already loaded. Otherwise accessing them later
+    # may trigger an unnecessary and unexpected `after_update` event.
+    columns, metrics = datasource.columns, datasource.metrics
+
+    if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        datasource.columns.append(
+        columns.append(
             TableColumn(
                 column_name="num_california",
                 expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
             )
         )
 
-    if not any(col.metric_name == "sum__num" for col in datasource.metrics):
+    if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        datasource.metrics.append(
-            SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
-        )
+        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
-    for col in datasource.columns:
+    for col in columns:
         if col.column_name == "ds":
             col.is_dttm = True
             break
@@ -174,7 +177,6 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
         "compare_suffix": "o10Y",
         "limit": "25",
         "time_range": "No filter",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": app.config["ROW_LIMIT"],
@@ -187,8 +189,16 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     default_query_context = {
         "result_format": "json",
         "result_type": "full",
-        "datasource": {"id": tbl.id, "type": "table",},
-        "queries": [{"columns": [], "metrics": [],},],
+        "datasource": {
+            "id": tbl.id,
+            "type": "table",
+        },
+        "queries": [
+            {
+                "columns": [],
+                "metrics": [],
+            },
+        ],
     }
 
     admin = get_admin_user()
@@ -382,7 +392,12 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
             ),
             query_context=get_slice_json(
                 default_query_context,
-                queries=[{"columns": ["name", "state"], "metrics": [metric],}],
+                queries=[
+                    {
+                        "columns": ["name", "state"],
+                        "metrics": [metric],
+                    }
+                ],
             ),
         ),
     ]

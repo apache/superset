@@ -20,7 +20,12 @@
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
 
@@ -66,15 +71,12 @@ function jsFunctionControl(
         {extraDescr}
       </div>
     ),
-    mapStateToProps: state => ({
-      // eslint-disable-next-line no-negated-condition
-      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS
-        ? t(
-            'This functionality is disabled in your environment for security reasons.',
-          )
-        : null,
-      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
-    }),
+    warning: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS)
+      ? t(
+          'This functionality is disabled in your environment for security reasons.',
+        )
+      : null,
+    readOnly: !isFeatureEnabled(FeatureFlag.ENABLE_JAVASCRIPT_CONTROLS),
   };
 }
 

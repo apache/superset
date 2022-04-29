@@ -24,7 +24,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import Loading from 'src/components/Loading';
 import { CopyButton } from 'src/explore/components/DataTableControl';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { getChartDataRequest } from 'src/chart/chartAction';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';

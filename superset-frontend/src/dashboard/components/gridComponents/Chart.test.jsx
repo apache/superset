@@ -22,7 +22,7 @@ import sinon from 'sinon';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -91,6 +91,14 @@ describe('Chart', () => {
     expect(wrapper.find('.slice_description')).not.toExist();
     wrapper.setProps({ ...props, isExpanded: true });
     expect(wrapper.find('.slice_description')).toExist();
+  });
+
+  it('should calculate the description height if it has one and isExpanded=true', () => {
+    const spy = jest.spyOn(Chart.prototype, 'getDescriptionHeight');
+    const wrapper = setup({ isExpanded: true });
+
+    expect(wrapper.find('.slice_description')).toExist();
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should call refreshChart when SliceHeader calls forceRefresh', () => {

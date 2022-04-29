@@ -17,7 +17,7 @@
 """add_certifications_columns_to_slice
 
 Revision ID: f9847149153d
-Revises: 0ca9e5f1dacd
+Revises: 32646df09c64
 Create Date: 2021-11-03 14:07:09.905194
 
 """
@@ -27,7 +27,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "f9847149153d"
-down_revision = "0ca9e5f1dacd"
+down_revision = "32646df09c64"
 
 
 def upgrade():

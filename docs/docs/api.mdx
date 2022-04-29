@@ -4,12 +4,12 @@ hide_title: true
 sidebar_position: 9
 ---
 
-import { Buffer } from "buffer";
+import { Buffer } from 'buffer';
 global.Buffer = Buffer;
-import SwaggerUI from "swagger-ui-react";
-import openapi from "/resources/openapi.json";
-import "swagger-ui-react/swagger-ui.css";
-// import { Alert } from "antd";
+import SwaggerUI from 'swagger-ui-react';
+import openapi from '/resources/openapi.json';
+import 'swagger-ui-react/swagger-ui.css';
+import { Alert } from 'antd';
 
 ## API
 
@@ -18,28 +18,16 @@ Superset's public **REST API** follows the
 documented here. The docs bellow are generated using
 [Swagger React UI](https://www.npmjs.com/package/swagger-ui-react).
 
-<!--
-  TODO: (corbinrobb) Uncomment Alert if/when antd gets added and remove Infima alert. Fix SwaggerUI readability in dark mode.
--->
-
-<!-- <Alert
+<Alert
   type="info"
   message={
-
     <div>
       <strong>NOTE! </strong>
       You can find an interactive version of this documentation on your local Superset
-      instance at <strong>/swagger/v1</strong> (if enabled)
+      instance at <strong>/swagger/v1</strong> (unless disabled)
     </div>
-
- }
-/> -->
-
-<div class="alert alert--info" role="alert">
-  <strong>NOTE! </strong>
-  You can find an interactive version of this documentation on your local Superset
-  instance at <strong>/swagger/v1</strong> (if enabled)
-</div>
+  }
+/>
 
 <br />
 <br />

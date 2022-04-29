@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { RefObject } from 'react';
-import { Dropdown as AntdDropdown } from 'antd';
+import { AntdDropdown } from 'src/components';
 import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
 
@@ -72,7 +72,7 @@ export interface DropdownProps {
 
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper>
+    <MenuDotsWrapper data-test="dropdown-trigger">
       <MenuDots />
     </MenuDotsWrapper>
   </AntdDropdown>

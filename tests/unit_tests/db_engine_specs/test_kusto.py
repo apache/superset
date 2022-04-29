@@ -121,7 +121,10 @@ def test_kql_parse_sql(app_context: AppContext) -> None:
     ],
 )
 def test_kql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str, dttm: datetime,
+    app_context: AppContext,
+    target_type: str,
+    expected_dttm: str,
+    dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.
@@ -142,7 +145,10 @@ def test_kql_convert_dttm(
     ],
 )
 def test_sql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str, dttm: datetime,
+    app_context: AppContext,
+    target_type: str,
+    expected_dttm: str,
+    dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.

@@ -65,7 +65,7 @@ export type FilterSets = {
   [filtersSetId: string]: FilterSet;
 };
 
-export interface Filter {
+export type Filter = {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
   id: string; // randomly generated at filter creation
@@ -90,19 +90,31 @@ export interface Filter {
   chartsInScope?: number[];
   type: typeof NativeFilterType.NATIVE_FILTER;
   description: string;
-}
+};
 
-export interface Divider {
+export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
   title: string;
   description: string;
   type: typeof NativeFilterType.DIVIDER;
+};
+
+export function isNativeFilter(
+  filterElement: Filter | Divider,
+): filterElement is Filter {
+  return filterElement.type === NativeFilterType.NATIVE_FILTER;
+}
+
+export function isFilterDivider(
+  filterElement: Filter | Divider,
+): filterElement is Divider {
+  return filterElement.type === NativeFilterType.DIVIDER;
 }
 
 export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
-  [filterId: string]: Filter;
+  [filterId: string]: Filter | Divider;
 };
 
 export type NativeFiltersState = {

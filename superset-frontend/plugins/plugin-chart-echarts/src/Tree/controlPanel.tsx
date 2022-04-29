@@ -107,7 +107,7 @@ const controlPanel: ControlPanelConfig = {
       label: t('Chart options'),
       expanded: true,
       controlSetRows: [
-        [<h1 className="section-header">{t('Layout')}</h1>],
+        [<div className="section-header">{t('Layout')}</div>],
         [
           {
             name: 'layout',

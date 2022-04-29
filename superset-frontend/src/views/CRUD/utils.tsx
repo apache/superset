@@ -32,6 +32,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
+import findPermission from 'src/dashboard/util/findPermission';
 import { Dashboard, Filters } from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
@@ -163,20 +164,17 @@ export const getEditedObjects = (userId: string | number) => {
 export const getUserOwnedObjects = (
   userId: string | number,
   resource: string,
-) => {
-  const filters = {
-    created: [
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: `${userId}`,
-      },
-    ],
-  };
-  return SupersetClient.get({
-    endpoint: `/api/v1/${resource}/?q=${getParams(filters.created)}`,
+  filters: Array<Filters> = [
+    {
+      col: 'owners',
+      opr: 'rel_m_m',
+      value: `${userId}`,
+    },
+  ],
+) =>
+  SupersetClient.get({
+    endpoint: `/api/v1/${resource}/?q=${getParams(filters)}`,
   }).then(res => res.json?.result);
-};
 
 export const getRecentAcitivtyObjs = (
   userId: string | number,
@@ -287,7 +285,7 @@ export function handleDashboardDelete(
   addSuccessToast: (arg0: string) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -401,23 +399,48 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
     .flat();
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
-  errors.some(
-    error =>
-      !Object.entries(error.extra)
-        .filter(([key, _]) => key !== 'issue_codes')
-        .every(
-          ([_, payload]) =>
-            isNeedsPassword(payload) || isAlreadyExists(payload),
-        ),
-  );
+  errors.some(error => {
+    const noIssuesCodes = Object.entries(error.extra).filter(
+      ([key]) => key !== 'issue_codes',
+    );
+
+    if (noIssuesCodes.length === 0) return true;
+
+    return !noIssuesCodes.every(
+      ([, payload]) => isNeedsPassword(payload) || isAlreadyExists(payload),
+    );
+  });
 
 export const checkUploadExtensions = (
-  perm: Array<any> | string | undefined | boolean,
-  cons: Array<any>,
+  perm: Array<string>,
+  cons: Array<string>,
 ) => {
   if (perm !== undefined) {
-    if (typeof perm === 'boolean') return perm;
-    return intersection(perm, cons).length;
+    return intersection(perm, cons).length > 0;
   }
   return false;
+};
+
+export const uploadUserPerms = (
+  roles: Record<string, [string, string][]>,
+  csvExt: Array<string>,
+  colExt: Array<string>,
+  excelExt: Array<string>,
+  allowedExt: Array<string>,
+) => {
+  const canUploadCSV =
+    findPermission('can_this_form_get', 'CsvToDatabaseView', roles) &&
+    checkUploadExtensions(csvExt, allowedExt);
+  const canUploadColumnar =
+    checkUploadExtensions(colExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ColumnarToDatabaseView', roles);
+  const canUploadExcel =
+    checkUploadExtensions(excelExt, allowedExt) &&
+    findPermission('can_this_form_get', 'ExcelToDatabaseView', roles);
+  return {
+    canUploadCSV,
+    canUploadColumnar,
+    canUploadExcel,
+    canUploadData: canUploadCSV || canUploadColumnar || canUploadExcel,
+  };
 };

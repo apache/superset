@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 @click.group(
-    cls=FlaskGroup, context_settings={"token_normalize_func": normalize_token},
+    cls=FlaskGroup,
+    context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
 def superset() -> None:
@@ -45,7 +46,7 @@ def superset() -> None:
 
 # add sub-commands
 for load, module_name, is_pkg in pkgutil.walk_packages(
-    cli.__path__, cli.__name__ + "."  # type: ignore
+    cli.__path__, cli.__name__ + "."
 ):
     module = importlib.import_module(module_name)
     for attribute in module.__dict__.values():

@@ -21,7 +21,7 @@ import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
 import DashboardImg from 'src/assets/images/dashboard-card-fallback.svg';
 import ChartImg from 'src/assets/images/chart-card-fallback.svg';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
@@ -64,7 +64,7 @@ export const SupersetListViewCard = () => (
           saveFaveStar={action('saveFaveStar')}
           isStarred={boolean('isStarred', false)}
         />
-        <Dropdown
+        <AntdDropdown
           overlay={
             <Menu>
               <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
@@ -77,7 +77,7 @@ export const SupersetListViewCard = () => (
           }
         >
           <Icons.MoreHoriz />
-        </Dropdown>
+        </AntdDropdown>
       </ListViewCard.Actions>
     }
   />

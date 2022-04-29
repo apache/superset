@@ -31,6 +31,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { newQueryTabName } from '../../utils/newQueryTabName';
 import SqlEditor from '../SqlEditor';
 import TabStatusIcon from '../TabStatusIcon';
 
@@ -57,8 +58,6 @@ const defaultProps = {
   saveQueryWarning: null,
   scheduleQueryWarning: null,
 };
-
-let queryCount = 1;
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -233,7 +232,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   popNewTab() {
-    queryCount += 1;
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
@@ -255,7 +253,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   newQueryEditor() {
-    queryCount += 1;
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(
       ...Object.values(this.props.databases).map(database => database.id),
@@ -265,8 +262,11 @@ class TabbedSqlEditors extends React.PureComponent {
       : t(
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
+
+    const newTitle = newQueryTabName(this.props.queryEditors || []);
+
     const qe = {
-      title: t('Untitled Query %s', queryCount),
+      title: newTitle,
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
@@ -375,9 +375,7 @@ class TabbedSqlEditors extends React.PureComponent {
       );
       const tabHeader = (
         <TabTitleWrapper>
-          <div data-test="dropdown-toggle-button">
-            <Dropdown overlay={menu} trigger={['click']} />
-          </div>
+          <Dropdown overlay={menu} trigger={['click']} />
           <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
         </TabTitleWrapper>
       );

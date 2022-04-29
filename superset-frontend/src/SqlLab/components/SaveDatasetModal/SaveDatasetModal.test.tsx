@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Radio } from 'src/components/Radio';
-import { AutoComplete } from 'src/common/components';
+import { AutoComplete } from 'src/components';
 import { Input } from 'src/components/Input';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 

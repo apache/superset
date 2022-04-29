@@ -34,15 +34,21 @@ import { useTruncation } from './useTruncation';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
-const DependencyValue = ({ dependency, label }: DependencyValueProps) => {
+const DependencyValue = ({
+  dependency,
+  hasSeparator,
+}: DependencyValueProps) => {
   const dispatch = useDispatch();
   const handleClick = useCallback(() => {
     dispatch(setDirectPathToChild([dependency.id]));
   }, [dependency.id, dispatch]);
   return (
-    <DependencyItem role="button" onClick={handleClick} tabIndex={0}>
-      {label}
-    </DependencyItem>
+    <span>
+      {hasSeparator && <span>, </span>}
+      <DependencyItem role="button" onClick={handleClick} tabIndex={0}>
+        {dependency.name}
+      </DependencyItem>
+    </span>
   );
 };
 
@@ -58,10 +64,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         <TooltipList>
           {dependencies.map(dependency => (
             <li>
-              <DependencyValue
-                dependency={dependency}
-                label={dependency.name}
-              />
+              <DependencyValue dependency={dependency} />
             </li>
           ))}
         </TooltipList>
@@ -87,7 +90,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           )}
         >
           <Icons.Info
-            iconSize="s"
+            iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`
               margin-left: ${theme.gridUnit}px;
@@ -100,7 +103,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           {dependencies.map((dependency, index) => (
             <DependencyValue
               dependency={dependency}
-              label={index === 0 ? dependency.name : `, ${dependency.name}`}
+              hasSeparator={index !== 0}
             />
           ))}
         </RowValue>

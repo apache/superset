@@ -18,5 +18,5 @@
  * under the License.
  */
 export { getMetricOffsetsMap } from './getMetricOffsetsMap';
-export { isValidTimeCompare } from './isValidTimeCompare';
+export { isTimeComparison } from './isTimeComparison';
 export { TIME_COMPARISON_SEPARATOR } from './constants';

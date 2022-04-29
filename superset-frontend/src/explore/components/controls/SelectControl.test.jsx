@@ -37,9 +37,9 @@ const defaultProps = {
 };
 
 const options = [
-  { value: '1 year ago', label: '1 year ago', order: 0 },
-  { value: '1 week ago', label: '1 week ago', order: 1 },
-  { value: 'today', label: 'today', order: 2 },
+  { value: '1 year ago', label: '1 year ago' },
+  { value: '1 week ago', label: '1 week ago' },
+  { value: 'today', label: 'today' },
 ];
 
 describe('SelectControl', () => {
@@ -76,6 +76,14 @@ describe('SelectControl', () => {
       wrapper.setProps({ freeForm: false });
       expect(wrapper.find(SelectComponent)).toExist();
       expect(wrapper.find(SelectComponent).prop('allowNewOptions')).toBe(false);
+    });
+
+    it('renders with tokenSeparators', () => {
+      wrapper.setProps({ tokenSeparators: ['\n', '\t', ';'] });
+      expect(wrapper.find(SelectComponent)).toExist();
+      expect(wrapper.find(SelectComponent).prop('tokenSeparators')).toEqual(
+        expect.arrayContaining([expect.any(String)]),
+      );
     });
 
     describe('empty placeholder', () => {
@@ -151,62 +159,12 @@ describe('SelectControl', () => {
         expect(wrapper.html()).not.toContain('add something');
       });
     });
-
-    describe('when select has a sortComparator prop', () => {
-      it('does not add add order key and sorts by sortComparator', () => {
-        const sortComparator = (a, b) => a.label.localeCompare(b.label);
-        const optionsSortedByLabel = options
-          .map(opt => ({ label: opt.label, value: opt.value }))
-          .sort(sortComparator);
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            sortComparator={sortComparator}
-            value={50}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.state().options).toEqual(optionsSortedByLabel);
-      });
-    });
-
-    describe('when select does not have a sortComparator prop', () => {
-      it('adds an order key and maintains its intial order', () => {
-        wrapper = mount(
-          <SelectControl
-            {...defaultProps}
-            value={50}
-            placeholder="add something"
-          />,
-        );
-        expect(wrapper.state().options).toEqual(options);
-      });
-    });
   });
 
   describe('getOptions', () => {
     it('returns the correct options', () => {
       wrapper.setProps(defaultProps);
       expect(wrapper.instance().getOptions(defaultProps)).toEqual(options);
-    });
-  });
-  describe('UNSAFE_componentWillReceiveProps', () => {
-    it('sets state.options if props.choices has changed', () => {
-      const updatedOptions = [
-        { value: 'three', label: 'three', order: 0 },
-        { value: 'four', label: 'four', order: 1 },
-      ];
-      const newProps = {
-        choices: [
-          ['three', 'three'],
-          ['four', 'four'],
-        ],
-        name: 'name',
-        freeForm: false,
-        value: null,
-      };
-      wrapper.setProps(newProps);
-      expect(wrapper.state().options).toEqual(updatedOptions);
     });
   });
 });

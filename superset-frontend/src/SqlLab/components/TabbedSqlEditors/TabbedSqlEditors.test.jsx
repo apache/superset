@@ -180,6 +180,15 @@ describe('TabbedSqlEditors', () => {
       wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
     ).toContain('Untitled Query');
   });
+  it('should properly increment query tab name', () => {
+    wrapper = getWrapper();
+    sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
+
+    wrapper.instance().newQueryEditor();
+    expect(
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
+    ).toContain('Untitled Query 2');
+  });
   it('should duplicate query editor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'cloneQueryToNewTab');

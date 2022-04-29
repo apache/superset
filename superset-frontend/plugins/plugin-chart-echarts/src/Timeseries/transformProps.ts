@@ -28,6 +28,7 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
+  TimeGranularity,
   TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -55,6 +56,7 @@ import {
   formatForecastTooltipSeries,
   rebaseForecastDatum,
 } from '../utils/forecast';
+import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
@@ -67,6 +69,14 @@ import {
   transformTimeseriesAnnotation,
 } from './transformers';
 import { TIMESERIES_CONSTANTS } from '../constants';
+
+const TimeGrainToTimestamp = {
+  [TimeGranularity.HOUR]: 3600 * 1000,
+  [TimeGranularity.DAY]: 3600 * 1000 * 24,
+  [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
+  [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
+  [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
+};
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -124,7 +134,10 @@ export default function transformProps(
     xAxisTitleMargin,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    sliceId,
+    timeGrainSqla,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   const xAxisCol = verboseMap[xAxisOrig] || xAxisOrig || DTTM_ALIAS;
@@ -196,6 +209,7 @@ export default function transformProps(
       showValueIndexes,
       thresholdValues,
       richTooltip,
+      sliceId,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -215,7 +229,9 @@ export default function transformProps(
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data, colorScale));
+        series.push(
+          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+        );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
           ...transformIntervalAnnotation(
@@ -223,11 +239,18 @@ export default function transformProps(
             data,
             annotationData,
             colorScale,
+            sliceId,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
         series.push(
-          ...transformEventAnnotation(layer, data, annotationData, colorScale),
+          ...transformEventAnnotation(
+            layer,
+            data,
+            annotationData,
+            colorScale,
+            sliceId,
+          ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
         series.push(
@@ -236,6 +259,8 @@ export default function transformProps(
             markerSize,
             data,
             annotationData,
+            colorScale,
+            sliceId,
           ),
         );
       }
@@ -282,8 +307,8 @@ export default function transformProps(
     legendMargin,
     addXAxisLabelOffset,
     yAxisTitlePosition,
-    yAxisTitleMargin,
-    xAxisTitleMargin,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
   );
 
   const legendData = rawSeries
@@ -304,13 +329,17 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: xAxisTitleMargin,
+      nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: true,
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
+      minInterval:
+        xAxisType === 'time' && timeGrainSqla
+          ? TimeGrainToTimestamp[timeGrainSqla]
+          : 0,
     },
     yAxis: {
       ...defaultYAxis,
@@ -322,7 +351,7 @@ export default function transformProps(
       axisLabel: { formatter },
       scale: truncateYAxis,
       name: yAxisTitle,
-      nameGap: yAxisTitleMargin,
+      nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
