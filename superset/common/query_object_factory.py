@@ -21,25 +21,25 @@ from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
+from superset.dao.datasource import DatasourceDAO
 from superset.utils.core import apply_max_row_limit, DatasourceDict
 from superset.utils.date_parser import get_since_until
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset import ConnectorRegistry
     from superset.connectors.base.models import BaseDatasource
 
 
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     _config: Dict[str, Any]
-    _connector_registry: ConnectorRegistry
+    _connector_registry: DatasourceDAO
     _session_maker: sessionmaker
 
     def __init__(
         self,
         app_configurations: Dict[str, Any],
-        connector_registry: ConnectorRegistry,
+        connector_registry: DatasourceDAO,
         session_maker: sessionmaker,
     ):
         self._config = app_configurations

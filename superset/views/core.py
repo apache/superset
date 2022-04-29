@@ -61,13 +61,13 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
     SqlMetric,
     TableColumn,
 )
+from superset.dao.datasource import DatasourceDAO
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -250,7 +250,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = DatasourceDAO.get_all_datasources(db.session)
         datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
         role = security_manager.find_role(role_name)
         # remove all permissions
@@ -282,7 +282,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
         if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
+            ds_class = DatasourceDAO.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
             )
@@ -319,7 +319,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
-                datasource = ConnectorRegistry.get_datasource(
+                datasource = DatasourceDAO.get_datasource(
                     dar.datasource_type,
                     dar.datasource_id,
                     session,
@@ -336,7 +336,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         role_to_extend = request.args.get("role_to_extend")
 
         session = db.session
-        datasource = ConnectorRegistry.get_datasource(
+        datasource = DatasourceDAO.get_datasource(
             datasource_type, datasource_id, session
         )
 
@@ -809,7 +809,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
-                datasource = ConnectorRegistry.get_datasource(
+                datasource = DatasourceDAO.get_datasource(
                     cast(str, datasource_type), datasource_id, db.session
                 )
             except DatasetNotFoundError:
@@ -946,7 +946,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource = ConnectorRegistry.get_datasource(
+        datasource = DatasourceDAO.get_datasource(
             datasource_type,
             datasource_id,
             db.session,
@@ -1901,7 +1901,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
-                datasource = ConnectorRegistry.get_datasource(
+                datasource = DatasourceDAO.get_datasource(
                     datasource_type=datasource.type,
                     datasource_id=datasource.id,
                     session=db.session(),
@@ -2007,9 +2007,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         cluster_name = payload["cluster"]
 
         user = security_manager.find_user(username=user_name)
-        DruidDatasource = ConnectorRegistry.sources[  # pylint: disable=invalid-name
-            "druid"
-        ]
+        DruidDatasource = DatasourceDAO.sources["druid"]  # pylint: disable=invalid-name
         DruidCluster = DruidDatasource.cluster_class  # pylint: disable=invalid-name
         if not user:
             err_msg = __("Can't find user, please ask your admin to create one.")
@@ -2558,7 +2556,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
 
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
-        datasource = ConnectorRegistry.get_datasource(
+        datasource = DatasourceDAO.get_datasource(
             datasource_type,
             datasource_id,
             db.session,

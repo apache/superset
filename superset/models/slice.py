@@ -39,7 +39,8 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
+from superset.dao.datasource import DatasourceDAO
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
@@ -126,7 +127,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
-        return ConnectorRegistry.sources[self.datasource_type]
+        return DatasourceDAO.sources[self.datasource_type]
 
     @property
     def datasource(self) -> Optional["BaseDatasource"]:
