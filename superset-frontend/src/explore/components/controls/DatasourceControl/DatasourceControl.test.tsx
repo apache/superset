@@ -48,6 +48,17 @@ const createProps = () => ({
   name: 'datasource',
   actions: {},
   isEditable: true,
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
   onChange: jest.fn(),
   onDatasourceSave: jest.fn(),
 });
