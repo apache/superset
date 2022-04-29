@@ -22,13 +22,13 @@
     "lib"
   ],
   "dependencies": {
+    "@superset-ui/chart-controls": "0.0.0",
+    "@superset-ui/core": "0.0.0",
     "distributions": "^1.0.0",
     "prop-types": "^15.6.2",
     "reactable": "^1.1.0"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "0.0.0",
-    "@superset-ui/core": "0.0.0",
     "react": "^15 || ^16"
   },
   "publishConfig": {

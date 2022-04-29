@@ -25,6 +25,8 @@
   "dependencies": {
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^3.2.2",
+    "@superset-ui/chart-controls": "0.0.0",
+    "@superset-ui/core": "0.0.0",
     "@types/d3-array": "^2.0.0",
     "bootstrap-slider": "^10.0.0",
     "d3-array": "^1.2.4",
@@ -42,8 +44,6 @@
     "xss": "^1.0.10"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "0.0.0",
-    "@superset-ui/core": "0.0.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-map-gl": "^4.0.10",

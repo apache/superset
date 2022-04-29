@@ -25,10 +25,11 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
-  "peerDependencies": {
+  "dependencies": {
     "@superset-ui/chart-controls": "0.0.0",
-    "@superset-ui/core": "0.0.0",
+    "@superset-ui/core": "0.0.0"
+  },
+  "peerDependencies": {
     "@ant-design/icons": "^4.2.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

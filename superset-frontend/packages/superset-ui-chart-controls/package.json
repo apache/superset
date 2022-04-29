@@ -24,6 +24,7 @@
   ],
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
+    "@superset-ui/core": "0.0.0",
     "@types/enzyme": "^3.10.5",
     "@types/react": "*",
     "lodash": "^4.17.15",
@@ -32,7 +33,6 @@
   "peerDependencies": {
     "@ant-design/icons": "^4.2.2",
     "@emotion/react": "^11.4.1",
-    "@superset-ui/core": "0.0.0",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.11.6",
     "@testing-library/react": "^11.2.0",
