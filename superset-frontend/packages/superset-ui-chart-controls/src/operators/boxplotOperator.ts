@@ -21,16 +21,16 @@ import {
   getColumnLabel,
   getMetricLabel,
   PostProcessingBoxplot,
+  BoxPlotQueryObjectWhiskerType,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
-type BoxPlotQueryObjectWhiskerType =
-  PostProcessingBoxplot['options']['whisker_type'];
 const PERCENTILE_REGEX = /(\d+)\/(\d+) percentiles/;
 
-export const boxplotOperator: PostProcessingFactory<
-  PostProcessingBoxplot | undefined
-> = (formData, queryObject) => {
+export const boxplotOperator: PostProcessingFactory<PostProcessingBoxplot> = (
+  formData,
+  queryObject,
+) => {
   const { groupby, whiskerOptions } = formData;
 
   if (whiskerOptions) {

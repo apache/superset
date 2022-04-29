@@ -83,6 +83,7 @@ const propTypes = {
   ownState: PropTypes.object,
   filterState: PropTypes.object,
   postTransformProps: PropTypes.func,
+  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
 };
 
 const defaultProps = {
@@ -110,6 +111,12 @@ const ChartOverlay = styled.div`
     opacity: 0.5;
     background-color: ${({ theme }) => theme.colors.grayscale.light1};
   }
+`;
+
+const SliceContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 `;
 
 export default class Chart extends React.Component {
@@ -209,7 +216,10 @@ export default class Chart extends React.Component {
 
   getChartHeight() {
     const headerHeight = this.getHeaderHeight();
-    return this.state.height - headerHeight - this.state.descriptionHeight;
+    return Math.max(
+      this.state.height - headerHeight - this.state.descriptionHeight,
+      20,
+    );
   }
 
   getHeaderHeight() {
@@ -338,6 +348,7 @@ export default class Chart extends React.Component {
       isFullSize,
       filterboxMigrationState,
       postTransformProps,
+      datasetsStatus,
     } = this.props;
 
     const { width } = this.state;
@@ -368,7 +379,7 @@ export default class Chart extends React.Component {
         })
       : {};
     return (
-      <div
+      <SliceContainer
         className="chart-slice"
         data-test="chart-grid-component"
         data-test-chart-id={id}
@@ -405,6 +416,8 @@ export default class Chart extends React.Component {
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
           formData={formData}
+          width={width}
+          height={this.getHeaderHeight()}
         />
 
         {/*
@@ -463,9 +476,10 @@ export default class Chart extends React.Component {
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
+            datasetsStatus={datasetsStatus}
           />
         </div>
-      </div>
+      </SliceContainer>
     );
   }
 }

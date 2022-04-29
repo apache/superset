@@ -18,14 +18,10 @@
  */
 import React from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging, QueryFormData } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import {
-  getChartPermalink,
-  getDashboardPermalink,
-  getUrlParam,
-} from 'src/utils/urlUtils';
-import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { getDashboardPermalink, getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 interface ShareMenuItemProps {
@@ -36,8 +32,8 @@ interface ShareMenuItemProps {
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
-  dashboardId?: string;
-  formData?: Pick<QueryFormData, 'slice_id' | 'datasource'>;
+  dashboardId: string | number;
+  dashboardComponentId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -49,23 +45,21 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addDangerToast,
     addSuccessToast,
     dashboardId,
-    formData,
+    dashboardComponentId,
     ...rest
   } = props;
 
   async function generateUrl() {
-    // chart
-    if (formData) {
-      // we need to remove reserved dashboard url params
-      return getChartPermalink(formData, RESERVED_DASHBOARD_URL_PARAMS);
-    }
-    // dashboard
     const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
     let filterState = {};
     if (nativeFiltersKey && dashboardId) {
       filterState = await getFilterValue(dashboardId, nativeFiltersKey);
     }
-    return getDashboardPermalink(String(dashboardId), filterState);
+    return getDashboardPermalink({
+      dashboardId,
+      filterState,
+      hash: dashboardComponentId,
+    });
   }
 
   async function onCopyLink() {

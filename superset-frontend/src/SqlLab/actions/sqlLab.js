@@ -791,7 +791,7 @@ export function queryEditorSetSchema(queryEditor, schema) {
         dispatch({
           type: QUERY_EDITOR_SET_SCHEMA,
           queryEditor: queryEditor || {},
-          schema: schema || {},
+          schema,
         }),
       )
       .catch(() =>
@@ -1279,6 +1279,7 @@ export function popSavedQuery(saveQueryId) {
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          loaded: true,
           autorun: false,
         };
         return dispatch(addQueryEditor(queryEditorProps));
@@ -1393,10 +1394,21 @@ export function queryEditorSetFunctionNames(queryEditor, dbId) {
           functionNames: json.function_names,
         }),
       )
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while fetching function names.')),
-        ),
-      );
+      .catch(err => {
+        if (err.status === 404) {
+          // for databases that have been deleted, just reset the function names
+          dispatch({
+            type: QUERY_EDITOR_SET_FUNCTION_NAMES,
+            queryEditor,
+            functionNames: [],
+          });
+        } else {
+          dispatch(
+            addDangerToast(
+              t('An error occurred while fetching function names.'),
+            ),
+          );
+        }
+      });
   };
 }

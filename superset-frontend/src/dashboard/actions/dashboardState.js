@@ -612,3 +612,11 @@ export function maxUndoHistoryToast() {
     );
   };
 }
+
+export const SET_DATASETS_STATUS = 'SET_DATASETS_STATUS';
+export function setDatasetsStatus(status) {
+  return {
+    type: SET_DATASETS_STATUS,
+    status,
+  };
+}

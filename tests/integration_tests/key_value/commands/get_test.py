@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 def test_get_id_entry(app_context: AppContext, key_value_entry: KeyValueEntry) -> None:
     from superset.key_value.commands.get import GetKeyValueCommand
 
-    value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, key_type="id").run()
+    value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY).run()
     assert value == VALUE
 
 
@@ -48,16 +48,17 @@ def test_get_uuid_entry(
 ) -> None:
     from superset.key_value.commands.get import GetKeyValueCommand
 
-    value = GetKeyValueCommand(resource=RESOURCE, key=UUID_KEY, key_type="uuid").run()
+    value = GetKeyValueCommand(resource=RESOURCE, key=UUID_KEY).run()
     assert value == VALUE
 
 
 def test_get_id_entry_missing(
-    app_context: AppContext, key_value_entry: KeyValueEntry,
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,
 ) -> None:
     from superset.key_value.commands.get import GetKeyValueCommand
 
-    value = GetKeyValueCommand(resource=RESOURCE, key="456", key_type="id").run()
+    value = GetKeyValueCommand(resource=RESOURCE, key=456).run()
     assert value is None
 
 
@@ -74,7 +75,7 @@ def test_get_expired_entry(app_context: AppContext) -> None:
     )
     db.session.add(entry)
     db.session.commit()
-    value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY, key_type="id").run()
+    value = GetKeyValueCommand(resource=RESOURCE, key=ID_KEY).run()
     assert value is None
     db.session.delete(entry)
     db.session.commit()
@@ -94,7 +95,7 @@ def test_get_future_expiring_entry(app_context: AppContext) -> None:
     )
     db.session.add(entry)
     db.session.commit()
-    value = GetKeyValueCommand(resource=RESOURCE, key=str(id_), key_type="id").run()
+    value = GetKeyValueCommand(resource=RESOURCE, key=id_).run()
     assert value == VALUE
     db.session.delete(entry)
     db.session.commit()

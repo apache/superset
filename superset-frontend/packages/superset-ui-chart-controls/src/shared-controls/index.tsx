@@ -34,6 +34,7 @@
  * control interface.
  */
 import React from 'react';
+import { isEmpty } from 'lodash';
 import {
   FeatureFlag,
   t,
@@ -43,7 +44,7 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
-  JsonArray,
+  ComparisionType,
 } from '@superset-ui/core';
 
 import {
@@ -90,6 +91,11 @@ export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 const SERIES_LIMITS = [5, 10, 25, 50, 100, 500];
 
+const appContainer = document.getElementById('app');
+const { user } = JSON.parse(
+  appContainer?.getAttribute('data-bootstrap') || '{}',
+);
+
 type Control = {
   savedMetrics?: Metric[] | null;
   default?: unknown;
@@ -102,7 +108,7 @@ type SelectDefaultOption = {
 
 const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
   type: 'SelectControl',
-  label: t('Group by'),
+  label: t('Dimensions'),
   multi: true,
   freeForm: true,
   clearable: true,
@@ -166,6 +172,7 @@ const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
     form_data,
+    user,
   }),
 };
 
@@ -351,7 +358,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        (controls?.timeseries_limit_metric.value as JsonArray).length,
+        !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -402,7 +409,7 @@ const sort_by: SharedControlConfig<'MetricsControl'> = {
 
 const series: typeof groupByControl = {
   ...groupByControl,
-  label: t('Series'),
+  label: t('Dimensions'),
   multi: false,
   default: null,
   description: t(
@@ -455,16 +462,12 @@ const y_axis_format: SharedControlConfig<'SelectControl', SelectDefaultOption> =
     filterOption: ({ data: option }, search) =>
       option.label.includes(search) || option.value.includes(search),
     mapStateToProps: state => {
-      const showWarning =
-        state.controls?.comparison_type?.value === 'percentage';
+      const isPercentage =
+        state.controls?.comparison_type?.value === ComparisionType.Percentage;
       return {
-        warning: showWarning
-          ? t(
-              'When `Calculation type` is set to "Percentage change", the Y ' +
-                'Axis Format is forced to `.1%`',
-            )
-          : null,
-        disabled: showWarning,
+        choices: isPercentage
+          ? D3_FORMAT_OPTIONS.filter(option => option[0].includes('%'))
+          : D3_FORMAT_OPTIONS,
       };
     },
   };

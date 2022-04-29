@@ -24,7 +24,6 @@ import { t, styled } from '@superset-ui/core';
 import * as chrono from 'chrono-node';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { Form, FormItem } from 'src/components/Form';
-import './ScheduleQueryButton.less';
 import Button from 'src/components/Button';
 
 const appContainer = document.getElementById('app');
@@ -111,6 +110,24 @@ export const StyledButtonComponent = styled(Button)`
   }
 `;
 
+const StyledJsonSchema = styled.div`
+  i.glyphicon {
+    display: none;
+  }
+  .btn-add::after {
+    content: '+';
+  }
+  .array-item-move-up::after {
+    content: '↑';
+  }
+  .array-item-move-down::after {
+    content: '↓';
+  }
+  .array-item-remove::after {
+    content: '-';
+  }
+`;
+
 const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   defaultLabel = t('Undefined'),
   sql,
@@ -175,7 +192,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       </StyledRow>
       <Row>
         <Col xs={24}>
-          <div className="json-schema">
+          <StyledJsonSchema>
             <SchemaForm
               schema={getJSONSchema()}
               uiSchema={getUISchema}
@@ -190,7 +207,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
                 Submit
               </Button>
             </SchemaForm>
-          </div>
+          </StyledJsonSchema>
         </Col>
       </Row>
       {scheduleQueryWarning && (

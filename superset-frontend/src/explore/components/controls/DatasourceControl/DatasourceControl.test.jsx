@@ -19,7 +19,8 @@
 import React from 'react';
 import sinon from 'sinon';
 import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
+import { mount, shallow } from 'enzyme';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import {
   DatasourceModal,
@@ -40,6 +41,7 @@ const defaultProps = {
     id: 1,
     columns: [],
     metrics: [],
+    owners: [{ username: 'admin', userId: 1 }],
     database: {
       backend: 'mysql',
       name: 'main',
@@ -50,6 +52,17 @@ const defaultProps = {
     setDatasource: sinon.spy(),
   },
   onChange: sinon.spy(),
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
 };
 
 describe('DatasourceControl', () => {
@@ -60,8 +73,10 @@ describe('DatasourceControl', () => {
       ...defaultProps,
       ...overrideProps,
     };
-    return shallow(<DatasourceControl {...props} />, {
+    return mount(<DatasourceControl {...props} />, {
       context: { store },
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
     });
   }
 
@@ -80,7 +95,7 @@ describe('DatasourceControl', () => {
     expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     let menuWrapper = shallow(
       <div>
-        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+        {wrapper.find('[data-test="datasource-menu"]').first().prop('overlay')}
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(3);
@@ -91,7 +106,7 @@ describe('DatasourceControl', () => {
     expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     menuWrapper = shallow(
       <div>
-        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+        {wrapper.find('[data-test="datasource-menu"]').first().prop('overlay')}
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
@@ -104,6 +119,7 @@ describe('DatasourceControl', () => {
         id: 1,
         columns: [],
         metrics: [],
+        owners: [{ username: 'admin', userId: 1 }],
         database: {
           backend: 'druid',
           name: 'main',
@@ -113,7 +129,7 @@ describe('DatasourceControl', () => {
     expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
     menuWrapper = shallow(
       <div>
-        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+        {wrapper.find('[data-test="datasource-menu"]').first().prop('overlay')}
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
