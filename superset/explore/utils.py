@@ -45,9 +45,10 @@ def check_dataset_access(dataset_id: int) -> Optional[bool]:
 
 
 def check_access(
-    dataset_id: int, chart_id: Optional[int], actor: User
+    dataset_id: Optional[int], chart_id: Optional[int], actor: User
 ) -> Optional[bool]:
-    check_dataset_access(dataset_id)
+    if dataset_id:
+        check_dataset_access(dataset_id)
     if not chart_id:
         return True
     chart = ChartDAO.find_by_id(chart_id)

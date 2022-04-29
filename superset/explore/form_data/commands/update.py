@@ -76,6 +76,8 @@ class UpdateFormDataCommand(BaseCommand, ABC):
                     "dataset_id": dataset_id,
                     "chart_id": chart_id,
                     "form_data": form_data,
+                    "sl_id": None,
+                    "sl_type": None,
                 }
                 cache_manager.explore_form_data_cache.set(key, new_state)
             return key

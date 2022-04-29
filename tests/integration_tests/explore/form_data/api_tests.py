@@ -74,6 +74,8 @@ def cache(chart_id, admin_id, dataset_id):
         "dataset_id": dataset_id,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
+        "sl_type": None,
+        "sl_id": None,
     }
     cache_manager.explore_form_data_cache.set(KEY, entry)
 
@@ -84,6 +86,28 @@ def test_post(client, chart_id: int, dataset_id: int):
         "dataset_id": dataset_id,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
+    }
+    resp = client.post("api/v1/explore/form_data", json=payload)
+    assert resp.status_code == 201
+
+
+def test_post_with_sqllab_query(client, chart_id: int):
+    login(client, "admin")
+    form_data = {
+        "datasource": "100__query",  # using {id}__{type} format
+        "adhoc_filters": [],
+        "viz_type": "sankey",
+        "groupby": ["target"],
+        "metric": "sum__value",
+        "row_limit": 5000,
+        "slice_id": chart_id,
+        "time_range_endpoints": ["inclusive", "exclusive"],
+    }
+    payload = {
+        "sl_type": "query",
+        "sl_id": 100,
+        "chart_id": chart_id,
+        "form_data": json.dumps(form_data),
     }
     resp = client.post("api/v1/explore/form_data", json=payload)
     assert resp.status_code == 201
@@ -372,6 +396,8 @@ def test_delete_not_owner(client, chart_id: int, dataset_id: int, admin_id: int)
         "dataset_id": dataset_id,
         "chart_id": chart_id,
         "form_data": INITIAL_FORM_DATA,
+        "sl_type": None,
+        "sl_id": None,
     }
     cache_manager.explore_form_data_cache.set(another_key, entry)
     login(client, "admin")

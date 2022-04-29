@@ -23,8 +23,10 @@ from flask_appbuilder.security.sqla.models import User
 @dataclass
 class CommandParameters:
     actor: User
-    dataset_id: int = 0
+    dataset_id: Optional[int] = 0
     chart_id: int = 0
     tab_id: Optional[int] = None
     key: Optional[str] = None
     form_data: Optional[str] = None
+    sl_id: Optional[int] = 0
+    sl_type: Optional[str] = None

@@ -19,11 +19,23 @@ from marshmallow import fields, Schema
 
 class FormDataPostSchema(Schema):
     dataset_id = fields.Integer(
-        required=True, allow_none=False, description="The dataset ID"
+        required=False, allow_none=True, description="The dataset ID"
     )
     chart_id = fields.Integer(required=False, description="The chart ID")
     form_data = fields.String(
         required=True, allow_none=False, description="Any type of JSON supported text."
+    )
+
+    """
+    SIP - 68 Integration
+    sl_type: enum for sl_types (Query:sl_query, Dataset: sl_dataset, SavedQuery: sl_saved_query, Table: sl_table)
+    sl_id: index lookup id for given type(Query, Dataset, SavedQuery, Table) to look up
+    """
+    sl_id = fields.Integer(
+        required=False, allow_none=True, description="SIP-68 semantic layer type"
+    )
+    sl_type = fields.String(
+        required=False, allow_none=True, description="SIP-68 semantic layer id"
     )
 
 

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Optional
 
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,18 +45,48 @@ class CreateFormDataCommand(BaseCommand):
             tab_id = self._cmd_params.tab_id
             actor = self._cmd_params.actor
             form_data = self._cmd_params.form_data
-            check_access(dataset_id, chart_id, actor)
-            contextual_key = cache_key(session.get("_id"), tab_id, dataset_id, chart_id)
-            key = cache_manager.explore_form_data_cache.get(contextual_key)
-            if not key or not tab_id:
-                key = random_key()
-            if form_data:
-                state: TemporaryExploreState = {
+            sl_id = self._cmd_params.sl_id
+            sl_type = self._cmd_params.sl_type
+
+            state: Optional[TemporaryExploreState] = None
+
+            if form_data and dataset_id:
+                check_access(dataset_id, chart_id, actor)
+                contextual_key = cache_key(
+                    session.get("_id"), tab_id, dataset_id, chart_id
+                )
+                state = {
                     "owner": actor.get_user_id(),
                     "dataset_id": dataset_id,
                     "chart_id": chart_id,
                     "form_data": form_data,
+                    "sl_id": None,
+                    "sl_type": None,
                 }
+
+            elif form_data and sl_type and sl_id:
+                # SIP-68 form data creation
+                # todo(hugh):
+                # check_access(sl_query_id, chart_id, actor)
+                # build check_sl_query_access (https://github.com/hve-labs/superset/blob/b7a0559aaf5ff4266baf5069b93379fbecfb4a00/superset/explore/utils.py#L36)
+                contextual_key = cache_key(
+                    session.get("_id"), tab_id, sl_type, sl_id, chart_id
+                )
+                state = {
+                    "owner": actor.get_user_id(),
+                    "sl_id": sl_id,
+                    "sl_type": sl_type,
+                    "chart_id": chart_id,
+                    "form_data": form_data,
+                    "dataset_id": None,
+                }
+
+            key = cache_manager.explore_form_data_cache.get(contextual_key)
+
+            if not key or not tab_id:
+                key = random_key()
+
+            if form_data:
                 cache_manager.explore_form_data_cache.set(key, state)
                 cache_manager.explore_form_data_cache.set(contextual_key, key)
             return key
