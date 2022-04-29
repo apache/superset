@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-deckgl",
-  "version": "0.4.13",
+  "version": "0.0.0",
   "description": "Superset Legacy Chart - deck.gl",
   "keywords": [
     "superset"
@@ -42,8 +42,8 @@
     "xss": "^1.0.10"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "0.0.0",
+    "@superset-ui/core": "0.0.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-map-gl": "^4.0.10",

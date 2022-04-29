@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart-controls",
-  "version": "0.18.25",
+  "version": "0.0.0",
   "description": "Superset UI control-utils",
   "keywords": [
     "superset"
@@ -32,7 +32,7 @@
   "peerDependencies": {
     "@ant-design/icons": "^4.2.2",
     "@emotion/react": "^11.4.1",
-    "@superset-ui/core": "*",
+    "@superset-ui/core": "0.0.0",
     "@testing-library/dom": "^7.29.4",
     "@testing-library/jest-dom": "^5.11.6",
     "@testing-library/react": "^11.2.0",
