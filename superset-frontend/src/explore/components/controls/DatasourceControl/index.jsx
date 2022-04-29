@@ -196,11 +196,9 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
+    console.log(this.props);
     const isSqlSupported = datasource.type === 'table';
-    const appContainer = document.getElementById('app');
-    const { user } = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
+    const { user } = this.props;
     const allowEdit =
       datasource.owners.map(o => o.id).includes(user.userId) ||
       isUserAdmin(user);

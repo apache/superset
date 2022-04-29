@@ -29,6 +29,7 @@ import {
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { user } from 'src/SqlLab/fixtures';
 
 const defaultProps = {
   name: 'datasource',
@@ -52,6 +53,7 @@ const defaultProps = {
     setDatasource: sinon.spy(),
   },
   onChange: sinon.spy(),
+  user,
 };
 
 describe('DatasourceControl', () => {
