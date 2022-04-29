@@ -115,8 +115,8 @@ const config: ControlPanelConfig = {
               label: t('Color by'),
               default: ColorBy.metric,
               options: [
-                [ColorBy.metric, t('metric')],
-                [ColorBy.country, t('country')],
+                [ColorBy.metric, t('Metric')],
+                [ColorBy.country, t('Country')],
               ],
               description: t(
                 'Whether to define a color by metric or country column',
