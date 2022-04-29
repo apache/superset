@@ -246,7 +246,7 @@ function dbReducer(
       };
     case ActionType.parametersChange:
       if (
-        trimmedState.catalog &&
+        trimmedState.catalog !== undefined &&
         action.payload.type?.startsWith('catalog')
       ) {
         // Formatting wrapping google sheets table catalog
@@ -532,6 +532,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
+      if (
+        !dbToUpdate?.parameters?.catalog &&
+        dbToUpdate.database_name === 'Google Sheets'
+      ) {
+        // send empty catalog if there is empty fields for name or url
+        // since the database could parse it as valid
+        dbToUpdate.parameters = { catalog: { name: '', url: '' } };
+      }
+
       // Validate DB before saving
       const errors = await getValidation(dbToUpdate, true);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
