@@ -34,7 +34,6 @@ import logger from 'src/middleware/loggerMiddleware';
 import shortid from 'shortid';
 import {
   BootstrapUser,
-  User,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 
