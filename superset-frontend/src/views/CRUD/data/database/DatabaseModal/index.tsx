@@ -246,7 +246,7 @@ function dbReducer(
       };
     case ActionType.parametersChange:
       if (
-        trimmedState.catalog !== undefined &&
+        trimmedState.catalog &&
         action.payload.type?.startsWith('catalog')
       ) {
         // Formatting wrapping google sheets table catalog
