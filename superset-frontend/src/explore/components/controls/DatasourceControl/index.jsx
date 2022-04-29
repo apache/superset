@@ -196,7 +196,6 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
-    console.log(this.props);
     const isSqlSupported = datasource.type === 'table';
     const { user } = this.props;
     const allowEdit =

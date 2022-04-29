@@ -29,7 +29,6 @@ import {
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import { user } from 'src/SqlLab/fixtures';
 
 const defaultProps = {
   name: 'datasource',
@@ -53,7 +52,17 @@ const defaultProps = {
     setDatasource: sinon.spy(),
   },
   onChange: sinon.spy(),
-  user,
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
 };
 
 describe('DatasourceControl', () => {
@@ -110,6 +119,7 @@ describe('DatasourceControl', () => {
         id: 1,
         columns: [],
         metrics: [],
+        owners: [{ username: 'admin', userId: 1 }],
         database: {
           backend: 'druid',
           name: 'main',
